@@ -31,6 +31,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -260,8 +261,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
-        environments: List[str] = None,
+        project_ids: Optional[Sequence[int]] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -405,7 +406,7 @@ class ReleaseModelManager(BaseManager):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
@@ -934,7 +935,7 @@ class Release(Model):
                     router.db_for_write(CommitAuthor),
                     router.db_for_write(Commit),
                 )
-            ):
+            ), in_test_hide_transaction_boundary():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()

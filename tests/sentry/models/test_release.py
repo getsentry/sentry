@@ -359,6 +359,7 @@ class SetCommitsTestCase(TestCase):
             name="foo bar baz", email="foo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
         Commit.objects.create(
             repository_id=repo.id,
             organization_id=org.id,
@@ -431,6 +432,7 @@ class SetCommitsTestCase(TestCase):
         author = CommitAuthor.objects.create(
             organization_id=org.id, name="Foo Bar", email=self.user.email
         )
+        author.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,
@@ -1275,6 +1277,8 @@ class ClearCommitsTestCase(TestCase):
             name="foo bar boo", email="baroo@example.com", organization_id=org.id
         )
 
+        author.preload_users()
+        author2.preload_users()
         commit = Commit.objects.create(
             organization_id=org.id,
             repository_id=repo.id,

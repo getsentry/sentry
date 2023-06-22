@@ -3,24 +3,28 @@ import omit from 'lodash/omit';
 
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
 
 export type SpanMetrics = {
-  'p95(span.duration)': number;
-  'percentile_percent_change(span.duration, 0.95)': number;
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
   'sps()': number;
   'sps_percent_change()': number;
-  'sum(span.duration)': number;
+  'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
 
@@ -28,23 +32,16 @@ export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
   spanCategory?: string,
-  orderBy?: string,
+  sorts?: Sort[],
   limit?: number,
   referrer = 'use-span-list',
   cursor?: string
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    transaction,
-    spanCategory,
-    orderBy
-  );
+  const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
 
-  // TODO: Add referrer
-  const {isLoading, data, pageLinks} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     limit,
@@ -52,7 +49,7 @@ export const useSpanList = (
     cursor,
   });
 
-  return {isLoading, data, pageLinks};
+  return {isLoading, data, meta, pageLinks};
 };
 
 function getEventView(
@@ -60,13 +57,13 @@ function getEventView(
   location: Location,
   transaction?: string,
   spanCategory?: string,
-  orderBy?: string
+  sorts?: Sort[]
 ) {
   const query = buildEventViewQuery(moduleName, location, transaction, spanCategory)
     .filter(Boolean)
     .join(' ');
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query,
@@ -77,18 +74,25 @@ function getEventView(
         'span.domain',
         'sps()',
         'sps_percent_change()',
-        'sum(span.duration)',
-        'p95(span.duration)',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
-        'percentile_percent_change(span.duration, 0.95)',
+        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
-      orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
       version: 2,
     },
     omit(location, 'span.category')
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }
 
 function buildEventViewQuery(

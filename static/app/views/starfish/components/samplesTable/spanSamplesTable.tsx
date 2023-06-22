@@ -32,9 +32,8 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 type SpanTableRow = {
-  description: string;
-  duration: number;
   op: string;
+  'span.self_time': number;
   span_id: string;
   timestamp: string;
   transaction: {
@@ -43,7 +42,7 @@ type SpanTableRow = {
     timestamp: string;
     'transaction.duration': number;
   };
-  transaction_id: string;
+  'transaction.id': string;
 };
 
 type Props = {
@@ -71,9 +70,9 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
+          to={`/performance/${row.transaction?.['project.name']}:${row['transaction.id']}#span-${row.span_id}`}
         >
-          {row.transaction_id.slice(0, 8)}
+          {row['transaction.id'].slice(0, 8)}
         </Link>
       );
     }
@@ -82,18 +81,18 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
       return (
         <SpanDurationBar
           spanOp={row.op}
-          spanDuration={row.duration}
-          transactionDuration={row.transaction['transaction.duration']}
+          spanDuration={row['span.self_time']}
+          transactionDuration={row.transaction?.['transaction.duration']}
         />
       );
     }
 
     if (column.key === 'p95_comparison') {
-      return <DurationComparisonCell duration={row.duration} p95={p95} />;
+      return <DurationComparisonCell duration={row['span.self_time']} p95={p95} />;
     }
 
     if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
+      return <DateTime date={row['span.timestamp']} year timeZone seconds />;
     }
 
     return <span>{row[column.key]}</span>;

@@ -24,54 +24,13 @@ _DEV_METRICS_INDEXER_ARGS = [
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
 #     daemons += [_get_daemon("my_new_daemon")]
+#
+# If you are looking to add a kafka consumer, please do not create a new click
+# subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
-    "post-process-forwarder": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=errors",
-        "--loglevel=debug",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-transactions": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=transactions",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-transactions-commit-log",
-        "--synchronize-commit-group=transactions_group",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-issue-platform": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=search_issues",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-generic-events-commit-log",
-        "--synchronize-commit-group=generic_events_group",
-        "--no-strict-offset-reset",
-    ],
     "server": ["sentry", "run", "web"],
-    "metrics-rh": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "release-health",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
-    "metrics-perf": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "performance",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -297,10 +256,9 @@ and run `sentry devservices up kafka zookeeper`.
         from sentry import eventstream
 
         if eventstream.requires_post_process_forwarder():
-            daemons += [_get_daemon("post-process-forwarder")]
-            daemons += [_get_daemon("post-process-forwarder-transactions")]
-            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
-            needs_kafka = True
+            kafka_consumers.append("post-process-forwarder-errors")
+            kafka_consumers.append("post-process-forwarder-transactions")
+            kafka_consumers.append("post-process-forwarder-issue-platform")
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -321,10 +279,8 @@ and run `sentry devservices up kafka zookeeper`.
                     "`SENTRY_USE_METRICS_DEV` can only be used when "
                     "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
                 )
-            daemons += [
-                _get_daemon("metrics-rh"),
-                _get_daemon("metrics-perf"),
-            ]
+            kafka_consumers.append("ingest-metrics")
+            kafka_consumers.append("ingest-generic-metrics")
             kafka_consumers.append("billing-metrics-consumer")
             needs_kafka = True
 

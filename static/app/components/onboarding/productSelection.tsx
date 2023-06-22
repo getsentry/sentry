@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -6,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -21,6 +23,7 @@ export enum PRODUCT {
 export type DisabledProduct = {
   product: PRODUCT;
   reason: string;
+  onClick?: () => void;
 };
 
 type ProductProps = {
@@ -32,25 +35,35 @@ type ProductProps = {
 };
 
 function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+  const ProductWrapper = permanentDisabled
+    ? PermanentDisabledProductWrapper
+    : disabled
+    ? DisabledProductWrapper
+    : ProductButtonWrapper;
+
   return (
     <ProductWrapper
-      permanentDisabled={permanentDisabled}
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
+      onClick={onClick}
+      disabled={onClick ?? permanentDisabled ? false : disabled}
+      priority={permanentDisabled || checked ? 'primary' : 'default'}
+      aria-label={label}
     >
-      <Checkbox
-        checked={checked}
-        disabled={permanentDisabled ? false : disabled}
-        aria-label={label}
-        size="xs"
-        readOnly
-      />
-      <span>{label}</span>
+      <ProductButtonInner>
+        <Checkbox
+          checked={checked}
+          disabled={permanentDisabled ? false : disabled}
+          aria-label={label}
+          size="xs"
+          readOnly
+        />
+        <span>{label}</span>
+        <IconQuestion size="xs" color="subText" />
+      </ProductButtonInner>
     </ProductWrapper>
   );
 }
 
-type ProductSelectionProps = {
+export type ProductSelectionProps = {
   defaultSelectedProducts?: PRODUCT[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
@@ -136,7 +149,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
+            onClick={
+              performanceProductDisabled
+                ? performanceProductDisabled?.onClick
+                : () => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
+            }
             disabled={!!performanceProductDisabled}
             checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
@@ -158,7 +175,11 @@ export function ProductSelection({
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
+            onClick={
+              sessionReplayProductDisabled
+                ? sessionReplayProductDisabled?.onClick
+                : () => handleClickProduct(PRODUCT.SESSION_REPLAY)
+            }
             disabled={!!sessionReplayProductDisabled}
             checked={products.includes(PRODUCT.SESSION_REPLAY)}
             label={t('Session Replay')}
@@ -189,33 +210,48 @@ const Products = styled('div')`
   gap: ${space(1)};
 `;
 
-const ProductWrapper = styled('div')<{disabled?: boolean; permanentDisabled?: boolean}>`
+const ProductButtonWrapper = styled(Button)`
+  ${p =>
+    p.priority === 'primary' &&
+    css`
+      &,
+      :hover {
+        background: ${p.theme.purple100};
+        color: ${p.theme.purple300};
+      }
+    `}
+`;
+
+const DisabledProductWrapper = styled(Button)`
+  && {
+    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+    input {
+      cursor: ${p =>
+        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
+    }
+  }
+`;
+
+const PermanentDisabledProductWrapper = styled(Button)`
+  && {
+    &,
+    :hover {
+      background: ${p => p.theme.purple100};
+      color: ${p => p.theme.purple300};
+      opacity: 0.5;
+      cursor: not-allowed;
+      input {
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
+const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-  ${p => p.theme.buttonPadding.xs};
-  background: ${p =>
-    p.disabled && !p.permanentDisabled ? p.theme.background : p.theme.purple100};
-  border: 1px solid
-    ${p =>
-      p.disabled && !p.permanentDisabled ? p.theme.disabledBorder : p.theme.purple300};
-  border-radius: 6px;
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  font-weight: 500;
-  color: ${p =>
-    p.disabled && !p.permanentDisabled ? p.theme.textColor : p.theme.purple300};
-  input {
-    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
-  }
-
-  > *:first-child {
-    opacity: ${p => (p.permanentDisabled ? 0.5 : 1)};
-  }
-
-  > *:last-child {
-    opacity: ${p => (p.disabled ? 0.5 : 1)};
-  }
 `;
 
 const Divider = styled('hr')`

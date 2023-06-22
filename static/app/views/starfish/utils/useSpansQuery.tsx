@@ -1,7 +1,11 @@
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView, {
+  encodeSort,
+  EventsMetaType,
+  MetaType,
+} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
@@ -9,12 +13,13 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
+export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 // Setting return type since I'd rather not know if its discover query or not
 export type UseSpansQueryReturnType<T> = {
   data: T;
   isLoading: boolean;
+  meta?: MetaType | EventsMetaType;
   pageLinks?: string;
 };
 
@@ -33,16 +38,28 @@ export function useSpansQuery<T = any[]>({
   limit?: number;
   referrer?: string;
 }): UseSpansQueryReturnType<T> {
-  const queryFunction = getQueryFunction({
-    isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
-  });
+  const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
+  const queryFunction = isTimeseriesQuery
+    ? useWrappedDiscoverTimeseriesQuery
+    : useWrappedDiscoverQuery;
+
   if (eventView) {
-    return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
+    const response = queryFunction<T>({
+      eventView,
+      initialData,
+      limit,
+      enabled,
+      referrer,
+      cursor,
+    });
+
+    return response;
   }
+
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-export function useWrappedDiscoverTimeseriesQuery({
+export function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,
@@ -54,12 +71,17 @@ export function useWrappedDiscoverTimeseriesQuery({
   enabled?: boolean;
   initialData?: any;
   referrer?: string;
-}) {
+}): {
+  data: T;
+  isLoading: boolean;
+  meta?: MetaType; // TODO: This is probably not correct! Timeseries calls return `meta` along with each _series_, rather than as an overall part of the response
+} {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data} = useGenericDiscoverQuery<
     {
       data: any[];
+      meta: MetaType;
     },
     DiscoverQueryProps
   >({
@@ -83,16 +105,18 @@ export function useWrappedDiscoverTimeseriesQuery({
     },
     referrer,
   });
+
   return {
     isLoading,
     data:
       isLoading && initialData
         ? initialData
         : processDiscoverTimeseriesResult(data, eventView),
+    meta: data?.meta,
   };
 }
 
-export function useWrappedDiscoverQuery({
+export function useWrappedDiscoverQuery<T>({
   eventView,
   initialData,
   enabled,
@@ -106,7 +130,12 @@ export function useWrappedDiscoverQuery({
   initialData?: any;
   limit?: number;
   referrer?: string;
-}) {
+}): {
+  data: T;
+  isLoading: boolean;
+  meta?: EventsMetaType;
+  pageLinks?: string;
+} {
   const location = useLocation();
   const organization = useOrganization();
   const {isLoading, data, pageLinks} = useDiscoverQuery({
@@ -121,19 +150,13 @@ export function useWrappedDiscoverQuery({
       refetchOnWindowFocus: false,
     },
   });
+
   return {
     isLoading,
     data: isLoading && initialData ? initialData : data?.data,
+    meta: data?.meta as unknown as EventsMetaType, // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it does not!
     pageLinks,
   };
-}
-
-function getQueryFunction({isTimeseriesQuery}: {isTimeseriesQuery?: boolean}) {
-  if (isTimeseriesQuery) {
-    return useWrappedDiscoverTimeseriesQuery;
-  }
-
-  return useWrappedDiscoverQuery;
 }
 
 type Interval = {[key: string]: any; interval: string; group?: string};
@@ -148,12 +171,16 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
   const firstYAxis =
     typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
-
   if (result.data) {
-    return processSingleDiscoverTimeseriesResult(
+    const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
       result,
       singleYAxis ? firstYAxis : 'count'
-    );
+    ).map(data => ({
+      interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
+      [firstYAxis]: data[firstYAxis],
+      group: data.group,
+    }));
+    return timeSeriesResult;
   }
   Object.keys(result).forEach(key => {
     if (result[key].data) {

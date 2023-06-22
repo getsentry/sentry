@@ -1,17 +1,21 @@
-import unittest
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.models.options.project_option import ProjectOption
+from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     PROJECT_ID,
     create_span,
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import RenderBlockingAssetSpanDetector
+from sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector import (
+    RenderBlockingAssetSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -19,8 +23,8 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def _valid_render_blocking_asset_event(url: str) -> Event:
-    event = {
+def _valid_render_blocking_asset_event(url: str) -> dict[str, Any]:
+    return {
         "event_id": "a" * 16,
         "project": PROJECT_ID,
         "measurements": {
@@ -49,10 +53,9 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
         },
         "transaction": "/",
     }
-    return event
 
 
-def find_problems(settings, event: Event) -> List[PerformanceProblem]:
+def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     detector = RenderBlockingAssetSpanDetector(settings, event)
     run_detector_on_data(detector, event)
     return list(detector.stored_problems.values())
@@ -60,13 +63,13 @@ def find_problems(settings, event: Event) -> List[PerformanceProblem]:
 
 @region_silo_test
 @pytest.mark.django_db
-class RenderBlockingAssetDetectorTest(unittest.TestCase):
+class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
     def find_problems(self, event):
-        return find_problems(self.settings, event)
+        return find_problems(self._settings, event)
 
     def test_detects_render_blocking_asset(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")
@@ -88,6 +91,27 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = RenderBlockingAssetSpanDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"large_render_blocking_asset_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = RenderBlockingAssetSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_if_resource_overlaps_fcp(self):
         event = _valid_render_blocking_asset_event("https://example.com/a.js")

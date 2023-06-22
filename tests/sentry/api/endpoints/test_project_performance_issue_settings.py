@@ -34,10 +34,18 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
-        assert response.data["n_plus_one_db_detection_rate"] == 1.0
-        assert response.data["n_plus_one_api_calls_detection_rate"] == 1.0
-        assert response.data["consecutive_db_queries_detection_rate"] == 1.0
+        assert response.data["slow_db_query_duration_threshold"] == 1000
+        assert response.data["n_plus_one_db_duration_threshold"] == 100
         assert response.data["uncompressed_assets_detection_enabled"]
+        assert response.data["consecutive_http_spans_detection_enabled"]
+        assert response.data["large_http_payload_detection_enabled"]
+        assert response.data["n_plus_one_db_queries_detection_enabled"]
+        assert response.data["n_plus_one_api_calls_detection_enabled"]
+        assert response.data["db_on_main_thread_detection_enabled"]
+        assert response.data["file_io_on_main_thread_detection_enabled"]
+        assert response.data["consecutive_db_queries_detection_enabled"]
+        assert response.data["large_render_blocking_asset_detection_enabled"]
+        assert response.data["slow_db_queries_detection_enabled"]
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
@@ -49,34 +57,32 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.put(
                 self.url,
                 data={
-                    "n_plus_one_db_detection_rate": 0.33,
+                    "n_plus_one_db_queries_detection_enabled": False,
                 },
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["n_plus_one_db_detection_rate"] == 0.33
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
 
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             get_response = self.client.get(self.url, format="json")
 
         assert get_response.status_code == 200, response.content
-        assert get_response.data["n_plus_one_db_detection_rate"] == 0.33
+        assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.put(
                 self.url,
                 data={
-                    "n_plus_one_db_detection_rate": -1,
+                    "n_plus_one_db_queries_detection_enabled": -1,
                 },
             )
 
         assert response.status_code == 400, response.content
         assert response.data == {
-            "n_plus_one_db_detection_rate": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 0.", code="min_value"
-                )
+            "n_plus_one_db_queries_detection_enabled": [
+                ErrorDetail(string="Must be a valid boolean.", code="invalid")
             ]
         }
 

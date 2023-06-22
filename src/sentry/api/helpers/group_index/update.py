@@ -94,6 +94,65 @@ def handle_discard(
     return Response(status=204)
 
 
+def self_subscribe_and_assign_issue(
+    acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
+) -> ActorTuple | None:
+    # Used during issue resolution to assign to acting user
+    # returns None if the user didn't elect to self assign on resolution
+    # or the group is assigned already, otherwise returns Actor
+    # representation of current user
+    if acting_user:
+        GroupSubscription.objects.subscribe(
+            user=acting_user, group=group, reason=GroupSubscriptionReason.status_change
+        )
+
+        if self_assign_issue == "1" and not group.assignee_set.exists():
+            return ActorTuple(type=User, id=acting_user.id)
+    return None
+
+
+def get_current_release_version_of_group(
+    group: Group, follows_semver: bool = False
+) -> Release | None:
+    """
+    Function that returns the latest release version associated with a Group, and by latest we
+    mean either most recent (date) or latest in semver versioning scheme
+    Inputs:
+        * group: Group of the issue
+        * follows_semver: flag that determines whether the project of the group follows semantic
+                          versioning or not.
+    Returns:
+        current_release_version
+    """
+    current_release_version = None
+    if follows_semver:
+        try:
+            # This sets current_release_version to the latest semver version associated with a group
+            order_by_semver_desc = [f"-{col}" for col in Release.SEMVER_COLS]
+            current_release_version = (
+                Release.objects.filter_to_semver()
+                .filter(
+                    id__in=GroupRelease.objects.filter(
+                        project_id=group.project.id, group_id=group.id
+                    ).values_list("release_id"),
+                )
+                .annotate_prerelease_column()
+                .order_by(*order_by_semver_desc)
+                .values_list("version", flat=True)[:1]
+                .get()
+            )
+        except Release.DoesNotExist:
+            pass
+    else:
+        # This sets current_release_version to the most recent release associated with a group
+        # In order to be able to do that, `use_cache` has to be set to False. Otherwise,
+        # group.get_last_release might not return the actual latest release associated with a
+        # group but rather a cached version (which might or might not be the actual latest. It is
+        # the first latest observed by Sentry)
+        current_release_version = group.get_last_release(use_cache=False)
+    return current_release_version
+
+
 def update_groups(
     request: Request,
     group_ids: Sequence[Group],
@@ -145,6 +204,13 @@ def update_groups(
     project_lookup = {p.id: p for p in projects}
 
     acting_user = user if user.is_authenticated else None
+    self_assign_issue = "0"
+    if acting_user:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+        )
+        if user_options:
+            self_assign_issue = user_options[0].value
 
     if search_fn and not group_ids:
         try:

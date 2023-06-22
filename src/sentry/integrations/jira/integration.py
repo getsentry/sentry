@@ -380,8 +380,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
+            integration=self.model,
+            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -420,7 +420,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -868,7 +868,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

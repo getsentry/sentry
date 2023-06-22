@@ -84,6 +84,7 @@ export function DocWithProductSelection({
         location={location}
         platform={currentPlatform}
         close={closeLoaderDocs}
+        showDocsWithProductSelection
       />
     );
   }

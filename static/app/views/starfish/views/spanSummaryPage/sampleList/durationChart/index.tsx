@@ -1,13 +1,15 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
-import moment from 'moment';
 
 import {Series} from 'sentry/types/echarts';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
@@ -21,23 +23,24 @@ function DurationChart({groupId, transactionName}: Props) {
   const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     {group: groupId},
     {transactionName},
-    ['p95(span.duration)'],
+    [`p95(${SPAN_SELF_TIME})`],
     'sidebar-span-metrics'
   );
 
-  const {data: spans, isLoading: areSpanSamplesLoading} = useSpanSamples(
+  const {
+    data: spans,
+    isLoading: areSpanSamplesLoading,
+    isRefetching: areSpanSamplesRefetching,
+  } = useSpanSamples({
     groupId,
     transactionName,
-    undefined,
-    '-duration',
-    'span-summary-panel-samples-table-spans'
-  );
+  });
 
   const sampledSpanDataSeries: Series[] = spans.map(
-    ({timestamp, duration, transaction_id}) => ({
+    ({timestamp, 'span.self_time': duration, 'transaction.id': transaction_id}) => ({
       data: [
         {
-          name: moment(timestamp).unix(),
+          name: timestamp,
           value: duration,
         },
       ],
@@ -54,11 +57,15 @@ function DurationChart({groupId, transactionName}: Props) {
       <Chart
         statsPeriod="24h"
         height={140}
-        data={[spanMetricsSeriesData?.['p95(span.duration)']]}
+        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
         start=""
         end=""
         loading={isLoading}
-        scatterPlot={areSpanSamplesLoading ? undefined : sampledSpanDataSeries}
+        scatterPlot={
+          areSpanSamplesLoading || areSpanSamplesRefetching
+            ? undefined
+            : sampledSpanDataSeries
+        }
         utc={false}
         chartColors={[P95_COLOR]}
         isLineChart
