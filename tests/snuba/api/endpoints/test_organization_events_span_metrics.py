@@ -124,8 +124,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["sum(span.duration)"] == 420
         assert meta["dataset"] == "spansMetrics"
 
-    # TODO(wmak)
-    # test_percentile
+    def test_percentile(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["percentile(span.duration, 0.95)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["percentile(span.duration, 0.95)"] == 1
+        assert meta["dataset"] == "spansMetrics"
 
     def test_p50(self):
         self.store_span_metric(
