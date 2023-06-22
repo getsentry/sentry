@@ -191,8 +191,11 @@ class BaseOrganizationEndpointTest(TestCase):
     @cached_property
     def org(self):
         org = self.create_organization("test", self.owner)
-        org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        org.refresh_from_db()
         return org
 
     def build_request(self, user=None, active_superuser=False, **params):
@@ -256,8 +259,11 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
             project_ids=[self.project_1.id, self.project_2.id],
         )
         # Should get everything if org is public and ids are specified
-        self.org.flags.allow_joinleave = True
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") + Organization.flags.allow_joinleave),
+        )
+        self.org.refresh_from_db()
         self.run_test(
             [self.project_1, self.project_2],
             user=self.member,
@@ -284,12 +290,18 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         # have membership
         self.run_test([self.project_1], user=self.owner, project_ids=[self.project_1.id])
 
-        self.org.flags.allow_joinleave = True
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") + Organization.flags.allow_joinleave),
+        )
+        self.org.refresh_from_db()
         self.run_test([self.project_1], user=self.member, project_ids=[self.project_1.id])
 
-        self.org.flags.allow_joinleave = False
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        self.org.refresh_from_db()
         with pytest.raises(PermissionDenied):
             self.run_test([self.project_1], user=self.member, project_ids=[self.project_1.id])
 
@@ -322,8 +334,11 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.run_test([self.project_1], project_ids=[-1])
 
     def test_all_accessible_sigil_value_allow_joinleave(self):
-        self.org.flags.allow_joinleave = True
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") + Organization.flags.allow_joinleave),
+        )
+        self.org.refresh_from_db()
 
         # With membership on only one team you get all projects
         self.create_team_membership(user=self.user, team=self.team_1)

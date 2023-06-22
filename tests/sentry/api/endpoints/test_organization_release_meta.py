@@ -1,15 +1,20 @@
+from django.db.models import F
 from django.urls import reverse
 
 from sentry.models import (
     Commit,
     CommitFileChange,
     File,
+    Organization,
     ProjectArtifactBundle,
     Release,
     ReleaseArtifactBundle,
     ReleaseCommit,
     ReleaseFile,
     Repository,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
@@ -21,8 +26,11 @@ class ReleaseMetaTest(APITestCase):
     def test_multiple_projects(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         team2 = self.create_team(organization=org)
@@ -92,8 +100,11 @@ class ReleaseMetaTest(APITestCase):
     def test_artifact_count_without_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         project = self.create_project(teams=[team1], organization=org)
@@ -122,8 +133,11 @@ class ReleaseMetaTest(APITestCase):
     def test_artifact_count_with_single_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         project = self.create_project(teams=[team1], organization=org)
@@ -160,8 +174,11 @@ class ReleaseMetaTest(APITestCase):
     def test_artifact_count_with_multiple_weak_association(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        org.refresh_from_db()
 
         team1 = self.create_team(organization=org)
         project = self.create_project(teams=[team1], organization=org)

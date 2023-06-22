@@ -2,6 +2,7 @@ from typing import Optional
 from unittest.mock import Mock
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import F
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
@@ -574,8 +575,11 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_open_membership(self):
         with exempt_from_silo_limits():
-            self.org.flags.allow_joinleave = True
-            self.org.save()
+            update_organization_with_outbox_message(
+                org_id=self.org.id,
+                update_data=dict(flags=F("flags").bitor(Organization.flags.allow_joinleave)),
+            )
+        self.org.refresh_from_db()
         member_user = self.create_user(is_superuser=False)
         self.create_member(
             user=member_user, organization=self.org, role="member", teams=[self.team1]

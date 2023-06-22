@@ -1,6 +1,7 @@
 from django.core import mail
+from django.db.models import F
 
-from sentry.models import Activity, Environment, NotificationSetting, Repository
+from sentry.models import Activity, Environment, NotificationSetting, Organization, Repository
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.notifications.types import (
     GroupSubscriptionReason,
@@ -8,6 +9,9 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -23,8 +27,11 @@ class ReleaseTestCase(ActivityTestCase):
         self.user5_alt_email = "privateEmail@gmail.com"
 
         self.org = self.create_organization(owner=None)
-        self.org.flags.allow_joinleave = False
-        self.org.save()
+        update_organization_with_outbox_message(
+            org_id=self.org.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        self.org.refresh_from_db()
 
         self.team = self.create_team(organization=self.org)
         self.team2 = self.create_team(organization=self.org)

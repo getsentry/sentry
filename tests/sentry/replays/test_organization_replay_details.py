@@ -1,9 +1,14 @@
 import datetime
 from uuid import uuid4
 
+from django.db.models import F
 from django.urls import reverse
 
+from sentry.models import Organization
 from sentry.replays.testutils import assert_expected_response, mock_expected_response, mock_replay
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase, ReplaysSnubaTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -40,8 +45,10 @@ class OrganizationReplayDetailsTest(APITestCase, ReplaysSnubaTestCase):
         self.store_replays(mock_replay(seq1_timestamp, self.project.id, self.replay_id))
         self.store_replays(mock_replay(seq2_timestamp, self.project.id, self.replay_id))
 
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
+        update_organization_with_outbox_message(
+            org_id=self.organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
         user = self.create_user(is_staff=False, is_superuser=False)
         member2 = self.create_member(organization=self.organization, user=user, role="member")
 

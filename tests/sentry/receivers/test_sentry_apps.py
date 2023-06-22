@@ -2,10 +2,23 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+from django.db.models import F
+
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.constants import SentryAppInstallationStatus
-from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
+from sentry.models import (
+    Activity,
+    Commit,
+    GroupAssignee,
+    GroupLink,
+    Organization,
+    Release,
+    Repository,
+)
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.faux import faux
@@ -395,8 +408,12 @@ class TestIssueAssigned(APITestCase):
 
     def test_after_issue_assigned_with_enhanced_privacy(self, delay):
         org = self.issue.project.organization
-        org.flags.enhanced_privacy = True
-        org.save()
+        update_organization_with_outbox_message(
+            org_id=org.id,
+            update_data=dict(flags=F("flags").bitor(Organization.flags.enhanced_privacy)),
+        )
+
+        org.refresh_from_db()
 
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 

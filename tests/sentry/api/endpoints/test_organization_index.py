@@ -1,8 +1,13 @@
 import re
 from unittest.mock import patch
 
+from django.db.models import F
+
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
@@ -233,7 +238,11 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
 
     def setUp(self):
         self.org_2fa = self.create_organization(owner=self.create_user())
-        self.enable_org_2fa(self.org_2fa)
+        update_organization_with_outbox_message(
+            org_id=self.org_2fa.id,
+            update_data=dict(flags=F("flags") - Organization.flags.require_2fa),
+        )
+        self.org_2fa.refresh_from_db()
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 

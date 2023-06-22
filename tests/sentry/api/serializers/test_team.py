@@ -1,10 +1,14 @@
 from django.conf import settings
+from django.db.models import F
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.app import env
-from sentry.models import InviteStatus
+from sentry.models import InviteStatus, Organization
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -95,8 +99,10 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -124,8 +130,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -153,8 +162,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == set()
@@ -182,8 +194,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -211,8 +226,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -244,8 +262,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -269,8 +290,10 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
@@ -302,8 +325,11 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is False
         assert result["teamRole"] is None
 
-        organization.flags.allow_joinleave = False
-        organization.save()
+        update_organization_with_outbox_message(
+            org_id=organization.id,
+            update_data=dict(flags=F("flags") - Organization.flags.allow_joinleave),
+        )
+        organization.refresh_from_db()
         result = serialize(team, user)
         # after changing to allow_joinleave=False
         assert result["access"] == TEAM_ADMIN["scopes"]
