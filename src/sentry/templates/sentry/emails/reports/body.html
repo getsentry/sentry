@@ -320,8 +320,8 @@
       <td class="project-breakdown-graph-cell replays {% if trends.total_transaction_count == 0 %}some-empty-below{% endif %}">
         <h4 class="total-count-title">Total Project Replays</h4>
         <h1 style="margin: 0;" class="total-count">{{ trends.total_replay_count|small_count:1 }}</h1>
-        {% url 'sentry-organization-perfomance' organization.slug as performance_landing %}
-        <a href="{% org_url organization performance_landing query='referrer=weekly_email_view_all' %}"
+        {% url 'sentry-organization-replays' organization.slug as replay_landing %}
+        <a href="{% org_url organization replay_landing query='referrer=weekly_email_view_all' %}"
           style="font-size: 12px; margin-bottom: 16px; display: block;">View All Replays</a>
         <table class="graph">
           <tr>
@@ -358,10 +358,10 @@
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px"
             alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
-          <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
-          {% url 'sentry-organization-performance' organization.slug as performance_landing %}
-          <a href="{% org_url organization performance_landing query='referrer=weekly_email_upsell' %}" class="btn"
-            style="margin-top: 8px;">Set Up Replays</a>
+          <p style="font-size: 11px;">See video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.</p>
+          {% url 'sentry-organization-replays' organization.slug as replay_landing %}
+          <a href="{% org_url organization replay_landing query='referrer=weekly_email_upsell' %}" class="btn"
+            style="margin-top: 8px;">Set Up Session Replay</a>
         </div>
       </td>
     {% endif %}
@@ -542,9 +542,9 @@
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
         {% querystring referrer="weekly_report" as query %}
-        {% url 'sentry-organization-performance-summary' organization.slug a.replay.id as replay_details %}
+        {% url 'sentry-organization-replay-details' organization.slug a.replay.id as replay_details %}
         <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;"
-          href="{% org_url organization '/replay/{}/' 123 query=query %}">{{a.id}}</a>
+          href="{% org_url organization replay_details query=query %}">{{a.id}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
       </div>
       <div style="font-size: 14px; margin-left: auto; display: flex;">
