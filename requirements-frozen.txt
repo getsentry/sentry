@@ -22,7 +22,6 @@ cachetools==5.3.0
 celery==4.4.7
 certifi==2022.12.7
 cffi==1.15.1
-chardet==4.0.0
 charset-normalizer==3.0.1
 click==8.0.4
 confluent-kafka==2.1.1
