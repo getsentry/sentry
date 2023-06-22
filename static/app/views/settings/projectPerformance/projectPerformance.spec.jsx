@@ -187,9 +187,9 @@ describe('projectPerformance', function () {
     {
       title: 'Slow DB Queries',
       threshold: 'slow_db_query_duration_threshold',
-      allowedValues: allowedDurationValues,
+      allowedValues: allowedDurationValues.slice(1),
       defaultValue: 1000,
-      newValue: 2000,
+      newValue: 3000,
       newValueIndex: 7,
       sliderIndex: 2,
     },
@@ -263,7 +263,10 @@ describe('projectPerformance', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
-      body: {n_plus_one_db_queries_detection_enabled: true},
+      body: {
+        n_plus_one_db_queries_detection_enabled: true,
+        slow_db_queries_detection_enabled: false,
+      },
       statusCode: 200,
     });
     const endpointMock = MockApiClient.addMockResponse({
@@ -297,6 +300,16 @@ describe('projectPerformance', function () {
       expect.objectContaining({
         data: {
           n_plus_one_db_duration_threshold: 100,
+        },
+      })
+    );
+
+    // Should not be able to reset thresholds that are disabled by admin
+    expect(endpointMock).toHaveBeenCalledWith(
+      '/projects/org-slug/project-slug/performance-issues/configure/',
+      expect.not.objectContaining({
+        data: {
+          slow_db_query_duration_threshold: 1000,
         },
       })
     );
