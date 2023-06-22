@@ -54,7 +54,7 @@ def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Op
 def batch_reverse_resolve(
     use_case_id: UseCaseKey, org_id: int, tags_to_resolve: Sequence[Tuple[str, int]]
 ) -> Sequence[Tuple[str, Optional[str]]]:
-    # temporary implementation until indexer.batch_reverse_resolve is implemented
+    # TODO(ogi): Implement the actual indexer batch reverse resolve 
     return [
         (key, reverse_resolve_tag_value(use_case_id, org_id, value, weak=True))
         for key, value in tags_to_resolve
