@@ -106,6 +106,7 @@ class AuditLogEntry(Model):
             event_id=self.event and int(self.event),
             target_user_id=self.target_user_id,
             data=self.data,
+            actor_key_id=self.actor_key_id,
         )
 
     @classmethod
@@ -137,6 +138,7 @@ class AuditLogEntry(Model):
             data=event.data,
             actor_label=label,
             target_user_id=event.target_user_id,
+            actor_key_id=event.actor_key_id,
         )
 
     def get_actor_name(self):
