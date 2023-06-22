@@ -4,6 +4,7 @@ import pytest
 from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -61,7 +62,7 @@ def params():
     ],
 )
 @pytest.mark.django_db
-def test_conditions(params, search, condition):
+def test_where(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
         params,
@@ -69,3 +70,64 @@ def test_conditions(params, search, condition):
         selected_columns=["count()"],
     )
     assert condition in builder.where
+
+
+@pytest.mark.parametrize(
+    "search,condition",
+    [
+        pytest.param(
+            "slope(avg):>0",
+            Condition(
+                Function(
+                    "tupleElement",
+                    [
+                        Function(
+                            "simpleLinearRegression",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                Function("finalizeAggregation", [Column("avg")]),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "sentry_slope_avg",
+                ),
+                Op(">"),
+                0,
+            ),
+            id="regression",
+        ),
+        pytest.param(
+            "slope(avg):<0",
+            Condition(
+                Function(
+                    "tupleElement",
+                    [
+                        Function(
+                            "simpleLinearRegression",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                Function("finalizeAggregation", [Column("avg")]),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "sentry_slope_avg",
+                ),
+                Op("<"),
+                0,
+            ),
+            id="improvement",
+        ),
+    ],
+)
+@pytest.mark.django_db
+def test_having(params, search, condition):
+    builder = ProfileFunctionsQueryBuilder(
+        Dataset.Functions,
+        params,
+        query=search,
+        selected_columns=["count()"],
+        use_aggregate_conditions=True,
+    )
+    assert condition in builder.having

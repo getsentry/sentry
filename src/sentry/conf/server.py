@@ -3502,7 +3502,7 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.3
+SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
