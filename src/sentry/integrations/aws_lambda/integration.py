@@ -22,7 +22,6 @@ from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import Integration, OrganizationIntegration, User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
@@ -250,7 +249,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             return pipeline.next_step()
 
         organization = pipeline.organization
-        projects = project_service.get_projects(organization_id=organization.id, only_active=True)
+        projects = organization.projects
 
         # if only one project, automatically use that
         if len(projects) == 1:
