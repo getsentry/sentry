@@ -205,6 +205,9 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
+    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
+    # identifiers are not snowflake ids.
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
 
     restrict_role(
         role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
