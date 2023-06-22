@@ -209,18 +209,23 @@ def merge_groups(
             transaction_id=transaction_id,
             recursed=True,
             eventstream_state=eventstream_state,
+            handle_forecasts_groups=handle_forecasts_groups,
+            delete_forecasts=delete_forecasts,
         )
+    elif eventstream_state:
+        # Delete or merge the forecasts if needed
+        if delete_forecasts:
+            delete_outdated_forecasts(handle_forecasts_groups)
+        elif handle_forecasts_groups:
+            primary_group, groups_to_merge = (
+                handle_forecasts_groups[0],
+                handle_forecasts_groups[1:],
+            )
+            past_counts = query_groups_past_counts(handle_forecasts_groups)
+            merged_past_counts = merge_and_parse_past_counts(past_counts, primary_group.id)
+            save_forecast_per_group([primary_group], merged_past_counts)
+            delete_outdated_forecasts(groups_to_merge)
 
-    # Delete or merge the forecasts if needed
-    if delete_forecasts:
-        delete_outdated_forecasts(handle_forecasts_groups)
-    elif handle_forecasts_groups:
-        primary_group, groups_to_merge = (handle_forecasts_groups[0], handle_forecasts_groups[1:])
-        past_counts = query_groups_past_counts(handle_forecasts_groups)
-        merged_past_counts = merge_and_parse_past_counts(past_counts, primary_group.id)
-        save_forecast_per_group([primary_group], merged_past_counts)
-        delete_outdated_forecasts(groups_to_merge)
-    if eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.end_merge(eventstream_state)
 
