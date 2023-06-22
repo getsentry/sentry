@@ -17,7 +17,6 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
@@ -180,10 +179,6 @@ function renderBodyCell(
 
   if (column.key === 'sps()') {
     return <ThroughputCell throughputPerSecond={row['sps()']} />;
-  }
-
-  if (column.key === 'http_error_count()') {
-    return <CountCell count={row['http_error_count()']} />;
   }
 
   if (!meta || !meta?.fields) {
