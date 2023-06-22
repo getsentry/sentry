@@ -53,11 +53,11 @@ export function SpanGroupBreakdown({
   const theme = useTheme();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
   const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
   ];
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.CUMULATIVE_DURATION
+    DataDisplayType.PERCENTAGE
   );
 
   useEffect(() => {
