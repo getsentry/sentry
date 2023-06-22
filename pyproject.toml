@@ -662,7 +662,6 @@ module = [
     "sentry.interfaces.spans",
     "sentry.interfaces.stacktrace",
     "sentry.interfaces.user",
-    "sentry.issues.constants",
     "sentry.issues.escalating",
     "sentry.issues.escalating_group_forecast",
     "sentry.issues.ingest",
