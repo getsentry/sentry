@@ -40,7 +40,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
-                buffer.add()
+                buffer.record_error()
 
         response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
         assert "broken" in response.data[0]

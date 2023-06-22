@@ -211,7 +211,8 @@ class JiraServerSetupClient(ApiClient):
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "jira_server_setup"
 
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True):
+    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
