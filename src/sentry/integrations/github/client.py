@@ -670,8 +670,10 @@ class GitHubAppsClient(GitHubClientMixin):
         logging_context: Mapping[str, Any] | None = None,
     ) -> None:
         self.integration = integration
+
         super().__init__(
             org_integration_id=org_integration_id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
+            integration_id=integration.id,
         )

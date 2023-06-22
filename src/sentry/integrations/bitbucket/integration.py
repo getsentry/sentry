@@ -83,6 +83,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             self.model.metadata["base_url"],
             self.model.metadata["shared_secret"],
             self.model.external_id,
+            self.model.id,
         )
 
     @property

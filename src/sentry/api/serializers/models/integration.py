@@ -66,7 +66,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
     ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
-        buffer = IntegrationRequestBuffer(obj)
+        buffer = IntegrationRequestBuffer(obj.id)
         broken = buffer.is_integration_broken()
         data.update({"broken": broken})
 

@@ -36,7 +36,7 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" not in response.data[0]
 
     def test_integration_is_broken(self):
-        buffer = IntegrationRequestBuffer(self.integration)
+        buffer = IntegrationRequestBuffer(self.integration.id)
         now = datetime.now() - timedelta(hours=1)
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
