@@ -46,6 +46,8 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
 
 import {decodeScalar} from '../queryString';
@@ -677,6 +679,7 @@ type SpecialFunctions = {
   http_error_count_percent_change: SpecialFunctionFieldRenderer;
   percentile_percent_change: SpecialFunctionFieldRenderer;
   sps_percent_change: SpecialFunctionFieldRenderer;
+  time_spent_percentage: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -782,6 +785,14 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       <PercentChangeCell
         trendDirection={trendDirection}
       >{`${sign}${delta}`}</PercentChangeCell>
+    );
+  },
+  time_spent_percentage: fieldName => data => {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={data[fieldName]}
+        totalSpanTime={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+      />
     );
   },
 };

@@ -18,7 +18,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -165,15 +164,6 @@ function renderBodyCell(
           row['span.description'] || '<null>'
         )}
       </OverflowEllipsisTextContainer>
-    );
-  }
-
-  if (column.key === 'time_spent_percentage()') {
-    return (
-      <TimeSpentCell
-        timeSpentPercentage={row['time_spent_percentage()']}
-        totalSpanTime={row[`sum(${SPAN_SELF_TIME})`]}
-      />
     );
   }
 
