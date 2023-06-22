@@ -892,7 +892,6 @@ module = [
     "sentry.rules.registry",
     "sentry.runner.commands.backup",
     "sentry.runner.commands.cleanup",
-    "sentry.runner.commands.devserver",
     "sentry.runner.commands.exec",
     "sentry.runner.commands.files",
     "sentry.runner.commands.migrations",

@@ -3311,7 +3311,7 @@ SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
-SENTRY_EXTRA_WORKERS = None
+SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 

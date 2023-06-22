@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 import threading
 import types
-from typing import NoReturn
+from typing import MutableSequence, NoReturn, Sequence
 from urllib.parse import urlparse
 
 import click
@@ -189,7 +189,7 @@ and run `sentry devservices up kafka zookeeper`.
     if reload:
         uwsgi_overrides["py-autoreload"] = 1
 
-    daemons = []
+    daemons: MutableSequence[tuple[str, Sequence[str]]] = []
     kafka_consumers = set(settings.DEVSERVER_START_KAFKA_CONSUMERS)
     needs_kafka = False
 
@@ -260,8 +260,7 @@ and run `sentry devservices up kafka zookeeper`.
             kafka_consumers.add("post-process-forwarder-transactions")
             kafka_consumers.add("post-process-forwarder-issue-platform")
 
-        if settings.SENTRY_EXTRA_WORKERS:
-            daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
             if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
@@ -397,11 +396,7 @@ and run `sentry devservices up kafka zookeeper`.
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        quiet = (
-            name not in settings.DEVSERVER_LOGS_ALLOWLIST
-            if settings.DEVSERVER_LOGS_ALLOWLIST is not None
-            else False
-        )
+        quiet = name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
     if settings.USE_SILOS:
@@ -424,11 +419,7 @@ and run `sentry devservices up kafka zookeeper`.
         for service in control_services:
             name, cmd = _get_daemon(service)
             name = f"control.{name}"
-            quiet = (
-                name not in settings.DEVSERVER_LOGS_ALLOWLIST
-                if settings.DEVSERVER_LOGS_ALLOWLIST is not None
-                else False
-            )
+            quiet = name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
             manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 
     manager.loop()
