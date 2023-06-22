@@ -1,8 +1,13 @@
 import logging
 
+from django.db.models import F
+
 from sentry import audit_log, features
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    update_organization_with_outbox_message,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
@@ -57,8 +62,11 @@ def enable_for_org(dry_run: bool = False) -> None:
                 )
                 continue
 
-            organization.flags.codecov_access = True
-            organization.save()
+            updated_flag = F("flags") + Organization.flags.codecov_access
+            update_organization_with_outbox_message(
+                org_id=organization.id, update_data={"flags": updated_flag}
+            )
+
             logger.info(
                 "Enabled Codecov Access flag for organization",
                 extra={
@@ -83,8 +91,12 @@ def enable_for_org(dry_run: bool = False) -> None:
 def disable_codecov_access(
     organization: Organization, integration_enabled: bool, task_enabled: bool
 ) -> None:
-    organization.flags.codecov_access = False
-    organization.save()
+
+    updated_flag = F("flags") - Organization.flags.codecov_access
+    update_organization_with_outbox_message(
+        org_id=organization.id, update_data={"flags": updated_flag}
+    )
+
     logger.info(
         "Disabled Codecov Access flag for dev organization",
         extra={
