@@ -59,7 +59,7 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
+          memoryFrames={replay?.getMemoryFrames()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
