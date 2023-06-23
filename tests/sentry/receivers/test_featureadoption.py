@@ -452,7 +452,10 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, teams=[self.team], user=self.create_user()
         )
         member_joined.send(
-            member=member, organization_id=self.organization.id, sender=type(self.project)
+            organization_member_id=member.id,
+            organization_id=self.organization.id,
+            user_id=member.user_id,
+            sender=type(self.project),
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="invite_team"
