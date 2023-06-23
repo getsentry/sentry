@@ -2,7 +2,11 @@ import {useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {Form, TextField} from 'sentry/components/forms';
@@ -56,13 +60,15 @@ function AuthTokenCreateForm({
     RequestError,
     CreateTokenQueryVariables
   >({
-    mutationFn: ({name}) =>
-      api.requestPromise(`/organizations/${organization.slug}/org-auth-tokens/`, {
+    mutationFn: ({name}) => {
+      addLoadingMessage();
+      return api.requestPromise(`/organizations/${organization.slug}/org-auth-tokens/`, {
         method: 'POST',
         data: {
           name,
         },
-      }),
+      });
+    },
 
     onSuccess: (token: OrgAuthTokenWithToken) => {
       addSuccessMessage(t('Created auth token.'));

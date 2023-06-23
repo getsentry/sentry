@@ -27,6 +27,8 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
@@ -1472,8 +1474,6 @@ SENTRY_FEATURES = {
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
-    # Enable better priority sort experiment
-    "organizations:better-priority-sort-experiment": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -3029,7 +3029,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3556,7 +3556,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
-SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
+SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS

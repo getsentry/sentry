@@ -122,10 +122,10 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            transaction_message = eventstore.get_event_by_id(
+            transaction_message = eventstore.backend.get_event_by_id(
                 default_project.id, transaction_event_id
             )
-            message = eventstore.get_event_by_id(default_project.id, event_id)
+            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
             if transaction_message and message:
                 break
@@ -183,7 +183,7 @@ def test_ingest_topic_can_be_overridden(
     with task_runner():
         i = 0
         while i < MAX_POLL_ITERATIONS:
-            message = eventstore.get_event_by_id(default_project.id, event_id)
+            message = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
             if message:
                 break

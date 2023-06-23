@@ -78,11 +78,11 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
             # No differences to log
             _filter = eventstore.Filter(project_ids=[self.project.id])
             eventstore.get_events(filter=_filter)
-            eventstore.get_event_by_id(self.project.id, "a" * 32)
+            eventstore.backend.get_event_by_id(self.project.id, "a" * 32)
             assert mock_logger.call_count == 0
 
             # Here we expect a difference since the original implementation handles type as a tag
-            event = eventstore.get_event_by_id(self.project.id, "a" * 32)
+            event = eventstore.backend.get_event_by_id(self.project.id, "a" * 32)
             _filter = eventstore.Filter(
                 project_ids=[self.project.id], conditions=[["type", "=", "transaction"]]
             )
