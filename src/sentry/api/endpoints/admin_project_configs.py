@@ -31,7 +31,7 @@ class AdminRelayProjectConfigsEndpoint(Endpoint):
 
         configs = {}
         for key in project_keys:
-            cached_config = projectconfig_cache.get(key)
+            cached_config = projectconfig_cache.backend.get(key)
             if cached_config is not None:
                 configs[key] = cached_config
             else:

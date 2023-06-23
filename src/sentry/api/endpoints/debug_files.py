@@ -85,7 +85,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
             limit=10,
