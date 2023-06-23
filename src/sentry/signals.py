@@ -204,3 +204,6 @@ monitor_environment_failed = BetterSignal(providing_args=["monitor"])
 join_request_created = BetterSignal(providing_args=["member"])
 join_request_link_viewed = BetterSignal(providing_args=["organization"])
 user_signup = BetterSignal(providing_args=["user", "source"])
+
+# After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
+post_upgrade = BetterSignal(providing_args=[])
