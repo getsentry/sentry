@@ -136,7 +136,7 @@ export function useWrappedDiscoverQuery<T>({
     },
   });
 
-  const meta = result.data?.meta as unknown as EventsMetaType;
+  const meta = result.data?.meta as EventsMetaType | undefined;
   if (meta) {
     // TODO: Remove this hack when the backend returns `"rate"` as the data
     // type for `sps()` and other rate fields!
