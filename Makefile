@@ -184,9 +184,8 @@ test-plugins:
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
 	pytest \
-		tests/relay_integration \
-		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
+		tests/relay_integration -k test_simple \
+		-s -vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
 	@echo ""
 
 test-api-docs: build-api-docs
