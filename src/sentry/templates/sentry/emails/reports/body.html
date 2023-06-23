@@ -355,10 +355,10 @@
     {% elif has_replay_section %}
       <td class="project-breakdown-graph-cell {% if trends.total_transaction_count > 0 %}replays-empty some-empty-below{% else %}replays-empty{% endif %}">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
-          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px"
+          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-play.png' %}" width="32px" height="32px"
             alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Tricky bug?</h1>
-          <p style="font-size: 11px;">Rewind and replay every step of a user’s journey before and after they encountered an issue.</p>
+          <p style="font-size: 11px;">Rewind and replay every step of a user’s journey before and after they encounter an issue.</p>
           {% url 'sentry-organization-replays' organization.slug as replay_landing %}
           <a href="{% org_url organization replay_landing query='referrer=weekly_email_upsell' %}" class="btn"
             style="margin-top: 8px;">Set Up Session Replay</a>
