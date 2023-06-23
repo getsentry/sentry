@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
@@ -64,10 +65,6 @@ export function SpanTransactionsTable({
     };
   });
 
-  const renderHeadCell = (column: TableColumnHeader) => {
-    return <span>{column.name}</span>;
-  };
-
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
     if (column.key === 'transaction') {
       return (
@@ -106,7 +103,7 @@ export function SpanTransactionsTable({
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
-          renderHeadCell,
+          renderHeadCell: col => renderHeadCell({column: col}),
           renderBodyCell,
         }}
         location={location}
