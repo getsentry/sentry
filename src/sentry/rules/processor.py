@@ -30,6 +30,13 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     return None
 
 
+def is_condition_slow(condition: Mapping[str, str]) -> bool:
+    for slow_conditions in SLOW_CONDITION_MATCHES:
+        if slow_conditions in condition["id"]:
+            return True
+    return False
+
+
 class RuleProcessor:
     logger = logging.getLogger("sentry.rules")
 
@@ -187,11 +194,7 @@ class RuleProcessor:
                 filter_list.append(rule_cond)
 
         # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(
-            key=lambda condition: any(
-                condition_match in condition["id"] for condition_match in SLOW_CONDITION_MATCHES
-            )
-        )
+        condition_list.sort(key=lambda condition: is_condition_slow(condition))
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
