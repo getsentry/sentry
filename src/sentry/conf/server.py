@@ -11,7 +11,19 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
@@ -1460,8 +1472,6 @@ SENTRY_FEATURES = {
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
-    # Enable better priority sort experiment
-    "organizations:better-priority-sort-experiment": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -3299,7 +3309,7 @@ SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
-SENTRY_EXTRA_WORKERS = None
+SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 
@@ -3479,6 +3489,9 @@ SLICED_KAFKA_TOPICS: Mapping[Tuple[str, int], Mapping[str, Any]] = {}
 # decorator.
 SINGLE_SERVER_SILO_MODE = False
 
+# Used by silo tests -- activate all silo mode test decorators even if not marked stable
+FORCE_SILOED_TESTS = os.environ.get("SENTRY_FORCE_SILOED_TESTS", False)
+
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
 
@@ -3542,3 +3555,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
 SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
+
+# sentry devserver should _always_ start the following consumers, identified by
+# key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
+DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []

@@ -15,9 +15,11 @@ const EventsRequest = withApi(_EventsRequest);
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
@@ -36,6 +38,7 @@ type BasePerformanceViewProps = {
 
 export function StarfishView(props: BasePerformanceViewProps) {
   const {organization, eventView} = props;
+  const pageFilter = usePageFilters();
   const theme = useTheme();
 
   function renderCharts() {
@@ -50,7 +53,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         query={query.formatString()}
         includePrevious={false}
         partial
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         limit={1}
         environment={eventView.environment}
@@ -69,7 +72,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
           }
 
           const throughputData: Series = {
-            seriesName: t('Throughput'),
+            seriesName: t('Requests'),
             data: results[0].data,
           };
 

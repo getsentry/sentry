@@ -17,7 +17,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -147,16 +146,17 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'sps()') {
-    return <ThroughputCell throughputPerSecond={row['sps()']} />;
-  }
-
   if (!meta || !meta?.fields) {
     return row[column.key];
   }
 
   const renderer = getFieldRenderer(column.key, meta.fields, false);
-  const rendered = renderer(row, {location, organization});
+
+  const rendered = renderer(row, {
+    location,
+    organization,
+    unit: meta.units?.[column.key],
+  });
 
   return rendered;
 }

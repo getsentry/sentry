@@ -67,8 +67,10 @@ type Props = {
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
+  dataMax?: number;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  durationUnit?: number;
   errored?: boolean;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
@@ -128,6 +130,7 @@ function computeAxisMax(data: Series[], stacked?: boolean) {
 
 function Chart({
   data,
+  dataMax,
   previousData,
   statsPeriod,
   start,
@@ -138,6 +141,7 @@ function Chart({
   grid,
   disableXAxis,
   definedAxisTicks,
+  durationUnit,
   chartColors,
   isBarChart,
   isLineChart,
@@ -176,20 +180,20 @@ function Chart({
     aggregateOutputFormat === 'percentage' ||
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
-  let dataMax = durationOnly
-    ? computeAxisMax(
-        [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
-        stacked
-      )
-    : percentOnly
-    ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
-    : undefined;
-  // Fix an issue where max == 1 for duration charts would look funky cause we round
-  if (dataMax === 1 && durationOnly) {
-    dataMax += 1;
+  if (!dataMax) {
+    dataMax = durationOnly
+      ? computeAxisMax(
+          [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+          stacked
+        )
+      : percentOnly
+      ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+      : undefined;
+    // Fix an issue where max == 1 for duration charts would look funky cause we round
+    if (dataMax === 1 && durationOnly) {
+      dataMax += 1;
+    }
   }
-
-  const durationUnit = getDurationUnit(data);
 
   let transformedThroughput: LineSeriesOption[] | undefined = undefined;
   const additionalAxis: YAXisOption[] = [];
@@ -207,7 +211,7 @@ function Chart({
       }),
     ];
     additionalAxis.push({
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: 'value',
@@ -223,7 +227,7 @@ function Chart({
 
   const yAxes = [
     {
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: log ? 'log' : 'value',
@@ -234,7 +238,7 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit
+            durationUnit ?? getDurationUnit(data)
           );
         },
       },
