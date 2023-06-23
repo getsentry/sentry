@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 from sentry.api.utils import generate_organization_url
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.models import (
@@ -57,7 +58,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = Integration.objects.create(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        with receivers_raise_on_send(), outbox_runner():
+        with receivers_raise_on_send(), outbox_runner(), in_test_psql_role_override("postgres"):
             for org in na_orgs:
                 integration.add_organization(org)
                 mapping = OrganizationMapping.objects.get(organization_id=org.id)
@@ -137,7 +138,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # Installing organization is from the same region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.update(region_name="na")
+
+        with in_test_psql_role_override("postgres"):
+            mapping.update(region_name="na")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
@@ -152,7 +155,9 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
         # Installing organization is from a different region
         mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.update(region_name="eu")
+
+        with in_test_psql_role_override("postgres"):
+            mapping.update(region_name="eu")
 
         self.pipeline.state.data = {"external_id": self.external_id}
         with patch("sentry.integrations.pipeline.IntegrationPipeline._dialog_response") as resp:
