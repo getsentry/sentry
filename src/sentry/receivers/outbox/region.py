@@ -114,6 +114,7 @@ def maybe_join_org(org_member: OrganizationMember):
             if org_member.role != roles.get_top_dog().id:
                 member_joined.send_robust(
                     sender=None,
-                    member=org_member,
+                    organization_member_id=org_member.id,
                     organization_id=org_member.organization_id,
+                    user_id=org_member.user_id,
                 )
