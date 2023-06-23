@@ -693,9 +693,9 @@ class AuthHelper(Pipeline):
         flow = req_state.state.flow
 
         return cls(
-            request,
-            req_state.organization,
-            flow,
+            request=request,
+            organization=req_state.organization,
+            flow=flow,
             auth_provider=req_state.provider_model,
             provider_key=req_state.provider_key,
         )
@@ -771,6 +771,7 @@ class AuthHelper(Pipeline):
             # create identity and authenticate the user
             response = self._finish_login_pipeline(identity)
         elif self.state.flow == self.FLOW_SETUP_PROVIDER:
+            # Configuring the SSO Auth provider
             response = self._finish_setup_pipeline(identity)
         else:
             raise Exception(f"Unrecognized flow value: {self.state.flow}")
@@ -845,6 +846,8 @@ class AuthHelper(Pipeline):
         """
         The setup flow creates the auth provider as well as an identity linked
         to the active user.
+
+        Configuring SSO for an org
         """
         request = self.request
         if not request.user.is_authenticated:
@@ -854,7 +857,7 @@ class AuthHelper(Pipeline):
             return self.error(ERR_UID_MISMATCH)
 
         data = self.fetch_state()
-        config = self.provider.build_config(data)
+        config = self.provider.build_config(state=data)
 
         om = organization_service.check_membership_by_id(
             organization_id=self.organization.id, user_id=request.user.id

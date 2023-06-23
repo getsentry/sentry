@@ -1,52 +1,22 @@
+from typing import Any, Optional
+
 from sentry import options
 from sentry.auth.provider import MigratingIdentityId
-from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
+from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 
-from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL, DATA_VERSION, SCOPE
-from .views import FetchUser, FlyConfigureView
-
-
-class FlyOAuth2Login(OAuth2Login):
-    # GET https://api.fly.io/oauth/authorize?
-    #   client_id=123&
-    #   response_type=code&
-    #   redirect_uri=https://logjam.io/flyio/callback&
-    #   scope=read
-    authorize_url = AUTHORIZE_URL
-    scope = SCOPE
-
-    def __init__(self, client_id, domains=None):
-        self.domains = domains
-        super().__init__(client_id=client_id)
-
-    # def get_authorize_params(self, state, redirect_uri):
-    #     params = super().get_authorize_params(state, redirect_uri)
-    #     print("REDIRECT URI: ", redirect_uri)
-    #     # params["redirect_uri"] = "https://nhsieh.ngrok.io/extensions/fly/setup/"
-    #     return params
+from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL
+from .views import FetchUser, FlyConfigureView, FlyOAuth2Login
 
 
+# TODO: build helper method on fly provider to create this AuthIdentity instance
+# See auth/helper handle_attach_identity
 class FlyOAuth2Provider(OAuth2Provider):
     name = "Fly"
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
 
-    def __init__(self, domain=None, domains=None, version=None, **config):
-        if domain:
-            if domains:
-                domains.append(domain)
-            else:
-                domains = [domain]
-        self.domains = domains
-        # if a domain is not configured this is part of the setup pipeline
-        # this is a bit complex in Sentry's SSO implementation as we don't
-        # provide a great way to get initial state for new setup pipelines
-        # vs missing state in case of migrations.
-        if domains is None:
-            version = DATA_VERSION
-        else:
-            version = None
-        self.version = version
+    def __init__(self, org=None, **config):
+        self.org = org
         super().__init__(**config)
 
     def get_client_id(self):
@@ -62,24 +32,24 @@ class FlyOAuth2Provider(OAuth2Provider):
 
     def get_auth_pipeline(self):
         return [
-            FlyOAuth2Login(domains=self.domains, client_id=self.get_client_id()),
+            FlyOAuth2Login(client_id=self.get_client_id()),
             OAuth2Callback(
                 access_token_url=ACCESS_TOKEN_URL,
                 client_id=self.get_client_id(),
                 client_secret=self.get_client_secret(),
             ),
-            FetchUser(domains=self.domains, version=self.version),
-            # ConfirmEmail(),
+            FetchUser(org=self.org),
+            # ConfirmEmail(),  # reference github provider
         ]
 
     def get_refresh_token_url(self):
         return ACCESS_TOKEN_URL
 
-    def build_config(self, state):
+    def build_config(self, state: Any, organization: Optional[Any] = None):
         """
-        Return a mapping containing provider configuration.
-
-        - ``state`` is the resulting data captured by the pipeline
+        On configuration, we determine which provider organization to configure SSO for
+        This configuration is then stored and passed into the pipeline instances during SSO
+        to determine whether the Auth'd user has the appropriate access to the provider org
 
         {
             'state': '9da4041848844e8088864eaea3c3a705',
@@ -100,19 +70,20 @@ class FlyOAuth2Provider(OAuth2Provider):
                     'user_name': 'Nathan',
                     'email': 'k9d01lp82rky6vo2@customer.fly.io',
                     'organizations': [
-                        {'id': 'g1lx9my4pzemqwk7', 'role': 'admin'},
+                        {'id': 'nathans-org', 'role': 'member'},
                         {'id': '0vogzmzoj1k5xp29', 'role': 'admin'}
                     ]
                 }
             }
-        """
-        # TODO: figure out what the build_config should look like
-        return {
-            "user_id": {
-                "id": state["data"],
-                "org_id": state["data"],
-            }
         }
+        """
+        org = organization
+        if not organization:
+            data = state["data"]
+            # TODO: determine which org to configure SSO for
+            org = data["user"]["organizations"][0]
+
+        return {"org": org}
 
     def build_identity(self, state):
         """

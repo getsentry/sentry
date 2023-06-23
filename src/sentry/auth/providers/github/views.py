@@ -33,7 +33,10 @@ class FetchUser(AuthView):
     def handle(self, request: Request, helper) -> HttpResponse:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             if self.org is not None:
+                # if we have a configured org for our oauth provider
                 if not client.is_org_member(self.org["id"]):
+                    # Fetches orgs for the given user
+                    # and our given org is _not_ a member of the users orgs
                     return helper.error(ERR_NO_ORG_ACCESS)
 
             user = client.get_user()

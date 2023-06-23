@@ -26,7 +26,6 @@ class FlyClient:
     def _request(self, path):
         headers = {"Authorization": f"Bearer {self.access_token}"}
         req_url = f"{ACCESS_TOKEN_URL}/{path.lstrip('/')}"
-        print("REQ URL: ", req_url)
         try:
             req = self.http.get(
                 req_url,
@@ -39,4 +38,13 @@ class FlyClient:
         return json.loads(req.content)
 
     def get_info(self):
+        """
+        Use access token to issue an inline request to the token introspection endpoint.
+        The response gives you enough information, for example, to authorize the user
+        if they belong the correct parent organization in your system, or to provision
+        the user and add them to these organizations.
+
+        GET https://api.fly.io/oauth/token/info
+        Authorization: Bearer fo1__034hk03k4mhjea0l4224hk
+        """
         return self._request("/info")

@@ -8,6 +8,8 @@ ERR_INVALID_DOMAIN = (
 
 ERR_INVALID_RESPONSE = "Unable to fetch user information from Fly.  Please check the log."
 
+ERR_NO_ORG_ACCESS = "You do not have access to the required GitHub organization."
+
 SCOPE = "read"
 
 DATA_VERSION = "1"
