@@ -398,7 +398,7 @@ and run `sentry devservices up kafka zookeeper`.
     for name, cmd in daemons:
         quiet = (
             name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
-            or not settings.DEVSERVER_LOGS_ALLOWLIST
+            and settings.DEVSERVER_LOGS_ALLOWLIST
         )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
@@ -424,7 +424,7 @@ and run `sentry devservices up kafka zookeeper`.
             name = f"control.{name}"
             quiet = (
                 name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
-                or not settings.DEVSERVER_LOGS_ALLOWLIST
+                and settings.DEVSERVER_LOGS_ALLOWLIST
             )
             manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 
