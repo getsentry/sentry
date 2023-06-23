@@ -7,7 +7,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {Query} from 'sentry/views/issueList/utils';
+import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
@@ -138,7 +138,6 @@ class NoGroupsHandler extends Component<Props, State> {
   render() {
     const {fetchingSentFirstEvent, sentFirstEvent, firstEventProjects} = this.state;
     const {query} = this.props;
-    const forReviewQueries: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
 
     if (fetchingSentFirstEvent) {
       return this.renderLoading();
@@ -155,7 +154,7 @@ class NoGroupsHandler extends Component<Props, State> {
       );
     }
 
-    if (forReviewQueries.includes(query || '')) {
+    if (FOR_REVIEW_QUERIES.includes(query || '')) {
       return (
         <NoUnresolvedIssues
           title={t('Well, would you look at that.')}

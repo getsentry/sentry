@@ -215,5 +215,7 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   '__text',
 ];
 
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
+
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';
