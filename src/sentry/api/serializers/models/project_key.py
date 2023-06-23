@@ -74,7 +74,7 @@ class ProjectKeySerializer(Serializer):
             "label": name,
             "public": public_key,
             "secret": obj.secret_key,
-            "projectId": obj.project_id,
+            "projectId": getattr(obj, "project_id", 1),
             "isActive": obj.is_active,
             "rateLimit": {"window": obj.rate_limit_window, "count": obj.rate_limit_count}
             if (obj.rate_limit_window and obj.rate_limit_count)
