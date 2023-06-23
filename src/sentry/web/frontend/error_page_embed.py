@@ -150,7 +150,7 @@ class ErrorPageEmbedView(View):
             report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project_id, report.event_id)
+            event = eventstore.backend.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
                 report.environment_id = event.get_environment().id

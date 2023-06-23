@@ -44,7 +44,7 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 
             with push_scope():
                 return wait_for_ingest_consumer(
-                    lambda: eventstore.get_event_by_id(settings.SENTRY_PROJECT, event_id)
+                    lambda: eventstore.backend.get_event_by_id(settings.SENTRY_PROJECT, event_id)
                 )
 
         yield inner

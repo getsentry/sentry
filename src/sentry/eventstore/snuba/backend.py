@@ -246,7 +246,7 @@ class SnubaEventStorage(EventStorage):
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys=filter_keys,
                     limit=1,
-                    referrer="eventstore.get_event_by_id_nodestore",
+                    referrer="eventstore.backend.get_event_by_id_nodestore",
                     tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )

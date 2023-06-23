@@ -179,7 +179,7 @@ class TraceEvent:
         with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
             if self._nodestore_event is None and not self.fetched_nodestore:
                 self.fetched_nodestore = True
-                self._nodestore_event = eventstore.get_event_by_id(
+                self._nodestore_event = eventstore.backend.get_event_by_id(
                     self.event["project.id"], self.event["id"]
                 )
         return self._nodestore_event
@@ -561,7 +561,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
             transactions, lambda item: item is not None and item["id"] == event_id
         )
         if transaction_event is not None:
-            return transaction_event, eventstore.get_event_by_id(
+            return transaction_event, eventstore.backend.get_event_by_id(
                 transaction_event["project.id"], transaction_event["id"]
             )
 
@@ -576,7 +576,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 transactions, lambda item: item is not None and item["trace.span"] == error_span
             )
             if transaction_event is not None:
-                return transaction_event, eventstore.get_event_by_id(
+                return transaction_event, eventstore.backend.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
             # We didn't get lucky, time to talk to nodestore...
@@ -584,7 +584,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                 if transaction_event["transaction"] != error_event["transaction"]:
                     continue
 
-                nodestore_event = eventstore.get_event_by_id(
+                nodestore_event = eventstore.backend.get_event_by_id(
                     transaction_event["project.id"], transaction_event["id"]
                 )
                 transaction_spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -629,7 +629,9 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     # We might not be necessarily connected to the root if we're on an orphan event
                     if root["id"] != snuba_event["id"]:
                         # Get the root event and see if the current event's span is in the root event
-                        root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
+                        root_event = eventstore.backend.get_event_by_id(
+                            root["project.id"], root["id"]
+                        )
                         root_spans: NodeSpans = root_event.data.get("spans", [])
                         root_span = find_event(
                             root_spans,

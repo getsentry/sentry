@@ -20,7 +20,7 @@ class EventAppleCrashReportEndpoint(ProjectEndpoint):
         This endpoint returns the an apple crash report for a specific event.
         This works only if the event.platform == cocoa
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise ResourceDoesNotExist
 

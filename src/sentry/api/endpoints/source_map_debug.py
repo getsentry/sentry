@@ -81,7 +81,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         exception_idx = int(exception_idx)
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 

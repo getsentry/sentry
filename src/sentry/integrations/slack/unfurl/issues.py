@@ -55,7 +55,7 @@ def unfurl_issues(
             # lookup the event by the id
             event_id = link.args["event_id"]
             event = (
-                eventstore.get_event_by_id(group.project_id, event_id, group.id)
+                eventstore.backend.get_event_by_id(group.project_id, event_id, group.id)
                 if event_id
                 else None
             )

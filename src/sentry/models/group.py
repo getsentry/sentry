@@ -287,7 +287,7 @@ class GroupManager(BaseManager):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id

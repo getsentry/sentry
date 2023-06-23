@@ -22,7 +22,7 @@ class GroupEventJsonView(OrganizationView):
         if event_id_or_latest == "latest":
             event = group.get_latest_event()
         else:
-            event = eventstore.get_event_by_id(
+            event = eventstore.backend.get_event_by_id(
                 group.project.id, event_id_or_latest, group_id=group.id
             )
 

@@ -202,7 +202,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         # their ingestion quota, they are also within the snuba queries quota.
         # Since there is no dead letter queue on this consumer, the only way to
         # prevent the consumer to crash as of now is to ignore the error and proceed.
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
     except RateLimitExceeded as e:
         event = None
         logger.exception(e)
