@@ -27,8 +27,6 @@ import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -119,30 +117,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
           containerDisplayMode="block"
           position="top"
         >
-          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
+          <NumberContainer>
+            {formatPercentage(cumulativeTimePercentage, 2)}
+          </NumberContainer>
         </Tooltip>
       );
-    }
-
-    if (field === 'tps()') {
-      return (
-        <NumberContainer>
-          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
-        </NumberContainer>
-      );
-    }
-
-    if (
-      [
-        'percentile_percent_change(transaction.duration,0.95)',
-        'http_error_count_percent_change()',
-      ].includes(field)
-    ) {
-      return <PercentChangeCell deltaValue={dataRow[field] as number} />;
-    }
-
-    if (field === 'tps_percent_change()') {
-      return <PercentChangeCell deltaValue={dataRow[field] as number} colorize={false} />;
     }
 
     if (field === 'project') {
