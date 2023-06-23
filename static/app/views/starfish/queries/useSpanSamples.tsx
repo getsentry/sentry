@@ -55,10 +55,14 @@ export const useSpanSamples = (options: Options) => {
           query: query.formatString(),
         })}`
       );
-      return data?.map((d: SpanSample) => ({
-        ...d,
-        timestamp: moment(d.timestamp).format(DATE_FORMAT),
-      }));
+      return data
+        ?.map((d: SpanSample) => ({
+          ...d,
+          timestamp: moment(d.timestamp).format(DATE_FORMAT),
+        }))
+        .sort(
+          (a: SpanSample, b: SpanSample) => b['span.self_time'] - a['span.self_time']
+        );
     },
     refetchOnWindowFocus: false,
     enabled: Boolean(groupId && transactionName),
