@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.security.utils import capture_security_activity
 from sentry.utils import hashlib
 from sentry.utils.security.orgauthtoken_token import generate_token
 
@@ -70,6 +71,18 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
             data=token.get_audit_log_data(),
         )
+
+        # Notify all owners of org of new token
+        owners = organization.get_owners()
+        for owner in owners:
+            capture_security_activity(
+                account=owner,
+                type="org-auth-token-created",
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"organization": organization, "token_name": token.name},
+                send_email=True,
+            )
 
         analytics.record(
             "org_auth_token.created",
