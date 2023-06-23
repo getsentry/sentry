@@ -3,8 +3,8 @@ import {Link} from 'react-router';
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
@@ -78,13 +78,7 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     }
 
     if (column.key === 'duration') {
-      return (
-        <SpanDurationBar
-          spanOp={row.op}
-          spanDuration={row['span.self_time']}
-          transactionDuration={row.transaction?.['transaction.duration']}
-        />
-      );
+      return <DurationCell milliseconds={row['span.self_time']} />;
     }
 
     if (column.key === 'p95_comparison') {
