@@ -131,10 +131,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 (g, None, random.randint(0, 1000))
                 for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
             ]
-            # project_context.key_replay_events = [
-            #     (g, None, random.randint(0, 1000))
-            #     for g in Group.objects.filter(type__gte=1000, type__lt=2000).all()[:3]
-            # ]
+
             ctx.projects[project.id] = project_context
 
         return render_template_context(ctx, None)

@@ -49,11 +49,6 @@ date_format = partial(dateformat.format, format_string="F jS, Y")
 logger = logging.getLogger(__name__)
 
 
-DEBUG_TXN_COUNT = 50000  # set to 0 or 50000
-DEBUG_HAS_REPLAY = True  # set to true/false
-DEBUG_REPLAY_COUNT = 5000  # set to 0 or 50000
-
-
 class OrganizationReportContext:
     def __init__(self, timestamp, duration, organization):
         self.timestamp = timestamp
@@ -189,7 +184,6 @@ def prepare_organization_report(
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
     has_issue_states = features.has("organizations:escalating-issues", organization)
-    has_replay_section = features.has("organizations:session-replay-weekly-email", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -217,10 +211,6 @@ def prepare_organization_report(
         fetch_key_error_groups(ctx)
     with sentry_sdk.start_span(op="weekly_reports.fetch_key_performance_issue_groups"):
         fetch_key_performance_issue_groups(ctx)
-
-    if has_replay_section:
-        with sentry_sdk.start_span(op="weekly_reports.fetch_replay_counts"):
-            fetch_key_replay_events(ctx)
 
     report_is_available = not check_if_ctx_is_empty(ctx)
     set_tag("report.available", report_is_available)
@@ -293,7 +283,7 @@ def project_event_counts_for_organization(ctx):
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
-        if dat["category"] == DataCategory.REPLAY:
+        elif dat["category"] == DataCategory.REPLAY:
             # Replay outcome
             if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
                 project_ctx.dropped_replay_count += total
@@ -636,16 +626,6 @@ def fetch_key_performance_issue_groups(ctx):
         ]
 
 
-def fetch_key_replay_events(ctx):
-    if not features.has("organizations:session-replay", ctx.organization):
-        return
-    # if not project.flags.has_transactions:
-    #     return
-
-    for project_ctx in ctx.project.values():
-        ctx.projects[project_ctx.id].key_replays = []
-
-
 # Deliver reports
 # For all users in the organization, we generate the template context for the user, and send the email.
 
@@ -744,8 +724,7 @@ def render_template_context(ctx, user):
         user_projects = ctx.projects.values()
 
     has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
-    has_replay_section = DEBUG_HAS_REPLAY
-    # features.has("organizations:session-replay-weekly-email", ctx.organization)
+    has_replay_section = features.has("organizations:session-replay-weekly-email", ctx.organization)
 
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
@@ -890,8 +869,8 @@ def render_template_context(ctx, user):
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
-            "total_transaction_count": DEBUG_TXN_COUNT,  # total_transaction,
-            "total_replay_count": DEBUG_REPLAY_COUNT,  # total_replays,
+            "total_transaction_count": total_transaction,
+            "total_replay_count": total_replays,
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
@@ -976,9 +955,6 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_transactions(), lambda d: d["count"])
 
-    def key_replays():
-        pass
-
     def key_performance_issues():
         def all_key_performance_issues():
             for project_ctx in user_projects:
@@ -1037,7 +1013,7 @@ def render_template_context(ctx, user):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
-        "key_replays": key_replays(),
+        "key_replays": [],
         "issue_summary": issue_summary(),
     }
 
