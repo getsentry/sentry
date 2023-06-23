@@ -97,16 +97,16 @@ describe('Confirm', function () {
         <button>Confirm?</button>
       </Confirm>
     );
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm?'}));
 
     // Click "Confirm" button, should be last button
     await userEvent.click(screen.getByText('Confirm'));
+    await waitForModalToHide();
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
   });
