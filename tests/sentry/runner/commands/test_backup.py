@@ -14,13 +14,13 @@ def backup_json_filename(tmp_path):
     return backup_json
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_import(backup_json_filename):
     rv = CliRunner().invoke(import_, backup_json_filename)
     assert rv.exit_code == 0, rv.output
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_import_duplicate_key(backup_json_filename):
     # Adding an element with the same key as the last item in the backed up file
     # to force a duplicate key violation exception

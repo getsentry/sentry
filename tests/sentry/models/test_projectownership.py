@@ -584,13 +584,14 @@ class ResolveActorsTestCase(TestCase):
         # Normal team
         owner1 = Owner("team", self.team.slug)
         actor1 = ActorTuple(self.team.id, Team)
+        breakpoint()
 
         # Team that doesn't exist
         owner2 = Owner("team", "nope")
         actor2 = None
 
         # A team that's not ours
-        otherteam = Team.objects.exclude(projectteam__project_id=self.project.id)[0]
+        otherteam = self.create_team()
         owner3 = Owner("team", otherteam.slug)
         actor3 = None
 
