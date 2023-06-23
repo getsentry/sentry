@@ -4,7 +4,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-export type TrendType = 'regression' | 'improvement';
+import type {FunctionTrend, TrendType} from './types';
 
 interface UseProfileFunctionTrendsOptions<F extends string> {
   trendFunction: F;
@@ -40,7 +40,7 @@ export function useProfileFunctionTrends<F extends string>({
     },
   };
 
-  return useApiQuery([path, endpointOptions], {
+  return useApiQuery<FunctionTrend[]>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
     refetchOnMount,
