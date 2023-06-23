@@ -1459,7 +1459,6 @@ module = [
     "tests.sentry.integrations.vsts.test_webhooks",
     "tests.sentry.integrations.vsts_extension.test_provider",
     "tests.sentry.issues.test_escalating",
-    "tests.sentry.issues.test_occurrence_consumer",
     "tests.sentry.issues.test_ongoing",
     "tests.sentry.issues.test_status_change",
     "tests.sentry.issues.test_utils",
