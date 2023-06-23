@@ -312,8 +312,7 @@ class PerformanceDetectionTest(TestCase):
         )
         with override_options(
             {
-                "performance.issues.n_plus_one_db.count_threshold": 20,
-                "performance.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.n_plus_one_db.duration_threshold": 100000,
             }
         ):
             perf_problems = _detect_performance_problems(
@@ -323,7 +322,6 @@ class PerformanceDetectionTest(TestCase):
 
         with override_options(
             {
-                "performance.issues.n_plus_one_db.count_threshold": 5,
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):
