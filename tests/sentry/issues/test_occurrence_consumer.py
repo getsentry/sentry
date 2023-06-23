@@ -106,7 +106,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
-        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
         assert event.occurrence_id == occurrence.id
 
