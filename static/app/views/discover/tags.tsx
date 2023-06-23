@@ -74,7 +74,7 @@ class Tags extends Component<Props, State> {
 
   fetchData = async (
     forceFetchData = false,
-    nextCursor?: string,
+    nextCursor: string = '0:10:0',
     appendTags?: boolean
   ) => {
     const {api, organization, eventView, location, confirmedQuery} = this.props;
@@ -184,24 +184,19 @@ class Tags extends Component<Props, State> {
           <StyledTagFacetList>
             {tags.map((tag, index) => this.renderTag(tag, index))}
           </StyledTagFacetList>
-          {hasMore &&
-            (loading ? (
-              this.renderPlaceholders()
-            ) : (
-              <ButtonWrapper>
-                <Button
-                  size="xs"
-                  priority="primary"
-                  disabled={loading}
-                  aria-label={t('Show More')}
-                  onClick={() => {
-                    this.fetchData(true, nextCursor, true);
-                  }}
-                >
-                  {t('Show More')}
-                </Button>
-              </ButtonWrapper>
-            ))}
+          <ButtonWrapper>
+            <Button
+              size="xs"
+              priority="primary"
+              disabled={loading}
+              aria-label={t('Show More')}
+              onClick={() => {
+                this.fetchData(true, nextCursor, true);
+              }}
+            >
+              {t('Show More')}
+            </Button>
+          </ButtonWrapper>
         </Fragment>
       );
     }
