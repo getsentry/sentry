@@ -22,17 +22,18 @@ function useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay}: Pro
     if (fetching || fetchError || !replay || !project) {
       return;
     }
-    const feErrorIds = replay.getReplay().error_ids || [];
-    const allErrors = replay.getRawErrors();
-    const beErrorCount = allErrors.filter(error => !feErrorIds.includes(error.id)).length;
+
+    const errorFrames = replay.getErrorFrames();
+    const feErrors = errorFrames.filter(frame => frame.data.projectSlug === projectSlug);
+    const beErrors = errorFrames.filter(frame => frame.data.projectSlug !== projectSlug);
 
     trackAnalytics('replay.details-data-loaded', {
       organization,
-      be_errors: beErrorCount,
-      fe_errors: feErrorIds.length,
+      be_errors: beErrors.length,
+      fe_errors: feErrors.length,
       project_platform: project.platform!,
       replay_errors: 0,
-      total_errors: allErrors.length,
+      total_errors: errorFrames.length,
       started_at_delta: replay.timestampDeltas.startedAtDelta,
       finished_at_delta: replay.timestampDeltas.finishedAtDelta,
       replay_id: replay.getReplay().id,
