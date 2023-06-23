@@ -285,7 +285,7 @@ def _fetch_tags_or_values_for_metrics(
 
     assert len({p.organization_id for p in projects}) == 1
 
-    metric_mris = [get_mri(metric_name) for metric_name in metric_names]
+    metric_mris = [get_mri(metric_name) for metric_name in metric_names] if metric_names else []
 
     return _fetch_tags_or_values_for_mri(projects, metric_mris, referrer, column, use_case_id)
 
@@ -330,7 +330,15 @@ def _fetch_tags_or_values_for_mri(
     # entity by validating that the ids of the constituent metrics all lie in the same entity
     supported_metric_ids_in_entities = {}
 
-    for metric_type in ("counter", "set", "distribution", "generic_set", "generic_distribution"):
+    release_health_metric_types = ("counter", "set", "distribution")
+    performance_metric_types = ("generic_set", "generic_distribution")
+
+    if use_case_id == UseCaseKey.RELEASE_HEALTH:
+        metric_types = release_health_metric_types
+    else:
+        metric_types = release_health_metric_types + performance_metric_types
+
+    for metric_type in metric_types:
 
         entity_key = METRIC_TYPE_TO_ENTITY[metric_type]
         rows = run_metrics_query(
