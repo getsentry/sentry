@@ -52,7 +52,7 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
-ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration."
+ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
