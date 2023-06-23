@@ -241,6 +241,7 @@ class MonitorCheckInValidator(serializers.Serializer):
     )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
+    trace_id = serializers.CharField(required=False, allow_null=True, max_length=32)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

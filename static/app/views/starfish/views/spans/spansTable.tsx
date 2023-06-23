@@ -10,12 +10,14 @@ import GridEditable, {
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {Organization} from 'sentry/types';
+import {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
+import useOrganization from 'sentry/utils/useOrganization';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -24,6 +26,8 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
@@ -71,10 +75,11 @@ export default function SpansTable({
   limit = 25,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const spansCursor = decodeScalar(location.query?.[QueryParameterNames.CURSOR]);
 
-  const {isLoading, data, pageLinks} = useSpanList(
+  const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
     undefined,
     spanCategory,
@@ -106,7 +111,7 @@ export default function SpansTable({
         grid={{
           renderHeadCell: column => renderHeadCell(column, sort, location),
           renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, location, endpoint, method),
+            renderBodyCell(column, row, meta, location, organization, endpoint, method),
         }}
         location={location}
       />
@@ -138,7 +143,9 @@ function renderHeadCell(column: Column, sort: Sort, location: Location) {
 function renderBodyCell(
   column: Column,
   row: Row,
+  meta: EventsMetaType | undefined,
   location: Location,
+  organization: Organization,
   endpoint?: string,
   method?: string
 ): React.ReactNode {
@@ -160,34 +167,18 @@ function renderBodyCell(
     );
   }
 
-  if (column.key === 'time_spent_percentage()') {
-    return (
-      <TimeSpentCell
-        timeSpentPercentage={row['time_spent_percentage()']}
-        totalSpanTime={row[`sum(${SPAN_SELF_TIME})`]}
-      />
-    );
-  }
-
   if (column.key === 'sps()') {
-    return (
-      <ThroughputCell
-        throughputPerSecond={row['sps()']}
-        delta={row['sps_percent_change()']}
-      />
-    );
+    return <ThroughputCell throughputPerSecond={row['sps()']} />;
   }
 
-  if (column.key === 'p95(span.self_time)') {
-    return (
-      <DurationCell
-        milliseconds={row['p95(span.self_time)']}
-        delta={row['percentile_percent_change(span.self_time, 0.95)']}
-      />
-    );
+  if (!meta || !meta?.fields) {
+    return row[column.key];
   }
 
-  return row[column.key];
+  const renderer = getFieldRenderer(column.key, meta.fields, false);
+  const rendered = renderer(row, {location, organization});
+
+  return rendered;
 }
 
 function getDomainHeader(moduleName: ModuleName) {
@@ -237,13 +228,37 @@ function getColumns(moduleName: ModuleName): Column[] {
     {
       key: 'sps()',
       name: 'Throughput',
-      width: 175,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'sps_percent_change()',
+      name: DataTitles.change,
+      width: COL_WIDTH_UNDEFINED,
     },
     {
       key: `p95(${SPAN_SELF_TIME})`,
       name: DataTitles.p95,
-      width: 175,
+      width: COL_WIDTH_UNDEFINED,
     },
+    {
+      key: `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+      name: DataTitles.change,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    ...(moduleName === ModuleName.HTTP
+      ? [
+          {
+            key: 'http_error_count()',
+            name: DataTitles.errorCount,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+          {
+            key: 'http_error_count_percent_change()',
+            name: DataTitles.change,
+            width: COL_WIDTH_UNDEFINED,
+          } as Column,
+        ]
+      : []),
     {
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
