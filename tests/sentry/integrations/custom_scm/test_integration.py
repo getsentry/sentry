@@ -1,10 +1,10 @@
 from sentry.integrations.custom_scm import CustomSCMIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class CustomSCMIntegrationTest(IntegrationTestCase):
     provider = CustomSCMIntegrationProvider
     config = {
@@ -40,13 +40,14 @@ class CustomSCMIntegrationTest(IntegrationTestCase):
         Test that only repositories without both an integration and a provider
         are valid to be added.
         """
-        unknown_repo = Repository.objects.create(
-            name="my-org/some-repo", organization_id=self.organization.id
-        )
-        # create a legacy repo tied to a plugin, not integration
-        Repository.objects.create(
-            name="plugin-repo", provider="github", organization_id=self.organization.id
-        )
+        with exempt_from_silo_limits():
+            unknown_repo = Repository.objects.create(
+                name="my-org/some-repo", organization_id=self.organization.id
+            )
+            # create a legacy repo tied to a plugin, not integration
+            Repository.objects.create(
+                name="plugin-repo", provider="github", organization_id=self.organization.id
+            )
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
