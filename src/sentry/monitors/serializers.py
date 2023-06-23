@@ -170,49 +170,52 @@ class MonitorCheckInSerializer(Serializer):
                 if item.trace_id:
                     trace_ids.append(item.trace_id.hex)
 
-            # query snuba for related errors and their associated issues
-            snql_request = Request(
-                dataset=dataset.value,
-                app_id="eventstore",
-                query=Query(
-                    match=Entity(dataset.value),
-                    select=[Column(col) for col in cols],
-                    where=[
-                        Condition(
-                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
-                            Op.GTE,
-                            query_start,
-                        ),
-                        Condition(
-                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
-                            Op.LT,
-                            query_end,
-                        ),
-                        Condition(Column("trace_id"), Op.IN, trace_ids),
-                        Condition(Column("project_id"), Op.EQ, item_list[0].project_id),
-                    ],
-                    orderby=[
-                        OrderBy(Column("timestamp"), Direction.DESC),
-                    ],
-                    limit=Limit(100),
-                    offset=Offset(0),
-                ),
-                tenant_ids={"organization_id": item_list[0].monitor.organization_id},
-            )
+            if trace_ids:
+                # query snuba for related errors and their associated issues
+                snql_request = Request(
+                    dataset=dataset.value,
+                    app_id="eventstore",
+                    query=Query(
+                        match=Entity(dataset.value),
+                        select=[Column(col) for col in cols],
+                        where=[
+                            Condition(
+                                Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                                Op.GTE,
+                                query_start,
+                            ),
+                            Condition(
+                                Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                                Op.LT,
+                                query_end,
+                            ),
+                            Condition(Column("trace_id"), Op.IN, trace_ids),
+                            Condition(Column("project_id"), Op.EQ, item_list[0].project_id),
+                        ],
+                        orderby=[
+                            OrderBy(Column("timestamp"), Direction.DESC),
+                        ],
+                        limit=Limit(100),
+                        offset=Offset(0),
+                    ),
+                    tenant_ids={"organization_id": item_list[0].monitor.organization_id},
+                )
 
-            result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
-            if "error" not in result:
-                trace_groups = defaultdict(list)
+                result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
+                if "error" not in result:
+                    trace_groups = defaultdict(list)
 
-                for event in result["data"]:
-                    trace_groups[event["contexts[trace.trace_id]"]].append(event["group_id"])
+                    for event in result["data"]:
+                        trace_groups[event["contexts[trace.trace_id]"]].append(event["group_id"])
 
-                attrs = {
-                    item: {
-                        "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
+                    attrs = {
+                        item: {
+                            "group_ids": trace_groups.get(item.trace_id.hex)
+                            if item.trace_id
+                            else [],
+                        }
+                        for item in item_list
                     }
-                    for item in item_list
-                }
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -230,7 +233,7 @@ class MonitorCheckInSerializer(Serializer):
         }
 
         if self._expand("group_ids"):
-            result["group_ids"] = attrs["group_ids"]
+            result["group_ids"] = attrs.get("group_ids")
 
         return result
 
