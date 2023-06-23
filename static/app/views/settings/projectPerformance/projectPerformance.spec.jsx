@@ -1,5 +1,4 @@
 import {
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -205,8 +204,11 @@ describe('projectPerformance', function () {
       sliderIndex,
     }) => {
       // Mock endpoints
-      const mockGETBody = {};
-      mockGETBody[threshold] = defaultValue;
+      const mockGETBody = {
+        [threshold]: defaultValue,
+        n_plus_one_db_queries_detection_enabled: true,
+        slow_db_queries_detection_enabled: true,
+      };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
         method: 'GET',
@@ -242,9 +244,11 @@ describe('projectPerformance', function () {
       expect(slider).toHaveValue(indexOfValue.toString());
 
       // Slide value on range slider.
-      fireEvent.change(slider, {target: {value: newValueIndex}});
+      slider.focus();
+      await userEvent.keyboard(`{ArrowRight>${newValueIndex - indexOfValue}}`);
+      await userEvent.tab();
+
       expect(slider).toHaveValue(newValueIndex.toString());
-      fireEvent.keyUp(slider);
 
       // Ensure that PUT request is fired to update
       // project settings
