@@ -299,15 +299,12 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                         </Fragment>
                       )}
                       <EventVitals event={event} />
-                      {(organization.features.includes('dashboards-mep') ||
-                        organization.features.includes('mep-rollout-flag')) && (
-                        <EventCustomPerformanceMetrics
-                          event={event}
-                          location={location}
-                          organization={organization}
-                          source={EventDetailPageSource.PERFORMANCE}
-                        />
-                      )}
+                      <EventCustomPerformanceMetrics
+                        event={event}
+                        location={location}
+                        organization={organization}
+                        source={EventDetailPageSource.PERFORMANCE}
+                      />
                       <TagsTable
                         event={event}
                         query={query}
