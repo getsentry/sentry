@@ -90,6 +90,13 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     );
   };
 
+  handleOrgChange = (option: {label: string; value: string}) => {
+    // handleOrgChange(option: {label: string; value: string}) {
+    const self = this;
+    this.props.handleOrgChange(option);
+    setTimeout(() => self.reloadData(), 0);
+  };
+
   renderBody() {
     const {notificationType, notificationSettings, onChange, onSubmitSuccess} =
       this.props;
@@ -108,7 +115,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
           <OrganizationSelectHeader
             organizations={this.props.organizations}
             organizationId={this.props.organizationId}
-            handleOrgChange={this.props.handleOrgChange}
+            handleOrgChange={this.handleOrgChange}
           />
 
           {canSearch &&

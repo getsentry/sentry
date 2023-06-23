@@ -261,7 +261,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
                 })}
               </Fragment>
             ) : (
-              <Heading>t('Organizations')</Heading>
+              <Heading>{t('Organizations')}</Heading>
             )}
           </PanelHeader>
           <PanelBody>

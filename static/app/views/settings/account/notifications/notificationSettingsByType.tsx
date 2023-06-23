@@ -397,10 +397,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
           />
         </Form>
         {!isEverythingDisabled(notificationType, notificationSettings) && (
-          <Panel
-            id="notificationSettingsByType"
-            className={isGroupedByProject(notificationType) ? 'byProject' : 'byOrg'}
-          >
+          <Panel>
             {isGroupedByProject(notificationType) ? (
               <NotificationSettingsByProjects
                 notificationType={notificationType}
