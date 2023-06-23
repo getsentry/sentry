@@ -84,14 +84,14 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                         slow_rules += 1
                     break
 
-        if slow_rules >= settings.MAX_SLOW_CONDITION_ALERTS:
+        if slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
             return Response(
-                f"You may not exceed {settings.MAX_SLOW_CONDITION_ALERTS} 'slow' rules per project.",
+                f"You may not exceed {settings.MAX_SLOW_CONDITION_ISSUE_ALERTS} 'slow' rules per project.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ALERTS:
+        if (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS:
             return Response(
-                f"You may not exceed {settings.MAX_FAST_CONDITION_ALERTS} 'fast' rules per project.",
+                f"You may not exceed {settings.MAX_FAST_CONDITION_ISSUE_ALERTS} 'fast' rules per project.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

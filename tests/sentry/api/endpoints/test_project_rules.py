@@ -189,7 +189,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    @override_settings(MAX_FAST_CONDITION_ALERTS=1)
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
     def test_exceed_limit_fast_conditions(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
@@ -212,7 +212,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
-    @override_settings(MAX_SLOW_CONDITION_ALERTS=1)
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
     def test_exceed_limit_slow_conditions(self):
         conditions = [
             {
