@@ -83,6 +83,5 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
             default_per_page=10,
-            max_per_page=10,
             on_results=lambda results: sorted(results, key=lambda result: str(result.get("key"))),
         )
