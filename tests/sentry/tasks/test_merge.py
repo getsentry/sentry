@@ -16,7 +16,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 @patch("sentry.similarity.features.index", new=index)
 @region_silo_test
 class MergeGroupTest(TestCase, SnubaTestCase):
-    @patch("sentry.tasks.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream):
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
@@ -72,17 +72,17 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         group2 = event2.group
 
         with self.tasks():
-            eventstream_state = eventstream.start_merge(project.id, [group1.id], group2.id)
+            eventstream_state = eventstream.backend.start_merge(project.id, [group1.id], group2.id)
             merge_groups([group1.id], group2.id)
             eventstream.end_merge(eventstream_state)
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        event1 = eventstore.get_event_by_id(project.id, event1.event_id)
+        event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
         assert event1.group_id == group2.id
         assert event1.data["extra"]["foo"] == "bar"
 
-        event2 = eventstore.get_event_by_id(project.id, event2.event_id)
+        event2 = eventstore.backend.get_event_by_id(project.id, event2.event_id)
         assert event2.group_id == group2.id
         assert event2.data["extra"]["foo"] == "baz"
 

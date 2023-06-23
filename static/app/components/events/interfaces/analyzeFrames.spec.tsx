@@ -1,5 +1,11 @@
-import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
-import {EntryType, Event, EventOrGroupType, Frame} from 'sentry/types/event';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {
+  analyzeFrameForRootCause,
+  analyzeFramesForRootCause,
+} from 'sentry/components/events/interfaces/analyzeFrames';
+import {EntryType, Event, EventOrGroupType, Frame, LockType} from 'sentry/types/event';
 
 const makeEventWithFrames = (frames: Frame[]): Event => {
   const event: Event = {
@@ -224,5 +230,157 @@ describe('analyzeAnrFrames', function () {
     expect(rootCause?.culprit).toEqual(
       '/^android\\.app\\.SharedPreferencesImpl\\$EditorImpl\\$[0-9]/'
     );
+  });
+
+  it('given lock address returns frame with matching lock address', function () {
+    const frame1 = {
+      filename: 'Instrumentation.java',
+      absPath: 'Instrumentation.java',
+      module: 'android.app.Instrumentation',
+      package: null,
+      platform: null,
+      instructionAddr: null,
+      symbolAddr: null,
+      function: 'call',
+      rawFunction: null,
+      symbol: null,
+      context: [],
+      lineNo: 1176,
+      colNo: null,
+      inApp: false,
+      trust: null,
+      errors: null,
+      vars: null,
+      lock: {
+        type: LockType.BLOCKED,
+        address: '0x08a8651c',
+        package_name: 'io.sentry.samples',
+        class_name: 'Monitor',
+        thread_id: 12,
+      },
+    };
+    const frame2 = {
+      filename: 'MainActivity.java',
+      absPath: 'MainActivity.java',
+      module: 'com.example.MainActivity',
+      package: null,
+      platform: null,
+      instructionAddr: null,
+      symbolAddr: null,
+      function: 'onCreate',
+      rawFunction: null,
+      symbol: null,
+      context: [],
+      lineNo: 128,
+      colNo: null,
+      inApp: false,
+      trust: null,
+      errors: null,
+      vars: null,
+      lock: {
+        type: LockType.BLOCKED,
+        address: '0x07d7437b',
+        package_name: 'java.lang',
+        class_name: 'Object',
+        thread_id: 7,
+      },
+    };
+    const rootCause1 = analyzeFrameForRootCause(frame1, undefined, '<address>');
+    expect(rootCause1).toBeNull();
+
+    const rootCause2 = analyzeFrameForRootCause(frame2, undefined, '0x07d7437b');
+    render(<div>{rootCause2?.resources}</div>);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'The main thread is blocked/waiting, trying to acquire lock 0x07d7437b (java.lang.Object) held by the suspect frame of this thread.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('when thread id is not provided, does not append "held by"', function () {
+    const frame = {
+      filename: 'MainActivity.java',
+      absPath: 'MainActivity.java',
+      module: 'com.example.MainActivity',
+      package: null,
+      platform: null,
+      instructionAddr: null,
+      symbolAddr: null,
+      function: 'onCreate',
+      rawFunction: null,
+      symbol: null,
+      context: [],
+      lineNo: 128,
+      colNo: null,
+      inApp: false,
+      trust: null,
+      errors: null,
+      vars: null,
+      lock: {
+        type: LockType.BLOCKED,
+        address: '0x07d7437b',
+        package_name: 'java.lang',
+        class_name: 'Object',
+      },
+    };
+    const rootCause2 = analyzeFrameForRootCause(frame, undefined, '0x07d7437b');
+    render(<div>{rootCause2?.resources}</div>);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'The main thread is blocked/waiting, trying to acquire lock 0x07d7437b (java.lang.Object) .'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('given main thread is locked returns it as root cause', function () {
+    const frame = {
+      filename: 'MainActivity.java',
+      absPath: 'MainActivity.java',
+      module: 'com.example.MainActivity',
+      package: null,
+      platform: null,
+      instructionAddr: null,
+      symbolAddr: null,
+      function: 'onCreate',
+      rawFunction: null,
+      symbol: null,
+      context: [],
+      lineNo: 128,
+      colNo: null,
+      inApp: false,
+      trust: null,
+      errors: null,
+      vars: null,
+      lock: {
+        type: LockType.BLOCKED,
+        address: '0x08a1321b',
+        package_name: 'java.lang',
+        class_name: 'Object',
+        thread_id: 7,
+      },
+    };
+    const thread = {
+      id: 13920,
+      current: true,
+      crashed: true,
+      name: 'puma 002',
+      stacktrace: null,
+      rawStacktrace: null,
+      state: 'BLOCKED',
+    };
+    const rootCause = analyzeFrameForRootCause(frame, thread);
+
+    render(<div>{rootCause?.resources}</div>);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'The main thread is blocked/waiting, trying to acquire lock 0x08a1321b (java.lang.Object) held by the suspect frame of this thread.'
+        )
+      )
+    ).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import * as qs from 'query-string';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -104,7 +105,7 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
@@ -120,6 +121,8 @@ export default function EndpointOverview() {
           if (!results) {
             return null;
           }
+          // Force label to be Requests
+          const throughputResults = {seriesName: 'Requests', data: results[0].data};
           return (
             <Fragment>
               <Header>
@@ -136,7 +139,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
-                data={[results[0]]}
+                data={[throughputResults]}
                 start=""
                 end=""
                 loading={loading}

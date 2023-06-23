@@ -95,7 +95,7 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "percent_change", "date"}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
@@ -237,6 +237,7 @@ SPAN_FUNCTION_ALIASES = {
     "sps_percent_change": "eps_percent_change",
     "spm_percent_change": "epm_percent_change",
 }
+SPAN_PERCENTILE_INDEXES = [0.5, 0.75, 0.9, 0.95, 0.99]
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
@@ -286,6 +287,11 @@ METRIC_SATISFACTION_TAG_KEY = "satisfaction"
 METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_DURATION_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
 METRIC_PERCENTILES = {
