@@ -1077,7 +1077,6 @@ describe('SmartSearchBar', function () {
       // Default group is correctly added to the dropdown
       await userEvent.keyboard('{ArrowDown}{Enter}');
 
-      // await userEvent.click(screen.getByText('Assignee'));
       expect(mockOnChange).toHaveBeenCalledWith(
         'assigned_or_suggested:',
         expect.anything()
