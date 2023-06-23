@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sentry import features, tsdb
+from sentry import features
 from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models import ProjectOption
 from sentry.relay.utils import to_camel_case_name
@@ -29,17 +29,6 @@ class FilterStatKeys:
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
-    FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
-    FilterStatKeys.RELEASE_VERSION: tsdb.models.project_total_received_release_version,
-    FilterStatKeys.ERROR_MESSAGE: tsdb.models.project_total_received_error_message,
-    FilterStatKeys.BROWSER_EXTENSION: tsdb.models.project_total_received_browser_extensions,
-    FilterStatKeys.LEGACY_BROWSER: tsdb.models.project_total_received_legacy_browsers,
-    FilterStatKeys.LOCALHOST: tsdb.models.project_total_received_localhost,
-    FilterStatKeys.WEB_CRAWLER: tsdb.models.project_total_received_web_crawlers,
-    FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
-    FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
-    FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
-    FilterStatKeys.HEALTH_CHECK: tsdb.models.project_total_healthcheck,
     FilterStatKeys.IP_ADDRESS: TSDBModel.project_total_received_ip_address,
     FilterStatKeys.RELEASE_VERSION: TSDBModel.project_total_received_release_version,
     FilterStatKeys.ERROR_MESSAGE: TSDBModel.project_total_received_error_message,
@@ -50,6 +39,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.INVALID_CSP: TSDBModel.project_total_received_invalid_csp,
     FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
+    FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
 }
 
 
