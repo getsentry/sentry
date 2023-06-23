@@ -107,6 +107,7 @@ type FieldFormatters = {
   number: FieldFormatter;
   percent_change: FieldFormatter;
   percentage: FieldFormatter;
+  rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
 };
@@ -167,6 +168,12 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
+const RATE_UNIT_LABELS = {
+  '1/second': '/s',
+  '1/minute': '/min',
+  '1/hour': '/hr',
+};
+
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
@@ -220,6 +227,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ) : (
             emptyValue
           )}
+        </NumberContainer>
+      );
+    },
+  },
+  rate: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+
+      return (
+        <NumberContainer>
+          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
         </NumberContainer>
       );
     },
