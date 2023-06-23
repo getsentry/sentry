@@ -4,13 +4,14 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from __future__ import annotations
 
+import abc
 from abc import abstractmethod
 from typing import Any, Iterable, List, Mapping, Optional, cast
 
 from django.dispatch import Signal
 
-from sentry.services.hybrid_cloud import OptionValue
-from sentry.services.hybrid_cloud.organization import (
+from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
+from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
@@ -29,9 +30,8 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo import SiloMode
-from sentry.types.region import find_regions_for_orgs
 
 
 class OrganizationService(RpcService):
@@ -290,31 +290,44 @@ class OrganizationService(RpcService):
         self,
         signal: Signal,
         organization_id: int,
-        args: Mapping[str, int | None],
+        args: Mapping[str, int | str | None],
     ) -> None:
-        from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+        _organization_signal_service.schedule_signal(
+            signal=signal, organization_id=organization_id, args=args
+        )
 
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            self.send_signal(
-                organization_id=organization_id,
-                signal=RpcOrganizationSignal.from_signal(signal),
-                args=args,
-            )
-        else:
-            with outbox_context(flush=False):
-                payload: Any = {
-                    "args": args,
-                    "signal": int(RpcOrganizationSignal.from_signal(signal)),
-                }
-                for region_name in find_regions_for_orgs([organization_id]):
-                    ControlOutbox(
-                        shard_scope=OutboxScope.ORGANIZATION_SCOPE,
-                        shard_identifier=organization_id,
-                        region_name=region_name,
-                        category=OutboxCategory.SEND_SIGNAL,
-                        object_identifier=ControlOutbox.next_object_identifier(),
-                        payload=payload,
-                    ).save()
 
+class OrganizationSignalService(abc.ABC):
+    @abc.abstractmethod
+    def schedule_signal(
+        self,
+        signal: Signal,
+        organization_id: int,
+        args: Mapping[str, int | str | None],
+    ) -> None:
+        pass
+
+
+def _signal_from_outbox() -> OrganizationSignalService:
+    from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationSignalService
+
+    return OutboxBackedOrganizationSignalService()
+
+
+def _signal_from_on_commit() -> OrganizationSignalService:
+    from sentry.services.hybrid_cloud.organization.impl import (
+        OnCommitBackedOrganizationSignalService,
+    )
+
+    return OnCommitBackedOrganizationSignalService()
+
+
+_organization_signal_service: OrganizationSignalService = silo_mode_delegation(
+    {
+        SiloMode.REGION: _signal_from_on_commit,
+        SiloMode.CONTROL: _signal_from_outbox,
+        SiloMode.MONOLITH: _signal_from_on_commit,
+    }
+)
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())
