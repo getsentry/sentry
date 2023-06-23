@@ -331,12 +331,12 @@ def _fetch_tags_or_values_for_mri(
     supported_metric_ids_in_entities = {}
 
     release_health_metric_types = ("counter", "set", "distribution")
-    performance_metric_types = ("generic_set", "generic_distribution")
+    performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
 
     if use_case_id == UseCaseKey.RELEASE_HEALTH:
         metric_types = release_health_metric_types
     else:
-        metric_types = release_health_metric_types + performance_metric_types
+        metric_types = performance_metric_types
 
     for metric_type in metric_types:
 
@@ -468,7 +468,7 @@ def get_tags(
     assert projects
 
     try:
-        if len(metrics) and MRI_SCHEMA_REGEX.match(metrics[0]):
+        if len(metrics) and all(MRI_SCHEMA_REGEX.match(metric) for metric in metrics):
             tags, _ = _fetch_tags_or_values_for_mri(
                 projects=projects,
                 metric_mris=metrics,
