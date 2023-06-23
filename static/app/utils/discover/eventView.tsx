@@ -68,6 +68,8 @@ export type MetaType = Record<string, ColumnType> & {
   units?: Record<string, string>;
 };
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  units: Record<string, string>;
+} & {
   isMetricsData?: boolean;
 };
 
