@@ -942,7 +942,7 @@ def _bulk_snuba_query(
             if response.status != 200:
                 logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
             if body.get("error"):
@@ -1450,9 +1450,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 else row
             )(col, rev_map)
 
-        if fwd:
+        if fwd is not None:
             forward = compose(forward, fwd)
-        if rev:
+        if rev is not None:
             reverse = compose(reverse, rev)
 
     # Extra reverse translator for time column.

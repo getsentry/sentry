@@ -5,7 +5,6 @@ from unittest.mock import patch
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
-from django.db import IntegrityError
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -25,7 +24,9 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
+    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
@@ -770,9 +771,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with outbox_runner():
-            pass
-
         with exempt_from_silo_limits():
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
@@ -787,10 +785,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
-        # Ensure that the organization update has been flushed
-        with outbox_runner():
-            pass
-
         organization_mapping.refresh_from_db()
         assert organization_mapping.slug == desired_slug
 
@@ -801,8 +795,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             slug=desired_slug, name="collision-imminent"
         )
 
-        # Drain the initial slug creation to ensure a mapping exists for the new org
-        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
         colliding_org_mapping = OrganizationMapping.objects.get(
             organization_id=org_with_colliding_slug.id
         )
@@ -810,14 +802,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
         org_with_colliding_slug.slug = "unique-slug"
-        org_with_colliding_slug.save()
+        with outbox_context(flush=False):
+            org_with_colliding_slug.save()
 
         self.get_success_response(self.organization.slug, slug=desired_slug)
         self.organization.refresh_from_db()
         assert self.organization.slug == desired_slug
 
         # Ensure that the organization update has been flushed, but it collides when attempting an upsert
-        with pytest.raises(IntegrityError):
+        with pytest.raises(OutboxFlushError):
             Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
 
         organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
@@ -889,7 +882,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -897,9 +890,43 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
+
+    def test_published_sentry_app(self):
+        """Test that we do not allow an organization who has a published sentry app to be deleted"""
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_sentry_app(
+            organization=org,
+            scopes=["project:write"],
+            published=True,
+        )
+        self.login_as(self.user)
+        self.get_error_response(org.slug, status_code=400)
 
 
 @region_silo_test

@@ -24,7 +24,11 @@ from sentry.utils.urls import non_standard_url_join
 # used to drive logic for when to show the "SDK out of date" error
 JS_VERSION_FOR_DEBUG_ID = "7.44.0"
 
-NO_DEBUG_ID_FRAMEWORKS = {"sentry.javascript.react-native", "sentry.javascript.remix"}
+NO_DEBUG_ID_FRAMEWORKS = {
+    "sentry.javascript.react-native",
+    "sentry.javascript.remix",
+    "sentry.javascript.nextjs",
+}
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -77,7 +81,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         exception_idx = int(exception_idx)
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
@@ -125,7 +129,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absPath": abs_path}
             )
 
-        # only check the release if it exists
+        # only check the release if it exists and we need it to resolve the release
         if release:
             release_artifacts = self._get_releasefiles(release, project.organization.id)
 
@@ -165,6 +169,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
                     data={"filename": filename},
                 )
+
+        if can_use_debug_id:
+            # at this point we know the source maps aren't mapped but we can use a debug id
+            # however, we can't give them any advice other than to add Sentry to their build pipeline
+            # it's possible they tried to do this but failed but we won't know that
+            return self._create_response(issue=SourceMapProcessingIssue.NOT_PART_OF_PIPELINE)
 
         return self._create_response()
 

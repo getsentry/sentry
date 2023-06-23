@@ -8,6 +8,7 @@ import {
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
 
 import {
   AGGREGATION_FIELDS,
@@ -504,7 +505,7 @@ export type AggregationKeyWithAlias = `${AggregationKey}` | keyof typeof ALIASES
 
 export type AggregationOutputType = Extract<
   ColumnType,
-  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size'
+  'number' | 'integer' | 'date' | 'duration' | 'percentage' | 'string' | 'size' | 'rate'
 >;
 
 export type PlotType = 'bar' | 'line' | 'area';
@@ -1029,6 +1030,10 @@ export function aggregateFunctionOutputType(
 
   if (firstArg && STARFISH_FIELDS[firstArg]) {
     return STARFISH_FIELDS[firstArg].outputType;
+  }
+
+  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+    return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
   // If the function is an inherit type it will have a field as

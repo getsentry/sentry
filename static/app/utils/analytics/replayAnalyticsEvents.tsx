@@ -5,8 +5,11 @@ export type ReplayEventParameters = {
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
+    finished_at_delta: number; // Log the change (positive number==later date) in finished_at
     project_platform: string;
     replay_errors: number;
+    replay_id: string;
+    started_at_delta: number; // Log the change (negative number==earlier date) in started_at
     total_errors: number;
   };
   'replay.details-layout-changed': {

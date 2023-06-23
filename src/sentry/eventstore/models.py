@@ -763,6 +763,25 @@ class GroupEvent(BaseEvent):
             return cast(str, self._snuba_data[column])
         return None
 
+    @memoize
+    def search_message(self) -> str:
+        message = super().search_message
+        # Include values from the occurrence in our search message as well, so that occurrences work
+        # correctly in search.
+        if self.occurrence is not None:
+            message = augment_message_with_occurrence(message, self.occurrence)
+
+        return message
+
+
+def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -> str:
+    for attr in ("issue_title", "subtitle", "culprit"):
+        value = getattr(occurrence, attr, "")
+        if value and value not in message:
+            value = force_text(value, errors="replace")
+            message = f"{message} {value}"
+    return message
+
 
 class EventSubjectTemplate(string.Template):
     idpattern = r"(tag:)?[_a-z][_a-z0-9]*"
@@ -791,7 +810,7 @@ class EventSubjectTemplateData:
         elif name == "shortID" and self.event.group_id and self.event.group:
             return cast(str, self.event.group.qualified_short_id)
         elif name == "orgID":
-            return cast(str, self.event.organization.slug)
+            return self.event.organization.slug
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title

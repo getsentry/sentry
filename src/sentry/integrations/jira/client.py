@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+from typing import Optional
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -53,8 +54,8 @@ class JiraCloudClient(IntegrationProxyClient):
         self,
         integration: RpcIntegration,
         verify_ssl: bool,
-        org_integration_id: str = None,
-        logging_context: JSONData = None,
+        org_integration_id: Optional[str] = None,
+        logging_context: Optional[JSONData] = None,
     ):
         self.base_url = integration.metadata.get("base_url")
         self.shared_secret = integration.metadata.get("shared_secret")
@@ -203,7 +204,9 @@ class JiraCloudClient(IntegrationProxyClient):
         return self.get_cached(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key, transition_id):
-        return self.post(self.TRANSITION_URL % issue_key, {"transition": {"id": transition_id}})
+        return self.post(
+            self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
+        )
 
     def assign_issue(self, key, name_or_account_id):
         user_id_field = self.user_id_field()

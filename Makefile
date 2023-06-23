@@ -3,6 +3,7 @@ all: develop
 
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
+POSTGRES_CONTAINER := sentry_postgres
 
 freeze-requirements:
 	@python3 -S -m tools.freeze_requirements
@@ -143,6 +144,7 @@ test-snuba:
 		tests/sentry/post_process_forwarder \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
+		tests/sentry/event_manager \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 

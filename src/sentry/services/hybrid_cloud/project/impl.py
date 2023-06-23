@@ -3,9 +3,21 @@ from __future__ import annotations
 from sentry.models import Project, ProjectOption
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.project import ProjectService, RpcProject, RpcProjectOptionValue
+from sentry.services.hybrid_cloud.project.serial import serialize_project
 
 
 class DatabaseBackedProjectService(ProjectService):
+    def get_by_id(self, *, organization_id: int, id: int) -> RpcProject | None:
+        try:
+            project = Project.objects.get_from_cache(id=id, organization=organization_id)
+        except ValueError:
+            project = Project.objects.filter(id=id, organization=organization_id).first()
+        except Project.DoesNotExist:
+            return None
+        if project:
+            return serialize_project(project)
+        return None
+
     def get_option(self, *, project: RpcProject, key: str) -> RpcProjectOptionValue:
         from sentry import projectoptions
 

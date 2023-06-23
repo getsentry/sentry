@@ -242,19 +242,20 @@ class InAppMatch(FrameMatch):
         return ref_val is not None and ref_val == match_frame["in_app"]
 
 
-class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-
-        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
-
-
 class FrameFieldMatch(FrameMatch):
     def _positive_frame_match(self, match_frame, platform, exception_data, cache):
         field = match_frame[self.field]
         if field is None:
             return False
+        if field == self._encoded_pattern:
+            return True
 
         return cached(cache, glob_match, field, self._encoded_pattern)
+
+
+class FunctionMatch(FrameFieldMatch):
+
+    field = "function"
 
 
 class ModuleMatch(FrameFieldMatch):

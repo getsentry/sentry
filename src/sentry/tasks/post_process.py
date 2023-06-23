@@ -500,7 +500,7 @@ def post_process_group(
             # instead.
 
             def get_event_raise_exception() -> Event:
-                retrieved = eventstore.get_event_by_id(
+                retrieved = eventstore.backend.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,

@@ -148,7 +148,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
         seriesByDomain[label].data =
           seriesData?.data.map(datum => {
-            return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+            return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
           }) ?? [];
       });
     }
@@ -156,9 +156,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const data = Object.values(seriesByDomain);
 
-  const initialShowSeries = transformedData.map(
-    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
-  );
+  const initialShowSeries = transformedData.map(_ => true);
 
   return (
     <StyledPanel>
@@ -191,8 +189,8 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
-    yAxis: getTimeseries ? [`p95(${SPAN_SELF_TIME})`] : [],
+    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
+    yAxis: getTimeseries ? [`sum(${SPAN_SELF_TIME})`] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,

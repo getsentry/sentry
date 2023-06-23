@@ -1,3 +1,4 @@
+import invariant from 'invariant';
 import first from 'lodash/first';
 import {duration} from 'moment';
 
@@ -11,6 +12,7 @@ import type {
   RawCrumb,
 } from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
 import type {
   RecordingEvent,
@@ -57,10 +59,14 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       return acc;
     }, {});
 
+  const startedAt = new Date(apiResponse.started_at);
+  invariant(isValidDate(startedAt), 'replay.started_at is invalid');
+  const finishedAt = new Date(apiResponse.finished_at);
+  invariant(isValidDate(finishedAt), 'replay.finished_at is invalid');
   return {
     ...apiResponse,
-    ...(apiResponse.started_at ? {started_at: new Date(apiResponse.started_at)} : {}),
-    ...(apiResponse.finished_at ? {finished_at: new Date(apiResponse.finished_at)} : {}),
+    ...(apiResponse.started_at ? {started_at: startedAt} : {}),
+    ...(apiResponse.finished_at ? {finished_at: finishedAt} : {}),
     ...(apiResponse.duration !== undefined
       ? {duration: duration(apiResponse.duration * 1000)}
       : {}),
@@ -134,38 +140,46 @@ export function breadcrumbFactory(
     .map(span => {
       if (span.op.startsWith('navigation')) {
         const [, action] = span.op.split('.');
+        try {
+          return {
+            category: 'default',
+            type: BreadcrumbType.NAVIGATION,
+            timestamp: new Date(span.startTimestamp * 1000).toISOString(),
+            level: BreadcrumbLevelType.INFO,
+            message: span.description,
+            action,
+            data: {
+              to: span.description,
+              label:
+                action === 'reload'
+                  ? t('Reload')
+                  : action === 'navigate'
+                  ? t('Page load')
+                  : t('Navigation'),
+              ...span.data,
+            },
+          };
+        } catch {
+          return null;
+        }
+      }
+      try {
         return {
-          category: 'default',
-          type: BreadcrumbType.NAVIGATION,
+          type: BreadcrumbType.DEBUG,
           timestamp: new Date(span.startTimestamp * 1000).toISOString(),
           level: BreadcrumbLevelType.INFO,
-          message: span.description,
-          action,
+          category: 'default',
           data: {
-            to: span.description,
-            label:
-              action === 'reload'
-                ? t('Reload')
-                : action === 'navigate'
-                ? t('Page load')
-                : t('Navigation'),
+            action: span.op,
             ...span.data,
+            label: span.op === 'largest-contentful-paint' ? t('LCP') : span.op,
           },
         };
+      } catch {
+        return null;
       }
-
-      return {
-        type: BreadcrumbType.DEBUG,
-        timestamp: new Date(span.startTimestamp * 1000).toISOString(),
-        level: BreadcrumbLevelType.INFO,
-        category: 'default',
-        data: {
-          action: span.op,
-          ...span.data,
-          label: span.op === 'largest-contentful-paint' ? t('LCP') : span.op,
-        },
-      };
-    });
+    })
+    .filter(Boolean) as (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[];
 
   const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
 
@@ -183,22 +197,31 @@ export function breadcrumbFactory(
     .map(crumb => {
       if (crumb.category === 'replay.mutations') {
         const crumbData = crumb.data as Record<string, unknown>;
-        return {
-          ...crumb,
-          type: crumbData.limit ? BreadcrumbType.ERROR : BreadcrumbType.WARNING,
-          level: crumbData.limit
-            ? BreadcrumbLevelType.FATAL
-            : BreadcrumbLevelType.WARNING,
-          timestamp: new Date(crumb.timestamp * 1000).toISOString(),
-        };
+        try {
+          return {
+            ...crumb,
+            type: crumbData.limit ? BreadcrumbType.ERROR : BreadcrumbType.WARNING,
+            level: crumbData.limit
+              ? BreadcrumbLevelType.FATAL
+              : BreadcrumbLevelType.WARNING,
+            timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+          };
+        } catch {
+          return null;
+        }
       }
 
-      return {
-        ...crumb,
-        type: BreadcrumbType.DEFAULT,
-        timestamp: new Date(crumb.timestamp * 1000).toISOString(),
-      };
-    });
+      try {
+        return {
+          ...crumb,
+          type: BreadcrumbType.DEFAULT,
+          timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean) as RawCrumb[];
 
   // TODO(replay): The important parts of transformCrumbs should be brought into
   // here, we're hydrating our data and should have more control over the process.
@@ -230,9 +253,9 @@ export function spansFactory(spans: ReplaySpan[]) {
  */
 export function replayTimestamps(
   replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[],
-  rawCrumbs: ReplayCrumb[],
-  rawSpanData: ReplaySpan[]
+  rrwebEvents: {timestamp: number}[],
+  rawCrumbs: {timestamp: number}[],
+  rawSpanData: {endTimestamp: number; op: string; startTimestamp: number}[]
 ) {
   const rrwebTimestamps = rrwebEvents.map(event => event.timestamp).filter(Boolean);
   const breadcrumbTimestamps = rawCrumbs

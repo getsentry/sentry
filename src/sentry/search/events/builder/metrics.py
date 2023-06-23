@@ -29,6 +29,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     QueryFramework,
     SelectType,
@@ -141,8 +142,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if col.startswith("tags["):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
-        if col in constants.METRIC_UNAVAILBLE_COLUMNS:
-            raise IncompatibleMetricsQuery(f"{col} is unavailable")
 
         if self.use_metrics_layer:
             if col in ["project_id", "timestamp"]:
@@ -290,7 +289,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.MetricsFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -928,7 +927,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
-                if granularity < interval:
+                if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
 

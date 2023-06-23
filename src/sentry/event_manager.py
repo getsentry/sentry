@@ -129,6 +129,7 @@ from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -482,7 +483,10 @@ class EventManager:
             secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
             secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
             if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-                with metrics.timer("event_manager.secondary_grouping"):
+                with sentry_sdk.start_span(
+                    op="event_manager",
+                    description="event_manager.save.calculate_event_grouping",
+                ), metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
                     secondary_grouping_config = loader.get_config_dict(project)
@@ -508,9 +512,10 @@ class EventManager:
                     job["event"].data.data, project
                 )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
-            "event_manager.calculate_event_grouping"
-        ):
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ), metrics.timer("event_manager.calculate_event_grouping"):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -1179,17 +1184,17 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
         incrs = []
         frequencies = []
         records = []
-        incrs.append((tsdb.models.project, job["project_id"]))
+        incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
         release = job["release"]
         environment = job["environment"]
         user = job["user"]
 
         for group_info in job["groups"]:
-            incrs.append((tsdb.models.group, group_info.group.id))
+            incrs.append((TSDBModel.group, group_info.group.id))
             frequencies.append(
                 (
-                    tsdb.models.frequent_environments_by_group,
+                    TSDBModel.frequent_environments_by_group,
                     {group_info.group.id: {environment.id: 1}},
                 )
             )
@@ -1197,21 +1202,21 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             if group_info.group_release:
                 frequencies.append(
                     (
-                        tsdb.models.frequent_releases_by_group,
+                        TSDBModel.frequent_releases_by_group,
                         {group_info.group.id: {group_info.group_release.id: 1}},
                     )
                 )
             if user:
                 records.append(
-                    (tsdb.models.users_affected_by_group, group_info.group.id, (user.tag_value,))
+                    (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
                 )
 
         if release:
-            incrs.append((tsdb.models.release, release.id))
+            incrs.append((TSDBModel.release, release.id))
 
         if user:
             project_id = job["project_id"]
-            records.append((tsdb.models.users_affected_by_project, project_id, (user.tag_value,)))
+            records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
 
         if incrs:
             tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
@@ -1279,7 +1284,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        eventstream.insert(
+        eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,

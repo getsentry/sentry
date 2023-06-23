@@ -1,7 +1,7 @@
 import abc
 import logging
 from collections import namedtuple
-from typing import Any, Mapping, Sequence, cast
+from typing import Any, Mapping, Sequence
 
 from django.utils.encoding import force_text
 from django.views import View
@@ -22,7 +22,7 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
     __slots__ = ()
 
     def __str__(self) -> str:
-        return cast(str, force_text(self.id))
+        return force_text(self.id)
 
 
 class Provider(PipelineProvider, abc.ABC):
