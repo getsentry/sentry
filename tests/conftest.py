@@ -186,9 +186,6 @@ def protect_hybrid_cloud_writes_and_deletes(request):
             yield
             return
 
-    yield
-    return
-
     reset_test_role(role="postgres_unprivileged")
 
     # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.

@@ -8,7 +8,7 @@ const renderComponent = (projects: Project[]) => {
   const {routerContext, organization} = initializeOrg();
 
   MockApiClient.addMockResponse({
-    url: `/projects/?organization_id=${organization.id}`,
+    url: `/projects/`,
     method: 'GET',
     body: projects,
   });
@@ -29,6 +29,8 @@ const renderComponent = (projects: Project[]) => {
       onChange={jest.fn()}
       onSubmitSuccess={jest.fn()}
       organizationId={organization.id}
+      organizations={[organization]}
+      handleOrgChange={jest.fn()}
     />,
     {context: routerContext}
   );

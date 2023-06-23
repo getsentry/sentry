@@ -17,8 +17,9 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'sentry/views/settings/account/notifications/fields';
-import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/notificationSettingsByOrganizationByProjects';
-import NotificationSettingsByType from 'sentry/views/settings/account/notifications/notificationSettingsByType';
+import NotificationSettingsByType, {
+  OrganizationSelectHeader,
+} from 'sentry/views/settings/account/notifications/notificationSettingsByType';
 import {
   getNotificationTypeFromPathname,
   groupByOrganization,
@@ -151,6 +152,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {fineTuneType: pathnameType} = this.props.params;
+    const orgId = this.state?.organizationId || this.props.organizations[0].id;
     const fineTuneType = getNotificationTypeFromPathname(pathnameType);
     const endpoints = [
       ['notifications', '/users/me/notifications/'],
@@ -158,10 +160,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     ];
 
     if (isGroupedByProject(fineTuneType)) {
-      endpoints.push([
-        'projects',
-        `/projects/?organization_id=${this.props.organizations[0].id}`,
-      ]);
+      endpoints.push(['projects', `/projects/?organization_id=${orgId}`]);
     }
 
     endpoints.push(['emails', '/users/me/emails/']);
@@ -193,6 +192,10 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
 
   handleOrgChange = (option: {label: string; value: string}) => {
     this.setState({organizationId: option.value});
+    const self = this;
+    setTimeout(() => {
+      self.reloadData();
+    }, 0);
   };
 
   renderBody() {
@@ -221,7 +224,6 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     if (!notifications || !fineTuneData) {
       return null;
     }
-
     return (
       <div>
         <SettingsPageHeader title={title} />
@@ -244,24 +246,25 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
             </Form>
           )}
         <Panel>
+          <PanelHeader hasButtons={isProject}>
+            {isProject ? (
+              <Fragment>
+                <OrganizationSelectHeader
+                  organizations={this.props.organizations}
+                  organizationId={this.state.organizationId}
+                  handleOrgChange={this.handleOrgChange}
+                />
+                {this.renderSearchInput({
+                  placeholder: t('Search Projects'),
+                  url,
+                  stateKey,
+                })}
+              </Fragment>
+            ) : (
+              <Heading>t('Organizations')</Heading>
+            )}
+          </PanelHeader>
           <PanelBody>
-            <PanelHeader hasButtons={isProject}>
-              <OrganizationSelectHeader
-                organizations={this.props.organizations}
-                organizationId={this.state.organizationId}
-                handleOrgChange={this.handleOrgChange}
-              />
-              <Heading>{isProject ? t('Projects') : t('Organizations')}</Heading>
-              <div>
-                {isProject &&
-                  this.renderSearchInput({
-                    placeholder: t('Search Projects'),
-                    url,
-                    stateKey,
-                  })}
-              </div>
-            </PanelHeader>
-
             <Form
               saveOnBlur
               apiMethod="PUT"
