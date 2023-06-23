@@ -27,6 +27,8 @@ from typing import (
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
@@ -2971,7 +2973,7 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
-KAFKA_CLUSTERS = {
+KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},
         "producers": {
@@ -3028,7 +3030,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3555,7 +3557,7 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
-SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
+SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
