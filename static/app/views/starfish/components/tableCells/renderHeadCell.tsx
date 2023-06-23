@@ -27,7 +27,6 @@ export const SORTABLE_FIELDS = new Set([
   'time_spent_percentage()',
 ]);
 
-// TODO use sort link and stuff
 export const renderHeadCell = ({column, location, sort}: Options) => {
   const {key, name} = column;
   const alignment = getAlignment(key);
