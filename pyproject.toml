@@ -858,7 +858,6 @@ module = [
     "sentry.replays.lib.query",
     "sentry.replays.lib.storage",
     "sentry.replays.query",
-    "sentry.replays.tasks",
     "sentry.replays.testutils",
     "sentry.replays.usecases.reader",
     "sentry.reprocessing2",
