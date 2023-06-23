@@ -53,6 +53,7 @@ class MonitorConsumerTest(TestCase):
     ) -> None:
         now = datetime.now()
         self.guid = uuid.uuid4().hex if not guid else guid
+        self.trace_id = uuid.uuid4().hex
 
         payload = {
             "monitor_slug": monitor_slug,
@@ -60,6 +61,7 @@ class MonitorConsumerTest(TestCase):
             "duration": None,
             "check_in_id": self.guid,
             "environment": "production",
+            "contexts": {"trace": {"trace_id": self.trace_id}},
         }
         payload.update(overrides)
 
@@ -105,6 +107,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.trace_id.hex == self.trace_id
 
     def test_passing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")

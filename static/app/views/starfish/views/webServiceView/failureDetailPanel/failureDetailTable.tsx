@@ -15,7 +15,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {

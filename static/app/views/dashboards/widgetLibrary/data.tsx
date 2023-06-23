@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -168,7 +167,9 @@ export const getDefaultWidgets = (organization: Organization) => {
           fields: ['issue', 'assignee', 'events', 'title'],
           aggregates: [],
           columns: ['issue', 'assignee', 'events', 'title'],
-          orderby: enablePrioritySortByDefault(organization) ? 'betterPriority' : 'date',
+          orderby: organization.features.includes('issue-list-better-priority-sort')
+            ? 'betterPriority'
+            : 'date',
         },
       ],
     },

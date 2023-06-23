@@ -19,6 +19,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
 )
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
@@ -31,6 +32,10 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
+DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,19 +49,35 @@ def queue_comment_task_if_needed(
         extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
     )
 
+    # client will raise ApiError if the request is not successful
     response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
 
-    if not (response.status_code == 200 and isinstance(response, list) and len(response) == 1):
+    if not isinstance(response, list) or len(response) != 1:
         # the response should return a single PR, return if multiple
+        if len(response) > 1:
+            logger.info(
+                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+                extra={
+                    "organization_id": commit.organization_id,
+                    "repository_id": repo.id,
+                    "commit_sha": commit.key,
+                },
+            )
         return
 
+    merge_commit_sha = response[0]["merge_commit_sha"]
+
     pr_query = PullRequest.objects.filter(
-        organization_id=commit.organization_id, merge_commit_sha=response[0]["merge_commit_sha"]
+        organization_id=commit.organization_id, merge_commit_sha=merge_commit_sha
     )
     if not pr_query.exists():
         logger.info(
-            "github.pr_comment.queue_comment_task_missing_pr",
-            extra={"organization_id": commit.organization_id, "suspect_commit_sha": commit.key},
+            "github.pr_comment.queue_comment_check.missing_pr",
+            extra={
+                "organization_id": commit.organization_id,
+                "repository_id": repo.id,
+                "commit_sha": commit.key,
+            },
         )
         return
 
@@ -65,12 +86,25 @@ def queue_comment_task_if_needed(
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):
-        # TODO: Debouncing Logic
-        logger.info(
-            "github.pr_comment.queue_comment_workflow",
-            extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+        lock = locks.get(
+            DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
         )
-        comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
+        with lock.acquire():
+            cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
+            if cache.get(cache_key) is not None:
+                return
+
+            # create PR commit row for suspect commit and PR
+            PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+
+            logger.info(
+                "github.pr_comment.queue_comment_workflow",
+                extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+            )
+
+            cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
+
+            comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(

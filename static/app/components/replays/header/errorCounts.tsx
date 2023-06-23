@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Badge from 'sentry/components/badge';
 import Link from 'sentry/components/links/link';
-import CountTooltipContent from 'sentry/components/replays/header/countTooltipContent';
+import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import useErrorCountPerProject from 'sentry/components/replays/header/useErrorCountPerProject';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
