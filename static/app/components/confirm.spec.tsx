@@ -97,7 +97,7 @@ describe('Confirm', function () {
         <button>Confirm?</button>
       </Confirm>
     );
-    renderGlobalModal();
+    const {waitForModalToHide} = renderGlobalModal();
 
     expect(mock).not.toHaveBeenCalled();
 
@@ -105,6 +105,7 @@ describe('Confirm', function () {
 
     // Click "Confirm" button, should be last button
     await userEvent.click(screen.getByText('Confirm'));
+    await waitForModalToHide();
 
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
