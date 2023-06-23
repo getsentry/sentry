@@ -35,6 +35,7 @@ __all__ = (
 
 _tasks_list = (
     "create_comment",
+    "github.pr_comment",
     "kick_off_status_syncs",
     "migrate_issues",
     "migrate_repo",

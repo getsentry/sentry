@@ -431,7 +431,7 @@ class TestCommitContext(TestCommitContextMixin):
         }
     ),
 )
-@patch("sentry.tasks.integrations.github.pr_comment.comment_workflow.delay")
+@patch("sentry.tasks.integrations.github.pr_comment.github_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"

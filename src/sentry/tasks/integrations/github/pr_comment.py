@@ -151,8 +151,8 @@ def create_or_update_comment(
     )
 
 
-@instrumented_task(name="sentry.tasks.integrations.github_pr_comments")
-def comment_workflow(pullrequest_id: int, project_id: int):
+@instrumented_task(name="sentry.tasks.integrations.github_comment_workflow")
+def github_comment_workflow(pullrequest_id: int, project_id: int):
     cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id)
 
     gh_repo_id, pr_key, org_id, issue_list = pr_to_issue_query(pullrequest_id)[0]
