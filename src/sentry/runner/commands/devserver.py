@@ -396,7 +396,10 @@ and run `sentry devservices up kafka zookeeper`.
 
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
-        quiet = name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+        quiet = (
+            name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+            or not settings.DEVSERVER_LOGS_ALLOWLIST
+        )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
     if settings.USE_SILOS:
@@ -419,7 +422,10 @@ and run `sentry devservices up kafka zookeeper`.
         for service in control_services:
             name, cmd = _get_daemon(service)
             name = f"control.{name}"
-            quiet = name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+            quiet = (
+                name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+                or not settings.DEVSERVER_LOGS_ALLOWLIST
+            )
             manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 
     manager.loop()
