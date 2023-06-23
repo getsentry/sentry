@@ -11,6 +11,7 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     create_organization_with_outbox_message,
     mark_organization_as_pending_deletion_with_outbox_message,
+    unmark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
@@ -177,4 +178,66 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
         assert self.org.name == org_before_update.name
         assert self.org.slug == org_before_update.slug
 
+        assert_outbox_update_message_exists(self.org, 0)
+
+
+@region_silo_test(stable=True)
+class UnmarkOrganizationForDeletionWithOutboxMessageTest(TestCase):
+    def setUp(self):
+        self.org: Organization = self.create_organization(
+            slug="sluggy", name="barfoo", status=OrganizationStatus.PENDING_DELETION
+        )
+
+    def test_unmark_for_pending_deletion_and_outbox_generation(self):
+        with outbox_context(flush=False):
+            updated_org = unmark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
+
+        assert updated_org
+        self.org.refresh_from_db()
+
+        assert updated_org.status == self.org.status == OrganizationStatus.ACTIVE
+        assert updated_org.name == self.org.name
+        assert updated_org.slug == self.org.slug
+
+        assert_outbox_update_message_exists(self.org, 1)
+
+    def test_unmark_for_deletion_in_progress_and_outbox_generation(self):
+        update_organization_with_outbox_message(
+            org_id=self.org.id, update_data={"status": OrganizationStatus.DELETION_IN_PROGRESS}
+        )
+
+        with outbox_context(flush=False):
+            updated_org = unmark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
+
+        assert updated_org
+        self.org.refresh_from_db()
+
+        assert updated_org.status == self.org.status == OrganizationStatus.ACTIVE
+        assert updated_org.name == self.org.name
+        assert updated_org.slug == self.org.slug
+
+        assert_outbox_update_message_exists(self.org, 1)
+
+    def test_unmark_org_when_already_active(self):
+        update_organization_with_outbox_message(
+            org_id=self.org.id, update_data={"status": OrganizationStatus.ACTIVE}
+        )
+
+        org_before_update = Organization.objects.get(id=self.org.id)
+
+        with outbox_context(flush=False):
+            updated_org = unmark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
+
+        assert not updated_org
+
+        self.org.refresh_from_db()
+        assert self.org.status == org_before_update.status
+        assert self.org.name == org_before_update.name
+        assert self.org.slug == org_before_update.slug
         assert_outbox_update_message_exists(self.org, 0)
