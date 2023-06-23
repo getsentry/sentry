@@ -640,18 +640,32 @@ def test_project_config_get_at_path(default_project):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "has_health_check", [True, False], ids=["with_healthcheck", "without_healthcheck"]
+    "has_health_check, health_check_set",
+    [
+        (True, True),
+        (False, True),
+        (True, False),
+        (False, False),
+    ],
+    ids=[
+        "with_healthcheck, option set",
+        "without_healthcheck, option set",
+        "with_healthcheck, option not set",
+        "without_healthcheck, option not set",
+    ],
 )
-def test_healthcheck_filter(default_project, has_health_check):
+def test_healthcheck_filter(default_project, has_health_check, health_check_set):
     """
-    Tests that the project config properly returns healthcheck status when enabled by the correct flag
+    Tests that the project config properly returns healthcheck filters when the
+    flag is set for the org and the user has enabled healthcheck filters.
     """
 
-    default_project.update_option("filters:health-check", "1")
+    default_project.update_option("filters:health-check", "1" if health_check_set else "0")
     with Feature({"organizations:health-check-filter": has_health_check}):
         config = get_project_config(default_project).to_dict()["config"]
 
     _validate_project_config(config)
     filter_settings = safe.get_path(config, "filterSettings")
-    config_has_health_check = "healthCheck" in filter_settings
-    assert config_has_health_check == has_health_check
+    config_has_health_check = "ignoreTransactions" in filter_settings
+    should_have_health_check_config = has_health_check and health_check_set
+    assert config_has_health_check == should_have_health_check_config

@@ -48,7 +48,7 @@ class FilterTypes:
 
 
 def get_filter_key(flt):
-    return to_camel_case_name(flt.id.replace("-", "_"))
+    return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
 def get_all_filter_specs(project):
@@ -170,9 +170,15 @@ class _FilterSpec:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database
+
+    id: the id of the filter
+    name: name of the filter
+    description: short description
+    serializer_cls: class for filter serialization
+    config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None):
+    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
         self.id = id
         self.name = name
         self.description = description
@@ -180,6 +186,11 @@ class _FilterSpec:
             self.serializer_cls = _FilterSerializer
         else:
             self.serializer_cls = serializer_cls
+
+        if config_name is None:
+            self.config_name = id
+        else:
+            self.config_name = config_name
 
 
 def _get_filter_settings(project_config, flt):
@@ -244,4 +255,6 @@ _healthcheck_filter = _FilterSpec(
     id=FilterStatKeys.HEALTH_CHECK,
     name="Filter out requests to health check endpoints",
     description="Filters out transactions for health check endpoints, in order to conserve transaction quotas",
+    serializer_cls=None,
+    config_name="ignoreTransactions",
 )

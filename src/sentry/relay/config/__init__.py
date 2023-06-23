@@ -69,7 +69,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> Sequence[str]:
-
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
@@ -119,7 +118,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     for flt in get_all_filter_specs(project):
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        if settings["isEnabled"]:
+
+        if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
     error_messages: List[str] = []
@@ -543,7 +543,7 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     return _filter_option_to_config_setting(flt, setting)
 
 
-def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[str, Any]:
+def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Optional[Mapping[str, Any]]:
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
     :param flt: the filter
@@ -574,7 +574,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
         if is_enabled:
             ret_val = {"patterns": HEALTH_CHECK_GLOBS}
         else:
-            ret_val = {"patterns": []}
+            ret_val = None
     return ret_val
 
 
