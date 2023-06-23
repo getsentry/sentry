@@ -32,6 +32,7 @@ from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils import json
 
 
 class OrganizationService(RpcService):
@@ -282,7 +283,7 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_signal(
-        self, *, organization_id: int, signal: RpcOrganizationSignal, args: Mapping[str, int | None]
+        self, *, signal: RpcOrganizationSignal, organization_id: int, args: Mapping[str, int | None]
     ) -> None:
         pass
 
@@ -302,6 +303,9 @@ class OrganizationService(RpcService):
             )
         else:
             with outbox_context(flush=False):
+                payload: str = json.dumps(
+                    {"args": args, "signal": int(RpcOrganizationSignal.from_signal(signal))}
+                )
                 for region_name in find_regions_for_orgs([organization_id]):
                     ControlOutbox(
                         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
@@ -309,9 +313,7 @@ class OrganizationService(RpcService):
                         region_name=region_name,
                         category=OutboxCategory.SEND_SIGNAL,
                         object_identifier=ControlOutbox.next_object_identifier(),
-                        payload=dict(
-                            args=args, signal=int(RpcOrganizationSignal.from_signal(signal))
-                        ),
+                        payload=payload,
                     ).save()
 
 
