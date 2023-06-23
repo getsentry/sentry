@@ -140,7 +140,10 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     def update_existing_check_in(
-        existing_check_in: MonitorCheckIn, updated_status: CheckInStatus, updated_duration: float
+        existing_check_in: MonitorCheckIn,
+        updated_status: CheckInStatus,
+        updated_duration: float,
+        trace_id: str,
     ):
         if (
             existing_check_in.project_id != project_id
@@ -184,8 +187,9 @@ def _process_message(wrapper: Dict) -> None:
             logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
             return
 
-        existing_check_in.update(status=updated_status, duration=updated_duration)
-
+        existing_check_in.update(
+            status=updated_status, duration=updated_duration, trace_id=trace_id
+        )
         return
 
     try:
@@ -257,6 +261,7 @@ def _process_message(wrapper: Dict) -> None:
 
             # Invalid UUIDs will raise ValueError
             check_in_id = uuid.UUID(params["check_in_id"])
+            trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
             # When the UUID is empty we will default to looking for the most
             # recent check-in which is not in a terminal state.
@@ -275,7 +280,7 @@ def _process_message(wrapper: Dict) -> None:
                         guid=check_in_id,
                     )
 
-                update_existing_check_in(check_in, status, validated_params["duration"])
+                update_existing_check_in(check_in, status, validated_params["duration"], trace_id)
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
@@ -297,8 +302,6 @@ def _process_message(wrapper: Dict) -> None:
                     timeout_at = date_added.replace(second=0, microsecond=0) + datetime.timedelta(
                         minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
                     )
-
-                trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
@@ -326,7 +329,7 @@ def _process_message(wrapper: Dict) -> None:
                             guid=guid,
                         )
                         if not created:
-                            update_existing_check_in(check_in, status, duration)
+                            update_existing_check_in(check_in, status, duration, trace_id)
                         else:
                             signal_first_checkin(project, monitor)
 

@@ -202,11 +202,15 @@ class MonitorConsumerTest(TestCase):
 
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
-        self.send_message(monitor.slug, status="in_progress")
-        self.send_message(monitor.slug, guid=self.guid)
+        self.send_message(monitor.slug, status="in_progress", contexts={})
+        new_trace_id = uuid.uuid4().hex
+        self.send_message(
+            monitor.slug, guid=self.guid, contexts={"trace": {"trace_id": new_trace_id}}
+        )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
+        assert checkin.trace_id.hex == new_trace_id
 
     def test_check_in_existing_guid(self):
         monitor = self._create_monitor(slug="my-monitor")
