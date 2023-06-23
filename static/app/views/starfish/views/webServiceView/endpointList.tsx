@@ -27,6 +27,7 @@ import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -117,11 +118,15 @@ function EndpointList({eventView, location, organization, setError}: Props) {
           containerDisplayMode="block"
           position="top"
         >
-          <NumberContainer>
-            {formatPercentage(cumulativeTimePercentage, 2)}
-          </NumberContainer>
+          <NumberContainer>{formatPercentage(cumulativeTimePercentage)}</NumberContainer>
         </Tooltip>
       );
+    }
+
+    // TODO: This can be removed if/when the backend returns this field's type
+    // as `"rate"` and its unit as `"1/second"
+    if (field === 'tps()') {
+      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
     }
 
     if (field === 'project') {
