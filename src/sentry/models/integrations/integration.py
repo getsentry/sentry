@@ -115,11 +115,12 @@ class Integration(DefaultFieldsModel):
                 if not created and default_auth_id:
                     org_integration.update(default_auth_id=default_auth_id)
 
-                organization_service.schedule_signal(
-                    integration_added,
-                    organization_id=organization.id,
-                    args=dict(integration_id=self.id, user_id=user.id if user else None),
-                )
+                if created:
+                    organization_service.schedule_signal(
+                        integration_added,
+                        organization_id=organization.id,
+                        args=dict(integration_id=self.id, user_id=user.id if user else None),
+                    )
                 return org_integration
         except IntegrityError:
             logger.info(

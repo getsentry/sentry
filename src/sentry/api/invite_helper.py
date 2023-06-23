@@ -258,8 +258,10 @@ class ApiInviteHelper:
         organization_service.schedule_signal(
             member_joined,
             organization_id=member.organization_id,
-            user_id=member.user_id,
-            organization_member_id=member.id,
+            args=dict(
+                user_id=member.user_id,
+                organization_member_id=member.id,
+            ),
         )
 
         return member
