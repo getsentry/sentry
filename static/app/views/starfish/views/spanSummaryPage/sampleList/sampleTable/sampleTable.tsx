@@ -18,7 +18,7 @@ type Props = {
 };
 
 function SampleTable({groupId, transactionName}: Props) {
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
@@ -27,30 +27,26 @@ function SampleTable({groupId, transactionName}: Props) {
 
   const {
     data: spans,
-    isLoading: areSpanSamplesLoading,
-    isRefetching: areSpanSamplesRefetching,
+    isFetching: isFetchingSamples,
     refetch,
   } = useSpanSamples({
     groupId,
     transactionName,
   });
 
-  const {
-    data: transactions,
-    isLoading: areTransactionsLoading,
-    isRefetching: areTransactionsRefetching,
-  } = useTransactions(
+  const {data: transactions, isFetching: areTransactionsFetching} = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
 
   const transactionsById = keyBy(transactions, 'id');
 
+  const areNoSamples = !isFetchingSamples && spans.length === 0;
+
   const isLoading =
-    areSpanSamplesLoading ||
-    areSpanSamplesRefetching ||
-    areTransactionsLoading ||
-    areTransactionsRefetching;
+    isFetchingSpanMetrics ||
+    isFetchingSamples ||
+    (!areNoSamples && areTransactionsFetching);
 
   return (
     <Fragment>

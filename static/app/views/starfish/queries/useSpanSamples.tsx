@@ -6,9 +6,17 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {computeAxisMax} from 'sentry/views/starfish/components/chart';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {
+  SpanIndexedFields,
+  SpanIndexedFieldTypes,
+  SpanMetricsFields,
+} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Options = {
   groupId?: string;
@@ -38,6 +46,13 @@ export const useSpanSamples = (options: Options) => {
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
+  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+    groupId ? {group: groupId} : undefined,
+    {transactionName},
+    [`p95(${SPAN_SELF_TIME})`],
+    'sidebar-span-metrics'
+  );
+
   return useQuery<SpanSample[]>({
     queryKey: [
       'span-samples',
@@ -52,6 +67,8 @@ export const useSpanSamples = (options: Options) => {
         `${url}?${qs.stringify({
           ...dateCondtions,
           ...{utc: location.query.utc},
+          upperBound: computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]),
+          lowerBound: 0,
           query: query.formatString(),
         })}`
       );
@@ -65,7 +82,7 @@ export const useSpanSamples = (options: Options) => {
         );
     },
     refetchOnWindowFocus: false,
-    enabled: Boolean(groupId && transactionName),
+    enabled: Boolean(groupId && transactionName && !isLoadingSeries),
     initialData: [],
   });
 };
