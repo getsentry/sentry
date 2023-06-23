@@ -209,7 +209,7 @@ class MonitorCheckInSerializer(Serializer):
 
                 attrs = {
                     item: {
-                        "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else None,
+                        "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
                     }
                     for item in item_list
                 }
@@ -230,7 +230,7 @@ class MonitorCheckInSerializer(Serializer):
         }
 
         if self._expand("group_ids"):
-            result["group_ids"] = attrs.get("group_ids")
+            result["group_ids"] = attrs["group_ids"]
 
         return result
 
