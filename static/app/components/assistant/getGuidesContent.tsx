@@ -261,6 +261,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'explain_archive_button_issue_details',
       requiredTargets: ['issue_details_archive_button'],
+      dateThreshold: new Date('2023-07-05'),
       steps: [
         {
           title: t('Ignore is Now Archive'),
@@ -275,6 +276,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
+      dateThreshold: new Date('2023-07-05'),
       steps: [
         {
           title: t('Nothing to see here'),
