@@ -46,9 +46,7 @@ export function SlowestFunctionsWidget() {
     limit: MAX_FUNCTIONS,
   });
 
-  const hasFunctions = useMemo(() => {
-    return (functionsQuery.data?.data?.length || 0) > 0;
-  }, [functionsQuery.data]);
+  const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
 
   const totalsQuery = useProfileFunctions<TotalsField>({
     fields: totalsFields,
@@ -70,6 +68,9 @@ export function SlowestFunctionsWidget() {
     enabled: functionsQuery.isFetched && hasFunctions,
   });
 
+  const isLoading = functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading);
+  const isError = functionsQuery.isError || totalsQuery.isError;
+
   return (
     <Container>
       <HeaderContainer>
@@ -77,22 +78,22 @@ export function SlowestFunctionsWidget() {
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
       </HeaderContainer>
       <ContentContainer>
-        {(functionsQuery.isLoading || (hasFunctions && totalsQuery.isLoading)) && (
-          <StatusContainer height="100%">
+        {isLoading && (
+          <StatusContainer>
             <LoadingIndicator />
           </StatusContainer>
         )}
-        {(functionsQuery.isError || totalsQuery.isError) && (
-          <StatusContainer height="100%">
+        {isError && (
+          <StatusContainer>
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </StatusContainer>
         )}
-        {functionsQuery.isFetched && !hasFunctions && (
+        {!isError && functionsQuery.isFetched && !hasFunctions && (
           <EmptyStateWarning>
             <p>{t('No functions found')}</p>
           </EmptyStateWarning>
         )}
-        {functionsQuery.isFetched && totalsQuery.isFetched && (
+        {hasFunctions && totalsQuery.isFetched && (
           <Accordion>
             {(functionsQuery.data?.data ?? []).map((f, i) => {
               const projectEntry = totalsQuery.data?.data?.find(
@@ -164,38 +165,46 @@ function SlowestFunctionEntry({
   });
 
   return (
-    <AccordionItemContainer>
-      <AccordionItem>
-        {project && <IdBadge project={project} avatarSize={16} hideName />}
-        <FunctionName>{func.function}</FunctionName>
-        <Tooltip
-          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
-            count: <Count value={func['count()'] as number} />,
-            totalSelfTime: (
-              <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
-            ),
-          })}
-        >
-          <ScoreBar score={score} palette={palette} size={20} radius={0} />
-        </Tooltip>
-        <Button
-          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-          aria-label={t('Expand')}
-          aria-expanded={isExpanded}
-          size="zero"
-          borderless
-          onClick={() => setExpanded()}
-        />
-      </AccordionItem>
+    <Fragment>
+      <AccordionItemContainer>
+        <AccordionItem>
+          {project && <IdBadge project={project} avatarSize={16} hideName />}
+          <FunctionName>{func.function}</FunctionName>
+          <Tooltip
+            title={tct(
+              'Appeared [count] times for a total self time of [totalSelfTime]',
+              {
+                count: <Count value={func['count()'] as number} />,
+                totalSelfTime: (
+                  <PerformanceDuration
+                    nanoseconds={func['sum()'] as number}
+                    abbreviation
+                  />
+                ),
+              }
+            )}
+          >
+            <ScoreBar score={score} palette={palette} size={20} radius={0} />
+          </Tooltip>
+          <Button
+            icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+            aria-label={t('Expand')}
+            aria-expanded={isExpanded}
+            size="zero"
+            borderless
+            onClick={() => setExpanded()}
+          />
+        </AccordionItem>
+      </AccordionItemContainer>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
-            <StatusContainer height="140px">
+            <StatusContainer>
               <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
             </StatusContainer>
           )}
           {functionTransactionsQuery.isLoading && (
-            <StatusContainer height="140px">
+            <StatusContainer>
               <LoadingIndicator />
             </StatusContainer>
           )}
@@ -248,7 +257,7 @@ function SlowestFunctionEntry({
           )}
         </Fragment>
       )}
-    </AccordionItemContainer>
+    </Fragment>
   );
 }
 
@@ -313,6 +322,7 @@ const Accordion = styled('ul')`
   list-style-type: none;
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
 `;
 
 const AccordionItemContainer = styled('li')`
@@ -332,8 +342,10 @@ const FunctionName = styled(TextOverflow)`
 `;
 
 const TransactionsList = styled('div')`
+  flex: 1 1 auto;
   display: grid;
   grid-template-columns: 65% 10% 25%;
+  grid-template-rows: auto auto auto auto auto 1fr;
   padding: ${space(0)} ${space(2)};
 `;
 
@@ -353,9 +365,13 @@ const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>
   padding: ${space(0.5)} 0px;
 `;
 
-const StatusContainer = styled('div')<{height: string}>`
-  height: ${p => p.height};
+const StatusContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1 1 auto;
+
+  .loading {
+    margin: 0 auto;
+  }
 `;
