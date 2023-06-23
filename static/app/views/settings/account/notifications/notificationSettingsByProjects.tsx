@@ -6,7 +6,7 @@ import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import Pagination from 'sentry/components/pagination';
-import {PanelBody, PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
@@ -138,7 +138,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
               <EmptyMessage>{t('No projects found')}</EmptyMessage>
             ) : (
               Object.entries(this.getGroupedProjects()).map(([groupTitle, parents]) => (
-                <JsonForm
+                <StyledJsonForm
                   collapsible
                   key={groupTitle}
                   // title={groupTitle}
@@ -168,5 +168,12 @@ export default NotificationSettingsByProjects;
 const StyledSearchWrapper = styled(SearchWrapper)`
   * {
     width: 100%;
+  }
+`;
+
+export const StyledJsonForm = styled(JsonForm)`
+  ${Panel} {
+    border: 0;
+    margin-bottom: 0;
   }
 `;
