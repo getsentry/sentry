@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Set, cast
+from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, transaction
 from django.dispatch import Signal
@@ -494,14 +494,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         orm_organization.delete_option(key)
 
     def send_signal(
-        self, *, organization_id: int, signal: RpcOrganizationSignal, args: Mapping[str, int | None]
+        self,
+        *,
+        organization_id: int,
+        signal: RpcOrganizationSignal,
+        args: Mapping[str, Optional[str, int]],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 
 
 class OutboxBackedOrganizationSignalService(OrganizationSignalService):
     def schedule_signal(
-        self, signal: Signal, organization_id: int, args: Mapping[str, int | str | None]
+        self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[str, int]]]
     ) -> None:
         with outbox_context(flush=False):
             payload: Any = {

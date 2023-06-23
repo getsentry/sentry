@@ -2,11 +2,9 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from __future__ import annotations
-
 import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Mapping, Optional, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union, cast
 
 from django.dispatch import Signal
 
@@ -282,7 +280,11 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def send_signal(
-        self, *, signal: RpcOrganizationSignal, organization_id: int, args: Mapping[str, int | None]
+        self,
+        *,
+        signal: RpcOrganizationSignal,
+        organization_id: int,
+        args: Mapping[str, Optional[Union[int, str]]],
     ) -> None:
         pass
 
@@ -290,7 +292,7 @@ class OrganizationService(RpcService):
         self,
         signal: Signal,
         organization_id: int,
-        args: Mapping[str, int | str | None],
+        args: Mapping[str, Optional[Union[int, str]]],
     ) -> None:
         _organization_signal_service.schedule_signal(
             signal=signal, organization_id=organization_id, args=args
@@ -303,7 +305,7 @@ class OrganizationSignalService(abc.ABC):
         self,
         signal: Signal,
         organization_id: int,
-        args: Mapping[str, int | str | None],
+        args: Mapping[str, Optional[Union[int, str]]],
     ) -> None:
         pass
 
