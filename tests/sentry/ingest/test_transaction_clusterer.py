@@ -155,6 +155,8 @@ def test_distribution():
         ("route", "/", [["transaction", "/"]], 0),
         ("url", None, [], 0),
         ("url", "/a/b/c", [["http.status_code", "404"]], 0),
+        (None, "/a/b/c", [], 1),
+        (None, "foo", [], 0),
     ],
 )
 def test_record_transactions(mocked_record, default_organization, source, txname, tags, expected):
