@@ -31,11 +31,11 @@ __all__ = (
     "sync_status_outbound",
     "update_comment",
     "vsts_subscription_check",
-    "github_comment_workflow",
 )
 
 _tasks_list = (
     "create_comment",
+    "github.pr_comment",
     "kick_off_status_syncs",
     "migrate_issues",
     "migrate_repo",
@@ -46,12 +46,10 @@ _tasks_list = (
     "update_comment",
     "vsts.kickoff_subscription_check",
     "vsts.subscription_check",
-    "github.pr_comment",
 )
 settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in _tasks_list)
 
 from .create_comment import create_comment
-from .github import github_comment_workflow
 from .kick_off_status_syncs import kick_off_status_syncs
 from .migrate_issues import migrate_issues
 from .migrate_repo import migrate_repo
