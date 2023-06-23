@@ -159,12 +159,14 @@ class MonitorCheckInSerializer(Serializer):
 
             dataset = snuba.Dataset.Events
 
+            # add an hour on each end to be safe
             query_start = self.start - timedelta(hours=1)
             query_end = self.end + timedelta(hours=1)
 
             cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
             cols.append(Columns.TRACE_ID.value.event_name)
 
+            # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
             for item in item_list:
                 if item.trace_id:
