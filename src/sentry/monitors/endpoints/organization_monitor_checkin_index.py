@@ -73,7 +73,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             queryset=queryset,
             order_by="-date_added",
             on_results=lambda x: serialize(
-                x, request.user, MonitorCheckInSerializer(expand=expand)
+                x, request.user, MonitorCheckInSerializer(start=start, end=end, expand=expand)
             ),
             paginator_cls=OffsetPaginator,
         )

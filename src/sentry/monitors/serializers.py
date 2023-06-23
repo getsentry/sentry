@@ -1,6 +1,6 @@
 from collections import defaultdict
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, List
 
 from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
@@ -128,7 +128,9 @@ class MonitorSerializerResponse(TypedDict):
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
-    def __init__(self, expand=None):
+    def __init__(self, start=None, end=None, expand=None):
+        self.start = start
+        self.end = end
         self.expand = expand
 
     def get_attrs(self, item_list, user, **kwargs):
@@ -136,17 +138,81 @@ class MonitorCheckInSerializer(Serializer):
         prefetch_related_objects(item_list, "monitor_environment__environment")
 
         attrs = {}
-        if self._expand("alertRule"):
+        if self._expand("group_ids") and self.start and self.end:
+            from snuba_sdk import (
+                Column,
+                Condition,
+                Direction,
+                Entity,
+                Limit,
+                Offset,
+                Op,
+                OrderBy,
+                Query,
+                Request,
+            )
+
+            from sentry.eventstore.base import EventStorage
+            from sentry.snuba.events import Columns
+            from sentry.utils import snuba
+            from sentry.utils.snuba import DATASETS, raw_snql_query
+
+            dataset = snuba.Dataset.Events
+
+            query_start = self.start - timedelta(hours=1)
+            query_end = self.end + timedelta(hours=1)
+
+            cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
+            cols.append(Columns.TRACE_ID.value.event_name)
+
+            trace_ids = []
+            for item in item_list:
+                if item.trace_id:
+                    trace_ids.append(item.trace_id.hex)
 
             # query snuba for related errors and their associated issues
-            issues = {}
+            snql_request = Request(
+                dataset=dataset.value,
+                app_id="eventstore",
+                query=Query(
+                    match=Entity(dataset.value),
+                    select=[Column(col) for col in cols],
+                    where=[
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.GTE,
+                            query_start,
+                        ),
+                        Condition(
+                            Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                            Op.LT,
+                            query_end,
+                        ),
+                        Condition(Column("trace_id"), Op.IN, trace_ids),
+                        Condition(Column("project_id"), Op.EQ, item_list[0].project_id),
+                    ],
+                    orderby=[
+                        OrderBy(Column("timestamp"), Direction.DESC),
+                    ],
+                    limit=Limit(100),
+                    offset=Offset(0),
+                ),
+                tenant_ids={"organization_id": item_list[0].monitor.organization_id},
+            )
 
-            attrs = {
-                item: {
-                    "group_ids": issues.get(str(item.trace_id)) if item.trace_id else None,
+            result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
+            if "error" not in result:
+                trace_groups = defaultdict(list)
+
+                for event in result["data"]:
+                    trace_groups[event["contexts[trace.trace_id]"]].append(event["group_id"])
+
+                attrs = {
+                    item: {
+                        "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else None,
+                    }
+                    for item in item_list
                 }
-                for item in item_list
-            }
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -164,7 +230,7 @@ class MonitorCheckInSerializer(Serializer):
         }
 
         if self._expand("group_ids"):
-            result["group_ids"] = attrs["group_ids"]
+            result["group_ids"] = attrs.get("group_ids")
 
         return result
 
@@ -184,4 +250,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
-    group_ids: list[str]
+    group_ids: List[str]
