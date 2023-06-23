@@ -48,9 +48,7 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context["deleting_organization"] == self.organization
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path)
 
@@ -73,9 +71,7 @@ class RemoveOrganizationTest(TestCase):
         assert resp.context["deleting_organization"] == self.organization
         assert resp.context["pending_deletion"] is True
 
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
 
@@ -96,9 +92,7 @@ class RemoveOrganizationTest(TestCase):
         assert org.status == OrganizationStatus.ACTIVE
 
     def test_too_late_still_restores(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.post(self.path)
 
@@ -112,7 +106,7 @@ class RemoveOrganizationTest(TestCase):
         assert ScheduledDeletion.objects.count() == 0
 
         org_id = self.organization.id
-        Organization.objects.filter(id=org_id).update(status=OrganizationStatus.PENDING_DELETION)
+        self.organization.update(status=OrganizationStatus.PENDING_DELETION)
         deletion = ScheduledDeletion.schedule(self.organization, days=0)
         deletion.update(in_progress=True)
 

@@ -2,6 +2,7 @@ import pytest
 from click.testing import CliRunner
 from django.db import IntegrityError
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.runner.commands.backup import export, import_
 from sentry.utils import json
 
@@ -16,7 +17,8 @@ def backup_json_filename(tmp_path):
 
 @pytest.mark.django_db
 def test_import(backup_json_filename):
-    rv = CliRunner().invoke(import_, backup_json_filename)
+    with in_test_psql_role_override("postgres"):
+        rv = CliRunner().invoke(import_, backup_json_filename)
     assert rv.exit_code == 0, rv.output
 
 
@@ -31,7 +33,9 @@ def test_import_duplicate_key(backup_json_filename):
         contents.append(duplicate_key_item)
     with open(backup_json_filename, "w") as backup_file:
         backup_file.write(json.dumps(contents))
-    rv = CliRunner().invoke(import_, backup_json_filename)
+
+    with in_test_psql_role_override("postgres"):
+        rv = CliRunner().invoke(import_, backup_json_filename)
     assert (
         rv.output
         == ">> Are you restoring from a backup of the same version of Sentry?\n>> Are you restoring onto a clean database?\n>> If so then this IntegrityError might be our fault, you can open an issue here:\n>> https://github.com/getsentry/sentry/issues/new/choose\n"

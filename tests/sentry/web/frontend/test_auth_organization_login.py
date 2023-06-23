@@ -11,7 +11,6 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
-    Organization,
     OrganizationMember,
     OrganizationOption,
     OrganizationStatus,
@@ -1055,9 +1054,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
     def test_org_not_visible(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path, follow=True)
         assert resp.status_code == 200
