@@ -135,7 +135,7 @@ class Enhancements:
 
         with sentry_sdk.start_span(
             op="stacktrace_processing",
-            name="apply_rules_to_frames",
+            description="apply_rules_to_frames",
         ):
             for rule in self._modifier_rules:
                 for idx, action in rule.get_matching_frame_actions(
