@@ -1,4 +1,4 @@
-from sentry.buffer import Buffer
+from sentry.buffer.base import Buffer
 
 
 class InProcessBuffer(Buffer):
