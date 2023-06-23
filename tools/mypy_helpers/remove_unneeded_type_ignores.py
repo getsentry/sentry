@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -14,12 +15,14 @@ def main() -> int:
             subprocess.check_call(
                 (
                     "sed",
-                    "-i",
+                    # https://stackoverflow.com/questions/5694228/sed-in-place-flag-that-works-both-on-mac-bsd-and-linux
+                    "-i/tmp/bogus.bak",
                     "-r",
                     rf"{n}s/# type: ?ignore[^#]*(#|$)/\1/g",
                     fname,
                 )
             )
+            os.remove("/tmp/bogus.bak")
     return 0
 
 

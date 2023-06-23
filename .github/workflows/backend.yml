@@ -479,6 +479,7 @@ jobs:
 
       # only if `backend-typing` succeeds should we try and trim the blocklist
       - run: |
+          python3 -m tools.mypy_helpers.remove_unneeded_type_ignores
           python3 -m tools.mypy_helpers.make_module_ignores
           git diff --exit-code
 
