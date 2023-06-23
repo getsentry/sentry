@@ -1,8 +1,15 @@
+from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
+
+
+# drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
+# a typed list using this workaround
+def build_typed_list(type: OpenApiTypes):
+    return build_array_type(build_basic_type(type))
 
 
 class GlobalParams:
@@ -253,7 +260,7 @@ incorrect or missing.
         name="subfilters",
         location="query",
         required=False,
-        type={"type": "array", "items": {"type": "string"}},
+        type=build_typed_list(OpenApiTypes.STR),
         description="""A list of which legacy browsers filters should be active. Anything excluded from
                     the list will be turned off. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
