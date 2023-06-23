@@ -29,6 +29,7 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    RpcOrganization,
     OrganizationSignalService,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
@@ -286,7 +287,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
-        Organization.objects.filter(id=organization_id).update(flags=updates)
+        with outbox_context(transaction.atomic()):
+            Organization.objects.filter(id=organization_id).update(flags=updates)
+            Organization.outbox_for_update(org_id=organization_id).save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -387,9 +390,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
         )
 
-    def update_default_role(
-        self, *, organization_id: int, default_role: str
-    ) -> RpcOrganizationMember:
+    def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
         org.default_role = default_role
         org.save()
