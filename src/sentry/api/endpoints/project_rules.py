@@ -12,7 +12,7 @@ from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.rules.processor import SLOW_CONDITION_MATCHES
+from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
@@ -79,10 +79,9 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:
-                for slow_conditions in SLOW_CONDITION_MATCHES:
-                    if slow_conditions in condition["id"]:
-                        slow_rules += 1
-                    break
+                if is_condition_slow(condition):
+                    slow_rules += 1
+                break
 
         if slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
             return Response(
