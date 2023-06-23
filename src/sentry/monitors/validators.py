@@ -178,7 +178,7 @@ class ConfigValidator(serializers.Serializer):
 
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField()
+    name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
         r"^[a-zA-Z0-9_-]+$",
         max_length=MAX_SLUG_LENGTH,
@@ -241,6 +241,7 @@ class MonitorCheckInValidator(serializers.Serializer):
     )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
+    trace_id = serializers.CharField(required=False, allow_null=True, max_length=32)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

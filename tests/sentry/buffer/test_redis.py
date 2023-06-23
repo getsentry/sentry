@@ -1,5 +1,5 @@
+import datetime
 import pickle
-from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -65,7 +65,7 @@ class TestRedisBuffer:
             "foo",
             {
                 "e+foo": '["s","bar"]',
-                "e+datetime": '["d","1493791566.000000"]',
+                "e+datetime": '["dt","1493791566.000000"]',
                 "f": '{"pk": ["i","1"]}',
                 "i+times_seen": "2",
                 "m": "sentry.models.Group",
@@ -73,7 +73,10 @@ class TestRedisBuffer:
         )
         columns = {"times_seen": 2}
         filters = {"pk": 1}
-        extra = {"foo": "bar", "datetime": datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)}
+        extra = {
+            "foo": "bar",
+            "datetime": datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc),
+        }
         signal_only = None
         self.buf.process("foo")
         process.assert_called_once_with(Group, columns, filters, extra, signal_only)
@@ -129,9 +132,8 @@ class TestRedisBuffer:
         assert self.buf.get(model, columns, filters=filters) == {"times_seen": 6}
 
     def test_incr_saves_to_redis(self):
-        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
         client = self.buf.get_routing_client()
-
         model = mock.Mock()
         model.__name__ = "Mock"
         columns = {"times_seen": 1}
@@ -258,8 +260,8 @@ class TestRedisBuffer:
 
 #    @mock.patch("sentry.buffer.redis.RedisBuffer._make_key", mock.Mock(return_value="foo"))
 #    def test_incr_uses_signal_only(self):
-#        now = datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
-#        client = self.buf.get_routing_client()
+#        now = datetime.datetime(2017, 5, 3, 6, 6, 6, tzinfo=timezone.utc)
+#        client = self.buf.cluster.get_routing_client()
 #        model = mock.Mock()
 #        model.__name__ = "Mock"
 #        columns = {"times_seen": 1}
@@ -268,9 +270,22 @@ class TestRedisBuffer:
 #        result = client.hgetall("foo")
 #        assert result == {
 #            "e+foo": '["s","bar"]',
-#            "e+datetime": '["d","1493791566.000000"]',
-#            "f": '{"pk":["i","1"],"datetime":["d","1493791566.000000"]}',
+#            "e+datetime": '["dt","1493791566.000000"]',
+#            "f": '{"pk":["i","1"],"datetime":["dt","1493791566.000000"]}',
 #            "i+times_seen": "1",
 #            "m": "mock.mock.Mock",
 #            "s": "1"
 #        }
+#
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        datetime.datetime.today().replace(tzinfo=timezone.utc),
+        timezone.now(),
+        datetime.date.today(),
+    ],
+)
+def test_dump_value(value):
+    assert RedisBuffer._load_value(json.loads(json.dumps(RedisBuffer._dump_value(value)))) == value

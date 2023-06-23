@@ -21,6 +21,18 @@ class OrgAuthTokenJwtTest(TestCase):
         assert token_payload["sentry_region_url"] == "https://test-region.sentry.io"
         assert token_payload["nonce"]
 
+    def test_parse_token_no_dot(self):
+        token = generate_token("test-org", "https://test-region.sentry.io")
+        # Our JWT tokens end on a dot `.`, which may be confusing, and users _may_ not copy
+        # In order to accomodate this, we special case this and add the missing dot for our users
+        token_payload = parse_token(token[:-1])
+
+        assert token_payload
+        assert token_payload["sentry_org"] == "test-org"
+        assert token_payload["sentry_url"] == "http://testserver"
+        assert token_payload["sentry_region_url"] == "https://test-region.sentry.io"
+        assert token_payload["nonce"]
+
     def test_parse_invalid_token(self):
         assert parse_token("invalid-token") is None
 

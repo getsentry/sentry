@@ -41,6 +41,15 @@ class TestCreator(TestCase):
         assert install.pk
 
     @responses.activate
+    def test_creates_installation__multiple_runs(self):
+        responses.add(responses.POST, "https://example.com/webhook")
+        install = self.run_creator()
+        assert install.pk
+
+        install2 = self.run_creator()
+        assert install2.pk != install.pk
+
+    @responses.activate
     def test_creates_api_grant(self):
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()

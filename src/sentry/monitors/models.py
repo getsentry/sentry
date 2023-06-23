@@ -391,6 +391,7 @@ class MonitorCheckIn(Model):
     # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
     timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
+    trace_id = UUIDField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -557,8 +558,10 @@ class MonitorEnvironment(Model):
             produce_occurrence_to_kafka(
                 occurrence,
                 {
+                    "contexts": {"monitor": get_monitor_environment_context(self)},
                     "environment": self.environment.name,
                     "event_id": occurrence.event_id,
+                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
                     "platform": "other",
                     "project_id": self.monitor.project_id,
                     "received": current_timestamp.isoformat(),

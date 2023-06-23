@@ -4,6 +4,7 @@ import {EventType, Replayer} from '@sentry-internal/rrweb';
 import first from 'lodash/first';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import requestIdleCallback from 'sentry/utils/window/requestIdleCallback';
 
 export type Extraction = {
   crumb: Crumb;
@@ -16,20 +17,6 @@ type Args = {
   finishedAt: Date | undefined;
   rrwebEvents: eventWithTime[] | undefined;
 };
-
-const requestIdleCallback =
-  window.requestIdleCallback ||
-  function requestIdleCallbackPolyfill(cb) {
-    const start = Date.now();
-    return setTimeout(function () {
-      cb({
-        didTimeout: false,
-        timeRemaining: function () {
-          return Math.max(0, 50 - (Date.now() - start));
-        },
-      });
-    }, 1);
-  };
 
 function _extractDomNodes({
   crumbs,

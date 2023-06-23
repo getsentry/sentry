@@ -172,6 +172,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       }
 
       handlePossibleUndefinedResponseBodyErrors(event);
+      addEndpointTagToRequestError(event);
 
       return event;
     },
@@ -290,5 +291,17 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
     event.fingerprint = mainErrorIsURBE
       ? ['UndefinedResponseBodyError as main error']
       : ['UndefinedResponseBodyError as cause error'];
+  }
+}
+
+export function addEndpointTagToRequestError(event: Event): void {
+  const errorMessage = event.exception?.values?.[0].value || '';
+
+  // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
+  const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');
+  const messageMatch = requestErrorRegex.exec(errorMessage);
+
+  if (messageMatch) {
+    event.tags = {...event.tags, endpoint: messageMatch[1]};
   }
 }

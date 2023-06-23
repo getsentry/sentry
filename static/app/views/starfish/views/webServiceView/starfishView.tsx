@@ -15,15 +15,16 @@ const EventsRequest = withApi(_EventsRequest);
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 import EndpointList from './endpointList';
@@ -31,13 +32,13 @@ import EndpointList from './endpointList';
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
   projects: Project[];
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect} = props;
+  const {organization, eventView} = props;
+  const pageFilter = usePageFilters();
   const theme = useTheme();
 
   function renderCharts() {
@@ -52,7 +53,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         query={query.formatString()}
         includePrevious={false}
         partial
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         limit={1}
         environment={eventView.environment}
@@ -66,12 +67,17 @@ export function StarfishView(props: BasePerformanceViewProps) {
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
-          if (!results || !results[1]) {
+          if (!results || !results[0] || !results[1]) {
             return null;
           }
 
+          const throughputData: Series = {
+            seriesName: t('Requests'),
+            data: results[0].data,
+          };
+
           const errorsData: Series = {
-            seriesName: t('Errors (5XXs)'),
+            seriesName: t('5xx Responses'),
             color: CHART_PALETTE[5][3],
             data: results[1].data,
           };
@@ -82,7 +88,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                 <Chart
                   statsPeriod={eventView.statsPeriod}
                   height={80}
-                  data={[results[0]]}
+                  data={[throughputData]}
                   start=""
                   end=""
                   loading={loading}
@@ -93,6 +99,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                     top: '8px',
                     bottom: '0',
                   }}
+                  aggregateOutputFormat="rate"
                   definedAxisTicks={2}
                   stacked
                   isLineChart
@@ -143,11 +150,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         </ChartsContainer>
       </StyledRow>
 
-      <EndpointList
-        {...props}
-        setError={usePageError().setPageError}
-        onSelect={onSelect}
-      />
+      <EndpointList {...props} setError={usePageError().setPageError} />
     </div>
   );
 }

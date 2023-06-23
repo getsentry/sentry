@@ -20,7 +20,7 @@ from sentry.event_manager import (
     _save_grouphash_and_group,
     get_event_type,
 )
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
@@ -144,6 +144,9 @@ def save_issue_from_occurrence(
 ) -> Optional[GroupInfo]:
     project = event.project
     issue_kwargs = _create_issue_kwargs(occurrence, event, release)
+    # We need to augment the message with occurrence data here since we can't build a `GroupEvent`
+    # until after we have created a `Group`.
+    issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
 
     # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
     # Note that additional fingerprints won't be used to generated additional issues, they'll be
@@ -203,13 +206,10 @@ def save_issue_from_occurrence(
             )
             return None
 
-        is_new = False
-        is_regression = False
-
-        # Note: This updates the message of the issue based on the event. Not sure what we want to
-        # store there yet, so we may need to revisit that.
-        is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
-        group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+        group_event = GroupEvent.from_event(event, group)
+        group_event.occurrence = occurrence
+        is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
+        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
     return group_info
 

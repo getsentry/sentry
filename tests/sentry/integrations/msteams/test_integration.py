@@ -16,7 +16,7 @@ user_id = (
 tenant_id = "50cccd00-7c9c-4b32-8cda-58a084f9334a"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class MsTeamsIntegrationTest(IntegrationTestCase):
     provider = MsTeamsIntegrationProvider
 

@@ -664,7 +664,7 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns) -> str:
+def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -674,7 +674,10 @@ def get_function_alias_with_columns(function_name, columns) -> str:
             for col in columns
         ),
     )
-    return f"{function_name}_{columns}".rstrip("_")
+    alias = f"{function_name}_{columns}".rstrip("_")
+    if prefix:
+        alias = prefix + alias
+    return alias
 
 
 def get_json_meta_type(field_alias, snuba_type, builder=None):

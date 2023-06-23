@@ -4,7 +4,18 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
+import hydrateBreadcrumbs, {
+  replayInitBreadcrumb,
+} from 'sentry/utils/replays/hydrateBreadcrumbs';
+import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
+import {
+  recordingEndFrame,
+  recordingStartFrame,
+} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
+import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {
   breadcrumbFactory,
   replayTimestamps,
@@ -12,7 +23,14 @@ import {
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
-import {EventType} from 'sentry/utils/replays/types';
+import type {
+  BreadcrumbFrame,
+  ErrorFrame,
+  OptionFrame,
+  RecordingFrame,
+  SpanFrame,
+} from 'sentry/utils/replays/types';
+import {BreadcrumbCategories, EventType} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -32,6 +50,13 @@ interface ReplayReaderParams {
    * All three types are mixed together.
    */
   attachments: unknown[] | undefined;
+
+  /**
+   * Error objects related to this replay
+   *
+   * Error instances could be frontend, backend, or come from the error platform
+   * like performance-errors or replay-errors
+   */
   errors: ReplayError[] | undefined;
 
   /**
@@ -44,14 +69,16 @@ type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
+const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+
 export default class ReplayReader {
-  static factory({attachments, replayRecord, errors}: ReplayReaderParams) {
+  static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, replayRecord, errors});
+      return new ReplayReader({attachments, errors, replayRecord});
     } catch (err) {
       Sentry.captureException(err);
 
@@ -69,9 +96,61 @@ export default class ReplayReader {
 
   private constructor({
     attachments,
-    replayRecord,
     errors,
+    replayRecord,
   }: RequiredNotNull<ReplayReaderParams>) {
+    const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
+      hydrateFrames(attachments);
+
+    if (localStorageWrapper.getItem('REPLAY-BACKEND-TIMESTAMPS') !== '1') {
+      // TODO(replays): We should get correct timestamps from the backend instead
+      // of having to fix them up here.
+      const {startTimestampMs, endTimestampMs} = replayTimestamps(
+        replayRecord,
+        rrwebFrames,
+        breadcrumbFrames,
+        spanFrames
+      );
+
+      this.timestampDeltas = {
+        startedAtDelta: startTimestampMs - replayRecord.started_at.getTime(),
+        finishedAtDelta: endTimestampMs - replayRecord.finished_at.getTime(),
+      };
+
+      replayRecord.started_at = new Date(startTimestampMs);
+      replayRecord.finished_at = new Date(endTimestampMs);
+      replayRecord.duration = duration(
+        replayRecord.finished_at.getTime() - replayRecord.started_at.getTime()
+      );
+    }
+
+    // Hydrate the data we were given
+    this.replayRecord = replayRecord;
+    // Errors don't need to be sorted here, they will be merged with breadcrumbs
+    // and spans in the getter and then sorted together.
+    this._errors = hydrateErrors(replayRecord, errors);
+    // RRWeb Events are not sorted here, they are fetched in sorted order.
+    this._sortedRRWebEvents = rrwebFrames;
+    // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
+    // have the same timestamp as the click breadcrumb, but will be emitted a
+    // few seconds later.
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
+      replayRecord,
+      breadcrumbFrames
+    ).sort(sortFrames);
+    // Spans must be sorted so components like the Timeline and Network Chart
+    // can have an easier time to render.
+    this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
+    this._optionFrame = optionFrame;
+
+    // Insert extra records to satisfy minimum requirements for the UI
+    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
+
+    /*********************/
+    /** OLD STUFF BELOW **/
+    /*********************/
     const {rawBreadcrumbs, rawRRWebEvents, rawNetworkSpans, rawMemorySpans} =
       splitAttachmentsByType(attachments);
 
@@ -108,6 +187,14 @@ export default class ReplayReader {
     this.replayRecord = replayRecord;
   }
 
+  public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
+
+  private _errors: ErrorFrame[];
+  private _optionFrame: undefined | OptionFrame;
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
+  private _sortedRRWebEvents: RecordingFrame[];
+  private _sortedSpanFrames: SpanFrame[];
+
   private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
@@ -125,10 +212,65 @@ export default class ReplayReader {
     return this.replayRecord;
   };
 
-  getRRWebEvents = () => {
-    return this.rrwebEvents;
-  };
+  getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getConsoleFrames = memoize(() =>
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+  );
+
+  getNetworkFrames = memoize(() =>
+    this._sortedSpanFrames.filter(
+      frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
+    )
+  );
+
+  getDOMFrames = memoize(() =>
+    this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {}))
+  );
+
+  getMemoryFrames = memoize(() =>
+    this._sortedSpanFrames.filter(frame => frame.op === 'memory')
+  );
+
+  getChapterFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          [
+            'replay.init',
+            'ui.click',
+            'replay.mutations',
+            'ui.slowClickDetected',
+          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+          frame.op
+        )
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
+  );
+
+  getTimelineFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'ui.click'].includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
+  );
+
+  getSDKOptions = () => this._optionFrame;
+
+  // TODO: move isNetworkDetailsSetup() up here? or extract it
+
+  /*********************/
+  /** OLD STUFF BELOW **/
+  /*********************/
   getCrumbsWithRRWebNodes = memoize(() =>
     this.breadcrumbs.filter(
       crumb => crumb.data && typeof crumb.data === 'object' && 'nodeId' in crumb.data
@@ -173,7 +315,7 @@ export default class ReplayReader {
   getDomNodes = memoize(() =>
     extractDomNodes({
       crumbs: this.getCrumbsWithRRWebNodes(),
-      rrwebEvents: this.getRRWebEvents(),
+      rrwebEvents: this.getRRWebFrames(),
       finishedAt: this.replayRecord.finished_at,
     })
   );
