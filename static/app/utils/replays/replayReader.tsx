@@ -26,6 +26,7 @@ import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType'
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  MemoryFrame,
   OptionFrame,
   RecordingFrame,
   SpanFrame,
@@ -218,6 +219,13 @@ export default class ReplayReader {
     this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
   );
 
+  getNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'replay.init'),
+      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+    ].sort(sortFrames)
+  );
+
   getNetworkFrames = memoize(() =>
     this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
@@ -229,7 +237,7 @@ export default class ReplayReader {
   );
 
   getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter(frame => frame.op === 'memory')
+    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
   getChapterFrames = memoize(() =>
