@@ -2,6 +2,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+# NOTE: Please add new params by path vs query, then in alphabetical order
+
 
 class GlobalParams:
     ORG_SLUG = OpenApiParameter(
@@ -214,12 +216,55 @@ class EventParams:
 
 
 class ProjectParams:
+    FILTER_ID = OpenApiParameter(
+        name="filter_id",
+        location="path",
+        required=True,
+        type=str,
+        description="""The type of filter toggle to update. The options are:
+- `browser-extensions`: Filter out errors known to be caused by browser extensions
+- `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
+and IPv6 (``::1``) addresses.
+- `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
+ways which then cause errors that are unlikely to be seen by a normal user.
+- `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
+accurate information, and while they may report valid issues, the context to understand them is
+incorrect or missing.
+""",
+    )
+
+    ACTIVE = OpenApiParameter(
+        name="active",
+        location="query",
+        required=False,
+        type=bool,
+        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off",
+    )
+
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    SUB_FILTERS = OpenApiParameter(
+        name="subfilters",
+        location="query",
+        required=False,
+        type={"type": "array", "items": {"type": "string"}},
+        description="""A list of which legacy browsers filters should be active. Anything excluded from
+                    the list will be turned off. The options are:
+- `ie_pre_9`: Internet Explorer Version 8 and lower
+- `ie9`: Internet Explorer Version 9
+- `ie10`: Internet Explorer Version 10
+- `ie11`: Internet Explorer Version 11
+- `safari_pre_6`: Safari Version 5 and lower
+- `opera_pre_15`: Opera Version 14 and lower
+- `opera_mini_pre_8`: Opera Mini Version 8 and lower
+- `android_pre_4`: Android Version 3 and lower
+""",
     )
 
     @staticmethod
