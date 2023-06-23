@@ -4,13 +4,7 @@ from contextlib import contextmanager
 from typing import Any, Generator, Mapping, Optional
 
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import (
-    CommitOffsets,
-    ProcessingStrategy,
-    ProcessingStrategyFactory,
-    RunTaskInThreads,
-)
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import Message
 
 from sentry import options
 from sentry.eventstream.base import GroupStates
@@ -18,6 +12,7 @@ from sentry.eventstream.kafka.protocol import (
     get_task_kwargs_for_message,
     get_task_kwargs_for_message_from_headers,
 )
+from sentry.post_process_forwarder.post_process_forwarder import PostProcessForwarderStrategyFactory
 from sentry.tasks.post_process import post_process_group
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
@@ -95,19 +90,6 @@ def _get_task_kwargs_and_dispatch(message: Message[KafkaPayload]) -> None:
     dispatch_post_process_group_task(**task_kwargs)
 
 
-class PostProcessForwarderStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, concurrency: int):
-        self.__concurrency = concurrency
-        self.__max_pending_futures = concurrency + 1000
-
-    def create_with_partitions(
-        self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTaskInThreads(
-            _get_task_kwargs_and_dispatch,
-            self.__concurrency,
-            self.__max_pending_futures,
-            CommitOffsets(commit),
-        )
+class EventPostProcessForwarderStrategyFactory(PostProcessForwarderStrategyFactory):
+    def _dispatch_function(self, message: Message[KafkaPayload]) -> None:
+        return _get_task_kwargs_and_dispatch(message)
