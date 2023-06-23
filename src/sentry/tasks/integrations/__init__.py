@@ -46,7 +46,7 @@ _tasks_list = (
     "update_comment",
     "vsts.kickoff_subscription_check",
     "vsts.subscription_check",
-    ".github.github_comment_workflow",
+    "github.pr_comment",
 )
 settings.CELERY_IMPORTS += tuple(f"sentry.tasks.integrations.{task}" for task in _tasks_list)
 
