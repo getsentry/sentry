@@ -237,7 +237,7 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        with sentry_sdk.start_span(op="nodestore", name="nodestore.set_subkeys") as span:
+        with sentry_sdk.start_span(op="nodestore", description="set_subkeys") as span:
             sentry_sdk.set_tag("nodestore.set_subkeys", True)
             span.set_tag("node_id", id)
             span.set_data("subkeys_count", len(data))

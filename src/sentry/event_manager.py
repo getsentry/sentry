@@ -485,7 +485,7 @@ class EventManager:
             if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
                 with sentry_sdk.start_span(
                     op="event_manager",
-                    name="event_manager.save.calculate_event_grouping",
+                    description="event_manager.save.calculate_event_grouping",
                 ), metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
@@ -514,7 +514,7 @@ class EventManager:
 
         with sentry_sdk.start_span(
             op="event_manager",
-            name="event_manager.save.calculate_event_grouping",
+            description="event_manager.save.calculate_event_grouping",
         ), metrics.timer("event_manager.calculate_event_grouping"):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
