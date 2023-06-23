@@ -1,7 +1,7 @@
 import inspect
 import time
 
-from sentry.tsdb.base import BaseTSDB
+from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.tsdb.dummy import DummyTSDB
 from sentry.tsdb.redis import RedisTSDB
 from sentry.tsdb.snuba import SnubaTSDB
@@ -57,7 +57,7 @@ assert (
 model_backends = {
     # model: (read, write)
     model: ("redis", "redis") if model not in SnubaTSDB.model_query_settings else ("snuba", "dummy")
-    for model in BaseTSDB.models
+    for model in TSDBModel
 }
 
 
