@@ -50,7 +50,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     )
     def put(self, request: Request, project, filter_id) -> Response:
         """
-        Update various inbound data filters for a project. Note that updating the hydration error filter or custom filters must be done through the `Update a Project` endpoint.
+        Update various inbound data filters for a project.
         """
         current_filter = None
         for flt in inbound_filters.get_all_filter_specs():
