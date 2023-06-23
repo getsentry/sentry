@@ -266,6 +266,9 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
 
+    # Override for the default update method to ensure that most atomic updates
+    #  generate an outbox alongside any mutations to ensure data is replicated
+    #  properly to the control silo.
     @override
     def update(self, *args, **kwargs):
         with outbox_context(transaction.atomic()):
