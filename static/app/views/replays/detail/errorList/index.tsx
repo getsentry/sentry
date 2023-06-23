@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import ErrorFilters from 'sentry/views/replays/detail/errorList/errorFilters';
 import ErrorHeaderCell, {
   COLUMN_COUNT,
@@ -22,7 +22,7 @@ const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 28;
 
 type Props = {
-  errorCrumbs: undefined | Crumb[];
+  errorFrames: undefined | ErrorFrame[];
   startTimestampMs: number;
 };
 
@@ -32,10 +32,10 @@ const cellMeasurer = {
   fixedHeight: true,
 };
 
-function ErrorList({errorCrumbs, startTimestampMs}: Props) {
+function ErrorList({errorFrames, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
-  const filterProps = useErrorFilters({errorCrumbs: errorCrumbs || []});
+  const filterProps = useErrorFilters({errorFrames: errorFrames || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortErrors({items: filteredItems});
@@ -91,7 +91,7 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
               ref={e => e && registerChild?.(e)}
               rowIndex={rowIndex}
               sortConfig={sortConfig}
-              crumb={error}
+              frame={error}
               startTimestampMs={startTimestampMs}
               style={{...style, height: BODY_HEIGHT}}
             />
@@ -103,9 +103,9 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
 
   return (
     <FluidHeight>
-      <ErrorFilters errorCrumbs={errorCrumbs} {...filterProps} />
+      <ErrorFilters errorFrames={errorFrames} {...filterProps} />
       <ErrorTable>
-        {errorCrumbs ? (
+        {errorFrames ? (
           <OverflowHidden>
             <AutoSizer onResize={onWrapperResize}>
               {({height, width}) => (
@@ -121,7 +121,7 @@ function ErrorList({errorCrumbs, startTimestampMs}: Props) {
                   height={height}
                   noContentRenderer={() => (
                     <NoRowRenderer
-                      unfilteredItems={errorCrumbs}
+                      unfilteredItems={errorFrames}
                       clearSearchTerm={clearSearchTerm}
                     >
                       {t('No errors! Go make some.')}

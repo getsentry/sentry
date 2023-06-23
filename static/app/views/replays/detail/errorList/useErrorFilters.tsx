@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ErrorSelectOption extends SelectOption<string> {
@@ -18,12 +18,12 @@ export type FilterFields = {
 };
 
 type Options = {
-  errorCrumbs: Crumb[];
+  errorFrames: ErrorFrame[];
 };
 
 type Return = {
   getProjectOptions: () => ErrorSelectOption[];
-  items: Crumb[];
+  items: ErrorFrame[];
   searchTerm: string;
   selectValue: string[];
   setFilters: (val: ErrorSelectOption[]) => void;
@@ -31,15 +31,17 @@ type Return = {
 };
 
 const FILTERS = {
-  project: (item: Crumb, projects: string[]) =>
+  project: (item: ErrorFrame, projects: string[]) =>
     // @ts-expect-error
     projects.length === 0 || projects.includes(item.data.project || ''),
 
-  searchTerm: (item: Crumb, searchTerm: string) =>
-    JSON.stringify([item.message, item.description]).toLowerCase().includes(searchTerm),
+  searchTerm: (item: ErrorFrame, searchTerm: string) =>
+    [item.message, ...item.data.labels].some(str =>
+      str.toLowerCase().includes(searchTerm)
+    ),
 };
 
-function useErrorFilters({errorCrumbs}: Options): Return {
+function useErrorFilters({errorFrames}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
 
   const project = decodeList(query.f_e_project);
@@ -48,18 +50,18 @@ function useErrorFilters({errorCrumbs}: Options): Return {
   const items = useMemo(
     () =>
       filterItems({
-        items: errorCrumbs,
+        items: errorFrames,
         filterFns: FILTERS,
         filterVals: {project, searchTerm},
       }),
-    [errorCrumbs, project, searchTerm]
+    [errorFrames, project, searchTerm]
   );
 
   const getProjectOptions = useCallback(
     () =>
       Array.from(
         new Set(
-          errorCrumbs
+          errorFrames
             // @ts-expect-error
             .map(crumb => crumb.data.project)
             .concat(project)
@@ -74,7 +76,7 @@ function useErrorFilters({errorCrumbs}: Options): Return {
             qs: 'f_e_project',
           })
         ),
-    [errorCrumbs, project]
+    [errorFrames, project]
   );
 
   const setSearchTerm = useCallback(

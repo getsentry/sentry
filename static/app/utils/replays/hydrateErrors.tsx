@@ -30,6 +30,7 @@ export default function hydrateErrors(
               (Array.isArray(error['error.type'])
                 ? error['error.type'][0]
                 : error['error.type']) ?? '',
+            labels: error['error.type'],
             projectSlug: error['project.name'],
           },
           message: error.title,

@@ -1,26 +1,25 @@
 import {useCallback, useMemo} from 'react';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface SortConfig {
   asc: boolean;
-  by: keyof Crumb | string;
-  getValue: (row: Crumb) => any;
+  by: keyof ErrorFrame | string;
+  getValue: (row: ErrorFrame) => any;
 }
 
-const SortStrategies: Record<string, (row: Crumb) => any> = {
-  id: row => row.id,
-  title: row => row.description,
-  // @ts-expect-error
-  project: row => row.data?.project,
+const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
+  id: row => row.data.eventId,
+  title: row => row.message,
+  project: row => row.data.projectSlug,
   timestamp: row => row.timestamp,
 };
 
 const DEFAULT_ASC = 'true';
 const DEFAULT_BY = 'timestamp';
 
-type Opts = {items: Crumb[]};
+type Opts = {items: ErrorFrame[]};
 
 function useSortErrors({items}: Opts) {
   const {getParamValue: getSortAsc, setParamValue: setSortAsc} = useUrlParams(
@@ -66,8 +65,8 @@ function useSortErrors({items}: Opts) {
   };
 }
 
-function sortErrors(crumbs: Crumb[], sortConfig: SortConfig): Crumb[] {
-  return [...crumbs].sort((a, b) => {
+function sortErrors(frames: ErrorFrame[], sortConfig: SortConfig): ErrorFrame[] {
+  return [...frames].sort((a, b) => {
     let valueA = sortConfig.getValue(a);
     let valueB = sortConfig.getValue(b);
 
