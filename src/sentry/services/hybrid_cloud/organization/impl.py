@@ -29,8 +29,8 @@ from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
-    RpcOrganization,
     OrganizationSignalService,
+    RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
