@@ -30,7 +30,8 @@ class DatasetTest(SnubaTestCase, TestCase):
         }
         request = json_to_snql(json_body, "search_issues")
         request.validate()
-        resp = _snql_query(((request, None, None), Hub(Hub.current), {}, "test_api"))
+        identity = lambda x: x
+        resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 

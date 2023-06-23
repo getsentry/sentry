@@ -356,7 +356,9 @@ class QueryDefinition:
 
 
 def run_outcomes_query_totals(
-    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+    query: QueryDefinition,
+    *,
+    tenant_ids: dict[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -376,8 +378,9 @@ def run_outcomes_query_totals(
 
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
+    *,
+    tenant_ids: dict[str, int | str],
     referrer: str = "outcomes.timeseries",
-    tenant_ids: dict[str, Any] | None = None,
 ) -> ResultSet:
     """
     Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
