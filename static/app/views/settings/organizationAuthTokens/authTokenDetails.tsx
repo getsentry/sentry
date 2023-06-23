@@ -1,7 +1,11 @@
 import {useCallback} from 'react';
 import {browserHistory} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {Form, TextField} from 'sentry/components/forms';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -132,7 +136,9 @@ function AuthTokenDetailsForm({
       initialData={initialData}
       apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/${token.id}/`}
       onSubmit={({name}) => {
-        submitToken({
+        addLoadingMessage();
+
+        return submitToken({
           name,
         });
       }}
