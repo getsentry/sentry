@@ -596,9 +596,8 @@ class EndpointSiloLimit(SiloLimit):
     def create_override(
         self,
         original_method: Callable[..., Any],
-        extra_modes: Iterable[SiloMode] = (),
     ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method, extra_modes)
+        limiting_override = super().create_override(original_method)
 
         def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
             if SiloMode.single_process_silo_mode():
