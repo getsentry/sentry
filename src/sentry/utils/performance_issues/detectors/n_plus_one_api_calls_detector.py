@@ -45,7 +45,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     type = DetectorType.N_PLUS_ONE_API_CALLS
     settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    HOST_DENYLIST = []
+    HOST_DENYLIST: list[str] = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects

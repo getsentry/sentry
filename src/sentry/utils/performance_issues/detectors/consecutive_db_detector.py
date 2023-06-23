@@ -181,9 +181,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return self.consecutive_db_spans[0].get("description", "")
 
-    def _sum_span_duration(self, spans: list[Span]) -> int:
+    def _sum_span_duration(self, spans: list[Span]) -> float:
         "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
+        sum = 0.0
         for span in spans:
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
@@ -219,7 +219,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
         )
 
-        sum_of_dependent_span_durations = 0
+        sum_of_dependent_span_durations = 0.0
         for span in consecutive_spans:
             if span not in independent_spans:
                 sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000

@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -43,7 +44,7 @@ class GetLoginRedirectTest(TestCase):
         request = HttpRequest()
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = "80"
-        request.session = {}
+        request.session = SessionBase()
         request.user = self.user
         if next:
             request.session["_next"] = next

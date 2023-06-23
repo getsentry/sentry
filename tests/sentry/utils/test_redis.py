@@ -4,12 +4,12 @@ from unittest import TestCase, mock
 
 import pytest
 from django.utils.functional import SimpleLazyObject
+from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import imports
 from sentry.utils.redis import (
     ClusterManager,
-    FailoverRedis,
     _RedisCluster,
     _shared_pool,
     get_cluster_from_options,
@@ -102,6 +102,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
 
     # it should have warned about the deprecated setting
     (warn,) = warninfo
+    assert isinstance(warn.message, DeprecatedSettingWarning)
     assert warn.message.setting == "'hosts' parameter of sentinel.backend"
     assert warn.message.replacement == 'sentinel.backend["cluster"]'
 

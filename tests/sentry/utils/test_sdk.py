@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
+from django.conf import settings
 from django.http import HttpRequest
 from rest_framework.request import Request
 from sentry_sdk import Scope
 
+from sentry.models.organization import Organization
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import patch_configure_scope_with_scope
@@ -14,7 +18,6 @@ from sentry.utils.sdk import (
     check_current_scope_transaction,
     check_tag,
     merge_context_into_scope,
-    settings,
 )
 
 
@@ -367,6 +370,8 @@ class BindOrganizationContextTest(TestCase):
 
 
 class BindAmbiguousOrgContextTest(TestCase):
+    orgs: list[Organization]
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()

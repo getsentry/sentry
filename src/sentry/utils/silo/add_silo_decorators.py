@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, Optional
+from typing import Callable, Dict, Iterable
 
 from sentry.utils import json
 from sentry.utils.silo.common import (
@@ -16,8 +16,8 @@ from sentry.utils.silo.common import (
 
 def add_silo_decorators(
     silo_keywords: Dict[str, Keywords],
-    path_name: Optional[str] = "./src/sentry",
-):
+    path_name: str = "./src/sentry",
+) -> None:
     classes = _read_audit()
 
     def execute(

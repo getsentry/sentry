@@ -553,7 +553,7 @@ class PerformanceProblemContext:
 
     def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum: float = 0.0
+        sum = 0.0
         for span in spans:
             if span:
                 sum += self.get_span_duration(span).total_seconds() * 1000
