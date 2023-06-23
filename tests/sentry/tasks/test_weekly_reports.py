@@ -464,6 +464,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
         assert mock_send_email.call_count == 0
 
+    @with_feature("organizations:session-replay")
     @with_feature("organizations:session-replay-weekly-email")
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_replays(self, message_builder):
