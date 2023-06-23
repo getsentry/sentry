@@ -86,7 +86,7 @@ class OrganizationArtifactBundleAssembleEndpoint(
         if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks"):
             # We check if all requested chunks have been uploaded.
             missing_chunks = self.find_missing_chunks(organization, chunks)
-            # In case there are some missing chunks, we will tell the client the number of chunks that we require.
+            # In case there are some missing chunks, we will tell the client which chunks we require.
             if missing_chunks:
                 return Response(
                     {
