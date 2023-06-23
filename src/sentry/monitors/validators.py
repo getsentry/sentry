@@ -225,6 +225,14 @@ class MonitorValidator(CamelSnakeSerializer):
         return validated_data
 
 
+class TraceContextValidator(serializers.Serializer):
+    trace_id = serializers.CharField(max_length=32)
+
+
+class ContextsValidator(serializers.Serializer):
+    trace = TraceContextValidator(required=False)
+
+
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -241,6 +249,7 @@ class MonitorCheckInValidator(serializers.Serializer):
     )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
+    contexts = ContextsValidator(required=False, allow_null=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

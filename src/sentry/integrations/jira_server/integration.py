@@ -27,7 +27,6 @@ from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.models import (
     ExternalIssue,
-    Identity,
     IntegrationExternalProject,
     Organization,
     OrganizationIntegration,
@@ -275,16 +274,10 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     default_identity = None
 
     def get_client(self):
-        if self.default_identity is None:
-            try:
-                self.default_identity = self.get_default_identity()
-            except Identity.DoesNotExist:
-                raise IntegrationError("Identity not found.")
-
         return JiraServerClient(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+            integration=self.model,
+            identity_id=self.org_integration.default_auth_id,
+            org_integration_id=self.org_integration.id,
         )
 
     def get_organization_config(self):
@@ -550,7 +543,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -946,7 +939,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

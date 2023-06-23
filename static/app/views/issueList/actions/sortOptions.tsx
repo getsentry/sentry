@@ -1,7 +1,6 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
-import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
 
@@ -33,7 +32,9 @@ function getSortTooltip(key: IssueSortOptions) {
 
 function IssueListSortOptions({onSelect, sort, query}: Props) {
   const organization = useOrganization();
-  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs

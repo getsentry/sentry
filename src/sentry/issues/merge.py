@@ -38,7 +38,7 @@ def handle_merge(
 
     group_ids_to_merge = [g.id for g in groups_to_merge]
     group_ids_by_times_seen = [g.id for g in group_list_by_times_seen]
-    eventstream_state = eventstream.start_merge(
+    eventstream_state = eventstream.backend.start_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
 
