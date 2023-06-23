@@ -132,7 +132,7 @@ class ProfileMiddleware:
             + "\n"
         )
 
-    def process_response(self, request: Request, response: Response) -> Response:
+    def process_response(self, request: Request, response: Response) -> HttpResponse:
         if not self.can(request):
             return response
 

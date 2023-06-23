@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib import messages
+from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
@@ -22,7 +23,6 @@ delete_logger = logging.getLogger("sentry.deletions.ui")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class RestoreOrganizationView(OrganizationView):
@@ -41,7 +41,7 @@ class RestoreOrganizationView(OrganizationView):
         else:
             self.active_organization = None
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> HttpResponse:
         if organization.status == OrganizationStatus.ACTIVE:
             return self.redirect(Organization.get_url(organization.slug))
 
@@ -55,7 +55,7 @@ class RestoreOrganizationView(OrganizationView):
 
         return render_to_response("sentry/restore-organization.html", context, self.request)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization) -> HttpResponse:
         deletion_statuses = [
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,
