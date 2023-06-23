@@ -109,8 +109,9 @@ const Overlay = styled(
       },
       ref
     ) => {
+      const isTestEnv = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
       const animationProps =
-        !IS_ACCEPTANCE_TEST && NODE_ENV !== 'test' && animated
+        !isTestEnv && animated
           ? {
               ...overlayAnimation,
               style: {
