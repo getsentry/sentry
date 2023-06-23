@@ -254,24 +254,28 @@ const generateAliases = (colors: BaseColors) => ({
    */
   success: colors.green300,
   successText: colors.green400,
+  successFocus: colors.green200,
 
   /**
    * A color that denotes an error, or something that is wrong
    */
   error: colors.red300,
   errorText: colors.red400,
+  errorFocus: colors.red200,
 
   /**
    * A color that denotes danger, for dangerous actions like deletion
    */
   danger: colors.red300,
   dangerText: colors.red400,
+  dangerFocus: colors.red200,
 
   /**
    * A color that denotes a warning
    */
   warning: colors.yellow300,
   warningText: colors.yellow400,
+  warningFocus: colors.yellow200,
 
   /**
    * A color that indicates something is disabled where user can not interact or use
