@@ -74,6 +74,7 @@ class OutboxCategory(IntEnum):
     TEAM_UPDATE = 11
     ORGANIZATION_INTEGRATION_UPDATE = 12
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
+    SEND_SIGNAL = 14
 
     @classmethod
     def as_choices(cls):
@@ -301,6 +302,7 @@ class RegionOutbox(OutboxBase):
             payload=self.payload,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     sharding_columns = ("shard_scope", "shard_identifier")
@@ -356,6 +358,7 @@ class ControlOutbox(OutboxBase):
             region_name=self.region_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     class Meta:

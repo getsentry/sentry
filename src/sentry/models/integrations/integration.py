@@ -15,7 +15,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
@@ -105,14 +105,23 @@ class Integration(DefaultFieldsModel):
         from sentry.models import OrganizationIntegration
 
         try:
-            org_integration, created = OrganizationIntegration.objects.get_or_create(
-                organization_id=organization.id,
-                integration_id=self.id,
-                defaults={"default_auth_id": default_auth_id, "config": {}},
-            )
-            # TODO(Steve): add audit log if created
-            if not created and default_auth_id:
-                org_integration.update(default_auth_id=default_auth_id)
+            with transaction.atomic():
+                org_integration, created = OrganizationIntegration.objects.get_or_create(
+                    organization_id=organization.id,
+                    integration_id=self.id,
+                    defaults={"default_auth_id": default_auth_id, "config": {}},
+                )
+                # TODO(Steve): add audit log if created
+                if not created and default_auth_id:
+                    org_integration.update(default_auth_id=default_auth_id)
+
+                if created:
+                    organization_service.schedule_signal(
+                        integration_added,
+                        organization_id=organization.id,
+                        args=dict(integration_id=self.id, user_id=user.id if user else None),
+                    )
+                return org_integration
         except IntegrityError:
             logger.info(
                 "add-organization-integrity-error",
@@ -123,9 +132,3 @@ class Integration(DefaultFieldsModel):
                 },
             )
             return False
-        else:
-            integration_added.send_robust(
-                integration=self, organization=organization, user=user, sender=self.__class__
-            )
-
-            return org_integration

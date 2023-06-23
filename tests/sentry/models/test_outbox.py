@@ -417,6 +417,7 @@ class RegionOutboxTest(TestCase):
                     payload=None,
                     object_identifier=org,
                     shard_identifier=org,
+                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
                 )
 
             with outbox_context(flush=False):

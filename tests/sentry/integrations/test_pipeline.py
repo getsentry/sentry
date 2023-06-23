@@ -13,8 +13,10 @@ from sentry.models import (
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
+from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
@@ -55,10 +57,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = Integration.objects.create(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        for org in na_orgs:
-            integration.add_organization(org)
-            mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            mapping.update(region_name="na")
+        with receivers_raise_on_send(), outbox_runner():
+            for org in na_orgs:
+                integration.add_organization(org)
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name="na")
 
     def test_with_data(self, *args):
         data = {
