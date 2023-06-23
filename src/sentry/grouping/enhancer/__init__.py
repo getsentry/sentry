@@ -133,16 +133,15 @@ class Enhancements:
 
         match_frames = [create_match_frame(frame, platform) for frame in frames]
 
-        if match_frames and self._modifier_rules:
-            with sentry_sdk.start_span(
-                op="stacktrace_processing",
-                name="apply_rules_to_frames",
-            ):
-                for rule in self._modifier_rules:
-                    for idx, action in rule.get_matching_frame_actions(
-                        match_frames, platform, exception_data, cache
-                    ):
-                        action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
+        with sentry_sdk.start_span(
+            op="stacktrace_processing",
+            name="apply_rules_to_frames",
+        ):
+            for rule in self._modifier_rules:
+                for idx, action in rule.get_matching_frame_actions(
+                    match_frames, platform, exception_data, cache
+                ):
+                    action.apply_modifications_to_frame(frames, match_frames, idx, rule=rule)
 
     def update_frame_components_contributions(self, components, frames, platform, exception_data):
 
