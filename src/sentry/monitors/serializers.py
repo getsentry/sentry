@@ -128,13 +128,29 @@ class MonitorSerializerResponse(TypedDict):
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
+    def __init__(self, expand=None):
+        self.expand = expand
+
     def get_attrs(self, item_list, user, **kwargs):
         # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment__environment")
-        return {}
+
+        attrs = {}
+        if self._expand("alertRule"):
+
+            # query snuba for related errors and their associated issues
+            issues = {}
+
+            attrs = {
+                item: {
+                    "issue_id": issues.get(str(item.id)) if item.trace_id else None,
+                }
+                for item in item_list
+            }
+        return attrs
 
     def serialize(self, obj, attrs, user):
-        return {
+        result = {
             "id": str(obj.guid),
             "environment": obj.monitor_environment.environment.name
             if obj.monitor_environment
@@ -147,6 +163,17 @@ class MonitorCheckInSerializer(Serializer):
             "monitorConfig": obj.monitor_config or {},
         }
 
+        if self._expand("trace_id"):
+            result["issue_id"] = attrs["issue_id"]
+
+        return result
+
+    def _expand(self, key) -> bool:
+        if self.expand is None:
+            return False
+
+        return key in self.expand
+
 
 class MonitorCheckInSerializerResponse(TypedDict):
     id: str
@@ -157,3 +184,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
+    issue_id: str

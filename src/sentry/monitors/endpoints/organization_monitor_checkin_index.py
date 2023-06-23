@@ -17,7 +17,7 @@ from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
 from sentry.monitors.models import MonitorCheckIn
-from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.serializers import MonitorCheckInSerializer, MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
 
@@ -66,10 +66,14 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         if environments:
             queryset = queryset.filter(monitor_environment__environment__in=environments)
 
+        expand = request.GET.getlist("expand", [])
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-date_added",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, MonitorCheckInSerializer(expand=expand)
+            ),
             paginator_cls=OffsetPaginator,
         )
