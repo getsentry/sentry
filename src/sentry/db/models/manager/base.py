@@ -12,7 +12,6 @@ from typing import (
     Dict,
     Generator,
     Generic,
-    Iterable,
     Mapping,
     MutableMapping,
     Optional,
@@ -30,7 +29,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -511,15 +510,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 next_action(self.model)
 
 
-def create_silo_limited_copy(
-    self: BaseManager[M], limit: SiloLimit, read_modes: Iterable[SiloMode]
-) -> BaseManager[M]:
+def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseManager[M]:
     """Create a copy of this manager that enforces silo limitations."""
 
     # Dynamically create a subclass of this manager's class, adding overrides.
     cls = type(self)
     overrides = {
-        "get_queryset": limit.create_override(cls.get_queryset, extra_modes=read_modes),
+        "get_queryset": limit.create_override(cls.get_queryset),
         "bulk_create": limit.create_override(cls.bulk_create),
         "bulk_update": limit.create_override(cls.bulk_update),
         "create": limit.create_override(cls.create),
