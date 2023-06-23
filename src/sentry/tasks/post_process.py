@@ -592,16 +592,11 @@ def post_process_group(
         for job in group_jobs:
             run_post_process_job(job)
 
-        # TODO: Should we even emit this for reprocessing?
-        if start_time := event.data.get("received"):
+        if not is_reprocessed and event.data.get("received"):
             metrics.timing(
-                # TODO: Name?
                 "events.time-to-post-process",
-                time() - start_time,
+                time() - event.data["received"],
                 instance=event.data["platform"],
-                tags={
-                    "is_reprocessing2": "true" if is_reprocessed else "false",
-                },
             )
 
 
