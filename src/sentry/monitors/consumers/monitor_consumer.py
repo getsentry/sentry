@@ -298,6 +298,8 @@ def _process_message(wrapper: Dict) -> None:
                         minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
                     )
 
+                trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
+
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
                     guid = uuid.uuid4()
@@ -316,6 +318,7 @@ def _process_message(wrapper: Dict) -> None:
                                 "expected_time": expected_time,
                                 "timeout_at": timeout_at,
                                 "monitor_config": monitor_config,
+                                "trace_id": trace_id,
                             },
                             project_id=project_id,
                             monitor=monitor,
