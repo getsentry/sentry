@@ -302,6 +302,7 @@ class RegionOutbox(OutboxBase):
             payload=self.payload,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     sharding_columns = ("shard_scope", "shard_identifier")
@@ -357,6 +358,7 @@ class ControlOutbox(OutboxBase):
             region_name=self.region_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     class Meta:

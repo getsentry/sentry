@@ -309,7 +309,9 @@ class OrganizationService(RpcService):
                         region_name=region_name,
                         category=OutboxCategory.SEND_SIGNAL,
                         object_identifier=ControlOutbox.next_object_identifier(),
-                        payload=args,
+                        payload=dict(
+                            args=args, signal=int(RpcOrganizationSignal.from_signal(signal))
+                        ),
                     ).save()
 
 

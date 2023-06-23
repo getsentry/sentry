@@ -1,7 +1,5 @@
 from unittest.mock import patch
 
-import pytest
-
 from sentry.api.utils import generate_organization_url
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
@@ -33,12 +31,6 @@ def naive_build_integration(data):
     return data
 
 
-@pytest.fixture(autouse=True)
-def raise_on_signal_failures():
-    with receivers_raise_on_send(), outbox_runner():
-        yield
-
-
 @patch(
     "sentry.integrations.example.ExampleIntegrationProvider.build_integration",
     side_effect=naive_build_integration,
@@ -65,10 +57,11 @@ class FinishPipelineTestCase(IntegrationTestCase):
         integration = Integration.objects.create(
             name="test", external_id=self.external_id, provider=self.provider.key
         )
-        for org in na_orgs:
-            integration.add_organization(org)
-            mapping = OrganizationMapping.objects.get(organization_id=org.id)
-            mapping.update(region_name="na")
+        with receivers_raise_on_send(), outbox_runner():
+            for org in na_orgs:
+                integration.add_organization(org)
+                mapping = OrganizationMapping.objects.get(organization_id=org.id)
+                mapping.update(region_name="na")
 
     def test_with_data(self, *args):
         data = {

@@ -241,7 +241,7 @@ class RpcOrganizationSignal(IntEnum):
 
     @classmethod
     def from_signal(cls, signal: Signal) -> "RpcOrganizationSignal":
-        for enum, s in cls.signal_map():
+        for enum, s in cls.signal_map().items():
             if s is signal:
                 return enum
         raise ValueError(f"Signal {signal!r} is not a valid RpcOrganizationSignal")

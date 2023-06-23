@@ -23,7 +23,11 @@ from sentry.models import (
     process_control_outbox,
 )
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationSignal,
+    RpcRegionUser,
+    organization_service,
+)
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -113,5 +117,6 @@ def process_send_signal(
     if shard_scope == OutboxScope.ORGANIZATION_SCOPE:
         organization_service.send_signal(
             organization_id=shard_identifier,
-            args=payload,
+            args=payload["args"],
+            signal=RpcOrganizationSignal(payload["signal"]),
         )
