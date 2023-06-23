@@ -70,7 +70,6 @@ describe('withDomainRedirect', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         params,
       },
@@ -101,7 +100,6 @@ describe('withDomainRedirect', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -137,7 +135,6 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -177,7 +174,6 @@ describe('withDomainRedirect', function () {
       projectId: 'react',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -214,7 +210,6 @@ describe('withDomainRedirect', function () {
     const params = {};
 
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,

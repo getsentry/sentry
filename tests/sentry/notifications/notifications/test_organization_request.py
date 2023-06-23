@@ -6,6 +6,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
@@ -20,6 +21,7 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
+@control_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()

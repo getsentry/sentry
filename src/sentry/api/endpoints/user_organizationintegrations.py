@@ -5,8 +5,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ObjectStatus, OrganizationIntegration
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.constants import ObjectStatus
+from sentry.models import OrganizationIntegration
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @control_silo_endpoint
@@ -20,14 +21,13 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         :qparam string provider: optional provider to filter by
         :auth: required
         """
-        org_ids = [
-            o.id
-            for o in organization_service.get_organizations(
-                user_id=request.user.id, only_visible=True, scope=None
-            )
-        ]
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id, only_visible=True)
+            if request.user.id is not None
+            else ()
+        )
         queryset = OrganizationIntegration.objects.filter(
-            organization_id__in=org_ids,
+            organization_id__in=[o.id for o in organizations],
             status=ObjectStatus.ACTIVE,
             integration__status=ObjectStatus.ACTIVE,
         )

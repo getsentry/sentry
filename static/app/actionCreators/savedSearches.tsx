@@ -1,7 +1,8 @@
 import {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 const getRecentSearchUrl = (orgSlug: string): string =>
   `/organizations/${orgSlug}/recent-searches/`;
@@ -29,7 +30,9 @@ export function saveRecentSearch(
     },
   });
 
-  promise.catch(handleXhrErrorResponse('Unable to save a recent search'));
+  promise.catch((err: RequestError) =>
+    handleXhrErrorResponse('Unable to save a recent search', err)
+  );
 
   return promise;
 }
@@ -51,6 +54,16 @@ export function fetchRecentSearches(
   query?: string
 ): Promise<RecentSearch[]> {
   const url = getRecentSearchUrl(orgSlug);
+
+  // Prevent requests that are too long
+  // 8k is the default max size for a URL in nginx
+  // Docs - http://nginx.org/en/docs/http/ngx_http_core_module.html#large_client_header_buffers
+  // 5000 saves us room for other query params and url
+  // Recent searches stops being useful at a certain point
+  if (query && query.length > 5000) {
+    query = query.substring(0, 5000);
+  }
+
   const promise = api.requestPromise(url, {
     query: {
       query,
@@ -59,9 +72,9 @@ export function fetchRecentSearches(
     },
   });
 
-  promise.catch(resp => {
+  promise.catch((resp: RequestError) => {
     if (resp.status !== 401 && resp.status !== 403) {
-      handleXhrErrorResponse('Unable to fetch recent searches')(resp);
+      handleXhrErrorResponse('Unable to fetch recent searches', resp);
     }
   });
 

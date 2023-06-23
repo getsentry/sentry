@@ -9,8 +9,7 @@ from django.urls import reverse
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
 from sentry.incidents.models import IncidentStatus
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import (
     SlackIssuesMessageBuilder,
@@ -22,25 +21,10 @@ from sentry.models import Group, Team, User
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
-
-
-class DummySlackNotification(SlackMessageBuilder):
-    def __init__(self, text, escape_text=False) -> None:
-        super().__init__()
-        self.text = text
-        self._escape_text = escape_text
-
-    @property
-    def escape_text(self) -> bool:
-        return self._escape_text
-
-    def build(self) -> SlackBody:
-        return self._build(text=self.text)
 
 
 def build_test_message(
@@ -66,7 +50,7 @@ def build_test_message(
         "color": "#E03E2F",  # red for error level
         "actions": [
             {"name": "status", "text": "Resolve", "type": "button", "value": "resolved"},
-            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored"},
+            {"name": "status", "text": "Ignore", "type": "button", "value": "ignored:forever"},
             {
                 "option_groups": [
                     {
@@ -136,6 +120,26 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
             link_to_event=True,
         )
+
+        with self.feature("organizations:escalating-issues"):
+            test_message = build_test_message(
+                teams={self.team},
+                users={self.user},
+                timestamp=group.last_seen,
+                group=group,
+            )
+            test_message["actions"] = [
+                action
+                if action["text"] != "Ignore"
+                else {
+                    "name": "status",
+                    "text": "Archive",
+                    "type": "button",
+                    "value": "ignored:until_escalating",
+                }
+                for action in test_message["actions"]
+            ]
+            assert SlackIssuesMessageBuilder(group).build() == test_message
 
     @patch(
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
@@ -218,12 +222,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         with self.feature("organizations:performance-issues"):
             attachments = SlackIssuesMessageBuilder(event.group, event).build()
         assert attachments["title"] == "N+1 Query"
-        # TODO: Uncomment this once we fix the `evidence_display` for occurrences
-        # assert (
-        #     attachments["text"]
-        #     == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        # )
-        assert attachments["text"] == ""
+        assert (
+            attachments["text"]
+            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+        )
         assert attachments["fallback"] == f"[{self.project.slug}] N+1 Query"
         assert attachments["color"] == "#2788CE"  # blue for info level
 
@@ -237,16 +239,14 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         assert attachments["color"] == "#2788CE"  # blue for info level
 
-    @with_feature("organizations:slack-escape-messages")
     def test_escape_slack_message(self):
         group = self.create_group(
             project=self.project,
-            message="<https://example.com/|*Click Here*>",
             data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
         )
         assert (
             SlackIssuesMessageBuilder(group, None).build()["text"]
-            == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+            == "&lt;https://example.com/|*Click Here*&gt;"
         )
 
 
@@ -521,22 +521,4 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 },
                 {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
             ],
-        }
-
-
-class DummySlackNotificationTest(TestCase):
-    def test_no_escape(self):
-        raw_text = "<https://example.com/|*Click Here*>"
-        assert DummySlackNotification(raw_text).build() == {
-            "text": raw_text,
-            "mrkdwn_in": ["text"],
-            "color": "#2788CE",
-        }
-
-    def test_with_escape(self):
-        raw_text = "<https://example.com/|*Click Here*>"
-        assert DummySlackNotification(raw_text, True).build() == {
-            "text": "&amp;lt;https://example.com/|*Click Here*&amp;gt;",
-            "mrkdwn_in": [],
-            "color": "#2788CE",
         }

@@ -17,10 +17,10 @@ from sentry.models import (
     Release,
     ReleaseCommit,
     Repository,
-    RuleSnooze,
     ScheduledDeletion,
     ServiceHook,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -114,8 +114,8 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
             alert_rule=metric_alert_rule,
             title="Something bad happened",
         )
-        rule_snooze = RuleSnooze.objects.create(user_id=self.user.id, alert_rule=metric_alert_rule)
 
+        rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
         deletion = ScheduledDeletion.schedule(project, days=0)
         deletion.update(in_progress=True)
 

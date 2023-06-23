@@ -1,15 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {},
-  project: undefined,
-  projects: undefined,
   router: {
     location: {
       query: {},
@@ -58,6 +55,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(['datetime']),
       selection: {
@@ -100,6 +98,7 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
       pinnedFilters: new Set(['datetime']),
       selection: {
@@ -130,9 +129,6 @@ describe('DatePageFilter', function () {
       router: desyncRouter,
       routerContext: desyncRouterContext,
     } = initializeOrg({
-      organization: {},
-      project: undefined,
-      projects: undefined,
       router: {
         location: {
           // the datetime parameters need to be non-null for desync detection to work
@@ -143,12 +139,14 @@ describe('DatePageFilter', function () {
       },
     });
 
-    // Manually mark the date filter as desynced
-    act(() =>
-      updateDateTime({period: '14d', start: null, end: null, utc: false}, desyncRouter, {
-        save: false,
-      })
-    );
+    PageFiltersStore.reset();
+    initializeUrlState({
+      memberProjects: [],
+      organization: desyncOrganization,
+      queryParams: {statsPeriod: '14d'},
+      router: desyncRouter,
+      shouldEnforceSingleProject: false,
+    });
 
     render(<DatePageFilter />, {
       context: desyncRouterContext,

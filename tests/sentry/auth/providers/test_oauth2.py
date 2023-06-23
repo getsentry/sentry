@@ -14,16 +14,16 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def build_identity(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
-        pass
+        raise NotImplementedError
 
     def build_config(self, state):
         pass
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class OAuth2ProviderTest(TestCase):
     @cached_property
     def auth_provider(self):

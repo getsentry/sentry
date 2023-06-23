@@ -10,7 +10,7 @@ from sentry.rules.filters.base import EventFilter
 from sentry.types.condition_activity import ConditionActivity
 
 
-class IssueOccurrencesForm(forms.Form):  # type: ignore
+class IssueOccurrencesForm(forms.Form):
     value = forms.IntegerField()
 
 

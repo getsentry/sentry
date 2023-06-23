@@ -19,6 +19,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.log import log_service
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -42,7 +43,7 @@ def create_audit_entry_from_user(
     ip_address: str | None = None,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
-    organization: Organization | None = None,
+    organization: Organization | RpcOrganization | None = None,
     organization_id: int | None = None,
     **kwargs: Any,
 ) -> AuditLogEntry:
@@ -152,7 +153,7 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
     Adds common information on a delete log from an audit entry and
     saves that delete log.
     """
-    delete_log.actor_label = entry.actor_label[:64]
+    delete_log.actor_label = entry.actor_label[:64] if entry.actor_label else None
     delete_log.actor_id = entry.actor_id
     delete_log.actor_key = entry.actor_key
     delete_log.ip_address = entry.ip_address

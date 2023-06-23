@@ -6,6 +6,7 @@ import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
@@ -15,10 +16,13 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
-import {DynamicSDKLoaderOption} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
+
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
 
 export function SetupDocsLoader({
   organization,
@@ -26,12 +30,14 @@ export function SetupDocsLoader({
   project,
   platform,
   close,
+  showDocsWithProductSelection,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
+  showDocsWithProductSelection?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -72,20 +78,20 @@ export function SetupDocsLoader({
       return;
     }
 
-    const newDynamicSdkLoaderOptions: Record<DynamicSDKLoaderOption, boolean> = {
-      [DynamicSDKLoaderOption.HAS_PERFORMANCE]: false,
-      [DynamicSDKLoaderOption.HAS_REPLAY]: false,
-      [DynamicSDKLoaderOption.HAS_DEBUG]: false,
+    const newDynamicSdkLoaderOptions: ProjectKey['dynamicSdkLoaderOptions'] = {
+      hasPerformance: false,
+      hasReplay: false,
+      hasDebug: false,
     };
 
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
         case PRODUCT.PERFORMANCE_MONITORING:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_PERFORMANCE] = true;
+          newDynamicSdkLoaderOptions.hasPerformance = true;
           break;
         case PRODUCT.SESSION_REPLAY:
-          newDynamicSdkLoaderOptions[DynamicSDKLoaderOption.HAS_REPLAY] = true;
+          newDynamicSdkLoaderOptions.hasReplay = true;
           break;
       }
     });
@@ -103,7 +109,7 @@ export function SetupDocsLoader({
       setProjectKeyUpdateError(false);
     } catch (error) {
       const message = t('Unable to updated dynamic SDK loader configuration');
-      handleXhrErrorResponse(message)(error);
+      handleXhrErrorResponse(message, error);
       setProjectKeyUpdateError(true);
     }
   }, [api, location.query.product, organization.slug, project.slug, projectKey?.id]);
@@ -134,11 +140,22 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-        lazyLoader
-        skipLazyLoader={close}
-      />
+      {showDocsWithProductSelection ? (
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      ) : (
+        <ProductSelection
+          defaultSelectedProducts={[
+            PRODUCT.PERFORMANCE_MONITORING,
+            PRODUCT.SESSION_REPLAY,
+          ]}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      )}
 
       {projectKeyUpdateError && (
         <LoadingError

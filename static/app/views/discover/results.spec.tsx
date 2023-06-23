@@ -218,7 +218,6 @@ describe('Results', function () {
 
       // Start off with an invalid view (empty is invalid)
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {query: 'tag:value'}},
@@ -262,7 +261,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {
@@ -331,7 +329,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -369,7 +366,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -407,7 +403,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'previous'}},
@@ -444,7 +439,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), statsPeriod: '60d', project: '-1'}},
@@ -478,14 +472,13 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {
             query: {
               ...generateFields(),
               statsPeriod: '60d',
-              project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+              project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(String),
             },
           },
         },
@@ -518,7 +511,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), statsPeriod: '30d', project: '-1'}},
@@ -552,11 +544,14 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {
-            query: {...generateFields(), statsPeriod: '90d', project: [1, 2, 3, 4]},
+            query: {
+              ...generateFields(),
+              statsPeriod: '90d',
+              project: [1, 2, 3, 4].map(String),
+            },
           },
         },
       });
@@ -589,7 +584,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {id: '1', statsPeriod: '24h'}},
@@ -648,14 +642,13 @@ describe('Results', function () {
         slug: 'org-slug',
       });
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {
             query: {
               id: '1',
               statsPeriod: '7d',
-              project: [2],
+              project: ['2'],
               environment: ['production'],
             },
           },
@@ -694,7 +687,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -766,7 +758,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
@@ -838,7 +829,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
@@ -914,7 +904,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -967,7 +956,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -1025,7 +1013,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -1058,10 +1045,9 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
-          location: {query: {fromMetric: true, id: '1'}},
+          location: {query: {fromMetric: 'true', id: '1'}},
         },
       });
 
@@ -1096,10 +1082,9 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
-          location: {query: {showUnparameterizedBanner: true, id: '1'}},
+          location: {query: {showUnparameterizedBanner: 'true', id: '1'}},
         },
       });
 
@@ -1138,7 +1123,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           // These fields take priority and should be sent in the request
@@ -1204,7 +1188,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1234,7 +1217,6 @@ describe('Results', function () {
       await userEvent.click(screen.getByText('Previous Period'));
 
       const rerenderData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...initialData.router.location.query, display: 'previous'}},
@@ -1266,7 +1248,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {
@@ -1301,7 +1282,6 @@ describe('Results', function () {
       await userEvent.click(screen.getByText('Total Period'));
       await userEvent.click(screen.getByText('Previous Period'));
       const rerenderData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {...initialData.router.location.query, display: 'previous'}},
@@ -1327,7 +1307,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1359,7 +1338,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1389,7 +1367,6 @@ describe('Results', function () {
       });
 
       const initialData = initializeOrg({
-        ...initializeOrg(),
         organization,
         router: {
           location: {

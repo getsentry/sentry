@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
+import {initializeUrlState, updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -11,8 +11,8 @@ const {organization, router, routerContext} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   project: undefined,
   projects: [
-    {id: 1, slug: 'project-1', environments: ['prod', 'staging']},
-    {id: 2, slug: 'project-2', environments: ['prod', 'stage']},
+    {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+    {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
   ],
   router: {
     location: {
@@ -144,8 +144,8 @@ describe('EnvironmentPageFilter', function () {
       organization: {features: ['global-views', 'open-membership']},
       project: undefined,
       projects: [
-        {id: 1, slug: 'project-1', environments: ['prod', 'staging']},
-        {id: 2, slug: 'project-2', environments: ['prod', 'stage']},
+        {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
+        {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
       ],
       router: {
         location: {
@@ -157,8 +157,14 @@ describe('EnvironmentPageFilter', function () {
       },
     });
 
-    // Manually mark the environment filter as desynced
-    act(() => updateEnvironments(['staging'], desyncRouter, {save: false}));
+    PageFiltersStore.reset();
+    initializeUrlState({
+      memberProjects: [],
+      organization: desyncOrganization,
+      queryParams: {project: ['1'], environment: 'staging'},
+      router: desyncRouter,
+      shouldEnforceSingleProject: false,
+    });
 
     render(<EnvironmentPageFilter />, {
       context: desyncRouterContext,

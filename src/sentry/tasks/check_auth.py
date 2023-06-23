@@ -4,7 +4,10 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.models import AuthIdentity, OrganizationMember
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import AuthIdentity
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 
@@ -13,7 +16,7 @@ logger = logging.getLogger("sentry.auth")
 AUTH_CHECK_INTERVAL = 3600
 
 
-@instrumented_task(name="sentry.tasks.check_auth", queue="auth")
+@instrumented_task(name="sentry.tasks.check_auth", queue="auth", silo_mode=SiloMode.CONTROL)
 def check_auth(**kwargs):
     """
     Iterates over all accounts which have not been verified in the required
@@ -38,7 +41,9 @@ def check_auth(**kwargs):
             )
 
 
-@instrumented_task(name="sentry.tasks.check_auth_identity", queue="auth")
+@instrumented_task(
+    name="sentry.tasks.check_auth_identity", queue="auth", silo_mode=SiloMode.CONTROL
+)
 def check_auth_identity(auth_identity_id, **kwargs):
     try:
         auth_identity = AuthIdentity.objects.get(id=auth_identity_id)
@@ -48,11 +53,10 @@ def check_auth_identity(auth_identity_id, **kwargs):
 
     auth_provider = auth_identity.auth_provider
 
-    try:
-        om = OrganizationMember.objects.get(
-            user_id=auth_identity.user.id, organization=auth_provider.organization_id
-        )
-    except OrganizationMember.DoesNotExist:
+    om: RpcOrganizationMember = organization_service.check_membership_by_id(
+        organization_id=auth_provider.organization_id, user_id=auth_identity.user_id
+    )
+    if om is None:
         logger.warning(
             "Removing invalid AuthIdentity(id=%s) due to no organization access", auth_identity_id
         )
@@ -91,9 +95,11 @@ def check_auth_identity(auth_identity_id, **kwargs):
         is_valid = True
 
     if getattr(om.flags, "sso:linked") != is_linked:
-        setattr(om.flags, "sso:linked", is_linked)
-        setattr(om.flags, "sso:invalid", not is_valid)
-        om.update(flags=om.flags)
+        with in_test_psql_role_override("postgres"):
+            # flags are not replicated, so it's ok not to create outboxes here.
+            setattr(om.flags, "sso:linked", is_linked)
+            setattr(om.flags, "sso:invalid", not is_valid)
+            organization_service.update_membership_flags(organization_member=om)
 
     now = timezone.now()
     auth_identity.update(last_verified=now, last_synced=now)

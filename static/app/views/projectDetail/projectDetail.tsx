@@ -63,6 +63,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.syncProjectWithSlug();
   }
 
@@ -198,7 +199,11 @@ class ProjectDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <PageFiltersContainer skipLoadLastUsed showAbsolute={!hasOnlyBasicChart}>
+      <PageFiltersContainer
+        disablePersistence
+        skipLoadLastUsed
+        showAbsolute={!hasOnlyBasicChart}
+      >
         <Layout.Page>
           <NoProjectMessage organization={organization}>
             <Layout.Header>

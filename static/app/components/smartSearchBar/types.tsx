@@ -10,16 +10,24 @@ export enum ItemType {
   TAG_OPERATOR = 'tag-operator',
   FIRST_RELEASE = 'first-release',
   INVALID_TAG = 'invalid-tag',
+  INVALID_QUERY_WITH_WILDCARD = 'invalid-tag-with-wildcard',
   RECENT_SEARCH = 'recent-search',
   PROPERTY = 'property',
   LINK = 'link',
+  RECOMMENDED = 'recommended',
 }
+
+export const invalidTypes = [ItemType.INVALID_TAG, ItemType.INVALID_QUERY_WITH_WILDCARD];
 
 export type SearchGroup = {
   children: SearchItem[];
   icon: React.ReactNode;
   title: string;
   type: ItemType | 'header';
+  /**
+   * A wrapper around the children, useful for adding a custom layout
+   */
+  childrenWrapper?: React.FC<{children: React.ReactNode}>;
   desc?: string;
   value?: string;
 };
@@ -60,10 +68,10 @@ export type Tag = {
 };
 
 export enum ShortcutType {
-  Delete = 'delete',
-  Negate = 'negate',
-  Next = 'next',
-  Previous = 'previous',
+  DELETE = 'delete',
+  NEGATE = 'negate',
+  NEXT = 'next',
+  PREVIOUS = 'previous',
 }
 
 export type Shortcut = {

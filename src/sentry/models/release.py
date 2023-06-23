@@ -30,12 +30,13 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
@@ -260,8 +261,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
-        environments: List[str] = None,
+        project_ids: Optional[Sequence[int]] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -405,7 +406,7 @@ class ReleaseModelManager(BaseManager):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
@@ -934,7 +935,7 @@ class Release(Model):
                     router.db_for_write(CommitAuthor),
                     router.db_for_write(Commit),
                 )
-            ):
+            ), in_test_hide_transaction_boundary():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()
@@ -1203,12 +1204,15 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_artifacts_in_artifact_bundles(self):
-        """Counts the number of artifacts in the artifact bundles associated with this release."""
+    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
+        """
+        Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
+        """
         qs = (
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
             .values_list("releaseartifactbundle__release_name", "count")

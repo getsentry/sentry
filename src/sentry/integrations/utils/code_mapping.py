@@ -157,8 +157,8 @@ class FrameFilename:
     def __repr__(self) -> str:
         return f"FrameFilename: {self.full_path}"
 
-    def __eq__(self, other) -> bool:  # type: ignore
-        return self.full_path == other.full_path  # type: ignore
+    def __eq__(self, other) -> bool:
+        return self.full_path == other.full_path
 
 
 def stacktrace_buckets(stacktraces: List[str]) -> Dict[str, List[FrameFilename]]:
@@ -421,6 +421,8 @@ def create_code_mapping(
         stack_root=code_mapping.stacktrace_root,
         defaults={
             "repository": repository,
+            "organization_id": organization_integration.organization_id,
+            "integration_id": organization_integration.integration_id,
             "organization_integration_id": organization_integration.id,
             "source_root": code_mapping.source_path,
             "default_branch": code_mapping.repo.branch,

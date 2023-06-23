@@ -8,10 +8,10 @@ from enum import IntEnum, auto
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     Generator,
     Generic,
-    Iterable,
     Mapping,
     MutableMapping,
     Optional,
@@ -29,7 +29,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -259,7 +259,9 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         model: M = super().get(*args, **kwargs)
         return model
 
-    def get_from_cache(self, use_replica: bool = False, **kwargs: Any) -> M:
+    def get_from_cache(
+        self, use_replica: bool = settings.SENTRY_MODEL_CACHE_USE_REPLICA, **kwargs: Any
+    ) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -329,7 +331,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-    def get_many_from_cache(self, values: Sequence[str], key: str = "pk") -> Sequence[Any]:
+    def get_many_from_cache(self, values: Collection[str | int], key: str = "pk") -> Sequence[Any]:
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
@@ -508,15 +510,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 next_action(self.model)
 
 
-def create_silo_limited_copy(
-    self: BaseManager[M], limit: SiloLimit, read_modes: Iterable[SiloMode]
-) -> BaseManager[M]:
+def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseManager[M]:
     """Create a copy of this manager that enforces silo limitations."""
 
     # Dynamically create a subclass of this manager's class, adding overrides.
     cls = type(self)
     overrides = {
-        "get_queryset": limit.create_override(cls.get_queryset, extra_modes=read_modes),
+        "get_queryset": limit.create_override(cls.get_queryset),
         "bulk_create": limit.create_override(cls.bulk_create),
         "bulk_update": limit.create_override(cls.bulk_update),
         "create": limit.create_override(cls.create),
@@ -562,4 +562,4 @@ def create_silo_limited_copy(
     queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
     manager_instance._queryset_class = queryset_subclass
 
-    return manager_instance  # type: ignore
+    return manager_instance

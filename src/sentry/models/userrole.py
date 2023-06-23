@@ -1,16 +1,10 @@
 from typing import FrozenSet
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router
 from django.db.models.signals import post_migrate
 
-from sentry.db.models import (
-    ArrayField,
-    DefaultFieldsModel,
-    control_silo_only_model,
-    get_model_if_available,
-    sane_repr,
-)
+from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
@@ -63,7 +57,7 @@ def manage_default_super_admin_role(app_config, using, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
-    if not get_model_if_available(app_config, "UserRole"):
+    if using != router.db_for_write(UserRole):
         return
 
     role, _ = UserRole.objects.get_or_create(

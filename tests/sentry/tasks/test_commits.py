@@ -284,7 +284,7 @@ class FetchCommitsTest(TestCase):
         assert "Repository not found" in msg.body
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class HandleInvalidIdentityTest(TestCase):
     def test_simple(self):
         usa = UserSocialAuth.objects.create(user=self.user, provider="dummy")

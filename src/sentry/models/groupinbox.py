@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 
 import jsonschema
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from sentry import features
@@ -11,7 +11,6 @@ from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -87,14 +86,7 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    if reason == GroupInboxReason.REGRESSION:
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save(update_fields=["substatus"])
-
-    if reason is GroupInboxReason.NEW:
-        group.substatus = GroupSubStatus.NEW
-        group.save(update_fields=["substatus"])
-    else:
+    if reason is not GroupInboxReason.NEW:
         # Ignore new issues, too many events
         inbox_in.send_robust(
             project=group.project,
@@ -127,14 +119,16 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 
         if action:
-            inbox_out.send_robust(
-                group=group_inbox.group,
-                project=group_inbox.group.project,
-                user=user,
-                sender="remove_group_from_inbox",
-                action=action.value,
-                inbox_date_added=group_inbox.date_added,
-                referrer=referrer,
+            transaction.on_commit(
+                lambda: inbox_out.send_robust(
+                    group=group_inbox.group,
+                    project=group_inbox.group.project,
+                    user=user,
+                    sender="remove_group_from_inbox",
+                    action=action.value,
+                    inbox_date_added=group_inbox.date_added,
+                    referrer=referrer,
+                )
             )
     except GroupInbox.DoesNotExist:
         pass

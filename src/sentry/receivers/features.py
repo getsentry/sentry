@@ -5,7 +5,8 @@ from django.db.models.signals import post_save
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
 from sentry.signals import (
@@ -155,11 +156,11 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(member, organization_id: int, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=member.organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record("organization.joined", user_id=member.user.id, organization_id=organization.id)
+    analytics.record("organization.joined", user_id=member.user_id, organization_id=organization_id)
 
 
 @issue_assigned.connect(weak=False)
@@ -494,13 +495,14 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_escalating.connect(weak=False)
-def record_issue_escalating(project, group, event, **kwargs):
+def record_issue_escalating(project, group, event, was_until_escalating, **kwargs):
     analytics.record(
         "issue.escalating",
         organization_id=project.organization_id,
         project_id=project.id,
         group_id=group.id,
-        event_id=event.event_id,
+        event_id=event.event_id if event else None,
+        was_until_escalating=was_until_escalating,
     )
 
 

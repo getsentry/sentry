@@ -16,7 +16,6 @@ function initializeData({query} = {query: {}}) {
     projects: [TestStubs.Project()],
   });
   const initialData = initializeOrg({
-    ...initializeOrg(),
     organization,
     router: {
       location: {

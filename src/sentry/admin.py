@@ -4,7 +4,9 @@ from django import forms
 from django.conf import settings
 from django.conf.urls import url
 from django.contrib import admin, messages
-from django.contrib.auth.forms import AdminPasswordChangeForm, UserChangeForm, UserCreationForm
+from django.contrib.auth.forms import AdminPasswordChangeForm
+from django.contrib.auth.forms import UserChangeForm as DjangoUserChangeForm
+from django.contrib.auth.forms import UserCreationForm as DjangoUserCreationForm
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
@@ -59,8 +61,8 @@ class OrganizationTeamInline(admin.TabularInline):
 class OrganizationMemberInline(admin.TabularInline):
     model = OrganizationMember
     extra = 1
-    fields = ("user", "organization", "role")
-    raw_id_fields = ("user", "organization")
+    fields = ("organization", "role")
+    raw_id_fields = ("organization",)
 
 
 class OrganizationUserInline(OrganizationMemberInline):
@@ -128,7 +130,7 @@ class TeamAdmin(admin.ModelAdmin):
 admin.site.register(Team, TeamAdmin)
 
 
-class UserChangeForm(UserChangeForm):
+class UserChangeForm(DjangoUserChangeForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,
@@ -142,7 +144,7 @@ class UserChangeForm(UserChangeForm):
     )
 
 
-class UserCreationForm(UserCreationForm):
+class UserCreationForm(DjangoUserCreationForm):
     username = forms.RegexField(
         label=_("Username"),
         max_length=128,
@@ -175,7 +177,7 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ("is_staff", "is_superuser", "is_active", "is_managed")
     search_fields = ("username", "name", "email")
     ordering = ("username",)
-    inlines = (OrganizationUserInline, AuthIdentityInline)
+    inlines = (AuthIdentityInline,)
 
     def get_fieldsets(self, request, obj=None):
         if not obj:

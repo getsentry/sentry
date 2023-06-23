@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @region_silo_endpoint
-class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
+class GroupEventDetailsEndpoint(GroupEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -45,7 +45,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
         elif event_id == "oldest":
             event = group.get_oldest_event_for_environments(environments)
         else:
-            event = eventstore.get_event_by_id(group.project.id, event_id, group_id=group.id)
+            event = eventstore.backend.get_event_by_id(
+                group.project.id, event_id, group_id=group.id
+            )
             # TODO: Remove `for_group` check once performance issues are moved to the issue platform
             if hasattr(event, "for_group") and event.group:
                 event = event.for_group(event.group)
@@ -57,5 +59,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):  # type: ignore
         if "stacktraceOnly" in collapse:
             return Response(serialize(event, request.user, EventSerializer()))
 
-        data = wrap_event_response(request.user, event, event.project, environments)
+        data = wrap_event_response(
+            request.user,
+            event,
+            environments,
+            include_full_release_data="fullRelease" not in collapse,
+        )
         return Response(data)

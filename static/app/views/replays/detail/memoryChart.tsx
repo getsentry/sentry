@@ -17,10 +17,10 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
-import type {MemorySpanType} from 'sentry/views/replays/types';
+import type {MemorySpan} from 'sentry/views/replays/types';
 
 interface Props {
-  memorySpans: undefined | MemorySpanType[];
+  memorySpans: undefined | MemorySpan[];
   setCurrentHoverTime: (time: undefined | number) => void;
   setCurrentTime: (time: number) => void;
   startTimestampMs: undefined | number;
@@ -224,7 +224,6 @@ function MemoryChart({
 }
 
 const MemoryChartWrapper = styled(FluidHeight)`
-  margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
 `;

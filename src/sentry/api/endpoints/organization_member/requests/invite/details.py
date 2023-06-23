@@ -105,9 +105,11 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         result = serializer.validated_data
 
         if result.get("orgRole"):
-            member.update(role=result["orgRole"])
+            member.role = result["orgRole"]
+            member.save()
         elif result.get("role"):
-            member.update(role=result["role"])
+            member.role = result["role"]
+            member.save()
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

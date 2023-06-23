@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import random
 from collections import defaultdict
 from datetime import timedelta
 from typing import List, Mapping, Optional, Sequence
@@ -12,6 +11,7 @@ from django.utils.encoding import force_bytes
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -19,6 +19,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
     get_url_from_span,
@@ -41,8 +42,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
-    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
     HOST_DENYLIST = []
 
@@ -86,7 +87,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project=None):
@@ -189,7 +190,19 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
                 "parameters": self._get_parameters(),
             },
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        last_span["op"],
+                        os.path.commonprefix(
+                            [span.get("description", "") or "" for span in self.spans]
+                        ),
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
         )
 
     def _get_parameters(self) -> List[str]:

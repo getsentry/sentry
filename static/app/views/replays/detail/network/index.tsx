@@ -2,7 +2,6 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
@@ -154,8 +153,8 @@ function NetworkList({
               columnIndex={columnIndex}
               currentHoverTime={currentHoverTime}
               currentTime={currentTime}
-              handleMouseEnter={handleMouseEnter}
-              handleMouseLeave={handleMouseLeave}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
               onClickTimestamp={handleClick}
               onClickCell={onClickCell}
               ref={e => e && registerChild?.(e)}
@@ -174,13 +173,7 @@ function NetworkList({
   return (
     <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
-      <Feature
-        features={['session-replay-network-details']}
-        organization={organization}
-        renderDisabled={false}
-      >
-        <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
-      </Feature>
+      <ReqRespBodiesAlert isNetworkDetailsSetup={isNetworkDetailsSetup} />
       <NetworkTable ref={containerRef}>
         <SplitPanel
           style={{
@@ -228,26 +221,20 @@ function NetworkList({
           ) : (
             <Placeholder height="100%" />
           )}
-          <Feature
-            features={['session-replay-network-details']}
-            organization={organization}
-            renderDisabled={false}
-          >
-            <NetworkDetails
-              {...resizableDrawerProps}
-              isSetup={isNetworkDetailsSetup}
-              item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
-              onClose={() => {
-                setDetailRow('');
-                trackAnalytics('replay.details-network-panel-closed', {
-                  is_sdk_setup: isNetworkDetailsSetup,
-                  organization,
-                });
-              }}
-              projectId={projectId}
-              startTimestampMs={startTimestampMs}
-            />
-          </Feature>
+          <NetworkDetails
+            {...resizableDrawerProps}
+            isSetup={isNetworkDetailsSetup}
+            item={detailDataIndex ? (items[detailDataIndex] as NetworkSpan) : null}
+            onClose={() => {
+              setDetailRow('');
+              trackAnalytics('replay.details-network-panel-closed', {
+                is_sdk_setup: isNetworkDetailsSetup,
+                organization,
+              });
+            }}
+            projectId={projectId}
+            startTimestampMs={startTimestampMs}
+          />
         </SplitPanel>
       </NetworkTable>
     </FluidHeight>

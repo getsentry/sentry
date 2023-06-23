@@ -5,9 +5,12 @@
 
 from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
@@ -19,81 +22,84 @@ from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
-    def create_mapping(
+    def upsert_mapping(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
-        role: str,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
-    ) -> RpcOrganizationMemberMapping:
-        assert (user_id is None and email) or (
-            user_id and email is None
-        ), "Must set either user or email"
-        with transaction.atomic():
-            query = OrganizationMemberMapping.objects.filter(organization_id=organization_id)
-            if user_id is not None:
-                query = query.filter(user_id=user_id)
-            else:
-                query = query.filter(email=email)
-
-            if query.exists():
-                org_member_mapping = query.get()
-                org_member_mapping.update(
-                    organizationmember_id=organizationmember_id,
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    role=role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
-            else:
-                org_member_mapping = OrganizationMemberMapping.objects.create(
-                    organizationmember_id=organizationmember_id,
-                    organization_id=organization_id,
-                    user_id=user_id,
-                    email=email,
-                    role=role,
-                    inviter_id=inviter_id,
-                    invite_status=invite_status,
-                )
-        return serialize_org_member_mapping(org_member_mapping)
-
-    def update_with_organization_member(
-        self,
-        *,
         organizationmember_id: int,
-        organization_id: int,
-        rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
+        mapping: RpcOrganizationMemberMappingUpdate,
+    ) -> Optional[RpcOrganizationMemberMapping]:
+        def apply_update(existing: OrganizationMemberMapping) -> None:
+            adding_user = existing.user_id is None and mapping.user_id is not None
+            existing.role = mapping.role
+            existing.user_id = mapping.user_id
+            existing.email = mapping.email
+            existing.inviter_id = mapping.inviter_id
+            existing.invite_status = mapping.invite_status
+            existing.organizationmember_id = organizationmember_id
+            existing.save()
+
+            if adding_user:
+                try:
+                    user = existing.user
+                except User.DoesNotExist:
+                    return
+                for outbox in user.outboxes_for_update():
+                    outbox.save()
+
         try:
-            org_member_map = OrganizationMemberMapping.objects.get(
+            with outbox_context(transaction.atomic()):
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
+
+                if not existing:
+                    existing = OrganizationMemberMapping.objects.create(
+                        organization_id=organization_id
+                    )
+
+                assert existing
+                apply_update(existing)
+                return serialize_org_member_mapping(existing)
+        except IntegrityError as e:
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
+            # This is "safe" since the upsert here should be a no-op.
+            if "fk_auth_user" in str(e):
+                return None
+
+            existing = self._find_organization_member(
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,
-            )
-            org_member_map.update(**rpc_update_org_member.dict())
-            return serialize_org_member_mapping(org_member_map)
-        except OrganizationMemberMapping.DoesNotExist:
-            return self.create_mapping(
-                organizationmember_id=organizationmember_id,
-                organization_id=organization_id,
-                **rpc_update_org_member.dict(),
             )
 
-    def delete_with_organization_member(
+            if existing is None:
+                raise e
+
+            with outbox_context(transaction.atomic()):
+                apply_update(existing)
+
+        return serialize_org_member_mapping(existing)
+
+    def _find_organization_member(
+        self,
+        organization_id: int,
+        organizationmember_id: int,
+    ) -> Optional[OrganizationMemberMapping]:
+        return OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id, organizationmember_id=organizationmember_id
+        ).first()
+
+    def delete(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
+        organizationmember_id: int,
     ) -> None:
-        OrganizationMemberMapping.objects.filter(
+        org_member_map = self._find_organization_member(
             organization_id=organization_id,
             organizationmember_id=organizationmember_id,
-        ).delete()
-
-    def close(self) -> None:
-        pass
+        )
+        if org_member_map:
+            with in_test_psql_role_override("postgres"):
+                org_member_map.delete()

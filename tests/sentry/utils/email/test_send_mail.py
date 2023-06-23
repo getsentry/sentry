@@ -1,9 +1,11 @@
 from unittest.mock import patch
 
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.email import send_mail
 
 
+@control_silo_test(stable=True)
 class SendMail(TestCase):
     @patch("django.core.mail.EmailMessage", autospec=True)
     @patch("django.core.mail.get_connection", return_value="connection")

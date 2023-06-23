@@ -69,7 +69,7 @@ def get_test_message(
     return payload
 
 
-class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # type: ignore
+class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.eventstore = SnubaEventStorage()
@@ -106,7 +106,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
-        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
         assert event.occurrence_id == occurrence.id
 

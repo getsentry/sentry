@@ -76,6 +76,7 @@ class OrganizationSerializerTest(TestCase):
             "project-stats",
             "relay",
             "shared-issues",
+            "source-maps-debug-ids",
             "session-replay-ui",
             "sso-basic",
             "sso-saml2",
@@ -204,6 +205,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
+@region_silo_test
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -223,6 +225,7 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
+@region_silo_test
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

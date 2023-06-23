@@ -15,6 +15,7 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
@@ -41,8 +42,10 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
         assignee_text = f"#{assigned_actor.slug}"
     elif actor.type == User:
         assignee_identity = identity_service.get_identity(
-            provider_id=identity.idp_id,
-            user_id=assigned_actor.id,
+            filter={
+                "provider_id": identity.idp_id,
+                "user_id": assigned_actor.id,
+            }
         )
         assignee_text = (
             assigned_actor.get_display_name()
@@ -55,7 +58,9 @@ def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
+def build_action_text(
+    identity: RpcIdentity, action: MessageAction, has_escalating: bool = False
+) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -65,7 +70,7 @@ def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | Non
 
     # Resolve actions have additional 'parameters' after ':'
     status = STATUSES.get((action.value or "").split(":", 1)[0])
-
+    status = "archived" if status == "ignored" and has_escalating else status
     # Action has no valid action text, ignore
     if not status:
         return None
@@ -123,9 +128,7 @@ def has_releases(project: Project) -> bool:
 
 
 def get_action_text(
-    text: str,
-    actions: Sequence[Any],
-    identity: RpcIdentity,
+    text: str, actions: Sequence[Any], identity: RpcIdentity, has_escalating: bool = False
 ) -> str:
     return (
         text
@@ -133,7 +136,9 @@ def get_action_text(
         + "\n".join(
             [
                 action_text
-                for action_text in [build_action_text(identity, action) for action in actions]
+                for action_text in [
+                    build_action_text(identity, action, has_escalating) for action in actions
+                ]
                 if action_text
             ]
         )
@@ -149,14 +154,16 @@ def build_actions(
     identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
+    has_escalating = features.has("organizations:escalating-issues", project.organization)
+
     if actions and identity:
-        text = get_action_text(text, actions, identity)
+        text = get_action_text(text, actions, identity, has_escalating)
         return [], text, "_actioned_issue"
 
     ignore_button = MessageAction(
         name="status",
-        label="Ignore",
-        value="ignored",
+        label="Archive" if has_escalating else "Ignore",
+        value="ignored:until_escalating" if has_escalating else "ignored:forever",
     )
 
     resolve_button = MessageAction(
@@ -178,14 +185,14 @@ def build_actions(
         resolve_button = MessageAction(
             name="status",
             label="Unresolve",
-            value="unresolved",
+            value="unresolved:ongoing",
         )
 
     if status == GroupStatus.IGNORED:
         ignore_button = MessageAction(
             name="status",
-            label="Stop Ignoring",
-            value="unresolved",
+            label="Mark as Ongoing" if has_escalating else "Stop Ignoring",
+            value="unresolved:ongoing",
         )
 
     assignee = group.get_assignee()
@@ -244,6 +251,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
         recipient: RpcActor | None = None,
+        is_unfurl: bool = False,
     ) -> None:
         super().__init__()
         self.group = group
@@ -256,17 +264,25 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
+        self.is_unfurl = is_unfurl
 
     @property
     def escape_text(self) -> bool:
         """
         Returns True if we need to escape the text in the message.
         """
-        return features.has("organizations:slack-escape-messages", self.group.project.organization)
+        return True
 
     def build(self) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
+        if self.escape_text:
+            text = escape_slack_text(text)
+            # XXX(scefali): Not sure why we actually need to do this just for unfurled messages.
+            # If we figure out why this is required we should note it here because it's quite strange
+            if self.is_unfurl:
+                text = escape_slack_text(text)
+
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
@@ -317,8 +333,17 @@ def build_group_attachment(
     rules: list[Rule] | None = None,
     link_to_event: bool = False,
     issue_details: bool = False,
+    is_unfurl: bool = False,
 ) -> SlackBody:
     """@deprecated"""
     return SlackIssuesMessageBuilder(
-        group, event, tags, identity, actions, rules, link_to_event, issue_details
+        group,
+        event,
+        tags,
+        identity,
+        actions,
+        rules,
+        link_to_event,
+        issue_details,
+        is_unfurl=is_unfurl,
     ).build()

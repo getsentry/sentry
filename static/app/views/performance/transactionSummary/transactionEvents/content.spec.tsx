@@ -19,7 +19,6 @@ function initializeData() {
   const organization = TestStubs.Organization({
     features: ['discover-basic', 'performance-view'],
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -27,12 +26,11 @@ function initializeData() {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: '1',
           transactionCursor: '1:0:0',
         },
       },
     },
-    project: 1,
     projects: [],
   });
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
@@ -183,9 +181,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           setError={() => {}}
           projectId="123"
@@ -223,9 +221,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}
@@ -269,9 +267,9 @@ describe('Performance Transaction Events Content', function () {
           organization={initialData.organization}
           location={initialData.router.location}
           transactionName={transactionName}
-          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.NONE}
           onChangeSpanOperationBreakdownFilter={() => {}}
-          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          eventsDisplayFilterName={EventsDisplayFilterName.P100}
           onChangeEventsDisplayFilter={() => {}}
           webVital={WebVital.LCP}
           setError={() => {}}

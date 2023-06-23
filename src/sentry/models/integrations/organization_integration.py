@@ -11,8 +11,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_regions_for_orgs
 
 
@@ -45,11 +44,11 @@ class OrganizationIntegration(DefaultFieldsModel):
                 category=OutboxCategory.ORGANIZATION_INTEGRATION_UPDATE,
                 region_name=region_name,
             )
-            for region_name in find_regions_for_orgs([self.organization_id])  # type: ignore
+            for region_name in find_regions_for_orgs([self.organization_id])
         ]
 
     def delete(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(), flush=False):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             super().delete(*args, **kwds)

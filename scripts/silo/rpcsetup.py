@@ -67,7 +67,7 @@ def format_env_vars(env_vars: Mapping[str, str]) -> str:
 @click.option(
     "--control-port",
     type=int,
-    default=8001,
+    default=8000,
     help=(
         """Port on which to bind the control silo.
 

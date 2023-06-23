@@ -12,6 +12,7 @@ from typing import (
     FrozenSet,
     Mapping,
     MutableMapping,
+    NoReturn,
     Optional,
     Sequence,
     Type,
@@ -21,9 +22,10 @@ from urllib.request import Request
 from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
-from sentry.models import ExternalActor, Identity, Integration, Organization, Team
+from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -131,42 +133,58 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     it provides (such as extensions provided).
     """
 
-    # a unique identifier to use when creating the ``Integration`` object.
-    # Only needed when you want to create the above object with something other
-    # than ``key``. See: VstsExtensionIntegrationProvider.
     _integration_key: Optional[str] = None
+    """
+    a unique identifier to use when creating the ``Integration`` object.
+    Only needed when you want to create the above object with something other
+    than ``key``. See: VstsExtensionIntegrationProvider.
+    """
 
-    # Whether this integration should show up in the list on the Organization
-    # Integrations page.
     visible = True
+    """
+    Whether this integration should show up in the list on the Organization
+    Integrations page.
+    """
 
-    # an IntegrationMetadata object, used to provide extra details in the
-    # configuration interface of the integration.
     metadata: Optional[IntegrationMetadata] = None
+    """
+    an IntegrationMetadata object, used to provide extra details in the
+    configuration interface of the integration.
+    """
 
-    # an Integration class that will manage the functionality once installed
     integration_cls: Optional[Type[IntegrationInstallation]] = None
+    """an Integration class that will manage the functionality once installed"""
 
-    # configuration for the setup dialog
     setup_dialog_config = {"width": 600, "height": 600}
+    """configuration for the setup dialog"""
 
-    # whether or not the integration installation be initiated from Sentry
     can_add = True
+    """whether or not the integration installation be initiated from Sentry"""
 
-    # if the integration can be uninstalled in Sentry, set to False
-    # if True, the integration must be uninstalled from the other platform
-    # which is uninstalled/disabled via webhook
     can_disable = False
+    """
+    if the integration can be uninstalled in Sentry, set to False
+    if True, the integration must be uninstalled from the other platform
+    which is uninstalled/disabled via webhook
+    """
 
-    # if the integration has no application-style access token, associate
-    # the installer's identity to the organization integration
     needs_default_identity = False
+    """
+    if the integration has no application-style access token, associate
+    the installer's identity to the organization integration
+    """
 
-    # can be any number of IntegrationFeatures
+    is_region_restricted: bool = False
+    """
+    Returns True if each integration installation can only be connected on one region of Sentry at a
+    time. It will raise an error if any organization from another region attempts to install it.
+    """
+
     features: FrozenSet[IntegrationFeatures] = frozenset()
+    """can be any number of IntegrationFeatures"""
 
-    # if this is hidden without the feature flag
     requires_feature_flag = False
+    """if this is hidden without the feature flag"""
 
     @classmethod
     def get_installation(
@@ -186,14 +204,17 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
         return logging.getLogger(f"sentry.integration.{self.key}")
 
     def post_install(
-        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
     ) -> None:
         pass
 
     def create_audit_log_entry(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         request: Request,
         action: str,
         extra: Optional[Any] = None,
@@ -372,7 +393,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]

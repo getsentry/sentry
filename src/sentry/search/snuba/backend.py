@@ -10,7 +10,7 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
@@ -39,14 +39,15 @@ from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
+    PrioritySortWeights,
 )
+from sentry.search.utils import get_teams_for_users
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
     types_to_actors = defaultdict(list)
@@ -78,24 +79,17 @@ def assigned_to_filter(
                 ).values_list("group_id", flat=True)
             }
         )
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupAssignee.objects.filter(
-                    project_id__in=[p.id for p in projects],
-                    team_id__in=list(
-                        Team.objects.filter(
-                            id__in=OrganizationMemberTeam.objects.filter(
-                                organizationmember__in=OrganizationMember.objects.filter(
-                                    user_id__in=user_ids,
-                                    organization_id=projects[0].organization_id,
-                                ),
-                                is_active=True,
-                            ).values_list("team_id", flat=True)
-                        )
-                    ),
-                ).values_list("group_id", flat=True)
-            }
-        )
+        organization = projects[0].organization
+        # Only add teams to query if assign-to-me flag is off
+        if not features.has("organizations:assign-to-me", organization, actor=None):
+            query |= Q(
+                **{
+                    f"{field_filter}__in": GroupAssignee.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                        team_id__in=[team for team in get_teams_for_users(projects, users)],
+                    ).values_list("group_id", flat=True)
+                }
+            )
 
     if include_none:
         query |= unassigned_filter(True, projects, field_filter=field_filter)
@@ -363,9 +357,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-        search_filters = search_filters if search_filters is not None else []
 
+        search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
             raise RuntimeError("Cross organization search not supported")
@@ -418,6 +413,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             max_hits=max_hits,
             referrer=referrer,
             actor=actor,
+            aggregate_kwargs=aggregate_kwargs,
         )
 
     def _build_group_queryset(

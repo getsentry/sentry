@@ -24,12 +24,11 @@ const {
   router,
   project,
 } = initializeOrg({
-  ...initializeOrg(),
   organization,
   router: {
     location: {
       query: {
-        project: 1,
+        project: '1',
       },
     },
   },
@@ -260,7 +259,7 @@ describe('Performance > VitalDetail', function () {
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: undefined,
       query: {
-        project: 1,
+        project: '1',
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
       },

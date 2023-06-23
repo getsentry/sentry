@@ -23,10 +23,6 @@ REVERSE_ACTION_FLAGS = {v: k for k, v in ACTION_FLAGS.items()}
 
 
 class Action:
-
-    is_modifier = False
-    is_updater = False
-
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
         pass
 
@@ -94,9 +90,6 @@ class FlagAction(Action):
             return self.flag == component.contributes
 
     def apply_modifications_to_frame(self, frames, match_frames, idx, rule=None):
-        # Grouping is not stored on the frame
-        if self.key == "group":
-            return
         if self.key == "app":
             for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)

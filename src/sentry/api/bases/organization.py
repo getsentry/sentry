@@ -173,7 +173,16 @@ class OrganizationAlertRulePermission(OrganizationPermission):
     }
 
 
-class OrganizationEndpoint(Endpoint):  # type: ignore[misc]
+class OrgAuthTokenPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
+    }
+
+
+class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
     def get_projects(

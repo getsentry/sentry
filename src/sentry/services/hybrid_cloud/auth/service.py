@@ -4,9 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import List, Optional, Tuple, cast
-
-from rest_framework.request import Request
+from typing import List, Optional, cast
 
 from sentry.services.hybrid_cloud.auth import (
     AuthenticatedToken,
@@ -14,18 +12,12 @@ from sentry.services.hybrid_cloud.auth import (
     AuthenticationRequest,
     MiddlewareAuthenticationResponse,
     RpcAuthenticatorType,
-    RpcAuthIdentity,
     RpcAuthProvider,
     RpcAuthState,
     RpcOrganizationAuthConfig,
 )
-from sentry.services.hybrid_cloud.organization import (
-    RpcOrganization,
-    RpcOrganizationMember,
-    RpcOrganizationMemberSummary,
-)
+from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -88,18 +80,6 @@ class AuthService(RpcService):
         This method returns a list of auth providers for an org
         :return:
         """
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def handle_new_membership(
-        self,
-        *,
-        request: Request,
-        organization: RpcOrganization,
-        auth_identity: RpcAuthIdentity,
-        auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
         pass
 
     @rpc_method

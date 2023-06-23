@@ -57,7 +57,7 @@ _short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
-def parse_short_id(short_id):
+def parse_short_id(short_id: str) -> ShortId:
     match = _short_id_re.match(short_id.strip())
     if match is None:
         return None
@@ -287,7 +287,7 @@ class GroupManager(BaseManager):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id

@@ -614,21 +614,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
-        if "performanceIssueCreationRate" in result:
-            if project.update_option(
-                "sentry:performance_issue_creation_rate", result["performanceIssueCreationRate"]
-            ):
-                changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
-                    "performanceIssueCreationRate"
-                ]
-        if "performanceIssueSendToPlatform" in result:
-            if project.update_option(
-                "sentry:performance_issue_send_to_issues_platform",
-                result["performanceIssueSendToPlatform"],
-            ):
-                changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
-                    "performanceIssueSendToPlatform"
-                ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})

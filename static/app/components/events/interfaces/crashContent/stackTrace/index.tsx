@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_VIEW, StacktraceType} from 'sentry/types/stacktrace';
+import {StacktraceType, StackView} from 'sentry/types/stacktrace';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 import Content from './content';
@@ -21,9 +21,11 @@ type Props = Pick<
   platform: PlatformType;
   stacktrace: StacktraceType;
   inlined?: boolean;
+  lockAddress?: string;
   maxDepth?: number;
   meta?: Record<any, any>;
-  stackView?: STACK_VIEW;
+  stackView?: StackView;
+  threadId?: number;
 };
 
 export function StackTraceContent({
@@ -37,8 +39,10 @@ export function StackTraceContent({
   maxDepth,
   meta,
   inlined,
+  threadId,
+  lockAddress,
 }: Props) {
-  if (stackView === STACK_VIEW.RAW) {
+  if (stackView === StackView.RAW) {
     return (
       <ErrorBoundary mini>
         <pre className="traceback plain">
@@ -53,7 +57,7 @@ export function StackTraceContent({
       <ErrorBoundary mini>
         <StyledNativeContent
           data={stacktrace}
-          includeSystemFrames={stackView === STACK_VIEW.FULL}
+          includeSystemFrames={stackView === StackView.FULL}
           platform={platform}
           event={event}
           newestFirst={newestFirst}
@@ -72,7 +76,7 @@ export function StackTraceContent({
         <StyledHierarchicalGroupingContent
           data={stacktrace}
           className="no-exception"
-          includeSystemFrames={stackView === STACK_VIEW.FULL}
+          includeSystemFrames={stackView === StackView.FULL}
           platform={platform}
           event={event}
           newestFirst={newestFirst}
@@ -91,7 +95,7 @@ export function StackTraceContent({
       <StyledContent
         data={stacktrace}
         className="no-exception"
-        includeSystemFrames={stackView === STACK_VIEW.FULL}
+        includeSystemFrames={stackView === StackView.FULL}
         platform={platform}
         event={event}
         newestFirst={newestFirst}
@@ -99,6 +103,8 @@ export function StackTraceContent({
         hideIcon={inlined}
         inlined={inlined}
         maxDepth={maxDepth}
+        threadId={threadId}
+        lockAddress={lockAddress}
       />
     </ErrorBoundary>
   );

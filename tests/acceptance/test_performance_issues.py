@@ -16,6 +16,7 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import send_issue_occurrence_to_eventstream
 from sentry.models import Group
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 
@@ -25,7 +26,7 @@ FEATURES = {
 }
 
 
-class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
+class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueTestCase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -80,11 +81,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             PerformanceNPlusOneGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -101,10 +97,9 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             "n-plus-one-in-django-new-view", mock_now.return_value.timestamp()
         )
 
-        with self.feature(FEATURES):
-            [self.store_event(data=event_data, project_id=self.project.id) for _ in range(3)]
+        self.create_performance_issue(event_data=event_data)
 
-            assert Group.objects.count() == 1
+        assert Group.objects.count() == 1
 
     @patch("django.utils.timezone.now")
     def test_n_one_api_call_performance_issue(self, mock_now):
@@ -123,11 +118,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
             PerformanceNPlusOneAPICallsGroupType,
             "noise_config",
             new=NoiseConfig(0, timedelta(minutes=1)),
-        ), self.options(
-            {
-                "performance.issues.send_to_issues_platform": True,
-                "performance.issues.create_issues_through_platform": True,
-            }
         ), self.feature(
             "organizations:issue-platform"
         ):
@@ -149,8 +139,6 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase):
                 self.randomize_span_description(span) if span["op"] == "django.view" else span
                 for span in event_data["spans"]
             ]
-
-            with self.feature(FEATURES):
-                self.store_event(data=event_data, project_id=self.project.id)
+            self.create_performance_issue(event_data=event_data)
 
         assert Group.objects.count() == 3

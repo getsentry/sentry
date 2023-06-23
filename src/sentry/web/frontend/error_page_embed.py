@@ -150,7 +150,7 @@ class ErrorPageEmbedView(View):
             report.project_id = key.project_id
             report.event_id = event_id
 
-            event = eventstore.get_event_by_id(report.project_id, report.event_id)
+            event = eventstore.backend.get_event_by_id(report.project_id, report.event_id)
 
             if event is not None:
                 report.environment_id = event.get_environment().id
@@ -227,6 +227,11 @@ class ErrorPageEmbedView(View):
             ),
         }
 
-        return render_to_response(
+        errorPageEmbedResponse = render_to_response(
             "sentry/error-page-embed.js", context, request, content_type="text/javascript"
         )
+
+        # User feedback dialog should be available regardless of cross-origin policy
+        errorPageEmbedResponse["Access-Control-Allow-Origin"] = "*"
+
+        return errorPageEmbedResponse

@@ -28,17 +28,21 @@ describe('normalizeUrl', function () {
       // Organization settings views.
       ['/settings/acme/', '/settings/organization/'],
       ['/settings/organization', '/settings/organization/'],
-      ['/settings/sentry/members/', '/settings/members/'],
-      ['/settings/sentry/members/3/', '/settings/members/3/'],
-      ['/settings/sentry/teams/peeps/', '/settings/teams/peeps/'],
-      ['/settings/sentry/teams/payments/', '/settings/teams/payments/'],
-      ['/settings/sentry/billing/receipts/', '/settings/billing/receipts/'],
+      ['/settings/sentry-organizations/members/', '/settings/members/'],
+      ['/settings/sentry-organizations/members/3/', '/settings/members/3/'],
+      ['/settings/sentry-organizations/teams/peeps/', '/settings/teams/peeps/'],
+      ['/settings/sentry-organizations/teams/payments/', '/settings/teams/payments/'],
+      ['/settings/sentry-organizations/billing/receipts/', '/settings/billing/receipts/'],
+      [
+        '/settings/sentry-organizations/teams/test-organizations/notifications/',
+        '/settings/teams/test-organizations/notifications/',
+      ],
       [
         '/settings/acme/developer-settings/release-bot/',
         '/settings/developer-settings/release-bot/',
       ],
       [
-        '/settings/sentry/integrations/vercel/12345/?next=something',
+        '/settings/sentry-organizations/integrations/vercel/12345/?next=something',
         '/settings/integrations/vercel/12345/?next=something',
       ],
       // Account settings should stay the same
@@ -52,8 +56,11 @@ describe('normalizeUrl', function () {
       ['/onboarding/acme/project/', '/onboarding/project/'],
 
       ['/organizations/new/', '/organizations/new/'],
-      ['/organizations/albertos-apples/issues/', '/issues/'],
-      ['/organizations/albertos-apples/issues/?_q=all#hash', '/issues/?_q=all#hash'],
+      ['/organizations/albertos-organizations/issues/', '/issues/'],
+      [
+        '/organizations/albertos-organizations/issues/?_q=all#hash',
+        '/issues/?_q=all#hash',
+      ],
       ['/acme/project-slug/getting-started/', '/getting-started/project-slug/'],
       [
         '/acme/project-slug/getting-started/python',
@@ -171,7 +178,6 @@ describe('normalizeUrl', function () {
       return {pathname: '/settings/'};
     }
     result = normalizeUrl(objectCallback, location);
-    // @ts-ignore
     expect(result.pathname).toEqual('/settings/');
 
     function stringCallback(_loc: Location): LocationDescriptor {
@@ -187,7 +193,6 @@ describe('normalizeUrl', function () {
       return {pathname: '/settings/'};
     }
     result = normalizeUrl(objectCallback2, location, {forceCustomerDomain: true});
-    // @ts-ignore
     expect(result.pathname).toEqual('/settings/');
 
     function stringCallback2(_loc: Location): LocationDescriptor {
@@ -262,7 +267,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -312,7 +316,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,
@@ -362,7 +365,6 @@ describe('withDomainRequired', function () {
       orgId: 'albertos-apples',
     };
     const {router, route, routerContext} = initializeOrg({
-      ...initializeOrg(),
       organization,
       router: {
         params,

@@ -50,7 +50,7 @@ function SavedSearchItemDescription({
 
   return (
     <SavedSearchItemVisbility>
-      {savedSearch.visibility === SavedSearchVisibility.Organization
+      {savedSearch.visibility === SavedSearchVisibility.ORGANIZATION
         ? t('Anyone in organization can see but not edit')
         : t('Only you can see and edit')}
     </SavedSearchItemVisbility>
@@ -66,7 +66,7 @@ function SavedSearchItem({
   const hasOrgWriteAccess = organization.access?.includes('org:write');
 
   const canEdit =
-    savedSearch.visibility === SavedSearchVisibility.Owner || hasOrgWriteAccess;
+    savedSearch.visibility === SavedSearchVisibility.OWNER || hasOrgWriteAccess;
 
   const actions: MenuItemProps[] = [
     {

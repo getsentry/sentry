@@ -105,6 +105,9 @@ export class SentryAppExternalForm extends Component<Props, State> {
       required_fields: config.required_fields,
       optional_fields: config.optional_fields,
     });
+
+    this.model.reset();
+
     // For alert-rule-actions, the forms are entirely custom, extra fields are
     // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
     if (element === 'alert-rule-action') {
@@ -419,6 +422,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
         }}
         onSubmitError={this.onSubmitError}
         onFieldChange={this.handleFieldChange}
+        preventFormResetOnUnmount
         model={this.model}
       >
         {requiredFields.map((field: FieldFromSchema) => {

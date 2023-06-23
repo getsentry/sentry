@@ -4,8 +4,10 @@ from django.urls import reverse
 
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class DisabledMemberViewTest(TestCase):
     @cached_property
     def path(self):

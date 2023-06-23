@@ -28,7 +28,7 @@ from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import GitLabApiClient, GitLabSetupClient
+from .client import GitLabProxyApiClient, GitlabProxySetupClient
 from .issues import GitlabIssueBasic
 from .repository import GitlabRepositoryProvider
 
@@ -106,7 +106,7 @@ class GitlabIntegration(
         if self.default_identity is None:
             self.default_identity = self.get_default_identity()
 
-        return GitLabApiClient(self)
+        return GitLabProxyApiClient(self)
 
     def get_repositories(self, query=None):
         # Note: gitlab projects are the same things as repos everywhere else
@@ -359,8 +359,10 @@ class GitlabIntegrationProvider(IntegrationProvider):
         )
 
     def get_group_info(self, access_token, installation_data):
-        client = GitLabSetupClient(
-            installation_data["url"], access_token, installation_data["verify_ssl"]
+        client = GitlabProxySetupClient(
+            base_url=installation_data["url"],
+            access_token=access_token,
+            verify_ssl=installation_data["verify_ssl"],
         )
         try:
             resp = client.get_group(installation_data["group"])

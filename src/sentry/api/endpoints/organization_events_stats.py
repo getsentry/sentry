@@ -11,7 +11,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.models import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import (
+    discover,
+    metrics_enhanced_performance,
+    metrics_performance,
+    spans_indexed,
+    spans_metrics,
+)
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import SnubaTSResult
 
@@ -70,12 +76,13 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_TRENDS_CHART.value,
     Referrer.API_PERFORMANCE_TRANSACTION_SUMMARY_DURATION.value,
     Referrer.API_PROFILING_LANDING_CHART.value,
+    Referrer.API_PROFILING_PROFILE_SUMMARY_CHART.value,
     Referrer.API_RELEASES_RELEASE_DETAILS_CHART.value,
 }
 
 
 @region_silo_endpoint
-class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",
@@ -158,6 +165,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             )
 
             dataset = self.get_dataset(request)
+            # Add more here until top events is supported on all the datasets
+            if top_events > 0:
+                dataset = (
+                    dataset if dataset in [discover, spans_indexed, spans_metrics] else discover
+                )
+
             metrics_enhanced = dataset in {metrics_performance, metrics_enhanced_performance}
 
             allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
@@ -172,7 +185,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
-                return discover.top_events_timeseries(
+                return dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),
@@ -212,7 +225,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
                         request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                     ),
                     comparison_delta=comparison_delta,
-                    dataset=discover if top_events > 0 else dataset,
+                    dataset=dataset,
                 ),
                 status=200,
             )

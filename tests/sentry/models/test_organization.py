@@ -13,7 +13,7 @@ from sentry.api.endpoints.organization_details import (
     old_value,
     update_tracked_data,
 )
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
@@ -40,12 +40,12 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
 
 @region_silo_test
-class OrganizationTest(TestCase):
+class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
         assert org.slug == "downtown-canada"
@@ -127,17 +127,17 @@ class OrganizationTest(TestCase):
 
         from_org.merge_to(to_org)
 
-        assert OrganizationMember.objects.filter(
-            organization=to_org, user=from_owner, role="owner"
-        ).exists()
+        # self.assert_org_member_mapping(
+        #     org_member=OrganizationMember.objects.get(
+        #         organization=to_org, user=from_owner, role="owner"
+        #     )
+        # )
 
         team = Team.objects.get(id=from_team.id)
         assert team.organization == to_org
 
-        member = OrganizationMember.objects.get(user=other_user, organization=to_org)
-        assert OrganizationMemberTeam.objects.filter(
-            organizationmember=member, team=to_team
-        ).exists()
+        member = OrganizationMember.objects.get(user_id=other_user.id, organization=to_org)
+        self.assert_org_member_mapping(org_member=member)
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=from_team
         ).exists()
@@ -299,6 +299,7 @@ class OrganizationTest(TestCase):
         self.assertFalse(has_changed(inst, "name"))
 
 
+@control_silo_test
 class Require2fa(TestCase, HybridCloudTestMixin):
     def setUp(self):
         self.owner = self.create_user("foo@example.com")
@@ -323,7 +324,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         user = User.objects.get(id=user_id)
         assert not member.is_pending
         assert not member.email
-        assert member.user == user
+        assert member.user_id == user.id
 
     def is_pending_organization_member(self, user_id, member_id, was_booted=True):
         member = OrganizationMember.objects.get(id=member_id)
@@ -345,7 +346,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         self.assert_org_member_mapping(org_member=compliant_member)
         self.assert_org_member_mapping(org_member=non_compliant_member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             self.org.handle_2fa_required(self.request)
 
         self.is_organization_member(compliant_user.id, compliant_member.id)
@@ -392,7 +395,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=member)
             non_compliant.append((user, member))
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             self.org.handle_2fa_required(self.request)
 
         for user, member in non_compliant:
@@ -408,7 +413,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
     def test_handle_2fa_required__pending_member__ok(self):
         member = self.create_member(organization=self.org, email="bob@zombo.com")
-        assert not member.user
+        assert not member.user_id
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.org.handle_2fa_required(self.request)
@@ -443,7 +448,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
 
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             api_key = ApiKey.objects.create(
                 organization_id=self.org.id,
                 scope_list=["org:read", "org:write", "member:read", "member:write"],
@@ -471,7 +478,9 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         user, member = self._create_user_and_member()
         self.assert_org_member_mapping(org_member=member)
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+        with self.options(
+            {"system.url-prefix": "http://example.com"}
+        ), self.tasks(), outbox_runner():
             request = copy.deepcopy(self.request)
             request.META["REMOTE_ADDR"] = None
             self.org.handle_2fa_required(request)

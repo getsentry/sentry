@@ -50,6 +50,10 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
+interface NotPartOfPipelineError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE;
+}
+
 export type SourceMapDebugError =
   | UnknownErrorDebugError
   | MissingReleaseDebugError
@@ -59,7 +63,8 @@ export type SourceMapDebugError =
   | PartialMatchDebugError
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
-  | NoURLMatchDebugError;
+  | NoURLMatchDebugError
+  | NotPartOfPipelineError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -75,6 +80,7 @@ export enum SourceMapProcessingIssueType {
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  NOT_PART_OF_PIPELINE = 'not_part_of_pipeline',
 }
 
 const sourceMapDebugQuery = ({

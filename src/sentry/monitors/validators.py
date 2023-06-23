@@ -10,7 +10,14 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.db.models import BoundedPositiveIntegerField
+from sentry.monitors.models import (
+    MAX_SLUG_LENGTH,
+    CheckInStatus,
+    Monitor,
+    MonitorType,
+    ScheduleType,
+)
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -49,6 +56,9 @@ class MonitorAlertRuleTargetValidator(serializers.Serializer):
 
 
 class MonitorAlertRuleValidator(serializers.Serializer):
+    environment = serializers.CharField(
+        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
+    )
     targets = MonitorAlertRuleTargetValidator(
         many=True,
         help_text="Array of dictionaries with information of the user or team to be notified",
@@ -168,10 +178,10 @@ class ConfigValidator(serializers.Serializer):
 
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(scope="project:read")
-    name = serializers.CharField()
+    name = serializers.CharField(max_length=128)
     slug = serializers.RegexField(
         r"^[a-zA-Z0-9_-]+$",
-        max_length=50,
+        max_length=MAX_SLUG_LENGTH,
         required=False,
         error_messages={
             "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
@@ -215,6 +225,14 @@ class MonitorValidator(CamelSnakeSerializer):
         return validated_data
 
 
+class TraceContextValidator(serializers.Serializer):
+    trace_id = serializers.CharField(max_length=32)
+
+
+class ContextsValidator(serializers.Serializer):
+    trace = TraceContextValidator(required=False)
+
+
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -223,9 +241,15 @@ class MonitorCheckInValidator(serializers.Serializer):
             ("in_progress", CheckInStatus.IN_PROGRESS),
         )
     )
-    duration = EmptyIntegerField(required=False, allow_null=True)
+    duration = EmptyIntegerField(
+        required=False,
+        allow_null=True,
+        max_value=BoundedPositiveIntegerField.MAX_VALUE,
+        min_value=0,
+    )
     environment = serializers.CharField(required=False, allow_null=True)
     monitor_config = ConfigValidator(required=False)
+    contexts = ContextsValidator(required=False, allow_null=True)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)

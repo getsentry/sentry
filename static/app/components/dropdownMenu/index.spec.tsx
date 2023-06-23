@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -79,6 +81,41 @@ describe('DropdownMenu', function () {
 
     await userEvent.click(menuItem);
     expect(onAction).not.toHaveBeenCalled();
+  });
+
+  it('can be dismissed', async function () {
+    render(
+      <Fragment>
+        <DropdownMenu items={[{key: 'item1', label: 'Item One'}]} triggerLabel="Menu A" />
+        <DropdownMenu items={[{key: 'item2', label: 'Item Two'}]} triggerLabel="Menu B" />
+      </Fragment>
+    );
+
+    // Can be dismissed by clicking outside
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
+    await userEvent.click(document.body);
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
+
+    // Can be dismissed by pressing Escape
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
+
+    // When menu A is open, clicking once on menu B's trigger button closes menu A and
+    // then opens menu B
+    await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Menu B'}));
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Item One'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Item Two'})).toBeInTheDocument();
   });
 
   it('renders submenus', async function () {

@@ -69,27 +69,34 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
+        # By default, we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
+                "associations": [
+                    {
+                        "release": "v2.0",
+                        "dist": None,
+                    }
+                ],
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
-                "release": "v2.0",
-                "dist": None,
             },
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
             },
             {
                 "bundleId": str(artifact_bundle_1.bundle_id),
+                "associations": [],
                 "date": "2023-03-15T00:00:00Z",
-                "release": None,
-                "dist": None,
                 "fileCount": 2,
             },
         ]
@@ -103,10 +110,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
             },
         ]
 
@@ -119,10 +130,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
+                "associations": [
+                    {
+                        "release": "v2.0",
+                        "dist": None,
+                    }
+                ],
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
-                "release": "v2.0",
-                "dist": None,
             },
         ]
 
@@ -135,10 +150,151 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
+                "associations": [
+                    {
+                        "release": "v1.0",
+                        "dist": "android",
+                    }
+                ],
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "release": "v1.0",
-                "dist": "android",
+            },
+        ]
+
+    def test_get_artifact_bundles_with_single_bundle_without_release_dist_pair(self):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+            }
+        ]
+
+    def test_get_artifact_bundles_with_multiple_release_dist_pairs_to_same_bundle(self):
+        project = self.create_project(name="foo")
+
+        artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="ios",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="2.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="2.0",
+            dist_name="ios",
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        # We test without search.
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "ios",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "ios",
+                    },
+                ],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
+            },
+        ]
+
+        # We test the search with a single release.
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?query=2.0")
+
+        assert response.status_code == 200, response.content
+        # We expect to get back a single entry of the bundle connected to this release.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "associations": [
+                    {
+                        "release": "1.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "1.0",
+                        "dist": "ios",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "android",
+                    },
+                    {
+                        "release": "2.0",
+                        "dist": "ios",
+                    },
+                ],
+                "date": "2023-03-15T00:00:00Z",
+                "fileCount": 2,
             },
         ]
 
@@ -223,7 +379,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
             == "You can either sort via 'date_added' or '-date_added'"
         )
 
-    def test_delete_artifact_bundles(self):
+    def test_delete_artifact_bundle_with_single_project_connected(self):
         project = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
@@ -253,6 +409,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.delete(url + f"?bundleId={artifact_bundle.bundle_id}")
 
         assert response.status_code == 204
+        # We check that everything connected to this bundle is deleted.
         assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
         assert not ProjectArtifactBundle.objects.filter(
             artifact_bundle_id=artifact_bundle.id
@@ -264,3 +421,116 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle_id=artifact_bundle.id
         ).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+
+    def test_delete_artifact_bundle_with_multiple_projects_connected(self):
+        project_a = self.create_project(name="foo")
+        artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_a.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            artifact_bundle=artifact_bundle,
+        )
+
+        # We also add an additional project_b to the bundle created above.
+        project_b = self.create_project(name="bar")
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_b.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={
+                "organization_slug": project_a.organization.slug,
+                "project_slug": project_a.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.delete(url + f"?bundleId={artifact_bundle.bundle_id}")
+
+        assert response.status_code == 204
+        assert ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
+        # When deleting this entry, we don't want to delete all the other entries in ReleaseArtifactBundle and
+        # DebugIdArtifactBundle, since it is not possible to infer which of them were connected to a specific project
+        # , and we don't need to do it since the processing logic checks first all the bundles of a specific project
+        # before resolving them.
+        assert not ProjectArtifactBundle.objects.filter(
+            project_id=project_a.id, artifact_bundle=artifact_bundle
+        ).exists()
+
+    def test_delete_artifact_bundles_with_same_bundle_id_and_connected_to_the_same_project(self):
+        bundle_id = "42fa3539-63a2-468e-b4e8-81afdd4fdc9e"
+        # We create two bundles with the same bundle_id. This is technically not possible anymore, but we still need to
+        # support this case since the database was left into an inconsistent state and the consistency is not enforced
+        # at the db layer but rather at the application layer, thus we assume only the guarantees at the db level.
+        artifact_bundle_a = self.create_artifact_bundle(
+            self.organization, bundle_id=bundle_id, artifact_count=2
+        )
+        artifact_bundle_b = self.create_artifact_bundle(
+            self.organization, bundle_id=bundle_id, artifact_count=2
+        )
+
+        project_a = self.create_project(name="foo")
+        project_b = self.create_project(name="bar")
+
+        # Bundle a is connected to project a and b.
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_a.id,
+            artifact_bundle=artifact_bundle_a,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_b.id,
+            artifact_bundle=artifact_bundle_a,
+        )
+
+        # Bundle b is connected to project a only.
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_a.id,
+            artifact_bundle=artifact_bundle_b,
+        )
+
+        # We want to remove the bundle with a specific bundle_id from project a.
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={
+                "organization_slug": project_a.organization.slug,
+                "project_slug": project_a.slug,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.delete(url + f"?bundleId={bundle_id}")
+
+        assert response.status_code == 204
+        # We expect the first bundle to be there and only the project reference to be deleted since not
+        # all its projects references have been deleted.
+        assert ArtifactBundle.objects.filter(id=artifact_bundle_a.id).exists()
+        assert ProjectArtifactBundle.objects.filter(
+            project_id=project_b.id, artifact_bundle_id=artifact_bundle_a.id
+        ).exists()
+        assert not ProjectArtifactBundle.objects.filter(
+            project_id=project_a.id, artifact_bundle_id=artifact_bundle_a.id
+        ).exists()
+        # We expect the second bundle to be deleted since all its project references have been deleted.
+        assert not ArtifactBundle.objects.filter(id=artifact_bundle_b.id).exists()
+        assert not ProjectArtifactBundle.objects.filter(
+            project_id=project_a.id, artifact_bundle_id=artifact_bundle_b.id
+        ).exists()

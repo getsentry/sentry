@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.models import (
+    Integration,
     OnboardingTask,
     OnboardingTaskStatus,
     Organization,
@@ -14,7 +15,9 @@ from sentry.models import (
     Project,
 )
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
@@ -282,6 +285,7 @@ def record_member_invited(member, user, **kwargs):
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
     )
+
     analytics.record(
         "member.invited",
         invited_member_id=member.id,
@@ -292,7 +296,7 @@ def record_member_invited(member, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(member, organization_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
@@ -534,7 +538,9 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
+def record_integration_added(
+    integration: Integration, organization: RpcOrganization, user, **kwargs
+):
     # TODO(Leander): This function must be executed on region after being prompted by control
     task = OrganizationOnboardingTask.objects.filter(
         organization_id=organization.id,

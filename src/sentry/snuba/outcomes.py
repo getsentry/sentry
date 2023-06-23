@@ -13,9 +13,9 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry.constants import DataCategory
+from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.sessions_v2 import (
-    AllowedResolution,
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
@@ -107,7 +107,7 @@ class TimesSeenField(Field):
             return Function("count()", [Column("times_seen")], "times_seen")
 
 
-class Dimension(SimpleGroupBy, ABC):  # type: ignore
+class Dimension(SimpleGroupBy, ABC):
     @abstractmethod
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[DataCategory]:
         """
@@ -260,7 +260,7 @@ class QueryDefinition:
         stats_period: Optional[str] = None,
         organization_id: Optional[int] = None,
         project_ids: Optional[List[int]] = None,
-        key_id: Optional[int] = None,
+        key_id: Optional[str | int] = None,
         interval: Optional[str] = None,
         outcome: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
