@@ -2,6 +2,7 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -80,16 +81,19 @@ class OrganizationArtifactBundleAssembleEndpoint(
         checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
-        # We check if all requested chunks have been uploaded.
-        missing_chunks = self.find_missing_chunks(organization, chunks)
-        # In case there are some missing chunks, we will tell the client the number of chunks that we require.
-        if missing_chunks:
-            return Response(
-                {
-                    "state": ChunkFileState.NOT_FOUND,
-                    "missingChunks": missing_chunks,
-                }
-            )
+        # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
+        # regressions for our users.
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks"):
+            # We check if all requested chunks have been uploaded.
+            missing_chunks = self.find_missing_chunks(organization, chunks)
+            # In case there are some missing chunks, we will tell the client the number of chunks that we require.
+            if missing_chunks:
+                return Response(
+                    {
+                        "state": ChunkFileState.NOT_FOUND,
+                        "missingChunks": missing_chunks,
+                    }
+                )
 
         # We want to check the current state of the assemble status.
         state, detail = get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum)
