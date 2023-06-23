@@ -51,6 +51,10 @@ export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}
   [SpanMetricsFields.SPAN_SELF_TIME]: {
     outputType: 'duration',
   },
+  // local is only used with `time_spent_percentage` function
+  local: {
+    outputType: 'duration',
+  },
 };
 
 type Props = {

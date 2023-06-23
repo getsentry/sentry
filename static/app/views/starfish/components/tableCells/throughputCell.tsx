@@ -29,6 +29,7 @@ export default function ThroughputCell({throughputPerSecond, delta}: Props) {
 const Container = styled('div')`
   display: flex;
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-end;
+  text-align: right;
   gap: ${space(1)};
 `;

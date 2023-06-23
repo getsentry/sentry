@@ -27,6 +27,7 @@ export default function DurationCell({milliseconds, delta}: Props) {
 const Container = styled('div')`
   display: flex;
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-end;
+  margin-left: auto;
   gap: ${space(1)};
 `;
