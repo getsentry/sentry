@@ -44,7 +44,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
-  FOR_REVIEW_QUERIES,
   getTabs,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
@@ -131,19 +130,6 @@ function BaseGroupRow({
       was_shown_suggestion: owners.length > 0,
     };
   }, [organization, group.id, group.owners, query]);
-
-  const trackClick = useCallback(() => {
-    if (FOR_REVIEW_QUERIES.includes(query || '')) {
-      trackAnalytics('inbox_tab.issue_clicked', {
-        organization,
-        group_id: group.id,
-      });
-    }
-
-    if (query !== undefined) {
-      trackAnalytics('issues_stream.issue_clicked', sharedAnalytics);
-    }
-  }, [organization, group.id, query, sharedAnalytics]);
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(
@@ -439,7 +425,6 @@ function BaseGroupRow({
           data={group}
           query={query}
           size="normal"
-          onClick={trackClick}
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
