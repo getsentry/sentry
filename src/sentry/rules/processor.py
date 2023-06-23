@@ -194,7 +194,7 @@ class RuleProcessor:
                 filter_list.append(rule_cond)
 
         # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(key=lambda condition: any([is_condition_slow(condition)]))
+        condition_list.sort(key=lambda condition: is_condition_slow(condition))
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),
