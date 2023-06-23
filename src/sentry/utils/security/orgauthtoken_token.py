@@ -20,9 +20,9 @@ def generate_token(org_slug: str, region_url: str):
     secret = b64encode(secrets.token_bytes(nbytes=32)).decode("ascii").rstrip("=")
 
     json_str = json.dumps(payload)
-    payload_hashed = base64_encode_str(json_str)
+    payload_encoded = base64_encode_str(json_str)
 
-    return f"{SENTRY_ORG_AUTH_TOKEN_PREFIX}{payload_hashed}_{secret}"
+    return f"{SENTRY_ORG_AUTH_TOKEN_PREFIX}{payload_encoded}_{secret}"
 
 
 def parse_token(token: str):
