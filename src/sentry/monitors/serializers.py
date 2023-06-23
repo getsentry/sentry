@@ -143,7 +143,7 @@ class MonitorCheckInSerializer(Serializer):
 
             attrs = {
                 item: {
-                    "issue_id": issues.get(str(item.id)) if item.trace_id else None,
+                    "group_ids": issues.get(str(item.trace_id)) if item.trace_id else None,
                 }
                 for item in item_list
             }
@@ -163,8 +163,8 @@ class MonitorCheckInSerializer(Serializer):
             "monitorConfig": obj.monitor_config or {},
         }
 
-        if self._expand("trace_id"):
-            result["issue_id"] = attrs["issue_id"]
+        if self._expand("group_ids"):
+            result["group_ids"] = attrs["group_ids"]
 
         return result
 
@@ -184,4 +184,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     attachmentId: str
     expectedTime: datetime
     monitorConfig: Any
-    issue_id: str
+    group_ids: list[str]
