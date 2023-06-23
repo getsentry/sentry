@@ -11,7 +11,7 @@ export default function ThroughputCell({throughputPerSecond}: Props) {
 
   return (
     <NumberContainer>
-      {formatAbbreviatedNumber(throughput)}/${t('s')}
+      {formatAbbreviatedNumber(throughput)}/{t('s')}
     </NumberContainer>
   );
 }
