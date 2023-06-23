@@ -15,7 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -27,15 +27,14 @@ type Props = {
 
 function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError, replayId} = useReplayData({
+  const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
+
   const eventTimestamp = event.dateCreated
     ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
     : 0;
-
-  const replayRecord = replay?.getReplay();
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
