@@ -88,7 +88,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
         assert fetched_occurrence.event_id is not None
-        fetched_event = self.eventstore.get_event_by_id(
+        fetched_event = self.eventstore.backend.get_event_by_id(
             self.project.id, fetched_occurrence.event_id
         )
         assert fetched_event is not None
@@ -106,7 +106,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
-        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
         assert event.occurrence_id == occurrence.id
 
@@ -114,7 +114,9 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
         assert fetched_occurrence.event_id is not None
-        fetched_event = self.eventstore.get_event_by_id(project_id, fetched_occurrence.event_id)
+        fetched_event = self.eventstore.backend.get_event_by_id(
+            project_id, fetched_occurrence.event_id
+        )
         assert fetched_event is not None
         assert fetched_event.get_event_type() == "generic"
 
@@ -173,7 +175,9 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
 
-        fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
+        fetched_event = self.eventstore.backend.get_event_by_id(
+            self.project.id, occurrence.event_id
+        )
         assert fetched_event is not None
         assert fetched_event.get_event_type() == "transaction"
 
