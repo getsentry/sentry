@@ -11,6 +11,7 @@ from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from typing_extensions import override
 
 from bitfield import BitField
 from sentry import features, roles
@@ -264,6 +265,13 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         else:
             with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
+
+    @override
+    def update(self, *args, **kwargs):
+        with outbox_context(transaction.atomic()):
+            results = super().update(*args, **kwargs)
+            Organization.outbox_for_update(self.id).save()
+            return results
 
     @classmethod
     def reserve_snowflake_id(cls):

@@ -15,7 +15,6 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     upsert_organization_by_org_id_with_outbox_message,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 
 
@@ -37,13 +36,7 @@ class OrganizationUpdateTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
-        with outbox_runner():
-            pass
-
     def test_create_organization_with_outbox_message(self):
-        with outbox_runner():
-            pass
-
         with outbox_context(flush=False):
             org: Organization = create_organization_with_outbox_message(
                 create_options={
@@ -56,7 +49,7 @@ class OrganizationUpdateTest(TestCase):
         assert org.id
         assert org.slug == "santry"
         assert org.name == "santry"
-        assert_outbox_update_message_exists(org=org, expected_count=2)
+        assert_outbox_update_message_exists(org=org, expected_count=1)
 
 
 @region_silo_test(stable=True)
@@ -64,11 +57,11 @@ class OrganizationUpdateWithOutboxTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
-        with outbox_runner():
-            pass
-
     def test_update_organization_with_outbox_message(self):
-        update_organization_with_outbox_message(org_id=self.org.id, update_data={"name": "foobar"})
+        with outbox_context(flush=False):
+            update_organization_with_outbox_message(
+                org_id=self.org.id, update_data={"name": "foobar"}
+            )
 
         self.org.refresh_from_db()
         assert self.org.name == "foobar"
@@ -84,9 +77,6 @@ class OrganizationUpdateWithOutboxTest(TestCase):
 class OrganizationUpsertWithOutboxTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
-
-        with outbox_runner():
-            pass
 
     def test_upsert_queues_outbox_message_and_updates_org(self):
         # The test fixture creates at least 1 org so comparing count before
@@ -116,7 +106,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
             == org_before_modification.default_role
         )
 
-        assert_outbox_update_message_exists(org=self.org, expected_count=2)
+        assert_outbox_update_message_exists(org=self.org, expected_count=1)
 
     def test_upsert_creates_organization_with_desired_id(self):
         previous_org_count = Organization.objects.count()
@@ -143,7 +133,7 @@ class OrganizationUpsertWithOutboxTest(TestCase):
         assert org_before_modification.slug == self.org.slug
         assert org_before_modification.name == self.org.name
         assert org_before_modification.status == self.org.status
-        assert_outbox_update_message_exists(org=db_created_org, expected_count=2)
+        assert_outbox_update_message_exists(org=db_created_org, expected_count=1)
 
 
 @region_silo_test(stable=True)
@@ -155,7 +145,11 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
     def test_mark_for_deletion_and_outbox_generation(self):
         org_before_update = Organization.objects.get(id=self.org.id)
-        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+
+        with outbox_context(flush=False):
+            updated_org = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
 
         assert updated_org
         self.org.refresh_from_db()
@@ -167,12 +161,14 @@ class OrganizationMarkOrganizationAsPendingDeletionWithOutboxMessageTest(TestCas
 
     def test_mark_for_deletion_on_already_deleted_org(self):
         self.org.status = OrganizationStatus.PENDING_DELETION
-        with outbox_runner():
-            self.org.save()
+        self.org.save()
 
         org_before_update = Organization.objects.get(id=self.org.id)
 
-        updated_org = mark_organization_as_pending_deletion_with_outbox_message(org_id=self.org.id)
+        with outbox_context(flush=False):
+            updated_org = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=self.org.id
+            )
 
         assert updated_org is None
 
