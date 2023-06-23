@@ -16,7 +16,7 @@ logger = logging.getLogger("sentry.security")
 
 
 def capture_security_activity(
-    account: "AbstractBaseUser",
+    account: "AbstractBaseUser | AnonymousUser",
     type: str,
     actor: "AbstractBaseUser | AnonymousUser",
     ip_address: str,
