@@ -114,4 +114,6 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade
         except UnableToAcquireLock:
             raise click.ClickException("Unable to acquire `upgrade` lock.")
     else:
-        _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)
+        _upgrade(
+            not noinput, traceback, verbosity, not no_repair, not no_post_upgrade, with_nodestore
+        )

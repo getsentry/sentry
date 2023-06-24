@@ -590,6 +590,7 @@ class ResolveActorsTestCase(TestCase):
         actor2 = None
 
         # A team that's not ours
+        self.create_project(teams=[self.create_team()])
         otherteam = Team.objects.exclude(projectteam__project_id=self.project.id)[0]
         owner3 = Owner("team", otherteam.slug)
         actor3 = None

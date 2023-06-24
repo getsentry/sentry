@@ -36,7 +36,7 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects():
+def create_default_projects(**kwds):
     create_default_project(
         # This guards against sentry installs that have SENTRY_PROJECT set to None, so
         # that they don't error after every migration. Specifically for single tenant.
