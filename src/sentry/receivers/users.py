@@ -1,3 +1,5 @@
+import sys
+
 from sentry.models.user import User
 from sentry.signals import post_upgrade
 from sentry.silo import SiloMode
@@ -5,6 +7,9 @@ from sentry.silo import SiloMode
 
 def create_first_user(**kwargs):
     if User.objects.filter(is_superuser=True).exists():
+        return
+
+    if not sys.stdin.isatty():
         return
 
     import click
