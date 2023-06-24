@@ -7,6 +7,7 @@ from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
+from sentry.models import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.testutils import assert_mock_called_once_with_partial
 from sentry.utils.pytest.relay import adjust_settings_for_relay_tests
@@ -54,6 +55,7 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 @override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_simple(settings, post_event_with_sdk):
+    manage_default_super_admin_role()
     create_default_projects()
     event = post_event_with_sdk({"message": "internal client test"})
 
@@ -65,6 +67,7 @@ def test_simple(settings, post_event_with_sdk):
 @override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_recursion_breaker(settings, post_event_with_sdk):
+    manage_default_super_admin_role()
     create_default_projects()
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
@@ -83,6 +86,7 @@ def test_recursion_breaker(settings, post_event_with_sdk):
 @pytest.mark.django_db
 @override_settings(SENTRY_PROJECT=1)
 def test_encoding(settings, post_event_with_sdk):
+    manage_default_super_admin_role()
     create_default_projects()
 
     class NotJSONSerializable:
@@ -100,6 +104,7 @@ def test_encoding(settings, post_event_with_sdk):
 @override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_bind_organization_context(default_organization):
+    manage_default_super_admin_role()
     create_default_projects()
 
     configure_sdk()
@@ -132,6 +137,7 @@ def test_bind_organization_context_with_callback(settings, default_organization)
 @override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_bind_organization_context_with_callback_error(settings, default_organization):
+    manage_default_super_admin_role()
     create_default_projects()
     configure_sdk()
 
