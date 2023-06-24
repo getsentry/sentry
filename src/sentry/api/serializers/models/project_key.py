@@ -61,7 +61,7 @@ class ProjectKeySerializerResponse(TypedDict):
 class ProjectKeySerializer(Serializer):
     def serialize(
         self, obj: ProjectKey, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> ProjectKeySerializerResponse:
+    ) -> ProjectKeySerializerResponse:  # type: ignore
         # obj.public_key should always be set but it isn't required in the ProjectKey model.
         # Because of this mypy complains that ProjectKeySerializerResponse attrs id, name, and label
         # must be Optional[str] instead of str. By setting else to "" we getaround this
