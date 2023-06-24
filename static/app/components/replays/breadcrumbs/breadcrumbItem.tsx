@@ -24,10 +24,9 @@ type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
 interface BaseProps {
   crumb: Crumb;
-  isCurrent: boolean;
-  isHovered: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
+  className?: string;
   expandPaths?: string[];
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
@@ -54,11 +53,10 @@ interface WithDimensionChangeProps extends BaseProps {
 type Props = NoDimensionChangeProps | WithDimensionChangeProps;
 
 function BreadcrumbItem({
+  className,
   crumb,
   expandPaths,
   index,
-  isCurrent,
-  isHovered,
   onClick,
   onDimensionChange,
   onMouseEnter,
@@ -95,14 +93,12 @@ function BreadcrumbItem({
 
   return (
     <CrumbItem
-      aria-current={isCurrent}
       as={onClick ? 'button' : 'span'}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={style}
+      className={className}
     >
       <IconWrapper color={color} hasOccurred>
         <BreadcrumbIcon type={type} />
@@ -197,12 +193,7 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
-type CrumbItemProps = {
-  isCurrent: boolean;
-  isHovered: boolean;
-};
-
-const CrumbItem = styled(PanelItem)<CrumbItemProps>`
+const CrumbItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: max-content auto;
   align-items: flex-start;
@@ -215,8 +206,7 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   text-align: left;
   border: none;
   position: relative;
-  ${p => p.isCurrent && `background-color: ${p.theme.purple100};`}
-  ${p => p.isHovered && `background-color: ${p.theme.surface200};`}
+
   border-radius: ${p => p.theme.borderRadius};
 
   &:hover {

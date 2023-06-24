@@ -8,10 +8,8 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
 import useScrollToCurrentItem from 'sentry/views/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -33,8 +31,6 @@ const cellMeasurer = {
 };
 
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
-
   const listRef = useRef<ReactVirtualizedList>(null);
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
@@ -44,39 +40,6 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   // Note that this is intentionally not in state because we do not want to
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
-
-  const itemLookup = useMemo(
-    () =>
-      breadcrumbs &&
-      breadcrumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
-        .sort(([a], [b]) => a - b),
-    [breadcrumbs]
-  );
-
-  const current = useMemo(
-    () =>
-      breadcrumbs
-        ? getPrevReplayEvent({
-            itemLookup,
-            items: breadcrumbs,
-            targetTimestampMs: startTimestampMs + currentTime,
-          })
-        : undefined,
-    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime && breadcrumbs
-        ? getPrevReplayEvent({
-            itemLookup,
-            items: breadcrumbs,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-          })
-        : undefined,
-    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
-  );
 
   const deps = useMemo(() => [breadcrumbs], [breadcrumbs]);
   const {cache, updateList} = useVirtualizedList({
@@ -109,8 +72,6 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
       >
         <BreadcrumbRow
           index={index}
-          isCurrent={current?.id === item.id}
-          isHovered={hovered?.id === item.id}
           breadcrumb={item}
           startTimestampMs={startTimestampMs}
           style={style}
@@ -158,6 +119,46 @@ const BreadcrumbContainer = styled('div')`
   overflow: hidden;
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
+
+  .beforeHoverTime + .afterHoverTime:before {
+    background-color: ${p => p.theme.surface200};
+    border-top: 1px solid ${p => p.theme.purple200};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeHoverTime:last-child:before {
+    background-color: ${p => p.theme.surface200};
+    border-bottom: 1px solid ${p => p.theme.purple200};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime + .afterCurrentTime:before {
+    background-color: ${p => p.theme.purple100};
+    border-top: 1px solid ${p => p.theme.purple300};
+    content: '';
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 999999999%;
+  }
+
+  .beforeCurrentTime:last-child:before {
+    background-color: ${p => p.theme.purple100};
+    border-bottom: 1px solid ${p => p.theme.purple300};
+    content: '';
+    right: 0;
+    position: absolute;
+    bottom: 0;
+    width: 999999999%;
+  }
 `;
 
 export default memo(Breadcrumbs);
