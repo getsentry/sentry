@@ -12,6 +12,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.discord.client import DiscordApiClient
 from sentry.pipeline.views.base import PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -51,7 +52,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
     # https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
     oauth_scopes = frozenset(["applications.commands", "bot"])
 
-    # Visit the bot tab of your app in the Discord developer portal for a tool to generate this integer
+    # Visit the bot tab of your app in the Discord developer portal for a tool to generate this
     bot_permissions = 2048
 
     setup_dialog_config = {"width": 600, "height": 900}
@@ -61,9 +62,16 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         guild_id = str(state.get("guild_id"))
+        application_id = options.get("discord.application-id")
+        bot_token = options.get("discord.bot-token")
+
+        client = DiscordApiClient(application_id, bot_token)
+
+        guild_name = client.get_guild_name(guild_id)
+
         return {
-            # "name": add guild name once have API Client and can fetch it
-            "external_id": guild_id
+            "name": guild_name,
+            "external_id": guild_id,
         }
 
     def get_bot_install_url(self):
