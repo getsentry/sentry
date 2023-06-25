@@ -5,11 +5,7 @@ from sentry.api.serializers import Serializer
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
-
-# from sentry.notifications.helpers import get_fallback_settings
-from sentry.notifications.types import NotificationSettingTypes  # VALID_VALUES_FOR_KEY
-
-# from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.notifications.types import NotificationSettingTypes
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -67,16 +63,6 @@ class NotificationSettingsSerializer(Serializer):
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
                 )
 
-        # for recipient in item_list:
-        #     # This works because both User and Team models implement `get_projects`.
-        #     results[recipient]["projects"] = recipient.get_projects()
-
-        #     if isinstance(recipient, Team):
-        #         results[recipient]["organizations"] = {recipient.organization}
-
-        #     if isinstance(recipient, User):
-        #         results[recipient]["organizations"] = user.get_orgs()
-
         return results
 
     def serialize(
@@ -112,21 +98,10 @@ class NotificationSettingsSerializer(Serializer):
         :param kwargs: The same `kwargs` as `get_attrs`.
         :returns A mapping. See example.
         """
-        # type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        # types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
-
-        # project_ids = {_.id for _ in attrs["projects"]}
-        # organization_ids = {_.id for _ in attrs["organizations"]}
 
         data: MutableMapping[
             str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
-        # data = get_fallback_settings(
-        #     types_to_serialize,
-        #     project_ids,
-        #     organization_ids,
-        #     recipient=RpcActor.from_object(obj),
-        # )
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
