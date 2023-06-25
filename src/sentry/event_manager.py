@@ -483,7 +483,10 @@ class EventManager:
             secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
             secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
             if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-                with metrics.timer("event_manager.secondary_grouping"):
+                with sentry_sdk.start_span(
+                    op="event_manager",
+                    description="event_manager.save.calculate_event_grouping",
+                ), metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
                     secondary_grouping_config = loader.get_config_dict(project)
@@ -509,9 +512,10 @@ class EventManager:
                     job["event"].data.data, project
                 )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
-            "event_manager.calculate_event_grouping"
-        ):
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ), metrics.timer("event_manager.calculate_event_grouping"):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -1280,7 +1284,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        eventstream.insert(
+        eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,

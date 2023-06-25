@@ -11,10 +11,24 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, TypeVar, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    overload,
+)
 from urllib.parse import urlparse
 
 import sentry
+from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.silo.base import SiloMode
 from sentry.types.region import Region
 from sentry.utils import json
@@ -1460,8 +1474,6 @@ SENTRY_FEATURES = {
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
-    # Enable better priority sort experiment
-    "organizations:better-priority-sort-experiment": False,
     # Adds the ttid & ttfd vitals to the frontend
     "organizations:mobile-vitals": False,
     # Display CPU and memory metrics in transactions with profiles
@@ -1547,6 +1559,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-recording-scrubbing": False,
     # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
+    "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -2960,7 +2973,7 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
-KAFKA_CLUSTERS = {
+KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},
         "producers": {
@@ -3017,7 +3030,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 
 
 # Cluster configuration for each Kafka topic by name.
-KAFKA_TOPICS: Mapping[str, Optional[sentry.conf.types.TopicDefinition]] = {
+KAFKA_TOPICS: Mapping[str, Optional[TopicDefinition]] = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
@@ -3299,7 +3312,7 @@ SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
-SENTRY_EXTRA_WORKERS = None
+SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
 SAMPLED_DEFAULT_RATE = 1.0
 
@@ -3362,7 +3375,8 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
 
-MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
@@ -3544,4 +3558,8 @@ SENTRY_MODEL_CACHE_USE_REPLICA = False
 
 # Additional consumer definitions beyond the ones defined in sentry.consumers.
 # Necessary for getsentry to define custom consumers.
-SENTRY_KAFKA_CONSUMERS: Mapping[str, sentry.conf.types.ConsumerDefinition] = {}
+SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
+
+# sentry devserver should _always_ start the following consumers, identified by
+# key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
+DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []

@@ -216,8 +216,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
             project_id=self.project2.id,
         )
 
-        with mock.patch("sentry.quotas.get_event_retention") as get_event_retention:
-            get_event_retention.return_value = 7
+        with mock.patch("sentry.quotas.backend.get_event_retention", return_value=7):
             event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
             assert event is None
 
