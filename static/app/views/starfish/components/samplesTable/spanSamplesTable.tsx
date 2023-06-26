@@ -90,13 +90,13 @@ export function SpanSamplesTable({
 
     const commonProps = {
       style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
+      onMouseEnter: () => handleMouseOverBodyCell(row),
+      onMouseLeaveSample: handleMouseLeaveBodyCell,
     };
 
     if (column.key === 'transaction_id') {
       return (
         <Link
-          onMouseEnter={() => handleMouseOverBodyCell(row)}
-          onMouseLeave={handleMouseLeaveBodyCell}
           to={`/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`}
           {...commonProps}
         >

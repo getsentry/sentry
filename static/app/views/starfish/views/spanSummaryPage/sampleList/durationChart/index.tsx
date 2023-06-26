@@ -29,6 +29,7 @@ function DurationChart({
   onMouseLeaveSample,
   onMouseOverSample,
   highlightSpanId,
+  transactionMethod,
 }: Props) {
   const theme = useTheme();
 
