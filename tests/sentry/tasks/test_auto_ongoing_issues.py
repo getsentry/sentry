@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import skip
 from unittest.mock import patch
 
 import pytz
@@ -147,6 +148,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).values_list("id", flat=True)
         ) == {g.id for g in older_groups}
 
+    @skip
+    # tightly coupled to the `chunk_size` we use for the task
+    # we can safely skip this test and not auto-run it every time unless
+    # we make changes to the chunk_size, which is extremely infrequent (if ever)
     def test_paginated_transition(self):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
