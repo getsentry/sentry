@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Collection, Container, Iterable, Set
+from typing import Any, Collection, Container, Iterable, Set
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -110,11 +110,21 @@ class GlobalRegionDirectory:
         self.by_name = {r.name: r for r in self.regions}
 
 
-def _parse_config(region_config: str) -> Iterable[Region]:
-    config_values = json.loads(region_config)
+def _parse_config(region_config: Any) -> Iterable[Region]:
+    if isinstance(region_config, (str, bytes)):
+        config_values = json.loads(region_config)
+    else:
+        config_values = region_config
+
+    if not isinstance(config_values, (list, tuple)):
+        config_values = [config_values]
+
     for config_value in config_values:
-        config_value["category"] = RegionCategory[config_value["category"]]
-        yield Region(**config_value)
+        if isinstance(config_value, Region):
+            yield config_value
+        else:
+            config_value["category"] = RegionCategory[config_value["category"]]
+            yield Region(**config_value)
 
 
 _global_regions: GlobalRegionDirectory | None = None
@@ -131,8 +141,7 @@ def load_global_regions() -> GlobalRegionDirectory:
     # settings. We may investigate other ways of delivering those configs in
     # production.
     config = settings.SENTRY_REGION_CONFIG
-    if isinstance(config, str):
-        config = list(_parse_config(config))
+    config = list(_parse_config(config))
     _global_regions = GlobalRegionDirectory(config)
     return _global_regions
 
