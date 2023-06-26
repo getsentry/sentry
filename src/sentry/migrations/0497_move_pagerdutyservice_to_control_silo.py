@@ -39,4 +39,9 @@ class Migration(CheckedMigration):
                 on_delete="CASCADE", to="sentry.OrganizationIntegration"
             ),
         ),
+        migrations.RenameField(
+            model_name="pagerdutyservice",
+            old_name="organization_integration_id",
+            new_name="organization_integration",
+        ),
     ]
