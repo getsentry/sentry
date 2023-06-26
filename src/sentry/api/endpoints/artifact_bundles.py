@@ -64,9 +64,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 ArtifactBundle.objects.filter(
                     organization_id=project.organization_id,
                     projectartifactbundle__project_id=project.id,
-                ).values_list("id", "bundle_id", "artifact_count", "date_uploaded")
+                ).values_list(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
                 # We want to use the more efficient DISTINCT ON.
-                .distinct("id", "bundle_id", "artifact_count", "date_uploaded")
+                .distinct(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist

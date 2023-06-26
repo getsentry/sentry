@@ -574,9 +574,13 @@ class Factories:
         artifact_count=0,
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,
+        date_last_modified=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
+
+        if date_last_modified is None:
+            date_last_modified = timezone.now()
 
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
@@ -589,6 +593,7 @@ class Factories:
             file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
+            date_last_modified=date_last_modified,
         )
         return artifact_bundle
 

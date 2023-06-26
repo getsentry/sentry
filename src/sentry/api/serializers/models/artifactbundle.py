@@ -35,7 +35,8 @@ class ArtifactBundlesSerializer(Serializer):
                 "bundle_id": item[1],
                 "associations": self._compute_associations(item, grouped_bundles),
                 "file_count": item[2],
-                "date": item[3],
+                "date_modified": item[3],
+                "date": item[4],
             }
             for item in item_list
         }
@@ -45,6 +46,7 @@ class ArtifactBundlesSerializer(Serializer):
             "bundleId": str(attrs["bundle_id"]),
             "associations": attrs["associations"],
             "fileCount": attrs["file_count"],
+            "dateModified": attrs["date_modified"].isoformat()[:19] + "Z",
             "date": attrs["date"].isoformat()[:19] + "Z",
         }
 
