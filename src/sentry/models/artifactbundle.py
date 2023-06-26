@@ -60,7 +60,7 @@ class ArtifactBundle(Model):
     date_uploaded = models.DateTimeField(default=timezone.now)
     # This field represents the date in which this bundle was last modified, where modification means that an
     # association has been added or any of its fields have been modified.
-    date_last_modified = models.DateTimeField(null=True)
+    date_last_modified = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
