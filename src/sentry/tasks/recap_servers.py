@@ -1,8 +1,7 @@
 import urllib.parse
 import uuid
-
-# from typing import Optional
 from datetime import datetime
+from typing import Any, Dict
 
 import pytz
 import urllib3
@@ -48,10 +47,8 @@ def poll_recap_servers(**kwargs) -> None:
 
     print(">", "Found", len(project_ids), "projects with configured recap server")  # NOQA: S002
 
-    # TODO(recap): Should we double-check that received values are _always_ a valid URL and that they are not empty?
     for project_id in project_ids:
-        # TODO(recap): Add some feature flagging and early-adopters?
-        # if features.has("project:recap-server", project_id):
+        # TODO(recap): Add feature flag?
         poll_project_recap_server.delay(project_id)
 
 
@@ -82,7 +79,7 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     latest_id = project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY, 0)
     print(">", "Most recent polled ID:", latest_id)  # NOQA: S002
 
-    # TODO(recap): Remove me
+    # TODO(recap): Remove me? Can we be certain that self-hosted recaps will use https and have valid certs?
     urllib3.disable_warnings()  # unsafe certificate
 
     url = recap_server.strip().rstrip("/") + "/rest/v1/crashes"
@@ -118,6 +115,25 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
 
 
 def store_crash(crash, project: Project, url: str) -> None:
+    # set_current_event_project(project_id)
+    event = translate_crash_to_event(crash, project, url)
+
+    if options.get("processing.can-use-scrubbers"):
+        new_event = safe_execute(scrub_data, project=project, event=event, _with_transaction=False)
+        if new_event is not None:
+            event = new_event
+
+    event_manager = EventManager(event, project=project)
+    event_manager.normalize()
+
+    store.save_event(
+        project_id=project.id,
+        event_id=event["event_id"],
+        data=event_manager.get_data(),
+    )
+
+
+def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
     # processed_stacktrace = []
     # for frame in payload["detailedStackTrace"]:
     #     processed_frame = {
@@ -134,7 +150,7 @@ def store_crash(crash, project: Project, url: str) -> None:
     # for count, value in enumerate(payload["detailedStackTrace"]):
     #     detailed_st["frame" + str(count)] = value
 
-    event = {
+    return {
         "event_id": uuid.uuid4().hex,
         "project": project.id,
         "exception": {
@@ -155,24 +171,3 @@ def store_crash(crash, project: Project, url: str) -> None:
         },
         "tags": {"url": url, "id": crash["id"]},
     }
-
-    project_id = event["project"]
-    event_id = event["event_id"]
-
-    # set_current_event_project(project_id)
-
-    if options.get("processing.can-use-scrubbers"):
-        new_event = safe_execute(scrub_data, project=project, event=event, _with_transaction=False)
-
-        if new_event is not None:
-            event = new_event
-
-    event_manager = EventManager(event, project=Project(id=project_id))
-    event_manager.normalize(project_id)
-    data = event_manager.get_data()
-
-    store.save_event(
-        project_id=project_id,
-        event_id=event_id,
-        data=data,
-    )
