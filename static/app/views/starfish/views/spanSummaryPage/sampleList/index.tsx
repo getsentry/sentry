@@ -46,11 +46,11 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
         }}
         onMouseOverSample={sample => highlightSample(sample.span_id)}
         onMouseLeaveSample={() => highlightSample(undefined)}
-        highlightSpanId={highlightedSpanId}
+        highlightedSpanId={highlightedSpanId}
       />
 
       <SampleTable
-        highlightSpanId={highlightedSpanId}
+        highlightedSpanId={highlightedSpanId}
         transactionMethod={transactionMethod}
         onMouseLeaveSample={() => highlightSample(undefined)}
         onMouseOverSample={sample => highlightSample(sample.span_id)}

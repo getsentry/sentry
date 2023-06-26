@@ -15,7 +15,7 @@ type Props = {
   groupId: string;
   transactionMethod: string;
   transactionName: string;
-  highlightSpanId?: string;
+  highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
 };
@@ -23,7 +23,7 @@ type Props = {
 function SampleTable({
   groupId,
   transactionName,
-  highlightSpanId,
+  highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
   transactionMethod,
@@ -60,7 +60,7 @@ function SampleTable({
       <SpanSamplesTable
         onMouseLeaveSample={onMouseLeaveSample}
         onMouseOverSample={onMouseOverSample}
-        highlightSpanId={highlightSpanId}
+        highlightedSpanId={highlightedSpanId}
         data={spans.map(sample => {
           return {
             ...sample,

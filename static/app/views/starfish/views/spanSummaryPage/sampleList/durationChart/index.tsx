@@ -15,7 +15,7 @@ type Props = {
   groupId: string;
   transactionMethod: string;
   transactionName: string;
-  highlightSpanId?: string;
+  highlightedSpanId?: string;
   onClickSample?: (sample: SpanSample) => void;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
@@ -28,7 +28,7 @@ function DurationChart({
   onClickSample,
   onMouseLeaveSample,
   onMouseOverSample,
-  highlightSpanId,
+  highlightedSpanId,
   transactionMethod,
 }: Props) {
   const theme = useTheme();
@@ -104,7 +104,7 @@ function DurationChart({
       ],
       symbol: getSampleSymbol(duration, p95).symbol,
       color: getSampleSymbol(duration, p95).color,
-      symbolSize: span_id === highlightSpanId ? 15 : 10,
+      symbolSize: span_id === highlightedSpanId ? 15 : 10,
       seriesName: transaction_id,
     })
   );

@@ -46,7 +46,7 @@ type Props = {
   data: SpanTableRow[];
   isLoading: boolean;
   p95: number;
-  highlightSpanId?: string;
+  highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
 };
@@ -55,7 +55,7 @@ export function SpanSamplesTable({
   isLoading,
   data,
   p95,
-  highlightSpanId,
+  highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
 }: Props) {
@@ -86,7 +86,7 @@ export function SpanSamplesTable({
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
-    const shouldHighlight = row.span_id === highlightSpanId;
+    const shouldHighlight = row.span_id === highlightedSpanId;
 
     const commonProps = {
       style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
