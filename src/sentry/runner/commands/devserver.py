@@ -176,7 +176,7 @@ def devserver(
         uwsgi_overrides["py-autoreload"] = 1
 
     daemons: MutableSequence[tuple[str, Sequence[str]]] = []
-    kafka_consumers = set()
+    kafka_consumers: set[str] = set()
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
