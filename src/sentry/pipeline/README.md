@@ -29,21 +29,20 @@ Some key points to understanding pipelines:
 ## Pipeline Providers
 
 Pipelines are given their process implementation details through the pipeline
-provider, an interface class exists, `PipelineProvider`, which declares the
-required methods. You can think of the provider as the implementation of the
-actual processes that the user is being guided through. The provider specifies
-the pipeline steps.
+provider. (An interface class, `PipelineProvider`, declares the required
+methods.) You can think of the provider as the implementation of the actual
+processes that the user is being guided through. The provider specifies the
+pipeline steps.
 
-A single pipeline may have multiple types of providers for the pipeline which
-define different flows on a per-provider basis, but all complete a similar type
-of pipeline process.
+A single pipeline may have multiple associated providers, each of which defines
+a different flow, but all of which complete a similar type of pipeline process.
 
-A good example of a pipeline with multiple types of providers is the
+A good example of a pipeline with multiple associated providers is the
 `sentry.identity.pipeline` module, which makes use of a Pipeline to associate
-user identities. Sentry has various identity types (GitHub, Slack, Google) each
-which may use a slightly different process to do identity lookup on the
-external service, however the end of the process (and what is done in the
-final `finish_pipeline` call) all result in an Identity object being created.
+user identities. Sentry has various identity types (GitHub, Slack, Google), each
+of which may use a slightly different process to do identity lookup on the
+external service. In the end, however, they all result in an Identity object
+being created (in the final `finish_pipeline` call).
 
 ### Provider Manager
 
