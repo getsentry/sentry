@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from unittest import mock
 from unittest.mock import patch
 
 import pytz
@@ -15,6 +16,7 @@ from sentry.models import (
     record_group_history,
 )
 from sentry.tasks.auto_ongoing_issues import (
+    auto_transition_issues_new_to_ongoing,
     schedule_auto_transition_new,
     schedule_auto_transition_regressed,
 )
@@ -147,7 +149,13 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).values_list("id", flat=True)
         ) == {g.id for g in older_groups}
 
-    def test_paginated_transition(self):
+    @mock.patch(
+        "sentry.tasks.auto_ongoing_issues.auto_transition_issues_new_to_ongoing.delay",
+        wraps=lambda project_id, first_seen_lte, **kwargs: auto_transition_issues_new_to_ongoing(
+            project_id, first_seen_lte, chunk_size=10, kwargs=kwargs
+        ),
+    )
+    def test_paginated_transition(self, mocked):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
 
@@ -159,15 +167,20 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                     substatus=GroupSubStatus.NEW,
                     first_seen=now - timedelta(days=3, hours=idx, minutes=1),
                 )
-                for idx in range(1010)
+                for idx in range(12)
             ]
         )
 
         # before
-        assert Group.objects.filter(project_id=project.id).count() == len(groups) == 1010
+        assert Group.objects.filter(project_id=project.id).count() == len(groups) == 12
 
         with self.tasks():
             schedule_auto_transition_new()
+
+        # 1st time handles a full page
+        # 2nd time to handle 2 remaining
+        # 3rd time if for Groups with project_id=1 which shouldn't have any groups to transition
+        assert mocked.call_count == 3
 
         # after
         assert (
