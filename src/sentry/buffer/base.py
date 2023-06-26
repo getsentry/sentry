@@ -8,6 +8,8 @@ from sentry.utils.services import Service
 
 
 class BufferMount(type):
+    logger: logging.Logger
+
     def __new__(cls, name, bases, attrs):
         new_cls = type.__new__(cls, name, bases, attrs)
         new_cls.logger = logging.getLogger(f"sentry.buffer.{new_cls.__name__.lower()}")
