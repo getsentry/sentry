@@ -18,7 +18,7 @@ from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
-    BoundedAutoField,
+    BoundedBigAutoField,
     control_silo_only_model,
     sane_repr,
 )
@@ -70,7 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
