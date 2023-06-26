@@ -443,6 +443,7 @@ class EventManager:
 
             return jobs[0]["event"]
 
+        # Only error events from this point onward
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -454,6 +455,9 @@ class EventManager:
 
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
             _pull_out_data(jobs, projects)
+
+        # This metric can be used to track how many error events there are per platform
+        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -919,11 +923,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
-                    options.get("dynamic-sampling:boost-latest-release")
-                    and features.has(
+                    features.has(
                         "organizations:dynamic-sampling", projects[project_id].organization
                     )
-                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -1322,7 +1324,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     event_id = data.get("event_id")
 
-    return eventstore.create_event(
+    return eventstore.backend.create_event(
         project_id=project_id,
         event_id=event_id,
         group_id=None,

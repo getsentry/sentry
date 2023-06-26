@@ -191,9 +191,7 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
 
 
 def check_group_state(record: Record) -> bool:
-    # Explicitly typing to satisfy mypy.
-    is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
-    return is_unresolved
+    return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
 
 
 def build_digest(

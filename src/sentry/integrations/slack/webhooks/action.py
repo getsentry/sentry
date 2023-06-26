@@ -124,9 +124,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     XXX(epurkhiser): Used in coordination with construct_reply.
      Bot posted messages will not have the type at all.
     """
-    # Explicitly typing to satisfy mypy.
-    is_message: bool = data.get("original_message", {}).get("type") == "message"
-    return is_message
+    return data.get("original_message", {}).get("type") == "message"
 
 
 @region_silo_endpoint
