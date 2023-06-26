@@ -1328,22 +1328,22 @@ register(
 )
 register(
     "backpressure.high_watermarks.attachments-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.post-process-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
