@@ -531,19 +531,34 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         percentile = args["percentile"]
         if percentile not in constants.SPAN_PERCENTILE_INDEXES:
             raise InvalidSearchQuery(f"percentile_percent_change doesn't support {percentile}")
+        finalized_aggregation = Function(
+            "arrayElement",
+            [
+                Function("finalizeAggregation", [Column("percentiles")]),
+                constants.SPAN_PERCENTILE_INDEXES.index(args["percentile"]) + 1,
+            ],
+            f"{alias}_finalized_aggregation",
+        )
         linear_regression = Function(
             "simpleLinearRegression",
             [
                 Function("toUnixTimestamp", [self.builder.column("timestamp")]),
-                Function(
-                    "arrayElement",
-                    [
-                        Function("finalizeAggregation", [Column("percentiles")]),
-                        constants.SPAN_PERCENTILE_INDEXES.index(args["percentile"]) + 1,
-                    ],
-                ),
+                finalized_aggregation,
             ],
             f"{alias}_linear_regression",
+        )
+        coefficient_of_determination = Function(
+            "pow",
+            [
+                Function(
+                    "corr",
+                    [
+                        Function("toUnixTimestamp", [self.builder.column("timestamp")]),
+                        finalized_aggregation,
+                    ],
+                ),
+                2,
+            ],
         )
         first_half = self.builder.get_regression_value(
             self.builder.start, linear_regression, f"{alias}_first_half"
@@ -551,7 +566,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         second_half = self.builder.get_regression_value(
             self.builder.end, linear_regression, f"{alias}_second_half"
         )
-        return self._resolve_percent_change_function(first_half, second_half, alias)
+        return Function(
+            "if",
+            [
+                Function("greater", [coefficient_of_determination, 0.2]),
+                self._resolve_percent_change_function(first_half, second_half),
+                0,
+            ],
+            alias,
+        )
 
     def _resolve_epm_percent_change(
         self,
@@ -571,7 +594,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
-    def _resolve_percent_change_function(self, first_half, second_half, alias):
+    def _resolve_percent_change_function(self, first_half, second_half, alias=None):
         return Function(
             "if",
             [
