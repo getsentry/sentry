@@ -87,7 +87,7 @@ class FlyOAuth2Provider(OAuth2Provider):
 
     def build_identity(self, state):
         """
-        Response:
+        ex Response:
         {
             'resource_owner_id': 'k9d01lp82rky6vo2',
             'scope': ['read'],
@@ -105,7 +105,6 @@ class FlyOAuth2Provider(OAuth2Provider):
             ]
         }
         """
-        # TODO: Discuss with Fly on what this looks like
         data = state["data"]
         user_data = data["user"]
 

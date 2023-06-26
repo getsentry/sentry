@@ -45,6 +45,6 @@ class FlyClient:
         the user and add them to these organizations.
 
         GET https://api.fly.io/oauth/token/info
-        Authorization: Bearer fo1__034hk03k4mhjea0l4224hk
+        Authorization: Bearer abc_123456
         """
         return self._request("/info")
