@@ -183,7 +183,7 @@ class EventStorage(Service):
         start: Optional[datetime],
         end: Optional[datetime],
         conditions: Sequence[Condition],
-        orderby: Optional[Sequence[str]] = None,
+        orderby: Sequence[str],
         limit=100,
         offset=0,
         referrer="eventstore.get_events_snql",

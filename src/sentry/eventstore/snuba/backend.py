@@ -69,7 +69,7 @@ class SnubaEventStorage(EventStorage):
         start: Optional[datetime],
         end: Optional[datetime],
         conditions: Sequence[Condition],
-        orderby: Optional[Sequence[str]] = None,
+        orderby: Sequence[str],
         limit=DEFAULT_LIMIT,
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events_snql",
@@ -78,42 +78,36 @@ class SnubaEventStorage(EventStorage):
     ):
         cols = self.__get_columns(dataset)
 
-        if orderby is None:
-            orderby = [
-                OrderBy(DATASETS[dataset][Columns.TIMESTAMP.value.alias], direction=Direction.DESC),
-                OrderBy(DATASETS[dataset][Columns.EVENT_ID.value.alias], direction=Direction.DESC),
-            ]
-        else:
-            resolved_order_by = []
-            for order_field_alias in orderby:
-                if order_field_alias.startswith("-"):
-                    direction = Direction.DESC
-                    order_field_alias = order_field_alias[1:]
+        resolved_order_by = []
+        for order_field_alias in orderby:
+            if order_field_alias.startswith("-"):
+                direction = Direction.DESC
+                order_field_alias = order_field_alias[1:]
+            else:
+                direction = Direction.ASC
+            resolved_column_or_none = DATASETS[dataset].get(order_field_alias)
+            if resolved_column_or_none:
+                # special-case handling for nullable column values and proper ordering based on direction
+                # null values are always last in the sort order regardless of Desc or Asc ordering
+                if order_field_alias == Columns.NUM_PROCESSING_ERRORS.value.alias:
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function("coalesce", [Column(resolved_column_or_none), 99999999]),
+                            direction=direction,
+                        )
+                    )
+                elif order_field_alias == Columns.TRACE_SAMPLED.value.alias:
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function("coalesce", [Column(resolved_column_or_none), -1]),
+                            direction=direction,
+                        )
+                    )
                 else:
-                    direction = Direction.ASC
-                resolved_column_or_none = DATASETS[dataset].get(order_field_alias)
-                if resolved_column_or_none:
-                    # special-case handling for nullable column values and proper ordering based on direction
-                    # null values are always last in the sort order regardless of Desc or Asc ordering
-                    if order_field_alias == Columns.NUM_PROCESSING_ERRORS.value.alias:
-                        resolved_order_by.append(
-                            OrderBy(
-                                Function("coalesce", [Column(resolved_column_or_none), 99999999]),
-                                direction=direction,
-                            )
-                        )
-                    elif order_field_alias == Columns.TRACE_SAMPLED.value.alias:
-                        resolved_order_by.append(
-                            OrderBy(
-                                Function("coalesce", [Column(resolved_column_or_none), -1]),
-                                direction=direction,
-                            )
-                        )
-                    else:
-                        resolved_order_by.append(
-                            OrderBy(Column(resolved_column_or_none), direction=direction)
-                        )
-            orderby = resolved_order_by
+                    resolved_order_by.append(
+                        OrderBy(Column(resolved_column_or_none), direction=direction)
+                    )
+        orderby = resolved_order_by
 
         start, end = _prepare_start_end(
             start,
