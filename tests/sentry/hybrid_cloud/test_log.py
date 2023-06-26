@@ -6,7 +6,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @all_silo_test
 def test_audit_log_event():
     user = Factories.create_user()
@@ -30,7 +30,7 @@ def test_audit_log_event():
     assert AuditLogEntry.objects.count() == 1
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @all_silo_test
 def test_user_ip_event():
     user = Factories.create_user()

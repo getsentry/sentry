@@ -1094,7 +1094,9 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
+            events = eventstore.backend.get_events(
+                snuba_filter, referrer="test.wait_for_event_count"
+            )
             last_events_seen = len(events)
             if len(events) >= total:
                 break

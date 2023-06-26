@@ -19,6 +19,7 @@ export type SpanTransactionMetrics = {
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
+  transactionMethod: string;
 };
 
 export const useSpanTransactionMetrics = (
@@ -54,6 +55,7 @@ function getEventView(span: {group: string}, location: Location, transactions: s
       query: search.formatString(),
       fields: [
         'transaction',
+        'transaction.method',
         'sps()',
         'sps_percent_change()',
         `sum(${SPAN_SELF_TIME})`,
