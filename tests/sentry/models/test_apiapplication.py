@@ -55,6 +55,14 @@ class ApiApplicationTest(TestCase):
             "http://example.io",
         ]
 
+    def test_get_allowed_origins_none(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com",
+        )
+
+        assert app.get_allowed_origins() == []
+
     def test_get_redirect_uris_space_separated(self):
         app = ApiApplication.objects.create(
             name="origins_test",
