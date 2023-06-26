@@ -41,6 +41,7 @@ import {
 } from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
+import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
@@ -524,6 +525,7 @@ function useTrackView({
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
   });
+  useDisableRouteAnalytics(!group || !event || !project);
 }
 
 const trackTabChanged = ({
