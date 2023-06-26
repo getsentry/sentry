@@ -20,7 +20,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class RelaxedProjectPermission(ProjectPermission):
-    scope_map = {"POST": ["project:admin"]}
+    scope_map = {"POST": ["org:admin"]}
 
 
 @region_silo_endpoint
