@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import omit from 'lodash/omit';
 
 import useRouter from 'sentry/utils/useRouter';
@@ -13,6 +14,7 @@ type Props = {
 
 export function SampleList({groupId, transactionName}: Props) {
   const router = useRouter();
+  const [highlightedSpanId, highlightSample] = useState<string | undefined>(undefined);
 
   return (
     <DetailPanel
@@ -28,9 +30,26 @@ export function SampleList({groupId, transactionName}: Props) {
 
       <SampleInfo groupId={groupId} transactionName={transactionName} />
 
-      <DurationChart groupId={groupId} transactionName={transactionName} />
+      <DurationChart
+        groupId={groupId}
+        transactionName={transactionName}
+        onClickSample={span => {
+          router.push(
+            `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+          );
+        }}
+        onMouseOverSample={sample => highlightSample(sample.span_id)}
+        onMouseLeaveSample={() => highlightSample(undefined)}
+        highlightSpanId={highlightedSpanId}
+      />
 
-      <SampleTable groupId={groupId} transactionName={transactionName} />
+      <SampleTable
+        highlightSpanId={highlightedSpanId}
+        onMouseLeaveSample={() => highlightSample(undefined)}
+        onMouseOverSample={sample => highlightSample(sample.span_id)}
+        groupId={groupId}
+        transactionName={transactionName}
+      />
     </DetailPanel>
   );
 }

@@ -7,12 +7,16 @@ import {ComparisonLabel} from 'sentry/views/starfish/components/samplesTable/com
 
 type Props = {
   milliseconds: number;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
   delta?: number;
 };
 
-export default function DurationCell({milliseconds, delta}: Props) {
+export default function DurationCell({milliseconds, delta, containerProps}: Props) {
   return (
-    <Container>
+    <Container {...containerProps}>
       <Duration seconds={milliseconds / 1000} fixedDigits={2} abbreviation />
       {delta ? (
         <ComparisonLabel value={delta}>

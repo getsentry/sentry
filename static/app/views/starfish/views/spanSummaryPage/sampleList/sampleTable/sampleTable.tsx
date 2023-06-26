@@ -5,7 +5,7 @@ import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
+import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
@@ -14,10 +14,18 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 type Props = {
   groupId: string;
   transactionName: string;
-  user?: string;
+  highlightSpanId?: string;
+  onMouseLeaveSample?: () => void;
+  onMouseOverSample?: (sample: SpanSample) => void;
 };
 
-function SampleTable({groupId, transactionName}: Props) {
+function SampleTable({
+  groupId,
+  transactionName,
+  highlightSpanId,
+  onMouseLeaveSample,
+  onMouseOverSample,
+}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName},
@@ -55,6 +63,9 @@ function SampleTable({groupId, transactionName}: Props) {
   return (
     <Fragment>
       <SpanSamplesTable
+        onMouseLeaveSample={onMouseLeaveSample}
+        onMouseOverSample={onMouseOverSample}
+        highlightSpanId={highlightSpanId}
         data={spans.map(sample => {
           return {
             ...sample,
