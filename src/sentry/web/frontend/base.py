@@ -17,7 +17,6 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
@@ -273,7 +272,7 @@ class BaseView(View, OrganizationMixin):
         super().__init__(*args, **kwargs)
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         """
         A note on the CSRF protection process.
 
@@ -349,7 +348,7 @@ class BaseView(View, OrganizationMixin):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def handle(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
@@ -646,7 +645,7 @@ class ProjectView(OrganizationView):
 class AvatarPhotoView(View):
     model: type[AvatarBase]
 
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         avatar_id = kwargs["avatar_id"]
         try:
             avatar = self.model.objects.get(ident=avatar_id)

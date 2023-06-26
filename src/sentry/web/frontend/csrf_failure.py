@@ -1,19 +1,19 @@
 import logging
 
 import sentry_sdk
+from django.http import HttpResponse
 from django.middleware.csrf import REASON_NO_REFERER
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.web.helpers import render_to_response
 
 
 class CsrfFailureView(View):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, reason="") -> Response:
+    def dispatch(self, request: Request, reason="") -> HttpResponse:
         context = {"no_referer": reason == REASON_NO_REFERER}
         with sentry_sdk.configure_scope() as scope:
             # Emit a sentry request that the incoming request is rejected by the CSRF protection.

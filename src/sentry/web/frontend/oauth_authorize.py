@@ -3,6 +3,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -13,7 +14,6 @@ logger = logging.getLogger("sentry.api")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -71,7 +71,7 @@ class OAuthAuthorizeView(AuthLoginView):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, **kwargs) -> HttpResponse:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -207,7 +207,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: Request, **kwargs) -> Response:
+    def post(self, request: Request, **kwargs) -> HttpResponse:
         try:
             payload = request.session["oa2"]
         except KeyError:

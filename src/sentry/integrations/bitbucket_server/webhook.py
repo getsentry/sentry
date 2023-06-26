@@ -8,7 +8,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.models import Commit, CommitAuthor, Integration, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -110,13 +109,13 @@ class BitbucketServerWebhookEndpoint(View):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, organization_id, integration_id) -> Response:
+    def post(self, request: Request, organization_id, integration_id) -> HttpResponse:
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:

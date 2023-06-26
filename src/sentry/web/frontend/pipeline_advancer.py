@@ -1,5 +1,5 @@
 from django.contrib import messages
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 
@@ -23,7 +23,6 @@ FORWARD_INSTALL_FOR = ["github"]
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class PipelineAdvancerView(BaseView):
@@ -34,7 +33,7 @@ class PipelineAdvancerView(BaseView):
     csrf_protect = False
 
     @transaction_start("PipelineAdvancerView")
-    def handle(self, request: Request, provider_id: str) -> Response:
+    def handle(self, request: Request, provider_id: str) -> HttpResponse:
         pipeline = None
 
         for pipeline_cls in PIPELINE_CLASSES:

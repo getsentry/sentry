@@ -9,7 +9,6 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
@@ -94,7 +93,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -107,7 +106,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         else:
             return None
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
         with configure_scope() as scope:
             meta = request.META
@@ -181,12 +180,12 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
         return super().dispatch(request, *args, **kwargs)
 
     @method_decorator(csrf_exempt)
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         return self.handle(request)

@@ -1,8 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity
@@ -38,7 +37,7 @@ class SlackUnlinkIdentityView(BaseView):
 
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

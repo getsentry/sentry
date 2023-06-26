@@ -18,7 +18,6 @@ logger = logging.getLogger("sentry.webhooks")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ReleaseWebhookView(View):
@@ -65,7 +64,7 @@ class ReleaseWebhookView(View):
             status=resp.status_code, content=json.dumps(resp.data), content_type="application/json"
         )
 
-    def post(self, request: Request, plugin_id, project_id, signature) -> Response:
+    def post(self, request: Request, plugin_id, project_id, signature) -> HttpResponse:
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
