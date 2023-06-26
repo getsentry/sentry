@@ -34,7 +34,7 @@ export type FunctionTrend = {
   function: string;
   package: string;
   project: string;
-  stats: any;
+  stats: FunctionTrendStats;
   trend_difference: number;
   trend_percentage: number;
   unweighted_p_value: number;
@@ -44,7 +44,7 @@ type EpochTime = number;
 type DataPoint = {count: number};
 type FunctionTrendStatsData = [EpochTime, DataPoint];
 
-export type FunctionTrendStats = {
+type FunctionTrendStats = {
   data: FunctionTrendStatsData[];
   end: number;
   start: number;

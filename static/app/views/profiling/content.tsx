@@ -35,11 +35,13 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
+import {FunctionTrendsWidget} from './landing/functionTrendsWidget';
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
 import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
@@ -149,6 +151,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
   }, [location, query, selection.projects]);
 
   const isProfilingGA = organization.features.includes('profiling-ga');
+
+  const functionQuery = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('is_application', ['1']);
+    return conditions.formatString();
+  }, []);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -265,16 +273,25 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     {organization.features.includes(
                       'profiling-global-suspect-functions'
                     ) ? (
-                      <SlowestFunctionsWidget />
+                      <Fragment>
+                        <SlowestFunctionsWidget query={functionQuery} />
+                        <FunctionTrendsWidget
+                          trendFunction="p95()"
+                          trendType="regression"
+                          query={functionQuery}
+                        />
+                      </Fragment>
                     ) : (
-                      <ProfilingSlowestTransactionsPanel />
+                      <Fragment>
+                        <ProfilingSlowestTransactionsPanel />
+                        <ProfileCharts
+                          referrer="api.profiling.landing-chart"
+                          query={query}
+                          selection={selection}
+                          hideCount
+                        />
+                      </Fragment>
                     )}
-                    <ProfileCharts
-                      referrer="api.profiling.landing-chart"
-                      query={query}
-                      selection={selection}
-                      hideCount
-                    />
                   </PanelsGrid>
                   <ProfileEventsTable
                     columns={fields.slice()}

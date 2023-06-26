@@ -11,6 +11,7 @@ interface UseProfileFunctionTrendsOptions<F extends string> {
   trendType: TrendType;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
+  limit?: number;
   projects?: (number | string)[];
   query?: string;
   refetchOnMount?: boolean;
@@ -20,6 +21,7 @@ export function useProfileFunctionTrends<F extends string>({
   datetime,
   projects,
   enabled,
+  limit,
   query,
   refetchOnMount,
   trendFunction,
@@ -37,6 +39,7 @@ export function useProfileFunctionTrends<F extends string>({
       function: trendFunction,
       trend: trendType,
       query,
+      per_page: limit,
     },
   };
 
