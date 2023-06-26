@@ -443,6 +443,7 @@ class EventManager:
 
             return jobs[0]["event"]
 
+        # Only error events from this point onward
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -454,6 +455,9 @@ class EventManager:
 
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
             _pull_out_data(jobs, projects)
+
+        # This metric can be used to track how many error events there are per platform
+        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
