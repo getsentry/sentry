@@ -443,12 +443,15 @@ class EventManager:
 
             return jobs[0]["event"]
 
+        # Only error events from this point onward
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
             )
 
         jobs = [job]
+        # This metric can be used to track how many error events there are per platform
+        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         is_reprocessed = is_reprocessed_event(job["data"])
 
