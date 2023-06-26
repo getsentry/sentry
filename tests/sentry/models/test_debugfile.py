@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import os
 import time
 import zipfile
 from io import BytesIO
+from typing import Any
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
@@ -117,7 +120,7 @@ class CreateDebugFileTest(APITestCase):
         return os.path.join(os.path.dirname(__file__), "fixtures", "crash.dsym")
 
     def create_dif(self, fileobj=None, file=None, **kwargs):
-        args = {
+        args: dict[str, Any] = {
             "file_format": "macho",
             "arch": "x86_64",
             "debug_id": "67e9247c-814e-392b-a027-dbde6748fcbf",
