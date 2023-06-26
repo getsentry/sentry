@@ -15,7 +15,7 @@ def query_profiles_data(
     referrer: str,
     selected_columns: List[str],
     query: Optional[str] = None,
-    additional_conditions: List[Condition] = None,
+    additional_conditions: Optional[List[Condition]] = None,
 ) -> List[Dict[str, Any]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -100,7 +100,7 @@ def get_profile_ids_with_spans(
     span_group: str,
     query: Optional[str] = None,
 ):
-    data = query_profiles_data(
+    profiles_data = query_profiles_data(
         params,
         Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
         selected_columns=["id", "profile.id"],
@@ -110,9 +110,11 @@ def get_profile_ids_with_spans(
         ],
     )
     # map {transaction_id: (profile_id, [span intervals])}
-    transaction_to_prof = {row["id"]: (row["profile.id"], []) for row in data}
+    transaction_to_prof: Dict[str, str] = {
+        row["id"]: (row["profile.id"], []) for row in profiles_data
+    }
 
-    data = get_span_intervals(
+    spans_data = get_span_intervals(
         project_id,
         span_group,
         list(transaction_to_prof.keys()),
@@ -120,7 +122,7 @@ def get_profile_ids_with_spans(
         params,
     )
 
-    for row in data:
+    for row in spans_data:
         start_ns = (int(datetime.fromisoformat(row["start_timestamp"]).timestamp()) * 10**9) + (
             row["start_ms"] * 10**6
         )
