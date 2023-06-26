@@ -11,6 +11,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -71,6 +72,10 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
   const generateDownloadUrl = (checkin: CheckIn) =>
     `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
+  const renderDateTime = (date: string, timezone?: string) => (
+    <DateTime date={date} forcedTimezone={timezone} timeZone={!!timezone} timeOnly />
+  );
+
   const emptyCell = <Text>{'\u2014'}</Text>;
 
   return (
@@ -97,7 +102,17 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
               <Text>{statusToText[checkIn.status]}</Text>
             </Status>
             {checkIn.status !== CheckInStatus.MISSED ? (
-              <DateTime date={checkIn.dateCreated} timeOnly />
+              <div>
+                {monitor.config.timezone ? (
+                  <Tooltip
+                    title={renderDateTime(checkIn.dateCreated, monitor.config.timezone)}
+                  >
+                    {renderDateTime(checkIn.dateCreated)}
+                  </Tooltip>
+                ) : (
+                  renderDateTime(checkIn.dateCreated)
+                )}
+              </div>
             ) : (
               emptyCell
             )}
