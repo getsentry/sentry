@@ -54,7 +54,7 @@ def _merge_frame(new_frame, symbolicated):
         frame_meta = new_frame.setdefault("data", {})
         if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
             frame_meta["sourcemap"] = data_sourcemap
-        if data_resolved_with := get_path(symbolicated, "data", "resolved-with"):
+        if data_resolved_with := get_path(symbolicated, "data", "resolved_with"):
             frame_meta["resolved_with"] = data_resolved_with
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
