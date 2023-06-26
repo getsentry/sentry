@@ -213,6 +213,7 @@ class StaticStringIndexer(StringIndexer):
 
     @metric_path_key_compatible_resolve
     def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        raise NotImplementedError()
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id, org_id, string)
