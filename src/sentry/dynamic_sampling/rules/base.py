@@ -56,10 +56,6 @@ def is_sliding_window_org_enabled(organization: Organization) -> bool:
     ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
-def can_boost_new_projects(organization: Organization) -> bool:
-    return features.has("organizations:ds-boost-new-projects", organization, actor=None)
-
-
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)  # type:ignore
 
@@ -75,9 +71,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
-    if can_boost_new_projects(organization) and (
-        is_recently_added(model=organization) or is_recently_added(model=project)
-    ):
+    if is_recently_added(model=organization) or is_recently_added(model=project):
         return 1.0
 
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.
