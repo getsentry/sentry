@@ -63,6 +63,11 @@ class ApiApplicationTest(TestCase):
 
         assert app.get_allowed_origins() == []
 
+    def test_get_allowed_origins_empty_string(self):
+        app = ApiApplication.objects.create(name="origins_test", redirect_uris="")
+
+        assert app.get_allowed_origins() == []
+
     def test_get_redirect_uris_space_separated(self):
         app = ApiApplication.objects.create(
             name="origins_test",
