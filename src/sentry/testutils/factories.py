@@ -81,7 +81,6 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
-    RuleSnooze,
     SavedSearch,
     SentryAppInstallation,
     SentryFunction,
@@ -102,6 +101,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.releasefile import update_artifact_index
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
