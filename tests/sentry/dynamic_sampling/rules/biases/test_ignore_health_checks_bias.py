@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.dynamic_sampling import HEALTH_CHECK_GLOBS
+from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 
 

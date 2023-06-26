@@ -20,9 +20,9 @@ from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, killswitches, quotas, utils
-from sentry.constants import ObjectStatus
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
-from sentry.dynamic_sampling import HEALTH_CHECK_GLOBS, generate_rules
+from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
