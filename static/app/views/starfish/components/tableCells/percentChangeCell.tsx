@@ -1,22 +1,34 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatPercentage} from 'sentry/utils/formatters';
 
-type Props = {
-  children: React.ReactNode;
-  trendDirection: 'good' | 'bad' | 'neutral';
+type PercentChangeCellProps = {
+  deltaValue: number;
+  colorize?: boolean;
 };
 
-export function PercentChangeCell({trendDirection, children}: Props) {
+export function PercentChangeCell({deltaValue, colorize = true}: PercentChangeCellProps) {
+  const sign = deltaValue >= 0 ? '+' : '-';
+  const delta = formatPercentage(Math.abs(deltaValue), 2);
+  const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
+
   return (
     <NumberContainer>
-      <Colorized trendDirection={trendDirection}>{children}</Colorized>
+      <Colorized trendDirection={colorize ? trendDirection : 'neutral'}>
+        {sign}
+        {delta}
+      </Colorized>
     </NumberContainer>
   );
 }
 
-const Colorized = styled('div')<Props>`
+type ColorizedProps = {
+  children: React.ReactNode;
+  trendDirection: 'good' | 'bad' | 'neutral';
+};
+
+const Colorized = styled('div')<ColorizedProps>`
   color: ${p =>
     p.trendDirection === 'good'
       ? p.theme.successText
