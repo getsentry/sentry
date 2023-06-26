@@ -27,7 +27,10 @@ def update_saved_search_query(apps, schema_editor):
 
         if filters_might_require_update:
             query = ss.query
-
+            # TODO: this logic is broken
+            #       the regex will replace the first occurrence only
+            #       queries with multiple `assigned` / `assigned_to` / `assigned_or_suggested` terms won't
+            #       be correctly migrated
             for f in filters_might_require_update:
                 if f.key.name in ("assigned_to", "assigned_or_suggested"):
                     in_syntax = isinstance(f.value.raw_value, list)
@@ -44,24 +47,29 @@ def update_saved_search_query(apps, schema_editor):
                             if f.key.name == "assigned_to"
                             else f"{f.key.name}:[{joined}]"
                         )
+
                         if not in_syntax:
                             if f.key.name == "assigned_to":
                                 # after parsing, the key for assigned/assigned_to is fixed to 'assigned_to'
                                 # but the query string could be either
                                 # so, we first try replacing 'assigned_to:me' with 'assigned:me'
                                 # then replace 'assigned:me with assigned:[me, my_teams]'
-                                query = query.replace("assigned_to:me", "assigned:me").replace(
-                                    "assigned:me", replacement
+                                # TODO: this is broken as well will replace
+                                #       'assigned:mets' -> 'assigned:[me, my_teams]ts'
+                                # TODO: use re.sub(r'assigned:me($|\s)', 'replaced', 'blah assigned:meat')
+                                #       to make sure 'me' is at the end of the query or terminated by a space
+                                query = query.replace("assigned_to:me", "assigned:me", 1).replace(
+                                    "assigned:me", replacement, 1
                                 )
                             elif f.key.name == "assigned_or_suggested":
-                                query = query.replace("assigned_or_suggested:me", replacement)
+                                query = query.replace("assigned_or_suggested:me", replacement, 1)
                         else:
                             # more complicated case using the 'in' syntax where the filter values
                             # can be a list of 'me', 'none', <emails>
                             # we use regex to match and replace if necessary
-                            query = assigned_regex.sub(replacement, query)
-                            query = assigned_to_regex.sub(replacement, query)
-                            query = assigned_or_suggested_regex.sub(replacement, query)
+                            query = assigned_regex.sub(replacement, query, 1)
+                            query = assigned_to_regex.sub(replacement, query, 1)
+                            query = assigned_or_suggested_regex.sub(replacement, query, 1)
 
             ss.query = query
             ss.save(update_fields=["query"])
