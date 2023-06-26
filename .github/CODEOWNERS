@@ -21,7 +21,6 @@
 /src/sentry/utils/arroyo_producer.py                     @getsentry/owners-snuba
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
 /src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
-/src/sentry/search/snuba/                                @getsentry/owners-snuba @getsentry/issues
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/                              @getsentry/owners-snuba
 /tests/sentry/sentry_metrics/                            @getsentry/owners-snuba
@@ -427,6 +426,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /tests/sentry/search/                               @getsentry/issues
 /tests/sentry/tasks/test_post_process.py            @getsentry/issues
 /tests/snuba/search/                                @getsentry/issues
+/src/sentry/search/snuba/                           @getsentry/issues
 /static/app/components                                       @getsentry/issues
 /static/app/views/issueList                                  @getsentry/issues
 /static/app/views/organizationGroupDetails                   @getsentry/issues

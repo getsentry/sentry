@@ -40,7 +40,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
-        integration = get_integration_from_jwt(
+        rpc_integration = get_integration_from_jwt(
             token=token,
             path=request.path,
             provider=self.provider,
@@ -50,10 +50,10 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
         data = request.data
         if not data.get("changelog"):
-            logger.info("missing-changelog", extra={"integration_id": integration.id})
+            logger.info("missing-changelog", extra={"integration_id": rpc_integration.id})
             return self.respond()
 
-        handle_assignee_change(integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)
-        handle_status_change(integration, data)
+        handle_assignee_change(rpc_integration, data, use_email_scope=settings.JIRA_USE_EMAIL_SCOPE)
+        handle_status_change(rpc_integration, data)
 
         return self.respond()

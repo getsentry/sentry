@@ -8,7 +8,7 @@ from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.web.client_config import get_client_config
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_project_key_service():
     organization = Factories.create_organization(name="test-org")
     project = Factories.create_project(organization=organization)

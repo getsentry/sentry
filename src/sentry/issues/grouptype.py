@@ -339,6 +339,7 @@ class ProfileViewIsSlowExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
 
 
+@dataclass(frozen=True)
 class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"

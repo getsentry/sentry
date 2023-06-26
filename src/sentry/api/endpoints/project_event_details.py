@@ -38,7 +38,7 @@ def wrap_event_response(
             group_ids=[event.group_id],
         )
 
-        prev_ids, next_ids = eventstore.get_adjacent_event_ids(event, filter=_filter)
+        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None
@@ -70,7 +70,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         group_id = request.GET.get("group_id")
         group_id = int(group_id) if group_id else None
 
-        event = eventstore.get_event_by_id(project.id, event_id, group_id=group_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id, group_id=group_id)
 
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
@@ -94,7 +94,7 @@ from rest_framework.response import Response
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
     def get(self, request: Request, project, event_id) -> Response:
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if not event:
             return Response({"detail": "Event not found"}, status=404)

@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import features
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -99,9 +99,7 @@ class TeamKeyTransactionModelManager(BaseManager):
         if project is None:
             return
 
-        if features.has("organizations:dynamic-sampling", project.organization) and options.get(
-            "dynamic-sampling:enabled-biases"
-        ):
+        if features.has("organizations:dynamic-sampling", project.organization):
             from sentry.dynamic_sampling import RuleType, get_enabled_user_biases
 
             # check if option is enabled

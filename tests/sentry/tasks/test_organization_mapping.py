@@ -2,11 +2,18 @@ from datetime import datetime
 
 import pytest
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.tasks.organization_mapping import ORGANIZATION_MAPPING_EXPIRY, repair_mappings
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
+
+
+@pytest.fixture(autouse=True)
+def role_override():
+    with in_test_psql_role_override("postgres"):
+        yield
 
 
 class OrganizationMappingRepairTest(TestCase):
@@ -17,6 +24,7 @@ class OrganizationMappingRepairTest(TestCase):
         mapping.verified = False
         mapping.date_created = expired_time
         mapping.save()
+
         phantom_mapping = self.create_organization_mapping(
             Organization(id=123, slug="fake-slug"), date_created=expired_time, verified=False
         )

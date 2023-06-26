@@ -42,7 +42,7 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
         user_ids = Actor.objects.filter(type=ACTOR_TYPES["user"], id__in=actor_ids).values_list(
             "user_id", flat=True
         )
-        return user_service.get_many(filter={"user_ids": user_ids})
+        return user_service.get_many(filter={"user_ids": list(user_ids)})
     if cls is Team:
         return Team.objects.filter(actor_id__in=actor_ids).all()
 
