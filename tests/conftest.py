@@ -183,6 +183,7 @@ def protect_hybrid_cloud_writes_and_deletes(request):
             if "Database access not allowed" in str(e) or "Database queries to" in str(e):
                 yield
                 return
+            raise e
 
         with get_connection(using).cursor() as conn:
             conn.execute("SET ROLE 'postgres_unprivileged'")
