@@ -244,6 +244,8 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
 @instrumented_task(name="sentry.tasks.integrations.github_comment_reactions")
 def github_comment_reactions():
+    logger.info("github.pr_comment.reactions_task")
+
     comments = PullRequestComment.objects.filter(
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     )
