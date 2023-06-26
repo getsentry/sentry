@@ -214,6 +214,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     client = installation.get_client()
 
     comment_body = format_comment(issue_comment_contents)
+    logger.info("github.pr_comment.comment_body", extra={"body": comment_body})
 
     top_24_issues = issue_list[:24]  # 24 is the P99 for issues-per-PR
 
