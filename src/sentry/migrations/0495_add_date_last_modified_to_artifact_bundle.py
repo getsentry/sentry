@@ -24,9 +24,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="artifactbundle",
-            name="date_last_modified",
-            field=models.DateTimeField(default=django.utils.timezone.now, null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_artifactbundle" ADD COLUMN "date_last_modified" timestamp with time zone NULL;
+                    """,
+                    reverse_sql="""
+                        ALTER TABLE "sentry_artifactbundle" DROP COLUMN "date_last_modified";
+                    """,
+                    hints={"tables": ["sentry_artifactbundle"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="artifactbundle",
+                    name="date_last_modified",
+                    field=models.DateTimeField(default=django.utils.timezone.now, null=True),
+                ),
+            ],
+        )
     ]
