@@ -261,7 +261,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
-        description="""A list of which legacy browsers filters should be active. Anything excluded from
+        description="""A list specifying which legacy browser filters should be active. Anything excluded from
                     the list will be turned off. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9

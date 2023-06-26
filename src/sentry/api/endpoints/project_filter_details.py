@@ -37,7 +37,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             name="FilterPutSerializer",
             fields={
                 "active": serializers.CharField(required=False),
-                "subfilters": serializers.ListField(child=serializers.CharField()),
+                "subfilters": serializers.ListField(child=serializers.CharField(), required=False),
             },
         ),
         responses={
