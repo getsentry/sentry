@@ -201,4 +201,65 @@ describe('Tags', function () {
       '/organizations/org-slug/discover/homepage/?query=%21color%3A%5Bred%2C%20blue%2C%20green%2C%20yellow%5D'
     );
   });
+
+  it('has a Show More button when there are more tags', async () => {
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+      },
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
+        },
+      ],
+    });
+
+    const mockRequest = Client.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+      body: [],
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:10:1",' +
+          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+      },
+    });
+
+    const api = new Client();
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: '',
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={api}
+        totalValues={30}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={{query: {}}}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
+    expect(mockRequest).toHaveBeenCalled();
+
+    // Button should disappear when there are no more tags to load
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
+  });
 });
