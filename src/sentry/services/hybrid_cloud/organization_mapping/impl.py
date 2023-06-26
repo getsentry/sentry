@@ -61,10 +61,11 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!
-        try:
-            OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
-        except OrganizationMapping.DoesNotExist:
-            pass
+        with in_test_psql_role_override("postgres"):
+            try:
+                OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
+            except OrganizationMapping.DoesNotExist:
+                pass
 
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
