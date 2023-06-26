@@ -1405,7 +1405,7 @@ SENTRY_FEATURES = {
     "organizations:metrics-extraction": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
-    # Extract on demand metrics (experimental)
+    # Extract on demand metrics (experimental features)
     "organizations:on-demand-metrics-extraction-experimental": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
