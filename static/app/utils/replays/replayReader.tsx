@@ -26,6 +26,7 @@ import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType'
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  MemoryFrame,
   OptionFrame,
   RecordingFrame,
   SpanFrame,
@@ -128,7 +129,7 @@ export default class ReplayReader {
     this.replayRecord = replayRecord;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
-    this._errors = hydrateErrors(replayRecord, errors);
+    this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
     // RRWeb Events are not sorted here, they are fetched in sorted order.
     this._sortedRRWebEvents = rrwebFrames;
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
@@ -214,8 +215,17 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getErrorFrames = () => this._errors;
+
   getConsoleFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+  );
+
+  getNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'replay.init'),
+      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+    ].sort(sortFrames)
   );
 
   getNetworkFrames = memoize(() =>
@@ -229,7 +239,7 @@ export default class ReplayReader {
   );
 
   getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter(frame => frame.op === 'memory')
+    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
   getChapterFrames = memoize(() =>

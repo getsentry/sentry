@@ -919,11 +919,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
-                    options.get("dynamic-sampling:boost-latest-release")
-                    and features.has(
+                    features.has(
                         "organizations:dynamic-sampling", projects[project_id].organization
                     )
-                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -1322,7 +1320,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     event_id = data.get("event_id")
 
-    return eventstore.create_event(
+    return eventstore.backend.create_event(
         project_id=project_id,
         event_id=event_id,
         group_id=None,

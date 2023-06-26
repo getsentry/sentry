@@ -34,9 +34,7 @@ class UserOptionManager(OptionManager["User"]):
         else:
             metakey = f"{uid}:user"
 
-        # Explicitly typing to satisfy mypy.
-        key: str = super()._make_key(metakey)
-        return key
+        return super()._make_key(metakey)
 
     def get_value(
         self, user: User | RpcUser, key: str, default: Value | None = None, **kwargs: Any
@@ -122,9 +120,7 @@ class UserOptionManager(OptionManager["User"]):
             }
             self._option_cache[metakey] = result
 
-        # Explicitly typing to satisfy mypy.
-        values: Mapping[str, Value] = self._option_cache.get(metakey, {})
-        return values
+        return self._option_cache.get(metakey, {})
 
     def post_save(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(

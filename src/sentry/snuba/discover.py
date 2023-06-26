@@ -634,7 +634,7 @@ def get_facets(
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
+        elif i >= len(top_tags) - per_page:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
@@ -674,6 +674,8 @@ def get_facets(
                 selected_columns=["count()", "tags_key", "tags_value"],
                 orderby=["tags_key", "-count()"],
                 limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
+                # Increase the limit to ensure we get results for each tag
+                limit=len(aggregate_tags) * TOP_VALUES_DEFAULT_LIMIT,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
                 sample_rate=sample_rate,

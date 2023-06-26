@@ -52,16 +52,16 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
     : undefined;
-  const method = location.query.method
-    ? Array.isArray(location.query.method)
-      ? location.query.method[0]
-      : location.query.method
+  const method = httpMethod
+    ? Array.isArray(httpMethod)
+      ? httpMethod[0]
+      : httpMethod
     : undefined;
   const pageFilter = usePageFilters();
 
@@ -294,7 +294,6 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
-            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable
               filter={state.spansFilter}
               transaction={transaction}
@@ -346,8 +345,6 @@ function SpanMetricsTable({
   transaction: string | undefined;
   method?: string;
 }) {
-  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}

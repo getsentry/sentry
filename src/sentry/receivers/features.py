@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import time
 
 from django.db.models.signals import post_save
@@ -9,6 +11,7 @@ from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
@@ -156,11 +159,11 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization_id: int, **kwargs):
+def record_member_joined(organization_id: int, user_id: int, **kwargs):
     FeatureAdoption.objects.record(
-        organization_id=member.organization_id, feature_slug="invite_team", complete=True
+        organization_id=organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record("organization.joined", user_id=member.user_id, organization_id=organization_id)
+    analytics.record("organization.joined", user_id=user_id, organization_id=organization_id)
 
 
 @issue_assigned.connect(weak=False)
@@ -596,12 +599,18 @@ def record_team_created(organization, user, team, **kwargs):
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
+def record_integration_added(
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs
+):
+    organization = Organization.objects.get(id=organization_id)
+    integration = integration_service.get_integration(integration_id=integration_id)
+    assert integration, f"integration_added called for missing integration: {integration_id}"
+
+    if user_id is not None:
+        default_user_id = user_id
     else:
-        user_id = None
         default_user_id = organization.get_default_owner().id
+
     analytics.record(
         "integration.added",
         user_id=user_id,
