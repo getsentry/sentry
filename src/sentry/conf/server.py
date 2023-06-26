@@ -1403,6 +1403,10 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Extract on demand metrics
+    "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (experimental features)
+    "organizations:on-demand-metrics-extraction-experimental": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
@@ -1540,18 +1544,12 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
-    # Enable session replay click search banner rollout for eligible SDKs
-    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled for those orgs who participated in the Replay Beta program
-    "organizations:session-replay-beta-grace": False,
     # Enabled experimental session replay errors view, replacing issues
     "organizations:session-replay-errors-tab": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
     "organizations:session-replay-ga": False,
-    # Enabled experimental session replay network data view
-    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
@@ -3541,7 +3539,7 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
-    "attachments-store": {"redis": "rc-short"},
+    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},

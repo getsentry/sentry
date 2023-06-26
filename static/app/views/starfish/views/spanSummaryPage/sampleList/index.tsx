@@ -9,10 +9,11 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
 };
 
-export function SampleList({groupId, transactionName}: Props) {
+export function SampleList({groupId, transactionName, transactionMethod}: Props) {
   const router = useRouter();
   const [highlightedSpanId, highlightSample] = useState<string | undefined>(undefined);
 
@@ -26,13 +27,18 @@ export function SampleList({groupId, transactionName}: Props) {
         });
       }}
     >
-      <h3>{transactionName}</h3>
+      <h3>{`${transactionMethod} ${transactionName}`}</h3>
 
-      <SampleInfo groupId={groupId} transactionName={transactionName} />
+      <SampleInfo
+        groupId={groupId}
+        transactionName={transactionName}
+        transactionMethod={transactionMethod}
+      />
 
       <DurationChart
         groupId={groupId}
         transactionName={transactionName}
+        transactionMethod={transactionMethod}
         onClickSample={span => {
           router.push(
             `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
@@ -45,6 +51,7 @@ export function SampleList({groupId, transactionName}: Props) {
 
       <SampleTable
         highlightSpanId={highlightedSpanId}
+        transactionMethod={transactionMethod}
         onMouseLeaveSample={() => highlightSample(undefined)}
         onMouseOverSample={sample => highlightSample(sample.span_id)}
         groupId={groupId}

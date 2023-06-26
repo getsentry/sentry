@@ -16,7 +16,7 @@ def auto_login(settings, client, default_user):
     assert client.login(username=default_user.username, password="admin")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_simple(client, factories, default_project):
     min_ago = iso_format(before_now(minutes=1))
