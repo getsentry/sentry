@@ -17,10 +17,6 @@ from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializ
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
 from sentry.utils.db import atomic_transaction
 
-# We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
-# restrict the number of order by fields that are possible in the API.
-ORDER_BY_FIELDS_MAPPING = {"date_added": "date_uploaded", "date_modified": "date_last_modified"}
-
 
 class InvalidSortByParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -34,8 +30,8 @@ class ArtifactBundlesMixin:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
-        order_by = ORDER_BY_FIELDS_MAPPING.get(sort_by)
-        if order_by is not None:
+        if sort_by == "date_added":
+            order_by = "date_uploaded"
             return f"-{order_by}" if is_desc else order_by
 
         raise InvalidSortByParameter

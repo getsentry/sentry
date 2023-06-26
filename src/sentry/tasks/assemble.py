@@ -327,12 +327,10 @@ def _bind_or_create_artifact_bundle(
             bundle_id=bundle_id or uuid.uuid4().hex,
             file=archive_file,
             artifact_count=artifact_count,
-            # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
-            # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
+            # For now these two fields will have the same value but in separate tasks we will update "date_added"
+            # in order to perform partitions rebalancing in the database.
             date_added=date_added,
             date_uploaded=date_added,
-            # When creating a new bundle by default its last modified date corresponds to the creation date.
-            date_last_modified=date_added,
         )
 
         return artifact_bundle, True
@@ -344,14 +342,9 @@ def _bind_or_create_artifact_bundle(
         # a newly bound file.
         if existing_file != archive_file:
             # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
-            # with its corresponding artifact count and also update the dates.
+            # with its corresponding artifact count.
             existing_artifact_bundle.update(
-                file=archive_file,
-                artifact_count=artifact_count,
-                date_added=date_added,
-                # If you upload a bundle which already exists, we track this as a modification since our goal is to show
-                # first all the bundles that have had the most recent activity.
-                date_last_modified=date_added,
+                date_added=date_added, file=archive_file, artifact_count=artifact_count
             )
 
             # We now delete that file, in order to avoid orphan files in the database.
