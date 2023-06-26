@@ -96,6 +96,5 @@ describe('StreamGroup', function () {
 
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
-    expect(trackAnalytics).toHaveBeenCalledTimes(2);
   });
 });

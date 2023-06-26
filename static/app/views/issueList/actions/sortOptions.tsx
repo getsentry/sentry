@@ -2,7 +2,11 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
-import {getSortLabel, IssueSortOptions, Query} from 'sentry/views/issueList/utils';
+import {
+  FOR_REVIEW_QUERIES,
+  getSortLabel,
+  IssueSortOptions,
+} from 'sentry/views/issueList/utils';
 
 type Props = {
   onSelect: (sort: string) => void;
@@ -38,7 +42,7 @@ function IssueListSortOptions({onSelect, sort, query}: Props) {
   const sortKey = sort || IssueSortOptions.DATE;
   const sortKeys = [
     ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
-    ...(query === Query.FOR_REVIEW ? [IssueSortOptions.INBOX] : []),
+    ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs

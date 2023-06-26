@@ -39,9 +39,6 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
-  'inbox_tab.issue_clicked': {
-    group_id: string;
-  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
@@ -153,7 +150,6 @@ export type IssueEventParameters = {
   'issues_stream.issue_category_dropdown_changed': {
     category: string;
   };
-  'issues_stream.issue_clicked': IssueStream;
   'issues_stream.paginate': {
     direction: string;
   };
@@ -230,10 +226,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
-  'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
-  'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',

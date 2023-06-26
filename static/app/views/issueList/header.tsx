@@ -21,7 +21,14 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
-import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  FOR_REVIEW_QUERIES,
+  getTabs,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
@@ -92,7 +99,6 @@ function IssueListHeader({
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -133,8 +139,9 @@ function IssueListHeader({
                   query: {
                     ...queryParms,
                     query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
+                    sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
+                      ? IssueSortOptions.INBOX
+                      : sortParam,
                   },
                   pathname: `/organizations/${organization.slug}/issues/`,
                 });
