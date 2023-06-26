@@ -20,6 +20,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.snuba import Dataset, raw_snql_query
 
@@ -164,6 +165,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Organization.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.org_missing")
+        metrics.incr("github_pr_comment.error", tags={"type": "missing_org"})
         return
 
     # TODO(cathy): add check for OrganizationOption for comment bot
@@ -181,6 +183,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Project.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.project_missing", extra={"organization_id": org_id})
+        metrics.incr("github_pr_comment.error", tags={"type": "missing_project"})
         return
 
     top_5_issues = get_top_5_issues_by_count(issue_list, project)
@@ -192,12 +195,14 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except Repository.DoesNotExist:
         cache.delete(cache_key)
         logger.error("github.pr_comment.repo_missing", extra={"organization_id": org_id})
+        metrics.incr("github_pr_comment.error", tags={"type": "missing_repo"})
         return
 
     integration = integration_service.get_integration(integration_id=repo.integration_id)
     if not integration:
         cache.delete(cache_key)
         logger.error("github.pr_comment.integration_missing", extra={"organization_id": org_id})
+        metrics.incr("github_pr_comment.error", tags={"type": "missing_integration"})
         return
 
     installation = integration_service.get_installation(
@@ -224,4 +229,5 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         )
     except ApiError as e:
         cache.delete(cache_key)
+        metrics.incr("github_pr_comment.api_error")
         raise e
