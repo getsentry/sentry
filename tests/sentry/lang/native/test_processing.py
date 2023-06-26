@@ -125,7 +125,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_cocoa_function_name(mock_symbolicator, default_project):
 
@@ -226,7 +226,7 @@ def test_instruction_addr_adjustment_none():
     assert not processed_frames[1]["adjust_instruction_addr"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project):
 

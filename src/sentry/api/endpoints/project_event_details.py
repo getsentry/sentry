@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Union
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,12 +8,12 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import IssueEventSerializer, serialize
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent
 
 
 def wrap_event_response(
     request_user: Any,
-    event: Event,
+    event: Union[Event, GroupEvent],
     environments: List[str],
     include_full_release_data: bool = False,
 ):

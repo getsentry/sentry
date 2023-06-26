@@ -63,6 +63,7 @@ import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
+  FOR_REVIEW_QUERIES,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
@@ -921,8 +922,10 @@ class IssueListOverview extends Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
-    // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
+    if (
+      query.sort === IssueSortOptions.INBOX &&
+      !FOR_REVIEW_QUERIES.includes(query.query || '')
+    ) {
       delete query.sort;
     }
 
