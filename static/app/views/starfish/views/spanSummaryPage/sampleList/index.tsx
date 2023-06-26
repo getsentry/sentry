@@ -8,10 +8,11 @@ import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
 };
 
-export function SampleList({groupId, transactionName}: Props) {
+export function SampleList({groupId, transactionName, transactionMethod}: Props) {
   const router = useRouter();
 
   return (
@@ -24,13 +25,25 @@ export function SampleList({groupId, transactionName}: Props) {
         });
       }}
     >
-      <h3>{transactionName}</h3>
+      <h3>{`${transactionMethod} ${transactionName}`}</h3>
 
-      <SampleInfo groupId={groupId} transactionName={transactionName} />
+      <SampleInfo
+        groupId={groupId}
+        transactionName={transactionName}
+        transactionMethod={transactionMethod}
+      />
 
-      <DurationChart groupId={groupId} transactionName={transactionName} />
+      <DurationChart
+        groupId={groupId}
+        transactionName={transactionName}
+        transactionMethod={transactionMethod}
+      />
 
-      <SampleTable groupId={groupId} transactionName={transactionName} />
+      <SampleTable
+        groupId={groupId}
+        transactionName={transactionName}
+        transactionMethod={transactionMethod}
+      />
     </DetailPanel>
   );
 }

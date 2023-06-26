@@ -9,15 +9,16 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
 };
 
 function SampleInfo(props: Props) {
-  const {groupId, transactionName} = props;
+  const {groupId, transactionName, transactionMethod} = props;
 
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [
       'sps()',
       `sum(${SPAN_SELF_TIME})`,

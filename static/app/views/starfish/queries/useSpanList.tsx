@@ -31,6 +31,7 @@ export type SpanMetrics = {
 export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
+  method?: string,
   spanCategory?: string,
   sorts?: Sort[],
   limit?: number,
@@ -39,7 +40,14 @@ export const useSpanList = (
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(moduleName, location, transaction, spanCategory, sorts);
+  const eventView = getEventView(
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory,
+    sorts
+  );
 
   const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
@@ -56,10 +64,17 @@ function getEventView(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
+  method?: string,
   spanCategory?: string,
   sorts?: Sort[]
 ) {
-  const query = buildEventViewQuery(moduleName, location, transaction, spanCategory)
+  const query = buildEventViewQuery(
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory
+  )
     .filter(Boolean)
     .join(' ');
 
@@ -85,7 +100,7 @@ function getEventView(
       projects: [1],
       version: 2,
     },
-    omit(location, 'span.category')
+    omit(location, 'span.category', 'http.method')
   );
 
   if (sorts) {
@@ -99,6 +114,7 @@ function buildEventViewQuery(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
+  method?: string,
   spanCategory?: string
 ) {
   const {query} = location;
@@ -123,6 +139,10 @@ function buildEventViewQuery(
 
   if (transaction) {
     result.push(`transaction:${transaction}`);
+  }
+
+  if (method) {
+    result.push(`transaction.method:${method}`);
   }
 
   return result;
