@@ -11,6 +11,9 @@ from sentry.api.endpoints.organization_events_starfish import OrganizationEvents
 from sentry.api.endpoints.organization_projects_experiment import (
     OrganizationProjectsExperimentEndpoint,
 )
+from sentry.api.endpoints.project_performance_issue_settings_admin import (
+    ProjectPerformanceIssueAdminSettingsEndpoint,
+)
 from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -2255,6 +2258,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/$",
         ProjectPerformanceIssueSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-issue-settings",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/performance-issues/configure/admin/$",
+        ProjectPerformanceIssueAdminSettingsEndpoint.as_view(),
+        name="sentry-api-0-project-performance-issue-admin-settings",
     ),
     # Load plugin project urls
     url(

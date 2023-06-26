@@ -5,18 +5,10 @@ from rest_framework.response import Response
 from sentry import features, options, projectoptions
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
-from sentry.api.permissions import SuperuserPermission
 
 MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
-
-
-class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
-    def has_object_permission(self, request: Request, view, project):
-        return super().has_object_permission(
-            request, view, project
-        ) or SuperuserPermission().has_permission(request, view)
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
@@ -40,7 +32,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectOwnerOrSuperUserPermissions,)
+    permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:
         return features.has(
