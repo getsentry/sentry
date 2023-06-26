@@ -229,7 +229,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert self.release.count_artifacts() == 0
 
             status, details = get_assemble_status(
-                AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
             assert details is None
@@ -567,7 +567,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 assert self.release.count_artifacts() == 2
 
                 status, details = get_assemble_status(
-                    AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                    AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
                 )
                 assert status == ChunkFileState.OK
                 assert details is None
@@ -605,7 +605,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -623,7 +623,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -641,7 +641,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -669,6 +669,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
             # Status is still OK:
             status, details = get_assemble_status(
-                AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
