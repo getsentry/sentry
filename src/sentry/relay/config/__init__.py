@@ -19,7 +19,7 @@ import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, options, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import HEALTH_CHECK_GLOBS, generate_rules
@@ -52,6 +52,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
+    "organizations:transaction-name-normalize-legacy",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -194,9 +195,7 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    if features.has("organizations:dynamic-sampling", project.organization) and options.get(
-        "dynamic-sampling:enabled-biases"
-    ):
+    if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"rules": [], "rulesV2": generate_rules(project)}
