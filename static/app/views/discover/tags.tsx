@@ -115,7 +115,9 @@ class Tags extends Component<Props, State> {
       }
       this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
     } catch (err) {
-      Sentry.captureException(err);
+      if (err.status !== 400) {
+        Sentry.captureException(err);
+      }
       this.setState({loading: false, error: err});
     }
   };
