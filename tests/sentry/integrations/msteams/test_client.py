@@ -1,8 +1,11 @@
+from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+import pytest
 import responses
 from django.test import override_settings
+from mock import call
 
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.models import Integration
@@ -14,6 +17,11 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test(stable=True)
 class MsTeamsClientTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+            yield
+
     def setUp(self):
         self.expires_at = 1594768808
         self.integration = Integration.objects.create(
@@ -24,6 +32,12 @@ class MsTeamsClientTest(TestCase):
                 "expires_at": self.expires_at,
                 "service_url": "https://smba.trafficmanager.net/amer/",
             },
+        )
+
+        responses.add(
+            responses.GET,
+            "https://smba.trafficmanager.net/amer/v3/teams/foobar",
+            json={},
         )
 
         # token mock
@@ -73,6 +87,38 @@ class MsTeamsClientTest(TestCase):
                 "expires_at": self.expires_at,
                 "service_url": "https://smba.trafficmanager.net/amer/",
             }
+
+    @responses.activate
+    def test_simple(self):
+        self.client.get_team_info("foobar")
+        assert len(responses.calls) == 2
+        token_request = responses.calls[0].request
+
+        # Token request
+        assert (
+            "https://login.microsoftonline.com/botframework.com/oauth2/v2.0/token"
+            == token_request.url
+        )
+
+        # API request to service url
+        request = responses.calls[1].request
+        assert "https://smba.trafficmanager.net/amer/v3/teams/foobar" == request.url
+        assert self.client.base_url in request.url
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
 
 
 def assert_proxy_request(request, is_proxy=True):

@@ -2,7 +2,9 @@ from copy import deepcopy
 from unittest import mock
 from urllib.parse import urlencode
 
+import pytest
 import responses
+from mock import call
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
@@ -29,6 +31,11 @@ kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 @control_silo_test(stable=True)
 class MsTeamsWebhookTest(APITestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+            yield
+
     def setUp(self):
         super().setUp()
 
@@ -425,6 +432,31 @@ class MsTeamsWebhookTest(APITestCase):
             in responses.calls[3].request.body.decode("utf-8")
         )
         assert "Bearer my_token" in responses.calls[3].request.headers["Authorization"]
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "msteams", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
