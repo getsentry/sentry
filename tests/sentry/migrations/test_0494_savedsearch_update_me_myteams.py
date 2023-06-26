@@ -2,7 +2,7 @@ from sentry.models import SavedSearch, SearchType
 from sentry.testutils.cases import TestMigrations
 
 
-class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
+class BackfillSaveSearchAssignedQueryTest(TestMigrations):
     migrate_from = "0493_pickle_to_json_sentry_activity"
     migrate_to = "0494_savedsearch_update_me_myteams"
 
