@@ -1,61 +1,65 @@
 import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import Pagination from 'sentry/components/pagination';
+import {Button} from 'sentry/components/button';
+import {t} from 'sentry/locale';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
   user?: string;
 };
 
-function SampleTable({groupId, transactionName}: Props) {
+function SampleTable({groupId, transactionName, transactionMethod}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
-    [`p95(${SPAN_SELF_TIME})`],
+    {transactionName, 'transaction.method': transactionMethod},
+    [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'span-summary-panel-samples-table-p95'
   );
 
   const {
     data: spans,
     isLoading: areSpanSamplesLoading,
-    pageLinks,
-  } = useSpanSamples(
+    isRefetching: areSpanSamplesRefetching,
+    refetch,
+  } = useSpanSamples({
     groupId,
     transactionName,
-    undefined,
-    '-duration',
-    'span-summary-panel-samples-table-spans'
-  );
+    transactionMethod,
+  });
 
   const {data: transactions, isLoading: areTransactionsLoading} = useTransactions(
-    spans.map(span => span.transaction_id),
+    spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
 
   const transactionsById = keyBy(transactions, 'id');
 
+  const isLoading =
+    areSpanSamplesLoading || areSpanSamplesRefetching || areTransactionsLoading;
   return (
     <Fragment>
       <SpanSamplesTable
         data={spans.map(sample => {
           return {
             ...sample,
-            transaction: transactionsById[sample.transaction_id],
+            op: spanMetrics['span.op'],
+            transaction: transactionsById[sample['transaction.id']],
           };
         })}
-        isLoading={areSpanSamplesLoading || areTransactionsLoading}
+        isLoading={isLoading}
         p95={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Button onClick={() => refetch()}>{t('Load More Samples')}</Button>
     </Fragment>
   );
 }

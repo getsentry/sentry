@@ -1,6 +1,6 @@
+from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.access import get_cached_organization_member
 from sentry.models import OrganizationMember
@@ -12,7 +12,7 @@ class DisabledMemberView(ReactPageView):
     def is_member_disabled_from_limit(self, request: Request, organization):
         return False
 
-    def handle(self, request: Request, organization, **kwargs) -> Response:
+    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
         user = request.user
         # if org member is not restricted, redirect user out of the disabled view
         try:

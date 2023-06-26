@@ -1082,7 +1082,9 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
+            events = eventstore.backend.get_events(
+                snuba_filter, referrer="test.wait_for_event_count"
+            )
             last_events_seen = len(events)
             if len(events) >= total:
                 break
@@ -1653,7 +1655,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-        project: Optional[id] = None,
+        project: Optional[int] = None,
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
@@ -1693,7 +1695,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-        project: Optional[id] = None,
+        project: Optional[int] = None,
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric

@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import analytics, audit_log
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
@@ -16,7 +16,7 @@ from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.utils import hashlib
-from sentry.utils.security.orgauthtoken_jwt import generate_token
+from sentry.utils.security.orgauthtoken_token import generate_token
 
 
 @control_silo_endpoint
@@ -69,6 +69,12 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
             target_object=token.id,
             event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
             data=token.get_audit_log_data(),
+        )
+
+        analytics.record(
+            "org_auth_token.created",
+            user_id=request.user.id,
+            organization_id=organization.id,
         )
 
         # This is THE ONLY TIME that the token is available

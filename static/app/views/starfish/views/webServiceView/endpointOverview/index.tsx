@@ -6,6 +6,7 @@ import * as qs from 'query-string';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -51,16 +52,16 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
     : undefined;
-  const method = location.query.method
-    ? Array.isArray(location.query.method)
-      ? location.query.method[0]
-      : location.query.method
+  const method = httpMethod
+    ? Array.isArray(httpMethod)
+      ? httpMethod[0]
+      : httpMethod
     : undefined;
   const pageFilter = usePageFilters();
 
@@ -104,7 +105,7 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
@@ -120,6 +121,8 @@ export default function EndpointOverview() {
           if (!results) {
             return null;
           }
+          // Force label to be Requests
+          const throughputResults = {seriesName: 'Requests', data: results[0].data};
           return (
             <Fragment>
               <Header>
@@ -136,7 +139,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
-                data={[results[0]]}
+                data={[throughputResults]}
                 start=""
                 end=""
                 loading={loading}
@@ -291,7 +294,6 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
-            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable
               filter={state.spansFilter}
               transaction={transaction}
@@ -343,13 +345,13 @@ function SpanMetricsTable({
   transaction: string | undefined;
   method?: string;
 }) {
-  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
-      orderBy="-time_spent_percentage"
-      onSetOrderBy={() => undefined}
+      sort={{
+        field: 'time_spent_percentage()',
+        kind: 'desc',
+      }}
       endpoint={transaction}
       method={method}
       limit={SPANS_TABLE_LIMIT}

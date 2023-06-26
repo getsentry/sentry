@@ -7,25 +7,26 @@ import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
-  [metric: string]: number;
+  [metric: string]: number | string;
+  'p95(span.self_time)': number;
+  'span.op': string;
+  'sps()': number;
+  'time_spent_percentage()': number;
+};
+
+export type SpanSummaryQueryFilters = {
+  'transaction.method'?: string;
+  transactionName?: string;
 };
 
 export const useSpanMetrics = (
   span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: {transactionName?: string} = {},
+  queryFilters: SpanSummaryQueryFilters = {},
   fields: string[] = [],
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
-
-  const filters: string[] = [];
-  if (queryFilters.transactionName) {
-    filters.push(`transaction = ${queryFilters.transactionName}`);
-  }
-
-  const eventView = span
-    ? getEventView(span, location, queryFilters.transactionName, fields)
-    : undefined;
+  const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
 
   // TODO: Add referrer
   const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
@@ -41,7 +42,7 @@ export const useSpanMetrics = (
 function getEventView(
   span: {group: string},
   location: Location,
-  transaction?: string,
+  queryFilters?: SpanSummaryQueryFilters,
   fields: string[] = []
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
@@ -50,7 +51,13 @@ function getEventView(
     {
       name: '',
       query: `span.group:${cleanGroupId}${
-        transaction ? ` transaction:${transaction}` : ''
+        queryFilters?.transactionName
+          ? ` transaction:${queryFilters?.transactionName}`
+          : ''
+      }${
+        queryFilters?.['transaction.method']
+          ? ` transaction.method:${queryFilters?.['transaction.method']}`
+          : ''
       }`,
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,

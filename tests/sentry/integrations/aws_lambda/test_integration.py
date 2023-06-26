@@ -4,7 +4,6 @@ from urllib.parse import urlencode
 from botocore.exceptions import ClientError
 from django.http import HttpResponse
 
-from sentry.api.serializers import serialize
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
 from sentry.models import Integration, OrganizationIntegration, ProjectKey
@@ -13,7 +12,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -24,7 +23,7 @@ account_number = "599817902985"
 region = "us-east-2"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class AwsLambdaIntegrationTest(IntegrationTestCase):
     provider = AwsLambdaIntegrationProvider
 
@@ -35,18 +34,19 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_project_select(self, mock_react_view):
+        from sentry.services.hybrid_cloud.project.serial import serialize_project
+
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
-        serialized_projects = list(
-            map(lambda x: serialize(x, self.user), [self.projectA, self.projectB])
-        )
+        serialized_projects = [serialize_project(p) for p in [self.projectA, self.projectB]]
         mock_react_view.assert_called_with(
             ANY, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
 
     @patch.object(PipelineView, "render_react_view", return_value=HttpResponse())
     def test_one_project(self, mock_react_view):
-        self.projectB.delete()
+        with exempt_from_silo_limits():
+            self.projectB.delete()
         resp = self.client.get(self.setup_path)
         assert resp.status_code == 200
         mock_react_view.assert_called_with(ANY, "awsLambdaCloudformation", ANY)
@@ -181,7 +181,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
+        with exempt_from_silo_limits():
+            sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         # TODO: pass in lambdaA=false
         # having issues with reading json data
@@ -249,7 +250,8 @@ class AwsLambdaIntegrationTest(IntegrationTestCase):
             "project_id": self.projectA.id,
         }
 
-        sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
+        with exempt_from_silo_limits():
+            sentry_project_dsn = ProjectKey.get_default(project=self.projectA).get_dsn(public=True)
 
         resp = self.client.post(
             self.setup_path,

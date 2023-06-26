@@ -2,9 +2,10 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-
+from enum import IntEnum
 from typing import Any, List, Mapping, Optional, TypedDict
 
+from django.dispatch import Signal
 from pydantic import Field
 
 from sentry.db.models import ValidateFunction, Value
@@ -232,3 +233,28 @@ class RpcRegionUser(RpcModel):
     id: int = -1
     is_active: bool = True
     email: Optional[str] = None
+
+
+class RpcOrganizationSignal(IntEnum):
+    INTEGRATION_ADDED = 1
+    MEMBER_JOINED = 2
+
+    @classmethod
+    def from_signal(cls, signal: Signal) -> "RpcOrganizationSignal":
+        for enum, s in cls.signal_map().items():
+            if s is signal:
+                return enum
+        raise ValueError(f"Signal {signal!r} is not a valid RpcOrganizationSignal")
+
+    @classmethod
+    def signal_map(cls) -> Mapping["RpcOrganizationSignal", Signal]:
+        from sentry.signals import integration_added, member_joined
+
+        return {
+            RpcOrganizationSignal.INTEGRATION_ADDED: integration_added,
+            RpcOrganizationSignal.MEMBER_JOINED: member_joined,
+        }
+
+    @property
+    def signal(self) -> Signal:
+        return self.signal_map()[self]

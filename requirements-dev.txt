@@ -15,7 +15,7 @@ responses>=0.23.1
 sentry-cli>=2.16.0
 
 # pre-commit dependencies
-pre-commit>=2.18.1
+pre-commit>=3.3
 black>=22.10.0
 flake8>=6
 flake8-bugbear>=22.10

@@ -63,7 +63,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       [projects, projectSlug]
     );
 
-    const issueUrl =
+    const eventUrl =
       groupId && eventId
         ? {
             pathname: normalizeUrl(
@@ -120,8 +120,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
     const renderFns = [
       () => (
         <Cell {...columnProps} numeric align="flex-start">
-          {issueUrl ? (
-            <Link to={issueUrl}>
+          {eventUrl ? (
+            <Link to={eventUrl}>
               <Text>{getShortEventId(eventId || '')}</Text>
             </Link>
           ) : (
@@ -153,24 +153,22 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
         </Cell>
       ),
       () => (
-        <Cell {...columnProps} gap={0.5}>
-          <AvatarWrapper>
-            <Avatar project={project} size={16} />
-          </AvatarWrapper>
-          <QuickContextHovercard
-            dataRow={{
-              'issue.id': groupId,
-              issue: groupShortId,
-            }}
-            contextType={ContextType.ISSUE}
-            organization={organization}
-          >
-            {issueUrl ? (
-              <Link to={issueUrl}>{groupShortId}</Link>
-            ) : (
+        <Cell {...columnProps}>
+          <Text>
+            <AvatarWrapper>
+              <Avatar project={project} size={16} />
+            </AvatarWrapper>
+            <QuickContextHovercard
+              dataRow={{
+                'issue.id': groupId,
+                issue: groupShortId,
+              }}
+              contextType={ContextType.ISSUE}
+              organization={organization}
+            >
               <span>{groupShortId}</span>
-            )}
-          </QuickContextHovercard>
+            </QuickContextHovercard>
+          </Text>
         </Cell>
       ),
       () => (
