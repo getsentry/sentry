@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List, MutableMapping
+from typing import Any, MutableMapping, Sequence
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
@@ -12,8 +12,8 @@ from sentry.services.hybrid_cloud.user import RpcUser
 @register(SentryAppInstallation)
 class SentryAppInstallationSerializer(Serializer):
     def get_attrs(
-        self, item_list: List[SentryAppInstallation], user: User | RpcUser, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
+        self, item_list: Sequence[SentryAppInstallation], user: User | RpcUser, **kwargs: Any
+    ):
         result: MutableMapping[Any, Any] = super().get_attrs(item_list, user, **kwargs)
 
         organizations = {
