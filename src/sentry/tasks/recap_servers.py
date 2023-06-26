@@ -72,6 +72,10 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         return
 
     recap_server = project.get_option(RECAP_SERVER_OPTION_KEY)
+    # Just a guard in case someone removes recap url in the exact moment we trigger polling task
+    if recap_server is None:
+        return
+
     print(">", project, project_id)  # NOQA: S002
     print(">", "Configured recap server url:", recap_server)  # NOQA: S002
 
