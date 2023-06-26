@@ -1346,3 +1346,11 @@ register(
     default=0.5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
