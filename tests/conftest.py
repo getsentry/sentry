@@ -187,8 +187,9 @@ def protect_hybrid_cloud_writes_and_deletes(request):
         with get_connection(using).cursor() as conn:
             conn.execute("SET ROLE 'postgres_unprivileged'")
 
-        try:
-            yield
-        finally:
+    try:
+        yield
+    finally:
+        for using in settings.DATABASES.keys():
             with get_connection(using).cursor() as conn:
                 conn.execute("SET ROLE 'postgres'")
