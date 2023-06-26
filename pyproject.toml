@@ -821,7 +821,6 @@ module = [
     "sentry.plugins.sentry_useragents.models",
     "sentry.plugins.sentry_webhooks.plugin",
     "sentry.plugins.validators.url",
-    "sentry.profiles.flamegraph",
     "sentry.profiles.task",
     "sentry.profiles.utils",
     "sentry.projectoptions.defaults",
