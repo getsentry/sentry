@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import ProjectKeySerializer
+from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models import ProjectKey, ProjectKeyStatus
 
@@ -47,7 +47,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        serializer = ProjectKeySerializer(data=request.data, partial=True)
+        serializer = ProjectKeyRequestSerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
         if serializer.is_valid():

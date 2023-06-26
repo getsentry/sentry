@@ -1474,6 +1474,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
+    # Enable sorting Issue detail events by 'most helpful'
+    "organizations:issue-details-most-helpful-event": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
@@ -1489,6 +1491,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable performance change explorer panel on trends page
+    "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1548,8 +1552,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-ui": True,
     # Enabled experimental session replay errors view, replacing issues
     "organizations:session-replay-errors-tab": False,
-    # Enable replay GA messaging (update paths from AM1 to AM2)
-    "organizations:session-replay-ga": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
