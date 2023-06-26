@@ -1,14 +1,18 @@
+from typing import Union
+
 from django.http import Http404
 from rest_framework.request import Request
 
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.models import Integration, OrganizationIntegration
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
     integration_service,
 )
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
@@ -19,6 +23,9 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
     """
 
     permission_classes = (OrganizationIntegrationsPermission,)
+
+    def fetch_org(self, slug: str) -> Union[Organization, RpcOrganizationSummary]:
+        return Organization.objects.get_from_cache(slug=slug)
 
     def convert_args(self, request: Request, organization_slug, integration_id, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
