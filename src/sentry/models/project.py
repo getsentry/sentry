@@ -377,7 +377,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         # Remove alert owners not in new org
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(owner_id__isnull=False)
-        rules = Rule.objects.filter(owner_id__isnull=False, project=self)
+        rules = Rule.objects.filter(owner_id__isnull=False, project=self).select_related("owner")
         for rule in list(chain(alert_rules, rules)):
             actor = rule.owner
             is_member = False
