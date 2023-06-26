@@ -78,7 +78,7 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_sdk_crash_event_stored_to_sdk_crash_project(self):
 
         cocoa_sdk_crashes_project = self.create_project(
