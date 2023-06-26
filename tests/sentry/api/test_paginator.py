@@ -1,8 +1,10 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import TestCase as SimpleTestCase
 
 import pytest
+from django.db.models import DateTimeField, IntegerField, Value
 from django.utils import timezone
+from django.utils.timezone import make_aware
 
 from sentry.api.paginator import (
     BadPaginationError,
@@ -630,6 +632,42 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             CombinedQuerysetPaginator(
                 intermediaries=[rule_intermediary, rule_intermediary2],
             )
+
+    def test_only_issue_alert_rules(self):
+        project = self.project
+        Rule.objects.all().delete()
+
+        for i in range(1, 31):
+            Rule.objects.create(id=i, label=f"rule{i}", project=project)
+
+        rules = Rule.objects.all()
+        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        rules = rules.annotate(date_triggered=far_past_date)
+        incident_status_value = Value(-2, output_field=IntegerField())
+        rules = rules.annotate(incident_status=incident_status_value)
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            AlertRule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=25, cursor=None)
+        assert len(result) == 25
+        page1_results = list(result)
+        assert page1_results[0].id == 1
+        assert page1_results[24].id == 25
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=25, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 5
+        assert page2_results[0].id == 26
 
 
 class TestChainPaginator(SimpleTestCase):
