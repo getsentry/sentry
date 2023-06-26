@@ -318,7 +318,7 @@ class ProfileJSONDecodeType(GroupType):
 @dataclass(frozen=True)
 class ProfileCoreDataExperimentalType(GroupType):
     type_id = 2004
-    slug = "profile_core_data_main_thread_experimental"
+    slug = "profile_core_data_main_exp"
     description = "Core Data on Main Thread"
     category = GroupCategory.PERFORMANCE.value
 
