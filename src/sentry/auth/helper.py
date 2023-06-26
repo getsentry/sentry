@@ -972,3 +972,24 @@ class AuthHelper(Pipeline):
             event=audit_log.get_event_id("ORG_EDIT"),
             data={"require_2fa": "to False when enabling SSO"},
         )
+
+
+@transaction.atomic
+def EnablePartnerSSO(provider_key, org_member, sentry_org, provider_config):
+    provider_model = AuthProvider.objects.create(
+        organization_id=sentry_org.id, provider=provider_key, config=provider_config
+    )
+
+    sso_enabled.send_robust(
+        organization=sentry_org,
+        provider=provider_key,
+        sender="EnablePartnerSSO",
+    )
+
+    AuditLogEntry.objects.create(
+        organization_id=sentry_org.id,
+        actor=org_member,
+        target_object=provider_model.id,
+        event=audit_log.get_event_id("SSO_ENABLE"),
+        data=provider_model.get_audit_log_data(),
+    )

@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from sentry import options
+from sentry.auth.partnership_config import SPONSOR_OAUTH_NAME, ChannelName
 from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Provider
 
@@ -8,10 +9,9 @@ from .constants import ACCESS_TOKEN_URL, AUTHORIZE_URL
 from .views import FetchUser, FlyConfigureView, FlyOAuth2Login
 
 
-# TODO: build helper method on fly provider to create this AuthIdentity instance
-# See auth/helper handle_attach_identity
 class FlyOAuth2Provider(OAuth2Provider):
-    name = "Fly"
+    name = SPONSOR_OAUTH_NAME[ChannelName.FLY_IO]
+    is_partner = True
     access_token_url = ACCESS_TOKEN_URL
     authorize_url = AUTHORIZE_URL
 
@@ -107,7 +107,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         """
         # TODO: Discuss with Fly on what this looks like
         data = state["data"]
-        user_data = state["user"]
+        user_data = data["user"]
 
         # XXX(epurkhiser): We initially were using the email as the id key.
         # This caused account dupes on domain changes. Migrate to the
