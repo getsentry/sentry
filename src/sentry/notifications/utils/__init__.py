@@ -201,11 +201,8 @@ def get_group_settings_link(
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    return str(
-        organization.absolute_url(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
+    return organization.absolute_url(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
 
 

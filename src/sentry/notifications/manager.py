@@ -507,7 +507,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         assert key_field, "Could not resolve key_field"
 
-        # Explicitly typing to satisfy mypy.
         team_ids: Set[int] = set()
         user_ids: Set[int] = set()
         if isinstance(recipient, RpcActor):
@@ -517,7 +516,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         elif isinstance(recipient, User):
             user_ids.add(recipient.id)
 
-        has_settings: bool = (
+        return (
             self._filter(provider=provider, team_ids=team_ids, user_ids=user_ids)
             .filter(
                 value__in={
@@ -529,7 +528,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             )
             .exists()
         )
-        return has_settings
 
     def enable_settings_for_user(
         self,
