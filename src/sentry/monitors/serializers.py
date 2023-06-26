@@ -128,10 +128,12 @@ class MonitorSerializerResponse(TypedDict):
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
-    def __init__(self, start=None, end=None, expand=None):
+    def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
         self.start = start
         self.end = end
         self.expand = expand
+        self.organization_id = (organization_id,)
+        self.project_id = project_id
 
     def get_attrs(self, item_list, user, **kwargs):
         # prefetch monitor environment data
@@ -153,6 +155,7 @@ class MonitorCheckInSerializer(Serializer):
             )
 
             from sentry.eventstore.base import EventStorage
+            from sentry.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
             from sentry.snuba.events import Columns
             from sentry.utils import snuba
             from sentry.utils.snuba import DATASETS, raw_snql_query
@@ -168,6 +171,8 @@ class MonitorCheckInSerializer(Serializer):
 
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
+            trace_groups = defaultdict(list)
+
             for item in item_list:
                 if item.trace_id:
                     trace_ids.append(item.trace_id.hex)
@@ -191,33 +196,40 @@ class MonitorCheckInSerializer(Serializer):
                                 Op.LT,
                                 query_end,
                             ),
-                            Condition(Column("trace_id"), Op.IN, trace_ids),
-                            Condition(Column("project_id"), Op.EQ, item_list[0].project_id),
+                            Condition(
+                                Column(DATASETS[dataset][Columns.TRACE_ID.value.alias]),
+                                Op.IN,
+                                trace_ids,
+                            ),
+                            Condition(
+                                Column(DATASETS[dataset][Columns.PROJECT_ID.value.alias]),
+                                Op.EQ,
+                                self.project_id,
+                            ),
                         ],
                         orderby=[
                             OrderBy(Column("timestamp"), Direction.DESC),
                         ],
-                        limit=Limit(100),
-                        offset=Offset(0),
+                        limit=Limit(DEFAULT_LIMIT),
+                        offset=Offset(DEFAULT_OFFSET),
                     ),
-                    tenant_ids={"organization_id": item_list[0].monitor.organization_id},
+                    tenant_ids={"organization_id": self.organization_id},
                 )
 
                 result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
                 if "error" not in result:
-                    trace_groups = defaultdict(list)
-
                     for event in result["data"]:
-                        trace_groups[event["contexts[trace.trace_id]"]].append(event["group_id"])
+                        trace_groups[event[Columns.TRACE_ID.value.event_name]].append(
+                            event["group_id"]
+                        )
 
-                    attrs = {
-                        item: {
-                            "group_ids": trace_groups.get(item.trace_id.hex)
-                            if item.trace_id
-                            else [],
-                        }
-                        for item in item_list
-                    }
+            attrs = {
+                item: {
+                    "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
+                }
+                for item in item_list
+            }
+
         return attrs
 
     def serialize(self, obj, attrs, user):
@@ -235,7 +247,7 @@ class MonitorCheckInSerializer(Serializer):
         }
 
         if self._expand("group_ids"):
-            result["group_ids"] = attrs.get("group_ids")
+            result["group_ids"] = attrs.get("group_ids", [])
 
         return result
 
