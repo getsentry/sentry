@@ -543,7 +543,7 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     return _filter_option_to_config_setting(flt, setting)
 
 
-def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Optional[Mapping[str, Any]]:
+def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[str, Any]:
     """
     Encapsulates the logic for associating a filter database option with the filter setting from project_config
     :param flt: the filter
@@ -572,9 +572,9 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Optional
                 ret_val["options"] = list(setting)
     elif flt.id == FilterStatKeys.HEALTH_CHECK:
         if is_enabled:
-            ret_val = {"patterns": HEALTH_CHECK_GLOBS}
+            ret_val = {"patterns": HEALTH_CHECK_GLOBS, "isEnabled": True}
         else:
-            ret_val = None
+            ret_val = {"patterns": [], "isEnabled": False}
     return ret_val
 
 
