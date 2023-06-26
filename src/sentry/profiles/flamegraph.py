@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
@@ -110,7 +110,8 @@ def get_profile_ids_with_spans(
         ],
     )
     # map {transaction_id: (profile_id, [span intervals])}
-    transaction_to_prof: Mapping[str, Tuple[str, List[Any]]] = {
+
+    transaction_to_prof: Dict[str, Tuple[str, List[Dict[str, str]]]] = {
         row["id"]: (row["profile.id"], []) for row in data
     }
 

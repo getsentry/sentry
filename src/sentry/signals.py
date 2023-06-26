@@ -189,10 +189,6 @@ issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 comment_created = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 comment_updated = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 comment_deleted = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
-inbox_in = BetterSignal(providing_args=["project", "user", "group", "reason"])
-inbox_out = BetterSignal(
-    providing_args=["project", "user", "group", "action", "inbox_date_added", "referrer"]
-)
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
 team_created = BetterSignal(providing_args=["organization", "user", "team"])
