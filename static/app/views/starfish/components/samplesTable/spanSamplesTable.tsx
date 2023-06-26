@@ -67,7 +67,7 @@ export function SpanSamplesTable({
     }
   }
 
-  function handleMouseLeaveBodyCell() {
+  function handleMouseLeave() {
     if (onMouseLeaveSample) {
       onMouseLeaveSample();
     }
@@ -91,7 +91,6 @@ export function SpanSamplesTable({
     const commonProps = {
       style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
       onMouseEnter: () => handleMouseOverBodyCell(row),
-      onMouseLeaveSample: handleMouseLeaveBodyCell,
     };
 
     if (column.key === 'transaction_id') {
@@ -125,16 +124,18 @@ export function SpanSamplesTable({
   }
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={data}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
+    <div onMouseLeave={handleMouseLeave}>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        location={location}
+      />
+    </div>
   );
 }
