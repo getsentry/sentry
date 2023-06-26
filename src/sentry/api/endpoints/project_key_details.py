@@ -1,4 +1,5 @@
 from django.db.models import F
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,13 +9,37 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project_key import ProjectKeySerializerResponse
 from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
 from sentry.models import ProjectKey, ProjectKeyStatus
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
+    # public = {"GET", "PUT", "DELETE"}
+    public = {"GET"}
+
+    @extend_schema(
+        operation_id="Retrieve a Client Key",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ProjectParams.key_id("The ID of the key to delete."),
+        ],
+        request=None,
+        responses={
+            200: ProjectKeySerializerResponse,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=ProjectExamples.LIST_CLIENT_KEYS,
+    )
     def get(self, request: Request, project, key_id) -> Response:
         try:
             key = ProjectKey.objects.get(
@@ -136,4 +161,5 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         key.delete()
 
+        return Response(status=204)
         return Response(status=204)

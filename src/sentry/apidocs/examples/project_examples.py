@@ -141,3 +141,12 @@ class ProjectExamples:
             response_only=True,
         ),
     ]
+
+    RETREVE_CLIENT_KEY = [
+        OpenApiExample(
+            "Retrieve an Existing Client Key",
+            value=key_wo_rate_limiting,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]

@@ -275,6 +275,16 @@ incorrect or missing.
     )
 
     @staticmethod
+    def key_id(description: str) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="key_id",
+            location="path",
+            required=True,
+            tpye=str,
+            description=description,
+        )
+
+    @staticmethod
     def platform(description: str) -> OpenApiParameter:
         return OpenApiParameter(
             name="platform",
