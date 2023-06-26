@@ -2147,7 +2147,7 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         frame = frame_list[2]
         if process_with_symbolicator:
-            assert frame.data["resolved_with"] == "release-old"
+            assert "resolved_with" not in frame.data
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
