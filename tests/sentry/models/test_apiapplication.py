@@ -28,3 +28,66 @@ class ApiApplicationTest(TestCase):
         )
 
         assert app.get_default_redirect_uri() == "http://example.com"
+
+    def test_get_allowed_origins_space_separated(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com",
+            allowed_origins="http://example.com http://example2.com http://example.io",
+        )
+
+        assert app.get_allowed_origins() == [
+            "http://example.com",
+            "http://example2.com",
+            "http://example.io",
+        ]
+
+    def test_get_allowed_origins_newline_separated(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com",
+            allowed_origins="http://example.com\nhttp://example2.com\nhttp://example.io",
+        )
+
+        assert app.get_allowed_origins() == [
+            "http://example.com",
+            "http://example2.com",
+            "http://example.io",
+        ]
+
+    def test_get_allowed_origins_none(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com",
+        )
+
+        assert app.get_allowed_origins() == []
+
+    def test_get_allowed_origins_empty_string(self):
+        app = ApiApplication.objects.create(name="origins_test", redirect_uris="")
+
+        assert app.get_allowed_origins() == []
+
+    def test_get_redirect_uris_space_separated(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com http://example2.com http://example.io",
+        )
+
+        assert app.get_redirect_uris() == [
+            "http://example.com",
+            "http://example2.com",
+            "http://example.io",
+        ]
+
+    def test_get_redirect_uris_newline_separated(self):
+        app = ApiApplication.objects.create(
+            name="origins_test",
+            redirect_uris="http://example.com\nhttp://example2.com\nhttp://example.io",
+        )
+
+        assert app.get_redirect_uris() == [
+            "http://example.com",
+            "http://example2.com",
+            "http://example.io",
+        ]

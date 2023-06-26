@@ -109,12 +109,17 @@ class ApiApplication(Model):
         return False
 
     def get_default_redirect_uri(self):
-        return self.redirect_uris.split("\n", 1)[0]
+        return self.redirect_uris.split()[0]
 
     def get_allowed_origins(self):
         if not self.allowed_origins:
             return []
-        return [a for a in self.allowed_origins.split("\n") if a]
+        return [origin for origin in self.allowed_origins.split()]
+
+    def get_redirect_uris(self):
+        if not self.redirect_uris:
+            return []
+        return [redirect_uri for redirect_uri in self.redirect_uris.split()]
 
     def get_audit_log_data(self):
         return {
