@@ -15,7 +15,9 @@ type Props = {
 
 export function SampleList({groupId, transactionName, transactionMethod}: Props) {
   const router = useRouter();
-  const [highlightedSpanId, highlightSample] = useState<string | undefined>(undefined);
+  const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
+    undefined
+  );
 
   return (
     <DetailPanel
@@ -44,16 +46,16 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
             `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
           );
         }}
-        onMouseOverSample={sample => highlightSample(sample.span_id)}
-        onMouseLeaveSample={() => highlightSample(undefined)}
+        onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
+        onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
         highlightedSpanId={highlightedSpanId}
       />
 
       <SampleTable
         highlightedSpanId={highlightedSpanId}
         transactionMethod={transactionMethod}
-        onMouseLeaveSample={() => highlightSample(undefined)}
-        onMouseOverSample={sample => highlightSample(sample.span_id)}
+        onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
+        onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
         groupId={groupId}
         transactionName={transactionName}
       />
