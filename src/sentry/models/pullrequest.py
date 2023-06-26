@@ -100,7 +100,7 @@ class PullRequestComment(Model):
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     group_ids = DjangoArrayField(BoundedBigIntegerField())
-    reactions = JSONField(default={})
+    reactions = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
