@@ -158,6 +158,19 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
                 },
             )
 
+    @patch("sentry_sdk.set_tag")
+    @patch("sentry.integrations.utils.scope.bind_organization_context")
+    def test_adds_context_data(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
+        with patch(
+            "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
+            return_value=self.integration,
+        ):
+            data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
+            self.get_success_response(**data, extra_headers=dict(HTTP_AUTHORIZATION=TOKEN))
+
+            mock_set_tag.assert_called_with("integration_id", self.integration.id)
+            mock_bind_org_context.assert_called_with(self.organization)
+
     def test_missing_changelog(self):
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
