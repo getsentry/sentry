@@ -31,6 +31,14 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                     "assigned:[me, my_teams, test@example.com, none]",
                 ),
                 ("assigned:[me, me]", "assigned:[me, my_teams, me]"),
+                (
+                    "assigned_or_suggested:[me, #team]",
+                    "assigned_or_suggested:[me, my_teams, #team]",
+                ),
+                (
+                    "assigned_or_suggested:[me,test@example.com,none]",
+                    "assigned_or_suggested:[me, my_teams, test@example.com, none]",
+                ),
             ]
         ]
         self.should_stay_same = [
@@ -39,6 +47,10 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                 "assigned:my_teams",
                 "assigned:none",
                 "assigned:[none]",
+                "bookmarks:me",
+                "suggested:me",
+                "assigned_or_suggested:[me",
+                'assigned:"[me, none]"',
             ]
         ]
 
