@@ -27,6 +27,18 @@ class ProjectPerformanceIssueAdminSettingsTest(APITestCase):
             },
         )
 
+    def test_put_returns_forbidden_when_called_by_non_superuser(self):
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            self.user = self.user = self.create_user()
+            self.login_as(user=self.user, superuser=False)
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_queries_detection_enabled": False,
+                },
+            )
+            assert response.status_code == 403
+
     def test_put_returns_error_without_feature_enabled(self):
         with self.feature({}):
             response = self.client.put(

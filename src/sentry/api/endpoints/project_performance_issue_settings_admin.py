@@ -26,7 +26,7 @@ class ProjectPerformanceIssueAdminSettingsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueAdminSettingsEndpoint(ProjectEndpoint):
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserPermission,)  # type: ignore
 
     def has_feature(self, project, request) -> bool:
         return features.has(
