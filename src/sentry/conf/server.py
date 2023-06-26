@@ -1402,7 +1402,7 @@ SENTRY_FEATURES = {
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
-    "organizations:metrics-extraction": True,
+    "organizations:metrics-extraction": False,
     # Extract on demand metrics
     "organizations:on-demand-metrics-extraction": False,
     # Extract on demand metrics (experimental)
