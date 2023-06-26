@@ -124,7 +124,7 @@ function DurationChart({
     }
   };
 
-  const hanldeChartHighlight: EChartHighlightHandler = e => {
+  const handleChartHighlight: EChartHighlightHandler = e => {
     const {seriesIndex} = e.batch[0];
     const isSpanSample = seriesIndex > 1;
     if (isSpanSample && onMouseOverSample) {
@@ -153,7 +153,7 @@ function DurationChart({
         statsPeriod="24h"
         height={140}
         onClick={handleChartClick}
-        onHighlight={hanldeChartHighlight}
+        onHighlight={handleChartHighlight}
         data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`], baselineP95Series]}
         start=""
         end=""
