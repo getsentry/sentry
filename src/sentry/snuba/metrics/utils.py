@@ -205,6 +205,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
+    "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
 }

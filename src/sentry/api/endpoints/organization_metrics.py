@@ -82,12 +82,12 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
 
-        metric_names = request.GET.getlist("metric") or None
+        metrics = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(
                 projects,
-                metric_names,
+                metrics,
                 use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
