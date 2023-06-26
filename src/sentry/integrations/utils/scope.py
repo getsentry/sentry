@@ -51,12 +51,14 @@ def get_orgs_from_integration(integration_id: int) -> Sequence[Organization]:
 
 def bind_org_context_from_integration(integration_id: int) -> None:
     """
-    Given the id of an Integration, get the associated org(s) and bind that data to the scope.
+    Given the id of an Integration or an RpcIntegration, get the associated org(s) and bind that
+    data to the scope.
 
     Note: An `Integration` is an instance of given provider's integration, tied to a single entity
     on the provider's end (for example, an instance of the GitHub integration tied to a particular
     GitHub org, or an instance of the Slack integration tied to a particular Slack workspace), which
-    can be shared by multiple orgs.
+    can be shared by multiple orgs. Also, it doesn't matter whether the passed id comes from an
+    Integration or an RpcIntegration object, because corresponding ones share the same id.
     """
 
     orgs = get_orgs_from_integration(integration_id)
