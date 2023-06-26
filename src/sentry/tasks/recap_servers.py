@@ -1,3 +1,4 @@
+import urllib.parse
 import uuid
 
 # from typing import Optional
@@ -80,19 +81,14 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     # TODO(recap): Remove me
     urllib3.disable_warnings()  # unsafe certificate
 
-    # We want to make sure that our initial /crashes query is *inclusive* with id:0
-    if latest_id == 0:
-        bound_type = "%5B"  # Inclusive bound - [
-    else:
-        bound_type = "%7B"  # Exclusive bound - {
+    url = recap_server.strip().rstrip("/") + "/rest/v1/crashes"
+    # For non-initial queries, we want to filter for all events that happened _after_ our previously
+    # fetched crashes, base on the most recent ID
+    if latest_id != 0:
+        # Apache Solr format requires us to encode the query.
+        # Exclusive bounds range - {N TO *}
+        url = url + urllib.parse.quote(f";q=id:{{{latest_id} TO *}}", safe=";=:")
 
-    url = (
-        recap_server.strip().rstrip("/")
-        + "/rest/v1/crashes;q=id:"
-        + bound_type
-        + str(latest_id)
-        + "%20TO%20*%5D"
-    )
     print("> Fetching JSON payload from:", url)  # NOQA: S002
 
     result = http.fetch_file(url, headers={"Accept": "*/*"}, verify_ssl=False)
