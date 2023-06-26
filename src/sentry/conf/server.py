@@ -1403,12 +1403,18 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Extract on demand metrics
+    "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (experimental features)
+    "organizations:on-demand-metrics-extraction-experimental": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
+    # Normalize transactions from legacy SDKs (source:unknown).
+    "organizations:transaction-name-normalize-legacy": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1452,8 +1458,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enable the dynamic sampling "Transaction Name" priority in the UI
-    "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1470,6 +1474,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
+    # Enable sorting Issue detail events by 'most helpful'
+    "organizations:issue-details-most-helpful-event": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
@@ -1485,6 +1491,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable performance change explorer panel on trends page
+    "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1540,18 +1548,10 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
-    # Enable session replay click search banner rollout for eligible SDKs
-    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled for those orgs who participated in the Replay Beta program
-    "organizations:session-replay-beta-grace": False,
     # Enabled experimental session replay errors view, replacing issues
     "organizations:session-replay-errors-tab": False,
-    # Enable replay GA messaging (update paths from AM1 to AM2)
-    "organizations:session-replay-ga": False,
-    # Enabled experimental session replay network data view
-    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
@@ -1559,6 +1559,7 @@ SENTRY_FEATURES = {
     "organizations:session-replay-recording-scrubbing": False,
     # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
+    "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1598,8 +1599,6 @@ SENTRY_FEATURES = {
     "organizations:ds-sliding-window": False,
     # Enable the sliding window per org
     "organizations:ds-sliding-window-org": False,
-    # Enable new project/org boost
-    "organizations:ds-boost-new-projects": False,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
     # Enable view hierarchies options
@@ -3374,7 +3373,8 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
 
-MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
@@ -3541,7 +3541,7 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
-    "attachments-store": {"redis": "rc-short"},
+    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},

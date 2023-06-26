@@ -20,6 +20,7 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Options = {
   groupId?: string;
+  transactionMethod?: string;
   transactionName?: string;
 };
 
@@ -36,12 +37,13 @@ export const useSpanSamples = (options: Options) => {
   const url = '/api/0/organizations/sentry/spans-samples/';
   const api = useApi();
   const pageFilter = usePageFilters();
-  const {groupId, transactionName} = options;
+  const {groupId, transactionName, transactionMethod} = options;
   const location = useLocation();
-  // TODO - add http method when available
+
   const query = new MutableSearch([
     `span.group:${groupId}`,
     `transaction:${transactionName}`,
+    `transaction.method:${transactionMethod}`,
   ]);
 
   const dateCondtions = getDateConditions(pageFilter.selection);

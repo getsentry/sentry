@@ -60,7 +60,7 @@ class TestAppStoreConnectConfig:
 
         assert new_data == data
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_from_project_config_empty_sources(
         self, default_project: "Project", data: json.JSONData
     ) -> None:
@@ -83,7 +83,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
             bundleId="com.example.app",
         )
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_new_source(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
     ) -> None:
@@ -96,7 +96,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         stored_sources = json.loads(raw)
         assert stored_sources == sources
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_new_sources_with_existing(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
     ) -> None:
@@ -118,7 +118,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         new_sources.append(cfg.to_json())
         assert stored_sources == new_sources
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_update(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
     ) -> None:
@@ -141,7 +141,7 @@ class TestAppStoreConnectConfigUpdateProjectSymbolSource:
         current = appconnect.AppStoreConnectConfig.from_project_config(default_project, config.id)
         assert current.appconnectPrivateKey == "A NEW KEY"
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_update_no_matching_id(
         self, default_project: "Project", config: appconnect.AppStoreConnectConfig
     ) -> None:

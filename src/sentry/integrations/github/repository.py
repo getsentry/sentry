@@ -84,7 +84,6 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
             return eval_commits(client)
         except Exception as e:
             installation.raise_error(e)
-            # Explicitly typing to satisfy mypy.
             return []
 
     def _format_commits(
@@ -142,6 +141,4 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider):
         return f"{repo.url}/pull/{pull_request.key}"
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        slug: str = repo.name
-        return slug
+        return repo.name

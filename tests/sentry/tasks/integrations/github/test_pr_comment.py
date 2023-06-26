@@ -25,9 +25,11 @@ from sentry.tasks.integrations.github.pr_comment import (
 from sentry.testutils import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.cache import cache
 
 
+@region_silo_test(stable=True)
 class GithubCommentTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
 
@@ -287,7 +289,7 @@ class TestFormatComment(TestCase):
         ]
 
         formatted_comment = format_comment(issues)
-        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/)\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
+        expected_comment = "## Suspect Issues\nThis pull request has been deployed and Sentry has observed the following issues:\n\n- ‼️ **TypeError** `sentry.tasks.derive_code_mappings.derive_code_m...` [View Issue](https://sentry.sentry.io/issues/)\n- ‼️ **KafkaException** `query_subscription_consumer_process_message` [View Issue](https://sentry.sentry.io/stats/)\n\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\n\n<sub>Did you find this useful? React with a 👍 or 👎</sub>"
         assert formatted_comment == expected_comment
 
 
@@ -335,7 +337,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -372,7 +374,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
@@ -380,9 +382,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow_raises_error(self, get_jwt, mock_issues):
+    def test_comment_workflow_raises_error(self, mock_metrics, get_jwt, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -403,19 +406,24 @@ class TestCommentWorkflow(GithubCommentTestCase):
         with pytest.raises(ApiError):
             github_comment_workflow(self.pr.id, self.project.id)
             assert cache.get(self.cache_key) is None
+            mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",
         return_value=[(0, 0, 0, [])],
     )
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    def test_comment_workflow_missing_org(self, mock_issues, mock_issue_query):
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    def test_comment_workflow_missing_org(self, mock_metrics, mock_issues, mock_issue_query):
         # Organization.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "missing_org"}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_feature_flag(self, mock_issues):
@@ -425,8 +433,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.models.Project.objects.get_from_cache")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
-    def test_comment_workflow_missing_project(self, mock_project, mock_issues):
+    def test_comment_workflow_missing_project(self, mock_metrics, mock_project, mock_issues):
         # Project.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
@@ -436,14 +445,20 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert not mock_issues.called
         assert cache.get(self.cache_key) is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "missing_project"}
+        )
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
     )
     @patch("sentry.models.Repository.objects")
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
-    def test_comment_workflow_missing_repo(self, mock_format_comment, mock_repository, mock_issues):
+    def test_comment_workflow_missing_repo(
+        self, mock_metrics, mock_format_comment, mock_repository, mock_issues
+    ):
         # Repository.DoesNotExist should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
@@ -457,13 +472,19 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert mock_issues.called
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "missing_repo"}
+        )
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count",
     )
     @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
-    def test_comment_workflow_missing_integration(self, mock_format_comment, mock_issues):
+    def test_comment_workflow_missing_integration(
+        self, mock_metrics, mock_format_comment, mock_issues
+    ):
         # missing integration should trigger the cache to release the key
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
 
@@ -480,3 +501,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         assert mock_issues.called
         assert not mock_format_comment.called
         assert cache.get(self.cache_key) is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.error", tags={"type": "missing_integration"}
+        )
