@@ -8,6 +8,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
+from sentry.models.organization import Organization
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.utils.sdk import capture_exception
 
 from .organization import OrganizationEndpoint, OrganizationPermission
@@ -28,6 +31,14 @@ PARANOID_GET = (
 
 class IntegrationEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationPermission,)
+
+    def fetch_org(self, slug: str) -> Organization | RpcOrganizationSummary:
+        mapping = OrganizationMapping.objects.get(slug=slug)
+        return RpcOrganizationSummary(
+            id=mapping.organization_id,
+            slug=mapping.slug,
+            name=mapping.name,
+        )
 
     def handle_exception(
         self,

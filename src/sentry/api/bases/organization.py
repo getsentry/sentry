@@ -4,6 +4,7 @@ from typing import Any, Optional, Set
 
 import sentry_sdk
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.http.request import HttpRequest
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
@@ -23,6 +24,7 @@ from sentry.models import ApiKey, Organization, Project, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -385,6 +387,10 @@ class OrganizationEndpoint(Endpoint):
 
         return params
 
+    # This exists so that it can be overwritten in subclass implementations
+    def fetch_org(self, slug: str) -> Organization | RpcOrganizationSummary:
+        return Organization.objects.get_from_cache(slug=slug)
+
     def convert_args(
         self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -397,8 +403,8 @@ class OrganizationEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            organization = Organization.objects.get_from_cache(slug=organization_slug)
-        except Organization.DoesNotExist:
+            organization = self.fetch_org(organization_slug)
+        except ObjectDoesNotExist:
             raise ResourceDoesNotExist
 
         with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
