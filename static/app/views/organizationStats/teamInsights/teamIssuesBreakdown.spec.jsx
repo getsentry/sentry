@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamIssuesBreakdown from 'sentry/views/organizationStats/teamInsights/teamIssuesBreakdown';
 
 describe('TeamIssuesBreakdown', () => {
-  it('should render graph with table of issues reviewed', () => {
+  it('should render graph with table of issues reviewed', async () => {
     const team = TestStubs.Team();
     const project = TestStubs.Project({id: '2', slug: 'javascript'});
     const organization = TestStubs.Organization();
@@ -26,7 +26,7 @@ describe('TeamIssuesBreakdown', () => {
       expect(screen.getByText(status)).toBeInTheDocument();
     }
 
-    expect(screen.getByText('javascript')).toBeInTheDocument();
+    expect(await screen.findByText('javascript')).toBeInTheDocument();
     // Total
     expect(screen.getByText('49')).toBeInTheDocument();
     // Reviewed
