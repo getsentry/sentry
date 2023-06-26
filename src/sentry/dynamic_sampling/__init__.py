@@ -1,7 +1,8 @@
+from ..constants import HEALTH_CHECK_GLOBS
 from .rules.base import generate_rules
 from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
-from .rules.biases.ignore_health_checks_bias import HEALTH_CHECK_GLOBS, IgnoreHealthChecksBias
+from .rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 from .rules.helpers.latest_releases import (
     ExtendedBoostedRelease,
     LatestReleaseBias,
