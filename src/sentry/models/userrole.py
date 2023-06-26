@@ -53,7 +53,7 @@ class UserRoleUser(DefaultFieldsModel):
 
 
 # this must be idempotent because it executes on every migration
-def manage_default_super_admin_role(app_config, using, **kwargs):
+def manage_default_super_admin_role(app_config=None, using=None, **kwargs):
     if app_config and app_config.name != "sentry":
         return
 
