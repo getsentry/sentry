@@ -17,7 +17,7 @@ from sentry.models.integrations.organization_integrity_backfill_mixin import (
 class PagerDutyService(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
     __include_in_export__ = False
 
-    organization_integration_id = FlexibleForeignKey(
+    organization_integration = FlexibleForeignKey(
         "sentry.OrganizationIntegration", on_delete="CASCADE"
     )
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
