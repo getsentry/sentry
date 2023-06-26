@@ -207,7 +207,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             conditions=conditions,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.data == "You may not exceed 1 'fast' rules per project."
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
         # Make sure pending deletions don't affect the process
         Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
@@ -237,7 +240,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             conditions=conditions,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.data == "You may not exceed 1 'slow' rules per project."
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
         # Make sure pending deletions don't affect the process
         Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
