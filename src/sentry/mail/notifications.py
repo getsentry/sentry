@@ -41,12 +41,10 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 
 def build_subject_prefix(project: Project) -> str:
-    # Explicitly typing to satisfy mypy.
-    subject_prefix: str = force_text(
+    return force_text(
         ProjectOption.objects.get_value(project, "mail:subject_prefix")
         or options.get("mail.subject-prefix")
     )
-    return subject_prefix
 
 
 def get_subject_with_prefix(

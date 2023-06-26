@@ -257,11 +257,8 @@ class ProjectNotification(BaseNotification, abc.ABC):
         super().__init__(project.organization)
 
     def get_project_link(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        return str(
-            self.organization.absolute_url(
-                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
-            )
+        return self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
         )
 
     def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:

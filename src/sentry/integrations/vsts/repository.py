@@ -128,6 +128,4 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         ]
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = repo.external_id
-        return external_id
+        return repo.external_id

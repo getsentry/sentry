@@ -343,11 +343,9 @@ class IntegrationInstallation:
         )
 
     def get_config_data(self) -> Mapping[str, str]:
-        # Explicitly typing to satisfy mypy.
         if not self.org_integration:
             return {}
-        config_data: Mapping[str, str] = self.org_integration.config
-        return config_data
+        return self.org_integration.config
 
     def get_dynamic_display_information(self) -> Optional[Mapping[str, Any]]:
         return None
@@ -379,9 +377,7 @@ class IntegrationInstallation:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
-            # Explicitly typing to satisfy mypy.
-            message: str = exc.text
-            return message
+            return exc.text
         elif isinstance(exc, UnsupportedResponseType):
             return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
@@ -413,9 +409,7 @@ class IntegrationInstallation:
 
     @property
     def metadata(self) -> IntegrationMetadata:
-        # Explicitly typing to satisfy mypy.
-        _metadata: IntegrationMetadata = self.model.metadata
-        return _metadata
+        return self.model.metadata
 
     def uninstall(self) -> None:
         """

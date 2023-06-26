@@ -32,8 +32,7 @@ class Pipeline:
         self.logs: MutableSequence[str] = []
 
     def __call__(self, sequence: Sequence[Any]) -> tuple[Any, Sequence[str]]:
-        # Explicitly typing to satisfy mypy.
-        func: Callable[[Any, Callable[[Any], Any]], Any] = lambda x, operation: operation(x)
+        func = lambda x, operation: operation(x)
         return reduce(func, self.operations, sequence), self.logs
 
     def _log(self, message: str) -> None:

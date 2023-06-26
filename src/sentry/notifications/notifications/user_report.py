@@ -39,7 +39,6 @@ class UserReportNotification(ProjectNotification):
         return result
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
         message = force_text(message)
         return message

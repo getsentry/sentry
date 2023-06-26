@@ -54,9 +54,7 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
             if event is not None and event.occurrence is not None:
                 title = event.occurrence.issue_title
 
-    # Explicitly typing to satisfy mypy.
-    title_str: str = title
-    return title_str
+    return title
 
 
 def get_title_link(
@@ -79,9 +77,7 @@ def get_title_link(
     else:
         url = group.get_absolute_url(params={"referrer": EXTERNAL_PROVIDERS[provider]})
 
-    # Explicitly typing to satisfy mypy.
-    url_str: str = url
-    return url_str
+    return url
 
 
 def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any | None:
@@ -111,9 +107,7 @@ def build_rule_url(rule: Any, group: Group, project: Project) -> str:
     project_slug = project.slug
     rule_url = f"/organizations/{org_slug}/alerts/rules/{project_slug}/{rule.id}/details/"
 
-    # Explicitly typing to satisfy mypy.
-    url: str = absolute_uri(rule_url)
-    return url
+    return absolute_uri(rule_url)
 
 
 def build_footer(

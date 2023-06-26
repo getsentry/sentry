@@ -275,9 +275,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
 
         def get_results(resp: Response) -> Sequence[Any]:
-            # Explicitly typing to satisfy mypy.
-            results: Sequence[Any] = resp["value"]
-            return results
+            return resp["value"]
 
         return self.get_with_pagination(
             VstsApiPath.projects.format(instance=instance),

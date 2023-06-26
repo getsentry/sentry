@@ -239,9 +239,7 @@ def get_release_info(request: Request, group: "Group", version: str) -> Mapping[
     except Release.DoesNotExist:
         release = {"version": version}
 
-    # Explicitly typing to satisfy mypy.
-    release_ifo: Mapping[str, Any] = serialize(release, request.user)
-    return release_ifo
+    return serialize(release, request.user)
 
 
 def get_first_last_release_info(

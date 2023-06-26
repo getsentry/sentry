@@ -97,17 +97,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache.cache = {}
             _local_cache.generation = gen
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = _local_cache.cache
-        return cache_
+        return _local_cache.cache
 
     def _get_cache(self) -> MutableMapping[str, Any]:
         if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = weakref.WeakKeyDictionary()
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = self.__local_cache.value
-        return cache_
+        return self.__local_cache.value
 
     def _set_cache(self, value: Any) -> None:
         self.__local_cache.value = value
@@ -255,9 +251,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         class_prepared.connect(self.__class_prepared, sender=model)
 
     def get(self, *args: Any, **kwargs: Any) -> M:
-        # Explicitly typing to satisfy mypy.
-        model: M = super().get(*args, **kwargs)
-        return model
+        return super().get(*args, **kwargs)
 
     def get_from_cache(
         self, use_replica: bool = settings.SENTRY_MODEL_CACHE_USE_REPLICA, **kwargs: Any
@@ -325,9 +319,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
-            # Explicitly typing to satisfy mypy.
-            r: M = retval
-            return r
+            return retval
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
