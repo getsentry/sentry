@@ -48,21 +48,19 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
         mock_bind_org_context.assert_called_with(org)
 
-        @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
-        def test_binds_org_context_with_multiple_orgs(
-            self, mock_bind_ambiguous_org_context: MagicMock
-        ):
-            maisey_org = self.create_organization(slug="themaiseymaiseydog")
-            charlie_org = self.create_organization(slug="charliebear")
-            integration = Integration.objects.create(name="squirrelChasers")
-            integration.add_organization(maisey_org)
-            integration.add_organization(charlie_org)
+    @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
+    def test_binds_org_context_with_multiple_orgs(self, mock_bind_ambiguous_org_context: MagicMock):
+        maisey_org = self.create_organization(slug="themaiseymaiseydog")
+        charlie_org = self.create_organization(slug="charliebear")
+        integration = Integration.objects.create(name="squirrelChasers")
+        integration.add_organization(maisey_org)
+        integration.add_organization(charlie_org)
 
-            bind_org_context_from_integration(integration.id)
+        bind_org_context_from_integration(integration.id)
 
-            mock_bind_ambiguous_org_context.assert_called_with(
-                [maisey_org, charlie_org], f"integration (id={integration.id})"
-            )
+        mock_bind_ambiguous_org_context.assert_called_with(
+            [maisey_org, charlie_org], f"integration (id={integration.id})"
+        )
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
     @patch("sentry.integrations.utils.scope.bind_organization_context")
