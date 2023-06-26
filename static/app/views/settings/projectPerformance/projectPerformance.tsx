@@ -397,9 +397,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostLowVolumeTransactions,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        visible: this.props.organization.features.includes(
-          'dynamic-sampling-transaction-name-priority'
-        ),
         getData: this.getRetentionPrioritiesData,
       },
       {

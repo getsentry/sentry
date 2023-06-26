@@ -11,7 +11,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
-from sentry import options as sentry_options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -371,9 +370,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
         # Dynamic Sampling Logic
-        if features.has(
-            "organizations:dynamic-sampling", project.organization
-        ) and sentry_options.get("dynamic-sampling:enabled-biases"):
+        if features.has("organizations:dynamic-sampling", project.organization):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
                 data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
@@ -436,7 +433,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("dynamicSamplingBiases") and not (
             features.has("organizations:dynamic-sampling", project.organization)
-            and sentry_options.get("dynamic-sampling:enabled-biases")
         ):
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
@@ -748,10 +744,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not (
-            features.has("organizations:dynamic-sampling", project.organization)
-            and sentry_options.get("dynamic-sampling:enabled-biases")
-        ):
+        if not (features.has("organizations:dynamic-sampling", project.organization)):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

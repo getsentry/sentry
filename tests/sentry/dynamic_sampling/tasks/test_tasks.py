@@ -1164,9 +1164,7 @@ class TestSlidingWindowTasks(TasksTestCase):
         with self.tasks():
             sliding_window()
 
-        with self.feature(
-            {"organizations:ds-sliding-window": True, "organizations:ds-boost-new-projects": True}
-        ):
+        with self.feature({"organizations:ds-sliding-window": True}):
             # We expect that the project is boosted to 100%.
             assert generate_rules(project)[0]["samplingValue"] == {
                 "type": "sampleRate",
@@ -1185,9 +1183,7 @@ class TestSlidingWindowTasks(TasksTestCase):
         with self.tasks():
             sliding_window()
 
-        with self.feature(
-            {"organizations:ds-sliding-window": True, "organizations:ds-boost-new-projects": True}
-        ):
+        with self.feature({"organizations:ds-sliding-window": True}):
             # We expect that the projects are boosted to 100%.
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",

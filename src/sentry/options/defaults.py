@@ -1263,11 +1263,6 @@ register(
 )  # 1MB
 
 # Dynamic Sampling system-wide options
-# Kill-switch to disable new dynamic sampling behavior specifically new dynamic sampling biases.
-register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# System-wide options that observes latest releases on transactions and caches these values to be used later in
-# project config computation. This is temporary option to monitor the performance of this feature.
-register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.

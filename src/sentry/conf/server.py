@@ -1454,8 +1454,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enable the dynamic sampling "Transaction Name" priority in the UI
-    "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1601,8 +1599,6 @@ SENTRY_FEATURES = {
     "organizations:ds-sliding-window": False,
     # Enable the sliding window per org
     "organizations:ds-sliding-window-org": False,
-    # Enable new project/org boost
-    "organizations:ds-boost-new-projects": False,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
     # Enable view hierarchies options
