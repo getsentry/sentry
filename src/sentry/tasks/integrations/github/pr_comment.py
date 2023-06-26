@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List
 
+import requests
 from django.db import connection
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
@@ -22,6 +23,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -238,3 +240,27 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
 
         metrics.incr("github_pr_comment.api_error")
         raise e
+
+
+@instrumented_task(name="sentry.tasks.integrations.github_comment_reactions")
+def github_comment_reactions():
+    comments = PullRequestComment.objects.filter(
+        created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
+    )
+
+    for comment in RangeQuerySetWrapper(comments):
+        pr = comment.pull_request
+        try:
+            repo = Repository.objects.get(id=pr.repository_id)
+        except Repository.DoesNotExist:
+            continue
+
+        url = GET_COMMENT_REACTION_URL.format(repo=repo.name, comment_id=comment.external_id)
+        response = requests.get(url)
+        response = response.json()
+
+        reactions = response["reactions"]
+        del reactions["url"]
+
+        comment.reactions = reactions
+        comment.save()

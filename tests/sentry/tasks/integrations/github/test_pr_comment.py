@@ -19,6 +19,7 @@ from sentry.tasks.integrations.github.pr_comment import (
     format_comment,
     get_comment_contents,
     get_top_5_issues_by_count,
+    github_comment_reactions,
     github_comment_workflow,
     pr_to_issue_query,
 )
@@ -136,7 +137,16 @@ class GithubCommentTestCase(IntegrationTestCase):
         )
         return groupowner
 
+    def create_pr_issues(self):
+        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
+        pr = self.add_pr_to_commit(commit_1)
+        self.add_groupowner_to_commit(commit_1, self.project, self.user)
+        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
 
+        return pr
+
+
+@region_silo_test(stable=True)
 class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
@@ -207,6 +217,7 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         )
 
 
+@region_silo_test(stable=True)
 class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
@@ -245,6 +256,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert len(res) == 5
 
 
+@region_silo_test(stable=True)
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -277,6 +289,7 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
 
 
+@region_silo_test(stable=True)
 class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
@@ -297,6 +310,7 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
+@region_silo_test(stable=True)
 class TestCommentWorkflow(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
@@ -309,14 +323,6 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
         self.pr = self.create_pr_issues()
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
-
-    def create_pr_issues(self):
-        commit_1 = self.add_commit_to_repo(self.gh_repo, self.user, self.project)
-        pr = self.add_pr_to_commit(commit_1)
-        self.add_groupowner_to_commit(commit_1, self.project, self.user)
-        self.add_groupowner_to_commit(commit_1, self.another_org_project, self.another_org_user)
-
-        return pr
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -538,3 +544,68 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with(
             "github_pr_comment.error", tags={"type": "missing_integration"}
         )
+
+
+@region_silo_test(stable=True)
+class TestCommentReactionsTask(GithubCommentTestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self):
+        super().setUp()
+        self.installation_id = "github:1"
+        self.user_id = "user_1"
+        self.app_id = "app_1"
+        self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
+        self.pr = self.create_pr_issues()
+        self.expired_pr = self.create_pr_issues()
+        self.expired_pr.date_added = timezone.now() - timedelta(days=35)
+        self.expired_pr.save()
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_comment_reactions_task(self, get_jwt, mock_issues):
+        old_comment = PullRequestComment.objects.create(
+            external_id="1",
+            pull_request=self.expired_pr,
+            created_at=timezone.now() - timedelta(days=35),
+            updated_at=timezone.now() - timedelta(days=35),
+            group_ids=[1, 2, 3],
+        )
+
+        comment = PullRequestComment.objects.create(
+            external_id="2",
+            pull_request=self.pr,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+            group_ids=[4, 5],
+        )
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        comment_reactions = {
+            "reactions": {
+                "url": "abcdef",
+                "hooray": 1,
+                "+1": 2,
+                "-1": 0,
+            }
+        }
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            json=comment_reactions,
+        )
+
+        github_comment_reactions()
+
+        old_comment.refresh_from_db()
+        assert old_comment.reactions is None
+
+        comment.refresh_from_db()
+        stored_reactions = comment_reactions["reactions"]
+        del stored_reactions["url"]
+        assert comment.reactions == stored_reactions
