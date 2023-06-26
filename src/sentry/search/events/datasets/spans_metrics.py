@@ -5,7 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -528,28 +528,17 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        percentile = args["percentile"]
-        if percentile not in constants.SPAN_PERCENTILE_INDEXES:
-            raise InvalidSearchQuery(f"percentile_percent_change doesn't support {percentile}")
-        linear_regression = Function(
-            "simpleLinearRegression",
-            [
-                Function("toUnixTimestamp", [self.builder.column("timestamp")]),
-                Function(
-                    "arrayElement",
-                    [
-                        Function("finalizeAggregation", [Column("percentiles")]),
-                        constants.SPAN_PERCENTILE_INDEXES.index(args["percentile"]) + 1,
-                    ],
-                ),
-            ],
-            f"{alias}_linear_regression",
+        first_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.first_half_condition()],
         )
-        first_half = self.builder.get_regression_value(
-            self.builder.start, linear_regression, f"{alias}_first_half"
-        )
-        second_half = self.builder.get_regression_value(
-            self.builder.end, linear_regression, f"{alias}_second_half"
+        second_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.second_half_condition()],
         )
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
@@ -589,7 +578,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "minus",
                             [second_half, first_half],
                         ),
-                        Function("abs", [first_half]),
+                        first_half,
                     ],
                 ),
                 None,
