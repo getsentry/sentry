@@ -42,13 +42,19 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         consumer_healthy = service_monitoring_cluster.get(_consumer_key(consumer_name))
 
         if consumer_healthy != "true":
+            reason = "status-missing" if consumer_healthy is None else "unhealthy"
             metrics.incr(
                 "backpressure.consumer.unhealthy",
                 tags={
                     "consumer": consumer_name,
-                    "reason": "status-missing" if consumer_healthy is None else "unhealthy",
+                    "reason": reason,
                 },
             )
+            with sentry_sdk.push_scope():
+                sentry_sdk.set_tag("consumer", consumer_name)
+                sentry_sdk.set_tag("reason", reason)
+                sentry_sdk.capture_message("Consumer stopped due to backpressure")
+
             return False
         return True
     except Exception as e:
@@ -57,6 +63,11 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         metrics.incr(
             "backpressure.consumer.unhealthy", tags={"consumer": consumer_name, "reason": "error"}
         )
+        with sentry_sdk.push_scope():
+            sentry_sdk.set_tag("consumer", consumer_name)
+            sentry_sdk.set_tag("reason", "error")
+            sentry_sdk.capture_message("Consumer stopped due to backpressure")
+
         return False
 
 
@@ -69,7 +80,9 @@ def record_consumer_health(service_health: Mapping[str, bool]) -> None:
 
             if not is_healthy:
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
-                # TODO: log to sentry as well?
+                with sentry_sdk.push_scope():
+                    sentry_sdk.set_tag("service", name)
+                    sentry_sdk.capture_message("Service marked as unhealthy")
 
         for name, dependencies in CONSUMERS.items():
             is_healthy = True
@@ -80,6 +93,8 @@ def record_consumer_health(service_health: Mapping[str, bool]) -> None:
 
             if not is_healthy:
                 metrics.incr("backpressure.monitor.consumer.unhealthy", tags={"consumer": name})
-                # TODO: log to sentry as well?
+                with sentry_sdk.push_scope():
+                    sentry_sdk.set_tag("consumer", name)
+                    sentry_sdk.capture_message("Consumer marked as unhealthy")
 
         pipeline.execute()
