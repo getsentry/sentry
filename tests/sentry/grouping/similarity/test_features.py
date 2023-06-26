@@ -15,7 +15,7 @@ def create_event(data, group_id=123):
     mgr.normalize()
     data = mgr.get_data()
 
-    evt = eventstore.create_event(data=data)
+    evt = eventstore.backend.create_event(data=data)
     evt.project = project = Project(id=123)
     evt.group = Group(id=group_id, project=project)
 

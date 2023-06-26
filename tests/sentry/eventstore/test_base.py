@@ -77,7 +77,7 @@ class ServiceDelegationTest(TestCase, SnubaTestCase):
         with mock.patch.object(logger, "info") as mock_logger:
             # No differences to log
             _filter = eventstore.Filter(project_ids=[self.project.id])
-            eventstore.get_events(filter=_filter)
+            eventstore.backend.get_events(filter=_filter)
             eventstore.backend.get_event_by_id(self.project.id, "a" * 32)
             assert mock_logger.call_count == 0
 

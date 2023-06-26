@@ -73,7 +73,7 @@ class EventDataDeletionTask(BaseDeletionTask):
             group_ids.append(group.id)
         project_ids = list(project_groups.keys())
 
-        events = eventstore.get_unfetched_events(
+        events = eventstore.backend.get_unfetched_events(
             filter=eventstore.Filter(
                 conditions=conditions, project_ids=project_ids, group_ids=group_ids
             ),

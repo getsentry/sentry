@@ -1322,7 +1322,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     event_id = data.get("event_id")
 
-    return eventstore.create_event(
+    return eventstore.backend.create_event(
         project_id=project_id,
         event_id=event_id,
         group_id=None,

@@ -146,7 +146,7 @@ def test_basic(
 
     def get_event_by_processing_counter(n):
         return list(
-            eventstore.get_events(
+            eventstore.backend.get_events(
                 eventstore.Filter(
                     project_ids=[default_project.id],
                     conditions=[["tags[processing_counter]", "=", n]],

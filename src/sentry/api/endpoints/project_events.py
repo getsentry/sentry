@@ -57,7 +57,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
         full = request.GET.get("full", False)
 
         data_fn = partial(
-            eventstore.get_events,
+            eventstore.backend.get_events,
             filter=event_filter,
             referrer="api.project-events",
             tenant_ids={"organization_id": project.organization_id},

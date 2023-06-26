@@ -38,7 +38,7 @@ def wrap_event_response(
             group_ids=[event.group_id],
         )
 
-        prev_ids, next_ids = eventstore.get_adjacent_event_ids(event, filter=_filter)
+        prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids(event, filter=_filter)
 
         next_event_id = next_ids[1] if next_ids else None
         prev_event_id = prev_ids[1] if prev_ids else None

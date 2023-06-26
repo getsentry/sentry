@@ -170,7 +170,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase):
         assert not Group.objects.filter(id=group.id).exists()
 
         conditions = eventstore.Filter(project_ids=[project.id, keeper.id], group_ids=[group.id])
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             conditions, tenant_ids={"organization_id": 123, "referrer": "r"}
         )
         assert len(events) == 0

@@ -41,7 +41,7 @@ class GroupingInput:
         # Normalize the stacktrace for grouping.  This normally happens in
         # save()
         normalize_stacktraces_for_grouping(data, load_grouping_config(grouping_config))
-        evt = eventstore.create_event(data=data)
+        evt = eventstore.backend.create_event(data=data)
 
         return evt
 
@@ -87,7 +87,7 @@ class FingerprintInput:
         event_metadata = event_type.get_metadata(data)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
-        evt = eventstore.create_event(data=data)
+        evt = eventstore.backend.create_event(data=data)
         return config, evt
 
 
