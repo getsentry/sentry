@@ -3,6 +3,7 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
+import {starfishEventMap} from 'sentry/utils/analytics/starfishAnalyticsEvents';
 
 import {
   aiSuggestedSolutionEventMap,
@@ -112,6 +113,7 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
+  ...starfishEventMap,
 };
 
 /**
