@@ -247,12 +247,58 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             }
         )
 
+    def test_assemble_with_missing_chunks(self):
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
+            dist = "android"
+            bundle_file = self.create_artifact_bundle_zip(
+                org=self.organization.slug, release=self.release.version
+            )
+            total_checksum = sha1(bundle_file).hexdigest()
+
+            # We try to upload with all the checksums missing.
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [total_checksum],
+                    "projects": [self.project.slug],
+                    "version": self.release.version,
+                    "dist": dist,
+                },
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+
+            assert response.status_code == 200, response.content
+            assert response.data["state"] == ChunkFileState.NOT_FOUND
+            assert set(response.data["missingChunks"]) == {total_checksum}
+
+            # We store the blobs into the database.
+            blob1 = FileBlob.from_file(ContentFile(bundle_file))
+            FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+            # We make the request again after the file have been uploaded.
+            response = self.client.post(
+                self.url,
+                data={
+                    "checksum": total_checksum,
+                    "chunks": [total_checksum],
+                    "projects": [self.project.slug],
+                    "version": self.release.version,
+                    "dist": dist,
+                },
+                HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+            )
+
+            assert response.status_code == 200, response.content
+            assert response.data["state"] == ChunkFileState.CREATED
+
     def test_assemble_response(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         assemble_artifacts(
             org_id=self.organization.id,
@@ -273,30 +319,4 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.OK
-
-    def test_dif_error_response(self):
-        bundle_file = b"invalid"
-        total_checksum = sha1(bundle_file).hexdigest()
-        blob1 = FileBlob.from_file(ContentFile(bundle_file))
-
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            upload_as_artifact_bundle=False,
-        )
-
-        response = self.client.post(
-            self.url,
-            data={
-                "checksum": total_checksum,
-                "chunks": [blob1.checksum],
-                "projects": [self.project.slug],
-            },
-            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["state"] == ChunkFileState.ERROR
+        assert response.data["state"] == ChunkFileState.CREATED
