@@ -14,7 +14,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
@@ -85,7 +85,7 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project):
     ]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )

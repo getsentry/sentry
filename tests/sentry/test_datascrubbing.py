@@ -16,7 +16,7 @@ def merge_pii_configs(prefixes_and_configs):
     return rv
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("field", ["ooo", "oöö", "o o", "o\no", "o'o"])
 def test_scrub_data(field, default_project):
     project = default_project

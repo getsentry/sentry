@@ -234,7 +234,7 @@ def _get_query_maker_params(project):
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_proj_slug_in_query(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -246,7 +246,7 @@ def test_filter_proj_slug_in_query(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_proj_slug_in_top_filter(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -258,7 +258,7 @@ def test_filter_proj_slug_in_top_filter(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_proj_slug_in_top_filter_and_query(default_project):
     params = _get_query_maker_params(default_project)
     params["project_id"] = [default_project.id]
@@ -270,7 +270,7 @@ def test_filter_proj_slug_in_top_filter_and_query(default_project):
     assert query_def.params["project_id"] == [default_project.id]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_proj_neither_in_top_filter_nor_query(default_project):
     params = _get_query_maker_params(default_project)
     query_def = _make_query(
@@ -281,7 +281,7 @@ def test_proj_neither_in_top_filter_nor_query(default_project):
     assert "project_id" not in query_def.params
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_env_in_query(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -292,7 +292,7 @@ def test_filter_env_in_query(default_project):
     assert query_def.query == f"environment:{env}"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_env_in_top_filter(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -304,7 +304,7 @@ def test_filter_env_in_top_filter(default_project):
     assert query_def.query == ""
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_filter_env_in_top_filter_and_query(default_project):
     env = "prod"
     params = _get_query_maker_params(default_project)
@@ -316,7 +316,7 @@ def test_filter_env_in_top_filter_and_query(default_project):
     assert query_def.query == f"environment:{env}"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_env_neither_in_top_filter_nor_query(default_project):
     params = _get_query_maker_params(default_project)
     query_def = _make_query(

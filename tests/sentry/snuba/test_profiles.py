@@ -59,7 +59,7 @@ def query_builder_fns(arg_name="query_builder_fn"):
     [pytest.param(column.alias, column.column, id=column.alias) for column in PROFILE_COLUMNS],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_field_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
@@ -163,7 +163,7 @@ def test_field_resolution(query_builder_fn, params, field, resolved):
     ],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_aggregate_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
@@ -228,7 +228,7 @@ def test_aggregate_resolution(query_builder_fn, params, field, resolved):
     ],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_invalid_field_resolution(query_builder_fn, params, field, message):
     with pytest.raises(InvalidSearchQuery, match=message):
         query_builder_fn(
@@ -492,7 +492,7 @@ def is_null(column: str) -> Function:
         ),
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_where_resolution(params, query, conditions):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -506,7 +506,7 @@ def test_where_resolution(params, query, conditions):
 
 
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_where_resolution_project_slug(params, field):
     project = params["project_objects"][0]
 
@@ -529,7 +529,7 @@ def test_where_resolution_project_slug(params, field):
 
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
 @pytest.mark.parametrize("direction", [pytest.param("", id="asc"), pytest.param("-", id="desc")])
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_order_by_resolution_project_slug(params, field, direction):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -567,7 +567,7 @@ def test_order_by_resolution_project_slug(params, field, direction):
         for column in PROFILE_COLUMNS
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -593,7 +593,7 @@ def test_has_resolution(params, field, column):
         for column in PROFILE_COLUMNS
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_not_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,

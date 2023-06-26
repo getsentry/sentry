@@ -38,7 +38,7 @@ def store_stacktrace(default_project, factories):
     return inner
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.snuba
 def test_basic(client, default_project, store_stacktrace, reset_snuba):
     def _check_merged(seq):
@@ -130,7 +130,7 @@ def test_basic(client, default_project, store_stacktrace, reset_snuba):
     assert _check_merged(2) == group_id
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.snuba
 def test_split_everything(client, default_project, store_stacktrace, reset_snuba):
     """
@@ -182,7 +182,7 @@ def test_split_everything(client, default_project, store_stacktrace, reset_snuba
     assert event4.group_id not in (event.group_id, event2.group_id, event3.group_id)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.snuba
 def test_no_hash_twice(client, default_project, store_stacktrace, reset_snuba):
     """
@@ -211,7 +211,7 @@ def test_no_hash_twice(client, default_project, store_stacktrace, reset_snuba):
     ]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.snuba
 def test_materialized_hashes_missing(client, default_project, store_stacktrace, reset_snuba):
     """

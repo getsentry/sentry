@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils.strings import compress
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 class TestDjangoNodeStorage:
     def setup_method(self):
         self.ns = DjangoNodeStorage()

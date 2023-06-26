@@ -92,7 +92,7 @@ def _validate_project_config(config):
     validate_project_config(json.dumps(config), strict=True)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_get_project_config_non_visible(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
@@ -101,7 +101,7 @@ def test_get_project_config_non_visible(default_project):
     assert cfg.to_dict() == {"disabled": True}
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
@@ -131,7 +131,7 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
 SOME_EXCEPTION = RuntimeError("foo")
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
@@ -145,7 +145,7 @@ def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_projec
     assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.capture_exception")
 def test_get_experimental_config_transaction_metrics_exception(
@@ -165,7 +165,7 @@ def test_get_experimental_config_transaction_metrics_exception(
     assert mock_capture_exception.call_count == 2
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
@@ -204,7 +204,7 @@ def test_project_config_uses_filter_features(
         assert cfg_client_ips is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
@@ -217,7 +217,7 @@ def test_project_config_exposed_features(default_project):
     assert cfg_features == ["organizations:profiling"]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
 def test_project_config_exposed_features_raise_exc(default_project):
@@ -230,7 +230,7 @@ def test_project_config_exposed_features_raise_exc(default_project):
         )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
@@ -414,7 +414,7 @@ def test_project_config_with_all_biases_enabled(
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
 @region_silo_test(stable=True)
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
@@ -436,7 +436,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("has_metrics_extraction", (True, False))
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
@@ -462,7 +462,7 @@ def test_project_config_with_organizations_metrics_extraction(
             assert session_metrics is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
 @pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
 @region_silo_test(stable=True)
@@ -503,7 +503,7 @@ def test_project_config_satisfaction_thresholds(
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
@@ -513,7 +513,7 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     insta_snapshot(cfg["config"]["spanAttributes"])
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
 @pytest.mark.parametrize(
@@ -543,7 +543,7 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
             assert config["customMeasurements"]["limit"] > 0
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_accept_transaction_names(default_project):
     feature = Feature(
         {
@@ -560,7 +560,7 @@ def test_accept_transaction_names(default_project):
 
 
 @pytest.mark.parametrize("num_clusterer_runs", [9, 10])
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_txnames_ready(default_project, num_clusterer_runs):
     with mock.patch(
         "sentry.relay.config.get_clusterer_meta", return_value={"runs": num_clusterer_runs}
@@ -573,7 +573,7 @@ def test_txnames_ready(default_project, num_clusterer_runs):
         assert config["txNameReady"] is True
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_accept_span_desc_rules(default_project):
     with Feature({"projects:span-metrics-extraction": True}), mock.patch(
         "sentry.relay.config.get_sorted_rules",
@@ -586,7 +586,7 @@ def test_accept_span_desc_rules(default_project):
         assert "spanDescriptionRules" in config
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
     project_cfg = ProjectConfig(default_project)
@@ -595,14 +595,14 @@ def test_project_config_setattr(default_project):
     assert str(exc_info.value) == "Trying to change read only ProjectConfig object"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_getattr(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.foo == "bar"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_str(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
@@ -614,21 +614,21 @@ def test_project_config_str(default_project):
         assert str(project_cfg1) == "Content Error:bad data"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_repr(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_to_json_string(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.to_json_string() == '{"foo":"bar"}'
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @region_silo_test(stable=True)
 def test_project_config_get_at_path(default_project):
     project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")

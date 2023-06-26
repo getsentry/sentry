@@ -56,7 +56,7 @@ def openai_policy():
         openai_policy_check.disconnect(policy)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_consent(client, default_project, test_event, openai_policy):
     path = reverse(
         "sentry-api-0-event-ai-fix-suggest",

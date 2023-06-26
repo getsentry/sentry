@@ -18,7 +18,7 @@ def test_delete_count(monkeypatch):
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_read_write():
     cache = redis.RedisProjectConfigCache()
     my_key = "fake-dsn-1"
