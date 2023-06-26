@@ -1,4 +1,3 @@
-from ..constants import HEALTH_CHECK_GLOBS
 from .rules.base import generate_rules
 from .rules.biases.boost_environments_bias import ENVIRONMENT_GLOBS, BoostEnvironmentsBias
 from .rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
@@ -41,7 +40,6 @@ __all__ = [
     "BoostLatestReleasesBias",
     "LATEST_RELEASE_TTAS",
     "ENVIRONMENT_GLOBS",
-    "HEALTH_CHECK_GLOBS",
     "RESERVED_IDS",
     "DEFAULT_BIASES",
 ]

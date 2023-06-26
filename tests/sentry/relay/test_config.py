@@ -8,11 +8,10 @@ import pytz
 from freezegun import freeze_time
 from sentry_relay import validate_project_config
 
-from sentry.constants import ObjectStatus
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
     ENVIRONMENT_GLOBS,
-    HEALTH_CHECK_GLOBS,
     RESERVED_IDS,
     Platform,
     RuleType,
