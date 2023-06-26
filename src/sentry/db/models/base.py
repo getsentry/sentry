@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar
+import sys
+from typing import Any, Callable, Iterable, Mapping, MutableSet, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
+from django.db.models.signals import post_migrate
 from django.utils import timezone
 
 from sentry.silo import SiloLimit, SiloMode
@@ -232,3 +234,57 @@ class ModelSiloLimit(SiloLimit):
 
 control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
 region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
+
+
+def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
+    if "pytest" not in sys.modules:
+        return
+
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.models import (
+        Organization,
+        OrganizationMapping,
+        OrganizationMember,
+        OrganizationMemberMapping,
+    )
+    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+
+    if not app_config or app_config.name != "sentry":
+        return
+
+    reset_test_role(role="postgres_unprivileged")
+
+    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
+    seen_models: MutableSet[type] = set()
+    for model in iter_models(app_config.name):
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            fk_model = field.foreign_model
+            if fk_model is None or fk_model in seen_models:
+                continue
+            seen_models.add(fk_model)
+
+            restrict_role(
+                role="postgres_unprivileged", model=fk_model, revocation_type="DELETE", using=using
+            )
+
+    # Protect organization members from being updated without also invoking the correct outbox logic.
+    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
+    # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="UPDATE")
+    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
+    # identifiers are not snowflake ids.
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
+
+    restrict_role(
+        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
+    )
+
+
+post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
