@@ -1,11 +1,10 @@
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import call, patch
 from urllib.parse import urlencode
 
 import pytest
 import responses
 from django.test import override_settings
-from mock import call
 
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.models import Integration

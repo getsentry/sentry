@@ -1,10 +1,10 @@
 from copy import deepcopy
 from unittest import mock
+from unittest.mock import call
 from urllib.parse import urlencode
 
 import pytest
 import responses
-from mock import call
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
