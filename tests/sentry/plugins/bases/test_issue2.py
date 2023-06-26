@@ -4,7 +4,7 @@ import pytest
 
 from sentry.models import GroupMeta, User
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import control_silo_test, region_silo_test

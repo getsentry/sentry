@@ -3,8 +3,8 @@ import {Link} from 'react-router';
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
@@ -32,7 +32,6 @@ const COLUMN_ORDER: TableColumnHeader[] = [
 ];
 
 type SpanTableRow = {
-  description: string;
   op: string;
   'span.self_time': number;
   span_id: string;
@@ -43,7 +42,7 @@ type SpanTableRow = {
     timestamp: string;
     'transaction.duration': number;
   };
-  transaction_id: string;
+  'transaction.id': string;
 };
 
 type Props = {
@@ -71,21 +70,15 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
+          to={`/performance/${row.transaction?.['project.name']}:${row['transaction.id']}#span-${row.span_id}`}
         >
-          {row.transaction_id.slice(0, 8)}
+          {row['transaction.id'].slice(0, 8)}
         </Link>
       );
     }
 
     if (column.key === 'duration') {
-      return (
-        <SpanDurationBar
-          spanOp={row.op}
-          spanDuration={row['span.self_time']}
-          transactionDuration={row.transaction['transaction.duration']}
-        />
-      );
+      return <DurationCell milliseconds={row['span.self_time']} />;
     }
 
     if (column.key === 'p95_comparison') {
@@ -93,7 +86,7 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
     }
 
     if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
+      return <DateTime date={row['span.timestamp']} year timeZone seconds />;
     }
 
     return <span>{row[column.key]}</span>;

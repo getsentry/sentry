@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,15 +15,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import EndpointDetail, {
-  EndpointDataRow,
-} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 import {StarfishView} from './starfishView';
-
-type WebServiceViewState = {
-  selectedRow?: EndpointDataRow;
-};
 
 type Props = {
   eventView: EventView;
@@ -43,11 +36,6 @@ export function StarfishLanding(props: Props) {
     </PageFilterBar>
   );
 
-  const [state, setState] = useState<WebServiceViewState>({selectedRow: undefined});
-  const unsetSelectedEndpoint = () => setState({selectedRow: undefined});
-  const {selectedRow} = state;
-  const setSelectedEndpoint = (row: EndpointDataRow) => setState({selectedRow: row});
-
   return (
     <Layout.Page>
       <PageErrorProvider>
@@ -65,14 +53,7 @@ export function StarfishLanding(props: Props) {
                 {pageFilters}
               </SearchContainerWithFilterAndMetrics>
 
-              <StarfishView {...props} onSelect={setSelectedEndpoint} />
-              <EndpointDetail
-                row={selectedRow}
-                onClose={unsetSelectedEndpoint}
-                eventView={props.eventView}
-                organization={props.organization}
-                location={props.location}
-              />
+              <StarfishView {...props} />
             </Fragment>
           </Layout.Main>
         </Layout.Body>

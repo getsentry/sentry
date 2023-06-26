@@ -150,6 +150,8 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(middle)
             if top:
                 span_ids.append(top)
+        if len(span_ids) == 0:
+            return Response({"data": []})
 
         result = spans_indexed.query(
             selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],

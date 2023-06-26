@@ -440,6 +440,11 @@ register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFI
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
+# Discord Integration
+register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1212,6 +1217,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1318,21 +1328,29 @@ register(
 )
 register(
     "backpressure.high_watermarks.attachments-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.post-process-locks",
-    default=0.5,
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

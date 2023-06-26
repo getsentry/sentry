@@ -77,10 +77,15 @@ function SpanSummaryPage({params, location}: Props) {
       {group: groupId},
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()'],
-      'sidebar-span-metrics'
+      'span-summary-page-metrics'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
+
+  const spanMetricsThroughputSeries = {
+    seriesName: span?.['span.op']?.startsWith('db') ? 'Queries' : 'Requests',
+    data: spanMetricsSeriesData?.['sps()'].data,
+  };
 
   return (
     <Layout.Page>
@@ -170,7 +175,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[spanMetricsSeriesData?.['sps()']]}
+                        data={[spanMetricsThroughputSeries]}
                         start=""
                         end=""
                         loading={areSpanMetricsSeriesLoading}

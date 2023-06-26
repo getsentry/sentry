@@ -10,6 +10,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba import discover
+from sentry.snuba.discover import TOP_KEYS_DEFAULT_LIMIT
 
 
 @region_silo_endpoint
@@ -30,7 +31,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                         query=request.GET.get("query"),
                         params=params,
                         referrer="api.organization-events-facets.top-tags",
-                        per_page=limit,
+                        # TODO(nar): Remove this hardcoded limit and pass in the limit from the paginator
+                        per_page=TOP_KEYS_DEFAULT_LIMIT + 1,
                         cursor=offset,
                     )
 
@@ -78,5 +80,8 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
             return list(resp.values())
 
         return self.paginate(
-            request=request, paginator=GenericOffsetPaginator(data_fn=data_fn), default_per_page=10
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+            default_per_page=10,
+            on_results=lambda results: sorted(results, key=lambda result: str(result.get("key"))),
         )

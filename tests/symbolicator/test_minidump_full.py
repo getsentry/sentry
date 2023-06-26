@@ -180,7 +180,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             burst(max_jobs=100)
 
-            new_event = eventstore.get_event_by_id(self.project.id, event.event_id)
+            new_event = eventstore.backend.get_event_by_id(self.project.id, event.event_id)
             assert new_event is not None
             assert new_event.event_id == event.event_id
 

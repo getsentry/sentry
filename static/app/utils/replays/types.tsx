@@ -12,7 +12,7 @@ import type {
   OptionFrameEvent as TOptionFrameEvent,
   SpanFrame as TRawSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
-} from './replayFrame';
+} from '@sentry/replay';
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -73,6 +73,10 @@ type HydratedStartEndDate = {
    */
   endTimestamp: Date;
   /**
+   * Alias of endTimestamp, in milliseconds
+   */
+  endTimestampMs: number;
+  /**
    * The difference in startTimestamp and replay.started_at, in millieseconds
    */
   offsetMs: number;
@@ -104,6 +108,7 @@ export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 
 // This list should match each of the categories used in `HydratedBreadcrumb` above.
 export const BreadcrumbCategories = [
@@ -115,6 +120,7 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.focus',
   'ui.slowClickDetected',
+  'ui.multiClick',
 ];
 
 // Spans

@@ -2,12 +2,13 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, projectoptions
+from sentry import features, options, projectoptions
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
 
 MAX_VALUE = 2147483647
+TEN_SECONDS = 10000  # ten seconds in milliseconds
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
@@ -19,6 +20,12 @@ class ProjectOwnerOrSuperUserPermissions(ProjectSettingPermission):
 
 
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
+    n_plus_one_db_duration_threshold = serializers.IntegerField(
+        required=False, min_value=50, max_value=TEN_SECONDS
+    )
+    slow_db_query_duration_threshold = serializers.IntegerField(
+        required=False, min_value=100, max_value=TEN_SECONDS
+    )
     uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
     consecutive_http_spans_detection_enabled = serializers.BooleanField(required=False)
     large_http_payload_detection_enabled = serializers.BooleanField(required=False)
@@ -56,14 +63,26 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not self.has_feature(project, request):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
-        performance_issue_settings_default = projectoptions.get_well_known_default(
+        system_defaults = {
+            "n_plus_one_db_duration_threshold": options.get(
+                "performance.issues.n_plus_one_db.duration_threshold"
+            ),
+            "slow_db_query_duration_threshold": options.get(
+                "performance.issues.slow_db_query.duration_threshold"
+            ),
+        }
+
+        project_performance_settings_defaults = projectoptions.get_well_known_default(
             SETTINGS_PROJECT_OPTION_KEY,
             project=project,
         )
-        performance_issue_settings = project.get_option(
-            SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
+        project_performance_settings = project.get_option(
+            SETTINGS_PROJECT_OPTION_KEY, default=project_performance_settings_defaults
         )
-        return Response({**performance_issue_settings_default, **performance_issue_settings})
+
+        project_settings = {**project_performance_settings_defaults, **project_performance_settings}
+
+        return Response({**system_defaults, **project_settings})
 
     def put(self, request: Request, project) -> Response:
         if not self.has_feature(project, request):
