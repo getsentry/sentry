@@ -274,11 +274,11 @@ function ProfilingContent({location}: ProfilingContentProps) {
                       'profiling-global-suspect-functions'
                     ) ? (
                       <Fragment>
-                        <SlowestFunctionsWidget query={functionQuery} />
+                        <SlowestFunctionsWidget userQuery={functionQuery} />
                         <FunctionTrendsWidget
                           trendFunction="p95()"
                           trendType="regression"
-                          query={functionQuery}
+                          userQuery={functionQuery}
                         />
                       </Fragment>
                     ) : (

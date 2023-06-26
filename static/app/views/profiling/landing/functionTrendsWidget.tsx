@@ -40,11 +40,11 @@ const MAX_FUNCTIONS = 3;
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
-  query?: string;
+  userQuery?: string;
 }
 
 export function FunctionTrendsWidget({
-  query,
+  userQuery,
   trendFunction,
   trendType,
 }: FunctionTrendsWidgetProps) {
@@ -53,7 +53,7 @@ export function FunctionTrendsWidget({
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
     trendType,
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
   });
 

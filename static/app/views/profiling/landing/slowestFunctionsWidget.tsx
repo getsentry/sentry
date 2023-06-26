@@ -36,10 +36,10 @@ import {
 const MAX_FUNCTIONS = 3;
 
 interface SlowestFunctionsWidgetProps {
-  query?: string;
+  userQuery?: string;
 }
 
-export function SlowestFunctionsWidget({query}: SlowestFunctionsWidgetProps) {
+export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps) {
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
@@ -49,7 +49,7 @@ export function SlowestFunctionsWidget({query}: SlowestFunctionsWidgetProps) {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
   });
 
@@ -62,7 +62,7 @@ export function SlowestFunctionsWidget({query}: SlowestFunctionsWidgetProps) {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
     // make sure to query for the projects from the top functions
     projects: functionsQuery.isFetched
@@ -114,6 +114,7 @@ export function SlowestFunctionsWidget({query}: SlowestFunctionsWidgetProps) {
                   setExpanded={() => setExpandedIndex(i)}
                   func={f}
                   totalDuration={projectTotalDuration as number}
+                  query={userQuery ?? ''}
                 />
               );
             })}
@@ -127,6 +128,7 @@ export function SlowestFunctionsWidget({query}: SlowestFunctionsWidgetProps) {
 interface SlowestFunctionEntryProps {
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
+  query: string;
   setExpanded: () => void;
   totalDuration: number;
 }
@@ -136,6 +138,7 @@ const BARS = 10;
 function SlowestFunctionEntry({
   func,
   isExpanded,
+  query,
   setExpanded,
   totalDuration,
 }: SlowestFunctionEntryProps) {
@@ -147,17 +150,15 @@ function SlowestFunctionEntry({
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
-  const query = useMemo(() => {
-    const conditions = new MutableSearch('');
-
-    conditions.setFilterValues('is_application', ['1']);
+  const userQuery = useMemo(() => {
+    const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
     conditions.setFilterValues('package', [String(func.package)]);
     conditions.setFilterValues('function', [String(func.function)]);
 
     return conditions.formatString();
-  }, [func]);
+  }, [func, query]);
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
     fields: functionTransactionsFields,
@@ -166,7 +167,7 @@ function SlowestFunctionEntry({
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: 5,
     enabled: isExpanded,
   });
