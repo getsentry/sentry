@@ -3,6 +3,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import newsletter
+from sentry.receivers import create_default_projects
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
@@ -31,6 +32,7 @@ class AuthConfigEndpointTest(APITestCase):
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @exempt_from_silo_limits()  # Single org IS monolith mode
     def test_single_org(self):
+        create_default_projects()
         response = self.client.get(self.path)
 
         assert response.status_code == 200

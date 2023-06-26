@@ -5,11 +5,13 @@ from django.utils import timezone
 
 from sentry.buffer.base import Buffer
 from sentry.models import Group, Organization, Project, Release, ReleaseProject, Team
+from sentry.receivers import create_default_projects
 from sentry.testutils import TestCase
 
 
 class BufferTest(TestCase):
     def setUp(self):
+        create_default_projects()
         self.buf = Buffer()
 
     @mock.patch("sentry.buffer.base.process_incr")

@@ -1,11 +1,12 @@
 from typing import FrozenSet
 
 from django.conf import settings
-from django.db import models, router
-from django.db.models.signals import post_migrate
+from django.db import models
 
 from sentry.db.models import ArrayField, DefaultFieldsModel, control_silo_only_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.signals import post_upgrade
+from sentry.silo import SiloMode
 
 
 @control_silo_only_model
@@ -52,14 +53,8 @@ class UserRoleUser(DefaultFieldsModel):
     __repr__ = sane_repr("user", "role")
 
 
-# this must be idempotent because it executes on every migration
-def manage_default_super_admin_role(app_config=None, using=None, **kwargs):
-    if app_config and app_config.name != "sentry":
-        return
-
-    if using != router.db_for_write(UserRole):
-        return
-
+# this must be idempotent because it executes on every upgrade
+def manage_default_super_admin_role(**kwargs):
     role, _ = UserRole.objects.get_or_create(
         name="Super Admin", defaults={"permissions": settings.SENTRY_USER_PERMISSIONS}
     )
@@ -68,6 +63,9 @@ def manage_default_super_admin_role(app_config=None, using=None, **kwargs):
         role.save(update_fields=["permissions"])
 
 
-post_migrate.connect(
-    manage_default_super_admin_role, dispatch_uid="manage_default_super_admin_role", weak=False
+post_upgrade.connect(
+    manage_default_super_admin_role,
+    dispatch_uid="manage_default_super_admin_role",
+    weak=False,
+    sender=SiloMode.MONOLITH,
 )

@@ -30,6 +30,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
 )
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -98,6 +99,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
 
     def test_different_ids(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
         event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
@@ -261,6 +263,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
         event_data["event"]["timestamp"] = datetime.utcnow().isoformat()

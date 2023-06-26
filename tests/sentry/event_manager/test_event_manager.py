@@ -142,7 +142,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
     def test_dupe_message_id(self, eventstream_insert):
         # Saves the latest event to nodestore and eventstream
-        project_id = 1
+        project_id = self.project.id
         event_id = "a" * 32
         node_id = Event.generate_node_id(project_id, event_id)
 
@@ -683,7 +683,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
     def test_has_pending_commit_resolution(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
         group = event.group
@@ -706,7 +706,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert has_pending_commit_resolution(group)
 
     def test_multiple_pending_commit_resolution(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
 
@@ -751,7 +751,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert pending is False
 
     def test_has_pending_commit_resolution_issue_regression(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
         repo = self.create_repo(project=group.project)
@@ -796,7 +796,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert pending
 
     def test_has_pending_commit_resolution_issue_regression_released_commits(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
         release = self.create_release(project=self.project, version="1.1")
@@ -1150,7 +1150,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert Release.objects.filter(organization_id=self.project.organization_id).count() == 0
 
     def test_first_release(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
         group = event.group
@@ -1194,7 +1194,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert release_tag == "foo-{}".format("a" * partial_version_len)
 
     def test_group_release_no_env(self):
-        project_id = 1
+        project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
