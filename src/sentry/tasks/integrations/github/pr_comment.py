@@ -149,7 +149,7 @@ def create_or_update_comment(
 
     logger.info(
         "github.pr_comment.create_or_update_comment",
-        extra={"created": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
+        extra={"new_comment": pr_comment is None, "pr_key": pr_key, "repo": repo.name},
     )
 
 
