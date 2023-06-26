@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import time
-
 from django.db.models.signals import post_save
 
 from sentry import analytics
@@ -22,8 +20,6 @@ from sentry.signals import (
     event_processed,
     first_event_received,
     inbound_filter_toggled,
-    inbox_in,
-    inbox_out,
     integration_added,
     integration_issue_created,
     integration_issue_linked,
@@ -540,44 +536,6 @@ def record_issue_reviewed(project, user, group, **kwargs):
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         group_id=group.id,
-    )
-
-
-@inbox_in.connect(weak=False)
-def record_inbox_in(project, user, group, reason, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        "inbox.issue_in",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        reason=reason,
-    )
-
-
-@inbox_out.connect(weak=False)
-def record_inbox_out(project, user, group, action, inbox_date_added, referrer, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        "inbox.issue_out",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        action=action,
-        inbox_in_ts=int(time.mktime(inbox_date_added.timetuple())),
-        referrer=referrer,
     )
 
 

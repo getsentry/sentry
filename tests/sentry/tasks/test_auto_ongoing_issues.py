@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
 
 import pytz
 
@@ -28,8 +27,7 @@ from sentry.types.group import GroupSubStatus
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_simple(self, inbox_in):
+    def test_simple(self):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
@@ -48,7 +46,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
 
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
@@ -57,8 +54,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_reprocessed(self, inbox_in):
+    def test_reprocessed(self):
         now = datetime.now(tz=pytz.UTC)
 
         project = self.create_project()
@@ -79,7 +75,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
 
     def test_multiple_old_new(self):
         now = datetime.now(tz=pytz.UTC)
@@ -205,8 +200,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
-    @patch("sentry.signals.inbox_in.send_robust")
-    def test_simple(self, inbox_in):
+    def test_simple(self):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
@@ -234,7 +228,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         ongoing_inbox = GroupInbox.objects.filter(group=group).get()
         assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
         assert ongoing_inbox.date_added >= now
-        assert inbox_in.called
 
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
