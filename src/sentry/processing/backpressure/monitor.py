@@ -80,11 +80,11 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
         high_watermark = options.get(f"backpressure.high_watermarks.{name}")
         is_healthy = True
 
-        logger.debug("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
+        logger.info("Checking service `%s` (configured high watermark: %s):", name, high_watermark)
         try:
             for memory in check_service_memory(service):
                 is_healthy = is_healthy and memory.percentage < high_watermark
-                logger.debug(
+                logger.info(
                     "  used: %s, available: %s, percentage: %s",
                     memory.used,
                     memory.available,
@@ -97,7 +97,7 @@ def check_service_health(services: Mapping[str, Service]) -> Mapping[str, bool]:
             is_healthy = False
 
         service_health[name] = is_healthy
-        logger.debug("  => healthy: %s", is_healthy)
+        logger.info("  => healthy: %s", is_healthy)
 
     return service_health
 
