@@ -11,7 +11,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_key import ProjectKeySerializerResponse
 from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOTFOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.loader.browsersdkversion import get_default_sdk_version_for_project
@@ -21,26 +26,27 @@ from sentry.models import ProjectKey, ProjectKeyStatus
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectEndpoint):
-    # public = {"GET", "PUT", "DELETE"}
-    public = {"GET"}
+    public = {"GET", "PUT", "DELETE"}
 
     @extend_schema(
         operation_id="Retrieve a Client Key",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
-            ProjectParams.key_id("The ID of the key to delete."),
+            ProjectParams.key_id("The ID of the client key"),
         ],
         request=None,
         responses={
             200: ProjectKeySerializerResponse,
-            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
         },
-        examples=ProjectExamples.LIST_CLIENT_KEYS,
+        examples=None,
     )
     def get(self, request: Request, project, key_id) -> Response:
+        """
+        Return a client key bound to a project.
+        """
         try:
             key = ProjectKey.objects.get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
@@ -50,20 +56,26 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         return Response(serialize(key, request.user), status=200)
 
+    @extend_schema(
+        operation_id="Update a Client Key",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ProjectParams.key_id("The ID of the key to update."),
+            # ADD BODY PARAMS
+        ],
+        request=ProjectKeyRequestSerializer,
+        responses={
+            200: ProjectKeySerializerResponse,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=ProjectExamples.UPDATE_CLIENT_KEY,
+    )
     def put(self, request: Request, project, key_id) -> Response:
         """
-        Update a Client Key
-        ```````````````````
-
-        Update a client key.  This can be used to rename a key.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
-                                     belong to.
-        :pparam string key_id: the ID of the key to update.
-        :param string name: the new name for the client key.
-        :auth: required
+        Update a Client Key blah blah something
         """
         try:
             key = ProjectKey.objects.get(
@@ -75,74 +87,74 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         serializer = ProjectKeyRequestSerializer(data=request.data, partial=True)
         default_version = get_default_sdk_version_for_project(project)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        result = serializer.validated_data
 
-            if result.get("name"):
-                key.label = result["name"]
+        if result.get("name"):
+            key.label = result["name"]
+        if not key.data:
+            key.data = {}
+        key.data["browserSdkVersion"] = (
+            default_version if not result.get("browserSdkVersion") else result["browserSdkVersion"]
+        )
 
-            if not key.data:
-                key.data = {}
+        result_dynamic_sdk_options = result.get("dynamicSdkLoaderOptions")
+        if result_dynamic_sdk_options:
+            if key.data.get("dynamicSdkLoaderOptions"):
+                key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
+            else:
+                key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
 
-            key.data["browserSdkVersion"] = (
-                default_version
-                if not result.get("browserSdkVersion")
-                else result["browserSdkVersion"]
-            )
+        if result.get("isActive") is True:
+            key.status = ProjectKeyStatus.ACTIVE
+        elif result.get("isActive") is False:
+            key.status = ProjectKeyStatus.INACTIVE
 
-            result_dynamic_sdk_options = result.get("dynamicSdkLoaderOptions")
+        if features.has("projects:rate-limits", project):
+            ratelimit = result.get("rateLimit", -1)
+            if (
+                ratelimit is None
+                or ratelimit != -1
+                and ratelimit
+                and (ratelimit["count"] is None or ratelimit["window"] is None)
+            ):
+                key.rate_limit_count = None
+                key.rate_limit_window = None
+            elif result.get("rateLimit"):
+                key.rate_limit_count = result["rateLimit"]["count"]
+                key.rate_limit_window = result["rateLimit"]["window"]
 
-            if result_dynamic_sdk_options:
-                if key.data.get("dynamicSdkLoaderOptions"):
-                    key.data["dynamicSdkLoaderOptions"].update(result_dynamic_sdk_options)
-                else:
-                    key.data["dynamicSdkLoaderOptions"] = result_dynamic_sdk_options
+        key.save()
 
-            if result.get("isActive") is True:
-                key.status = ProjectKeyStatus.ACTIVE
-            elif result.get("isActive") is False:
-                key.status = ProjectKeyStatus.INACTIVE
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=key.id,
+            event=audit_log.get_event_id("PROJECTKEY_EDIT"),
+            data=key.get_audit_log_data(),
+        )
 
-            if features.has("projects:rate-limits", project):
-                ratelimit = result.get("rateLimit", -1)
-                if (
-                    ratelimit is None
-                    or ratelimit != -1
-                    and ratelimit
-                    and (ratelimit["count"] is None or ratelimit["window"] is None)
-                ):
-                    key.rate_limit_count = None
-                    key.rate_limit_window = None
-                elif result.get("rateLimit"):
-                    key.rate_limit_count = result["rateLimit"]["count"]
-                    key.rate_limit_window = result["rateLimit"]["window"]
+        return Response(serialize(key, request.user), status=200)
 
-            key.save()
-
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=key.id,
-                event=audit_log.get_event_id("PROJECTKEY_EDIT"),
-                data=key.get_audit_log_data(),
-            )
-
-            return Response(serialize(key, request.user), status=200)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    @extend_schema(
+        operation_id="Delete a Client Key",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ProjectParams.key_id("The ID of the key to delete."),
+        ],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=None,
+    )
     def delete(self, request: Request, project, key_id) -> Response:
         """
-        Delete a Client Key
-        ```````````````````
-
-        Delete a client key.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
-                                     belong to.
-        :pparam string key_id: the ID of the key to delete.
-        :auth: required
+        Delete a client key for a given project.
         """
         try:
             key = ProjectKey.objects.get(
@@ -161,5 +173,4 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
 
         key.delete()
 
-        return Response(status=204)
         return Response(status=204)

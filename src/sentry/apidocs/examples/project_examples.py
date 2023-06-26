@@ -112,7 +112,7 @@ project = {
 
 
 class ProjectExamples:
-    CREATE_CLIENT_KEY = [
+    CREATE_CLIENT_KEY = UPDATE_CLIENT_KEY = [
         OpenApiExample(
             "Create a New Client Key",
             value=key_with_rate_limiting,
