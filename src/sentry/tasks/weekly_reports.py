@@ -724,6 +724,7 @@ def render_template_context(ctx, user):
         user_projects = ctx.projects.values()
 
     has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
+    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
     has_replay_section = features.has(
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
@@ -1007,6 +1008,7 @@ def render_template_context(ctx, user):
         }
 
     return {
+        "has_replay_graph": has_replay_graph,
         "has_replay_section": has_replay_section,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
