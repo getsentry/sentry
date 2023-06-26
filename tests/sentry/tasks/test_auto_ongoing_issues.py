@@ -15,6 +15,7 @@ from sentry.models import (
     add_group_to_inbox,
     record_group_history,
 )
+from sentry.receivers import create_default_projects
 from sentry.tasks.auto_ongoing_issues import (
     auto_transition_issues_new_to_ongoing,
     schedule_auto_transition_new,
@@ -156,6 +157,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         ),
     )
     def test_paginated_transition(self, mocked):
+        create_default_projects()
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
 
