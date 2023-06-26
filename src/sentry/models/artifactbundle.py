@@ -53,9 +53,14 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
+    # name is the same across entities connected to this bundle named *ArtifactBundle.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
-    # This field represents the date of the upload that we show in the UI.
+    # This field represents the date of upload of this bundle, and it's not mutated afterward.
     date_uploaded = models.DateTimeField(default=timezone.now)
+    # This field represents the date in which this bundle was last modified, where modification means that an
+    # association has been added or any of its fields have been modified.
+    date_last_modified = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"

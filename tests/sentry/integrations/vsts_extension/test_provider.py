@@ -14,7 +14,7 @@ from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
     provider = VstsExtensionIntegrationProvider()
 

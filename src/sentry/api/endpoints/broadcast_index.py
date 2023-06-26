@@ -60,11 +60,11 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    value_str = " ".join(value)
                     queryset = queryset.filter(
-                        Q(title__icontains=value)
-                        | Q(message__icontains=value)
-                        | Q(link__icontains=value)
+                        Q(title__icontains=value_str)
+                        | Q(message__icontains=value_str)
+                        | Q(link__icontains=value_str)
                     )
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)

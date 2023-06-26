@@ -76,7 +76,7 @@ class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):
 
 
 class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -96,7 +96,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_process_profiling_occurrence(self) -> None:
         event_data = load_data("generic-event-profiling")
         event_data["detection_time"] = datetime.datetime.now(tz=pytz.UTC)
@@ -106,7 +106,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
-        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
         assert event.occurrence_id == occurrence.id
 
@@ -148,7 +148,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_transaction_lookup(self) -> None:
         from sentry.event_manager import EventManager
 

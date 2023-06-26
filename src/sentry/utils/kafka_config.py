@@ -2,7 +2,7 @@ from typing import Any, MutableMapping, Optional
 
 from django.conf import settings
 
-from sentry.conf.types import TopicDefinition
+from sentry.conf.types.topic_definition import TopicDefinition
 
 SUPPORTED_KAFKA_CONFIGURATION = (
     # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md

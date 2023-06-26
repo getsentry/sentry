@@ -16,7 +16,7 @@ from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.utils import hashlib
-from sentry.utils.security.orgauthtoken_jwt import generate_token
+from sentry.utils.security.orgauthtoken_token import generate_token
 
 
 @control_silo_endpoint

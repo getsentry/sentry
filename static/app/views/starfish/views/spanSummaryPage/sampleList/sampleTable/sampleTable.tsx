@@ -13,14 +13,15 @@ const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
   user?: string;
 };
 
-function SampleTable({groupId, transactionName}: Props) {
+function SampleTable({groupId, transactionName, transactionMethod}: Props) {
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'span-summary-panel-samples-table-p95'
   );
@@ -33,13 +34,10 @@ function SampleTable({groupId, transactionName}: Props) {
   } = useSpanSamples({
     groupId,
     transactionName,
+    transactionMethod,
   });
 
-  const {
-    data: transactions,
-    isLoading: areTransactionsLoading,
-    isRefetching: areTransactionsRefetching,
-  } = useTransactions(
+  const {data: transactions, isLoading: areTransactionsLoading} = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
@@ -47,11 +45,7 @@ function SampleTable({groupId, transactionName}: Props) {
   const transactionsById = keyBy(transactions, 'id');
 
   const isLoading =
-    areSpanSamplesLoading ||
-    areSpanSamplesRefetching ||
-    areTransactionsLoading ||
-    areTransactionsRefetching;
-
+    areSpanSamplesLoading || areSpanSamplesRefetching || areTransactionsLoading;
   return (
     <Fragment>
       <SpanSamplesTable
