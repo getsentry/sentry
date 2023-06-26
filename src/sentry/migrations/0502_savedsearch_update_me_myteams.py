@@ -5,6 +5,7 @@ from typing import Optional, Set
 from django.db import migrations
 
 from sentry.api.issue_search import parse_search_query
+from sentry.exceptions import InvalidSearchQuery
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -58,6 +59,14 @@ def update_saved_search_query(apps, schema_editor):
 
     for ss in RangeQuerySetWrapperWithProgressBar(SavedSearch.objects.all()):
         query = ss.query
+
+        try:
+            parse_search_query(query)
+        except InvalidSearchQuery:
+            # make sure the entire saved search query is parselable and syntactically correct before we even
+            # attempt to re-write it
+            continue
+
         assigned_me_idx_iter = re.finditer(assigned_regex, query)
         assigned_me_in_idx_iter = re.finditer(assigned_in_regex, query)
 
