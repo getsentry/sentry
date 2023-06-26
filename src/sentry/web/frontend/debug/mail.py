@@ -13,6 +13,7 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
+from django.http import HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -20,7 +21,6 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
@@ -372,7 +372,7 @@ class ActivityMailDebugView(View):
     def get_activity(self, request: Request, event):
         raise NotImplementedError
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
