@@ -110,8 +110,8 @@ class GlobalRegionDirectory:
         self.by_name = {r.name: r for r in self.regions}
 
 
-def _parse_config(region_config: str | List[dict] | dict) -> Iterable[Region]:
-    if isinstance(region_config, str):
+def _parse_config(region_config: str | bytes | List[dict] | dict) -> Iterable[Region]:
+    if isinstance(region_config, (str, bytes)):
         config_values = json.loads(region_config)
     elif isinstance(region_config, dict):
         config_values = [region_config]
