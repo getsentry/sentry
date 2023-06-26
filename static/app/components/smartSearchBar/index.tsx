@@ -1666,17 +1666,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
 
     const cursorToken = this.cursorToken;
 
-    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
-      trackAnalytics('search.key_autocompleted', {
-        organization: this.props.organization,
-        search_operator: replaceText,
-        search_source: this.props.searchSource,
-        item_name: item.title ?? item.value?.split(':')[0],
-        item_kind: item.kind,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
-      });
-    }
-
     if (!cursorToken) {
       this.updateQuery(`${query}${replaceText}`);
       return;
@@ -1780,6 +1769,18 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       });
 
       return;
+    }
+
+    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
+      trackAnalytics('search.key_autocompleted', {
+        organization: this.props.organization,
+        search_operator: replaceText,
+        search_source: this.props.searchSource,
+        item_name: item.title ?? item.value?.split(':')[0],
+        item_kind: item.kind,
+        item_type: item.type,
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+      });
     }
 
     if (item.applyFilter) {
