@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     DeletedOrganization,
@@ -90,7 +91,7 @@ class CreateAuditEntryTest(TestCase):
         self.assert_valid_deleted_log(deleted_org, self.org)
 
     def test_audit_entry_org_restore_log(self):
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
             Organization.objects.filter(id=self.organization.id).update(
                 status=OrganizationStatus.PENDING_DELETION
             )

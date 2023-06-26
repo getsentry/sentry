@@ -903,6 +903,16 @@ urlpatterns += [
                     name="sentry-organization-stats",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/$",
+                    react_page_view,
+                    name="sentry-organization-replays",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-replay-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
