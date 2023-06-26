@@ -10,7 +10,8 @@ from typing import List, Optional, Set, Tuple
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry import options
 from sentry.api.serializers import serialize

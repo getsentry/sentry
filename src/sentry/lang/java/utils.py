@@ -1,7 +1,7 @@
 import os
 
 import sentry_sdk
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.eventstore.models import Event
