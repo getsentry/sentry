@@ -542,15 +542,16 @@ class GenericOffsetPaginatorTest(SimpleTestCase):
 
 class CombinedQuerysetPaginatorTest(APITestCase):
     def test_simple(self):
+        project = self.project
         Rule.objects.all().delete()
 
         alert_rule0 = self.create_alert_rule(name="alertrule0")
         alert_rule1 = self.create_alert_rule(name="alertrule1")
-        rule1 = Rule.objects.create(label="rule1", project=self.project)
+        rule1 = Rule.objects.create(label="rule1", project=project)
         alert_rule2 = self.create_alert_rule(name="alertrule2")
         alert_rule3 = self.create_alert_rule(name="alertrule3")
-        rule2 = Rule.objects.create(label="rule2", project=self.project)
-        rule3 = Rule.objects.create(label="rule3", project=self.project)
+        rule2 = Rule.objects.create(label="rule2", project=project)
+        rule3 = Rule.objects.create(label="rule3", project=project)
 
         alert_rule_intermediary = CombinedQuerysetIntermediary(
             AlertRule.objects.all(), ["date_added"]
@@ -580,7 +581,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        assert len(result) == 2
+        assert len(result) == 1
         assert page3_results[0].id == alert_rule0.id
 
         result = paginator.get_result(limit=3, cursor=prev_cursor)
@@ -593,25 +594,24 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         result = paginator.get_result(limit=3, cursor=None)
         assert len(result) == 3
         page1_results = list(result)
-        assert page1_results[0].id == Rule.objects.all().first().id
-        assert page1_results[1].id == alert_rule0.id
-        assert page1_results[2].id == alert_rule1.id
+        assert page1_results[0].id == alert_rule0.id
+        assert page1_results[1].id == alert_rule1.id
+        assert page1_results[2].id == rule1.id
 
         next_cursor = result.next
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page2_results = list(result)
         assert len(result) == 3
-        assert page2_results[0].id == rule1.id
-        assert page2_results[1].id == alert_rule2.id
-        assert page2_results[2].id == alert_rule3.id
+        assert page2_results[0].id == alert_rule2.id
+        assert page2_results[1].id == alert_rule3.id
+        assert page2_results[2].id == rule2.id
 
         next_cursor = result.next
         prev_cursor = result.prev
         result = paginator.get_result(limit=3, cursor=next_cursor)
         page3_results = list(result)
-        assert len(result) == 2
-        assert page3_results[0].id == rule2.id
-        assert page3_results[1].id == rule3.id
+        assert len(result) == 1
+        assert page3_results[0].id == rule3.id
 
         result = paginator.get_result(limit=3, cursor=prev_cursor)
         assert list(result) == page1_results
