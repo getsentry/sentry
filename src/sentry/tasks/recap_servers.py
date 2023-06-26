@@ -92,7 +92,12 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     print("> Fetching JSON payload from:", url)  # NOQA: S002
 
     result = http.fetch_file(url, headers={"Accept": "*/*"}, verify_ssl=False)
-    crashes = json.loads(result.body)
+    try:
+        crashes = json.loads(result.body)
+    except json.JSONDecodeError as e:
+        # TODO(recap): Collect metrics about invalid responses instead?
+        print("> Invalid JSON payload:", e)  # NOQA: S002
+        return
 
     if crashes["results"] == 0:
         print("> No new crashes found:", url)  # NOQA: S002
