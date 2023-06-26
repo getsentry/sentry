@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from django.utils import timezone
 
+from sentry.services.hybrid_cloud.user.model import RpcUser
+
 from .emails import generate_security_email
 
 if TYPE_CHECKING:
@@ -16,9 +18,9 @@ logger = logging.getLogger("sentry.security")
 
 
 def capture_security_activity(
-    account: "AbstractBaseUser | AnonymousUser",
+    account: "AbstractBaseUser | AnonymousUser | RpcUser",
     type: str,
-    actor: "AbstractBaseUser | AnonymousUser",
+    actor: "AbstractBaseUser | AnonymousUser | RpcUser",
     ip_address: str,
     context: Optional[Mapping[str, Any]] = None,
     send_email: bool = True,
