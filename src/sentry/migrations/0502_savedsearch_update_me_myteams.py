@@ -93,12 +93,10 @@ def update_saved_search_query(apps, schema_editor):
         if replacements:
             result = []
             i = 0
-            final_end = 0
             for start, end, replacement in replacements:
                 result.append(query[i:start] + replacement)
                 i = end
-                final_end = end
-            result.append(query[final_end:])
+            result.append(query[i:])
 
             ss.query = "".join(result)
             ss.save(update_fields=["query"])
