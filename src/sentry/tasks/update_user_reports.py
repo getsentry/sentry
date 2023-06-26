@@ -42,7 +42,7 @@ def update_user_reports(**kwargs: Any) -> None:
                 start=now - timedelta(days=2),
                 end=now + timedelta(minutes=5),  # Just to catch clock skew
             )
-            events_chunk = eventstore.get_events(
+            events_chunk = eventstore.backend.get_events(
                 filter=snuba_filter, referrer="tasks.update_user_reports"
             )
             events.extend(events_chunk)

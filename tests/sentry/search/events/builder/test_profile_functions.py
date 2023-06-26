@@ -61,7 +61,7 @@ def params():
         ),
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_where(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
@@ -121,7 +121,7 @@ def test_where(params, search, condition):
         ),
     ],
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_having(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,

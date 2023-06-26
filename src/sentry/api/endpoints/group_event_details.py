@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -30,24 +31,36 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group, event_id: str) -> Response:
         """
-        Retrieve the Latest Event for an Issue
+        Retrieve the latest(most recent), oldest, or most helpful Event for an Issue
         ``````````````````````````````````````
 
-        Retrieves the details of the latest event for an issue.
+        Retrieves the details of the latest/oldest/most-helpful event for an issue.
 
         :pparam string group_id: the ID of the issue
         """
         environments = [e.name for e in get_environments(request, group.project.organization)]
-        event = None
 
         if event_id == "latest":
-            event = group.get_latest_event_for_environments(environments)
+            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
+                event = group.get_latest_event_for_environments(environments)
         elif event_id == "oldest":
-            event = group.get_oldest_event_for_environments(environments)
+            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
+                event = group.get_oldest_event_for_environments(environments)
+        elif event_id == "helpful":
+            if features.has(
+                "organizations:issue-details-most-helpful-event", group.project.organization
+            ):
+                with metrics.timer(
+                    "api.endpoints.group_event_details.get", tags={"type": "helpful"}
+                ):
+                    event = group.get_helpful_event_for_environments(environments)
+            else:
+                return Response(status=404)
         else:
-            event = eventstore.backend.get_event_by_id(
-                group.project.id, event_id, group_id=group.id
-            )
+            with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "event"}):
+                event = eventstore.backend.get_event_by_id(
+                    group.project.id, event_id, group_id=group.id
+                )
             # TODO: Remove `for_group` check once performance issues are moved to the issue platform
             if hasattr(event, "for_group") and event.group:
                 event = event.for_group(event.group)

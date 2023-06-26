@@ -5,7 +5,7 @@ import pytest
 from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_report_dead_click_issue_a_tag():
     event = {
         "data": {
@@ -25,7 +25,7 @@ def test_report_dead_click_issue_a_tag():
     assert reported is True
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_report_dead_click_issue_other_tag():
     event = {
         "data": {
@@ -41,7 +41,7 @@ def test_report_dead_click_issue_other_tag():
     assert reported is False
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_report_dead_click_issue_mutation_reason():
     event = {
         "data": {

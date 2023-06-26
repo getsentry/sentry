@@ -320,18 +320,14 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
     @property
     def instance(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        instance_: str = self.model.metadata["domain_name"]
-        return instance_
+        return self.model.metadata["domain_name"]
 
     @property
     def default_project(self) -> str | None:
         try:
-            # Explicitly typing to satisfy mypy.
-            default_project_: str = self.model.metadata["default_project"]
+            return self.model.metadata["default_project"]
         except KeyError:
             return None
-        return default_project_
 
 
 class VstsIntegrationProvider(IntegrationProvider):
@@ -499,9 +495,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 },
             )
         if response.status_code == 200:
-            # Explicitly typing to satisfy mypy.
-            location_url: str | None = response.json()["locationUrl"]
-            return location_url
+            return response.json()["locationUrl"]
 
         logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
         return None

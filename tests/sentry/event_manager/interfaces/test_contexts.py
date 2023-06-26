@@ -9,7 +9,7 @@ def make_ctx_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"contexts": data})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
         interface = evt.interfaces.get("contexts")
 
         insta_snapshot(
