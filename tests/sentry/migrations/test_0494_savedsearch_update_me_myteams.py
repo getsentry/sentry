@@ -8,13 +8,15 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
 
     def setup_initial_state(self):
         def create_saved_search(query: str) -> SavedSearch:
-            return SavedSearch.objects.create(
+            saved = SavedSearch.objects.create(
                 organization=self.organization,
                 owner_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 name="name",
                 query=query,
             )
+            assert saved.query == query
+            return saved
 
         self.should_update = [
             (q, create_saved_search(q), expected)
@@ -24,12 +26,19 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                 ("assigned:me ", "assigned:[me, my_teams]"),
                 ("assigned:[me] ", "assigned:[me, my_teams]"),
                 ("assigned:[me, none]", "assigned:[me, my_teams, none]"),
+                (
+                    "assigned:[me, test@example.com, none]",
+                    "assigned:[me, my_teams, test@example.com, none]",
+                ),
+                ("assigned:[me, me]", "assigned:[me, my_teams, me]"),
             ]
         ]
         self.should_stay_same = [
             (q, create_saved_search(q))
             for q in [
                 "assigned:my_teams",
+                "assigned:none",
+                "assigned:[none]",
             ]
         ]
 
@@ -40,7 +49,7 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
 
         for before_query, saved_search, expected_query in self.should_update:
             saved_search.refresh_from_db()
-            assert saved_search.query != before_query
+            # assert saved_search.query != before_query
             assert saved_search.query == expected_query
 
         for before_query, saved_search in self.should_stay_same:

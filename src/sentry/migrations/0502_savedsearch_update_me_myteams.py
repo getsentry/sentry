@@ -35,8 +35,20 @@ def replacement_term(original_term: str) -> Optional[str]:
     ):  # if this query already includes my_teams, assume its correct and move on
         return None
     elif "me" in vals_set:
-        vals_set.add("my_teams")
-        joined = ", ".join(vals_set)
+        search_filter_values = (
+            list(assigned_filter.value.raw_value)
+            if in_syntax
+            else [assigned_filter.value.raw_value]
+        )
+        for i, v in enumerate(search_filter_values):
+            if v == "me":
+                search_filter_values.insert(i + 1, "my_teams")
+                break
+
+        if None in vals_set:
+            search_filter_values = [v if v is not None else "none" for v in search_filter_values]
+
+        joined = ", ".join(search_filter_values)
         search_filter_key = (
             "assigned"
             if assigned_filter.key.name in ("assigned_to", "assigned")
