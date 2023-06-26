@@ -15,13 +15,13 @@ from pytz import utc
 from rest_framework import status
 from rest_framework.authentication import BaseAuthentication, SessionAuthentication
 from rest_framework.exceptions import ParseError
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from sentry_sdk import Scope
 
 from sentry import analytics, options, tsdb
-from sentry.api import permissions
 from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
@@ -127,7 +127,7 @@ def allow_cors_options(func):
 class Endpoint(APIView):
     # Note: the available renderer and parser classes can be found in conf/server.py.
     authentication_classes: Tuple[Type[BaseAuthentication], ...] = DEFAULT_AUTHENTICATION
-    permission_classes: Tuple[Type[permissions.BasePermission], ...] = (NoPermission,)
+    permission_classes: Tuple[Type[BasePermission], ...] = (NoPermission,)
 
     cursor_name = "cursor"
 
@@ -596,9 +596,8 @@ class EndpointSiloLimit(SiloLimit):
     def create_override(
         self,
         original_method: Callable[..., Any],
-        extra_modes: Iterable[SiloMode] = (),
     ) -> Callable[..., Any]:
-        limiting_override = super().create_override(original_method, extra_modes)
+        limiting_override = super().create_override(original_method)
 
         def single_process_silo_mode_wrapper(*args: Any, **kwargs: Any) -> Any:
             if SiloMode.single_process_silo_mode():

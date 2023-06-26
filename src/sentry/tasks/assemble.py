@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import uuid
@@ -41,7 +43,8 @@ class ChunkFileState:
 
 class AssembleTask:
     DIF = "project.dsym"  # Debug file upload
-    ARTIFACTS = "organization.artifacts"  # Release file upload
+    RELEASE_BUNDLE = "organization.artifacts"  # Release file upload
+    ARTIFACT_BUNDLE = "organization.artifact_bundle"  # Artifact bundle upload
 
 
 def _get_cache_key(task, scope, checksum):
@@ -297,7 +300,7 @@ def _remove_duplicate_artifact_bundles(org_id: int, ids: List[int]):
 
 
 def _bind_or_create_artifact_bundle(
-    bundle_id: uuid,
+    bundle_id: str | None,
     date_added: datetime,
     org_id: int,
     archive_file: File,
@@ -489,11 +492,16 @@ def assemble_artifacts(
     if project_ids is None:
         project_ids = []
 
+    # We want to evaluate the type of assemble task given the input parameters.
+    assemble_task = (
+        AssembleTask.ARTIFACT_BUNDLE if upload_as_artifact_bundle else AssembleTask.RELEASE_BUNDLE
+    )
+
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
 
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ASSEMBLING)
 
         archive_name = "bundle-artifacts" if upload_as_artifact_bundle else "release-artifacts"
         archive_filename = f"{archive_name}-{uuid.uuid4().hex}.zip"
@@ -501,7 +509,7 @@ def assemble_artifacts(
 
         # Assemble the chunks into a temporary file
         rv = assemble_file(
-            AssembleTask.ARTIFACTS,
+            assemble_task,
             organization,
             archive_filename,
             checksum,
@@ -518,8 +526,6 @@ def assemble_artifacts(
         bundle, temp_file = rv
 
         try:
-            # TODO(iambriccardo): Once the new lookup PR is merged it would be better if we generalize the archive
-            #  handling class.
             archive = ReleaseArchive(temp_file)
         except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
@@ -535,20 +541,18 @@ def assemble_artifacts(
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=archive.artifact_count)
     except AssembleArtifactsError as e:
-        set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
-        )
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception:
         logger.error("failed to assemble release bundle", exc_info=True)
         set_assemble_status(
-            AssembleTask.ARTIFACTS,
+            assemble_task,
             org_id,
             checksum,
             ChunkFileState.ERROR,
             detail="internal server error",
         )
     else:
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.OK)
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.OK)
 
 
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type):

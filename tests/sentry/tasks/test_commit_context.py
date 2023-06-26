@@ -10,6 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.commit_context import process_commit_context
@@ -430,7 +431,7 @@ class TestCommitContext(TestCommitContextMixin):
         }
     ),
 )
-@patch("sentry.tasks.integrations.github.pr_comment.comment_workflow.delay")
+@patch("sentry.tasks.integrations.github.pr_comment.github_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
@@ -507,8 +508,8 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
-    def test_gh_comment_no_pr(self, get_jwt, mock_comment_workflow):
-        """No comments on suspect commit with no pr"""
+    def test_gh_comment_no_pr_from_api(self, get_jwt, mock_comment_workflow):
+        """No comments on suspect commit with no pr returned from API response"""
         self.pull_request.delete()
 
         responses.add(
@@ -522,6 +523,55 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             status=200,
             json={"message": "No commit found for SHA"},
         )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_commit_not_in_default_branch(self, get_jwt, mock_comment_workflow):
+        """No comments on commit not in default branch"""
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + f"/repos/example/commits/{self.commit.key}/pulls",
+            status=200,
+            json=[{"merge_commit_sha": "abcd"}, {"merge_commit_sha": "efgh"}],
+        )
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_no_pr_from_query(self, get_jwt, mock_comment_workflow):
+        """No comments on suspect commit with no pr row in table"""
+        self.pull_request.delete()
+
+        self.add_responses()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
@@ -560,6 +610,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
 
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -581,6 +632,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
 
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
@@ -602,6 +654,37 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert mock_comment_workflow.called
 
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0].commit == self.commit
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_create_queued_existing_pr_commit(self, get_jwt, mock_comment_workflow):
+        """Task queued if no prior comment exists"""
+        pr_commit = PullRequestCommit.objects.create(
+            commit=self.commit, pull_request=self.pull_request
+        )
+        self.pull_request_comment.delete()
+
+        self.add_responses()
+
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.called
+
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0] == pr_commit
+
     @with_feature("organizations:pr-comment-bot")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -622,6 +705,10 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
             )
             assert mock_comment_workflow.called
 
+            pr_commits = PullRequestCommit.objects.all()
+            assert len(pr_commits) == 1
+            assert pr_commits[0].commit == self.commit
+
     @with_feature("organizations:pr-comment-bot")
     def test_gh_comment_no_repo(self, mock_comment_workflow):
         """No comments on suspect commit if no repo row exists"""
@@ -636,3 +723,29 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
+            assert len(PullRequestCommit.objects.all()) == 0
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_gh_comment_debounces(self, get_jwt, mock_comment_workflow):
+        self.add_responses()
+
+        with self.tasks():
+            assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert mock_comment_workflow.call_count == 1

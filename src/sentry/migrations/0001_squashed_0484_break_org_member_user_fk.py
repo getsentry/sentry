@@ -353,14 +353,14 @@ class Migration(CheckedMigration):
         migrations.CreateModel(
             name="User",
             fields=[
-                ("password", models.CharField(max_length=128)),
-                ("last_login", models.DateTimeField(blank=True, null=True)),
                 (
                     "id",
-                    sentry.db.models.fields.bounded.BoundedAutoField(
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
                         primary_key=True, serialize=False
                     ),
                 ),
+                ("password", models.CharField(max_length=128)),
+                ("last_login", models.DateTimeField(blank=True, null=True)),
                 ("username", models.CharField(max_length=128, unique=True)),
                 ("name", models.CharField(blank=True, db_column="first_name", max_length=200)),
                 ("email", models.EmailField(blank=True, max_length=75)),
@@ -520,6 +520,12 @@ class Migration(CheckedMigration):
                     "id",
                     sentry.db.models.fields.bounded.BoundedBigAutoField(
                         primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization", db_index=True, on_delete="CASCADE"
                     ),
                 ),
                 ("label", models.CharField(blank=True, default="Default", max_length=64)),
@@ -784,11 +790,9 @@ class Migration(CheckedMigration):
                 ("date_created", models.DateTimeField(auto_now_add=True)),
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 (
-                    "created_by",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
+                    "created_by_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
                     ),
                 ),
             ],
@@ -1104,7 +1108,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("name", models.CharField(max_length=128)),
                 ("slug", models.SlugField()),
@@ -1268,15 +1272,15 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization", on_delete="CASCADE"
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_organizationintegration",
-                "unique_together": {("organization", "integration")},
+                "unique_together": {("organization_id", "integration")},
             },
         ),
         migrations.CreateModel(
@@ -1314,9 +1318,28 @@ class Migration(CheckedMigration):
                         to="sentry.Organization",
                     ),
                 ),
+                (
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User",
+                        on_delete="CASCADE",
+                        null=True,
+                        blank=True,
+                    ),
+                ),
+                (
+                    "inviter_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
+                        null=True,
+                        blank=True,
+                    ),
+                ),
             ],
             options={
                 "db_table": "sentry_organizationmember",
+                "unique_together": {("organization", "user_id"), ("organization", "email")},
             },
         ),
         migrations.CreateModel(
@@ -1407,9 +1430,9 @@ class Migration(CheckedMigration):
                 ),
                 ("config", sentry.db.models.fields.jsonfield.JSONField(default=dict)),
                 (
-                    "integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Integration"
+                    "integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Integration", on_delete="CASCADE"
                     ),
                 ),
                 (
@@ -1421,7 +1444,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_projectintegration",
-                "unique_together": {("project", "integration")},
+                "unique_together": {("project", "integration_id")},
             },
         ),
         migrations.CreateModel(
@@ -1628,12 +1651,13 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "owner",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "owner_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User",
                         blank=True,
                         null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
+                        db_index=True,
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -1836,11 +1860,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "owner",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="owned_sentry_apps",
-                        to="sentry.Organization",
+                    "owner_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -1951,11 +1974,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="sentry_app_installations",
-                        to="sentry.Organization",
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -1986,8 +2008,16 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
                 ),
                 (
+                    "installation_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.SentryAppInstallation",
+                        null=True,
+                        on_delete="CASCADE",
+                    ),
+                ),
+                (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 (
                     "organization_id",
@@ -2007,11 +2037,11 @@ class Migration(CheckedMigration):
                 ("version", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
-                    "application",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "application_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.ApiApplication",
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.ApiApplication",
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -2332,26 +2362,6 @@ class Migration(CheckedMigration):
                 blank=True, through="sentry.OrganizationMemberTeam", to="sentry.Team"
             ),
         ),
-        migrations.AddField(
-            model_name="organizationmember",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="sentry_orgmember_set",
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AddField(
-            model_name="organization",
-            name="members",
-            field=models.ManyToManyField(
-                related_name="org_memberships",
-                through="sentry.OrganizationMember",
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
         migrations.CreateModel(
             name="MonitorCheckIn",
             fields=[
@@ -2442,24 +2452,6 @@ class Migration(CheckedMigration):
                 "unique_together": {("organization_integration_id", "external_id")},
             },
         ),
-        migrations.AddField(
-            model_name="integration",
-            name="organizations",
-            field=models.ManyToManyField(
-                related_name="integrations",
-                through="sentry.OrganizationIntegration",
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.AddField(
-            model_name="integration",
-            name="projects",
-            field=models.ManyToManyField(
-                related_name="integrations",
-                through="sentry.ProjectIntegration",
-                to="sentry.Project",
-            ),
-        ),
         migrations.CreateModel(
             name="IdentityProvider",
             fields=[
@@ -2548,11 +2540,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -2607,7 +2599,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("group_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 (
@@ -2721,12 +2713,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="sentry_assignee_set",
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -2772,8 +2763,19 @@ class Migration(CheckedMigration):
                         primary_key=True, serialize=False
                     ),
                 ),
-                ("organization_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("integration_id", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
+                (
+                    "organization",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        "sentry.Organization", db_constraint=False
+                    ),
+                ),
+                (
+                    "integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Integration",
+                        on_delete="CASCADE",
+                    ),
+                ),
                 ("key", models.CharField(max_length=128)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 ("title", models.TextField(null=True)),
@@ -2782,7 +2784,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_externalissue",
-                "unique_together": {("organization_id", "integration_id", "key")},
+                "unique_together": {("organization", "integration_id", "key")},
             },
         ),
         migrations.CreateModel(
@@ -2796,7 +2798,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("hash", models.CharField(max_length=32)),
                 ("ident", models.CharField(max_length=128, null=True)),
@@ -3042,12 +3044,11 @@ class Migration(CheckedMigration):
                         default=0,
                     ),
                 ),
-                ("default_teams", models.ManyToManyField(blank=True, to="sentry.Team")),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Organization",
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
+                        on_delete="CASCADE",
                         unique=True,
                     ),
                 ),
@@ -3094,9 +3095,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -3113,15 +3115,6 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_auditlogentry",
             },
-        ),
-        migrations.AddField(
-            model_name="apikey",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="key_set",
-                to="sentry.Organization",
-            ),
         ),
         migrations.CreateModel(
             name="Activity",
@@ -3149,11 +3142,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -3243,17 +3236,19 @@ class Migration(CheckedMigration):
                 ("key", models.CharField(max_length=64)),
                 ("value", sentry.db.models.fields.picklefield.PickledObjectField(editable=False)),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Organization",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
+                    "project_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Project",
+                        null=True,
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -3265,7 +3260,10 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_useroption",
-                "unique_together": {("user", "organization", "key"), ("user", "project", "key")},
+                "unique_together": {
+                    ("user", "organization_id", "key"),
+                    ("user", "project_id", "key"),
+                },
             },
         ),
         migrations.CreateModel(
@@ -3337,7 +3335,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 (
                     "service_hook",
@@ -3515,7 +3513,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
                 ),
                 ("first_seen", models.DateTimeField(default=django.utils.timezone.now)),
                 (
@@ -3567,7 +3565,7 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
                 ),
                 ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
                 (
@@ -3613,17 +3611,17 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         db_index=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_recentsearch",
-                "unique_together": {("user", "organization", "type", "query_hash")},
+                "unique_together": {("user_id", "organization", "type", "query_hash")},
             },
         ),
         migrations.CreateModel(
@@ -3668,21 +3666,21 @@ class Migration(CheckedMigration):
                 ),
                 (
                     "project_id",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(db_index=True),
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
                 ),
                 ("feature", models.CharField(max_length=64)),
                 ("data", sentry.db.models.fields.jsonfield.JSONField(default={})),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_promptsactivity",
-                "unique_together": {("user", "feature", "organization_id", "project_id")},
+                "unique_together": {("user_id", "feature", "organization_id", "project_id")},
             },
         ),
         migrations.CreateModel(
@@ -3793,15 +3791,16 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_projectbookmark",
-                "unique_together": {("project", "user")},
+                "unique_together": {("project", "user_id")},
             },
         ),
         migrations.AlterUniqueTogether(
@@ -3855,11 +3854,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -3867,10 +3866,6 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_organizationonboardingtask",
                 "unique_together": {("organization", "task")},
             },
-        ),
-        migrations.AlterUniqueTogether(
-            name="organizationmember",
-            unique_together={("organization", "user"), ("organization", "email")},
         ),
         migrations.CreateModel(
             name="OrganizationAccessRequest",
@@ -3891,6 +3886,12 @@ class Migration(CheckedMigration):
                     "team",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE, to="sentry.Team"
+                    ),
+                ),
+                (
+                    "requester_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE"
                     ),
                 ),
             ],
@@ -3965,15 +3966,15 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_groupsubscription",
-                "unique_together": {("group", "user")},
+                "unique_together": {("group", "user_id")},
             },
         ),
         migrations.CreateModel(
@@ -3999,17 +4000,17 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                         db_index=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_groupseen",
-                "unique_together": {("user", "group")},
+                "unique_together": {("user_id", "group")},
             },
         ),
         migrations.CreateModel(
@@ -4214,17 +4215,16 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        related_name="sentry_bookmark_set",
-                        to=settings.AUTH_USER_MODEL,
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_groupbookmark",
-                "unique_together": {("project", "user", "group")},
+                "unique_together": {("project", "user_id", "group")},
             },
         ),
         migrations.AlterUniqueTogether(
@@ -4371,9 +4371,9 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 ("status", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
                 (
-                    "created_by",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    "created_by_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", db_index=True, on_delete="CASCADE"
                     ),
                 ),
                 (
@@ -4771,10 +4771,10 @@ class Migration(CheckedMigration):
                 ("service_name", models.CharField(max_length=255)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
-                    "organization_integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
+                    "organization_integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.OrganizationIntegration",
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -4850,17 +4850,6 @@ class Migration(CheckedMigration):
             model_name="organizationmember",
             name="invite_status",
             field=models.PositiveSmallIntegerField(default=0, null=True),
-        ),
-        migrations.AddField(
-            model_name="organizationmember",
-            name="inviter",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="sentry_inviter_set",
-                to=settings.AUTH_USER_MODEL,
-            ),
         ),
         migrations.AddField(
             model_name="projectownership",
@@ -5075,11 +5064,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -5200,15 +5189,15 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_incidentsubscription",
-                "unique_together": {("incident", "user")},
+                "unique_together": {("incident", "user_id")},
             },
         ),
         migrations.CreateModel(
@@ -5228,17 +5217,17 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         db_index=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_incidentseen",
-                "unique_together": {("user", "incident")},
+                "unique_together": {("user_id", "incident")},
             },
         ),
         migrations.AlterUniqueTogether(
@@ -5304,11 +5293,21 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Integration",
+                        blank=True,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
+                        on_delete="CASCADE",
+                    ),
+                ),
+                (
+                    "sentry_app_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.SentryApp",
+                        blank=True,
+                        null=True,
+                        on_delete="CASCADE",
                     ),
                 ),
             ],
@@ -5356,13 +5355,6 @@ class Migration(CheckedMigration):
             old_name="LatestRelease",
             new_name="LatestRepoReleaseEnvironment",
         ),
-        migrations.AddField(
-            model_name="organizationaccessrequest",
-            name="requester",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-            ),
-        ),
         migrations.AlterField(
             model_name="project",
             name="flags",
@@ -5406,11 +5398,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
                 (
@@ -5739,9 +5731,10 @@ class Migration(CheckedMigration):
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
                 ("provider", models.CharField(max_length=64)),
                 (
-                    "organization",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Organization"
+                    "organization_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Organization",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -5754,7 +5747,7 @@ class Migration(CheckedMigration):
             ],
             options={
                 "db_table": "sentry_sentryappinstallationforprovider",
-                "unique_together": {("provider", "organization")},
+                "unique_together": {("provider", "organization_id")},
             },
         ),
         migrations.RunSQL(
@@ -5798,11 +5791,11 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
@@ -5838,24 +5831,17 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
             ],
             options={
                 "db_table": "sentry_ruleactivity",
             },
-        ),
-        migrations.AddField(
-            model_name="alertruletriggeraction",
-            name="sentry_app",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.SentryApp"
-            ),
         ),
         migrations.AlterField(
             model_name="organizationonboardingtask",
@@ -6028,10 +6014,10 @@ class Migration(CheckedMigration):
                 ("source_root", models.TextField()),
                 ("default_branch", models.TextField(null=True)),
                 (
-                    "organization_integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
+                    "organization_integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.OrganizationIntegration",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -6092,15 +6078,6 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 migrations.AlterField(
-                    model_name="alertruleactivity",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
                     model_name="auditlogentry",
                     name="actor",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -6123,27 +6100,7 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 migrations.AlterField(
-                    model_name="organizationmember",
-                    name="inviter",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        blank=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="sentry_inviter_set",
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
                     model_name="organizationonboardingtask",
-                    name="user",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="ruleactivity",
                     name="user",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         null=True,
@@ -6345,11 +6302,9 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to=settings.AUTH_USER_MODEL,
+                    "user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", null=True, on_delete="CASCADE"
                     ),
                 ),
             ],
@@ -6600,15 +6555,6 @@ class Migration(CheckedMigration):
             name="type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
         ),
-        migrations.AlterField(
-            model_name="repositoryprojectpathconfig",
-            name="organization_integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.OrganizationIntegration",
-            ),
-        ),
         migrations.CreateModel(
             name="ProjectCodeOwners",
             fields=[
@@ -6769,44 +6715,24 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
-                    sql='\n                    ALTER TABLE sentry_team ADD COLUMN "actor_id" bigint NULL;\n                    ALTER TABLE auth_user ADD COLUMN "actor_id" bigint NULL;\n                    ',
-                    reverse_sql='\n                    ALTER TABLE sentry_team DROP COLUMN "actor_id";\n                    ALTER TABLE auth_user DROP COLUMN "actor_id";\n                    ',
+                    sql='ALTER TABLE sentry_team ADD COLUMN "actor_id" bigint NULL;',
+                    reverse_sql='ALTER TABLE sentry_team DROP COLUMN "actor_id";',
                     hints={"tables": ["sentry_team"]},
                 ),
                 migrations.RunSQL(
-                    sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;\n                    ",
+                    sql="CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id);",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;",
                     hints={"tables": ["sentry_team"]},
                 ),
                 migrations.RunSQL(
-                    sql='\n                    ALTER TABLE sentry_team ADD CONSTRAINT "sentry_team_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;\n                    ',
-                    reverse_sql="\n                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS sentry_team_actor_idx_fk_sentry_actor_id;\n                    ",
+                    sql='ALTER TABLE sentry_team ADD CONSTRAINT "sentry_team_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;',
+                    reverse_sql="ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS sentry_team_actor_idx_fk_sentry_actor_id;",
                     hints={"tables": ["sentry_team"]},
-                ),
-                migrations.RunSQL(
-                    sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS auth_user_actor_idx ON auth_user (actor_id);\n                    ",
-                    reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS auth_user_actor_idx;\n                    ",
-                    hints={"tables": ["auth_user"]},
-                ),
-                migrations.RunSQL(
-                    sql='\n                    ALTER TABLE auth_user ADD CONSTRAINT "auth_user_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;\n                    ',
-                    reverse_sql="\n                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS auth_user_actor_idx_fk_sentry_actor_id;\n                    ",
-                    hints={"tables": ["auth_user"]},
                 ),
             ],
             state_operations=[
                 migrations.AddField(
                     model_name="team",
-                    name="actor",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        to="sentry.Actor",
-                        unique=True,
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="user",
                     name="actor",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         null=True,
@@ -6913,11 +6839,10 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 (
-                    "integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
+                    "integration_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.Integration",
+                        on_delete="CASCADE",
                     ),
                 ),
                 (
@@ -7080,12 +7005,11 @@ class Migration(CheckedMigration):
                 ("threshold", models.IntegerField()),
                 ("metric", models.PositiveSmallIntegerField(default=1)),
                 (
-                    "edited_by",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
+                    "edited_by_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
                 (
@@ -7123,12 +7047,11 @@ class Migration(CheckedMigration):
                 ("threshold", models.IntegerField()),
                 ("metric", models.PositiveSmallIntegerField(default=1)),
                 (
-                    "edited_by",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
+                    "edited_by_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to=settings.AUTH_USER_MODEL,
+                        on_delete="SET_NULL",
                     ),
                 ),
                 (
@@ -7798,7 +7721,8 @@ class Migration(CheckedMigration):
                 migrations.AddIndex(
                     model_name="auditlogentry",
                     index=models.Index(
-                        fields=["organization", "datetime"], name="sentry_audi_organiz_c8bd18_idx"
+                        fields=["organization_id", "datetime"],
+                        name="sentry_audi_organiz_c8bd18_idx",
                     ),
                 ),
             ],
@@ -7907,7 +7831,7 @@ class Migration(CheckedMigration):
                 migrations.AddIndex(
                     model_name="auditlogentry",
                     index=models.Index(
-                        fields=["organization", "event", "datetime"],
+                        fields=["organization_id", "event", "datetime"],
                         name="sentry_audi_organiz_588b1e_idx",
                     ),
                 ),
@@ -8051,24 +7975,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AddField(
-                    model_name="externalissue",
-                    name="integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Integration",
-                    ),
-                ),
-                migrations.AddField(
-                    model_name="externalissue",
-                    name="organization",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Organization",
-                    ),
-                ),
-                migrations.AddField(
                     model_name="grouplink",
                     name="group",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -8087,20 +7993,8 @@ class Migration(CheckedMigration):
                     ),
                 ),
                 migrations.AlterUniqueTogether(
-                    name="externalissue",
-                    unique_together={("organization", "integration", "key")},
-                ),
-                migrations.AlterUniqueTogether(
                     name="grouplink",
                     unique_together={("group", "linked_type", "linked_id")},
-                ),
-                migrations.RemoveField(
-                    model_name="externalissue",
-                    name="integration_id",
-                ),
-                migrations.RemoveField(
-                    model_name="externalissue",
-                    name="organization_id",
                 ),
                 migrations.RemoveField(
                     model_name="grouplink",
@@ -8177,28 +8071,6 @@ class Migration(CheckedMigration):
                 related_name="avatar",
                 to="sentry.SentryApp",
             ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="repositoryprojectpathconfig",
-                    name="organization_integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.AlterField(
-                    model_name="repositoryprojectpathconfig",
-                    name="organization_integration",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
-                    ),
-                ),
-            ],
         ),
         migrations.AddField(
             model_name="dashboardwidget",
@@ -8643,28 +8515,6 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.CreateModel(
-                    name="AuthProviderDefaultTeams",
-                    fields=[
-                        (
-                            "id",
-                            sentry.db.models.fields.bounded.BoundedBigAutoField(
-                                primary_key=True, serialize=False
-                            ),
-                        ),
-                        (
-                            "team_id",
-                            sentry.db.models.fields.bounded.BoundedBigIntegerField(),
-                        ),
-                        (
-                            "authprovider_id",
-                            sentry.db.models.fields.bounded.BoundedBigIntegerField(),
-                        ),
-                    ],
-                    options={
-                        "db_table": "sentry_authprovider_default_teams",
-                    },
-                ),
-                migrations.CreateModel(
                     name="DashboardProject",
                     fields=[
                         (
@@ -8705,20 +8555,27 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN authprovider_id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN authprovider_id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN team_id TYPE bigint",
-            reverse_sql="ALTER TABLE sentry_authprovider_default_teams ALTER COLUMN team_id TYPE int",
-            hints={"tables": ["sentry_authprovider_default_teams"]},
+        migrations.CreateModel(
+            name="AuthProviderDefaultTeams",
+            fields=[
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                (
+                    "team_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+                (
+                    "authprovider_id",
+                    sentry.db.models.fields.bounded.BoundedBigIntegerField(),
+                ),
+            ],
+            options={
+                "db_table": "sentry_authprovider_default_teams",
+            },
         ),
         migrations.RunSQL(
             sql="ALTER TABLE sentry_dashboardproject ALTER COLUMN id TYPE bigint",
@@ -8961,7 +8818,7 @@ class Migration(CheckedMigration):
             model_name="discoversavedquery",
             constraint=models.UniqueConstraint(
                 condition=models.Q(is_homepage=True),
-                fields=("organization", "created_by", "is_homepage"),
+                fields=("organization", "created_by_id", "is_homepage"),
                 name="unique_user_homepage_query",
             ),
         ),
@@ -9399,59 +9256,6 @@ class Migration(CheckedMigration):
             name="org_role",
             field=models.CharField(max_length=32, null=True),
         ),
-        migrations.AlterField(
-            model_name="groupowner",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="groupowner",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="groupowner",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="release",
-            name="owner",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="release",
-                    name="owner",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", blank=True, db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="release",
-                    old_name="owner",
-                    new_name="owner_id",
-                ),
-            ],
-        ),
         migrations.CreateModel(
             name="RegionScheduledDeletion",
             fields=[
@@ -9487,130 +9291,6 @@ class Migration(CheckedMigration):
                 "db_table": "sentry_regionscheduleddeletion",
                 "unique_together": {("app_label", "model_name", "object_id")},
             },
-        ),
-        migrations.AlterField(
-            model_name="groupassignee",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="groupshare",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="groupsubscription",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="groupseen",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="groupbookmark",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="groupassignee",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="groupbookmark",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="groupseen",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=False, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="groupshare",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="groupsubscription",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="groupassignee",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.RenameField(
-                    model_name="groupbookmark",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.RenameField(
-                    model_name="groupseen",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.RenameField(
-                    model_name="groupshare",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.RenameField(
-                    model_name="groupsubscription",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="groupbookmark",
-                    unique_together={("project", "user_id", "group")},
-                ),
-                migrations.AlterUniqueTogether(
-                    name="groupseen",
-                    unique_together={("user_id", "group")},
-                ),
-                migrations.AlterUniqueTogether(
-                    name="groupsubscription",
-                    unique_together={("group", "user_id")},
-                ),
-            ],
         ),
         migrations.AddField(
             model_name="monitorcheckin",
@@ -9657,39 +9337,6 @@ class Migration(CheckedMigration):
             index=models.Index(
                 fields=["monitor", "environment"], name="sentry_moni_monitor_3d7eb9_idx"
             ),
-        ),
-        migrations.AlterField(
-            model_name="projectintegration",
-            name="integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Integration",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="projectintegration",
-                    name="integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="projectintegration",
-                    old_name="integration",
-                    new_name="integration_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="projectintegration",
-                    unique_together={("project", "integration_id")},
-                ),
-                migrations.RemoveField(
-                    model_name="integration",
-                    name="projects",
-                ),
-            ],
         ),
         migrations.CreateModel(
             name="ArtifactBundle",
@@ -9825,288 +9472,6 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.AlterField(
-            model_name="exporteddata",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="exporteddata",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="exporteddata",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="discoversavedquery",
-            name="created_by",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveConstraint(
-                    model_name="discoversavedquery",
-                    name="unique_user_homepage_query",
-                ),
-                migrations.AddConstraint(
-                    model_name="discoversavedquery",
-                    constraint=models.UniqueConstraint(
-                        condition=models.Q(is_homepage=True),
-                        fields=("organization", "created_by_id", "is_homepage"),
-                        name="unique_user_homepage_query",
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="discoversavedquery",
-                    name="created_by",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="discoversavedquery",
-                    old_name="created_by",
-                    new_name="created_by_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="alertruleactivity",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="alertruleactivity",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="alertruleactivity",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="incidentsubscription",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="incidentsubscription",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="incidentsubscription",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="incidentsubscription",
-                    unique_together={("incident", "user_id")},
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="incidentactivity",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="incidentactivity",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="incidentactivity",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="incidentseen",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="incidentseen",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=False, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="incidentseen",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="incidentseen",
-                    unique_together={("user_id", "incident")},
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="projecttransactionthresholdoverride",
-            name="edited_by",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="projecttransactionthresholdoverride",
-                    name="edited_by",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="projecttransactionthresholdoverride",
-                    old_name="edited_by",
-                    new_name="edited_by_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="projecttransactionthreshold",
-            name="edited_by",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="projecttransactionthreshold",
-                    name="edited_by",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="projecttransactionthreshold",
-                    old_name="edited_by",
-                    new_name="edited_by_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="useroption",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="useroption",
-            name="project",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Project",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="useroption",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="useroption",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-                migrations.AlterField(
-                    model_name="useroption",
-                    name="project",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Project", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="useroption",
-                    old_name="project",
-                    new_name="project_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="useroption",
-                    unique_together={
-                        ("user", "project_id", "key"),
-                        ("user", "organization_id", "key"),
-                    },
-                ),
-            ],
-        ),
         migrations.AddField(
             model_name="monitorcheckin",
             name="monitor_environment",
@@ -10123,134 +9488,6 @@ class Migration(CheckedMigration):
         migrations.AlterUniqueTogether(
             name="monitorenvironment",
             unique_together={("monitor", "environment")},
-        ),
-        migrations.AlterField(
-            model_name="auditlogentry",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="auditlogentry",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RemoveIndex(
-                    model_name="auditlogentry",
-                    name="sentry_audi_organiz_588b1e_idx",
-                ),
-                migrations.RemoveIndex(
-                    model_name="auditlogentry",
-                    name="sentry_audi_organiz_c8bd18_idx",
-                ),
-                migrations.RenameField(
-                    model_name="auditlogentry",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "datetime"],
-                        name="sentry_audi_organiz_c8bd18_idx",
-                    ),
-                ),
-                migrations.AddIndex(
-                    model_name="auditlogentry",
-                    index=models.Index(
-                        fields=["organization_id", "event", "datetime"],
-                        name="sentry_audi_organiz_588b1e_idx",
-                    ),
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="activity",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="activity",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="activity",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="recentsearch",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="recentsearch",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=False, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="recentsearch",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="recentsearch",
-                    unique_together={("user_id", "organization", "type", "query_hash")},
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="dashboard",
-            name="created_by",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="dashboard",
-                    name="created_by",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="dashboard",
-                    old_name="created_by",
-                    new_name="created_by_id",
-                ),
-            ],
         ),
         migrations.AlterField(
             model_name="option",
@@ -10342,11 +9579,6 @@ class Migration(CheckedMigration):
                 through="sentry.NotificationActionProject", to="sentry.Project"
             ),
         ),
-        migrations.AddField(
-            model_name="servicehook",
-            name="installation_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True, null=True),
-        ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
@@ -10370,39 +9602,6 @@ class Migration(CheckedMigration):
                     model_name="user",
                     name="avatar_url",
                     field=models.CharField(max_length=120, null=True),
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="servicehook",
-            name="application",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.ApiApplication",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="servicehook",
-            name="installation_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.SentryAppInstallation", db_index=True, null=True, on_delete="CASCADE"
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="servicehook",
-                    name="application",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.ApiApplication", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="servicehook",
-                    old_name="application",
-                    new_name="application_id",
                 ),
             ],
         ),
@@ -10460,297 +9659,6 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.AlterField(
-            model_name="apikey",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="apikey",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="apikey",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="authprovider",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-                unique=True,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="authprovider",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE", unique=True
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="authprovider",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="sentryapp",
-            name="owner",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="sentryapp",
-                    name="owner",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="sentryapp",
-                    old_name="owner",
-                    new_name="owner_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="sentryappinstallation",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="sentryappinstallation",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="sentryappinstallation",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="sentryappinstallationforprovider",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="sentryappinstallationforprovider",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="sentryappinstallationforprovider",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="organizationaccessrequest",
-            name="requester",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="organizationaccessrequest",
-                    name="requester",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="organizationaccessrequest",
-                    old_name="requester",
-                    new_name="requester_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="organizationonboardingtask",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="organizationonboardingtask",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="organizationonboardingtask",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="projectbookmark",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="projectbookmark",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="projectbookmark",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="projectbookmark",
-                    unique_together={("project", "user_id")},
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="promptsactivity",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="promptsactivity",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="promptsactivity",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="ruleactivity",
-            name="user",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="ruleactivity",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="ruleactivity",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="organizationintegration",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="organizationintegration",
-                    name="organization",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="organizationintegration",
-                    old_name="organization",
-                    new_name="organization_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="organizationintegration",
-                    unique_together={("organization_id", "integration")},
-                ),
-                migrations.RemoveField(
-                    model_name="integration",
-                    name="organizations",
-                ),
-            ],
-        ),
         migrations.AddField(
             model_name="actor",
             name="team",
@@ -10779,17 +9687,6 @@ class Migration(CheckedMigration):
                         null=True,
                         on_delete=django.db.models.deletion.CASCADE,
                         related_name="team_from_actor",
-                        to="sentry.Actor",
-                        unique=True,
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="user",
-                    name="actor",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.PROTECT,
-                        related_name="user_from_actor",
                         to="sentry.Actor",
                         unique=True,
                     ),
@@ -10844,7 +9741,13 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
+                        "sentry.User", null=True, on_delete="CASCADE"
+                    ),
+                ),
+                (
+                    "owner_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", null=True, on_delete="SET_NULL"
                     ),
                 ),
                 ("until", models.DateTimeField(db_index=True, null=True)),
@@ -10961,20 +9864,6 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.AddField(
-            model_name="rulesnooze",
-            name="owner_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
-            ),
-        ),
-        migrations.AlterField(
-            model_name="rulesnooze",
-            name="user_id",
-            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE"
-            ),
-        ),
         migrations.AddConstraint(
             model_name="rulesnooze",
             constraint=models.UniqueConstraint(
@@ -11056,11 +9945,6 @@ class Migration(CheckedMigration):
                     hints={"tables": ["sentry_groupsnooze"]},
                 ),
             ],
-        ),
-        migrations.RunSQL(
-            sql="\nWITH duplicate_users AS (\n  SELECT user_id FROM sentry_actor WHERE user_id IS NOT NULL GROUP BY user_id HAVING count(*) > 1\n),\ncleanup_actors AS (\n    SELECT actor.id AS id FROM sentry_actor AS actor\n    LEFT JOIN auth_user AS u ON u.actor_id = actor.id\n    WHERE actor.user_id IN (SELECT user_id FROM duplicate_users)\n    AND u.actor_id IS NULL\n)\nUPDATE sentry_actor SET user_id = NULL WHERE id IN (SELECT id FROM cleanup_actors);\n                ",
-            reverse_sql="",
-            hints={"tables": ["sentry_actor"]},
         ),
         migrations.RunSQL(
             sql='ALTER TABLE "sentry_actor" DROP CONSTRAINT IF EXISTS "sentry_actor_team_id_6ca8eba5_fk_sentry_team_id";',
@@ -11167,122 +10051,6 @@ class Migration(CheckedMigration):
                 ("organization_id", "organizationmember_id"),
             },
         ),
-        migrations.AlterField(
-            model_name="alertruletriggeraction",
-            name="integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete="CASCADE",
-                to="sentry.Integration",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="alertruletriggeraction",
-            name="sentry_app",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.SentryApp",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="alertruletriggeraction",
-                    name="integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration",
-                        blank=True,
-                        db_index=True,
-                        null=True,
-                        on_delete="CASCADE",
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="alertruletriggeraction",
-                    old_name="integration",
-                    new_name="integration_id",
-                ),
-                migrations.AlterField(
-                    model_name="alertruletriggeraction",
-                    name="sentry_app",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.SentryApp",
-                        blank=True,
-                        db_index=True,
-                        null=True,
-                        on_delete="CASCADE",
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="alertruletriggeraction",
-                    old_name="sentry_app",
-                    new_name="sentry_app_id",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="authprovider",
-                    name="default_teams",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="pagerdutyservice",
-            name="organization_integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.OrganizationIntegration",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="pagerdutyservice",
-                    name="organization_integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.OrganizationIntegration", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="pagerdutyservice",
-                    old_name="organization_integration",
-                    new_name="organization_integration_id",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="repositoryprojectpathconfig",
-            name="organization_integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.OrganizationIntegration",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="repositoryprojectpathconfig",
-                    name="organization_integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.OrganizationIntegration", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="repositoryprojectpathconfig",
-                    old_name="organization_integration",
-                    new_name="organization_integration_id",
-                ),
-            ],
-        ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
@@ -11299,88 +10067,10 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.AlterField(
-            model_name="externalissue",
-            name="integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Integration",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="externalactor",
-            name="integration",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Integration",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="externalissue",
-                    name="integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="externalissue",
-                    old_name="integration",
-                    new_name="integration_id",
-                ),
-                migrations.AlterField(
-                    model_name="externalactor",
-                    name="integration",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="externalactor",
-                    old_name="integration",
-                    new_name="integration_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="externalissue",
-                    unique_together={("organization", "integration_id", "key")},
-                ),
-            ],
-        ),
         migrations.RunSQL(
             sql="ALTER TABLE IF EXISTS sentry_notificationsetting DROP CONSTRAINT IF EXISTS sentry_notifications_target_id_f3923c98_fk_sentry_ac",
             reverse_sql="ALTER TABLE IF EXISTS sentry_notificationsetting ADD CONSTRAINT sentry_notifications_target_id_f3923c98_fk_sentry_ac FOREIGN KEY (target_id) REFERENCES sentry_actor (id) DEFERRABLE INITIALLY DEFERRED",
             hints={"tables": ["sentry_notificationsetting"]},
-        ),
-        migrations.AlterField(
-            model_name="organizationmember",
-            name="inviter",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                blank=True,
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="sentry_inviter_set",
-                to=settings.AUTH_USER_MODEL,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="organizationmember",
-                    name="inviter",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", blank=True, db_index=True, null=True, on_delete="SET_NULL"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="organizationmember",
-                    old_name="inviter",
-                    new_name="inviter_id",
-                ),
-            ],
         ),
         migrations.CreateModel(
             name="ControlOption",
@@ -11425,31 +10115,6 @@ class Migration(CheckedMigration):
             name="monitor_config",
             field=sentry.db.models.fields.jsonfield.JSONField(null=True),
         ),
-        migrations.AlterField(
-            model_name="user",
-            name="actor",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Actor",
-                unique=True,
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="user",
-                    name="actor",
-                    field=models.BigIntegerField(db_index=True, null=True, unique=True),
-                ),
-                migrations.RenameField(
-                    model_name="user",
-                    old_name="actor",
-                    new_name="actor_id",
-                ),
-            ],
-        ),
         migrations.AddField(
             model_name="organizationmapping",
             name="status",
@@ -11483,14 +10148,6 @@ class Migration(CheckedMigration):
                     model_name="controloption",
                     name="last_updated_by",
                     field=models.CharField(default="unknown", max_length=16),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="user",
-                    name="actor_id",
                 ),
             ],
         ),
@@ -11710,33 +10367,14 @@ class Migration(CheckedMigration):
                 ),
             ],
         ),
-        migrations.RunSQL(
-            sql='\n            ALTER TABLE "sentry_organizationmember" DROP CONSTRAINT IF EXISTS\n                "sentry_organizationmember_user_id_d514d1bb_fk_auth_user_id";\n            ',
-            reverse_sql="",
-            hints={"tables": ["sentry_organizationmember"]},
-        ),
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AlterField(
-                    model_name="organizationmember",
-                    name="user",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", blank=True, db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.RenameField(
-                    model_name="organizationmember",
-                    old_name="user",
-                    new_name="user_id",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="organizationmember",
-                    unique_together={("organization", "user_id"), ("organization", "email")},
-                ),
-                migrations.RemoveField(
-                    model_name="organization",
-                    name="members",
+                    model_name="user",
+                    name="id",
+                    field=sentry.db.models.fields.bounded.BoundedAutoField(primary_key=True),
                 ),
             ],
+            database_operations=[],
         ),
     ]

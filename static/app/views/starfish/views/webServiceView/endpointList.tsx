@@ -27,6 +27,7 @@ import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -335,18 +336,6 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 }
 
 export default EndpointList;
-
-export const PercentChangeCell = styled('div')<{
-  trendDirection: 'good' | 'bad' | 'neutral';
-}>`
-  color: ${p =>
-    p.trendDirection === 'good'
-      ? p.theme.successText
-      : p.trendDirection === 'bad'
-      ? p.theme.errorText
-      : p.theme.subText};
-  float: right;
-`;
 
 const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};

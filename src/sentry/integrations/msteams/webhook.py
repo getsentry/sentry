@@ -412,7 +412,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         rules = Rule.objects.filter(id__in=payload["rules"])
 
         # pull the event based off our payload
-        event = eventstore.get_event_by_id(group.project_id, payload["eventId"])
+        event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
         if event is None:
             logger.info(
                 "msteams.action.event-missing",

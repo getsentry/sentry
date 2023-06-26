@@ -216,7 +216,7 @@ def get_oldest_or_latest_event_for_environments(
         conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
     )
 
-    events = eventstore.get_events(
+    events = eventstore.backend.get_events(
         filter=_filter,
         limit=1,
         orderby=ordering.value,
@@ -287,7 +287,7 @@ class GroupManager(BaseManager):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id
@@ -301,7 +301,7 @@ class GroupManager(BaseManager):
         return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id, tenant_ids=None):
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
                 project_ids=project_ids,

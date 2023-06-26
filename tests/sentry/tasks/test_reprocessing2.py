@@ -146,7 +146,7 @@ def test_basic(
 
     def get_event_by_processing_counter(n):
         return list(
-            eventstore.get_events(
+            eventstore.backend.get_events(
                 eventstore.Filter(
                     project_ids=[default_project.id],
                     conditions=[["tags[processing_counter]", "=", n]],
@@ -155,7 +155,7 @@ def test_basic(
             )
         )
 
-    event = eventstore.get_event_by_id(
+    event = eventstore.backend.get_event_by_id(
         default_project.id,
         event_id,
         tenant_ids={"organization_id": 1234, "referrer": "eventstore.get_events"},
@@ -235,7 +235,7 @@ def test_concurrent_events_go_into_new_group(
 
     event_id = process_and_save({"message": "hello world"})
 
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     original_short_id = event.group.short_id
     assert original_short_id
     original_issue_id = event.group.id
@@ -250,13 +250,13 @@ def test_concurrent_events_go_into_new_group(
     assert not is_group_finished(event.group_id)
 
     event_id2 = process_and_save({"message": "hello world"})
-    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
     assert event2.event_id != event.event_id
     assert event2.group_id != event.group_id
 
     burst_reprocess(max_jobs=100)
 
-    event3 = eventstore.get_event_by_id(default_project.id, event_id)
+    event3 = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event3.event_id == event.event_id
     assert event3.group_id != event.group_id
 
@@ -299,7 +299,8 @@ def test_max_events(
     ]
 
     old_events = {
-        event_id: eventstore.get_event_by_id(default_project.id, event_id) for event_id in event_ids
+        event_id: eventstore.backend.get_event_by_id(default_project.id, event_id)
+        for event_id in event_ids
     }
 
     for evt in old_events.values():
@@ -319,7 +320,7 @@ def test_max_events(
 
     event = None
     for i, event_id in enumerate(event_ids):
-        event = eventstore.get_event_by_id(default_project.id, event_id)
+        event = eventstore.backend.get_event_by_id(default_project.id, event_id)
         if max_events is not None and i < (len(event_ids) - max_events):
             if remaining_events == "delete":
                 assert event is None
@@ -380,12 +381,12 @@ def test_attachments_and_userfeedback(
     event_id_to_delete = process_and_save(
         {"message": "hello world", **MINIDUMP_PLACEHOLDER}, seconds_ago=5
     )
-    event_to_delete = eventstore.get_event_by_id(default_project.id, event_id_to_delete)
+    event_to_delete = eventstore.backend.get_event_by_id(default_project.id, event_id_to_delete)
 
     event_id = process_and_save(
         {"message": "hello world", "platform": "native", **MINIDUMP_PLACEHOLDER}
     )
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
     for evt in (event, event_to_delete):
         for type in ("event.attachment", "event.minidump"):
@@ -398,7 +399,7 @@ def test_attachments_and_userfeedback(
 
     burst(max_jobs=100)
 
-    new_event = eventstore.get_event_by_id(default_project.id, event_id)
+    new_event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert new_event.group_id != event.group_id
 
     assert new_event.data["extra"]["attachments"] == [["event.minidump"]]
@@ -432,7 +433,7 @@ def test_nodestore_missing(
     monkeypatch.setattr("sentry.reprocessing2.logger.error", logs.append)
 
     event_id = process_and_save({"message": "hello world", "platform": "python"})
-    event = eventstore.get_event_by_id(default_project.id, event_id)
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
 
     with burst_task_runner() as burst:
@@ -444,7 +445,7 @@ def test_nodestore_missing(
 
     assert is_group_finished(event.group_id)
 
-    new_event = eventstore.get_event_by_id(default_project.id, event_id)
+    new_event = eventstore.backend.get_event_by_id(default_project.id, event_id)
 
     if remaining_events == "delete":
         assert new_event is None
@@ -486,8 +487,8 @@ def test_apply_new_fingerprinting_rules(
     event_id1 = process_and_save({"message": "hello world 1"})
     event_id2 = process_and_save({"message": "hello world 2"})
 
-    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
-    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
 
     # Same group, because grouping scrubs integers from message:
     assert event1.group.id == event2.group.id
@@ -512,8 +513,8 @@ def test_apply_new_fingerprinting_rules(
     assert is_group_finished(event1.group_id)
 
     # Events should now be in different groups:
-    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
-    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
     assert event1.group.id != original_issue_id
     assert event1.group.id != event2.group.id
     assert event1.group.message == "hello world 1 HW1"
@@ -575,8 +576,8 @@ def test_apply_new_stack_trace_rules(
         }
     )
 
-    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
-    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
 
     original_grouping_config = event1.data["grouping_config"]
 
@@ -604,8 +605,8 @@ def test_apply_new_stack_trace_rules(
     assert is_group_finished(event2.group_id)
 
     # Events should now be in same group because of stack trace rule
-    event1 = eventstore.get_event_by_id(default_project.id, event_id1)
-    event2 = eventstore.get_event_by_id(default_project.id, event_id2)
+    event1 = eventstore.backend.get_event_by_id(default_project.id, event_id1)
+    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
     assert event1.group.id != original_issue_id
     assert event1.group.id == event2.group.id
 

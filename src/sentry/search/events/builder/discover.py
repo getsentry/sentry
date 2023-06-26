@@ -68,6 +68,7 @@ from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfi
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     SelectType,
     SnubaParams,
@@ -99,6 +100,22 @@ class BaseQueryBuilder:
         if self.start is None or self.end is None:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
+
+    def get_regression_value(self, x: datetime, linearRegression: Function, alias: str):
+        return Function(
+            "plus",
+            [
+                Function(
+                    "multiply",
+                    [
+                        Function("toUnixTimestamp", [x]),
+                        Function("tupleElement", [linearRegression, 1]),
+                    ],
+                ),
+                Function("tupleElement", [linearRegression, 2]),
+            ],
+            alias,
+        )
 
     def first_half_condition(self):
         """Create the first half condition for percent_change functions"""
@@ -827,7 +844,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.SnQLFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -1229,7 +1246,7 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def convert_aggregate_filter_to_condition(
-        self, aggregate_filter: event_filter.AggregateFilter
+        self, aggregate_filter: event_search.AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value

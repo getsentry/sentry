@@ -5,6 +5,7 @@ from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
 from sentry.tasks.base import instrumented_task, track_group_async_operation
+from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
@@ -116,7 +117,7 @@ def merge_groups(
                 Environment.objects.filter(projects=group.project).values_list("id", flat=True)
             )
 
-            for model in [tsdb.models.group]:
+            for model in [TSDBModel.group]:
                 tsdb.merge(
                     model,
                     new_group.id,
@@ -126,7 +127,7 @@ def merge_groups(
                     else None,
                 )
 
-            for model in [tsdb.models.users_affected_by_group]:
+            for model in [TSDBModel.users_affected_by_group]:
                 tsdb.merge_distinct_counts(
                     model,
                     new_group.id,
@@ -137,8 +138,8 @@ def merge_groups(
                 )
 
             for model in [
-                tsdb.models.frequent_releases_by_group,
-                tsdb.models.frequent_environments_by_group,
+                TSDBModel.frequent_releases_by_group,
+                TSDBModel.frequent_environments_by_group,
             ]:
                 tsdb.merge_frequencies(
                     model,
@@ -189,7 +190,7 @@ def merge_groups(
         )
     elif eventstream_state:
         # All `from_object_ids` have been merged!
-        eventstream.end_merge(eventstream_state)
+        eventstream.backend.end_merge(eventstream_state)
 
 
 def _get_event_environment(event, project, cache):

@@ -1328,21 +1328,29 @@ register(
 )
 register(
     "backpressure.high_watermarks.attachments-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.post-process-locks",
-    default=0.5,
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
