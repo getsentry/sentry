@@ -3,10 +3,13 @@ import time
 import pytest
 
 from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
+from sentry.testutils.factories import Factories
 
 
 @pytest.mark.django_db(databases="__all__")
 def test_report_dead_click_issue_a_tag():
+    project = Factories.create_project(organization=Factories.create_organization())
+
     event = {
         "data": {
             "payload": {
@@ -21,12 +24,14 @@ def test_report_dead_click_issue_a_tag():
         }
     }
 
-    reported = report_dead_click_issue(project_id=1, replay_id="", event=event)
+    reported = report_dead_click_issue(project_id=project.id, replay_id="", event=event)
     assert reported is True
 
 
 @pytest.mark.django_db(databases="__all__")
 def test_report_dead_click_issue_other_tag():
+    project = Factories.create_project(organization=Factories.create_organization())
+
     event = {
         "data": {
             "payload": {
@@ -37,7 +42,7 @@ def test_report_dead_click_issue_other_tag():
         }
     }
 
-    reported = report_dead_click_issue(project_id=1, replay_id="", event=event)
+    reported = report_dead_click_issue(project_id=project.id, replay_id="", event=event)
     assert reported is False
 
 

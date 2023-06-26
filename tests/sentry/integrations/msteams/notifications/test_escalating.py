@@ -44,7 +44,7 @@ class MSTeamsEscalatingNotificationTest(MSTeamsActivityNotificationTest):
         )
         assert (
             body[2]["text"]
-            == "Sentry flagged this issue as escalating because over 100 events happened in an hour"
+            == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             body[3]["columns"][1]["items"][0]["text"]

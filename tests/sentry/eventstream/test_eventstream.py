@@ -13,6 +13,7 @@ from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
+from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -366,6 +367,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         assert body["queue"] == "post_process_issue_platform"
 
     def test_insert_generic_event_contexts(self):
+        create_default_projects()
         es = SnubaProtocolEventStream()
 
         profile_message = load_data("generic-event-profiling")

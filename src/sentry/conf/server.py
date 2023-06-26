@@ -1474,6 +1474,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
+    # Enable sorting Issue detail events by 'most helpful'
+    "organizations:issue-details-most-helpful-event": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
@@ -1489,6 +1491,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable performance change explorer panel on trends page
+    "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1544,18 +1548,10 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
-    # Enable session replay click search banner rollout for eligible SDKs
-    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled for those orgs who participated in the Replay Beta program
-    "organizations:session-replay-beta-grace": False,
     # Enabled experimental session replay errors view, replacing issues
     "organizations:session-replay-errors-tab": False,
-    # Enable replay GA messaging (update paths from AM1 to AM2)
-    "organizations:session-replay-ga": False,
-    # Enabled experimental session replay network data view
-    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
