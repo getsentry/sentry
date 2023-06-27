@@ -20,7 +20,7 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
-export const NULL_SPAN_CATEGORY = '<null>';
+export const NULL_SPAN_CATEGORY = 'custom';
 
 type Props = {
   transaction?: string;
