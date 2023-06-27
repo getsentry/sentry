@@ -1,4 +1,5 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -9,6 +10,7 @@ import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -20,6 +22,8 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import type {TrendType} from 'sentry/utils/profiling/hooks/types';
 import {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -36,6 +40,7 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
+const CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
@@ -48,13 +53,28 @@ export function FunctionTrendsWidget({
   trendFunction,
   trendType,
 }: FunctionTrendsWidgetProps) {
+  const location = useLocation();
+
   const [expandedIndex, setExpandedIndex] = useState(0);
+
+  const fnTrendCursor = useMemo(
+    () => decodeScalar(location.query[CURSOR_NAME]),
+    [location.query]
+  );
+
+  const handleCursor = useCallback((cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [CURSOR_NAME]: cursor},
+    });
+  }, []);
 
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
     trendType,
     query: userQuery,
     limit: MAX_FUNCTIONS,
+    cursor: fnTrendCursor,
   });
 
   useEffect(() => {
@@ -67,7 +87,11 @@ export function FunctionTrendsWidget({
 
   return (
     <WidgetContainer>
-      <FunctionTrendsWidgetHeader trendType={trendType} />
+      <FunctionTrendsWidgetHeader
+        handleCursor={handleCursor}
+        pageLinks={trendsQuery.getResponseHeader?.('Link') ?? null}
+        trendType={trendType}
+      />
       <ContentContainer>
         {isLoading && (
           <StatusContainer>
@@ -104,13 +128,24 @@ export function FunctionTrendsWidget({
   );
 }
 
-function FunctionTrendsWidgetHeader(props: {trendType: TrendType}) {
-  switch (props.trendType) {
+interface FunctionTrendsWidgetHeaderProps {
+  handleCursor: CursorHandler;
+  pageLinks: string | null;
+  trendType: TrendType;
+}
+
+function FunctionTrendsWidgetHeader({
+  handleCursor,
+  pageLinks,
+  trendType,
+}: FunctionTrendsWidgetHeaderProps) {
+  switch (trendType) {
     case 'regression':
       return (
         <HeaderContainer>
           <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
+          <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>
       );
     case 'improvement':
@@ -118,6 +153,7 @@ function FunctionTrendsWidgetHeader(props: {trendType: TrendType}) {
         <HeaderContainer>
           <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
+          <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>
       );
     default:
@@ -353,6 +389,10 @@ function getTooltipFormatter(label: string, baseline: number) {
     '<div class="tooltip-arrow"></div>',
   ].join('');
 }
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;

@@ -12,9 +12,10 @@ export const WidgetContainer = styled(Panel)`
 `;
 
 export const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 26px auto;
   padding-left: ${space(2)};
   padding-right: ${space(2)};
 `;
