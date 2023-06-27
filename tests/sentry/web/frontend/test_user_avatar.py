@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import File, UserAvatar
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.web.frontend.generic import FOREVER_CACHE
 
 
@@ -12,8 +12,9 @@ from sentry.web.frontend.generic import FOREVER_CACHE
 class UserAvatarTest(TestCase):
     def test_headers(self):
         user = self.create_user(email="a@example.com")
-        photo = File.objects.create(name="test.png", type="avatar.file")
-        photo.putfile(BytesIO(b"test"))
+        with exempt_from_silo_limits():
+            photo = File.objects.create(name="test.png", type="avatar.file")
+            photo.putfile(BytesIO(b"test"))
         avatar = UserAvatar.objects.create(user=user, file_id=photo.id)
         url = reverse("sentry-user-avatar-url", kwargs={"avatar_id": avatar.ident})
         response = self.client.get(url)

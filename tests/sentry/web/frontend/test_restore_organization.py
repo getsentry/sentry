@@ -1,12 +1,13 @@
 from django.urls import reverse
 
 from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class RestoreOrganizationPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -45,7 +46,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is True
 
         self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
@@ -56,7 +59,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is False
 
     def test_renders_with_context_customer_domain(self):
@@ -68,7 +73,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is True
 
         self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
@@ -79,7 +86,9 @@ class RemoveOrganizationTest(TestCase):
 
         self.assertTemplateUsed(resp, "sentry/restore-organization.html")
 
-        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["deleting_organization"] == serialize_rpc_organization(
+            self.organization
+        )
         assert resp.context["pending_deletion"] is False
 
     def test_success(self):
