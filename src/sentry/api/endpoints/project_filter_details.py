@@ -1,5 +1,7 @@
 from collections.abc import Iterable
 
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,20 +9,49 @@ from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
+    public = {"PUT"}
+
+    @extend_schema(
+        operation_id="Update an Inbound Data Filter",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            ProjectParams.FILTER_ID,
+            ProjectParams.ACTIVE,
+            ProjectParams.SUB_FILTERS,
+        ],
+        request=inline_serializer(
+            name="FilterPutSerializer",
+            fields={
+                "active": serializers.CharField(required=False),
+                "subfilters": serializers.ListField(child=serializers.CharField(required=False)),
+            },
+        ),
+        responses={
+            201: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=None,
+    )
     def put(self, request: Request, project, filter_id) -> Response:
         """
-        Update a filter
-
-        Update a project's filter.
-
-            {method} {path}
-
+        Update various inbound data filters for a project.
         """
 
         current_filter = None

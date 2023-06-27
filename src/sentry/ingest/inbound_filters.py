@@ -219,8 +219,7 @@ _browser_extensions_filter = _FilterSpec(
 )
 
 
-class _LegacyBrowserFilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
+class _LegacyBrowserFilterSerializer(_FilterSerializer):
     subfilters = MultipleChoiceField(
         choices=[
             "ie_pre_9",

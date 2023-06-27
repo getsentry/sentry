@@ -4,7 +4,7 @@ from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_generate_bias_rules_v2(default_project):
     rules = IgnoreHealthChecksBias().generate_rules(project=default_project, base_sample_rate=1.0)
     assert rules == [

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 cloudformation_arn = (
@@ -170,8 +169,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_node_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -215,8 +213,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_enable_python_layer(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -262,8 +259,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_disable_node(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -309,8 +305,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_disable_python(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -358,8 +353,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_update_node_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -407,8 +401,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
     @patch.object(AwsLambdaIntegration, "get_serialized_lambda_function")
     @patch("sentry.integrations.aws_lambda.integration.gen_aws_client")
     def test_update_python_version(self, mock_gen_aws_client, mock_get_serialized_lambda_function):
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={
@@ -468,8 +461,7 @@ class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest)
         the function because the Handler will be updated with an incorrect
         SENTRY_INITIAL_HANDLER value
         """
-        mock_client = Mock()
-        mock_gen_aws_client.return_value = mock_client
+        mock_client = mock_gen_aws_client.return_value
 
         mock_client.get_function = MagicMock(
             return_value={

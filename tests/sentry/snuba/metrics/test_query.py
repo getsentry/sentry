@@ -8,6 +8,7 @@ from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.receivers import create_default_projects
 from sentry.snuba.metrics import (
     OPERATIONS,
     DerivedMetricParseException,
@@ -222,6 +223,7 @@ def test_validate_order_by():
 
 @pytest.mark.django_db(True)
 def test_validate_order_by_field_in_select():
+    create_default_projects()
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -245,6 +247,7 @@ def test_validate_order_by_field_in_select():
 
 @pytest.mark.django_db(True)
 def test_validate_order_by_field_in_select_with_different_alias():
+    create_default_projects()
     ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
     ap_dex_with_alias_2 = MetricField(
         op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
@@ -267,6 +270,7 @@ def test_validate_order_by_field_in_select_with_different_alias():
 
 @pytest.mark.django_db(True)
 def test_validate_multiple_orderby_columns_not_specified_in_select():
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
@@ -293,6 +297,7 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
     The example should fail because session crash free rate is generated from
     counters entity while p50 of duration will go to distribution
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
     metric_field_3 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
@@ -322,6 +327,7 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     This example should fail because session crash free rate is generated from
     counters while session user crash free rate is generated from sets
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
     metrics_query_dict = (
@@ -349,6 +355,7 @@ def test_validate_many_order_by_fields_are_in_select():
     """
     Validate no exception is raised when all orderBy fields are presented the select
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
 

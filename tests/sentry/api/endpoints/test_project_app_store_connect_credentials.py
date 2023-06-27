@@ -121,7 +121,7 @@ class TestAppStoreConnectRefreshEndpoint:
             },
         )
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     def test_ok(
         self,
         client,
@@ -140,7 +140,7 @@ class TestAppStoreConnectRefreshEndpoint:
             project_id=default_project.id, config_id=config_id
         )
 
-    @pytest.mark.django_db
+    @pytest.mark.django_db(databases="__all__")
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_rate_limited(self, client, default_user, mocked_dsym_download_task, refresh_url):
         client.login(username=default_user.username, password="admin")

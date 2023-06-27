@@ -205,7 +205,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request: Request, organization: RpcOrganization) -> Response:
+    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponse:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
