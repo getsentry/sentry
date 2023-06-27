@@ -200,6 +200,11 @@ def typed_dict_bitfield(definition: T, default=None, null=False) -> T:
     """
     A wrapper around BitField that allows you to access its fields as
     dictionary keys attributes in a type-safe way.
+
+    Prefer `TypedClassBitField` over this if you can help it. This function
+    only exists to make it simpler to type bitfields with fields that are not
+    valid Python identifiers, but has limitations for how far it can provide
+    type safety.
     """
     assert issubclass(definition, dict)
 
