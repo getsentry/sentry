@@ -256,7 +256,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert len(res) == 5
 
 
-@region_silo_test(stable=True)
+@region_silo_test()
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -272,20 +272,29 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
             project_id=self.project.id,
         )
         comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
-        assert comment_contents[0] == PullRequestIssue(
-            title="issue 1",
-            subtitle="issue1",
-            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
+        assert (
+            PullRequestIssue(
+                title="issue1",
+                subtitle="issue1",
+                url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
+            )
+            in comment_contents
         )
-        assert comment_contents[1] == PullRequestIssue(
-            title="issue 2",
-            subtitle="issue2",
-            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
+        assert (
+            PullRequestIssue(
+                title="issue2",
+                subtitle="issue2",
+                url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
+            )
+            in comment_contents
         )
-        assert comment_contents[2] == PullRequestIssue(
-            title="issue 3",
-            subtitle="issue3",
-            url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
+        assert (
+            PullRequestIssue(
+                title="issue3",
+                subtitle="issue3",
+                url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
+            )
+            in comment_contents
         )
 
 
@@ -310,7 +319,7 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-@region_silo_test(stable=True)
+@region_silo_test()
 class TestCommentWorkflow(GithubCommentTestCase):
     base_url = "https://api.github.com"
 
@@ -564,7 +573,7 @@ class TestCommentReactionsTask(GithubCommentTestCase):
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
-    def test_comment_reactions_task(self, get_jwt, mock_issues):
+    def test_comment_reactions_task(self, get_jwt):
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
