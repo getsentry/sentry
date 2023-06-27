@@ -141,10 +141,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   handleThresholdsReset = () => {
     const {projectId} = this.props.params;
-    const {organization} = this.props;
+    const {organization, project} = this.props;
 
     this.setState({
       loading: true,
+    });
+
+    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+      organization,
+      project_slug: project.slug,
     });
 
     this.api.request(
