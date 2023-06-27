@@ -23,6 +23,8 @@ from sentry.notifications.utils import (
     get_integration_link,
     get_interface_list,
     get_performance_issue_alert_subtitle,
+    get_replay_details_link,
+    get_replay_id,
     get_rules,
     get_transaction_data,
     has_alert_integration,
@@ -115,6 +117,7 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
+
         rule_details = get_rules(self.rules, self.organization, self.project)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
@@ -158,6 +161,19 @@ class AlertRuleNotification(ProjectNotification):
         # data which may show PII or source code
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
+
+        has_session_replay = features.has("organizations:session-replay", self.organization)
+        has_replay_link = features.has(
+            "organizations:session-replay-issue-emails", self.organization
+        )
+        replay_id = get_replay_id(self.event)
+        if has_session_replay and has_replay_link and replay_id:
+            context.update(
+                {
+                    "replay_id": replay_id,
+                    "replay_url": get_replay_details_link(self.organization, replay_id),
+                }
+            )
 
         if self.group.issue_category == GroupCategory.PERFORMANCE:
             context.update(

@@ -1560,6 +1560,7 @@ SENTRY_FEATURES = {
     # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-issue-emails": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view

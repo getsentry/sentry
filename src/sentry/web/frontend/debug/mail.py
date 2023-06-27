@@ -406,6 +406,7 @@ class ActivityMailDebugView(View):
 
 
 has_issue_states = True
+replay_id = "9188182919744ea987d8e4e58f4a6dec"
 
 
 @login_required
@@ -446,6 +447,8 @@ def alert(request):
             "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
+            "replay_id": replay_id,
+            "replay_url": absolute_uri(f"/replays/{replay_id}?referrer=alert_email"),
         },
     ).render(request)
 

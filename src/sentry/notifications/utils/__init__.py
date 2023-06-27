@@ -206,6 +206,12 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     )
 
 
+def get_replay_details_link(organization: Organization, replay_id: str) -> str:
+    return organization.absolute_url(
+        f"/organizations/{organization.slug}/replays/{replay_id}?referrer=alert_email"
+    )
+
+
 @dataclass
 class NotificationRuleDetails:
     id: int
@@ -487,6 +493,12 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
     split = participants_by_provider.split_participants_and_context()
     for (provider, participants, extra_context) in split:
         notify(provider, notification, participants, shared_context, extra_context)
+
+
+def get_replay_id(event: Event) -> str | None:
+    evidence_replay_id = event.occurrence.evidence_data.get("replay_id", "")
+    tags_replay_id = event.get_tag("replay_id")
+    return evidence_replay_id or tags_replay_id
 
 
 @dataclass
