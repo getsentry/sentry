@@ -17,6 +17,10 @@ from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializ
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
 from sentry.utils.db import atomic_transaction
 
+# We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
+# restrict the number of order by fields that are possible in the API.
+ORDER_BY_FIELDS_MAPPING = {"date_added": "date_uploaded", "date_modified": "date_last_modified"}
+
 
 class InvalidSortByParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
@@ -30,8 +34,8 @@ class ArtifactBundlesMixin:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
-        if sort_by == "date_added":
-            order_by = "date_uploaded"
+        order_by = ORDER_BY_FIELDS_MAPPING.get(sort_by)
+        if order_by is not None:
             return f"-{order_by}" if is_desc else order_by
 
         raise InvalidSortByParameter
@@ -60,9 +64,13 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 ArtifactBundle.objects.filter(
                     organization_id=project.organization_id,
                     projectartifactbundle__project_id=project.id,
-                ).values_list("id", "bundle_id", "artifact_count", "date_uploaded")
+                ).values_list(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
                 # We want to use the more efficient DISTINCT ON.
-                .distinct("id", "bundle_id", "artifact_count", "date_uploaded")
+                .distinct(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
