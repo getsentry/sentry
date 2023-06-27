@@ -245,6 +245,8 @@
   color: '8D5494'
 - name: 'Product Area: Settings - Developer Settings'
   color: '8D5494'
+- name: 'Product Area: Settings - Spend Allocation'
+  color: '8D5494'
 - name: 'Product Area: Settings - Spike Protection'
   color: '8D5494'
 - name: 'Product Area: Help'
