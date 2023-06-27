@@ -60,7 +60,6 @@ class ProjectKey(Model):
         api: bool
 
         bitfield_default = ["store"]
-        bitfield_null = True
 
     status = BoundedPositiveIntegerField(
         default=0,
