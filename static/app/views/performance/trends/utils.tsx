@@ -276,6 +276,10 @@ export function modifyTrendView(
     if (query.hasFilter('transaction.duration')) {
       query.removeFilter('transaction.duration');
     }
+
+    if (trendParameter.column && query.hasFilter(trendParameter.column)) {
+      query.removeFilter(trendParameter.column);
+    }
     trendView.query = query.formatString();
   }
 
