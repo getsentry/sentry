@@ -226,7 +226,7 @@ def get_stream_processor(
     max_poll_interval_ms: Optional[int],
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
-    healthcheck_file: Optional[str],
+    healthcheck_file_path: Optional[str],
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]

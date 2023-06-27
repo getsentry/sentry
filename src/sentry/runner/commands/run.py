@@ -691,7 +691,7 @@ def profiles_consumer(**options):
     help="Consumer group that the Snuba writer is committing its offset as.",
 )
 @click.option(
-    "--healthcheck-file",
+    "--healthcheck-file-path",
     help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
 )
 @strict_offset_reset_option()
