@@ -7,6 +7,7 @@ from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.db.models.signals import post_migrate
+from django.db.transaction import get_connection
 from django.utils import timezone
 
 from sentry.silo import SiloLimit, SiloMode
@@ -252,7 +253,9 @@ def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     if not app_config or app_config.name != "sentry":
         return
 
-    reset_test_role(role="postgres_unprivileged")
+    with get_connection(using).cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
+    reset_test_role(role="postgres_unprivileged", using=using)
 
     # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
     seen_models: MutableSet[type] = set()
