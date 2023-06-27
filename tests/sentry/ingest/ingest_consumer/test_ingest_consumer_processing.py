@@ -51,7 +51,7 @@ def preprocess_event(monkeypatch):
     return calls
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_deduplication_works(default_project, task_runner, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
@@ -67,7 +67,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
                 "project_id": project_id,
                 "remote_addr": "127.0.0.1",
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     (kwargs,) = preprocess_event
@@ -81,7 +81,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
     }
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_transactions_spawn_save_event_transaction(
     default_project,
     task_runner,
@@ -117,7 +117,7 @@ def test_transactions_spawn_save_event_transaction(
             "project_id": project_id,
             "remote_addr": "127.0.0.1",
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
@@ -130,7 +130,7 @@ def test_transactions_spawn_save_event_transaction(
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("missing_chunks", (True, False))
 def test_with_attachments(default_project, task_runner, missing_chunks, monkeypatch, django_cache):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
@@ -149,8 +149,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 0,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
         process_attachment_chunk(
@@ -160,8 +159,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": 1,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     with task_runner():
@@ -182,7 +180,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
                     }
                 ],
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     persisted_attachments = list(
@@ -201,7 +199,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         assert not persisted_attachments
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_deobfuscate_view_hierarchy(default_project, task_runner):
     payload = get_normalized_event(
         {
@@ -244,8 +242,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
             "project_id": project_id,
             "id": attachment_id,
             "chunk_index": 0,
-        },
-        projects={default_project.id: default_project},
+        }
     )
 
     with task_runner():
@@ -266,7 +263,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
                     }
                 ],
             },
-            projects={default_project.id: default_project},
+            project=default_project,
         )
 
     persisted_attachments = list(
@@ -281,7 +278,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     assert file_contents.name == "view_hierarchy.json"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize(
     "event_attachments", [True, False], ids=["with_feature", "without_feature"]
 )
@@ -326,8 +323,7 @@ def test_individual_attachments(
                 "project_id": project_id,
                 "id": attachment_id,
                 "chunk_index": i,
-            },
-            projects={default_project.id: default_project},
+            }
         )
 
     process_individual_attachment(
@@ -343,7 +339,7 @@ def test_individual_attachments(
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
@@ -361,7 +357,7 @@ def test_individual_attachments(
         assert file_contents.name == "foo.txt"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_userreport(django_cache, default_project, monkeypatch):
     """
     Test that user_report-type kafka messages end up in a user report being
@@ -395,7 +391,7 @@ def test_userreport(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     (report,) = UserReport.objects.all()
@@ -405,7 +401,7 @@ def test_userreport(django_cache, default_project, monkeypatch):
     assert evtuser.name == "Hans Gans"
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     """
     Test that ingesting a userreport before the event works. This is relevant
@@ -429,7 +425,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
             ),
             "project_id": default_project.id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     mgr = EventManager(data={"event_id": event_id, "user": {"email": "markus+dontatme@sentry.io"}})
@@ -446,7 +442,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     assert evtuser.name is None
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_individual_attachments_missing_chunks(default_project, factories, monkeypatch):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 
@@ -467,7 +463,7 @@ def test_individual_attachments_missing_chunks(default_project, factories, monke
             "event_id": event_id,
             "project_id": project_id,
         },
-        projects={default_project.id: default_project},
+        project=default_project,
     )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))

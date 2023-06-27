@@ -1,22 +1,23 @@
 from django.contrib import messages
 from django.db import transaction
+from django.http import HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.helper import AuthHelper
 from sentry.constants import WARN_SESSION_EXPIRED
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.auth import initiate_login
 from sentry.web.frontend.auth_login import AuthLoginView
 
 
 class AuthOrganizationLoginView(AuthLoginView):
-    def respond_login(self, request: Request, context, *args, **kwargs) -> Response:
+    def respond_login(self, request: Request, context, *args, **kwargs) -> HttpResponse:
         return self.respond("sentry/organization-login.html", context)
 
-    def handle_sso(self, request: Request, organization, auth_provider):
+    def handle_sso(self, request: Request, organization: RpcOrganization, auth_provider):
         if request.method == "POST":
             helper = AuthHelper(
                 request=request,
@@ -47,14 +48,13 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @never_cache
     @transaction.atomic
-    def handle(self, request: Request, organization_slug) -> Response:
-        try:
-            organization = Organization.objects.get(slug=organization_slug)
-        except Organization.DoesNotExist:
+    def handle(self, request: Request, organization_slug) -> HttpResponse:
+        org_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=True
+        )
+        if org_context is None:
             return self.redirect(reverse("sentry-login"))
-
-        if organization.status != OrganizationStatus.ACTIVE:
-            return self.redirect(reverse("sentry-login"))
+        organization = org_context.organization
 
         request.session.set_test_cookie()
 

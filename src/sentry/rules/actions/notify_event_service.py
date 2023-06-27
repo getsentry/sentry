@@ -19,7 +19,7 @@ from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_organization
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -63,7 +63,7 @@ def send_incident_alert_notification(
     fire. If not provided we'll attempt to calculate this ourselves.
     :return:
     """
-    organization = serialize_organization(incident.organization)
+    organization = serialize_rpc_organization(incident.organization)
     incident_attachment = build_incident_attachment(incident, new_status, metric_value)
 
     integration_service.send_incident_alert_notification(
@@ -99,7 +99,7 @@ def find_alert_rule_action_ui_component(app_platform_event: AppPlatformEvent) ->
     return bool(len(actions))
 
 
-class NotifyEventServiceForm(forms.Form):  # type: ignore
+class NotifyEventServiceForm(forms.Form):
     service = forms.ChoiceField(choices=())
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:

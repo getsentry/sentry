@@ -2,6 +2,16 @@ import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
 
 export type ReplayEventParameters = {
+  'replay.details-data-loaded': {
+    be_errors: number;
+    fe_errors: number;
+    finished_at_delta: number; // Log the change (positive number==later date) in finished_at
+    project_platform: string;
+    replay_errors: number;
+    replay_id: string;
+    started_at_delta: number; // Log the change (negative number==earlier date) in started_at
+    total_errors: number;
+  };
   'replay.details-layout-changed': {
     chosen_layout: LayoutKey;
     default_layout: LayoutKey;
@@ -60,11 +70,6 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
-  'replay.render-issues-detail-count': {
-    count: number;
-    platform: string;
-    project_id: string;
-  };
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
@@ -92,6 +97,7 @@ export type ReplayEventParameters = {
 export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
+  'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
   'replay.details-network-panel-closed': 'Closed Replay Network Details Panel',
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',
@@ -106,7 +112,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
-  'replay.render-issues-detail-count': 'Render Issues Detail Replay Count',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.search': 'Searched Replay',

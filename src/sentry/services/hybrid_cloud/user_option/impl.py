@@ -33,7 +33,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         return self._FQ.get_many(filter)
 
     def delete_options(self, *, option_ids: List[int]) -> None:
-        UserOption.objects.filter(id__in=option_ids).delete()  # type: ignore
+        UserOption.objects.filter(id__in=option_ids).delete()
 
     def set_option(
         self,
@@ -44,7 +44,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         project_id: int | None = None,
         organization_id: int | None = None,
     ) -> None:
-        UserOption.objects.set_value(  # type: ignore
+        UserOption.objects.set_value(
             user=user_id,
             key=key,
             value=value,
@@ -55,8 +55,8 @@ class DatabaseBackedUserOptionService(UserOptionService):
     class _UserOptionFilterQuery(
         FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
     ):
-        def base_query(self) -> QuerySet:
-            return UserOption.objects  # type: ignore
+        def base_query(self, ids_only: bool = False) -> QuerySet:
+            return UserOption.objects
 
         def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
             return self._filter_has_any_key_validator("user_ids")
@@ -67,18 +67,25 @@ class DatabaseBackedUserOptionService(UserOptionService):
 
         def apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
             # To maintain expected behaviors, we default these to None and always query for them
-            project_id = None
-            if "project_id" in filters:
-                project_id = filters["project_id"]
-            organization_id = None
-            if "organization_id" in filters:
-                organization_id = filters["organization_id"]
+            if "project_ids" in filters:
+                query = query.filter(
+                    user_id__in=filters["user_ids"],
+                    project_id__in=filters["project_ids"],
+                )
+            else:
+                project_id = None
+                if "project_id" in filters:
+                    project_id = filters["project_id"]
 
-            query = query.filter(
-                user_id__in=filters["user_ids"],
-                project_id=project_id,
-                organization_id=organization_id,
-            )
+                organization_id = None
+                if "organization_id" in filters:
+                    organization_id = filters["organization_id"]
+
+                query = query.filter(
+                    user_id__in=filters["user_ids"],
+                    project_id=project_id,
+                    organization_id=organization_id,
+                )
 
             if "keys" in filters or "key" in filters:
                 keys: List[str] = []
@@ -102,6 +109,3 @@ class DatabaseBackedUserOptionService(UserOptionService):
             )
 
     _FQ = _UserOptionFilterQuery()
-
-    def close(self) -> None:
-        pass

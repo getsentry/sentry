@@ -25,6 +25,3 @@ class DatabaseLostPasswordHashService(LostPasswordHashService):
             password_hash.set_hash()
             password_hash.save()
         return serialize_lostpasswordhash(password_hash)
-
-    def close(self) -> None:
-        pass

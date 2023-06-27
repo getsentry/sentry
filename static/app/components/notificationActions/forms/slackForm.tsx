@@ -72,9 +72,10 @@ function SlackForm({
         <div>{t('Send a notification to the')}</div>
         <DropdownMenu
           items={workspaceOptions}
-          trigger={triggerProps => (
+          trigger={(triggerProps, isOpen) => (
             <DropdownButton
               {...triggerProps}
+              isOpen={isOpen}
               size="xs"
               aria-label={t('Select Workspace')}
               data-test-id="slack-workspace-dropdown"

@@ -21,7 +21,14 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
-import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  FOR_REVIEW_QUERIES,
+  getTabs,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
@@ -38,7 +45,6 @@ type IssueListHeaderProps = {
 
 type IssueListHeaderTabProps = {
   name: string;
-  query: string;
   count?: number;
   hasMore?: boolean;
   tooltipHoverable?: boolean;
@@ -49,7 +55,6 @@ function IssueListHeaderTabContent({
   count = 0,
   hasMore = false,
   name,
-  query,
   tooltipHoverable,
   tooltipTitle,
 }: IssueListHeaderTabProps) {
@@ -62,7 +67,7 @@ function IssueListHeaderTabContent({
     >
       {name}{' '}
       {count > 0 && (
-        <Badge type={query === Query.FOR_REVIEW && count > 0 ? 'review' : 'default'}>
+        <Badge>
           <QueryCount hideParens count={count} max={hasMore ? TAB_MAX_COUNT : 1000} />
         </Badge>
       )}
@@ -94,7 +99,6 @@ function IssueListHeader({
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -135,8 +139,9 @@ function IssueListHeader({
                   query: {
                     ...queryParms,
                     query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
+                    sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
+                      ? IssueSortOptions.INBOX
+                      : sortParam,
                   },
                   pathname: `/organizations/${organization.slug}/issues/`,
                 });
@@ -154,7 +159,6 @@ function IssueListHeader({
                         name={queryName}
                         count={queryCounts[tabQuery]?.count}
                         hasMore={queryCounts[tabQuery]?.hasMore}
-                        query={tabQuery}
                       />
                     </GuideAnchor>
                   </TabList.Item>

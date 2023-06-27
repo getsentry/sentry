@@ -28,7 +28,7 @@ TEST_REDIS_DB = 9
 def pytest_configure(config):
     import warnings
 
-    from django.utils.deprecation import RemovedInDjango30Warning
+    from django.utils.deprecation import RemovedInDjango30Warning  # type: ignore[attr-defined]
 
     warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
 
@@ -74,7 +74,7 @@ def pytest_configure(config):
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
     # silence (noisy) loggers by default when testing
-    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]
 
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
@@ -99,8 +99,6 @@ def pytest_configure(config):
     sudo = middleware.index("sentry.middleware.sudo.SudoMiddleware")
     middleware[sudo] = "sentry.testutils.middleware.SudoMiddleware"
     settings.MIDDLEWARE = tuple(middleware)
-
-    settings.SENTRY_OPTIONS["cloudflare.secret-key"] = "cloudflare-secret-key"
 
     # enable draft features
     settings.SENTRY_OPTIONS["mail.enable-replies"] = True
@@ -204,6 +202,9 @@ def pytest_configure(config):
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
 
+    # For now, multiprocessing does not work in tests.
+    settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
+
     # django mail uses socket.getfqdn which doesn't play nice if our
     # networking isn't stable
     patcher = mock.patch("socket.getfqdn", return_value="localhost")
@@ -212,7 +213,7 @@ def pytest_configure(config):
     if not settings.MIGRATIONS_TEST_MIGRATE:
         # Migrations for the "sentry" app take a long time to run, which makes test startup time slow in dev.
         # This is a hack to force django to sync the database state from the models rather than use migrations.
-        settings.MIGRATION_MODULES["sentry"] = None
+        settings.MIGRATION_MODULES["sentry"] = None  # type: ignore[assignment]
 
     asset_version_patcher = mock.patch(
         "sentry.runner.initializer.get_asset_version", return_value="{version}"
@@ -230,13 +231,9 @@ def pytest_configure(config):
         client.flushdb()
 
     # force celery registration
-    # disable DISALLOWED_IPS
-    from sentry import http
     from sentry.celery import app  # NOQA
 
-    http.DISALLOWED_IPS = set()
-
-    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])
+    freezegun.configure(extend_ignore_list=["sentry.utils.retries"])  # type: ignore[attr-defined]
 
 
 def register_extensions():
@@ -321,7 +318,9 @@ def _shuffle(items: list[pytest.Item]) -> None:
         if len(parts) == 2:
             nodes[parts[0]][parts[1]] = item
         elif len(parts) == 3:
-            nodes[parts[0]].setdefault(parts[1], {})[parts[2]] = item
+            subnodes = nodes[parts[0]].setdefault(parts[1], {})
+            assert isinstance(subnodes, dict)
+            subnodes[parts[2]] = item
         else:
             raise AssertionError(f"unexpected nodeid: {item.nodeid}")
 

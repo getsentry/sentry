@@ -2,7 +2,18 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Sequence, cast
+from typing import (
+    Any,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    cast,
+)
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -46,6 +57,7 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_scope,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.snuba import discover
@@ -69,7 +81,7 @@ STATS_PERIOD_CHOICES = {
 
 _PROJECT_SCOPE_PREFIX = "projects:"
 
-LATEST_DEPLOYS_KEY = "latestDeploys"
+LATEST_DEPLOYS_KEY: Final = "latestDeploys"
 
 
 def _get_team_memberships(team_list: Sequence[Team], user: User) -> Iterable[int]:
@@ -124,6 +136,9 @@ def get_access_by_project(
 
             # User may have elevated team-roles from their org-role
             top_org_role = org_roles[0] if org_roles else None
+            if is_superuser:
+                top_org_role = organization_roles.get_top_dog().id
+
             if top_org_role:
                 minimum_team_role = roles.get_minimum_team_role(top_org_role)
                 team_scopes = team_scopes.union(minimum_team_role.scopes)
@@ -196,15 +211,6 @@ def format_options(attrs: defaultdict(dict)):
             options.get("sentry:csp_ignored_sources", []) or []
         ),
         "sentry:reprocessing_active": bool(options.get("sentry:reprocessing_active", False)),
-        "sentry:performance_issue_creation_rate": options.get(
-            "sentry:performance_issue_creation_rate"
-        ),
-        "sentry:performance_issue_send_to_issues_platform": options.get(
-            "sentry:performance_issue_send_to_issues_platform"
-        ),
-        "sentry:performance_issue_create_issue_through_plaform": options.get(
-            "sentry:performance_issue_create_issue_through_plaform"
-        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -236,6 +242,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     firstTransactionEvent: bool
     access: List[str]
     hasAccess: bool
+    hasMinifiedStackTrace: bool
     hasMonitors: bool
     hasProfiles: bool
     hasReplays: bool
@@ -251,7 +258,7 @@ class ProjectSerializerResponse(ProjectSerializerBaseResponse):
 
 
 @register(Project)
-class ProjectSerializer(Serializer):  # type: ignore
+class ProjectSerializer(Serializer):
     """
     This is primarily used to summarize projects. We utilize it when doing bulk loads for things
     such as "show all projects for this organization", and its attributes be kept to a minimum.
@@ -922,15 +929,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
-                "performanceIssueCreationRate": get_value_with_default(
-                    "sentry:performance_issue_creation_rate"
-                ),
-                "performanceIssueSendToPlatform": get_value_with_default(
-                    "sentry:performance_issue_send_to_issues_platform"
-                ),
-                "performanceIssueCreationThroughPlatform": get_value_with_default(
-                    "sentry:performance_issue_create_issue_through_plaform"
-                ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },

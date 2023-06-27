@@ -2,11 +2,10 @@ from fnmatch import fnmatch
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.middleware.csrf import get_token as get_csrf_token
 from django.urls import resolve
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
@@ -14,7 +13,7 @@ from sentry.models import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
 from sentry.utils.http import is_using_customer_domain, query_string
-from sentry.web.frontend.base import BaseView, OrganizationView
+from sentry.web.frontend.base import BaseView, ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
 # url names that should only be accessible from a non-customer domain hostname.
@@ -41,7 +40,7 @@ class ReactMixin:
     def meta_tags(self, request: Request, **kwargs):
         return {}
 
-    def handle_react(self, request: Request, **kwargs) -> Response:
+    def handle_react(self, request: Request, **kwargs) -> HttpResponse:
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
             "meta_tags": [
@@ -98,8 +97,8 @@ class ReactMixin:
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this
 # generic
-class ReactPageView(OrganizationView, ReactMixin):
-    def handle_auth_required(self, request: Request, *args, **kwargs) -> Response:
+class ReactPageView(ControlSiloOrganizationView, ReactMixin):
+    def handle_auth_required(self, request: Request, *args, **kwargs) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
         # Then allow client to handle the route and respond to any API request errors
         if request.user.is_superuser:
@@ -108,7 +107,7 @@ class ReactPageView(OrganizationView, ReactMixin):
         # For normal users, let parent class handle (e.g. redirect to login page)
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def handle(self, request: Request, organization, **kwargs) -> Response:
+    def handle(self, request: Request, organization, **kwargs) -> HttpResponse:
         if "project_id" in kwargs and request.GET.get("onboarding"):
             project = Project.objects.filter(
                 organization=organization, slug=kwargs["project_id"]
@@ -119,5 +118,5 @@ class ReactPageView(OrganizationView, ReactMixin):
 
 
 class GenericReactPageView(BaseView, ReactMixin):
-    def handle(self, request: Request, **kwargs) -> Response:
+    def handle(self, request: Request, **kwargs) -> HttpResponse:
         return self.handle_react(request, **kwargs)

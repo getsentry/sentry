@@ -6,7 +6,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 MAX_COMMIT_DATA_REQUESTS = 90
 
 
-class VstsRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
+class VstsRepositoryProvider(IntegrationRepositoryProvider):
     name = "Azure DevOps"
     repo_provider = "vsts"
 
@@ -128,6 +128,4 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):  # type: ignore
         ]
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = repo.external_id
-        return external_id
+        return repo.external_id

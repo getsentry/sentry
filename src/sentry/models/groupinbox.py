@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from typing import Optional
 
 import jsonschema
 from django.db import models
@@ -10,9 +9,7 @@ from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
-from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -88,22 +85,6 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    if reason == GroupInboxReason.REGRESSION:
-        group.substatus = GroupSubStatus.REGRESSED
-        group.save(update_fields=["substatus"])
-
-    if reason is GroupInboxReason.NEW:
-        group.substatus = GroupSubStatus.NEW
-        group.save(update_fields=["substatus"])
-    else:
-        # Ignore new issues, too many events
-        inbox_in.send_robust(
-            project=group.project,
-            user=None,
-            group=group,
-            sender="add_group_to_inbox",
-            reason=reason.name.lower(),
-        )
     return group_inbox
 
 
@@ -126,17 +107,6 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
-
-        if action:
-            inbox_out.send_robust(
-                group=group_inbox.group,
-                project=group_inbox.group.project,
-                user=user,
-                sender="remove_group_from_inbox",
-                action=action.value,
-                inbox_date_added=group_inbox.date_added,
-                referrer=referrer,
-            )
     except GroupInbox.DoesNotExist:
         pass
 
@@ -154,14 +124,3 @@ def get_inbox_details(group_list):
     }
 
     return inbox_stats
-
-
-def get_inbox_reason_text(group_inbox: Optional[GroupInbox]):
-    reason = GroupInboxReason(group_inbox.reason) if group_inbox else None
-    if reason == GroupInboxReason.NEW:
-        return "New issue"
-    elif reason == GroupInboxReason.REGRESSION:
-        return "Regressed issue"
-    elif reason == GroupInboxReason.ONGOING:
-        return "Ongoing issue"
-    return "New Alert"

@@ -53,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 d = m.groupdict()
                 sha = get_sha(extract_repo(d["action"]), ref=d["ref"])
                 if sha != d["ref"]:
-                    line = ACTION_VERSION_RE.sub(rf"\1@{sha}  # \2", line)
+                    line = ACTION_VERSION_RE.sub(rf"\1@{sha} # \2", line)
                 newlines.append(line)
             f.seek(0)
             f.truncate()

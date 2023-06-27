@@ -85,7 +85,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def download(self, debug_file_id, project):
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
             limit=10,
@@ -95,9 +95,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 "notification.rate_limited",
                 extra={"project_id": project.id, "project_debug_file_id": debug_file_id},
             )
-            return HttpResponse({"Too many download requests"}, status=403)
+            return HttpResponse({"Too many download requests"}, status=429)
 
-        debug_file = ProjectDebugFile.objects.filter(id=debug_file_id).first()
+        debug_file = ProjectDebugFile.objects.filter(
+            id=debug_file_id, project_id=project.id
+        ).first()
 
         if debug_file is None:
             raise Http404

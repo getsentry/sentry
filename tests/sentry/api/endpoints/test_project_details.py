@@ -1,12 +1,16 @@
 from abc import ABC
+from datetime import datetime, timedelta
 from time import time
 from unittest import mock
 
+import pytz
 from django.urls import reverse
 
 from sentry import audit_log
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
+from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import (
     ApiToken,
     AuditLogEntry,
@@ -14,8 +18,6 @@ from sentry.models import (
     EnvironmentProject,
     Integration,
     NotificationSetting,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
     OrganizationMember,
     OrganizationOption,
     Project,
@@ -26,9 +28,10 @@ from sentry.models import (
     Rule,
     ScheduledDeletion,
 )
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, faux, with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -869,19 +872,16 @@ class ProjectUpdateTest(APITestCase):
 
             # check that audit entry was created with redacted password
             assert create_audit_entry.called
-            call = faux.faux(create_audit_entry)
 
-            assert call.kwarg_equals(
-                "data",
-                {
-                    "sentry:symbol_sources": [redacted_source],
-                    "id": self.project.id,
-                    "slug": self.project.slug,
-                    "name": self.project.name,
-                    "status": self.project.status,
-                    "public": self.project.public,
-                },
-            )
+            ((_, kwargs),) = create_audit_entry.call_args_list
+            assert kwargs["data"] == {
+                "sentry:symbol_sources": [redacted_source],
+                "id": self.project.id,
+                "slug": self.project.slug,
+                "name": self.project.name,
+                "status": self.project.status,
+                "public": self.project.public,
+            }
 
             self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
@@ -1107,9 +1107,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
@@ -1132,9 +1134,11 @@ class CopyProjectSettingsTest(APITestCase):
         self.login_as(user=user)
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
-        OrganizationMember.objects.filter(user=user, organization=self.organization).update(
-            role="admin"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(
+                user_id=user.id, organization=self.organization
+            ).update(role="admin")
 
         self.other_project.add_team(team)
 
@@ -1223,6 +1227,16 @@ class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
         self.proj_slug = self.project.slug
         self.login_as(user=self.user)
         self.new_ds_flag = "organizations:dynamic-sampling"
+        self._apply_old_date_to_project_and_org()
+
+    def _apply_old_date_to_project_and_org(self):
+        # We have to create the project and organization in the past, since we boost new orgs and projects to 100%
+        # automatically.
+        old_date = datetime.now(tz=pytz.UTC) - timedelta(minutes=NEW_MODEL_THRESHOLD_IN_MINUTES + 1)
+        # We have to actually update the underneath db models because they are re-fetched, otherwise just the in-memory
+        # copy is mutated.
+        self.project.organization.update(date_added=old_date)
+        self.project.update(date_added=old_date)
 
 
 @region_silo_test
@@ -1256,13 +1270,14 @@ class TestProjectDetailsDynamicSamplingRules(TestProjectDetailsDynamicSamplingBa
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
         ]
         self.project.update_option("sentry:dynamic_sampling_biases", new_biases)
+
         with Feature(
             {
                 self.new_ds_flag: True,
             }
         ):
             response = self.get_success_response(
-                self.organization.slug,
+                self.project.organization.slug,
                 self.project.slug,
                 method="get",
                 includeDynamicSamplingRules=1,
@@ -1365,6 +1380,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
@@ -1391,6 +1407,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1513,6 +1530,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             {"id": "boostKeyTransactions", "active": False},
             {"id": "boostLowVolumeTransactions", "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
         ]
         with Feature(
             {

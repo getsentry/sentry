@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import List
 from unittest.mock import patch
 
 import pytest
@@ -13,7 +14,7 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
 @freeze_time(MOCK_DATETIME)
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
@@ -84,13 +85,13 @@ def test_generate_bias_rules_v2(get_boosted_releases, default_project):
     ]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
 def test_generate_bias_rules_with_no_boosted_releases(get_boosted_releases, default_project):
     default_project.update(platform="python")
-    boosted_releases = []
+    boosted_releases: List[ExtendedBoostedRelease] = []
     get_boosted_releases.return_value = boosted_releases
 
     rules = BoostLatestReleasesBias().generate_rules(project=default_project, base_sample_rate=0.0)

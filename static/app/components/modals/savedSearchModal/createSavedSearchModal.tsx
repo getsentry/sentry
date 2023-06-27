@@ -18,16 +18,25 @@ interface CreateSavedSearchModalProps extends ModalRenderProps {
   sort?: string;
 }
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
-function validateSortOption({sort}: {sort?: string}) {
-  if (DEFAULT_SORT_OPTIONS.find(option => option === sort)) {
+function validateSortOption({
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  sort?: string;
+}) {
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
+  if (sortOptions.find(option => option === sort)) {
     return sort as string;
   }
 
@@ -49,8 +58,8 @@ export function CreateSavedSearchModal({
   const initialData = {
     name: '',
     query,
-    sort: validateSortOption({sort}),
-    visibility: SavedSearchVisibility.Owner,
+    sort: validateSortOption({sort, organization}),
+    visibility: SavedSearchVisibility.OWNER,
   };
 
   const handleSubmit: OnSubmitCallback = async (

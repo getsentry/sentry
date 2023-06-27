@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
-class NotificationSettingsSerializer(Serializer):  # type: ignore
+class NotificationSettingsSerializer(Serializer):
     """
     This Serializer fetches and serializes NotificationSettings for a list of
     targets (users or teams.) Pass filters like `project=project` and

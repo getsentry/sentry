@@ -12,7 +12,10 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
-from sentry.utils.snuba import Dataset, SnubaTSResult, bulk_snql_query
+from sentry.snuba.dataset import Dataset
+from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+
+INLIER_QUERY_CLAUSE = "histogram_outlier:inlier"
 
 
 def query(
@@ -34,6 +37,7 @@ def query(
     transform_alias_to_input_format=False,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
+    granularity: Optional[int] = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -54,6 +58,7 @@ def query(
             dataset=Dataset.PerformanceMetrics,
             transform_alias_to_input_format=transform_alias_to_input_format,
             use_metrics_layer=use_metrics_layer,
+            granularity=granularity,
         )
         metrics_referrer = referrer + ".metrics-enhanced"
         results = metrics_query.run_query(metrics_referrer)
@@ -281,6 +286,12 @@ def histogram_query(
     :param [Condition] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
+
+    if data_filter == "exclude_outliers":
+        if user_query is None:
+            user_query = INLIER_QUERY_CLAUSE
+        elif INLIER_QUERY_CLAUSE not in user_query:
+            user_query += " " + INLIER_QUERY_CLAUSE
 
     multiplier = int(10**precision)
     if max_value is not None:

@@ -39,17 +39,19 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
-  'inbox_tab.issue_clicked': {
-    group_id: string;
-  };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.escalating_feedback_received': {
+    group_id: string;
+    is_high_priority: boolean;
+  };
   'issue_details.event_details_clicked': GroupEventParams;
   'issue_details.external_issue_created': ExternalIssueParams;
   'issue_details.external_issue_loaded': ExternalIssueParams & {success: boolean};
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
+  'issue_details.issue_status_docs_clicked': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -136,6 +138,10 @@ export type IssueEventParameters = {
     search_source: string;
     search_type: string;
   };
+  'issues_stream.archived': {
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     assigned_type: string;
     did_assign_suggestion: boolean;
@@ -144,7 +150,6 @@ export type IssueEventParameters = {
   'issues_stream.issue_category_dropdown_changed': {
     category: string;
   };
-  'issues_stream.issue_clicked': IssueStream;
   'issues_stream.paginate': {
     direction: string;
   };
@@ -202,11 +207,14 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'issue_details.escalating_feedback_received':
+    'Issue Details: Escalating Feedback Received',
   'issue_details.view_hierarchy.hover_rendering_system':
     'View Hierarchy: Hovered rendering system icon',
   'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
   'issue_details.view_hierarchy.select_from_wireframe':
     'View Hierarchy: Selection from wireframe',
+  'issue_details.issue_status_docs_clicked': 'Issue Details: Issue Status Docs Clicked',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
   'issue_error_banner.proguard_misconfigured.displayed':
     'Proguard Potentially Misconfigured Issue Error Banner Displayed',
@@ -218,9 +226,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
   'issue.search_sidebar_clicked': 'Issue Search Sidebar Clicked',
-  'inbox_tab.issue_clicked': 'Clicked Issue from Inbox Tab',
+  'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
-  'issues_stream.issue_clicked': 'Clicked Issue from Issues Stream',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
   'issues_stream.sort_changed': 'Changed Sort on Issues Stream',
   'issues_stream.paginate': 'Paginate Issues Stream',

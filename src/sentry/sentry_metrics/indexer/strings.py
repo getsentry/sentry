@@ -1,6 +1,5 @@
 from typing import Mapping, Optional, Set
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
     OrgId,
@@ -8,6 +7,8 @@ from sentry.sentry_metrics.indexer.base import (
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
@@ -138,14 +139,25 @@ SHARED_TAG_STRINGS = {
     "span.description": PREFIX + 249,
     "http.status_code": PREFIX + 250,
     "geo.country_code": PREFIX + 251,
+    "span.group": PREFIX + 252,
+    "transaction.method": PREFIX + 253,
+    "span.category": PREFIX + 254,
+    # More Transactions
+    "has_profile": PREFIX + 260,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
 
 # 400-499
 SPAN_METRICS_NAMES = {
+    # Deprecated -- transactions namespace
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
+    "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
+    # Spans namespace
+    "s:spans/user@none": PREFIX + 403,
+    "d:spans/duration@millisecond": PREFIX + 404,
+    "d:spans/exclusive_time@millisecond": PREFIX + 405,
 }
 
 SHARED_STRINGS = {
@@ -199,15 +211,17 @@ class StaticStringIndexer(StringIndexer):
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
+        return self.indexer.resolve(use_case_id, org_id, string)
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(use_case_id=use_case_id, org_id=org_id, id=id)
+        return self.indexer.reverse_resolve(use_case_id, org_id, id)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:

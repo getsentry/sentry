@@ -19,7 +19,7 @@ import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, options, quotas, utils
+from sentry import features, killswitches, quotas, utils
 from sentry.constants import ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
@@ -31,6 +31,8 @@ from sentry.ingest.inbound_filters import (
     get_all_filter_specs,
     get_filter_key,
 )
+from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
     TRANSACTION_NAME_RULE_TTL_SECS,
     get_sorted_rules,
@@ -50,6 +52,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
+    "organizations:transaction-name-normalize-legacy",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -58,6 +61,10 @@ EXPOSABLE_FEATURES = [
 
 EXTRACT_METRICS_VERSION = 1
 EXTRACT_ABNORMAL_MECHANISM_VERSION = 2
+
+#: How often the transaction clusterer should run before we trust its output as "complete",
+#: and start marking all URL transactions as sanitized.
+MIN_CLUSTERER_RUNS = 10
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +149,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources = []
+    csp_disallowed_sources: List[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
@@ -154,7 +161,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
 def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
     try:
-        computed_quotas = [quota.to_json() for quota in quotas.get_quotas(project, keys=keys)]
+        computed_quotas = [
+            quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
+        ]
     except BaseException:
         metrics.incr("relay.config.get_quotas", tags={"success": False}, sample_rate=1.0)
         raise
@@ -186,9 +195,7 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    if features.has("organizations:dynamic-sampling", project.organization) and options.get(
-        "dynamic-sampling:enabled-biases"
-    ):
+    if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"rules": [], "rulesV2": generate_rules(project)}
@@ -216,7 +223,7 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
-    cluster_rules = get_sorted_rules(project)
+    cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
     if not cluster_rules:
         return None
 
@@ -225,13 +232,53 @@ def get_transaction_names_config(project: Project) -> Optional[Sequence[Transact
 
 def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
     rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat()
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
     return TransactionNameRule(
         pattern=pattern,
         expiry=expiry_at,
         # Some more hardcoded fields for future compatibility. These are not
         # currently used.
         scope={"source": "url"},
+        redaction={"method": "replace", "substitution": "*"},
+    )
+
+
+class SpanDescriptionScope(TypedDict):
+    op: Literal["http"]
+    """Top scope to match on. Subscopes match all top scopes; for example, the
+    scope `http` matches `http.client` and `http.server` operations."""
+
+
+class SpanDescriptionRuleRedaction(TypedDict):
+    method: Literal["replace"]
+    substitution: str
+
+
+class SpanDescriptionRule(TypedDict):
+    pattern: str
+    expiry: str
+    scope: SpanDescriptionScope
+    redaction: SpanDescriptionRuleRedaction
+
+
+def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
+    if not features.has("projects:span-metrics-extraction", project):
+        return None
+
+    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
+    if not rules:
+        return None
+
+    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
+
+
+def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
+    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
+    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+    return SpanDescriptionRule(
+        pattern=pattern,
+        expiry=expiry_at,
+        scope={"op": "http"},
         redaction={"method": "replace", "substitution": "*"},
     )
 
@@ -311,6 +358,14 @@ def _get_project_config(
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
 
+    # Rules to replace high cardinality span descriptions
+    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
+
+    # Mark the project as ready if it has seen >= 10 clusterer runs.
+    # This prevents projects from prematurely marking all URL transactions as sanitized.
+    if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
+        config["txNameReady"] = True
+
     if not full_config:
         # This is all we need for external Relay processors
         return ProjectConfig(project, **cfg)
@@ -352,7 +407,7 @@ def _get_project_config(
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
     with Hub.current.start_span(op="get_event_retention"):
-        event_retention = quotas.get_event_retention(project.organization)
+        event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):
@@ -447,7 +502,7 @@ class _ConfigBase:
         return None  # property not set or path goes beyond the Config defined valid path
 
     def __get_data(self) -> Mapping[str, Any]:
-        return object.__getattribute__(self, "data")  # type: ignore
+        return object.__getattribute__(self, "data")
 
     def __str__(self) -> str:
         try:

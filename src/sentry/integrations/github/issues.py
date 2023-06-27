@@ -14,7 +14,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 
 
-class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
+class GitHubIssueBasic(IssueBasicMixin):
     def make_external_key(self, data: Mapping[str, Any]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
@@ -98,7 +98,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -156,7 +156,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -225,7 +225,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         try:
             response = client.get_assignees(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
@@ -236,7 +236,7 @@ class GitHubIssueBasic(IssueBasicMixin):  # type: ignore
         try:
             response = client.get_issues(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 

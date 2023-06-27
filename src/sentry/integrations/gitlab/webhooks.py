@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any, Mapping, Tuple
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
@@ -7,14 +10,14 @@ from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, PullRequest, Repository
+from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json
 
@@ -24,10 +27,14 @@ PROVIDER_NAME = "integrations:gitlab"
 
 
 class Webhook:
-    def __call__(self, integration, organization, event):
+    def __call__(
+        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+    ):
         raise NotImplementedError
 
-    def get_repo(self, integration, organization, event):
+    def get_repo(
+        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+    ):
         """
         Given a webhook payload, get the associated Repository record.
 
@@ -51,7 +58,7 @@ class Webhook:
             return None
         return repo
 
-    def update_repo_data(self, repo, event):
+    def update_repo_data(self, repo: Repository, event: Mapping[str, Any]):
         """
         Given a webhook payload, update stored repo data if needed.
 
@@ -78,7 +85,9 @@ class MergeEventWebhook(Webhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#merge-request-events
     """
 
-    def __call__(self, integration, organization, event):
+    def __call__(
+        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+    ):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
             return
@@ -115,6 +124,7 @@ class MergeEventWebhook(Webhook):
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
@@ -139,7 +149,9 @@ class PushEventWebhook(Webhook):
     See https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#push-events
     """
 
-    def __call__(self, integration, organization, event):
+    def __call__(
+        self, integration: RpcIntegration, organization: Organization, event: Mapping[str, Any]
+    ):
         repo = self.get_repo(integration, organization, event)
         if repo is None:
             return
@@ -171,6 +183,7 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
             try:
+                author.preload_users()
                 with transaction.atomic():
                     Commit.objects.create(
                         repository_id=repo.id,
@@ -184,27 +197,11 @@ class PushEventWebhook(Webhook):
                 pass
 
 
-class GitlabWebhookEndpoint(View):
-    provider = "gitlab"
+handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
-    _handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebhook}
 
-    @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        if request.method != "POST":
-            return HttpResponse(status=405, reason="HTTP method not supported.")
-
-        return super().dispatch(request, *args, **kwargs)
-
-    def post(self, request: Request) -> Response:
-        clear_tags_and_context()
-        extra = {
-            # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
-            "user-agent": request.META.get("HTTP_USER_AGENT"),
-            # Gitlab does not seem to be the only host sending events
-            # AppPlatformEvents also hit this API
-            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
-        }
+class GitlabWebhookMixin:
+    def _get_external_id(self, request, extra) -> Tuple[str, str] | HttpResponse:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
@@ -214,6 +211,7 @@ class GitlabWebhookEndpoint(View):
             # e.g. "example.gitlab.com:group-x:webhook_secret_from_sentry_integration_table"
             instance, group_path, secret = token.split(":")
             external_id = f"{instance}:{group_path}"
+            return (external_id, secret)
         except KeyError:
             logger.info("gitlab.webhook.missing-gitlab-token")
             extra["reason"] = "The customer needs to set a Secret Token in their webhook."
@@ -229,6 +227,36 @@ class GitlabWebhookEndpoint(View):
             extra["reason"] = "Generic catch-all error."
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
+
+
+@region_silo_endpoint
+class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    authentication_classes = ()
+    permission_classes = ()
+    provider = "gitlab"
+
+    _handlers = handlers
+
+    @method_decorator(csrf_exempt)
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+        if request.method != "POST":
+            return HttpResponse(status=405, reason="HTTP method not supported.")
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def post(self, request: Request) -> HttpResponse:
+        clear_tags_and_context()
+        extra = {
+            # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
+            "user-agent": request.META.get("HTTP_USER_AGENT"),
+            # Gitlab does not seem to be the only host sending events
+            # AppPlatformEvents also hit this API
+            "event-type": request.META.get("HTTP_X_GITLAB_EVENT"),
+        }
+        result = self._get_external_id(request=request, extra=extra)
+        if isinstance(result, HttpResponse):
+            return result
+        (external_id, secret) = result
 
         integration, installs = integration_service.get_organization_contexts(
             provider=self.provider, external_id=external_id

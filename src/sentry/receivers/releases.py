@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
@@ -14,7 +16,6 @@ from sentry.models import (
     GroupLink,
     GroupStatus,
     GroupSubscription,
-    GroupSubStatus,
     Project,
     PullRequest,
     Release,
@@ -33,6 +34,7 @@ from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 def validate_release_empty_version(instance: Release, **kwargs):
@@ -92,6 +94,24 @@ def resolved_in_commit(instance, created, **kwargs):
     except Repository.DoesNotExist:
         repo = None
 
+    if instance.author:
+        user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
+
+    acting_user: Optional[RpcUser] = None
+
+    self_assign_issue: str = "0"
+    if user_list:
+        acting_user = user_list[0]
+        self_assign_issue = get_option_from_list(
+            user_option_service.get_many(
+                filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+            ),
+            key="self_assign_issue",
+            default="0",
+        )
+
     for group in groups:
         try:
             # XXX(dcramer): This code is somewhat duplicated from the
@@ -105,23 +125,7 @@ def resolved_in_commit(instance, created, **kwargs):
                     linked_id=instance.id,
                 )
 
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
-
-                acting_user = None
-
-                if user_list:
-                    acting_user: RpcUser = user_list[0]
-                    self_assign_issue: str = get_option_from_list(
-                        user_option_service.get_many(
-                            filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-                        ),
-                        key="self_assign_issue",
-                        default="0",
-                    )
-
+                if acting_user:
                     if self_assign_issue == "1" and not group.assignee_set.exists():
                         GroupAssignee.objects.assign(
                             group=group, assigned_to=acting_user, acting_user=acting_user
@@ -204,6 +208,10 @@ def resolved_in_pull_request(instance, created, **kwargs):
         repo = Repository.objects.get(id=instance.repository_id)
     except Repository.DoesNotExist:
         repo = None
+    if instance.author:
+        user_list = list(instance.author.find_users())
+    else:
+        user_list = ()
 
     for group in groups:
         try:
@@ -215,14 +223,9 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-
-                if instance.author:
-                    user_list = list(instance.author.find_users())
-                else:
-                    user_list = ()
-                acting_user = None
+                acting_user: Optional[RpcUser] = None
                 if user_list:
-                    acting_user: RpcUser = user_list[0]
+                    acting_user = user_list[0]
                     GroupAssignee.objects.assign(
                         group=group, assigned_to=acting_user, acting_user=acting_user
                     )
