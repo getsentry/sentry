@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Group,
     GroupInboxRemoveAction,
@@ -18,9 +16,9 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import issue_archived
 from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import metrics
+from sentry.utils.groups import ToArchiveUntilEscalatingStateTransition
 
 logger = logging.getLogger(__name__)
 
@@ -46,32 +44,10 @@ def handle_archived_until_escalating(
     Issues that are marked as ignored with `archiveDuration: until_escalating`
     in the statusDetail are treated as `archived_until_escalating`.
     """
-    metrics.incr("group.archived_until_escalating", skip_internal=True)
-    for group in group_list:
-        remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
-    generate_and_save_forecasts(group_list)
-    logger.info(
-        "archived_until_escalating.forecast_created",
-        extra={
-            "detail": "Created forecast for groups",
-            "group_ids": [group.id for group in group_list],
-        },
+    ToArchiveUntilEscalatingStateTransition().bulk_do(
+        group_list,
+        {"acting_user": acting_user, "projects": acting_user, "sender": acting_user},
     )
-
-    groups_by_project_id = defaultdict(list)
-    for group in group_list:
-        groups_by_project_id[group.project_id].append(group)
-
-    for project in projects:
-        project_groups = groups_by_project_id.get(project.id)
-        issue_archived.send_robust(
-            project=project,
-            user=acting_user,
-            group_list=project_groups,
-            activity_data={"until_escalating": True},
-            sender=sender,
-        )
-
     return {"ignoreUntilEscalating": True}
 
 

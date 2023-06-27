@@ -15,6 +15,7 @@ from sentry.signals import issue_deleted
 from sentry.tasks.deletion import delete_groups as delete_groups_task
 from sentry.types.group import GroupStatus
 from sentry.utils.audit import create_audit_entry
+from sentry.utils.groups import ToPendingDeletionStateTransition
 
 from . import BULK_MUTATION_LIMIT, SearchFunction
 from .validators import ValidationError
@@ -36,9 +37,7 @@ def delete_group_list(
     group_list.sort(key=lambda g: (g.times_seen, g.id))
     group_ids = [g.id for g in group_list]
 
-    Group.objects.filter(id__in=group_ids).exclude(
-        status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
-    ).update(status=GroupStatus.PENDING_DELETION, substatus=None)
+    ToPendingDeletionStateTransition.bulk_do(group_ids)
 
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex

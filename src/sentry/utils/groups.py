@@ -1,14 +1,27 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from typing import Sequence
 
 import jsonschema
 from django.db.models.signals import post_save
 
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import Activity, ActivityType, Group, GroupHistoryStatus, record_group_history
-from sentry.models.groupinbox import INBOX_REASON_DETAILS, GroupInboxReason, add_group_to_inbox
-from sentry.signals import issue_escalating
-from sentry.types.group import IssueState
+from sentry.models.groupinbox import (
+    INBOX_REASON_DETAILS,
+    GroupInboxReason,
+    GroupInboxRemoveAction,
+    add_group_to_inbox,
+    remove_group_from_inbox,
+)
+from sentry.models.user import User
+from sentry.signals import issue_archived, issue_escalating
+from sentry.types.group import UNRESOLVED_STATES, GroupStatus, IssueState
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 class BaseStateTransition:
@@ -129,3 +142,52 @@ class ToUnignoredStateTransition(BaseStateTransition):
     group_history_status: GroupHistoryStatus = GroupHistoryStatus.UNIGNORED
     activity_type: ActivityType = ActivityType.SET_UNRESOLVED
     group_inbox_reason: GroupInboxReason = GroupInboxReason.UNIGNORED
+
+
+class ToPendingDeletionStateTransition(BaseStateTransition):
+    to_state: IssueState = IssueState.PENDING_DELETION
+
+    def bulk_do(self, group_ids: list(int)):
+        Group.objects.filter(id__in=group_ids).exclude(
+            status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        ).update(status=self.to_state.status, substatus=self.to_state.status)
+
+
+class ToArchiveUntilEscalatingStateTransition(BaseStateTransition):
+    from_states: list(IssueState) = UNRESOLVED_STATES
+    to_state: IssueState = IssueState.ARCHIVED_UNTIL_ESCALATING
+    group_history_status: GroupHistoryStatus = GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING
+    activity_type: ActivityType = ActivityType.SET_IGNORED
+    group_inbox_remove_action: GroupInboxRemoveAction = GroupInboxRemoveAction.IGNORED
+
+    def bulk_do(self, group_list: Sequence[Group], data: dict | None = None):
+        acting_user: User | None = data.get("acting_user", None)
+        projects: User | None = data.get("projects", None)
+        sender = data.get("sender", None)
+
+        metrics.incr("group.archived_until_escalating", skip_internal=True)
+        for group in group_list:
+            remove_group_from_inbox(group, action=self.group_inbox_remove_action, user=acting_user)
+
+        generate_and_save_forecasts(group_list)
+        logger.info(
+            "archived_until_escalating.forecast_created",
+            extra={
+                "detail": "Created forecast for groups",
+                "group_ids": [group.id for group in group_list],
+            },
+        )
+
+        groups_by_project_id = defaultdict(list)
+        for group in group_list:
+            groups_by_project_id[group.project_id].append(group)
+
+        for project in projects:
+            project_groups = groups_by_project_id.get(project.id)
+            issue_archived.send_robust(
+                project=project,
+                user=acting_user,
+                group_list=project_groups,
+                activity_data={"until_escalating": True},
+                sender=sender,
+            )
