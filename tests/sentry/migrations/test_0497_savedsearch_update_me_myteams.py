@@ -77,7 +77,6 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
 
         for before_query, saved_search, expected_query in self.should_update:
             saved_search.refresh_from_db()
-            # assert saved_search.query != before_query
             assert saved_search.query == expected_query
 
         for before_query, saved_search in self.should_remain_unchanged:
