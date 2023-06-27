@@ -2,8 +2,8 @@ from sentry.integrations.client import ApiClient
 
 
 class DiscordApiClient(ApiClient):
-    integration_name = "discord"
-    base_url = "https://discord.com/api/v10"
+    integration_name: str = "discord"
+    base_url: str = "https://discord.com/api/v10"
 
     # https://discord.com/developers/docs/resources/guild#get-guild
     GET_GUILD_URL = "/guilds/%s"

@@ -1,0 +1,89 @@
+from urllib.parse import parse_qs, urlencode, urlparse
+
+import responses
+
+from sentry import audit_log, options
+from sentry.integrations.discord.client import DiscordApiClient
+from sentry.integrations.discord.integration import DiscordIntegrationProvider
+from sentry.models.auditlogentry import AuditLogEntry
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.testutils import IntegrationTestCase
+
+
+class DiscordIntegrationTest(IntegrationTestCase):
+    provider = DiscordIntegrationProvider
+
+    def setUp(self):
+        super().setUp()
+        self.application_id = "application-id"
+        self.bot_token = "bot-token"
+        options.set("discord.application-id", self.application_id)
+        options.set("discord.bot-token", self.bot_token)
+
+    def assert_setup_flow(
+        self,
+        guild_id="1234567890",
+        server_name="Cool server",
+        customer_domain=None,
+    ):
+        responses.reset()
+
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "discord.com"
+        assert redirect.path == "/api/oauth2/authorize"
+        params = parse_qs(redirect.query)
+        assert params["client_id"] == [self.application_id]
+        assert params["permissions"] == [str(self.provider.bot_permissions)]
+        assert params["redirect_uri"] == ["http://testserver/extensions/discord/setup/"]
+        assert params["response_type"] == ["code"]
+        scopes = self.provider.oauth_scopes
+        assert params["scope"] == [" ".join(scopes)]
+
+        responses.add(
+            responses.GET,
+            url=(DiscordApiClient.base_url + (DiscordApiClient.GET_GUILD_URL % guild_id)),
+            json={
+                "id": guild_id,
+                "name": server_name,
+            },
+        )
+
+        resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id})))
+
+        if customer_domain:
+            assert resp.status_code == 302
+            assert resp["Location"].startswith(
+                f"http://{customer_domain}/extensions/discord/setup/"
+            )
+
+        mock_request = responses.calls[0].request
+        assert mock_request.headers["Authorization"] == "Bot " + self.bot_token
+
+        assert resp.status_code == 200
+        self.assertDialogSuccess(resp)
+
+    @responses.activate
+    def test_bot_flow(self):
+        with self.tasks():
+            self.assert_setup_flow()
+
+        integration = Integration.objects.get(provider=self.provider.key)
+        assert integration.external_id == "1234567890"
+        assert integration.name == "Cool server"
+
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+
+        assert oi.config == {}
+
+        audit_entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("INTEGRATION_ADD"))
+        audit_log_event = audit_log.get(audit_entry.event)
+        assert (
+            audit_log_event.render(audit_entry)
+            == "installed Cool server for the discord integration"
+        )
