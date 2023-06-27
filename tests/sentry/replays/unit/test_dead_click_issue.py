@@ -1,12 +1,11 @@
 import time
 
-import pytest
-
 from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
 from sentry.testutils.factories import Factories
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_report_dead_click_issue_a_tag():
     project = Factories.create_project(organization=Factories.create_organization())
 
@@ -28,7 +27,7 @@ def test_report_dead_click_issue_a_tag():
     assert reported is True
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_report_dead_click_issue_other_tag():
     project = Factories.create_project(organization=Factories.create_organization())
 
@@ -46,7 +45,7 @@ def test_report_dead_click_issue_other_tag():
     assert reported is False
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_report_dead_click_issue_mutation_reason():
     event = {
         "data": {

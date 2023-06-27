@@ -72,6 +72,7 @@ from sentry.snuba.metrics.query import MetricConditionField, MetricField, Metric
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -104,7 +105,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     }[metric_name]
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize(
     "query_string,expected",
     [
@@ -723,7 +724,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
         )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_orderby(mock_now, mock_now2):
@@ -826,7 +827,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
@@ -1874,7 +1875,7 @@ class ResolveTagsTestCase(TestCase):
                 [PseudoProject(1, ORG_ID)],
             )
 
-        capture_message.assert_called_once()
+        assert capture_message.call_count == 1
 
     @mock.patch(
         "sentry.snuba.metrics.Project.objects.filter", return_value=[PseudoProject(1, ORG_ID)]

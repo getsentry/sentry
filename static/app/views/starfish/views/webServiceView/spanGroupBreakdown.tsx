@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -12,7 +12,6 @@ import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreak
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
@@ -32,12 +31,10 @@ export function SpanGroupBreakdown({
   // tableData: transformedData,
   // totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
   isTimeseriesLoading,
   errored,
 }: Props) {
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
   const options: SelectOption<DataDisplayType>[] = [
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
@@ -46,17 +43,11 @@ export function SpanGroupBreakdown({
     DataDisplayType.CUMULATIVE_DURATION
   );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
-
   const visibleSeries: Series[] = [];
 
   for (let index = 0; index < data.length; index++) {
     const series = data[index];
-    if (showSeriesArray[index]) {
-      visibleSeries.push(series);
-    }
+    visibleSeries.push(series);
   }
 
   const dataAsPercentages = cloneDeep(visibleSeries);
