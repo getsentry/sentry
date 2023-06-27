@@ -147,6 +147,9 @@ export function SpanGroupBreakdown({
           } else {
             spansLinkQueryParams['span.module'] = 'Other';
           }
+          spansLinkQueryParams['!span.module'] = transformedData
+            .map(r => r.group['span.category'])
+            .filter(c => !['Other'].includes(c));
           spansLinkQueryParams['span.category'] = group['span.category'];
 
           const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;

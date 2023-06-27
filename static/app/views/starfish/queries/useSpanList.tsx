@@ -11,7 +11,7 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
-const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
+const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action', '!span.module'];
 
 export type SpanMetrics = {
   'http_error_count()': number;
