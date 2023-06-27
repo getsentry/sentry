@@ -233,7 +233,7 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
     except ApiError as e:
         cache.delete(cache_key)
 
-        if ISSUE_LOCKED_ERROR_MESSAGE in e.json["message"]:
+        if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
             return
 
         metrics.incr("github_pr_comment.api_error")
