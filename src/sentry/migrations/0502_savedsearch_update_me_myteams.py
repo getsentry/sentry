@@ -20,7 +20,7 @@ def replacement_term(original_term: str) -> Optional[str]:
     # from the query (which could have multiple terms)
     if len(search_filters) != 1:
         raise Exception(
-            f"{original_term} should only include a single parselable SearchFilter but {len(search_filters)} were parsed"
+            f"'{original_term}' should only include a single parselable SearchFilter but {len(search_filters)} were parsed"
         )
 
     assigned_filter = search_filters[0]
@@ -66,7 +66,7 @@ def update_saved_search_query(apps, schema_editor):
         r"(assigned|assigned_to|assigned_or_suggested):me($|\s)", re.IGNORECASE
     )
     assigned_in_regex = re.compile(
-        r"(assigned|assigned_to|assigned_or_suggested):\[.*]($|\s)", re.IGNORECASE
+        r"(assigned|assigned_to|assigned_or_suggested):\[(.*?)]($|\s)", re.IGNORECASE
     )
 
     for ss in RangeQuerySetWrapperWithProgressBar(SavedSearch.objects.all()):
@@ -86,7 +86,7 @@ def update_saved_search_query(apps, schema_editor):
 
         replacements = []
         for start, stop in all_idx or ():
-            maybe_replacement = replacement_term(query[start : stop + 1])
+            maybe_replacement = replacement_term(query[start:stop])
             if maybe_replacement:
                 replacements.append((start, stop, maybe_replacement))
 
@@ -98,7 +98,7 @@ def update_saved_search_query(apps, schema_editor):
                 i = end
             result.append(query[i:])
 
-            ss.query = "".join(result)
+            ss.query = " ".join(result).strip()
             ss.save(update_fields=["query"])
 
 
