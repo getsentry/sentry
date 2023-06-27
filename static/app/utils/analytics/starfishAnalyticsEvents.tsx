@@ -19,7 +19,7 @@ export type StarfishEventParameters = {
 
 export type StarfishEventKey = keyof StarfishEventParameters;
 
-export const starfishEventMap: Record<StarfishEventKey, string | null> = {
+export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
   'starfish.chart.zoom': 'Starfish: Chart Zoomed',
   'starfish.pageview': 'Starfish: Page Viewed',
   'starfish.panel.open': 'Starfish: Slide Over Panel Opened',

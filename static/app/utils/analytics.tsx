@@ -3,7 +3,6 @@ import {Transaction} from '@sentry/types';
 
 import HookStore from 'sentry/stores/hookStore';
 import {Hooks} from 'sentry/types/hooks';
-import {starfishEventMap} from 'sentry/utils/analytics/starfishAnalyticsEvents';
 
 import {
   aiSuggestedSolutionEventMap,
@@ -64,6 +63,7 @@ import {
   stackTraceEventMap,
   StackTraceEventParameters,
 } from './analytics/stackTraceAnalyticsEvents';
+import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
 import {
   TeamInsightsEventParameters,
   workflowEventMap,
