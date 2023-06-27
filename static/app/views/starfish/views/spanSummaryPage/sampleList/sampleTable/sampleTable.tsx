@@ -30,18 +30,17 @@ function SampleTable({
   onMouseOverSample,
   transactionMethod,
 }: Props) {
-  const organization = useOrganization();
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, isFetching: isFetchingSpanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'span-summary-panel-samples-table-p95'
   );
+  const organization = useOrganization();
 
   const {
     data: spans,
-    isLoading: areSpanSamplesLoading,
-    isRefetching: areSpanSamplesRefetching,
+    isFetching: isFetchingSamples,
     refetch,
   } = useSpanSamples({
     groupId,
@@ -49,14 +48,14 @@ function SampleTable({
     transactionMethod,
   });
 
-  const {data: transactions, isLoading: areTransactionsLoading} = useTransactions(
+  const {data: transactions, isFetching: isFetchingTransactions} = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
 
   const [loadedSpans, setLoadedSpans] = useState(false);
   useEffect(() => {
-    if (areSpanSamplesLoading || areSpanSamplesRefetching || areTransactionsLoading) {
+    if (isFetchingTransactions || isFetchingSamples) {
       setLoadedSpans(false);
       return;
     }
@@ -70,17 +69,21 @@ function SampleTable({
     setLoadedSpans(true);
   }, [
     loadedSpans,
-    areTransactionsLoading,
+    isFetchingSamples,
     transactions,
-    areSpanSamplesLoading,
-    areSpanSamplesRefetching,
+    isFetchingTransactions,
     organization,
   ]);
 
   const transactionsById = keyBy(transactions, 'id');
 
+  const areNoSamples = !isFetchingSamples && spans.length === 0;
+
   const isLoading =
-    areSpanSamplesLoading || areSpanSamplesRefetching || areTransactionsLoading;
+    isFetchingSpanMetrics ||
+    isFetchingSamples ||
+    (!areNoSamples && isFetchingTransactions);
+
   return (
     <Fragment>
       <SpanSamplesTable
