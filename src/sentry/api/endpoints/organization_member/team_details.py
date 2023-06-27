@@ -15,7 +15,7 @@ from sentry.api.serializers.models.team import TeamSerializer, TeamWithProjectsS
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.team_examples import TeamExamples
@@ -160,7 +160,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             403: OpenApiResponse(
                 description="This team is managed through your organization's identity provider"
             ),
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=TeamExamples.ADD_TO_TEAM,
     )
@@ -172,11 +172,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         team_slug: str,
     ) -> Response:
         """
-        If the member needs permission to join the team, an access request will be generated and the returned status code will be 202.
+        If the member needs permission to join the team, an access request will be generated and the
+        returned status code will be **`202`**.
 
-        If the member is already on the team, this will return a 204.
+        If the member is already on the team, this will return a **`204`**.
 
-        If the team is provisioned through an identity provider, then the member cannot join the team through Sentry.
+        If the team is provisioned through an identity provider, then the member cannot join the
+        team  through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
