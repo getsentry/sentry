@@ -52,7 +52,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
     fields: [`sum(${SPAN_SELF_TIME})`, 'span.category'],
     query: `transaction.op:http.server ${
       transaction ? `transaction:${transaction}` : ''
-    } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
+    } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: selection.datetime.start ?? undefined,
     end: selection.datetime.end ?? undefined,
