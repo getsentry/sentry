@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -49,7 +52,7 @@ class IssueLinkRequester(Mediator):
     install = Param(RpcSentryAppInstallation)
     uri = Param(str)
     group = Param(Group)
-    fields = Param(object)
+    fields = Param(dict)
     user = Param(RpcUser)
     action = Param(str)
 
@@ -108,7 +111,7 @@ class IssueLinkRequester(Mediator):
 
     @memoize
     def body(self):
-        body = {"fields": {}}
+        body: dict[str, Any] = {"fields": {}}
         for name, value in self.fields.items():
             body["fields"][name] = value
 

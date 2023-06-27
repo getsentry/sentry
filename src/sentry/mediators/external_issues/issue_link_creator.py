@@ -1,5 +1,6 @@
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators import external_issues, external_requests
+from sentry.mediators.external_issues.creator import Creator
+from sentry.mediators.external_requests.issue_link_requester import IssueLinkRequester
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.group import Group
@@ -27,7 +28,7 @@ class IssueLinkCreator(Mediator):
             raise APIUnauthorized(f"Invalid action '{self.action}'")
 
     def _make_external_request(self):
-        self.response = external_requests.IssueLinkRequester.run(
+        self.response = IssueLinkRequester.run(
             install=self.install,
             uri=self.uri,
             group=self.group,
@@ -37,7 +38,7 @@ class IssueLinkCreator(Mediator):
         )
 
     def _create_external_issue(self):
-        self.external_issue = external_issues.Creator.run(
+        self.external_issue = Creator.run(
             install=self.install,
             group=self.group,
             web_url=self.response["webUrl"],

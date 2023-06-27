@@ -4,7 +4,7 @@ from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 from requests import RequestException
-from rest_framework.response import Response
+from requests.models import Response
 
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
 from sentry.mediators.mediator import Mediator
