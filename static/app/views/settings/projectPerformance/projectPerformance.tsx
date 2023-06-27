@@ -518,17 +518,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 initialData={this.state.performance_issue_settings}
                 apiMethod="PUT"
                 apiEndpoint={performanceIssuesEndpoint}
-                onSubmitSuccess={(option: {[key: string]: boolean}) => {
-                  const [setting_key, enabled] = Object.entries(option)[0];
-                  const {email} = ConfigStore.get('user');
-
-                  trackAnalytics('performance_views.project_issue_detection_enabled', {
-                    user_email: email,
-                    organization,
-                    setting_key,
-                    enabled,
-                  });
-                }}
               >
                 <JsonForm
                   title={t('Performance Issues - Admin Detector Settings')}

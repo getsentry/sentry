@@ -92,12 +92,6 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
-  'performance_views.project_issue_detection_enabled': {
-    enabled: boolean;
-    organization: Organization;
-    setting_key: string;
-    user_email: string;
-  };
   'performance_views.project_issue_detection_threshold_changed': {
     organization: Organization;
     project_slug: string;
@@ -252,8 +246,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.project_transaction_threshold.change':
     'Project Transaction Threshold: Changed',
-  'performance_views.project_issue_detection_enabled':
-    'Performance Views: Enabled/disabled detection of an issue for a project',
   'performance_views.project_issue_detection_threshold_changed':
     'Performance Views: Changed detector threshold of an issue for a project',
   'performance_views.project_transaction_threshold.clear':
