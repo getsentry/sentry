@@ -16,7 +16,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
  * to be poorly typed as `any`). So this is a bit of a workaround to receive
  * the proper html attributes.
  */
-type ButtonElement = HTMLButtonElement | HTMLAnchorElement | any;
+type ButtonElement = HTMLButtonElement | HTMLAnchorElement;
 
 /**
  * Props shared across different types of button components
@@ -232,7 +232,7 @@ function BaseButton({
   });
 
   const handleClick = useCallback(
-    (e: React.MouseEvent) => {
+    (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
       // Don't allow clicks when disabled or busy
       if (disabled || busy) {
         e.preventDefault();
@@ -303,7 +303,16 @@ const Button = reactForwardRef<ButtonElement, ButtonProps>((props, ref) => (
 
 Button.displayName = 'Button';
 
-type StyledButtonProps = ButtonProps & {theme: Theme};
+interface StyledButtonPropsWithAriaLabel extends ButtonPropsWithoutAriaLabel {
+  theme: Theme;
+}
+interface StyledButtonPropsWithoutAriaLabel extends ButtonPropsWithAriaLabel {
+  theme: Theme;
+}
+
+type StyledButtonProps =
+  | StyledButtonPropsWithAriaLabel
+  | StyledButtonPropsWithoutAriaLabel;
 
 const getBoxShadow = ({
   priority,
@@ -431,7 +440,7 @@ const getSizeStyles = ({size = 'md', translucentBorder, theme}: StyledButtonProp
 };
 
 const StyledButton = styled(
-  reactForwardRef<any, ButtonProps>(
+  reactForwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(
     (
       {
         forwardRef,

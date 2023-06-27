@@ -75,6 +75,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_INTEGRATION_UPDATE = 12
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
     SEND_SIGNAL = 14
+    ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
 
     @classmethod
     def as_choices(cls):

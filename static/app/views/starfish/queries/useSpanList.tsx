@@ -11,7 +11,13 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
-const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
+const SPAN_FILTER_KEYS = [
+  'span.op',
+  'span.domain',
+  'span.action',
+  '!span.module',
+  '!span.category',
+];
 
 export type SpanMetrics = {
   'http_error_count()': number;
@@ -122,7 +128,9 @@ function buildEventViewQuery(
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(query[key]))
     .map(key => {
-      return `${key}:${query[key]}`;
+      const value = query[key];
+      const isArray = Array.isArray(value);
+      return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
   if (moduleName !== ModuleName.ALL) {
