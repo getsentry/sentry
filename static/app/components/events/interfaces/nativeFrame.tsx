@@ -300,13 +300,7 @@ function NativeFrame({
               </Tooltip>
             )}
           </GroupingCell>
-          <TypeCell>
-            {frame.inApp ? (
-              <Tag type="info">{t('In App')}</Tag>
-            ) : (
-              <Tag>{t('System')}</Tag>
-            )}
-          </TypeCell>
+          <TypeCell>{frame.inApp ? <Tag type="info">{t('In App')}</Tag> : null}</TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
