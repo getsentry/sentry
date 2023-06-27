@@ -364,6 +364,14 @@ function Chart({
       );
     }
 
+    // Trims off the last data point because it's incomplete
+    const trimmedSeries = series.map(serie => {
+      return {
+        ...serie,
+        data: serie.data.slice(0, -1),
+      };
+    });
+
     return (
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
@@ -386,7 +394,7 @@ function Chart({
                 onMouseOver={onMouseOver}
                 onHighlight={onHighlight}
                 series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -414,7 +422,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={series}
+                series={trimmedSeries}
                 xAxis={xAxis}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
@@ -431,7 +439,7 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={series}
+              series={trimmedSeries}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
