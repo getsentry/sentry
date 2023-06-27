@@ -391,6 +391,7 @@ INSTALLED_APPS = (
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )

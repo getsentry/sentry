@@ -223,7 +223,7 @@ urlpatterns += [
                     r"^sso/$",
                     AuthProviderLoginView.as_view(),
                     name="sentry-auth-sso",
-                ),
+                ),  # OAuth Pipeline for SSO redirect URI
                 url(
                     r"^logout/$",
                     AuthLogoutView.as_view(),
@@ -1021,7 +1021,7 @@ urlpatterns += [
                     r"^(?P<provider_id>[\w_-]+)/setup/$",
                     PipelineAdvancerView.as_view(),
                     name="sentry-extension-setup",
-                ),
+                ),  # OAuth Pipeline for integration redirect URI
                 url(
                     r"^jira/",
                     include("sentry.integrations.jira.urls"),

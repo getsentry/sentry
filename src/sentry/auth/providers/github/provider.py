@@ -41,6 +41,11 @@ class GitHubOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     def build_config(self, state):
+        """
+        On configuration, we determine which provider organization to configure SSO for
+        This configuration is then stored and passed into the pipeline instances during SSO
+        to determine whether the Auth'd user has the appropriate access to the provider org
+        """
         return {"org": {"id": state["org"]["id"], "name": state["org"]["login"]}}
 
     def build_identity(self, state):
