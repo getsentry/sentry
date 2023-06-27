@@ -558,7 +558,7 @@ class GitHubClientMixin(GithubProxyClient):
         return self.post(endpoint, data=data)
 
     def update_comment(self, repo: str, comment_id: str, data: Mapping[str, Any]) -> JSONData:
-        endpoint = f"/repos/{repo}/issues/comments/{comment_id}/"
+        endpoint = f"/repos/{repo}/issues/comments/{comment_id}"
         return self.patch(endpoint, data=data)
 
     def get_user(self, gh_username: str) -> JSONData:
