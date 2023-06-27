@@ -51,6 +51,10 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                     "assigned:my_teams assigned:me",
                     "assigned:my_teams assigned:[me, my_teams]",
                 ),
+                (
+                    'assigned:[me, #a_team, "string with spaces", test@example.com]',
+                    'assigned:[me, my_teams, #a_team, "string with spaces", test@example.com]',
+                ),
             ]
         ]
         self.should_remain_unchanged = [

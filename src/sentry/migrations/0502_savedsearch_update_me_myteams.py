@@ -48,6 +48,11 @@ def replacement_term(original_term: str) -> Optional[str]:
         if None in vals_set:
             search_filter_values = [v if v is not None else "none" for v in search_filter_values]
 
+        # if for what-ever reason the in value contains a space, we wrap the raw value in double quotes before joining
+        for i, v in enumerate(search_filter_values):
+            if " " in v:
+                search_filter_values[i] = f'"{v}"'
+
         joined = ", ".join(search_filter_values)
         search_filter_key = (
             "assigned"
