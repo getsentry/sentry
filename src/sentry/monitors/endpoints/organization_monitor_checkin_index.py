@@ -66,7 +66,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         if environments:
             queryset = queryset.filter(monitor_environment__environment__in=environments)
 
-        expand = request.GET.getlist("expand", [])
+        expand: List[str] = request.GET.getlist("expand", [])
 
         return self.paginate(
             request=request,

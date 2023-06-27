@@ -11,7 +11,18 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
 from hashlib import sha1
-from typing import Any, Callable, List, Mapping, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 from urllib.parse import urlparse
 
 import pytz
@@ -158,7 +169,7 @@ METRICS_COLUMN_MAP = {
 }
 
 
-DATASETS = {
+DATASETS: Dict[Dataset, Dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
     Dataset.Transactions: TRANSACTIONS_SNUBA_MAP,
     Dataset.Discover: DISCOVER_COLUMN_MAP,

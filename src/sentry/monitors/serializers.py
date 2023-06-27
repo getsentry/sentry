@@ -156,11 +156,11 @@ class MonitorCheckInSerializer(Serializer):
 
             from sentry.eventstore.base import EventStorage
             from sentry.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
+            from sentry.snuba.dataset import Dataset
             from sentry.snuba.events import Columns
-            from sentry.utils import snuba
             from sentry.utils.snuba import DATASETS, raw_snql_query
 
-            dataset = snuba.Dataset.Events
+            dataset = Dataset.Events
 
             # add an hour on each end to be safe
             query_start = self.start - timedelta(hours=1)
@@ -178,6 +178,17 @@ class MonitorCheckInSerializer(Serializer):
                     trace_ids.append(item.trace_id.hex)
 
             if trace_ids:
+                start_alias, end_alias, trace_id_alias, project_id_alias = (
+                    Columns.TIMESTAMP.value.alias,
+                    Columns.TIMESTAMP.value.alias,
+                    Columns.TRACE_ID.value.alias,
+                    Columns.PROJECT_ID.value.alias,
+                )
+                assert start_alias is not None
+                assert end_alias is not None
+                assert trace_id_alias is not None
+                assert project_id_alias is not None
+
                 # query snuba for related errors and their associated issues
                 snql_request = Request(
                     dataset=dataset.value,
@@ -187,22 +198,22 @@ class MonitorCheckInSerializer(Serializer):
                         select=[Column(col) for col in cols],
                         where=[
                             Condition(
-                                Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                                Column(DATASETS[dataset][start_alias]),
                                 Op.GTE,
                                 query_start,
                             ),
                             Condition(
-                                Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
+                                Column(DATASETS[dataset][end_alias]),
                                 Op.LT,
                                 query_end,
                             ),
                             Condition(
-                                Column(DATASETS[dataset][Columns.TRACE_ID.value.alias]),
+                                Column(DATASETS[dataset][trace_id_alias]),
                                 Op.IN,
                                 trace_ids,
                             ),
                             Condition(
-                                Column(DATASETS[dataset][Columns.PROJECT_ID.value.alias]),
+                                Column(DATASETS[dataset][project_id_alias]),
                                 Op.EQ,
                                 self.project_id,
                             ),
