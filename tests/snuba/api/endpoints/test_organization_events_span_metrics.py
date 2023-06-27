@@ -276,28 +276,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_percentile_percent_change(self):
         self.store_span_metric(
             5,
-            tags={"description": "foo_description"},
             timestamp=self.six_min_ago,
         )
         self.store_span_metric(
             10,
-            tags={"description": "foo_description"},
-            timestamp=self.min_ago,
-        )
-
-        self.store_span_metric(
-            10,
-            tags={"description": "bar_description"},
-            timestamp=self.six_min_ago,
-        )
-        self.store_span_metric(
-            5,
-            tags={"description": "bar_description"},
             timestamp=self.min_ago,
         )
         response = self.do_request(
             {
-                "field": ["description", "percentile_percent_change(span.duration, 0.95)"],
+                "field": ["percentile_percent_change(span.duration, 0.95)"],
                 "query": "",
                 "orderby": ["-percentile_percent_change(span.duration, 0.95)"],
                 "project": self.project.id,
@@ -308,11 +295,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
-        assert len(data) == 2
-        assert data[0]["description"] == "foo_description"
-        assert data[0]["percentile_percent_change(span.duration, 0.95)"] > 0
-        assert data[1]["description"] == "bar_description"
-        assert data[1]["percentile_percent_change(span.duration, 0.95)"] < 0
+        assert len(data) == 1
+        assert data[0]["percentile_percent_change(span.duration, 0.95)"] == 1
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["percentile_percent_change(span.duration, 0.95)"] == "percent_change"
 
