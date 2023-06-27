@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -20,7 +21,7 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
-export const NULL_SPAN_CATEGORY = '<null>';
+export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
   transaction?: string;
