@@ -180,6 +180,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/organization_events_spans_histogram.py          @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trace.py                    @getsentry/performance
 /src/sentry/api/endpoints/organization_events_trends.py                   @getsentry/performance
+/src/sentry/api/endpoints/organization_events_trendsv2.py                 @getsentry/performance
 /src/sentry/api/endpoints/organization_events_vitals.py                   @getsentry/performance
 /src/sentry/api/endpoints/organization_transaction_anomaly_detection.py   @getsentry/data
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
