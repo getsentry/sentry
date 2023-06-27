@@ -140,15 +140,20 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          if (['db', 'http'].includes(group['span.category'])) {
-            spansLinkQueryParams['span.module'] = group['span.category'];
+
+          if (group['span.category'] === 'Other') {
+            spansLinkQueryParams['!span.module'] = ['db', 'http'];
+            spansLinkQueryParams['!span.category'] = transformedData.map(
+              r => r.group['span.category']
+            );
           } else {
-            spansLinkQueryParams['span.module'] = 'Other';
+            if (['db', 'http'].includes(group['span.category'])) {
+              spansLinkQueryParams['span.module'] = group['span.category'];
+            } else {
+              spansLinkQueryParams['span.module'] = 'Other';
+            }
+            spansLinkQueryParams['span.category'] = group['span.category'];
           }
-          spansLinkQueryParams['!span.module'] = transformedData
-            .map(r => r.group['span.category'])
-            .filter(c => !['Other'].includes(c));
-          spansLinkQueryParams['span.category'] = group['span.category'];
 
           const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (
