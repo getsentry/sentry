@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -8,13 +7,19 @@ import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import Chart from 'sentry/views/starfish/components/chart';
-import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {
+  DataDisplayType,
+  DataRow,
+} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   colorPalette: string[];
+  dataDisplayType: DataDisplayType;
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
+  options: SelectOption<DataDisplayType>[];
+  setDataDisplayType: any;
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
@@ -22,29 +27,15 @@ type Props = {
   transaction?: string;
 };
 
-export enum DataDisplayType {
-  DURATION_P95 = 'duration_p95',
-  CUMULATIVE_DURATION = 'cumulative_duration',
-  PERCENTAGE = 'percentage',
-}
-
 export function SpanGroupBreakdown({
-  // tableData: transformedData,
-  // totalCumulativeTime: totalValues,
   topSeriesData: data,
   transaction,
   isTimeseriesLoading,
   errored,
+  options,
+  dataDisplayType,
+  setDataDisplayType,
 }: Props) {
-  const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
-  ];
-  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.DURATION_P95
-  );
-
   const visibleSeries: Series[] = [];
 
   for (let index = 0; index < data.length; index++) {
