@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -24,7 +24,6 @@ import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreak
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
@@ -44,14 +43,13 @@ export function SpanGroupBreakdown({
   tableData: transformedData,
   totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
   isTimeseriesLoading,
   errored,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
+  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
   const options: SelectOption<DataDisplayType>[] = [
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
@@ -60,9 +58,9 @@ export function SpanGroupBreakdown({
     DataDisplayType.CUMULATIVE_DURATION
   );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
+  if (showSeriesArray.length === 0 && transformedData.length > 0) {
+    setShowSeriesArray(transformedData.map(() => true));
+  }
 
   const visibleSeries: Series[] = [];
 
@@ -155,7 +153,6 @@ export function SpanGroupBreakdown({
               <ListItemContainer>
                 <Checkbox
                   size="sm"
-                  key={group['span.category']}
                   checkboxColor={colorPalette[index]}
                   inputCss={{backgroundColor: 'red'}}
                   checked={checkedValue}
