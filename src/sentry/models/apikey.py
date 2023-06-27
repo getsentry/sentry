@@ -31,7 +31,7 @@ class ApiKey(Model):
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     scopes = typed_dict_bitfield(
-        TypedDict(
+        TypedDict(  # type: ignore[operator]
             "scopes",
             {
                 "project:read": bool,
