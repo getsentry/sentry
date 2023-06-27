@@ -844,10 +844,8 @@ class AuthHelper(Pipeline):
     @transaction.atomic
     def _finish_setup_pipeline(self, identity: Mapping[str, Any]) -> HttpResponseRedirect:
         """
-        The setup flow creates the auth provider as well as an identity linked
-        to the active user.
-
-        Configuring SSO for an org
+        the setup flow here is configuring SSO for an organization.
+        It does that by creating the auth provider as well as an OrgMember identity linked to the active user
         """
         request = self.request
         if not request.user.is_authenticated:

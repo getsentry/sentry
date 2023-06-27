@@ -39,7 +39,6 @@ class FlyOAuth2Provider(OAuth2Provider):
                 client_secret=self.get_client_secret(),
             ),
             FetchUser(org=self.org),
-            # ConfirmEmail(),  # reference github provider
         ]
 
     def get_refresh_token_url(self):
@@ -47,7 +46,7 @@ class FlyOAuth2Provider(OAuth2Provider):
 
     def build_config(self, state: Any, organization: Optional[Any] = None):
         """
-        On configuration, we determine which provider organization to configure SSO for
+        On configuration, we determine which provider organization to configure SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
         to determine whether the Auth'd user has the appropriate access to the provider org
 

@@ -38,9 +38,7 @@ class FetchUser(AuthView):
             """
             info = client.get_info()
             if self.org is not None:
-                data = info["data"]
-                user = data["user"]
-                user_orgs = user["organizations"]
+                user_orgs = info.get("data", {}).get("user", {}).get("organizations", [])
                 if self.org["id"] not in [org["id"] for org in user_orgs]:
                     return helper.error(ERR_NO_ORG_ACCESS)
 
