@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry.integrations.client import ApiClient
 
 
@@ -18,4 +20,4 @@ class DiscordClient(ApiClient):
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def get_guild_name(self, guild_id: str) -> str:
-        return self.get(self.GET_GUILD_URL % guild_id)["name"]
+        return str(self.get(self.GET_GUILD_URL % guild_id).get("name"))
