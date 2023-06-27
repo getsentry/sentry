@@ -1,4 +1,6 @@
-from typing import Optional
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 
 from django.db import transaction
 from django.utils import timezone
@@ -39,6 +41,99 @@ def valid_duration(duration: Optional[int]) -> bool:
         return False
 
     return True
+
+
+# Returns serializer appropriate group_ids corresponding with check-in trace ids
+def fetch_associated_groups(
+    trace_ids: List[str], organization_id: int, project_id: int, start: datetime, end
+) -> Dict[str, List[int]]:
+    from snuba_sdk import (
+        Column,
+        Condition,
+        Direction,
+        Entity,
+        Limit,
+        Offset,
+        Op,
+        OrderBy,
+        Query,
+        Request,
+    )
+
+    from sentry.eventstore.base import EventStorage
+    from sentry.eventstore.snuba.backend import DEFAULT_LIMIT, DEFAULT_OFFSET
+    from sentry.snuba.dataset import Dataset
+    from sentry.snuba.events import Columns
+    from sentry.utils.snuba import DATASETS, raw_snql_query
+
+    dataset = Dataset.Events
+
+    # add an hour on each end to be safe
+    query_start = start - timedelta(hours=1)
+    query_end = end + timedelta(hours=1)
+
+    cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
+    cols.append(Columns.TRACE_ID.value.event_name)
+
+    start_alias, end_alias, trace_id_alias, project_id_alias = (
+        Columns.TIMESTAMP.value.alias,
+        Columns.TIMESTAMP.value.alias,
+        Columns.TRACE_ID.value.alias,
+        Columns.PROJECT_ID.value.alias,
+    )
+    assert start_alias is not None
+    assert end_alias is not None
+    assert trace_id_alias is not None
+    assert project_id_alias is not None
+
+    # query snuba for related errors and their associated issues
+    snql_request = Request(
+        dataset=dataset.value,
+        app_id="eventstore",
+        query=Query(
+            match=Entity(dataset.value),
+            select=[Column(col) for col in cols],
+            where=[
+                Condition(
+                    Column(DATASETS[dataset][start_alias]),
+                    Op.GTE,
+                    query_start,
+                ),
+                Condition(
+                    Column(DATASETS[dataset][end_alias]),
+                    Op.LT,
+                    query_end,
+                ),
+                Condition(
+                    Column(DATASETS[dataset][trace_id_alias]),
+                    Op.IN,
+                    trace_ids,
+                ),
+                Condition(
+                    Column(DATASETS[dataset][project_id_alias]),
+                    Op.EQ,
+                    project_id,
+                ),
+            ],
+            orderby=[
+                OrderBy(Column("timestamp"), Direction.DESC),
+            ],
+            limit=Limit(DEFAULT_LIMIT),
+            offset=Offset(DEFAULT_OFFSET),
+        ),
+        tenant_ids={"organization_id": organization_id},
+    )
+
+    trace_groups: Dict[str, List[int]] = defaultdict(list)
+
+    result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
+    if "error" not in result:
+        for event in result["data"]:
+            event_name = Columns.TRACE_ID.value.event_name
+            assert event_name is not None
+            trace_groups[event[event_name]].append(event["group_id"])
+
+    return trace_groups
 
 
 def create_alert_rule(
