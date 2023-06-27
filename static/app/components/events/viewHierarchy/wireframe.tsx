@@ -37,8 +37,8 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframePr
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
-  const [zoomIn, setZoomIn] = useState<HTMLButtonElement | null>(null);
-  const [zoomOut, setZoomOut] = useState<HTMLButtonElement | null>(null);
+  const [zoomIn, setZoomIn] = useState<HTMLElement | null>(null);
+  const [zoomOut, setZoomOut] = useState<HTMLElement | null>(null);
 
   const canvases = useMemo(() => {
     return canvasRef && overlayRef ? [canvasRef, overlayRef] : [];

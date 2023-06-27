@@ -20,7 +20,7 @@ export function FeatureFeedback<T extends Data>({
   buttonProps = {},
   ...props
 }: FeatureFeedbackProps<T>) {
-  function handleClick(e: React.MouseEvent) {
+  function handleClick(e: React.MouseEvent<HTMLButtonElement>) {
     openModal(modalProps => <FeedbackModal {...modalProps} {...props} />, {
       modalCss,
     });
