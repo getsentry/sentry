@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillSaveSearchAssignedQueryTest(TestMigrations):
-    migrate_from = "0493_pickle_to_json_sentry_activity"
-    migrate_to = "0494_savedsearch_update_me_myteams"
+    migrate_from = "0496_update_userid_state"
+    migrate_to = "0497_savedsearch_update_me_myteams"
 
     def setup_initial_state(self):
         def create_saved_search(query: str) -> SavedSearch:
