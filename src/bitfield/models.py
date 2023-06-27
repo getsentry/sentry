@@ -193,7 +193,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     pass
 
 
-T = TypeVar("T", bound=type)
+T = TypeVar("T")
 
 
 def typed_dict_bitfield(definition: Type[T], default=None, null=False) -> T:
