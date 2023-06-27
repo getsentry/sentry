@@ -29,7 +29,6 @@ import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import theme from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -221,7 +220,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
-          <div>
+          <SymbolicatorIcon showIcon={status === 'success'}>
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -238,10 +237,8 @@ function NativeFrame({
               >
                 <IconWarning size="sm" color="warningText" />
               </Tooltip>
-            ) : (
-              <div style={{paddingLeft: `${theme.iconSizes.sm}`}} />
-            )}
-          </div>
+            ) : null}
+          </SymbolicatorIcon>
           <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
@@ -433,4 +430,8 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.border};
     }
   }
+`;
+
+const SymbolicatorIcon = styled('div')<{showIcon: boolean}>`
+  padding-left: ${p => (p.showIcon ? p.theme.iconSizes.sm : `0px`)};
 `;
