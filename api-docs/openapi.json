@@ -141,9 +141,6 @@
     "/api/0/projects/{organization_slug}/{project_slug}/user-feedback/": {
       "$ref": "paths/projects/user-feedback.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/keys/": {
-      "$ref": "paths/projects/keys.json"
-    },
     "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/": {
       "$ref": "paths/projects/key-details.json"
     },

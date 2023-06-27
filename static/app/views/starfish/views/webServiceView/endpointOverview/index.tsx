@@ -44,7 +44,10 @@ const SPANS_TABLE_LIMIT = 5;
 
 const EventsRequest = withApi(_EventsRequest);
 
+export type SampleFilter = 'ALL' | '500s';
+
 type State = {
+  samplesFilter: SampleFilter;
   spansFilter: ModuleName;
 };
 
@@ -52,20 +55,23 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
     : undefined;
-  const method = location.query.method
-    ? Array.isArray(location.query.method)
-      ? location.query.method[0]
-      : location.query.method
+  const method = httpMethod
+    ? Array.isArray(httpMethod)
+      ? httpMethod[0]
+      : httpMethod
     : undefined;
   const pageFilter = usePageFilters();
 
-  const [state, setState] = useState<State>({spansFilter: ModuleName.ALL});
+  const [state, setState] = useState<State>({
+    spansFilter: ModuleName.ALL,
+    samplesFilter: 'ALL',
+  });
   const [issueFilter, setIssueFilter] = useState<IssueCategory | 'ALL'>('ALL');
 
   const queryConditions = [
@@ -294,14 +300,28 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
-            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable
               filter={state.spansFilter}
               transaction={transaction}
               method={method}
             />
-            <SubHeader>{t('Sample Events')}</SubHeader>
-            <TransactionSamplesTable queryConditions={queryConditions} />
+            <SegmentedControlContainer>
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter events')}
+                value={state.samplesFilter}
+                onChange={key => setState({...state, samplesFilter: key})}
+              >
+                <SegmentedControl.Item key="ALL">
+                  {t('Sample Events')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
+              </SegmentedControl>
+            </SegmentedControlContainer>
+            <TransactionSamplesTable
+              queryConditions={queryConditions}
+              sampleFilter={state.samplesFilter}
+            />
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
@@ -346,8 +366,6 @@ function SpanMetricsTable({
   transaction: string | undefined;
   method?: string;
 }) {
-  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
@@ -377,13 +395,6 @@ function ChartSummaryValue({isLoading, value}: ChartValueProps) {
 
 const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const SubHeader = styled('h3')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin: 0;
-  margin-bottom: ${space(1)};
 `;
 
 const SearchContainerWithFilterAndMetrics = styled('div')`

@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 def queue_comment_task_if_needed(
     commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
 ):
-    from sentry.tasks.integrations.github.pr_comment import comment_workflow
+    from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
 
     logger.info(
         "github.pr_comment.queue_comment_check",
@@ -104,7 +104,7 @@ def queue_comment_task_if_needed(
 
             cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
 
-            comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
+            github_comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(

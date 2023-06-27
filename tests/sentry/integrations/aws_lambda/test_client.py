@@ -4,7 +4,6 @@ import boto3
 
 from sentry.integrations.aws_lambda.client import gen_aws_client
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -18,8 +17,7 @@ class AwsLambdaClientTest(TestCase):
         region = "us-west-1"
         aws_external_id = "124-343"
 
-        mock_client = Mock()
-        mock_get_client.return_value = mock_client
+        mock_client = mock_get_client.return_value
         credentials = {
             "AccessKeyId": "my_access_key_id",
             "SecretAccessKey": "my_secret_access_key",
@@ -27,10 +25,8 @@ class AwsLambdaClientTest(TestCase):
         }
         mock_client.assume_role = MagicMock(return_value={"Credentials": credentials})
 
-        mock_session = Mock()
+        mock_session = mock_get_session.return_value
         mock_session.client = MagicMock(return_value="expected_output")
-
-        mock_get_session.return_value = mock_session
 
         assert "expected_output" == gen_aws_client(account_number, region, aws_external_id)
 

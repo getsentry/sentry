@@ -5,7 +5,9 @@ from django.http import HttpRequest
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.signals import receivers_raise_on_send
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class ApiInviteHelperTest(TestCase):
@@ -63,7 +65,9 @@ class ApiInviteHelperTest(TestCase):
             ),
             None,
         )
-        helper.accept_invite()
+
+        with receivers_raise_on_send(), outbox_runner():
+            helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
