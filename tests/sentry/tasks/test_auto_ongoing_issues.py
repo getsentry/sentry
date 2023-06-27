@@ -51,7 +51,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
-        assert set_ongoing_activity.data == {"after_days": 3}
+        assert set_ongoing_activity.data == {"after_days": 7}
 
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
@@ -234,6 +234,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
-        assert set_ongoing_activity.data == {"after_days": 3}
+        assert set_ongoing_activity.data == {"after_days": 7}
 
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
