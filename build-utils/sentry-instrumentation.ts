@@ -139,7 +139,7 @@ class SentryInstrumentation {
     if (this.hasInitializedBuild) {
       this.transaction = this.Sentry.startTransaction({
         op: 'webpack-build',
-        name: !this.hasInitializedBuild ? 'initial-build' : 'incremental-build',
+        name: this.hasInitializedBuild ? 'incremental-build' : 'initial-build',
         description: 'webpack build times',
         startTimestamp: startTime,
         trimEnd: true,
