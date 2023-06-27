@@ -155,6 +155,7 @@ export function SpanGroupBreakdown({
               <ListItemContainer>
                 <Checkbox
                   size="sm"
+                  key={group['span.category']}
                   checkboxColor={colorPalette[index]}
                   inputCss={{backgroundColor: 'red'}}
                   checked={checkedValue}
