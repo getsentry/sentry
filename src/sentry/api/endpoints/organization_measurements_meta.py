@@ -6,7 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.models import Organization
 from sentry.search.events.constants import METRIC_FUNCTION_LIST_BY_TYPE
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.datasource import get_custom_measurements
 
 
@@ -24,7 +24,7 @@ class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):
                 organization_id=organization.id,
                 start=params["start"],
                 end=params["end"],
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
         with start_span(op="transform", description="metric meta"):
