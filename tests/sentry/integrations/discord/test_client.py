@@ -23,6 +23,17 @@ class DiscordClientTest(TestCase):
         )
 
     @responses.activate
+    def test_request_attaches_bot_token_header(self):
+        responses.add(
+            responses.GET,
+            url=DiscordClient.base_url + "/",
+            json={},
+        )
+        self.client.get("/")
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bot " + self.bot_token
+
+    @responses.activate
     def test_get_guild_name(self):
         guild_id = self.integration.external_id
         server_name = self.integration.name
