@@ -32,8 +32,8 @@ export function SuspectFunctionsTable({
   );
   const location = useLocation();
   const functionsCursor = useMemo(
-    () => decodeScalar(location.query.functionsCursor),
-    [location.query.functionsCursor]
+    () => decodeScalar(location.query[FUNCTIONS_CURSOR_NAME]),
+    [location.query]
   );
   const functionsSort = useMemo(
     () =>

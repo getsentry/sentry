@@ -35,6 +35,10 @@ export type SearchGroup = {
 export type SearchItem = {
   active?: boolean;
   /**
+   * When this item is selected, apply a filter to the search query
+   */
+  applyFilter?: (item: SearchItem) => void;
+  /**
    * Call a callback instead of setting a value in the search query
    */
   callback?: () => void;

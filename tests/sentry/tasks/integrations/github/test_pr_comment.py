@@ -119,7 +119,8 @@ class GithubCommentTestCase(IntegrationTestCase):
     def add_groupowner_to_commit(self, commit: Commit, project, user):
         event = self.store_event(
             data={
-                "message": f"issue{self.fingerprint}",
+                "message": f"issue {self.fingerprint}",
+                "culprit": f"issue{self.fingerprint}",
                 "fingerprint": [f"issue{self.fingerprint}"],
             },
             project_id=project.id,
@@ -247,27 +248,30 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
-            data={"message": "issue1", "fingerprint": ["group-1"]}, project_id=self.project.id
+            data={"message": "issue 1", "culprit": "issue1", "fingerprint": ["group-1"]},
+            project_id=self.project.id,
         )
         ev2 = self.store_event(
-            data={"message": "issue2", "fingerprint": ["group-2"]}, project_id=self.project.id
+            data={"message": "issue 2", "culprit": "issue2", "fingerprint": ["group-2"]},
+            project_id=self.project.id,
         )
         ev3 = self.store_event(
-            data={"message": "issue3", "fingerprint": ["group-3"]}, project_id=self.project.id
+            data={"message": "issue 3", "culprit": "issue3", "fingerprint": ["group-3"]},
+            project_id=self.project.id,
         )
         comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
         assert comment_contents[0] == PullRequestIssue(
-            title="issue1",
+            title="issue 1",
             subtitle="issue1",
             url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
         )
         assert comment_contents[1] == PullRequestIssue(
-            title="issue2",
+            title="issue 2",
             subtitle="issue2",
             url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
         )
         assert comment_contents[2] == PullRequestIssue(
-            title="issue3",
+            title="issue 3",
             subtitle="issue3",
             url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
         )
@@ -337,7 +341,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -366,7 +370,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
         responses.add(
             responses.PATCH,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/1/",
+            self.base_url + "/repos/getsentry/sentry/issues/comments/1",
             json={"id": 1},
         )
 
@@ -374,7 +378,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[1].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request has been deployed and Sentry has observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/)\\n\\nHave questions? Reach out to us in the #proj-github-pr-comments channel.\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]

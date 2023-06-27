@@ -11,26 +11,13 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    MutableSequence,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
 from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
 from sentry.silo.base import SiloMode
-from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -638,7 +625,7 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
-SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+SENTRY_REGION_CONFIG: Any = tuple()
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
@@ -1566,6 +1553,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -3427,18 +3416,16 @@ if USE_SILOS:
 
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
-    SENTRY_REGION_CONFIG = json.dumps(
-        [
-            {
-                "name": "us",
-                "snowflake_id": 1,
-                "category": "MULTI_TENANT",
-                "address": "http://localhost:8010",
-                "api_token": "dev-region-silo-token",
-            }
-        ]
-    )
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
+    SENTRY_REGION_CONFIG = [
+        {
+            "name": "us",
+            "snowflake_id": 1,
+            "category": "MULTI_TENANT",
+            "address": "http://localhost:8000",
+            "api_token": "dev-region-silo-token",
+        }
+    ]
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
             "is_allowed": True,
