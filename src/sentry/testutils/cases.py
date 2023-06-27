@@ -424,7 +424,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
@@ -496,14 +496,14 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     pass
 
 
 class PerformanceIssueTestCase(BaseTestCase):
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     def create_performance_issue(
         self,
@@ -578,7 +578,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     """
 
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     method = "get"
 
@@ -1028,7 +1028,7 @@ class SnubaTestCase(BaseTestCase):
     """
 
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     def setUp(self):
         super().setUp()
