@@ -518,6 +518,17 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 initialData={this.state.performance_issue_settings}
                 apiMethod="PUT"
                 apiEndpoint={performanceIssuesEndpoint}
+                onSubmitSuccess={(option: {[key: string]: boolean}) => {
+                  const [setting_key, enabled] = Object.entries(option)[0];
+                  const {email} = ConfigStore.get('user');
+
+                  trackAnalytics('performance_views.project_issue_detection_enabled', {
+                    user_email: email,
+                    organization,
+                    setting_key,
+                    enabled,
+                  });
+                }}
               >
                 <JsonForm
                   title={t('Performance Issues - Admin Detector Settings')}
@@ -532,6 +543,19 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
               saveOnBlur
+              onSubmitSuccess={(option: {[key: string]: number}) => {
+                const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+                trackAnalytics(
+                  'performance_views.project_issue_detection_threshold_changed',
+                  {
+                    organization,
+                    project_slug: project.slug,
+                    threshold_key,
+                    threshold_value,
+                  }
+                );
+              }}
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
