@@ -19,8 +19,8 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
-from symbolic import SourceMapCache as SmCache
-from symbolic import SourceView
+from symbolic.sourcemap import SourceView
+from symbolic.sourcemapcache import SourceMapCache as SmCache
 
 from sentry import features, http, options
 from sentry.event_manager import set_tag

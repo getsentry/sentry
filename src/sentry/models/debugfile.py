@@ -27,8 +27,8 @@ from typing import (
 )
 
 from django.db import models
-from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
-from symbolic.debuginfo import BcSymbolMap, Object, UuidMapping
+from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS

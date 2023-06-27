@@ -9,7 +9,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -645,9 +645,9 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                     for new_frame in mapped
                 ]
             else:
-                mapped = mapper.remap_class(method["class_name"])
-                if mapped:
-                    method["class_name"] = mapped
+                mapped_class = mapper.remap_class(method["class_name"])
+                if mapped_class:
+                    method["class_name"] = mapped_class
 
 
 @metrics.wraps("process_profile.track_outcome")

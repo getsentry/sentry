@@ -1,5 +1,6 @@
 import sentry_sdk
-from symbolic import ProguardMapper, SourceView
+from symbolic.proguard import ProguardMapper
+from symbolic.sourcemap import SourceView
 
 from sentry.lang.java.processing import deobfuscate_exception_value
 from sentry.lang.java.utils import (
@@ -117,12 +118,12 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
         # second, if that is not possible, try to re-map only the class-name
         for view in self.mapping_views:
-            mapped = view.remap_class(frame["module"])
+            mapped_class = view.remap_class(frame["module"])
 
-            if mapped:
-                new_frame = dict(raw_frame)
-                new_frame["module"] = mapped
-                return [new_frame], [raw_frame], []
+            if mapped_class:
+                frame = dict(raw_frame)
+                frame["module"] = mapped_class
+                return [frame], [raw_frame], []
 
         return
 

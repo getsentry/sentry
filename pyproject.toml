@@ -125,7 +125,6 @@ module = [
     "sentry_relay.*",
     "sqlparse.*",
     "statsd.*",
-    "symbolic.*",
     "toronado.*",
     "u2flib_server.model.*",
     "ua_parser.user_agent_parser.*",

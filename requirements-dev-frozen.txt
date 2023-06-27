@@ -182,7 +182,7 @@ sqlparse==0.4.4
 statsd==3.3
 stripe==2.61.0
 structlog==22.1.0
-symbolic==12.1.2
+symbolic==12.2.0
 tokenize-rt==5.0.0
 tomli==2.0.1
 toronado==0.1.0

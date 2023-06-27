@@ -1136,7 +1136,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             frames[24].module
             == "io.sentry.samples.instrumentation.ui.AnotherClassInSameFile$AnotherInnerClass"
         )
-        assert frames[24].lineno == 30
+        assert frames[24].lineno == 26
         assert frames[24].context_line is None
         assert frames[24].pre_context is None
         assert frames[24].post_context is None
