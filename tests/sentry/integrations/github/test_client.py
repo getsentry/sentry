@@ -355,7 +355,9 @@ class GitHubAppsClientTest(TestCase):
         )
 
         reactions = self.client.get_comment_reactions(repo=self.repo.name, comment_id="2")
-        assert reactions == comment_reactions["reactions"]
+        stored_reactions = comment_reactions["reactions"]
+        del stored_reactions["url"]
+        assert reactions == stored_reactions
 
 
 control_address = "http://controlserver"
