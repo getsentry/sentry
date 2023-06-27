@@ -53,7 +53,11 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
             with sentry_sdk.push_scope():
                 sentry_sdk.set_tag("consumer", consumer_name)
                 sentry_sdk.set_tag("reason", reason)
-                sentry_sdk.capture_message("Consumer stopped due to backpressure")
+                logger.error(
+                    "Consumer `%s` stopped for reason `%s`",
+                    consumer_name,
+                    reason,
+                )
 
             return False
         return True
@@ -66,7 +70,7 @@ def is_consumer_healthy(consumer_name: str = "default") -> bool:
         with sentry_sdk.push_scope():
             sentry_sdk.set_tag("consumer", consumer_name)
             sentry_sdk.set_tag("reason", "error")
-            sentry_sdk.capture_message("Consumer stopped due to backpressure")
+            logger.error("Consumer `%s` stopped due to for reason `%s`", consumer_name, "error")
 
         return False
 
@@ -82,7 +86,7 @@ def record_consumer_health(service_health: Mapping[str, bool]) -> None:
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("service", name)
-                    sentry_sdk.capture_message("Service marked as unhealthy")
+                    logger.error("Service `%s` marked as unhealthy", name)
 
         for name, dependencies in CONSUMERS.items():
             is_healthy = True
@@ -95,6 +99,6 @@ def record_consumer_health(service_health: Mapping[str, bool]) -> None:
                 metrics.incr("backpressure.monitor.consumer.unhealthy", tags={"consumer": name})
                 with sentry_sdk.push_scope():
                     sentry_sdk.set_tag("consumer", name)
-                    sentry_sdk.capture_message("Consumer marked as unhealthy")
+                    logger.error("Consumer `%s` marked as unhealthy", name)
 
         pipeline.execute()
