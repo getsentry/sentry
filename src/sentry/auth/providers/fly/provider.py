@@ -106,7 +106,7 @@ class FlyOAuth2Provider(OAuth2Provider):
         }
         """
         data = state["data"]
-        user_data = data["user"]
+        user_data = state["user"]
 
         # XXX(epurkhiser): We initially were using the email as the id key.
         # This caused account dupes on domain changes. Migrate to the
