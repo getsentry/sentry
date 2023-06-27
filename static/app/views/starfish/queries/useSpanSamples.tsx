@@ -72,8 +72,8 @@ export const useSpanSamples = (options: Options) => {
           ...dateCondtions,
           ...{utc: location.query.utc},
           lowerBound: 0,
-          firstBound: (maxYValue * 1) / 3,
-          secondBound: (maxYValue * 2) / 3,
+          firstBound: maxYValue * (1 / 3),
+          secondBound: maxYValue * (2 / 3),
           upperBound: maxYValue,
           query: query.formatString(),
         })}`
