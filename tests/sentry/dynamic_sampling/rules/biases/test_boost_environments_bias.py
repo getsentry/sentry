@@ -1,10 +1,9 @@
-import pytest
-
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS
 from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_generate_bias_rules_v2(default_project):
     rules = BoostEnvironmentsBias().generate_rules(project=default_project, base_sample_rate=0.1)
     assert rules == [

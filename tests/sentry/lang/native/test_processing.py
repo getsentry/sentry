@@ -14,6 +14,7 @@ from sentry.lang.native.processing import (
     process_native_stacktraces,
 )
 from sentry.models.eventerror import EventError
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
 
 
@@ -125,7 +126,7 @@ def test_merge_symbolicator_image_errors(code_file, error):
     }
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_cocoa_function_name(mock_symbolicator, default_project):
 
@@ -226,7 +227,7 @@ def test_instruction_addr_adjustment_none():
     assert not processed_frames[1]["adjust_instruction_addr"]
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
 def test_il2cpp_symbolication(mock_symbolicator, default_project):
 

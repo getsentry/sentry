@@ -5,6 +5,7 @@ import pytest
 from sentry.models.projectkey import ProjectKey, ProjectKeyManager, ProjectKeyStatus
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @region_silo_test(stable=True)
@@ -114,7 +115,7 @@ class ProjectKeyTest(TestCase):
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
-@pytest.mark.django_db(transaction=True, databases="__all__")
+@django_db_all
 def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
     assert inv_proj_config.call_count == 0
 
@@ -126,7 +127,7 @@ def test_key_deleted_projconfig_invalidated(inv_proj_config, default_project):
 
 
 @mock.patch("sentry.models.projectkey.schedule_invalidate_project_config")
-@pytest.mark.django_db(transaction=True, databases="__all__")
+@django_db_all
 def test_key_saved_projconfig_invalidated(inv_proj_config, default_project):
     assert inv_proj_config.call_count == 0
 

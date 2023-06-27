@@ -6,6 +6,7 @@ import pytest
 from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import CalculatedHashes, Event
 from sentry.models import Group, GroupHash
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -52,7 +53,7 @@ def _assoc_hash(group, hash):
     gh.save()
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_move_all_events(default_project, fast_save):
     group_info = fast_save("f")
 
@@ -97,7 +98,7 @@ def test_move_all_events(default_project, fast_save):
     assert Group.objects.get(id=new_group_info.group.id).title == "foo"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_partial_move(default_project, fast_save):
     group_info = fast_save("f")
     assert group_info.is_new

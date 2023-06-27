@@ -8,6 +8,7 @@ from sentry.lang.native import appconnect
 from sentry.models.appconnectbuilds import AppConnectBuild
 from sentry.models.latestappconnectbuildscheck import LatestAppConnectBuildsCheck
 from sentry.tasks.app_store_connect import get_or_create_persisted_build, process_builds
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class TestUpdateDsyms:
@@ -36,7 +37,7 @@ class TestUpdateDsyms:
             dsym_url="http://iosapps.itunes.apple.com/itunes-assets/Purple116/v4/20/ba/a0/20baa026-2410-b32f-1fde-b227bc2ea7ae/appDsyms.zip?accessKey=very-cool-key",
         )
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_process_no_builds(self, default_project, config):
         before = timezone.now()
         pending = process_builds(project=default_project, config=config, to_process=[])
@@ -46,7 +47,7 @@ class TestUpdateDsyms:
         )
         assert entry.last_checked >= before
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_process_new_build(self, default_project, config, build):
         before = timezone.now()
         pending = process_builds(project=default_project, config=config, to_process=[build])
@@ -60,7 +61,7 @@ class TestUpdateDsyms:
         )
         assert entry.last_checked >= before
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_process_existing_fetched_build(self, default_project, config, build):
         AppConnectBuild.objects.create(
             project=default_project,
@@ -99,7 +100,7 @@ class TestUpdateDsyms:
         )
         assert entry.last_checked >= before
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_process_existing_unfetched_build(self, default_project, config, build):
         AppConnectBuild.objects.create(
             project=default_project,
@@ -126,7 +127,7 @@ class TestUpdateDsyms:
         )
         assert entry.last_checked >= before
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_create_new_persisted_build(self, default_project, config, build):
         returned_build = get_or_create_persisted_build(default_project, config, build)
 
@@ -168,7 +169,7 @@ class TestUpdateDsyms:
         assert saved_build.bundle_version == expected_build.bundle_version
         # assert saved_build.uploaded_to_appstore == expected_build.uploaded_to_appstore
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_get_persisted_build(self, default_project, config, build):
         seen = datetime(2020, 2, 20)
 
@@ -195,7 +196,7 @@ class TestUpdateDsyms:
         assert existing_build.bundle_version == build.build_number
         assert existing_build.uploaded_to_appstore == build.uploaded_date
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_get_persisted_build_preserves_existing_fetched(self, default_project, config, build):
         seen = datetime(2020, 2, 20)
 

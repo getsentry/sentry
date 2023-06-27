@@ -1,8 +1,7 @@
 from unittest import mock
 
-import pytest
-
 from sentry.relay.projectconfig_cache import redis
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def test_delete_count(monkeypatch):
@@ -18,7 +17,7 @@ def test_delete_count(monkeypatch):
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_read_write():
     cache = redis.RedisProjectConfigCache()
     my_key = "fake-dsn-1"

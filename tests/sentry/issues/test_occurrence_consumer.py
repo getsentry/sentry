@@ -22,6 +22,7 @@ from sentry.models import Group
 from sentry.receivers import create_default_projects
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -77,7 +78,7 @@ class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):
 
 
 class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_occurrence_consumer_with_event(self) -> None:
         message = get_test_message(self.project.id)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
@@ -97,7 +98,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_process_profiling_occurrence(self) -> None:
         create_default_projects()
         event_data = load_data("generic-event-profiling")
@@ -150,7 +151,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             with self.feature("organizations:profile-file-io-main-thread-ingest"):
                 _process_message(message)
 
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_transaction_lookup(self) -> None:
         from sentry.event_manager import EventManager
 
