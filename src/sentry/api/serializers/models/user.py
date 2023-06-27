@@ -104,9 +104,9 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: datetime
-    lastLogin: datetime | None
+    lastLogin: Optional[datetime]
     has2fa: bool
-    lastActive: datetime | None
+    lastActive: Optional[datetime]
     isSuperuser: bool
     isStaff: bool
     experiments: Dict[str, Any]  # TODO
