@@ -14,7 +14,6 @@ logger = logging.getLogger("sentry.api")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OAuthTokenView(View):
@@ -43,7 +42,7 @@ class OAuthTokenView(View):
         )
 
     @never_cache
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
 
         if grant_type == GrantTypes.AUTHORIZATION:

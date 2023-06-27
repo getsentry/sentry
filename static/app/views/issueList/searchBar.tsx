@@ -109,7 +109,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         type: ItemType.RECOMMENDED,
         title: t('Release'),
         desc: t('Filter by release version.'),
-        value: 'release.version:',
+        value: 'release:',
       },
       {
         type: ItemType.RECOMMENDED,
@@ -127,14 +127,14 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         type: ItemType.RECOMMENDED,
         title: t('Unhandled'),
         desc: t('Filter by unhandled events.'),
-        value: 'error.unhandled:true',
+        value: 'error.unhandled:true ',
       },
       {
         type: ItemType.RECOMMENDED,
         title: t('Custom Tags'),
         desc: t('Filter events by custom tags.'),
-        // TODO(scttcper): handle custom tags
-        value: 'url:',
+        // Shows only tags when clicked
+        applyFilter: item => item.kind === FieldKind.TAG,
       },
     ],
   };

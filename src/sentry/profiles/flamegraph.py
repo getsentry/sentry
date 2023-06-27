@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
@@ -15,7 +15,7 @@ def query_profiles_data(
     referrer: str,
     selected_columns: List[str],
     query: Optional[str] = None,
-    additional_conditions: List[Condition] = None,
+    additional_conditions: Optional[List[Condition]] = None,
 ) -> List[Dict[str, Any]]:
     builder = QueryBuilder(
         dataset=Dataset.Discover,
@@ -60,7 +60,7 @@ def get_span_intervals(
     transaction_ids: List[str],
     organization_id: str,
     params: ParamsType,
-) -> Dict[str, Any]:
+) -> List[Dict[str, Any]]:
     query = Query(
         match=Entity(EntityKey.Spans.value),
         select=[
@@ -110,7 +110,10 @@ def get_profile_ids_with_spans(
         ],
     )
     # map {transaction_id: (profile_id, [span intervals])}
-    transaction_to_prof = {row["id"]: (row["profile.id"], []) for row in data}
+
+    transaction_to_prof: Dict[str, Tuple[str, List[Dict[str, str]]]] = {
+        row["id"]: (row["profile.id"], []) for row in data
+    }
 
     data = get_span_intervals(
         project_id,

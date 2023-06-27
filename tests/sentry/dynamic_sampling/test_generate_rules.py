@@ -101,21 +101,31 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
 
 @django_db_all
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rules_are_enabled(
+def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_and_other_rules_are_enabled(
     get_blended_sample_rate, default_old_project
 ):
     get_blended_sample_rate.return_value = 1.0
 
-    assert generate_rules(default_old_project) == [
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": 1000,
-            "samplingValue": {"type": "sampleRate", "value": 1.0},
-            "type": "trace",
-        },
-    ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
-    _validate_rules(default_old_project)
+    # We also enable the recalibration to show it's not generated as part of the rules.
+    redis_client = get_redis_client_for_ds()
+    redis_client.set(
+        f"ds::o:{default_old_project.organization.id}:rate_rebalance_factor2",
+        0.5,
+    )
+
+    with Feature("organizations:ds-org-recalibration"):
+        assert generate_rules(default_old_project) == [
+            {
+                "condition": {"inner": [], "op": "and"},
+                "id": 1000,
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
+                "type": "trace",
+            },
+        ]
+        get_blended_sample_rate.assert_called_with(
+            organization_id=default_old_project.organization.id
+        )
+        _validate_rules(default_old_project)
 
 
 @django_db_all

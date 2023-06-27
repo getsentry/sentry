@@ -16,7 +16,7 @@ import mergeRefs from 'sentry/utils/mergeRefs';
  * to be poorly typed as `any`). So this is a bit of a workaround to receive
  * the proper html attributes.
  */
-type ButtonElement = HTMLButtonElement & HTMLAnchorElement & any;
+type ButtonElement = HTMLButtonElement | HTMLAnchorElement | any;
 
 /**
  * Props shared across different types of button components
@@ -169,18 +169,29 @@ interface HrefLinkButtonProps extends BaseLinkButtonProps {
   download?: HTMLAnchorElement['download'];
 }
 
-type EnforcedLinkButtonProps = ToLinkButtonProps | HrefLinkButtonProps;
-
-type LinkButtonPropsWithoutAriaLabel = EnforcedLinkButtonProps & {
+interface ToLinkButtonPropsWithChildren extends ToLinkButtonProps {
   children: React.ReactNode;
-};
+}
 
-type LinkButtonPropsWithAriaLabel = EnforcedLinkButtonProps & {
+interface ToLinkButtonPropsWithAriaLabel extends ToLinkButtonProps {
   'aria-label': string;
   children?: never;
-};
+}
 
-type LinkButtonProps = LinkButtonPropsWithoutAriaLabel | LinkButtonPropsWithAriaLabel;
+interface HrefLinkButtonPropsWithChildren extends HrefLinkButtonProps {
+  children: React.ReactNode;
+}
+
+interface HrefLinkButtonPropsWithAriaLabel extends HrefLinkButtonProps {
+  'aria-label': string;
+  children?: never;
+}
+
+type LinkButtonProps =
+  | ToLinkButtonPropsWithChildren
+  | ToLinkButtonPropsWithAriaLabel
+  | HrefLinkButtonPropsWithChildren
+  | HrefLinkButtonPropsWithAriaLabel;
 
 function BaseButton({
   size = 'md',
@@ -504,12 +515,12 @@ const ButtonLabel = styled('span', {
   white-space: nowrap;
 `;
 
-type IconProps = {
+type ChildrenIconProps = {
   hasChildren?: boolean;
   size?: ButtonProps['size'];
 };
 
-const getIconMargin = ({size, hasChildren}: IconProps) => {
+const getIconMargin = ({size, hasChildren}: ChildrenIconProps) => {
   // If button is only an icon, then it shouldn't have margin
   if (!hasChildren) {
     return '0';
@@ -524,7 +535,8 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
   }
 };
 
-const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`
+interface IconProps extends ChildrenIconProps, Omit<StyledButtonProps, 'theme'> {}
+const Icon = styled('span')<IconProps>`
   display: flex;
   align-items: center;
   margin-right: ${getIconMargin};

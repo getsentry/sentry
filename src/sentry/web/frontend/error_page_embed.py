@@ -64,7 +64,6 @@ class UserReportForm(forms.ModelForm):
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ErrorPageEmbedView(View):
@@ -104,7 +103,7 @@ class ErrorPageEmbedView(View):
         return response
 
     @csrf_exempt
-    def dispatch(self, request: Request) -> Response:
+    def dispatch(self, request: Request) -> HttpResponse:
         try:
             event_id = request.GET["eventId"]
         except KeyError:

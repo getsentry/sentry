@@ -19,6 +19,7 @@ from sentry.issues.occurrence_consumer import (
     _process_message,
 )
 from sentry.models import Group
+from sentry.receivers import create_default_projects
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.pytest.fixtures import django_db_all
@@ -99,6 +100,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
 
     @django_db_all
     def test_process_profiling_occurrence(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling")
         event_data["detection_time"] = datetime.datetime.now(tz=pytz.UTC)
         with self.feature("organizations:profile-file-io-main-thread-ingest"):
