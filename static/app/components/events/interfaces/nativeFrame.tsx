@@ -272,7 +272,7 @@ function NativeFrame({
               {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
             </Tooltip>
           </AddressCell>
-          <FunctionNameCell>
+          <FunctionNameCell isSystemLabel={!frame.inApp}>
             {functionName ? (
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
             ) : (
@@ -351,8 +351,10 @@ const AddressCell = styled('div')`
   ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
-const FunctionNameCell = styled('div')`
+const FunctionNameCell = styled('div')<{isSystemLabel: boolean}>`
   word-break: break-all;
+  color: ${p => (p.isSystemLabel ? p.theme.subText : 'default')};
+  font-style: ${p => (p.isSystemLabel ? 'italic' : 'default')};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/6;
