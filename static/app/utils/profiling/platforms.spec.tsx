@@ -31,7 +31,6 @@ describe('getDocsPlatformSDKForPlatform', function () {
     ['node-awslambda', 'node'],
     ['node-azurefunctions', 'node'],
     ['node-gcpfunctions', 'node'],
-    ['rust', 'rust'],
   ])('gets docs platform for %s', function (platform, docsPlatform) {
     expect(getDocsPlatformSDKForPlatform(platform)).toEqual(docsPlatform);
   });
@@ -64,7 +63,6 @@ describe('getProfilingDocsForPlatform', function () {
     ['node-awslambda', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-azurefunctions', 'https://docs.sentry.io/platforms/node/profiling/'],
     ['node-gcpfunctions', 'https://docs.sentry.io/platforms/node/profiling/'],
-    ['rust', 'https://docs.sentry.io/platforms/rust/profiling/'],
   ])('gets profiling docs for %s', function (platform, docs) {
     expect(getProfilingDocsForPlatform(platform)).toEqual(docs);
   });
