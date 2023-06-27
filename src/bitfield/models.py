@@ -161,7 +161,7 @@ def flags_from_annotations(annotations: Mapping[str, type]) -> Sequence[str]:
 
 class TypedBitfieldMeta(type):
     def __new__(cls, name, bases, clsdict):
-        if name == "TypedBitfield":
+        if name == "TypedClassBitField":
             return type.__new__(cls, name, bases, clsdict)
 
         flags = {}
