@@ -368,6 +368,6 @@ def test_health_check_filters(call_endpoint, add_org_key, relay, default_project
     )
     assert filter_settings is not None
 
-    has_health_check = "healthCheck" in filter_settings
+    has_health_check = "ignoreTransactions" in filter_settings
 
     assert has_health_check == is_business
