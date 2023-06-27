@@ -3,7 +3,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import responses
 
 from sentry import audit_log, options
-from sentry.integrations.discord.client import DiscordApiClient
+from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
@@ -43,7 +43,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=(DiscordApiClient.base_url + (DiscordApiClient.GET_GUILD_URL % guild_id)),
+            url=(DiscordClient.base_url + (DiscordClient.GET_GUILD_URL % guild_id)),
             json={
                 "id": guild_id,
                 "name": server_name,
