@@ -47,9 +47,13 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                     "is:unresolved assigned:[me] bookmarks:me assigned:[me, none, test@example.com] release:test",
                     "is:unresolved assigned:[me, my_teams] bookmarks:me assigned:[me, my_teams, none, test@example.com] release:test",
                 ),
+                (
+                    "assigned:my_teams assigned:me",
+                    "assigned:my_teams assigned:[me, my_teams]",
+                ),
             ]
         ]
-        self.should_stay_same = [
+        self.should_remain_unchanged = [
             (q, create_saved_search(q))
             for q in [
                 "assigned:my_teams",
@@ -64,7 +68,7 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
 
     def test_update_query_with_assigned(self):
         assert SavedSearch.objects.all().count() == len(self.should_update) + len(
-            self.should_stay_same
+            self.should_remain_unchanged
         )
 
         for before_query, saved_search, expected_query in self.should_update:
@@ -72,6 +76,6 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
             # assert saved_search.query != before_query
             assert saved_search.query == expected_query
 
-        for before_query, saved_search in self.should_stay_same:
+        for before_query, saved_search in self.should_remain_unchanged:
             saved_search.refresh_from_db()
             assert saved_search.query == before_query
