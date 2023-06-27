@@ -6,6 +6,8 @@ from typing import Mapping, Optional, Sequence
 import click
 from arroyo.backends.abstract import Consumer
 from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies import Healthcheck
+from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from django.conf import settings
 
 from sentry.conf.types.consumer_definition import ConsumerDefinition
@@ -224,6 +226,7 @@ def get_stream_processor(
     max_poll_interval_ms: Optional[int],
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
+    healthcheck_file: Optional[str],
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -316,6 +319,9 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
+    if healthcheck_file is not None:
+        strategy_factory = HealthcheckStrategyFactoryWrapper(healthcheck_file, strategy_factory)
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
@@ -323,3 +329,13 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
     )
+
+
+class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
+    def __init__(self, healthcheck_file: str, inner: ProcessingStrategyFactory):
+        self.healthcheck_file = healthcheck_file
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions):
+        rv = self.inner.create_with_partitions(commit, partitions)
+        return Healthcheck(self.healthcheck_file, rv)
