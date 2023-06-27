@@ -55,6 +55,14 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                     'assigned:[me, #a_team, "string with spaces", test@example.com]',
                     'assigned:[me, my_teams, #a_team, "string with spaces", test@example.com]',
                 ),
+                (
+                    "is:unresolved level:error assigned:[me, none]",
+                    "is:unresolved level:error assigned:[me, my_teams, none]",
+                ),
+                (
+                    "assigned:[me, none] is:unresolved level:error",
+                    "assigned:[me, my_teams, none] is:unresolved level:error",
+                ),
             ]
         ]
         self.should_remain_unchanged = [
