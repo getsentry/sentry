@@ -9,7 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project_key import ProjectKeySerializerResponse
+from sentry.api.serializers.models.project_key import ProjectKeySerializer
 from sentry.api.serializers.rest_framework import ProjectKeyRequestSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -37,11 +37,11 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         ],
         request=None,
         responses={
-            200: ProjectKeySerializerResponse,
+            200: ProjectKeySerializer,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=None,
+        examples=ProjectExamples.GET_CLIENT_KEY,
     )
     def get(self, request: Request, project, key_id) -> Response:
         """
@@ -70,7 +70,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         ],
         request=ProjectKeyRequestSerializer,
         responses={
-            200: ProjectKeySerializerResponse,
+            200: ProjectKeySerializer,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -79,7 +79,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
     )
     def put(self, request: Request, project, key_id) -> Response:
         """
-        Update a Client Key blah blah something
+        Update a client key.
         """
         try:
             key = ProjectKey.objects.get(

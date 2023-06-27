@@ -1,8 +1,6 @@
-from typing import Dict
-
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, inline_serializer
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -256,9 +254,9 @@ incorrect or missing.
         required=False,
         type=str,
         description="""
-        The Sentry for Browser Javascipt SDK version to use. Current options are:
+The Sentry Javascript SDK version to use. The currently supported options are:
 - `7.x`
-- `latest`
+- `latest`: The most up-to-date version
 """,
     )
 
@@ -274,13 +272,19 @@ incorrect or missing.
         name="dynamicSdkLoaderOptions",
         location="query",
         required=False,
-        type=Dict[str, bool],
+        type=inline_serializer(
+            name="DynamicSDKLoaderOptionsSerializer",
+            fields={
+                "hasReplay": serializers.BooleanField(required=False),
+                "hasPerformance": serializers.BooleanField(required=False),
+                "hasDebug": serializers.BooleanField(required=False),
+            },
+        ),
         description="""
-        Configures multiple options for the Javascript Loader Script.
+Configures multiple options for the Javascript Loader Script.
 - `Performance Monitoring`
-- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
 - `Debug Bundles & Logging`
-Sample Body:
+- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
 ```json
 {
     "dynamicSdkLoaderOptions": {
@@ -298,23 +302,28 @@ Sample Body:
         location="query",
         required=False,
         type=bool,
-        description="Sets the status of the client key.",
+        description="Activate or deactiates the client key.",
     )
 
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
         required=False,
-        type=Dict[str, int],
+        type=inline_serializer(
+            name="RateLimitParameterSerializer",
+            fields={
+                "window": serializers.IntegerField(required=False),
+                "count": serializers.IntegerField(required=False),
+            },
+        ),
         description="""
-        Applies a rate limit to cap the amount of errors accepted during a time window. Note that to
+Applies a rate limit to cap the number of errors accepted during a given time window. Note that to
 disable entirely, set `rateLimit` to null.
-Sample Body:
 ```json
 {
     "rateLimit": {
         "window": 7200, // time in seconds
-        "count": 1000
+        "count": 1000 // error cap
     }
 }
 ```
@@ -326,8 +335,9 @@ Sample Body:
         location="query",
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
-        description="""A list specifying which legacy browser filters should be active. Anything excluded from
-                    the list will be turned off. The options are:
+        description="""
+A list specifying which legacy browser filters should be active. Anything excluded from the list
+will be turned off. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10
