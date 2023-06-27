@@ -1,3 +1,5 @@
+from typing import Dict
+
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
@@ -53,14 +55,14 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The start of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`",
+        description="The start of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
     END = OpenApiParameter(
         name="end",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`",
+        description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`.",
     )
     PROJECT = OpenApiParameter(
         name="project",
@@ -68,7 +70,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         many=True,
         type=int,
-        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'",
+        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'.",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -123,7 +125,7 @@ class IssueAlertParams:
         location="path",
         required=True,
         type=int,
-        description="The id of the rule you'd like to query",
+        description="The id of the rule you'd like to query.",
     )
 
 
@@ -133,7 +135,7 @@ class VisibilityParams:
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/)
+        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -254,6 +256,22 @@ incorrect or missing.
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    IS_ACTIVE = OpenApiParameter(
+        name="isActive",
+        location="query",
+        required=False,
+        type=bool,
+        description="Sets the status of the client key.",
+    )
+
+    RATE_LIMIT = OpenApiParameter(
+        name="rateLimit",
+        location="query",
+        required=False,
+        type=Dict[str, int],
+        description="Sets the status of the client key.",
     )
 
     SUB_FILTERS = OpenApiParameter(

@@ -62,6 +62,9 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
             ProjectParams.key_id("The ID of the key to update."),
+            GlobalParams.name("The name for the client key"),
+            ProjectParams.IS_ACTIVE,
+            ProjectParams.RATE_LIMIT,
             # ADD BODY PARAMS
         ],
         request=ProjectKeyRequestSerializer,
