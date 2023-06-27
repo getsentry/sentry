@@ -105,7 +105,7 @@ function DurationChart({
       symbol: getSampleSymbol(duration, p95).symbol,
       color: getSampleSymbol(duration, p95).color,
       symbolSize: span_id === highlightedSpanId ? 15 : 10,
-      seriesName: transaction_id,
+      seriesName: transaction_id.substring(0, 8),
     })
   );
 
@@ -154,6 +154,7 @@ function DurationChart({
         height={140}
         onClick={handleChartClick}
         onHighlight={handleChartHighlight}
+        aggregateOutputFormat="duration"
         data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`], baselineP95Series]}
         start=""
         end=""
