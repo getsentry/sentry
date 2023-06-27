@@ -468,7 +468,7 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag_for_scope_bleed(tag_key: str, expected_value: str) -> None:
+def check_tag_for_scope_bleed(tag_key: str, expected_value: str, add_to_scope: bool = True) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
@@ -500,13 +500,14 @@ def check_tag_for_scope_bleed(tag_key: str, expected_value: str) -> None:
                     return
 
         if current_value != expected_value:
-            scope.set_tag("possible_mistag", True)
-            scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
                 f"previous_{tag_key}_tag": current_value,
                 f"new_{tag_key}_tag": expected_value,
             }
-            merge_context_into_scope("scope_bleed", extra, scope)
+            if add_to_scope:
+                scope.set_tag("possible_mistag", True)
+                scope.set_tag(f"scope_bleed.{tag_key}", True)
+                merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
 
 
