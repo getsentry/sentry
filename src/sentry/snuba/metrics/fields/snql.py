@@ -4,7 +4,7 @@ from snuba_sdk import Column, Function
 
 from sentry.api.utils import InvalidParams
 from sentry.search.events.datasets.function_aliases import resolve_project_threshold_config
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import (
     resolve_tag_key,
     resolve_tag_value,
@@ -34,12 +34,14 @@ def _aggregation_on_session_status_func_factory(aggregate):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseID.SESSIONS,
+                                        UseCaseKey.RELEASE_HEALTH,
                                         org_id,
                                         "session.status",
                                     )
                                 ),
-                                resolve_tag_value(UseCaseID.SESSIONS, org_id, session_status),
+                                resolve_tag_value(
+                                    UseCaseKey.RELEASE_HEALTH, org_id, session_status
+                                ),
                             ],
                         ),
                         Function("in", [Column("metric_id"), list(metric_ids)]),
@@ -61,13 +63,13 @@ def _aggregation_on_abnormal_mechanism_func_factory(
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseID.SESSIONS,
+                        UseCaseKey.RELEASE_HEALTH,
                         org_id,
                         "abnormal_mechanism",
                     )
                 ),
                 [
-                    resolve_tag_value(UseCaseID.SESSIONS, org_id, mechanism)
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, mechanism)
                     for mechanism in abnormal_mechanism
                 ],
             ],
@@ -78,12 +80,12 @@ def _aggregation_on_abnormal_mechanism_func_factory(
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseID.SESSIONS,
+                        UseCaseKey.RELEASE_HEALTH,
                         org_id,
                         "abnormal_mechanism",
                     )
                 ),
-                resolve_tag_value(UseCaseID.SESSIONS, org_id, abnormal_mechanism),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, abnormal_mechanism),
             ],
         )
 
@@ -128,12 +130,12 @@ def _aggregation_on_tx_status_func_factory(aggregate):
 
         tx_col = Column(
             resolve_tag_key(
-                UseCaseID.TRANSACTIONS,
+                UseCaseKey.PERFORMANCE,
                 org_id,
                 TransactionTagsKey.TRANSACTION_STATUS.value,
             )
         )
-        excluded_statuses = resolve_tag_values(UseCaseID.TRANSACTIONS, org_id, exclude_tx_statuses)
+        excluded_statuses = resolve_tag_values(UseCaseKey.PERFORMANCE, org_id, exclude_tx_statuses)
         exclude_tx_statuses = Function(
             "notIn",
             [
@@ -185,13 +187,13 @@ def _aggregation_on_tx_satisfaction_func_factory(aggregate):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                                     )
                                 ),
                                 resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS, org_id, satisfaction_value
+                                    UseCaseKey.PERFORMANCE, org_id, satisfaction_value
                                 ),
                             ],
                         ),
@@ -323,7 +325,7 @@ def _project_threshold_multi_if_function(
     project_ids: Sequence[int], org_id: int, metric_ids: Set[int]
 ) -> Function:
     metric_ids_dictionary = {
-        reverse_resolve_weak(UseCaseID.TRANSACTIONS, org_id, metric_id): metric_id
+        reverse_resolve_weak(UseCaseKey.PERFORMANCE, org_id, metric_id): metric_id
         for metric_id in metric_ids
     }
 
@@ -352,12 +354,12 @@ def _satisfaction_equivalence(org_id: int, satisfaction_tag_value: str) -> Funct
         [
             Column(
                 name=resolve_tag_key(
-                    UseCaseID.TRANSACTIONS,
+                    UseCaseKey.PERFORMANCE,
                     org_id,
                     TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                 )
             ),
-            resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, satisfaction_tag_value),
+            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, satisfaction_tag_value),
         ],
     )
 
@@ -491,8 +493,8 @@ def session_duration_filters(org_id):
         Function(
             "equals",
             (
-                Column(resolve_tag_key(UseCaseID.SESSIONS, org_id, "session.status")),
-                resolve_tag_value(UseCaseID.SESSIONS, org_id, "exited"),
+                Column(resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "session.status")),
+                resolve_tag_value(UseCaseKey.RELEASE_HEALTH, org_id, "exited"),
             ),
         )
     ]
@@ -547,10 +549,10 @@ def count_web_vitals_snql_factory(aggregate_filter, org_id, measurement_rating, 
                         (
                             Column(
                                 resolve_tag_key(
-                                    UseCaseID.TRANSACTIONS, org_id, "measurement_rating"
+                                    UseCaseKey.PERFORMANCE, org_id, "measurement_rating"
                                 )
                             ),
-                            resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, measurement_rating),
+                            resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, measurement_rating),
                         ),
                     ),
                 ],
@@ -568,7 +570,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
     def generate_transaction_name_filter(operation, transaction_name_identifier):
         if transaction_name_identifier == is_unparameterized:
             inner_tag_value = resolve_tag_value(
-                UseCaseID.TRANSACTIONS, org_id, "<< unparameterized >>"
+                UseCaseKey.PERFORMANCE, org_id, "<< unparameterized >>"
             )
         elif transaction_name_identifier == is_null:
             inner_tag_value = ""
@@ -580,7 +582,7 @@ def count_transaction_name_snql_factory(aggregate_filter, org_id, transaction_na
             [
                 Column(
                     resolve_tag_key(
-                        UseCaseID.TRANSACTIONS,
+                        UseCaseKey.PERFORMANCE,
                         org_id,
                         "transaction",
                     )
@@ -628,7 +630,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         team_key_conditions.add(
             (
                 project_id,
-                resolve_tag_value(UseCaseID.TRANSACTIONS, org_id, transaction_name),
+                resolve_tag_value(UseCaseKey.PERFORMANCE, org_id, transaction_name),
             )
         )
 
@@ -637,7 +639,7 @@ def team_key_transaction_snql(org_id, team_key_condition_rhs, alias=None):
         [
             (
                 Column("project_id"),
-                Column(resolve_tag_key(UseCaseID.TRANSACTIONS, org_id, "transaction")),
+                Column(resolve_tag_key(UseCaseKey.PERFORMANCE, org_id, "transaction")),
             ),
             list(team_key_conditions),
         ],
@@ -655,7 +657,7 @@ def _resolve_project_threshold_config(project_ids, org_id):
         ),
         project_ids=project_ids,
         org_id=org_id,
-        use_case_id=UseCaseID.TRANSACTIONS,
+        use_case_id=UseCaseKey.PERFORMANCE,
     )
 
 

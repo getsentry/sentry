@@ -10,6 +10,7 @@ from sentry.models.transaction_threshold import (
     get_project_threshold_cache_key,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value, resolve_weak
 from sentry.snuba.metrics import TransactionMRI
@@ -108,10 +109,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 [
                                     Column(
                                         resolve_tag_key(
-                                            UseCaseID.SESSIONS, self.org_id, "session.status"
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
                                         ),
                                     ),
-                                    resolve_tag_value(UseCaseID.SESSIONS, self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -139,10 +142,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                                 [
                                     Column(
                                         resolve_tag_key(
-                                            UseCaseID.SESSIONS, self.org_id, "session.status"
+                                            UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"
                                         )
                                     ),
-                                    resolve_tag_value(UseCaseID.SESSIONS, self.org_id, status),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, self.org_id, status
+                                    ),
                                 ],
                             ),
                             Function("in", [Column("metric_id"), list(self.metric_ids)]),
@@ -202,12 +207,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                                     ],
                                 ),
                                 resolve_weak(
-                                    UseCaseID.TRANSACTIONS,
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionMRI.MEASUREMENTS_LCP.value,
                                 ),
                                 resolve_weak(
-                                    UseCaseID.TRANSACTIONS,
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionMRI.DURATION.value,
                                 ),
@@ -239,24 +244,24 @@ class DerivedMetricSnQLTestCase(TestCase):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_STATUS.value,
                                     )
                                 ),
                                 [
                                     resolve_tag_value(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionStatusTagValue.OK.value,
                                     ),
                                     resolve_tag_value(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionStatusTagValue.CANCELLED.value,
                                     ),
                                     resolve_tag_value(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionStatusTagValue.UNKNOWN.value,
                                     ),
@@ -288,13 +293,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                             [
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                                     )
                                 ),
                                 resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS,
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionSatisfactionTagValue.FRUSTRATED.value,
                                 ),
@@ -341,12 +346,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                                             ],
                                         ),
                                         resolve_weak(
-                                            UseCaseID.TRANSACTIONS,
+                                            UseCaseKey.PERFORMANCE,
                                             self.org_id,
                                             TransactionMRI.MEASUREMENTS_LCP.value,
                                         ),
                                         resolve_weak(
-                                            UseCaseID.TRANSACTIONS,
+                                            UseCaseKey.PERFORMANCE,
                                             self.org_id,
                                             TransactionMRI.DURATION.value,
                                         ),
@@ -359,13 +364,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                             [
                                 Column(
                                     name=resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                                     )
                                 ),
                                 resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS,
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionSatisfactionTagValue.SATISFIED.value,
                                 ),
@@ -404,12 +409,12 @@ class DerivedMetricSnQLTestCase(TestCase):
                                             ],
                                         ),
                                         resolve_weak(
-                                            UseCaseID.TRANSACTIONS,
+                                            UseCaseKey.PERFORMANCE,
                                             self.org_id,
                                             TransactionMRI.MEASUREMENTS_LCP.value,
                                         ),
                                         resolve_weak(
-                                            UseCaseID.TRANSACTIONS,
+                                            UseCaseKey.PERFORMANCE,
                                             self.org_id,
                                             TransactionMRI.DURATION.value,
                                         ),
@@ -422,13 +427,13 @@ class DerivedMetricSnQLTestCase(TestCase):
                             [
                                 Column(
                                     name=resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
+                                        UseCaseKey.PERFORMANCE,
                                         self.org_id,
                                         TransactionTagsKey.TRANSACTION_SATISFACTION.value,
                                     )
                                 ),
                                 resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS,
+                                    UseCaseKey.PERFORMANCE,
                                     self.org_id,
                                     TransactionSatisfactionTagValue.TOLERATED.value,
                                 ),
@@ -573,9 +578,9 @@ class DerivedMetricSnQLTestCase(TestCase):
                 "equals",
                 (
                     Column(
-                        resolve_tag_key(UseCaseID.SESSIONS, self.org_id, "session.status"),
+                        resolve_tag_key(UseCaseKey.RELEASE_HEALTH, self.org_id, "session.status"),
                     ),
-                    resolve_tag_value(UseCaseID.SESSIONS, self.org_id, "exited"),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.org_id, "exited"),
                 ),
             )
         ]
@@ -643,10 +648,10 @@ class DerivedMetricSnQLTestCase(TestCase):
                             (
                                 Column(
                                     resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS, self.org_id, "measurement_rating"
+                                        UseCaseKey.PERFORMANCE, self.org_id, "measurement_rating"
                                     )
                                 ),
-                                resolve_tag_value(UseCaseID.TRANSACTIONS, self.org_id, "good"),
+                                resolve_tag_value(UseCaseKey.PERFORMANCE, self.org_id, "good"),
                             ),
                         ),
                     ],

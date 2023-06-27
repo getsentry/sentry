@@ -19,8 +19,8 @@ from snuba_sdk import (
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -102,9 +102,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                release_key = resolve_tag_key(UseCaseID.TRANSACTIONS, org_id, "release")
+                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "release")
                 release_col = Column(release_key)
-                env_key = resolve_tag_key(UseCaseID.TRANSACTIONS, org_id, "environment")
+                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "environment")
                 env_col = Column(env_key)
                 query = (
                     Query(
@@ -133,7 +133,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    UseCaseID.SESSIONS, org_id, SessionMRI.SESSION.value
+                                    UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value
                                 ),
                             ),
                         ],
@@ -165,9 +165,11 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         data = data[:-1]
 
                     for row in data:
-                        env_name = indexer.reverse_resolve(UseCaseID.SESSIONS, org_id, row[env_key])
+                        env_name = indexer.reverse_resolve(
+                            UseCaseKey.RELEASE_HEALTH, org_id, row[env_key]
+                        )
                         release_name = indexer.reverse_resolve(
-                            UseCaseID.SESSIONS, org_id, row[release_key]
+                            UseCaseKey.RELEASE_HEALTH, org_id, row[release_key]
                         )
                         row_totals = totals[row["project_id"]].setdefault(
                             env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore

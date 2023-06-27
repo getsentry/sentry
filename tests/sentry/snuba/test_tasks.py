@@ -12,7 +12,8 @@ from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 from sentry.incidents.logic import query_datasets_to_type
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -38,16 +39,16 @@ from sentry.utils.snuba import _snuba_pool
 pytestmark = pytest.mark.sentry_metrics
 
 
-def indexer_record(use_case_id: UseCaseID, org_id: int, string: str) -> int:
+def indexer_record(use_case_id: UseCaseKey, org_id: int, string: str) -> int:
     return indexer.record(
-        use_case_id=use_case_id,
+        use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
         org_id=org_id,
         string=string,
     )
 
 
-perf_indexer_record = partial(indexer_record, UseCaseID.TRANSACTIONS)
-rh_indexer_record = partial(indexer_record, UseCaseID.SESSIONS)
+perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
+rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
 class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
@@ -385,7 +386,7 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseID.SESSIONS, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
                                             ),
                                         ],
                                         alias=None,
@@ -395,12 +396,14 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(
                                                 name=resolve_tag_key(
-                                                    UseCaseID.SESSIONS,
+                                                    UseCaseKey.RELEASE_HEALTH,
                                                     org_id,
                                                     "session.status",
                                                 )
                                             ),
-                                            resolve_tag_value(UseCaseID.SESSIONS, org_id, "init"),
+                                            resolve_tag_value(
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "init"
+                                            ),
                                         ],
                                     ),
                                 ],
@@ -420,7 +423,7 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseID.SESSIONS, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
                                             ),
                                         ],
                                         alias=None,
@@ -430,13 +433,13 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(
                                                 name=resolve_tag_key(
-                                                    UseCaseID.SESSIONS,
+                                                    UseCaseKey.RELEASE_HEALTH,
                                                     org_id,
                                                     "session.status",
                                                 )
                                             ),
                                             resolve_tag_value(
-                                                UseCaseID.SESSIONS, org_id, "crashed"
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
                                             ),
                                         ],
                                     ),
@@ -455,7 +458,9 @@ class BuildSnqlQueryTest(TestCase):
                                 function="equals",
                                 parameters=[
                                     Column(name="metric_id"),
-                                    resolve_tag_value(UseCaseID.SESSIONS, org_id, metric_mri),
+                                    resolve_tag_value(
+                                        UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
+                                    ),
                                 ],
                                 alias=None,
                             ),
@@ -474,7 +479,7 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(name="metric_id"),
                                             resolve_tag_value(
-                                                UseCaseID.SESSIONS, org_id, metric_mri
+                                                UseCaseKey.RELEASE_HEALTH, org_id, metric_mri
                                             ),
                                         ],
                                         alias=None,
@@ -484,13 +489,13 @@ class BuildSnqlQueryTest(TestCase):
                                         parameters=[
                                             Column(
                                                 name=resolve_tag_key(
-                                                    UseCaseID.SESSIONS,
+                                                    UseCaseKey.RELEASE_HEALTH,
                                                     org_id,
                                                     "session.status",
                                                 )
                                             ),
                                             resolve_tag_value(
-                                                UseCaseID.SESSIONS, org_id, "crashed"
+                                                UseCaseKey.RELEASE_HEALTH, org_id, "crashed"
                                             ),
                                         ],
                                     ),
@@ -597,7 +602,7 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_simple_performance_metrics(self):
         with Feature("organizations:use-metrics-layer"):
-            metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
+            metric_id = resolve(UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
                 Dataset.Metrics,
@@ -659,7 +664,7 @@ class BuildSnqlQueryTest(TestCase):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
-                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
+                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
             )
             perf_indexer_record(self.organization.id, "release")
             perf_indexer_record(self.organization.id, version)
@@ -668,10 +673,10 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column("project_id"), Op.IN, [self.project.id]),
                 Condition(
                     Column(
-                        resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, "release")
+                        resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, "release")
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, version),
+                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, version),
                 ),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
@@ -731,7 +736,7 @@ class BuildSnqlQueryTest(TestCase):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
-                UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
+                UseCaseKey.PERFORMANCE, self.organization.id, METRICS_MAP["transaction.duration"]
             )
             tag_key = "some_tag"
             tag_value = "some_value"
@@ -742,9 +747,9 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column("org_id"), Op.EQ, self.organization.id),
                 Condition(Column("project_id"), Op.IN, [self.project.id]),
                 Condition(
-                    Column(resolve_tag_key(UseCaseID.TRANSACTIONS, self.organization.id, tag_key)),
+                    Column(resolve_tag_key(UseCaseKey.PERFORMANCE, self.organization.id, tag_key)),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.TRANSACTIONS, self.organization.id, tag_value),
+                    resolve_tag_value(UseCaseKey.PERFORMANCE, self.organization.id, tag_value),
                 ),
                 Condition(Column("metric_id"), Op.IN, [metric_id]),
             ]
@@ -942,13 +947,15 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(
                     Column(
                         name=resolve_tag_key(
-                            UseCaseID.SESSIONS, self.organization.id, "session.status"
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
                         )
                     ),
                     Op.IN,
                     [
-                        resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "crashed"),
-                        resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "init"),
+                        resolve_tag_value(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                        ),
+                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
                     ],
                 ),
                 Condition(
@@ -956,7 +963,7 @@ class BuildSnqlQueryTest(TestCase):
                     Op.IN,
                     [
                         resolve(
-                            UseCaseID.SESSIONS,
+                            UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
                             SessionMRI.SESSION.value,
                         )
@@ -987,7 +994,11 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(
                     Column(name="metric_id"),
                     Op.IN,
-                    [resolve(UseCaseID.SESSIONS, self.organization.id, SessionMRI.USER.value)],
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                        )
+                    ],
                 ),
             ]
             self.run_test(
@@ -1023,36 +1034,44 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column(name="project_id"), Op.IN, [self.project.id]),
                 Condition(
                     Column(
-                        name=resolve_tag_key(UseCaseID.SESSIONS, self.organization.id, "release")
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
+                        )
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "ahmed@12.2"),
+                    resolve_tag_value(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
+                    ),
                 ),
                 Condition(
                     Column(
                         name=resolve_tag_key(
-                            UseCaseID.SESSIONS, self.organization.id, "session.status"
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "session.status"
                         )
                     ),
                     Op.IN,
                     [
-                        resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "crashed"),
-                        resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "init"),
+                        resolve_tag_value(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "crashed"
+                        ),
+                        resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, "init"),
                     ],
                 ),
                 Condition(
                     Column(
-                        resolve_tag_key(UseCaseID.SESSIONS, self.organization.id, "environment")
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, env.name),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
                 ),
                 Condition(
                     Column(name="metric_id"),
                     Op.IN,
                     [
                         resolve(
-                            UseCaseID.SESSIONS,
+                            UseCaseKey.RELEASE_HEALTH,
                             self.organization.id,
                             SessionMRI.SESSION.value,
                         )
@@ -1095,22 +1114,32 @@ class BuildSnqlQueryTest(TestCase):
                 Condition(Column(name="project_id"), Op.IN, [self.project.id]),
                 Condition(
                     Column(
-                        name=resolve_tag_key(UseCaseID.SESSIONS, self.organization.id, "release")
+                        name=resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "release"
+                        )
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, "ahmed@12.2"),
+                    resolve_tag_value(
+                        UseCaseKey.RELEASE_HEALTH, self.organization.id, "ahmed@12.2"
+                    ),
                 ),
                 Condition(
                     Column(
-                        resolve_tag_key(UseCaseID.SESSIONS, self.organization.id, "environment")
+                        resolve_tag_key(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, "environment"
+                        )
                     ),
                     Op.EQ,
-                    resolve_tag_value(UseCaseID.SESSIONS, self.organization.id, env.name),
+                    resolve_tag_value(UseCaseKey.RELEASE_HEALTH, self.organization.id, env.name),
                 ),
                 Condition(
                     Column(name="metric_id"),
                     Op.IN,
-                    [resolve(UseCaseID.SESSIONS, self.organization.id, SessionMRI.USER.value)],
+                    [
+                        resolve(
+                            UseCaseKey.RELEASE_HEALTH, self.organization.id, SessionMRI.USER.value
+                        )
+                    ],
                 ),
             ]
             self.run_test(

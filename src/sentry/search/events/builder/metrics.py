@@ -841,7 +841,9 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                 metrics_query=transform_mqb_query_to_metrics_query(
                     snuba_request.query, is_alerts_query=self.is_alerts_query
                 ),
-                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
+                use_case_id=UseCaseKey.PERFORMANCE
+                if self.is_performance
+                else UseCaseKey.RELEASE_HEALTH,
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
