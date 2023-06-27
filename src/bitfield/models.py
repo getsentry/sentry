@@ -158,13 +158,17 @@ class TypedBitfieldMeta(type):
             if attr.startswith("_"):
                 continue
 
-            if attr == "bitfield_default":
+            if attr in ("bitfield_default", "bitfield_null"):
                 continue
 
-            assert ty is bool, "bitfields can only hold bools"
+            assert ty in ("bool", bool), f"bitfields can only hold bools, {attr} is {ty!r}"
             flags.append(attr)
 
-        return BitField(flags=flags, default=clsdict.get("bitfield_default"))
+        return BitField(
+            flags=flags,
+            default=clsdict.get("bitfield_default"),
+            null=clsdict.get("bitfield_null"),
+        )
 
     def __int__(self) -> int:
         raise NotImplementedError()
