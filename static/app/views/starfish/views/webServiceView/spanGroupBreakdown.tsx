@@ -59,7 +59,7 @@ export function SpanGroupBreakdown({
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
     DataDisplayType.CUMULATIVE_DURATION
   );
-  
+
   const hasDropdownFeatureFlag = organization.features.includes(
     'starfish-wsv-chart-dropdown'
   );
