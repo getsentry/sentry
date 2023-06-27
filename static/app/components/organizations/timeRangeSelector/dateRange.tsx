@@ -67,6 +67,11 @@ type Props = WithRouterProps & {
   className?: string;
 
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+
+  /**
    * Should we have a time selector?
    */
   showTimePicker?: boolean;
@@ -167,7 +172,8 @@ class BaseDateRange extends Component<Props, State> {
   };
 
   render() {
-    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc} = this.props;
+    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, maxDateRange} =
+      this.props;
     const {hasStartErrors, hasEndErrors} = this.state;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
@@ -182,11 +188,15 @@ class BaseDateRange extends Component<Props, State> {
     // Subtract additional day  because we force the end date to be inclusive,
     // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
     // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-    const minDate = getStartOfPeriodAgo(
-      'days',
-      (maxPickableDays ?? MAX_PICKABLE_DAYS) - 2
-    );
-    const maxDate = new Date();
+    let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 2);
+
+    let maxDate = new Date();
+
+    const isSameDay = moment(end).subtract(1, 'day').isSame(moment(start), 'day');
+    if (maxDateRange && isSameDay) {
+      minDate = moment(start).subtract(maxDateRange, 'days').toDate();
+      maxDate = moment(start).add(maxDateRange, 'days').toDate();
+    }
 
     return (
       <div className={className} data-test-id="date-range">
