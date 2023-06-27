@@ -14,8 +14,7 @@ logger = logging.getLogger("sentry.mail")
 
 def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: bool = False) -> int:
     connection = get_connection(fail_silently=fail_silently)
-    # Explicitly typing to satisfy mypy.
-    sent: int = connection.send_messages(messages)
+    sent = connection.send_messages(messages)
     metrics.incr("email.sent", sent, skip_internal=False, tags={"success": True})
     failed = len(messages) - sent
     if failed > 0:
@@ -57,8 +56,7 @@ def send_mail(
     Wrapper that forces sending mail through our connection.
     Uses EmailMessage class which has more options than the simple send_mail
     """
-    # Explicitly typing to satisfy mypy.
-    sent: int = mail.EmailMessage(
+    return mail.EmailMessage(
         subject,
         message,
         from_email,
@@ -66,4 +64,3 @@ def send_mail(
         connection=get_connection(fail_silently=fail_silently),
         **kwargs,
     ).send(fail_silently=fail_silently)
-    return sent

@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0495_add_date_last_modified_to_artifact_bundle"),
+        ("sentry", "0496_update_userid_state"),
     ]
 
     operations = [

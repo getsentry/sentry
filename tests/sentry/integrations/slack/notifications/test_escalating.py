@@ -36,7 +36,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         assert attachment["title"] == "こんにちは"
         assert (
             attachment["text"]
-            == "Sentry flagged this issue as escalating because over 100 events happened in an hour"
+            == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             attachment["footer"]
@@ -67,7 +67,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             attachment["text"]
-            == "Sentry flagged this issue as escalating because over 100 events happened in an hour"
+            == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             attachment["footer"]
@@ -102,7 +102,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
         assert (
             attachment["text"]
-            == "Sentry flagged this issue as escalating because over 100 events happened in an hour"
+            == "Sentry flagged this issue as escalating because over 100 events happened in an hour."
         )
         assert (
             attachment["footer"]

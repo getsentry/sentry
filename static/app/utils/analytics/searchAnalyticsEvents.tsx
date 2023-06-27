@@ -40,6 +40,7 @@ export type SearchEventParameters = {
     item_kind: string;
     item_name: string | undefined;
     search_operator: string;
+    item_type?: string;
   };
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.pin': {
