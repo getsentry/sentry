@@ -50,12 +50,14 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("data"):
+    if data := symbolicated.get("data"):
         frame_meta = new_frame.setdefault("data", {})
-        if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
+        if data_sourcemap := data.get("sourcemap"):
             frame_meta["sourcemap"] = data_sourcemap
-        if data_resolved_with := get_path(symbolicated, "data", "resolved_with"):
+        if data_resolved_with := data.get("resolved_with"):
             frame_meta["resolved_with"] = data_resolved_with
+        if data.get("symbolicated") is not None:
+            frame_meta["symbolicated"] = data["symbolicated"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
     if symbolicated.get("in_app") is not None:
