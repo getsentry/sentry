@@ -256,7 +256,7 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         assert len(res) == 5
 
 
-@region_silo_test()
+@region_silo_test(stable=True)
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -274,7 +274,7 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         comment_contents = get_comment_contents([ev1.group.id, ev2.group.id, ev3.group.id])
         assert (
             PullRequestIssue(
-                title="issue1",
+                title="issue 1",
                 subtitle="issue1",
                 url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev1.group.id}/",
             )
@@ -282,7 +282,7 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
         assert (
             PullRequestIssue(
-                title="issue2",
+                title="issue 2",
                 subtitle="issue2",
                 url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev2.group.id}/",
             )
@@ -290,7 +290,7 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
         assert (
             PullRequestIssue(
-                title="issue3",
+                title="issue 3",
                 subtitle="issue3",
                 url=f"http://testserver/organizations/{self.organization.slug}/issues/{ev3.group.id}/",
             )
