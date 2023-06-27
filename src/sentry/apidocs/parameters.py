@@ -302,7 +302,7 @@ Configures multiple options for the Javascript Loader Script.
         location="query",
         required=False,
         type=bool,
-        description="Activate or deactiates the client key.",
+        description="Activate or deactivate the client key.",
     )
 
     RATE_LIMIT = OpenApiParameter(
@@ -317,8 +317,8 @@ Configures multiple options for the Javascript Loader Script.
             },
         ),
         description="""
-Applies a rate limit to cap the number of errors accepted during a given time window. Note that to
-disable entirely, set `rateLimit` to null.
+Applies a rate limit to cap the number of errors accepted during a given time window. To disable
+entirely set `rateLimit` to null.
 ```json
 {
     "rateLimit": {

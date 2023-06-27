@@ -18,7 +18,7 @@ class ProjectFilterDetailsTest(APITestCase):
 
         project.update_option("filters:browser-extensions", "0")
         self.get_success_response(
-            org.slug, project.slug, "browser-extensions", active=True, status_code=200
+            org.slug, project.slug, "browser-extensions", active=True, status_code=204
         )
 
         assert project.get_option("filters:browser-extensions") == "1"
@@ -55,7 +55,7 @@ class ProjectFilterDetailsTest(APITestCase):
             project.slug,
             "legacy-browsers",
             subfilters=new_subfilters,
-            status_code=200,
+            status_code=204,
         )
 
         assert set(project.get_option("filters:legacy-browsers")) == set(new_subfilters)

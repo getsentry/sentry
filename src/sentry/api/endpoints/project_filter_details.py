@@ -12,8 +12,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
-    RESPONSE_SUCCESS,
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
@@ -41,7 +41,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             },
         ),
         responses={
-            200: RESPONSE_SUCCESS,
+            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -108,4 +108,4 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
-        return Response(status=200)
+        return Response(status=204)
