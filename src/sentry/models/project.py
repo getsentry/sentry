@@ -4,7 +4,7 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
 from uuid import uuid1
 
 import sentry_sdk
@@ -69,7 +69,7 @@ class ProjectManager(BaseManager):
             projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         return self.filter(
             status=ObjectStatus.ACTIVE,

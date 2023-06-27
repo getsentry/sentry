@@ -86,7 +86,7 @@ OrganizationStatus._labels = {
 
 
 class OrganizationManager(BaseManager):
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
             status=OrganizationStatus.ACTIVE,

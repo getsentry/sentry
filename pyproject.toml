@@ -753,7 +753,6 @@ module = [
     "sentry.models.release",
     "sentry.models.releasefile",
     "sentry.models.team",
-    "sentry.models.user",
     "sentry.monitors.consumers.monitor_consumer",
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",

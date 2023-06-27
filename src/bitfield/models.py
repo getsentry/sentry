@@ -1,4 +1,4 @@
-from typing import Mapping, Sequence, Type, TypeVar, cast
+from typing import Any, Mapping, Optional, Sequence, Type, TypeVar, cast
 
 from django.db.models.fields import BigIntegerField
 
@@ -190,7 +190,8 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     attributes in a type-safe way.
     """
 
-    pass
+    bitfield_default: Optional[Any]
+    bitfield_null: bool
 
 
 T = TypeVar("T")
