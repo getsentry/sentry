@@ -12,8 +12,8 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters

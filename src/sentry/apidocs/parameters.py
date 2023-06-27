@@ -250,12 +250,47 @@ incorrect or missing.
         description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
     )
 
+    BROWSER_SDK_VERSION = OpenApiParameter(
+        name="browserSdkVersion",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+        The Sentry for Browser Javascipt SDK version to use. Current options are:
+- `7.x`
+- `latest`
+""",
+    )
+
     DEFAULT_RULES = OpenApiParameter(
         name="default_rules",
         location="query",
         required=False,
         type=bool,
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
+    )
+
+    DYNAMIC_SDK_LOADER_OPTIONS = OpenApiParameter(
+        name="dynamicSdkLoaderOptions",
+        location="query",
+        required=False,
+        type=Dict[str, bool],
+        description="""
+        Configures multiple options for the Javascript Loader Script.
+- `Performance Monitoring`
+- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
+- `Debug Bundles & Logging`
+Sample Body:
+```json
+{
+    "dynamicSdkLoaderOptions": {
+        "hasReplay": true,
+        "hasPerformance": true,
+        "hasDebug": true
+    }
+}
+```
+""",
     )
 
     IS_ACTIVE = OpenApiParameter(
@@ -271,7 +306,19 @@ incorrect or missing.
         location="query",
         required=False,
         type=Dict[str, int],
-        description="Sets the status of the client key.",
+        description="""
+        Applies a rate limit to cap the amount of errors accepted during a time window. Note that to
+disable entirely, set `rateLimit` to null.
+Sample Body:
+```json
+{
+    "rateLimit": {
+        "window": 7200, // time in seconds
+        "count": 10
+    }
+}
+```
+        """,
     )
 
     SUB_FILTERS = OpenApiParameter(
@@ -298,7 +345,7 @@ incorrect or missing.
             name="key_id",
             location="path",
             required=True,
-            tpye=str,
+            type=str,
             description=description,
         )
 

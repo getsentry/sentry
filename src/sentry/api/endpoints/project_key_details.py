@@ -65,7 +65,8 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             GlobalParams.name("The name for the client key"),
             ProjectParams.IS_ACTIVE,
             ProjectParams.RATE_LIMIT,
-            # ADD BODY PARAMS
+            ProjectParams.BROWSER_SDK_VERSION,
+            ProjectParams.DYNAMIC_SDK_LOADER_OPTIONS,
         ],
         request=ProjectKeyRequestSerializer,
         responses={
