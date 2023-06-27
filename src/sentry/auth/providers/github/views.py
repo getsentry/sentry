@@ -1,6 +1,6 @@
 from django import forms
+from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
 from sentry.models import AuthIdentity
@@ -30,7 +30,7 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             if self.org is not None:
                 if not client.is_org_member(self.org["id"]):
@@ -75,7 +75,7 @@ class ConfirmEmailForm(forms.Form):
 
 
 class ConfirmEmail(AuthView):
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         user = helper.fetch_state("user")
 
         # TODO(dcramer): this isn't ideal, but our current flow doesnt really
@@ -115,7 +115,7 @@ class SelectOrganization(AuthView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         with GitHubClient(helper.fetch_state("data")["access_token"]) as client:
             org_list = client.get_org_list()
 

@@ -6,9 +6,9 @@ from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
+from django.http import HttpResponse
 from django.utils.translation import ugettext as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -509,7 +509,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
