@@ -35,7 +35,7 @@ RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY = "sentry:recap_server_poll_id"
     name="sentry.tasks.poll_recap_servers",
     queue="recap_servers",
 )  # type: ignore
-def poll_recap_servers(**kwargs) -> None:
+def poll_recap_servers(**kwargs):
     print("\n\n>>>", datetime.now(tz=pytz.UTC), "sentry.tasks.poll_recap_servers")  # NOQA: S002
 
     non_empty_filter = Q(value__exact="") | Q(value__isnull=True)
@@ -100,12 +100,15 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         print("> Invalid JSON payload:", e)  # NOQA: S002
         return
 
-    if crashes["results"] == 0:
+    if not isinstance(crashes, dict):
+        print("> Invalid JSON payload:", crashes)  # NOQA: S002
+        return
+
+    if crashes.get("results") is None or crashes.get("results") == 0:
         print("> No new crashes found:", url)  # NOQA: S002
         return
 
     print("> Found", crashes["results"], "new crashes")  # NOQA: S002
-    latest_id = 0
     for crash in crashes["_embedded"]["crash"]:
         latest_id = max(latest_id, crash["id"])
         store_crash(crash, project, url)
@@ -116,7 +119,12 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
 
 def store_crash(crash, project: Project, url: str) -> None:
     # set_current_event_project(project_id)
-    event = translate_crash_to_event(crash, project, url)
+
+    try:
+        event = translate_crash_to_event(crash, project, url)
+    except KeyError:
+        # TODO(recap): Collect broken crash payloads?
+        return
 
     if options.get("processing.can-use-scrubbers"):
         new_event = safe_execute(scrub_data, project=project, event=event, _with_transaction=False)
@@ -169,5 +177,5 @@ def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any
             # "detailedStackTrace": detailed_st,
             "user": {"password": "should_be_redacted"},
         },
-        "tags": {"url": url, "id": crash["id"]},
+        "tags": {"url": url, "crash_id": crash["id"]},
     }
