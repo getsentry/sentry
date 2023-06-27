@@ -1,11 +1,7 @@
-import {ForwardedRef, forwardRef, useEffect} from 'react';
+import {ForwardedRef, forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const PANEL_WIDTH = '50vw';
 
@@ -20,13 +16,6 @@ function SlideOverPanel(
   {collapsed, children}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
-  const {query} = useLocation();
-  const organization = useOrganization();
-  useEffect(() => {
-    if (!collapsed) {
-      trackAnalytics('starfish.panel.open', {organization});
-    }
-  }, [query, collapsed, organization]);
   return (
     <_SlideOverPanel
       ref={ref}

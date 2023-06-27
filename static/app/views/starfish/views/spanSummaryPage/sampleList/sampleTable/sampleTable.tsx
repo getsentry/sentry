@@ -1,10 +1,8 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import useOrganization from 'sentry/utils/useOrganization';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
@@ -21,7 +19,6 @@ type Props = {
 };
 
 function SampleTable({groupId, transactionName, transactionMethod}: Props) {
-  const organization = useOrganization();
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
@@ -44,29 +41,6 @@ function SampleTable({groupId, transactionName, transactionMethod}: Props) {
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
-
-  const [loadedSpans, setLoadedSpans] = useState(false);
-  useEffect(() => {
-    if (areSpanSamplesLoading || areSpanSamplesRefetching || areTransactionsLoading) {
-      setLoadedSpans(false);
-      return;
-    }
-    if (loadedSpans) {
-      return;
-    }
-    trackAnalytics('starfish.samples.loaded', {
-      organization,
-      count: transactions?.length ?? 0,
-    });
-    setLoadedSpans(true);
-  }, [
-    loadedSpans,
-    areTransactionsLoading,
-    transactions,
-    areSpanSamplesLoading,
-    areSpanSamplesRefetching,
-    organization,
-  ]);
 
   const transactionsById = keyBy(transactions, 'id');
 

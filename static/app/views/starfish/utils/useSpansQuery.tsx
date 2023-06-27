@@ -12,7 +12,6 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
@@ -54,8 +53,6 @@ export function useSpansQuery<T = any[]>({
       cursor,
     });
 
-    TrackResponse(eventView, response);
-
     return response;
   }
 
@@ -78,11 +75,10 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   data: T;
   isLoading: boolean;
   meta?: MetaType; // TODO: This is probably not correct! Timeseries calls return `meta` along with each _series_, rather than as an overall part of the response
-  statusCode?: string;
 } {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data, statusCode} = useGenericDiscoverQuery<
+  const {isLoading, data} = useGenericDiscoverQuery<
     {
       data: any[];
       meta: MetaType;
@@ -117,7 +113,6 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
         ? initialData
         : processDiscoverTimeseriesResult(data, eventView),
     meta: data?.meta,
-    statusCode,
   };
 }
 
@@ -140,11 +135,10 @@ export function useWrappedDiscoverQuery<T>({
   isLoading: boolean;
   meta?: EventsMetaType;
   pageLinks?: string;
-  statusCode?: string;
 } {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data, pageLinks, statusCode} = useDiscoverQuery({
+  const {isLoading, data, pageLinks} = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
@@ -170,7 +164,6 @@ export function useWrappedDiscoverQuery<T>({
     data: isLoading && initialData ? initialData : data?.data,
     meta, // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it does not!
     pageLinks,
-    statusCode,
   };
 }
 

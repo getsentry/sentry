@@ -1,51 +1,58 @@
-import {useEffect} from 'react';
+import {ForwardedRef, forwardRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
+import styled from '@emotion/styled';
+import {motion} from 'framer-motion';
 
-import Feature from 'sentry/components/acl/feature';
-import {Alert} from 'sentry/components/alert';
-import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
-import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
-import {useStarfishParameterizedPathname} from 'sentry/views/starfish/utils/getParameterizedPathname';
+const PANEL_WIDTH = '50vw';
 
-type Props = {
-  children: React.ReactChildren;
-  organization: Organization;
+type SlideOverPanelProps = {
+  children: React.ReactNode;
+  collapsed: boolean;
 };
 
-const queryClient = new QueryClient();
+export default forwardRef(SlideOverPanel);
 
-function StarfishContainer({organization, children}: Props) {
-  const parameterizedPathname = useStarfishParameterizedPathname();
-  useEffect(() => {
-    trackAnalytics('starfish.pageview', {
-      organization,
-      route: parameterizedPathname,
-    });
-  }, [organization, parameterizedPathname]);
+function SlideOverPanel(
+  {collapsed, children}: SlideOverPanelProps,
+  ref: ForwardedRef<HTMLDivElement>
+) {
   return (
-    <Feature
-      hookName="feature-disabled:starfish-view"
-      features={['starfish-view']}
-      organization={organization}
-      renderDisabled={NoAccess}
+    <_SlideOverPanel
+      ref={ref}
+      collapsed={collapsed}
+      initial={{opacity: 0, x: PANEL_WIDTH}}
+      animate={!collapsed ? {opacity: 1, x: 0} : {opacity: 0, x: PANEL_WIDTH}}
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 50,
+      }}
     >
-      <NoProjectMessage organization={organization}>
-        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-      </NoProjectMessage>
-    </Feature>
+      {children}
+    </_SlideOverPanel>
   );
 }
 
-function NoAccess() {
-  return (
-    <Layout.Page withPadding>
-      <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-    </Layout.Page>
-  );
-}
-
-export default withOrganization(StarfishContainer);
+const _SlideOverPanel = styled(motion.div, {
+  shouldForwardProp: prop =>
+    ['animate', 'transition', 'initial'].includes(prop) ||
+    (prop !== 'collapsed' && isPropValid(prop)),
+})<{
+  collapsed: boolean;
+}>`
+  width: ${PANEL_WIDTH};
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+  border-left: 1px solid ${p => p.theme.border};
+  text-align: left;
+  z-index: ${p => p.theme.zIndex.sidebar - 1};
+  ${p =>
+    p.collapsed
+      ? 'overflow: hidden;'
+      : `overflow-x: hidden;
+  overflow-y: scroll;`}
+`;

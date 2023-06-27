@@ -30,7 +30,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -38,12 +37,10 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
-import {useStarfishParameterizedPathname} from 'sentry/views/starfish/utils/getParameterizedPathname';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
@@ -164,8 +161,6 @@ function Chart({
   const router = useRouter();
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const organization = useOrganization();
-  const parameterizedPathname = useStarfishParameterizedPathname();
   const {startTime, endTime} = getDateFilters(pageFilter.selection);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
@@ -359,20 +354,10 @@ function Chart({
     return (
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
-          const onDataZoom = (zoomData, chart) => {
-            trackAnalytics('starfish.chart.zoomed', {
-              organization,
-              start: zoomData?.batch?.[0]?.startValue,
-              end: zoomData?.batch?.[0]?.endValue,
-              route: parameterizedPathname,
-            });
-            return zoomRenderProps.onDataZoom?.(zoomData, chart);
-          };
           if (isLineChart) {
             return (
               <BaseChart
                 {...zoomRenderProps}
-                onDataZoom={onDataZoom}
                 ref={chartRef}
                 height={height}
                 previousPeriod={previousData}
@@ -430,7 +415,6 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              onDataZoom={onDataZoom}
               series={series}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
