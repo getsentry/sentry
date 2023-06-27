@@ -19,7 +19,6 @@ import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -30,6 +29,7 @@ import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import theme from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -239,9 +239,7 @@ function NativeFrame({
                 <IconWarning size="sm" color="warningText" />
               </Tooltip>
             ) : (
-              <Tooltip title={t('This frame has been successfully symbolicated')}>
-                <IconCheckmark size="sm" color="successText" />
-              </Tooltip>
+              <div style={{paddingLeft: `${theme.iconSizes.sm}`}} />
             )}
           </div>
           <div>
