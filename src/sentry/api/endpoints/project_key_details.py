@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
@@ -39,7 +39,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         responses={
             200: ProjectKeySerializerResponse,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=None,
     )
@@ -73,7 +73,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             200: ProjectKeySerializerResponse,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=ProjectExamples.UPDATE_CLIENT_KEY,
     )
@@ -152,7 +152,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
         responses={
             204: RESPONSE_NO_CONTENT,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=None,
     )
