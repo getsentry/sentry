@@ -55,7 +55,8 @@ class ArtifactBundlesEndpointTest(APITestCase):
             self.organization,
             artifact_count=2,
             date_uploaded=datetime.now() + timedelta(hours=2),
-            date_last_modified=datetime.now() + timedelta(hours=2),
+            # We also test with the date set to None.
+            date_last_modified=None,
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -88,7 +89,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": None,
                     }
                 ],
-                "dateModified": "2023-03-15T02:00:00Z",
+                "dateModified": None,
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
             },
@@ -149,7 +150,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": None,
                     }
                 ],
-                "dateModified": "2023-03-15T02:00:00Z",
+                "dateModified": None,
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
             },
@@ -180,7 +181,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now()
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now(),
+            date_last_modified=datetime.now(),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -213,7 +217,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now()
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now(),
+            date_last_modified=datetime.now(),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,

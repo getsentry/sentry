@@ -579,9 +579,6 @@ class Factories:
         if date_uploaded is None:
             date_uploaded = timezone.now()
 
-        if date_last_modified is None:
-            date_last_modified = timezone.now()
-
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
         file_.putfile(ContentFile(bundle))
