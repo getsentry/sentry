@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import keyBy from 'lodash/keyBy';
 
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
@@ -34,6 +36,7 @@ function SampleTable({
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'span-summary-panel-samples-table-p95'
   );
+  const organization = useOrganization();
 
   const {
     data: spans,
@@ -45,10 +48,32 @@ function SampleTable({
     transactionMethod,
   });
 
-  const {data: transactions, isFetching: areTransactionsFetching} = useTransactions(
+  const {data: transactions, isFetching: isFetchingTransactions} = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
+
+  const [loadedSpans, setLoadedSpans] = useState(false);
+  useEffect(() => {
+    if (isFetchingTransactions || isFetchingSamples) {
+      setLoadedSpans(false);
+      return;
+    }
+    if (loadedSpans) {
+      return;
+    }
+    trackAnalytics('starfish.samples.loaded', {
+      organization,
+      count: transactions?.length ?? 0,
+    });
+    setLoadedSpans(true);
+  }, [
+    loadedSpans,
+    isFetchingSamples,
+    transactions,
+    isFetchingTransactions,
+    organization,
+  ]);
 
   const transactionsById = keyBy(transactions, 'id');
 
@@ -57,7 +82,7 @@ function SampleTable({
   const isLoading =
     isFetchingSpanMetrics ||
     isFetchingSamples ||
-    (!areNoSamples && areTransactionsFetching);
+    (!areNoSamples && isFetchingTransactions);
 
   return (
     <Fragment>

@@ -12,6 +12,7 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
@@ -44,6 +45,8 @@ export function useSpansQuery<T = any[]>({
       referrer,
       cursor,
     });
+
+    TrackResponse(eventView, response);
 
     return response;
   }
