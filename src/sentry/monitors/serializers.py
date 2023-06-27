@@ -141,7 +141,7 @@ class MonitorCheckInSerializer(Serializer):
         prefetch_related_objects(item_list, "monitor_environment__environment")
 
         attrs = {}
-        if self._expand("group_ids") and self.start and self.end:
+        if self._expand("groupIds") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
             trace_groups: Dict[str, List[int]] = defaultdict(list)
@@ -151,13 +151,13 @@ class MonitorCheckInSerializer(Serializer):
                     trace_ids.append(item.trace_id.hex)
 
             if trace_ids:
-                fetch_associated_groups(
+                trace_groups = fetch_associated_groups(
                     trace_ids, self.organization_id, self.project_id, self.start, self.end
                 )
 
             attrs = {
                 item: {
-                    "group_ids": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
+                    "groupIds": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
                 }
                 for item in item_list
             }
@@ -178,8 +178,8 @@ class MonitorCheckInSerializer(Serializer):
             "monitorConfig": obj.monitor_config or {},
         }
 
-        if self._expand("group_ids"):
-            result["group_ids"] = attrs.get("group_ids", [])
+        if self._expand("groupIds"):
+            result["groupIds"] = attrs.get("groupIds", [])
 
         return result
 
