@@ -1,6 +1,23 @@
+from __future__ import annotations
+
 from typing import Mapping
 
-from sentry.models.group import GroupStatus
+
+class GroupStatus:
+    UNRESOLVED = 0
+    RESOLVED = 1
+    IGNORED = 2
+    PENDING_DELETION = 3
+    DELETION_IN_PROGRESS = 4
+    PENDING_MERGE = 5
+
+    # The group's events are being re-processed and after that the group will
+    # be deleted. In this state no new events shall be added to the group.
+    REPROCESSING = 6
+
+    # TODO(dcramer): remove in 9.0
+    MUTED = IGNORED
+
 
 # TODO(dcramer): pull in enum library
 # Statuses that can be queried/searched for
@@ -114,6 +131,10 @@ class State:
     status: GroupStatus = GroupStatus.UNRESOLVED
     substatus: GroupSubStatus = None
 
+    def __init__(self, status: GroupStatus | None, substatus: GroupSubStatus | None = None) -> None:
+        self.status = status
+        self.substatus = substatus
+
     def __eq__(self, other):
         return self.status == other.status and self.substatus == other.substatus
 
@@ -137,3 +158,11 @@ class IssueState:
     DELETION_IN_PROGRESS = State(status=GroupStatus.DELETION_IN_PROGRESS)
     PENDING_MERGE = State(status=GroupStatus.PENDING_MERGE)
     REPROCESSING = State(status=GroupStatus.REPROCESSING)
+
+
+UNRESOLVED_STATES = [
+    IssueState.ONGOING,
+    IssueState.REGRESSED,
+    IssueState.ESCALATING,
+    IssueState.NEW,
+]

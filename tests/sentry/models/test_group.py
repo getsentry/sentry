@@ -23,6 +23,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupStatus, GroupSubStatus
+from sentry.utils.groups import ToPendingDeletionStateTransition
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -142,7 +143,8 @@ class GroupTest(TestCase, SnubaTestCase):
                 group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
             )
 
-        group.update(status=GroupStatus.PENDING_DELETION, substatus=None)
+        ToPendingDeletionStateTransition().bulk_do([group.id])
+
         with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 

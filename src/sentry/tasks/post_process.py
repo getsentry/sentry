@@ -21,7 +21,6 @@ from sentry.types.group import GroupStatus
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.groups import IssueState, ToEscalatingStateTransition, ToUnignoredStateTransition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -732,6 +731,11 @@ def process_snoozes(job: PostProcessJob) -> None:
 
     from sentry.issues.escalating import is_escalating
     from sentry.models import GroupSnooze, GroupStatus
+    from sentry.utils.groups import (
+        IssueState,
+        ToEscalatingStateTransition,
+        ToUnignoredStateTransition,
+    )
 
     event = job["event"]
     group = event.group
