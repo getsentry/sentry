@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Sequence
 
 from rest_framework.request import Request
@@ -118,10 +117,10 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
 
         if event_id == "latest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "latest"}):
-                event = group.get_latest_event_for_environments(environments)
+                event = group.get_latest_event_for_environments(environment_names)
         elif event_id == "oldest":
             with metrics.timer("api.endpoints.group_event_details.get", tags={"type": "oldest"}):
-                event = group.get_oldest_event_for_environments(environments)
+                event = group.get_oldest_event_for_environments(environment_names)
         elif event_id == "helpful":
             if features.has(
                 "organizations:issue-details-most-helpful-event",
