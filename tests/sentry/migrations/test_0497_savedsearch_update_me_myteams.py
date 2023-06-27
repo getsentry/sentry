@@ -32,8 +32,8 @@ class BackfillSaveSearchAssignedQueryTest(TestMigrations):
                 ),
                 ("assigned:[me, me]", "assigned:[me, my_teams, me]"),
                 (
-                    "assigned_or_suggested:[me, #team]",
-                    "assigned_or_suggested:[me, my_teams, #team]",
+                    "assigned_or_suggested:[me, #a_team]",
+                    "assigned_or_suggested:[me, my_teams, #a_team]",
                 ),
                 (
                     "assigned_or_suggested:[me,test@example.com,none]",
