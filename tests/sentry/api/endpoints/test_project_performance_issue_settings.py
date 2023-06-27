@@ -3,7 +3,6 @@ from unittest.mock import patch
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry import projectoptions
 from sentry.api.endpoints.project_performance_issue_settings import SETTINGS_PROJECT_OPTION_KEY
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
@@ -20,7 +19,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.login_as(user=self.user)
+        self.login_as(user=self.user, superuser=True)
         self.project = self.create_project()
 
         self.url = reverse(
@@ -94,7 +93,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
             self.addCleanup(patch_project_option_get.stop)
 
-            # System and project defaults
+            # Updated project settings
             assert response.data["slow_db_query_duration_threshold"] == 5000
             assert response.data["n_plus_one_db_duration_threshold"] == 10000
             assert not response.data["n_plus_one_db_queries_detection_enabled"]
@@ -105,7 +104,20 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             response = self.client.get(self.url, format="json")
             assert response.status_code == 404
 
-    def test_update_project_setting(self):
+    def test_put_non_super_user_updates_detection_setting(self):
+        self.login_as(user=self.user, superuser=False)
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_queries_detection_enabled": False,
+                },
+            )
+
+        assert response.status_code == 403, response.content
+        assert response.data == {"detail": "Passed options are only modifiable internally"}
+
+    def test_put_super_user_updates_detection_setting(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.put(
                 self.url,
@@ -123,6 +135,25 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
         assert get_response.status_code == 200, response.content
         assert not get_response.data["n_plus_one_db_queries_detection_enabled"]
 
+    def test_put_update_non_super_user_option(self):
+        self.login_as(user=self.user, superuser=False)
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_duration_threshold": 3000,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["n_plus_one_db_duration_threshold"] == 3000
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            get_response = self.client.get(self.url, format="json")
+
+        assert get_response.status_code == 200, response.content
+        assert get_response.data["n_plus_one_db_duration_threshold"] == 3000
+
     def test_update_project_setting_check_validation(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.put(
@@ -139,14 +170,22 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             ]
         }
 
-    def test_delete_all_project_settings(self):
+    def test_delete_reset_project_settings(self):
         self.project.update_option(
-            SETTINGS_PROJECT_OPTION_KEY, {"n_plus_one_db_detection_rate": 0.20}
+            SETTINGS_PROJECT_OPTION_KEY,
+            {
+                "n_plus_one_db_queries_detection_enabled": False,
+                "n_plus_one_db_duration_threshold": 1000,
+            },
         )
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "n_plus_one_db_queries_detection_enabled"
+        ]
         assert (
-            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_detection_rate"]
-            == 0.20
+            self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)["n_plus_one_db_duration_threshold"]
+            == 1000
         )
+
         with self.feature(PERFORMANCE_ISSUE_FEATURES):
             response = self.client.delete(
                 self.url,
@@ -154,6 +193,9 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             )
 
         assert response.status_code == 204, response.content
-        assert self.project.get_option(
+        assert not self.project.get_option(SETTINGS_PROJECT_OPTION_KEY)[
+            "n_plus_one_db_queries_detection_enabled"
+        ]  # admin option should persist
+        assert "n_plus_one_db_duration_threshold" not in self.project.get_option(
             SETTINGS_PROJECT_OPTION_KEY
-        ) == projectoptions.get_well_known_default(SETTINGS_PROJECT_OPTION_KEY)
+        )
