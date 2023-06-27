@@ -143,7 +143,7 @@ def django_db_all(func=None, *, transaction=None, **kwargs):
     """Pytest decorator for resetting all databases"""
 
     if func is not None:
-        return pytest.mark.django_db(func, databases="__all__")
+        return pytest.mark.django_db(transaction=transaction, databases="__all__")(func)
 
     def decorator(function):
         return pytest.mark.django_db(transaction=transaction, databases="__all__")(function)
