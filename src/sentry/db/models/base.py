@@ -237,7 +237,12 @@ control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
 region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
 
 
+_role_is_setup: bool = False
+_models_restricted: set[str] = set()
+
+
 def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
+    global _role_is_setup
     if "pytest" not in sys.modules:
         return
 
@@ -255,9 +260,13 @@ def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
 
     with get_connection(using).cursor() as conn:
         conn.execute("SET ROLE 'postgres'")
-    reset_test_role(role="postgres_unprivileged", using=using)
 
-    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
+    if not _role_is_setup:
+        reset_test_role(role="postgres_unprivileged", using=using, full_reset=not _role_is_setup)
+        _role_is_setup = True
+
+    # Protect Foreign Keys using hybrid cloud models from being deleted without using the privileged user.
+    # Deletion should only occur when the developer is actively aware of the need to generate outboxes.
     seen_models: MutableSet[type] = set()
     for model in iter_models(app_config.name):
         for field in model._meta.fields:

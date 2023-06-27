@@ -187,10 +187,12 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
         yield
 
 
-def reset_test_role(role: str, using: str = "default") -> None:
+def reset_test_role(role: str, using: str = "default", full_reset: bool = False) -> None:
     with get_connection(using).cursor() as connection:
         connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
         if connection.fetchone():
+            if not full_reset:
+                return
             connection.execute(f"REASSIGN OWNED BY {role} TO postgres")
             connection.execute(f"DROP OWNED BY {role} CASCADE")
             connection.execute(f"DROP ROLE {role}")
