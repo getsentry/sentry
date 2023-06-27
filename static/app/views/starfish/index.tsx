@@ -1,15 +1,11 @@
-import {useEffect} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import withOrganization from 'sentry/utils/withOrganization';
-import {useStarfishParameterizedPathname} from 'sentry/views/starfish/utils/getParameterizedPathname';
 
 type Props = {
   children: React.ReactChildren;
@@ -19,13 +15,6 @@ type Props = {
 const queryClient = new QueryClient();
 
 function StarfishContainer({organization, children}: Props) {
-  const parameterizedPathname = useStarfishParameterizedPathname();
-  useEffect(() => {
-    trackAnalytics('starfish.pageview', {
-      organization,
-      route: parameterizedPathname,
-    });
-  }, [organization, parameterizedPathname]);
   return (
     <Feature
       hookName="feature-disabled:starfish-view"
