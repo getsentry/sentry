@@ -104,9 +104,9 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     hasPasswordAuth: bool
     isManaged: bool
     dateJoined: datetime
-    lastLogin: datetime
+    lastLogin: datetime | None
     has2fa: bool
-    lastActive: datetime
+    lastActive: datetime | None
     isSuperuser: bool
     isStaff: bool
     experiments: Dict[str, Any]  # TODO
@@ -144,7 +144,9 @@ class UserSerializer(Serializer):
             results[item.user_id].append(item)
         return results
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs: Any
+    ) -> MutableMapping[User, Any]:
         user_ids = [i.id for i in item_list]
         avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
@@ -163,7 +165,11 @@ class UserSerializer(Serializer):
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | RpcUser
+        self,
+        obj: User,
+        attrs,
+        user: User | AnonymousUser | RpcUser,
+        **kwargs: Any,
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -257,7 +263,9 @@ class DetailedUserSerializer(UserSerializer):
     Used in situations like when a member admin (on behalf of an organization) looks up memberships.
     """
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs: Any
+    ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
 
         # ignore things that aren't user controlled (like recovery codes)
@@ -282,9 +290,7 @@ class DetailedUserSerializer(UserSerializer):
 
         return attrs
 
-    def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
-    ) -> DetailedUserSerializerResponse:
+    def serialize(self, obj: User, attrs, user, **kwargs: Any) -> DetailedUserSerializerResponse:
         d = cast(DetailedUserSerializerResponse, super().serialize(obj, attrs, user))
 
         # XXX(dcramer): we don't use is_active_superuser here as we simply
@@ -318,7 +324,9 @@ class DetailedSelfUserSerializer(UserSerializer):
     Should only be returned when acting on behalf of the user, or acting on behalf of a Sentry `users.admin`.
     """
 
-    def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
+    def get_attrs(
+        self, item_list: Sequence[User], user: User, **kwargs: Any
+    ) -> MutableMapping[User, Any]:
         attrs = super().get_attrs(item_list, user)
         user_ids = [i.id for i in item_list]
 
@@ -349,7 +357,7 @@ class DetailedSelfUserSerializer(UserSerializer):
         return attrs
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User
+        self, obj: User, attrs, user, **kwargs: Any
     ) -> DetailedSelfUserSerializerResponse:
         d = cast(DetailedSelfUserSerializerResponse, super().serialize(obj, attrs, user))
 
