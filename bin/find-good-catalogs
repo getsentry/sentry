@@ -5,7 +5,7 @@ import json  # noqa: S003
 import os
 
 import click
-from babel.messages.pofile import read_po
+from babel.messages.pofile import read_po, write_po
 
 MINIMUM = 80
 
@@ -29,6 +29,7 @@ def cli(catalog_file):
     base = "src/sentry/locale"
     for locale in os.listdir(base):
         fn = os.path.join(base, locale, "LC_MESSAGES", "django.po")
+
         if not os.path.isfile(fn):
             continue
 
@@ -44,6 +45,9 @@ def cli(catalog_file):
         click.echo("% -7s % 2d%%" % (locale, pct), err=True)
         if pct >= MINIMUM and locale not in rv:
             rv.append(locale)
+
+        with open(fn, "wb") as fileobj:
+            write_po(catalog=catalog, fileobj=fileobj, no_location=True)
     with open(catalog_file, "w") as f:
         json.dump({"supported_locales": sorted(rv)}, f, indent=2)
         f.write("\n")
