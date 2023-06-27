@@ -669,6 +669,90 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(result) == 5
         assert page2_results[0].id == 26
 
+    def test_only_metric_alert_rules(self):
+        project = self.project
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+
+        for i in range(1, 31):
+            self.create_alert_rule(name=f"alertrule{i}", projects=[project])
+
+        rules = AlertRule.objects.all()
+        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        rules = rules.annotate(date_triggered=far_past_date)
+        incident_status_value = Value(-2, output_field=IntegerField())
+        rules = rules.annotate(incident_status=incident_status_value)
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            Rule.objects.all(), ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=25, cursor=None)
+        assert len(result) == 25
+        page1_results = list(result)
+        assert page1_results[0].id == 1
+        assert page1_results[24].id == 25
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=25, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 5
+        assert page2_results[0].id == 26
+
+    def test_issue_and_metric_alert_rules(self):
+        project = self.project
+        AlertRule.objects.all().delete()
+        Rule.objects.all().delete()
+
+        for i in range(1, 16):
+            self.create_alert_rule(name=f"alertrule{i}")
+            Rule.objects.create(id=i, label=f"rule{i}", project=project)
+
+        metric_alert_rules = AlertRule.objects.all()
+        issue_alert_rules = Rule.objects.all()
+
+        far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
+        issue_alert_rules = issue_alert_rules.annotate(date_triggered=far_past_date)
+        metric_alert_rules = metric_alert_rules.annotate(
+            date_triggered=far_past_date
+        )  # todo update this
+        incident_status_value = Value(-2, output_field=IntegerField())
+        issue_alert_rules = issue_alert_rules.annotate(incident_status=incident_status_value)
+        metric_alert_rules = metric_alert_rules.annotate(
+            incident_status=incident_status_value
+        )  # todo update this
+
+        alert_rule_intermediary = CombinedQuerysetIntermediary(
+            metric_alert_rules, ["incident_status", "date_triggered"]
+        )
+        rule_intermediary = CombinedQuerysetIntermediary(
+            issue_alert_rules, ["incident_status", "date_triggered"]
+        )
+        paginator = CombinedQuerysetPaginator(
+            intermediaries=[alert_rule_intermediary, rule_intermediary],
+            desc=True,
+        )
+
+        result = paginator.get_result(limit=25, cursor=None)
+        assert len(result) == 25
+        page1_results = list(result)
+        assert page1_results[0].id == 1
+        assert page1_results[24].id == 10
+
+        next_cursor = result.next
+        result = paginator.get_result(limit=25, cursor=next_cursor)
+        page2_results = list(result)
+        assert len(result) == 5
+        assert page2_results[0].id == 11
+        # this all passes but I need to add a test for going back a page cause that's where things get messed up
+
 
 class TestChainPaginator(SimpleTestCase):
     cls = ChainPaginator
