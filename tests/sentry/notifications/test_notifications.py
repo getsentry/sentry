@@ -6,6 +6,7 @@ from urllib.parse import parse_qs
 
 import responses
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.utils import timezone
 from sentry_relay import parse_release
 
@@ -120,9 +121,11 @@ class ActivityNotificationTest(APITestCase):
         assert response.status_code == 201, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert "blah blah" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert "blah blah</p></div>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()
@@ -154,9 +157,11 @@ class ActivityNotificationTest(APITestCase):
         assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"Unassigned\n\n{self.user.username} unassigned {self.short_id}" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.user.username}</strong> unassigned" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()
@@ -181,9 +186,11 @@ class ActivityNotificationTest(APITestCase):
         assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"{self.user.username} marked {self.short_id} as resolved" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()
@@ -232,9 +239,11 @@ class ActivityNotificationTest(APITestCase):
         assert response.status_code == 201, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"Version {version_parsed} was deployed to {self.environment.name} on" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert (
             f"Version {version_parsed} was deployed to {self.environment.name}\n    </h2>\n"
             in msg.alternatives[0][0]
@@ -299,9 +308,11 @@ class ActivityNotificationTest(APITestCase):
         assert not group.is_resolved()
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"Sentry marked {group.qualified_short_id} as a regression" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()
@@ -346,12 +357,14 @@ class ActivityNotificationTest(APITestCase):
         assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert (
             f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
             in msg.body
         )
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert (
             f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
         )
@@ -428,9 +441,11 @@ class ActivityNotificationTest(APITestCase):
             )
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert "Details\n-------\n\n" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert "Hello world</pre>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()

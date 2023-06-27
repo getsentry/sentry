@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytz
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
@@ -83,8 +84,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
+            assert isinstance(message, EmailMultiAlternatives)
             assert self.organization.name in message.subject
             html = message.alternatives[0][0]
+            assert isinstance(html, str)
             assert (
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
             )
@@ -115,7 +118,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=self.user.id).update(
-                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])  # type: ignore[index]
             )
 
         # disabled
