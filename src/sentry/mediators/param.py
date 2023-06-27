@@ -1,9 +1,14 @@
-import sys
+from __future__ import annotations
 
-from sentry.utils.cache import memoize
+from typing import TYPE_CHECKING, Callable, Generic, TypeVar, overload
+
+from typing_extensions import Self
+
+C = TypeVar("C")
+T = TypeVar("T")
 
 
-class Param:
+class Param(Generic[T]):
     """
     Argument declarations for Mediators.
 
@@ -72,9 +77,17 @@ class Param:
         >>>     name = Param(str, default=lambda self: self.user['name'])
     """
 
-    def __init__(self, type, **kwargs):
-        self._type = type
-        self.kwargs = kwargs
+    def __init__(
+        self,
+        type: type[T],
+        *,
+        default: T | Callable[..., T] | None = None,
+        required: bool = True,
+    ) -> None:
+        self.type = type
+        self._default = default
+        self.is_required = required
+        self.has_default = default is not None
 
     def setup(self, target, name):
         delattr(target, name)
@@ -100,43 +113,29 @@ class Param:
         """
         Evaluated default value, when given.
         """
-        default = value = self.kwargs.get("default")
+        default = value = self._default
 
-        if default is not None and callable(default):
+        if callable(default):
             value = default(target)
 
         return value
 
-    @memoize
-    def type(self):
-        if isinstance(self._type, str):
-            return self._eval_string_type()
-        return self._type
-
-    @memoize
-    def has_default(self):
-        return "default" in self.kwargs
-
-    @memoize
-    def is_required(self):
-        if self.kwargs.get("required") is False:
-            return False
-        return True
-
-    def _eval_string_type(self):
-        """
-        Converts a class path in string form to the actual class object.
-
-        Example:
-            >>> self._type = 'sentry.models.Project'
-            >>> self._eval_string_type()
-            sentry.models.project.Project
-        """
-        mod, cls = self._type.rsplit(".", 1)
-        return getattr(sys.modules[mod], cls)
-
     def _missing_value(self, value):
         return self.is_required and value is None and not self.has_default
+
+    # these act as attributes after Mediator does its metaprogramming
+    if TYPE_CHECKING:
+
+        @overload
+        def __get__(self, inst: None, owner: type[C]) -> Self:
+            ...
+
+        @overload
+        def __get__(self, inst: C, owner: type[C]) -> T:
+            ...
+
+        def __get__(self, inst: C | None, owner: type[C]) -> T | Self:
+            ...
 
 
 def if_param(name):

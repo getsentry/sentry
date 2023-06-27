@@ -19,7 +19,7 @@ class TestParam(TestCase):
             name.validate(None, "name", None)
 
     def test_validate_default_type(self):
-        name = Param(str, default=1)
+        name = Param(str, default=1)  # type: ignore[arg-type]
 
         with pytest.raises(TypeError):
             name.validate(None, "name", None)
