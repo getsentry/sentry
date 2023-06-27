@@ -1,21 +1,6 @@
 from typing import Mapping
 
-
-class GroupStatus:
-    UNRESOLVED = 0
-    RESOLVED = 1
-    IGNORED = 2
-    PENDING_DELETION = 3
-    DELETION_IN_PROGRESS = 4
-    PENDING_MERGE = 5
-
-    # The group's events are being re-processed and after that the group will
-    # be deleted. In this state no new events shall be added to the group.
-    REPROCESSING = 6
-
-    # TODO(dcramer): remove in 9.0
-    MUTED = IGNORED
-
+from sentry.models.group import GroupStatus
 
 # TODO(dcramer): pull in enum library
 # Statuses that can be queried/searched for
@@ -123,3 +108,32 @@ GROUP_SUBSTATUS_TO_STATUS_MAP = {
     GroupSubStatus.FOREVER: GroupStatus.IGNORED,
     GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
 }
+
+
+class State:
+    status: GroupStatus = GroupStatus.UNRESOLVED
+    substatus: GroupSubStatus = None
+
+    def __eq__(self, other):
+        return self.status == other.status and self.substatus == other.substatus
+
+
+class IssueState:
+    NEW = State(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+    ONGOING = State(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+    ESCALATING = State(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ESCALATING)
+    REGRESSED = State(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
+
+    ARCHIVED_UNTIL_ESCALATING = State(
+        status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
+    )
+    ARCHIVED_UNTIL_CONDITION_MET = State(
+        status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_CONDITION_MET
+    )
+    ARCHIVED_FOREVER = State(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+
+    RESOLVED = State(status=GroupStatus.RESOLVED)
+    PENDING_DELETION = State(status=GroupStatus.PENDING_DELETION)
+    DELETION_IN_PROGRESS = State(status=GroupStatus.DELETION_IN_PROGRESS)
+    PENDING_MERGE = State(status=GroupStatus.PENDING_MERGE)
+    REPROCESSING = State(status=GroupStatus.REPROCESSING)

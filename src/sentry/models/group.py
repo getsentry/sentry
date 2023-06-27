@@ -43,6 +43,7 @@ from sentry.types.group import (
     UNRESOLVED_SUBSTATUS_CHOICES,
     GroupStatus,
     GroupSubStatus,
+    State,
 )
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -707,6 +708,10 @@ class Group(Model):
     @property
     def issue_category(self):
         return GroupCategory(self.issue_type.category)
+
+    @property
+    def state(self):
+        return State(self.status, self.substatus)
 
 
 @receiver(pre_save, sender=Group, dispatch_uid="pre_save_group_default_substatus", weak=False)
