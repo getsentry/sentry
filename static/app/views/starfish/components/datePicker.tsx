@@ -4,9 +4,15 @@ import {t} from 'sentry/locale';
 function StarfishDatePicker() {
   return (
     <DatePageFilter
-      maxDateRange={1}
+      maxDateRange={7}
       disallowArbitraryRelativeRanges
-      relativeOptions={{'1h': t('1h'), '6h': t('6h'), '12h': t('12h'), '24h': t('24h')}}
+      relativeOptions={{
+        '1h': t('Last hour'),
+        '12h': t('Last 6 hours'),
+        '24h': t('Last 24 hours'),
+        '3d': t('Last 3 days'),
+        '7d': t('Last 7 days'),
+      }}
       alignDropdown="left"
     />
   );
