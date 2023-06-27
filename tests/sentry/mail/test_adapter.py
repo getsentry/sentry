@@ -625,6 +625,30 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert "Suspect Commits" in msg.body
 
+    def test_notify_with_replay_id(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(
+            data={
+                "tags": [("level", "error"), ("replay_id", "123456789")],
+                "request": {"url": "example.com"},
+            },
+            project_id=project.id,
+        )
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+
+        assert (
+            f"/organization/{organization.slug}/replays/123456789/?referrer=alert_email"
+            in msg.alternatives[0][0]
+        )
+
     def test_slack_link(self):
         project = self.project
         organization = project.organization
