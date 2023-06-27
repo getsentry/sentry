@@ -172,6 +172,50 @@ class CheckTagForScopeBleedTest(TestCase):
             "Tag already set and different (organization.slug).", extra=extra
         )
 
+    def test_add_to_scope_being_false(self, mock_logger_warning: MagicMock):
+        mock_scope = Scope()
+        mock_scope._tags = {"org.slug": "good_dogs"}
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag_for_scope_bleed("org.slug", "squirrel_chasers", add_to_scope=False)
+
+        extra = {
+            "previous_org.slug_tag": "good_dogs",
+            "new_org.slug_tag": "squirrel_chasers",
+        }
+
+        # no data added to scope, even though there's a mismatch
+        assert "possible_mistag" not in mock_scope._tags
+        assert "scope_bleed.tag.org.slug" not in mock_scope._tags
+        assert "scope_bleed" not in mock_scope._contexts
+        mock_logger_warning.assert_called_with(
+            "Tag already set and different (org.slug).", extra=extra
+        )
+
+    def test_string_vs_int(self, mock_logger_warning: MagicMock):
+        mock_scope = Scope()
+        mock_scope._tags = {"org.id": "12311121"}
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag_for_scope_bleed("org.id", 12311121)
+
+        assert "possible_mistag" not in mock_scope._tags
+        assert "scope_bleed.tag.org.id" not in mock_scope._tags
+        assert "scope_bleed" not in mock_scope._contexts
+        assert mock_logger_warning.call_count == 0
+
+    def test_int_vs_string(self, mock_logger_warning: MagicMock):
+        mock_scope = Scope()
+        mock_scope._tags = {"org.id": 12311121}
+
+        with patch_configure_scope_with_scope("sentry.utils.sdk.configure_scope", mock_scope):
+            check_tag_for_scope_bleed("org.id", "12311121")
+
+        assert "possible_mistag" not in mock_scope._tags
+        assert "scope_bleed.tag.org.id" not in mock_scope._tags
+        assert "scope_bleed" not in mock_scope._contexts
+        assert mock_logger_warning.call_count == 0
+
 
 class CheckScopeTransactionTest(TestCase):
     @patch("sentry.utils.sdk.LEGACY_RESOLVER.resolve", return_value="/dogs/{name}/")
