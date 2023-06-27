@@ -256,7 +256,7 @@ incorrect or missing.
         description="""
 The Sentry Javascript SDK version to use. The currently supported options are:
 - `7.x`
-- `latest`: The most up-to-date version
+- `latest`
 """,
     )
 
