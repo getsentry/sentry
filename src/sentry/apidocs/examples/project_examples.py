@@ -8,7 +8,7 @@ key_with_rate_limiting = {
     "secret": "189485c3b8ccf582bf5e12c530ef8858",
     "projectId": 4505281256090153,
     "isActive": True,
-    "rateLimit": {"window": 300, "count": 1000},
+    "rateLimit": {"window": 7200, "count": 1000},
     "dsn": {
         "secret": "https://a785682ddda742d7a8a4088810d75598:bcd99b3790b3441c85ce4b1eaa854f66@o4504765715316736.ingest.sentry.io/4505281231978496",
         "public": "https://a785682ddda742d7a8a4088810d75598@o4504765715316736.ingest.sentry.io/4505281231978496",
@@ -24,7 +24,7 @@ key_with_rate_limiting = {
     "dynamicSdkLoaderOptions": {
         "hasReplay": True,
         "hasPerformance": True,
-        "hasDebug": False,
+        "hasDebug": True,
     },
 }
 

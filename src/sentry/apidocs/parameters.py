@@ -314,7 +314,7 @@ Sample Body:
 {
     "rateLimit": {
         "window": 7200, // time in seconds
-        "count": 10
+        "count": 1000
     }
 }
 ```
