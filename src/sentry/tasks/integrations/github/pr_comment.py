@@ -113,7 +113,7 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     """Retrieve the issue information that will be used for comment contents"""
     issues = Group.objects.filter(id__in=issue_list).all()
     return [
-        PullRequestIssue(title=issue.title, subtitle=issue.message, url=issue.get_absolute_url())
+        PullRequestIssue(title=issue.title, subtitle=issue.culprit, url=issue.get_absolute_url())
         for issue in issues
     ]
 
