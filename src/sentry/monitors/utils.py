@@ -75,14 +75,12 @@ def fetch_associated_groups(
     cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
     cols.append(Columns.TRACE_ID.value.event_name)
 
-    start_alias, end_alias, trace_id_alias, project_id_alias = (
-        Columns.TIMESTAMP.value.alias,
+    timestamp_alias, trace_id_alias, project_id_alias = (
         Columns.TIMESTAMP.value.alias,
         Columns.TRACE_ID.value.alias,
         Columns.PROJECT_ID.value.alias,
     )
-    assert start_alias is not None
-    assert end_alias is not None
+    assert timestamp_alias is not None
     assert trace_id_alias is not None
     assert project_id_alias is not None
 
@@ -95,12 +93,12 @@ def fetch_associated_groups(
             select=[Column(col) for col in cols],
             where=[
                 Condition(
-                    Column(DATASETS[dataset][start_alias]),
+                    Column(DATASETS[dataset][timestamp_alias]),
                     Op.GTE,
                     query_start,
                 ),
                 Condition(
-                    Column(DATASETS[dataset][end_alias]),
+                    Column(DATASETS[dataset][timestamp_alias]),
                     Op.LT,
                     query_end,
                 ),
@@ -116,7 +114,7 @@ def fetch_associated_groups(
                 ),
             ],
             orderby=[
-                OrderBy(Column("timestamp"), Direction.DESC),
+                OrderBy(Column(DATASETS[dataset][timestamp_alias]), Direction.DESC),
             ],
             limit=Limit(DEFAULT_LIMIT),
             offset=Offset(DEFAULT_OFFSET),
