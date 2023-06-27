@@ -44,6 +44,7 @@ class FlyOAuth2Provider(OAuth2Provider):
     def get_refresh_token_url(self):
         return ACCESS_TOKEN_URL
 
+    @classmethod
     def build_config(self, state: Any, organization: Optional[Any] = None):
         """
         On configuration, we determine which provider organization to configure SSO for.

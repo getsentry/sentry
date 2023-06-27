@@ -974,6 +974,10 @@ class AuthHelper(Pipeline):
 
 @transaction.atomic
 def EnablePartnerSSO(provider_key, org_member, sentry_org, provider_config):
+    """
+    Simplified abstraction from AuthHelper for enabling an SSO AuthProvider for a Sentry organization.
+    Fires appropriate Audit Log and signal emitter for SSO Enabled
+    """
     provider_model = AuthProvider.objects.create(
         organization_id=sentry_org.id, provider=provider_key, config=provider_config
     )
