@@ -22,7 +22,7 @@ RESPONSE_UNAUTHORIZED = OpenApiResponse(description="Unauthorized")
 RESPONSE_FORBIDDEN = OpenApiResponse(description="Forbidden")
 
 # 404
-RESPONSE_NOTFOUND = OpenApiResponse(description="Not Found")
+RESPONSE_NOT_FOUND = OpenApiResponse(description="Not Found")
 
 # 409
 RESPONSE_CONFLICT = OpenApiResponse(description="Conflict")

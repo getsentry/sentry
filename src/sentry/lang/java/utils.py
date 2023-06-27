@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import sentry_sdk
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.ingest.ingest_consumer import CACHE_TIMEOUT

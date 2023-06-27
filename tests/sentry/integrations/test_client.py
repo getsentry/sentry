@@ -24,7 +24,6 @@ from sentry.shared_integrations.exceptions import (
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import set_mock_context_manager_return_value
 from sentry.testutils.silo import control_silo_test
 
 
@@ -298,7 +297,7 @@ class ApiClientTest(TestCase):
             mock_scope.span = existing_transaction
 
             with mock.patch("sentry_sdk.configure_scope") as mock_configure_scope:
-                set_mock_context_manager_return_value(mock_configure_scope, as_value=mock_scope)
+                mock_configure_scope.return_value.__enter__.return_value = mock_scope
 
                 with mock.patch("sentry_sdk.start_transaction") as mock_start_transaction:
                     client.get("http://example.com")

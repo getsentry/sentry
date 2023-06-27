@@ -1,13 +1,17 @@
+from __future__ import annotations
+
+from typing import Any
+
 import sqlparse
 from sqlparse.tokens import DML
 
 __all__ = ("parse_queries",)
 
 
-def parse_queries(captured_queries):
+def parse_queries(captured_queries: list[dict[str, Any]]) -> dict[str, int]:
     write_ops = ["INSERT", "UPDATE", "DELETE"]
 
-    real_queries = {}
+    real_queries: dict[str, int] = {}
 
     for query in captured_queries:
         raw_sql = query["sql"]

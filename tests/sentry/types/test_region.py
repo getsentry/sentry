@@ -92,8 +92,7 @@ class RegionMappingTest(TestCase):
             "address": "http://na.testserver",
             "category": RegionCategory.MULTI_TENANT.name,
         }
-        region_config_as_json = json.dumps([region_config])
-        with override_settings(SENTRY_REGION_CONFIG=region_config_as_json):
+        with override_settings(SENTRY_REGION_CONFIG=[region_config]):
             region = get_region_by_name("na")
         assert region.snowflake_id == 1
 

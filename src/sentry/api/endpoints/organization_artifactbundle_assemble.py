@@ -83,7 +83,7 @@ class OrganizationArtifactBundleAssembleEndpoint(
 
         # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
         # regressions for our users.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks"):
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
             # We check if all requested chunks have been uploaded.
             missing_chunks = self.find_missing_chunks(organization, chunks)
             # In case there are some missing chunks, we will tell the client which chunks we require.

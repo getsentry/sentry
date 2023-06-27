@@ -13,7 +13,7 @@ from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
@@ -44,7 +44,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             201: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=None,
     )
