@@ -365,12 +365,15 @@ function Chart({
     }
 
     // Trims off the last data point because it's incomplete
-    const trimmedSeries = series.map(serie => {
-      return {
-        ...serie,
-        data: serie.data.slice(0, -1),
-      };
-    });
+    const trimmedSeries =
+      statsPeriod && !start && !end
+        ? series.map(serie => {
+            return {
+              ...serie,
+              data: serie.data.slice(0, -1),
+            };
+          })
+        : series;
 
     return (
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
