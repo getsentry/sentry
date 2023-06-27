@@ -8,13 +8,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconEdit} from 'sentry/icons';
+import {IconAdd, IconDownload, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {UNSAVED_FILTERS_MESSAGE} from './detail';
+import exportDashboard from './exportDashboard';
 import {DashboardListItem, DashboardState, MAX_WIDGETS} from './types';
 
 type Props = {
@@ -129,6 +130,20 @@ function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
+            <Button
+              data-test-id="dashboard-edit"
+              onClick={e => {
+                e.preventDefault();
+                exportDashboard(dashboards);
+              }}
+              icon={<IconDownload />}
+              disabled={!hasFeature || hasUnsavedFilters}
+              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+              priority="default"
+              size="sm"
+            >
+              {t('Export Dashboard')}
+            </Button>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
