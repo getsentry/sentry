@@ -14,7 +14,6 @@ from sentry.models import (
     GroupInbox,
     GroupInboxReason,
     GroupLink,
-    GroupStatus,
     GroupSubscription,
     OrganizationMember,
     Release,
@@ -28,6 +27,7 @@ from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.testutils import TestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test(stable=True)

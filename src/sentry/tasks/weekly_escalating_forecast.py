@@ -6,9 +6,9 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupStatus, Project
+from sentry.models import Group, Project
 from sentry.tasks.base import instrumented_task, retry
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 

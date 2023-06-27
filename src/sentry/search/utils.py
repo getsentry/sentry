@@ -35,9 +35,8 @@ from sentry.models import (
     User,
     follows_semver_versioning_scheme,
 )
-from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.base import ANY
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.types.group import STATUS_QUERY_CHOICES, SUBSTATUS_UPDATE_CHOICES
 from sentry.utils.auth import find_users
 
 

@@ -98,7 +98,6 @@ from sentry.models import (
     GroupLink,
     GroupRelease,
     GroupResolution,
-    GroupStatus,
     Organization,
     Project,
     ProjectKey,
@@ -131,7 +130,7 @@ from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict

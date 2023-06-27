@@ -48,7 +48,6 @@ from sentry.models import (
     GroupSeen,
     GroupShare,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     Team,
     User,
@@ -74,7 +73,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.group import SUBSTATUS_TO_STR
+from sentry.types.group import SUBSTATUS_TO_STR, GroupStatus
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute

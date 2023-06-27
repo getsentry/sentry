@@ -1,9 +1,10 @@
 from typing import Optional
 
 from sentry import analytics, features
-from sentry.models import ExternalIssue, Group, GroupStatus, Integration
+from sentry.models import ExternalIssue, Group, Integration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
+from sentry.types.group import GroupStatus
 
 
 @instrumented_task(

@@ -9,9 +9,10 @@ from typing import Any, Mapping, MutableMapping, MutableSequence, Sequence
 from sentry import tsdb
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.models import Group, Project, Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tsdb.base import TSDBModel
+from sentry.types.group import GroupStatus
 from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 

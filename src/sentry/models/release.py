@@ -45,6 +45,7 @@ from sentry.models import (
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import issue_resolved
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.types.group import GroupStatus
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -902,7 +903,6 @@ class Release(Model):
             Group,
             GroupLink,
             GroupResolution,
-            GroupStatus,
             PullRequest,
             ReleaseCommit,
             ReleaseHeadCommit,

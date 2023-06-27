@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Deploy, Group, GroupStatus, Release
+from sentry.models import Deploy, Group, Release
+from sentry.types.group import GroupStatus
 
 
 def is_resolved_issue_within_active_release(issue: Group) -> bool:

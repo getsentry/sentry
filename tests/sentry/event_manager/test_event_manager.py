@@ -59,7 +59,6 @@ from sentry.models import (
     GroupLink,
     GroupRelease,
     GroupResolution,
-    GroupStatus,
     GroupTombstone,
     Integration,
     OrganizationIntegration,
@@ -88,6 +87,7 @@ from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome

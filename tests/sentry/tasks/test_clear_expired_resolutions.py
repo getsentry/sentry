@@ -2,10 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Activity, Group, GroupResolution, GroupStatus, Release
+from sentry.models import Activity, Group, GroupResolution, Release
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 
 class ClearExpiredResolutionsTest(TestCase):

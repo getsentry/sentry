@@ -2,17 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitFileChange,
-    GroupRelease,
-    GroupStatus,
-    ReleaseCommit,
-)
+from sentry.models import Activity, Commit, CommitFileChange, GroupRelease, ReleaseCommit
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 from sentry.utils.suspect_resolutions.commit_correlation import (
     get_files_changed_in_releases,
     is_issue_commit_correlated,

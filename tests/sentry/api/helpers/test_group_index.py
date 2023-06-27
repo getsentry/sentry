@@ -22,7 +22,6 @@ from sentry.models import (
     GroupSeen,
     GroupShare,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     add_group_to_inbox,
 )
@@ -31,7 +30,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):

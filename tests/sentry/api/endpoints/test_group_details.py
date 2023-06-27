@@ -20,7 +20,6 @@ from sentry.models import (
     GroupResolution,
     GroupSeen,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     GroupTombstone,
     Release,
@@ -29,6 +28,7 @@ from sentry.plugins.base import plugins
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test(stable=True)

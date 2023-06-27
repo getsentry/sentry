@@ -3,9 +3,9 @@
 from django.db import connection, migrations
 from psycopg2.extras import execute_values
 
-from sentry.models import GroupHistoryStatus, GroupStatus
+from sentry.models import GroupHistoryStatus
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
 BATCH_SIZE = 100

@@ -2,9 +2,10 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
-from sentry.models import GroupAssignee, GroupEnvironment, GroupStatus
+from sentry.models import GroupAssignee, GroupEnvironment
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test(stable=True)

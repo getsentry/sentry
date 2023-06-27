@@ -5,17 +5,10 @@ from sentry.issues.escalating_group_forecast import (
     EscalatingGroupForecast,
 )
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
-from sentry.models import (
-    Group,
-    GroupInbox,
-    GroupInboxReason,
-    GroupSnooze,
-    GroupStatus,
-    add_group_to_inbox,
-)
+from sentry.models import Group, GroupInbox, GroupInboxReason, GroupSnooze, add_group_to_inbox
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 

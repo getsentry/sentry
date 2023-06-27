@@ -7,7 +7,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.models import GroupRuleStatus, GroupStatus, ProjectOwnership, Rule
+from sentry.models import GroupRuleStatus, ProjectOwnership, Rule
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.notifications.types import ActionTargetType
 from sentry.rules import init_registry
@@ -17,6 +17,7 @@ from sentry.rules.processor import RuleProcessor
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 EMAIL_ACTION_DATA = {
     "id": "sentry.mail.actions.NotifyEmailAction",

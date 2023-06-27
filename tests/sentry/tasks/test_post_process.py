@@ -29,7 +29,6 @@ from sentry.models import (
     GroupOwner,
     GroupOwnerType,
     GroupSnooze,
-    GroupStatus,
     Integration,
     ProjectOwnership,
     ProjectTeam,
@@ -59,7 +58,7 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 

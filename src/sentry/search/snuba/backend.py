@@ -23,7 +23,6 @@ from sentry.models import (
     GroupHistoryStatus,
     GroupLink,
     GroupOwner,
-    GroupStatus,
     GroupSubscription,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -42,6 +41,7 @@ from sentry.search.snuba.executors import (
     PrioritySortWeights,
 )
 from sentry.search.utils import get_teams_for_users
+from sentry.types.group import GroupStatus
 from sentry.utils.cursors import Cursor, CursorResult
 
 

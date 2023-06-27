@@ -41,6 +41,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
+    GroupStatus,
     GroupSubStatus,
 )
 from sentry.utils.numbers import base32_decode, base32_encode
@@ -135,64 +136,6 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
             return queryset.get(**params), True
         except Group.DoesNotExist:
             raise error  # raise original `DoesNotExist`
-
-
-# TODO(dcramer): pull in enum library
-class GroupStatus:
-    UNRESOLVED = 0
-    RESOLVED = 1
-    IGNORED = 2
-    PENDING_DELETION = 3
-    DELETION_IN_PROGRESS = 4
-    PENDING_MERGE = 5
-
-    # The group's events are being re-processed and after that the group will
-    # be deleted. In this state no new events shall be added to the group.
-    REPROCESSING = 6
-
-    # TODO(dcramer): remove in 9.0
-    MUTED = IGNORED
-
-
-# Statuses that can be queried/searched for
-STATUS_QUERY_CHOICES: Mapping[str, int] = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "archived": GroupStatus.IGNORED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-    "reprocessing": GroupStatus.REPROCESSING,
-}
-QUERY_STATUS_LOOKUP = {
-    status: query for query, status in STATUS_QUERY_CHOICES.items() if query != "muted"
-}
-
-GROUP_SUBSTATUS_TO_STATUS_MAP = {
-    GroupSubStatus.ESCALATING: GroupStatus.UNRESOLVED,
-    GroupSubStatus.REGRESSED: GroupStatus.UNRESOLVED,
-    GroupSubStatus.ONGOING: GroupStatus.UNRESOLVED,
-    GroupSubStatus.NEW: GroupStatus.UNRESOLVED,
-    GroupSubStatus.UNTIL_ESCALATING: GroupStatus.IGNORED,
-    GroupSubStatus.FOREVER: GroupStatus.IGNORED,
-    GroupSubStatus.UNTIL_CONDITION_MET: GroupStatus.IGNORED,
-}
-
-# Statuses that can be updated from the regular "update group" API
-#
-# Differences over STATUS_QUERY_CHOICES:
-#
-# reprocessing is missing as it is its own endpoint and requires extra input
-# resolvedInNextRelease is added as that is an action that can be taken, but at
-# the same time it can't be queried for
-STATUS_UPDATE_CHOICES = {
-    "resolved": GroupStatus.RESOLVED,
-    "unresolved": GroupStatus.UNRESOLVED,
-    "ignored": GroupStatus.IGNORED,
-    "resolvedInNextRelease": GroupStatus.UNRESOLVED,
-    # TODO(dcramer): remove in 9.0
-    "muted": GroupStatus.IGNORED,
-}
 
 
 class EventOrdering(Enum):

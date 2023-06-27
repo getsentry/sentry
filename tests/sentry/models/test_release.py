@@ -21,7 +21,6 @@ from sentry.models import (
     GroupLink,
     GroupRelease,
     GroupResolution,
-    GroupStatus,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -40,6 +39,7 @@ from sentry.testutils import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 from sentry.utils.strings import truncatechars
 
 

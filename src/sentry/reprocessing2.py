@@ -90,6 +90,7 @@ import redis
 import sentry_sdk
 from django.conf import settings
 
+import sentry.types.group
 from sentry import eventstore, models, nodestore, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
@@ -597,7 +598,7 @@ def start_group_reprocessing(
         group = models.Group.objects.get(id=group_id)
         original_status = group.status
         original_substatus = group.substatus
-        if original_status == models.GroupStatus.REPROCESSING:
+        if original_status == sentry.types.group.GroupStatus.REPROCESSING:
             # This is supposed to be a rather unlikely UI race when two people
             # click reprocessing in the UI at the same time.
             #
@@ -605,7 +606,7 @@ def start_group_reprocessing(
             raise RuntimeError("Cannot reprocess group that is currently being reprocessed")
 
         original_short_id = group.short_id
-        group.status = models.GroupStatus.REPROCESSING
+        group.status = sentry.types.group.GroupStatus.REPROCESSING
         group.substatus = None
         # satisfy unique constraint of (project_id, short_id)
         # we manually tested that multiple groups with (project_id=1,

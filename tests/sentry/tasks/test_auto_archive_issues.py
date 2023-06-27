@@ -2,12 +2,12 @@ from datetime import datetime, timedelta
 
 import pytz
 
-from sentry.models import Activity, GroupHistory, GroupHistoryStatus, GroupInbox, GroupStatus
+from sentry.models import Activity, GroupHistory, GroupHistoryStatus, GroupInbox
 from sentry.tasks.auto_archive_issues import run_auto_archive
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 class ScheduleAutoOngoingToArchivedIssuesTest(TestCase):

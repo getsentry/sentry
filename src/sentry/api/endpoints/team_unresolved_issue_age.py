@@ -9,7 +9,8 @@ from sentry import features
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
-from sentry.models import Group, GroupStatus, Team
+from sentry.models import Group, Team
+from sentry.types.group import GroupStatus
 
 buckets = (
     ("< 1 hour", timedelta(hours=1)),

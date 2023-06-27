@@ -8,7 +8,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupInboxRemoveAction,
-    GroupStatus,
     Project,
     ProjectOption,
     remove_group_from_inbox,
@@ -17,6 +16,7 @@ from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 ONE_HOUR = 3600
 

@@ -8,16 +8,9 @@ from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
 from sentry.issues.ongoing import transition_group_to_ongoing
-from sentry.models import (
-    Group,
-    GroupHistoryStatus,
-    GroupStatus,
-    Organization,
-    OrganizationStatus,
-    Project,
-)
+from sentry.models import Group, GroupHistoryStatus, Organization, OrganizationStatus, Project
 from sentry.tasks.base import instrumented_task, retry
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
 TRANSITION_AFTER_DAYS = 3

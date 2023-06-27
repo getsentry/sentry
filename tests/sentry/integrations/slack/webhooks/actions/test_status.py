@@ -14,7 +14,6 @@ from sentry.models import (
     AuthProvider,
     Group,
     GroupAssignee,
-    GroupStatus,
     Identity,
     InviteStatus,
     OrganizationMember,
@@ -23,7 +22,7 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 

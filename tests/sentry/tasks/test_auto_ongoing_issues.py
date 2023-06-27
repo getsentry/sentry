@@ -10,7 +10,6 @@ from sentry.models import (
     GroupHistoryStatus,
     GroupInbox,
     GroupInboxReason,
-    GroupStatus,
     add_group_to_inbox,
     record_group_history,
 )
@@ -23,7 +22,7 @@ from sentry.tasks.auto_ongoing_issues import (
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")

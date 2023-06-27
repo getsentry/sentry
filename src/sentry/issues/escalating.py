@@ -32,14 +32,13 @@ from sentry.models import (
     Group,
     GroupHistoryStatus,
     GroupInboxReason,
-    GroupStatus,
     add_group_to_inbox,
     record_group_history,
 )
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import raw_snql_query
 

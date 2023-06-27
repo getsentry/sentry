@@ -16,11 +16,10 @@ from sentry.issues.escalating import (
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.grouptype import GroupCategory, ProfileFileIOGroupType
 from sentry.models import Group
-from sentry.models.group import GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
 from tests.sentry.issues.test_utils import SearchIssueTestMixin

@@ -2,7 +2,8 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from rest_framework.request import Request
 
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
+from sentry.types.group import GroupStatus
 from sentry.web.frontend.base import OrganizationView
 
 

@@ -23,12 +23,17 @@ from sentry.api.issue_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
-from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.utils import get_teams_for_users
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import (
+    GROUP_SUBSTATUS_TO_STATUS_MAP,
+    STATUS_QUERY_CHOICES,
+    SUBSTATUS_UPDATE_CHOICES,
+    GroupStatus,
+    GroupSubStatus,
+)
 
 
 class ParseSearchQueryTest(unittest.TestCase):

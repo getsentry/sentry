@@ -15,12 +15,12 @@ from sentry.models import (
     ExternalIssue,
     Group,
     GroupLink,
-    GroupStatus,
     Identity,
     IdentityProvider,
     Integration,
 )
 from sentry.testutils import APITestCase
+from sentry.types.group import GroupStatus
 from sentry.utils.http import absolute_uri
 
 

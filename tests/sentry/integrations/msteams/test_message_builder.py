@@ -36,13 +36,13 @@ from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
 from sentry.models import Integration, Organization, OrganizationIntegration, Rule
-from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
 )
+from sentry.types.group import GroupStatus
 from sentry.utils import json
 
 

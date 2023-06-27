@@ -3,9 +3,9 @@ from typing import Any, Dict, Optional, Sequence, Tuple
 
 import pytest
 
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project
+from sentry.models import Group, GroupHistory, GroupHistoryStatus, Project
 from sentry.testutils.cases import TestMigrations
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 @pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")

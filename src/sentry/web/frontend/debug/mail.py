@@ -35,7 +35,6 @@ from sentry.mail.notifications import get_builder_args
 from sentry.models import (
     Activity,
     Group,
-    GroupStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -51,7 +50,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css

@@ -12,7 +12,6 @@ from sentry.models import (
     AuthProvider,
     Group,
     GroupAssignee,
-    GroupStatus,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -22,6 +21,7 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
+from sentry.types.group import GroupStatus
 from sentry.utils import json
 
 

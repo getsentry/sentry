@@ -6,9 +6,10 @@ import rest_framework
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
-from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
+from sentry.models import Activity, Group, GroupInboxReason, add_group_to_inbox
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 
 class HandleIssueMergeTest(TestCase):

@@ -14,7 +14,6 @@ from sentry.models import (
     GroupAssignee,
     GroupInboxRemoveAction,
     GroupLink,
-    GroupStatus,
     GroupSubscription,
     Project,
     PullRequest,
@@ -34,7 +33,7 @@ from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 def validate_release_empty_version(instance: Release, **kwargs):

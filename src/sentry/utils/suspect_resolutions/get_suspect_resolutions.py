@@ -4,10 +4,11 @@ from typing import Sequence
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Activity, Group, GroupStatus
+from sentry.models import Activity, Group
 from sentry.signals import issue_resolved
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 from sentry.utils.suspect_resolutions import ALGO_VERSION, analytics
 from sentry.utils.suspect_resolutions.commit_correlation import is_issue_commit_correlated
 from sentry.utils.suspect_resolutions.metric_correlation import is_issue_error_rate_correlated

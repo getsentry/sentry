@@ -3,11 +3,12 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.models import Activity, Group, GroupStatus
+from sentry.models import Activity, Group
 from sentry.signals import issue_resolved
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 from sentry.utils.suspect_resolutions import ALGO_VERSION
 from sentry.utils.suspect_resolutions.commit_correlation import CommitCorrelatedResult
 from sentry.utils.suspect_resolutions.get_suspect_resolutions import get_suspect_resolutions

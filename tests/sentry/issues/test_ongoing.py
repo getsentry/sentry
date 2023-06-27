@@ -1,15 +1,8 @@
 from sentry.issues.ongoing import transition_group_to_ongoing
-from sentry.models import (
-    Activity,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupInbox,
-    GroupInboxReason,
-    GroupStatus,
-)
+from sentry.models import Activity, GroupHistory, GroupHistoryStatus, GroupInbox, GroupInboxReason
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 class TransitionNewToOngoingTest(TestCase):

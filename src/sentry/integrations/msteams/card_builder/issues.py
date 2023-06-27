@@ -22,8 +22,9 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.models import Group, Project, Rule
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.types.group import GroupStatus
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder

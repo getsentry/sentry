@@ -14,7 +14,6 @@ from sentry.models import (
     GroupLink,
     GroupResolution,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     NotificationSetting,
     UserOption,
@@ -26,6 +25,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.types.group import GroupStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin

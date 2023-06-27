@@ -9,7 +9,6 @@ from sentry.models import (
     GroupLink,
     GroupResolution,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     NotificationSetting,
     UserOption,
@@ -18,6 +17,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.testutils import TestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.types.group import GroupStatus
 from sentry.types.integrations import ExternalProviders
 
 
