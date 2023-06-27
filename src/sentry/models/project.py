@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.http import urlencode
 from django.utils.translation import ugettext_lazy as _
 
-from bitfield import TypedBitfield
+from bitfield import TypedClassBitField
 from sentry import projectoptions
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
@@ -139,7 +139,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
 
-    class flags(TypedBitfield):
+    class flags(TypedClassBitField):
         # This Project has sent release data
         has_releases: bool
         # This Project has issue alerts targeting

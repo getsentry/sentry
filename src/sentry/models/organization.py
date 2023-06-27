@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from typing_extensions import override
 
-from bitfield import TypedBitfield
+from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
 from sentry.constants import (
@@ -175,7 +175,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
     is_test = models.BooleanField(default=False)
 
-    class flags(TypedBitfield):
+    class flags(TypedClassBitField):
         # Allow members to join and leave teams without requiring approval
         allow_joinleave: bool
 
