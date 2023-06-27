@@ -19,7 +19,7 @@
     "@dnd-kit/sortable": "^4.0.0",
     "@emotion/babel-plugin": "^11.10.5",
     "@emotion/css": "^11.10.5",
-    "@emotion/react": "^11.10.5",
+    "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.10.5",
     "@monaco-editor/react": "^4.4.5",
     "@popperjs/core": "^2.11.5",
