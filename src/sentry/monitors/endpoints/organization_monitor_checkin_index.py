@@ -12,7 +12,7 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
@@ -40,7 +40,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization, project, monitor) -> Response:

@@ -147,14 +147,14 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         type=str,
         many=True,
         description="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
-- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property
+- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property.
     - example: `field=transaction`
 - A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
     - example: `field=tag[isEnterprise]`
-- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions)
+- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/)
+- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/).
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
@@ -187,14 +187,14 @@ class MonitorParams:
         location="path",
         required=True,
         type=str,
-        description="The slug of the monitor",
+        description="The slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the check-in",
+        description="The id of the check-in.",
     )
 
 
@@ -204,7 +204,7 @@ class EventParams:
         location="path",
         required=True,
         type=OpenApiTypes.UUID,
-        description="The id of the event",
+        description="The id of the event.",
     )
 
     FRAME_IDX = OpenApiParameter(
@@ -231,7 +231,7 @@ class ProjectParams:
         required=True,
         type=str,
         description="""The type of filter toggle to update. The options are:
-- `browser-extensions`: Filter out errors known to be caused by browser extensions
+- `browser-extensions`: Filter out errors known to be caused by browser extensions.
 - `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
 - `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
@@ -247,7 +247,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off",
+        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
     )
 
     DEFAULT_RULES = OpenApiParameter(
@@ -319,5 +319,5 @@ class TeamParams:
         location="query",
         required=False,
         type=str,
-        description='Specify "0" to return team details that do not include projects',
+        description='Specify "0" to return team details that do not include projects.',
     )
