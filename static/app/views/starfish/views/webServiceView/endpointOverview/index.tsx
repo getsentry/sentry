@@ -35,6 +35,7 @@ import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesT
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
+import {STARFISH_DEFAULT_RELATIVE_PERIODS} from 'sentry/views/starfish/utils/starfishRelativeDatePeriods';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -280,7 +281,11 @@ export default function EndpointOverview() {
         <Layout.Body>
           <SearchContainerWithFilterAndMetrics>
             <PageFilterBar condensed>
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter
+                alignDropdown="left"
+                maxPickableDays={7}
+                relativeOptions={STARFISH_DEFAULT_RELATIVE_PERIODS}
+              />
             </PageFilterBar>
           </SearchContainerWithFilterAndMetrics>
 

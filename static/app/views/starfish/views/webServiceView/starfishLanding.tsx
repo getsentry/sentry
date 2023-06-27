@@ -15,6 +15,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {STARFISH_DEFAULT_RELATIVE_PERIODS} from 'sentry/views/starfish/utils/starfishRelativeDatePeriods';
 
 import {StarfishView} from './starfishView';
 
@@ -32,7 +33,11 @@ export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
       <ProjectPageFilter />
-      <DatePageFilter alignDropdown="left" />
+      <DatePageFilter
+        alignDropdown="left"
+        maxPickableDays={7}
+        relativeOptions={STARFISH_DEFAULT_RELATIVE_PERIODS}
+      />
     </PageFilterBar>
   );
 

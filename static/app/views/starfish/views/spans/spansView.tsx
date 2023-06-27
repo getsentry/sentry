@@ -8,6 +8,7 @@ import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName} from 'sentry/views/starfish/types';
+import {STARFISH_DEFAULT_RELATIVE_PERIODS} from 'sentry/views/starfish/utils/starfishRelativeDatePeriods';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
@@ -51,7 +52,11 @@ export default function SpansView(props: Props) {
   return (
     <Fragment>
       <FilterOptionsContainer>
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter
+          alignDropdown="left"
+          maxPickableDays={7}
+          relativeOptions={STARFISH_DEFAULT_RELATIVE_PERIODS}
+        />
       </FilterOptionsContainer>
 
       <PaddedContainer>

@@ -30,6 +30,7 @@ import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {STARFISH_DEFAULT_RELATIVE_PERIODS} from 'sentry/views/starfish/utils/starfishRelativeDatePeriods';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
@@ -131,7 +132,11 @@ function SpanSummaryPage({params, location}: Props) {
               <PageErrorAlert />
               <BlockContainer>
                 <FilterOptionsContainer>
-                  <DatePageFilter alignDropdown="left" />
+                  <DatePageFilter
+                    alignDropdown="left"
+                    maxPickableDays={7}
+                    relativeOptions={STARFISH_DEFAULT_RELATIVE_PERIODS}
+                  />
                 </FilterOptionsContainer>
                 <BlockContainer>
                   <Block title={t('Operation')}>{span?.['span.op']}</Block>
