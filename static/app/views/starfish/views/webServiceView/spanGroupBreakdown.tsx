@@ -23,6 +23,7 @@ type Props = {
 };
 
 export enum DataDisplayType {
+  DURATION_P95 = 'duration_p95',
   CUMULATIVE_DURATION = 'cumulative_duration',
   PERCENTAGE = 'percentage',
 }
@@ -36,11 +37,12 @@ export function SpanGroupBreakdown({
   errored,
 }: Props) {
   const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
   ];
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.CUMULATIVE_DURATION
+    DataDisplayType.DURATION_P95
   );
 
   const visibleSeries: Series[] = [];
@@ -96,7 +98,7 @@ export function SpanGroupBreakdown({
           grid={{
             left: '0',
             right: '0',
-            top: '8px',
+            top: '20px',
             bottom: '0',
           }}
           definedAxisTicks={6}
@@ -130,6 +132,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
 const FlexRowContainer = styled('div')`
