@@ -171,7 +171,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "OrganizationEventsResponseDict", discover.EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOTFOUND,
+            404: api_constants.RESPONSE_NOT_FOUND,
         },
         examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
