@@ -370,7 +370,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
         responses.add(
             responses.PATCH,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/1/",
+            self.base_url + "/repos/getsentry/sentry/issues/comments/1",
             json={"id": 1},
         )
 
