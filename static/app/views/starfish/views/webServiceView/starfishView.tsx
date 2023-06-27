@@ -25,6 +25,7 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 import EndpointList from './endpointList';
@@ -87,7 +88,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[throughputData]}
                   start=""
                   end=""
@@ -113,7 +114,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[errorsData]}
                   start={eventView.start as string}
                   end={eventView.end as string}
@@ -147,6 +148,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
             <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
+          <ChartsContainerItem3>
+            <ServiceTimeSpentBreakdown />
+          </ChartsContainerItem3>
         </ChartsContainer>
       </StyledRow>
 
@@ -172,4 +176,8 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+`;
+
+const ChartsContainerItem3 = styled('div')`
+  flex: 0.75;
 `;
