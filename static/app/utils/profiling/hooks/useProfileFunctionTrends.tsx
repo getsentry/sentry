@@ -9,6 +9,7 @@ import type {FunctionTrend, TrendType} from './types';
 interface UseProfileFunctionTrendsOptions<F extends string> {
   trendFunction: F;
   trendType: TrendType;
+  cursor?: string;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
@@ -18,6 +19,7 @@ interface UseProfileFunctionTrendsOptions<F extends string> {
 }
 
 export function useProfileFunctionTrends<F extends string>({
+  cursor,
   datetime,
   projects,
   enabled,
@@ -40,6 +42,7 @@ export function useProfileFunctionTrends<F extends string>({
       trend: trendType,
       query,
       per_page: limit,
+      cursor,
     },
   };
 
