@@ -6,6 +6,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {
   DataDisplayType,
@@ -36,6 +37,11 @@ export function SpanGroupBreakdown({
   dataDisplayType,
   setDataDisplayType,
 }: Props) {
+  const organization = useOrganization();
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
+  );
+
   const visibleSeries: Series[] = [];
 
   for (let index = 0; index < data.length; index++) {
@@ -43,15 +49,19 @@ export function SpanGroupBreakdown({
     visibleSeries.push(series);
   }
 
-  const dataAsPercentages = cloneDeep(visibleSeries);
-  const numDataPoints = data[0]?.data?.length ?? 0;
-  for (let i = 0; i < numDataPoints; i++) {
-    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
-    dataAsPercentages.forEach(segment => {
-      const clone = {...segment.data[i]};
-      clone.value = clone.value / totalTimeAtIndex;
-      segment.data[i] = clone;
-    });
+  // Skip these calculations if the feature flag is not enabled
+  let dataAsPercentages;
+  if (hasDropdownFeatureFlag) {
+    dataAsPercentages = cloneDeep(visibleSeries);
+    const numDataPoints = data[0]?.data?.length ?? 0;
+    for (let i = 0; i < numDataPoints; i++) {
+      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+      dataAsPercentages.forEach(segment => {
+        const clone = {...segment.data[i]};
+        clone.value = clone.value / totalTimeAtIndex;
+        segment.data[i] = clone;
+      });
+    }
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) =>
@@ -64,11 +74,13 @@ export function SpanGroupBreakdown({
           <ChartLabel>
             {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
-          <CompactSelect
-            options={options}
-            value={dataDisplayType}
-            onChange={handleChange}
-          />
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
         <Chart
           statsPeriod="24h"
