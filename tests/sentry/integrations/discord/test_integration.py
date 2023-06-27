@@ -7,7 +7,6 @@ from sentry.integrations.discord.client import DiscordApiClient
 from sentry.integrations.discord.integration import DiscordIntegrationProvider
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
 
 
@@ -25,7 +24,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         self,
         guild_id="1234567890",
         server_name="Cool server",
-        customer_domain=None,
     ):
         responses.reset()
 
@@ -54,12 +52,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id})))
 
-        if customer_domain:
-            assert resp.status_code == 302
-            assert resp["Location"].startswith(
-                f"http://{customer_domain}/extensions/discord/setup/"
-            )
-
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == "Bot " + self.bot_token
 
@@ -75,15 +67,26 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert integration.external_id == "1234567890"
         assert integration.name == "Cool server"
 
-        oi = OrganizationIntegration.objects.get(
-            integration=integration, organization_id=self.organization.id
-        )
-
-        assert oi.config == {}
-
         audit_entry = AuditLogEntry.objects.get(event=audit_log.get_event_id("INTEGRATION_ADD"))
         audit_log_event = audit_log.get(audit_entry.event)
         assert (
             audit_log_event.render(audit_entry)
             == "installed Cool server for the discord integration"
         )
+
+    @responses.activate
+    def test_multiple_integrations(self):
+        with self.tasks():
+            self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow(guild_id="0987654321", server_name="Uncool server")
+
+        integrations = Integration.objects.filter(provider=self.provider.key).order_by(
+            "external_id"
+        )
+
+        assert integrations.count() == 2
+        assert integrations[0].external_id == "0987654321"
+        assert integrations[0].name == "Uncool server"
+        assert integrations[1].external_id == "1234567890"
+        assert integrations[1].name == "Cool server"
