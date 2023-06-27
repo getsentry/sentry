@@ -2,8 +2,8 @@ import 'intersection-observer'; // polyfill
 
 import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
-import {AriaTabListProps} from '@react-aria/tabs';
-import {TabListProps, TabListState} from '@react-stately/tabs';
+import {AriaTabListOptions} from '@react-aria/tabs';
+import {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import {Orientation} from '@react-types/shared';
 
 import {TabList} from './tabList';
@@ -13,8 +13,18 @@ import {tabsShouldForwardProp} from './utils';
 export {TabList, TabPanels};
 
 export interface TabsProps<T>
-  extends Omit<TabListProps<any>, 'children'>,
-    Omit<AriaTabListProps<any>, 'children'> {
+  extends Omit<
+      AriaTabListOptions<any>,
+      'selectedKey' | 'defaultSelectedKey' | 'onSelectionChange' | 'isDisabled'
+    >,
+    Omit<
+      TabListStateOptions<any>,
+      | 'children'
+      | 'selectedKey'
+      | 'defaultSelectedKey'
+      | 'onSelectionChange'
+      | 'isDisabled'
+    > {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -35,13 +45,13 @@ export interface TabsProps<T>
 }
 
 interface TabContext {
-  rootProps: TabsProps<any> & {orientation: Orientation};
+  rootProps: Omit<TabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;
 }
 
 export const TabsContext = createContext<TabContext>({
-  rootProps: {orientation: 'horizontal', children: []},
+  rootProps: {orientation: 'horizontal'},
   setTabListState: () => {},
 });
 
