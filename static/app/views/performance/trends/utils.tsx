@@ -115,6 +115,12 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  // TODO remove this once backend starts sending
+  // TrendChangeType.IMPROVED as change type
+  improvement: {
+    lighter: theme.green200,
+    default: theme.green300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
