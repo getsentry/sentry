@@ -12,7 +12,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.discord.client import DiscordApiClient
+from sentry.integrations.discord.client import DiscordClient
 from sentry.pipeline.views.base import PipelineView
 from sentry.utils.http import absolute_uri
 
@@ -65,7 +65,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
         application_id = options.get("discord.application-id")
         bot_token = options.get("discord.bot-token")
 
-        client = DiscordApiClient(application_id, bot_token)
+        client = DiscordClient(application_id, bot_token)
 
         guild_name = client.get_guild_name(guild_id)
 

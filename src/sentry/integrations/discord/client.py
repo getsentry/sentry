@@ -1,7 +1,7 @@
 from sentry.integrations.client import ApiClient
 
 
-class DiscordApiClient(ApiClient):
+class DiscordClient(ApiClient):
     integration_name: str = "discord"
     base_url: str = "https://discord.com/api/v10"
 
