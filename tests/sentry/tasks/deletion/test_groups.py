@@ -2,11 +2,12 @@ from uuid import uuid4
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
-from sentry.models import Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect, GroupStatus
+from sentry.models import Group, GroupAssignee, GroupHash, GroupMeta, GroupRedirect
 from sentry.tasks.deletion import delete_groups
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test(stable=True)

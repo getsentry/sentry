@@ -35,7 +35,6 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
     Group,
-    GroupStatus,
     NotificationSetting,
     Project,
     ProjectBookmark,
@@ -45,6 +44,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
+from sentry.types.group import GroupStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 

@@ -1,15 +1,9 @@
 from sentry.integrations.example.integration import AliasedIntegrationProvider
-from sentry.models import (
-    ExternalIssue,
-    Group,
-    GroupLink,
-    GroupStatus,
-    Integration,
-    OrganizationIntegration,
-)
+from sentry.models import ExternalIssue, Group, GroupLink, Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test

@@ -17,6 +17,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupStatus
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -680,7 +681,7 @@ def update_event_groups(event: Event, group_states: Optional[GroupStates] = None
 
 
 def process_inbox_adds(job: PostProcessJob) -> None:
-    from sentry.models import Group, GroupStatus
+    from sentry.models import Group
     from sentry.types.group import GroupSubStatus
 
     with metrics.timer("post_process.process_inbox_adds.duration"):
@@ -729,7 +730,7 @@ def process_snoozes(job: PostProcessJob) -> None:
         return
 
     from sentry.issues.escalating import is_escalating, manage_issue_states
-    from sentry.models import GroupInboxReason, GroupSnooze, GroupStatus
+    from sentry.models import GroupInboxReason, GroupSnooze
     from sentry.types.group import GroupSubStatus
 
     event = job["event"]

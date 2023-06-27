@@ -7,9 +7,10 @@ import rest_framework
 
 from sentry import eventstream
 from sentry.issues.grouptype import GroupCategory
-from sentry.models import Activity, Group, GroupStatus, Project, User
+from sentry.models import Activity, Group, Project, User
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 
 
 class MergedGroup(TypedDict):

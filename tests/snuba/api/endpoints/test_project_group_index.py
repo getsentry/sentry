@@ -22,7 +22,6 @@ from sentry.models import (
     GroupSeen,
     GroupShare,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     GroupTombstone,
     Integration,
@@ -36,6 +35,7 @@ from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupStatus
 from sentry.utils import json
 
 

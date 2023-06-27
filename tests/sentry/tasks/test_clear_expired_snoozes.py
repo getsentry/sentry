@@ -3,12 +3,12 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.models import GroupSnooze, GroupStatus
+from sentry.models import GroupSnooze
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.tasks.clear_expired_snoozes import clear_expired_snoozes
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 class ClearExpiredSnoozesTest(TestCase):

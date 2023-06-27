@@ -2,11 +2,11 @@ from typing import Any, Optional
 from unittest.mock import patch
 
 from sentry.issues.status_change import handle_status_update
-from sentry.models import Activity, GroupStatus
+from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 class HandleStatusChangeTest(TestCase):

@@ -5,11 +5,12 @@ import pytz
 from django.utils import timezone
 
 from fixtures.page_objects.issue_list import IssueListPage
-from sentry.models import AssistantActivity, GroupInboxReason, GroupStatus
+from sentry.models import AssistantActivity, GroupInboxReason
 from sentry.models.groupinbox import add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 event_time = before_now(days=3).replace(tzinfo=pytz.utc)
 

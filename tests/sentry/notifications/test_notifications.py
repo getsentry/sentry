@@ -14,7 +14,6 @@ from sentry.event_manager import EventManager
 from sentry.models import (
     Group,
     GroupAssignee,
-    GroupStatus,
     Identity,
     IdentityProvider,
     IdentityStatus,
@@ -27,6 +26,7 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.types.group import GroupStatus
 from sentry.utils import json
 
 

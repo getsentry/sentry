@@ -13,14 +13,13 @@ from sentry.models import (
     Group,
     GroupInboxRemoveAction,
     GroupSnooze,
-    GroupStatus,
     Project,
     User,
     remove_group_from_inbox,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

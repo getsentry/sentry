@@ -4,9 +4,10 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.models import Group, GroupStatus
+from sentry.models import Group
 from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
 from sentry.testutils import TestCase
+from sentry.types.group import GroupStatus
 
 
 class ScheduleAutoResolutionTest(TestCase):

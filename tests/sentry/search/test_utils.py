@@ -4,7 +4,7 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import EventUser, GroupStatus, Release, Team, User
+from sentry.models import EventUser, Release, Team, User
 from sentry.search.base import ANY
 from sentry.search.utils import (
     DEVICE_CLASS,
@@ -18,6 +18,7 @@ from sentry.search.utils import (
 )
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.types.group import GroupStatus
 
 
 def test_get_numeric_field_value():

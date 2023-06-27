@@ -5,8 +5,9 @@ from rest_framework.request import Request
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Group, GroupLink, GroupStatus, Organization, get_group_with_redirect
+from sentry.models import Group, GroupLink, Organization, get_group_with_redirect
 from sentry.tasks.integrations import create_comment, update_comment
+from sentry.types.group import GroupStatus
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)

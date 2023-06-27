@@ -16,9 +16,10 @@ from sentry.api.helpers.group_index import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
-from sentry.models import QUERY_STATUS_LOOKUP, Environment, Group, GroupStatus
+from sentry.models import Environment, Group
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.signals import advanced_search
+from sentry.types.group import QUERY_STATUS_LOOKUP, GroupStatus
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.validators import normalize_event_id
 

@@ -2,9 +2,10 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.issues.escalating import manage_issue_states
-from sentry.models import Group, GroupInboxReason, GroupSnooze, GroupStatus
+from sentry.models import Group, GroupInboxReason, GroupSnooze
 from sentry.signals import issue_unignored
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupStatus
 
 
 @instrumented_task(name="sentry.tasks.clear_expired_snoozes", time_limit=65, soft_time_limit=60)

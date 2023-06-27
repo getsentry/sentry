@@ -12,8 +12,9 @@ from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
-from sentry.models import Group, GroupHistory, GroupHistoryStatus, GroupStatus, Project, Team
+from sentry.models import Group, GroupHistory, GroupHistoryStatus, Project, Team
 from sentry.models.grouphistory import RESOLVED_STATUSES, UNRESOLVED_STATUSES
+from sentry.types.group import GroupStatus
 
 OPEN_STATUSES = UNRESOLVED_STATUSES + (GroupHistoryStatus.UNIGNORED,)
 CLOSED_STATUSES = RESOLVED_STATUSES + (GroupHistoryStatus.IGNORED,)

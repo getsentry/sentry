@@ -20,7 +20,6 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
 )
 from sentry.models import Environment, Organization, Project, Team, User
-from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
 from sentry.search.events.constants import EQUALITY_OPERATORS, INEQUALITY_OPERATORS
 from sentry.search.events.filter import to_list
 from sentry.search.utils import (
@@ -32,7 +31,13 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import (
+    GROUP_SUBSTATUS_TO_STATUS_MAP,
+    STATUS_QUERY_CHOICES,
+    SUBSTATUS_UPDATE_CHOICES,
+    GroupStatus,
+    GroupSubStatus,
+)
 
 is_filter_translation = {
     "assigned": ("unassigned", False),

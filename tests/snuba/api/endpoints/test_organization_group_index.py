@@ -31,7 +31,6 @@ from sentry.models import (
     GroupSeen,
     GroupShare,
     GroupSnooze,
-    GroupStatus,
     GroupSubscription,
     GroupTombstone,
     Integration,
@@ -55,7 +54,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils import json
 
 

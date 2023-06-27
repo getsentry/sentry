@@ -14,7 +14,6 @@ from sentry.models import (
     GroupRedirect,
     GroupRelease,
     GroupSnooze,
-    GroupStatus,
     Release,
     get_group_with_redirect,
 )
@@ -23,7 +22,7 @@ from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 

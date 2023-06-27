@@ -7,9 +7,10 @@ from typing import Mapping, Sequence
 from django.utils import timezone
 
 from sentry import features
-from sentry.models import Group, GroupRelease, GroupStatus, Release, ReleaseProject
+from sentry.models import Group, GroupRelease, Release, ReleaseProject
 from sentry.signals import release_created
 from sentry.tasks.base import instrumented_task
+from sentry.types.group import GroupStatus
 from sentry.utils.suspect_resolutions_releases import ALGO_VERSION, analytics
 
 

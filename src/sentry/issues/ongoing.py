@@ -6,13 +6,12 @@ from sentry.models import (
     Activity,
     Group,
     GroupInboxReason,
-    GroupStatus,
     add_group_to_inbox,
     record_group_history_from_activity_type,
     remove_group_from_inbox,
 )
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 
 
 def transition_group_to_ongoing(

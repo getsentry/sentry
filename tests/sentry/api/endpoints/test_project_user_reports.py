@@ -3,10 +3,11 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models import EventUser, GroupStatus, UserReport
+from sentry.models import EventUser, UserReport
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 
 @region_silo_test

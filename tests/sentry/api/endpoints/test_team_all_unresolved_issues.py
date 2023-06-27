@@ -4,16 +4,11 @@ from django.utils import timezone
 from django.utils.timezone import now
 from freezegun import freeze_time
 
-from sentry.models import (
-    GroupAssignee,
-    GroupEnvironment,
-    GroupHistory,
-    GroupHistoryStatus,
-    GroupStatus,
-)
+from sentry.models import GroupAssignee, GroupEnvironment, GroupHistory, GroupHistoryStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
+from sentry.types.group import GroupStatus
 
 
 @freeze_time(datetime(2021, 6, 24, 4, 00))

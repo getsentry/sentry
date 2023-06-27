@@ -35,7 +35,6 @@ from sentry.models import (
     GroupResolution,
     GroupSeen,
     GroupShare,
-    GroupStatus,
     GroupSubscription,
     GroupTombstone,
     Project,
@@ -46,7 +45,6 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.models.activity import ActivityIntegration
-from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
@@ -58,7 +56,12 @@ from sentry.signals import issue_resolved
 from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
+from sentry.types.group import (
+    STATUS_UPDATE_CHOICES,
+    SUBSTATUS_UPDATE_CHOICES,
+    GroupStatus,
+    GroupSubStatus,
+)
 from sentry.utils import metrics
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list

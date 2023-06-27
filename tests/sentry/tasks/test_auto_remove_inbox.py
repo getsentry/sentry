@@ -2,10 +2,11 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import GroupInbox, GroupStatus
+from sentry.models import GroupInbox
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.tasks.auto_remove_inbox import auto_remove_inbox
 from sentry.testutils import TestCase
+from sentry.types.group import GroupStatus
 
 
 class ClearExpiredSnoozesTest(TestCase):

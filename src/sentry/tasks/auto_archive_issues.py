@@ -12,7 +12,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupHistoryStatus,
-    GroupStatus,
     Organization,
     OrganizationStatus,
     Project,
@@ -21,7 +20,7 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 

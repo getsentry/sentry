@@ -25,7 +25,6 @@ from sentry.models import (
     GroupBookmark,
     GroupEnvironment,
     GroupHistoryStatus,
-    GroupStatus,
     GroupSubscription,
     Integration,
     record_group_history,
@@ -39,7 +38,7 @@ from sentry.search.snuba.executors import InvalidQueryForExecutor, PrioritySortW
 from sentry.testutils import SnubaTestCase, TestCase, xfail_if_not_postgres
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 

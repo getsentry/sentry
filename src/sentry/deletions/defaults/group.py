@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.types.group import GroupStatus
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -150,7 +151,7 @@ class GroupDeletionTask(ModelDeletionTask):
         return super().delete_instance(instance)
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import Group, GroupStatus
+        from sentry.models import Group
 
         Group.objects.filter(id__in=[i.id for i in instance_list]).exclude(
             status=GroupStatus.DELETION_IN_PROGRESS

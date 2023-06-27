@@ -8,10 +8,10 @@ from sentry.issues.escalating_group_forecast import (
     DEFAULT_MINIMUM_CEILING_FORECAST,
     EscalatingGroupForecast,
 )
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.types.group import GroupSubStatus
+from sentry.types.group import GroupStatus, GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 
