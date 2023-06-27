@@ -64,8 +64,9 @@ def bind_org_context_from_integration(integration_id: int) -> None:
     orgs = get_orgs_from_integration(integration_id)
 
     if len(orgs) == 0:
-        logger.exception(
-            f"Can't bind org context - no orgs are associated with integration id={integration_id}."
+        logger.warning(
+            f"Can't bind org context - no orgs are associated with integration id={integration_id}.",
+            extra=extra,
         )
     elif len(orgs) == 1:
         bind_organization_context(orgs[0])
