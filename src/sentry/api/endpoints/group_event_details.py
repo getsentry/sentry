@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Sequence
 
 from rest_framework.request import Request
@@ -12,7 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.endpoints.project_event_details import wrap_event_response
 from sentry.api.helpers.environments import get_environments
-from sentry.api.helpers.group_index import parse_and_convert_issue_search_query
+from sentry.api.helpers.group_index import ValidationError, parse_and_convert_issue_search_query
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.issues.grouptype import GroupCategory
 from sentry.models import Environment, User
@@ -127,10 +128,33 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 group.project.organization,
                 actor=request.user,
             ):
-                with metrics.timer(
-                    "api.endpoints.group_event_details.get", tags={"type": "helpful"}
-                ):
-                    event = group.get_helpful_event_for_environments(environments)
+                query = request.GET.get("query")
+                if query:
+                    with metrics.timer(
+                        "api.endpoints.group_event_details.get",
+                        tags={"type": "helpful", "query": True},
+                    ):
+                        try:
+                            conditions = issue_search_query_to_conditions(
+                                query, group, request.user, environments
+                            )
+                            event = group.get_helpful_event_for_environments(
+                                environments, conditions
+                            )
+                        except ValidationError:
+                            return Response(status=400)
+                        except Exception:
+                            logging.error(
+                                "group_event_details:get_helpful",
+                                exc_info=True,
+                            )
+                            return Response(status=500)
+                else:
+                    with metrics.timer(
+                        "api.endpoints.group_event_details.get",
+                        tags={"type": "helpful", "query": False},
+                    ):
+                        event = group.get_helpful_event_for_environments(environments)
             else:
                 return Response(status=404)
         else:
