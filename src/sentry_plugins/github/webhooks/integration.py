@@ -4,7 +4,6 @@ from django.http import HttpResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.models import Organization
@@ -21,7 +20,7 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
     }
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 
@@ -30,5 +29,5 @@ class GithubIntegrationsWebhookEndpoint(GithubWebhookBase):
     def get_secret(self, organization: Organization) -> str | None:
         return options.get("github.integration-hook-secret")
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         return self.handle(request)

@@ -146,7 +146,7 @@ def test_distribution():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize(
     "source, txname, tags, expected",
     [
@@ -155,6 +155,8 @@ def test_distribution():
         ("route", "/", [["transaction", "/"]], 0),
         ("url", None, [], 0),
         ("url", "/a/b/c", [["http.status_code", "404"]], 0),
+        (None, "/a/b/c", [], 1),
+        (None, "foo", [], 0),
     ],
 )
 def test_record_transactions(mocked_record, default_organization, source, txname, tags, expected):
@@ -180,7 +182,7 @@ def test_sort_rules():
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 
@@ -205,7 +207,7 @@ def test_max_rule_threshold_merge_composite_store(default_project):
     ]
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_save_rules(default_project):
     project = default_project
 
@@ -238,7 +240,7 @@ def test_save_rules(default_project):
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
     wraps=cluster_projects,  # call immediately
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @freeze_time("2000-01-01 01:00:00")
 def test_run_clusterer_task(cluster_projects_delay, default_organization):
     def _add_mock_data(proj, number):
@@ -316,7 +318,7 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch("sentry.ingest.transaction_clusterer.rules.update_rules")
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default_project):
     project = default_project
     assert get_rules(ClustererNamespace.TRANSACTIONS, project) == {}
@@ -338,14 +340,14 @@ def test_clusterer_only_runs_when_enough_transactions(mock_update_rules, default
     )
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
     _record_sample(ClustererNamespace.TRANSACTIONS, deleted_project, "foo")
     assert list(get_active_projects(ClustererNamespace.TRANSACTIONS)) == []
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_transaction_clusterer_generates_rules(default_project):
     def _get_projconfig_tx_rules(project: Project):
         return (
@@ -387,7 +389,7 @@ def test_transaction_clusterer_generates_rules(default_project):
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
     wraps=cluster_projects,  # call immediately
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_transaction_clusterer_bumps_rules(_, default_organization):
     project1 = Project(id=123, name="project1", organization_id=default_organization.id)
     project1.save()
@@ -437,7 +439,7 @@ def test_transaction_clusterer_bumps_rules(_, default_organization):
     "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
     wraps=cluster_projects,  # call immediately
 )
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_dont_store_inexisting_rules(_, default_organization):
     rogue_transaction = {
         "transaction": "/transaction/for/rogue/*/rule",
@@ -474,7 +476,7 @@ def test_dont_store_inexisting_rules(_, default_organization):
         assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 def test_stale_rules_arent_saved(default_project):
     assert len(get_sorted_rules(ClustererNamespace.TRANSACTIONS, default_project)) == 0
 

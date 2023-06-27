@@ -2,6 +2,7 @@ from base64 import b64encode
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
@@ -30,7 +31,7 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
-from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
@@ -916,6 +917,17 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)
+
+    def test_published_sentry_app(self):
+        """Test that we do not allow an organization who has a published sentry app to be deleted"""
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_sentry_app(
+            organization=org,
+            scopes=["project:write"],
+            published=True,
+        )
+        self.login_as(self.user)
+        self.get_error_response(org.slug, status_code=400)
 
 
 @region_silo_test

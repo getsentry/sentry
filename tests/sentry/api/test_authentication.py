@@ -104,7 +104,7 @@ class TestDSNAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
     sk, pk = generate_key_pair()
@@ -135,7 +135,7 @@ def test_registered_relay(internal):
     assert request.relay_request_data == data
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("internal", [True, False])
 def test_statically_configured_relay(settings, internal):
     sk, pk = generate_key_pair()

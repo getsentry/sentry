@@ -5,7 +5,7 @@ from sentry.models import Counter
 from sentry.testutils.silo import region_silo_test
 
 
-@pytest.mark.django_db
+@pytest.mark.django_db(databases="__all__")
 @pytest.mark.parametrize("upsert_sample_rate", [0, 1])
 @region_silo_test
 def test_increment(default_project, upsert_sample_rate):

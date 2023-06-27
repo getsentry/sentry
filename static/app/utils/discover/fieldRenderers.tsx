@@ -107,6 +107,7 @@ type FieldFormatters = {
   number: FieldFormatter;
   percent_change: FieldFormatter;
   percentage: FieldFormatter;
+  rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
 };
@@ -167,6 +168,12 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
+const RATE_UNIT_LABELS = {
+  '1/second': '/s',
+  '1/minute': '/min',
+  '1/hour': '/hr',
+};
+
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
@@ -220,6 +227,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ) : (
             emptyValue
           )}
+        </NumberContainer>
+      );
+    },
+  },
+  rate: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+
+      return (
+        <NumberContainer>
+          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
         </NumberContainer>
       );
     },
@@ -297,17 +316,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
   percent_change: {
     isSortable: true,
     renderFunc: (fieldName, data) => {
-      const deltaValue = data[fieldName];
-
-      const sign = deltaValue >= 0 ? '+' : '-';
-      const delta = formatPercentage(Math.abs(deltaValue), 2);
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
-      return (
-        <PercentChangeCell
-          trendDirection={trendDirection}
-        >{`${sign}${delta}`}</PercentChangeCell>
-      );
+      return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
 };
@@ -695,6 +704,7 @@ type SpecialFunctionFieldRenderer = (
 type SpecialFunctions = {
   sps_percent_change: SpecialFunctionFieldRenderer;
   time_spent_percentage: SpecialFunctionFieldRenderer;
+  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -762,16 +772,13 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       </BarContainer>
     );
   },
+  // N.B. Do not colorize any throughput percent change renderers, since a
+  // change in throughput is not inherently good or bad
+  tps_percent_change: fieldName => data => {
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
+  },
   sps_percent_change: fieldName => data => {
-    const deltaValue = data[fieldName];
-
-    const sign = deltaValue >= 0 ? '+' : '-';
-    const delta = formatPercentage(Math.abs(deltaValue), 2);
-
-    return (
-      // N.B. For throughput, the change is neither good nor bad regardless of value! Throughput is just throughput
-      <PercentChangeCell trendDirection="neutral">{`${sign}${delta}`}</PercentChangeCell>
-    );
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
   },
   time_spent_percentage: fieldName => data => {
     return (

@@ -12,6 +12,7 @@ import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
 type Options = {
   groupId?: string;
+  transactionMethod?: string;
   transactionName?: string;
 };
 
@@ -28,12 +29,13 @@ export const useSpanSamples = (options: Options) => {
   const url = '/api/0/organizations/sentry/spans-samples/';
   const api = useApi();
   const pageFilter = usePageFilters();
-  const {groupId, transactionName} = options;
+  const {groupId, transactionName, transactionMethod} = options;
   const location = useLocation();
-  // TODO - add http method when available
+
   const query = new MutableSearch([
     `span.group:${groupId}`,
     `transaction:${transactionName}`,
+    `transaction.method:${transactionMethod}`,
   ]);
 
   const dateCondtions = getDateConditions(pageFilter.selection);
@@ -55,10 +57,14 @@ export const useSpanSamples = (options: Options) => {
           query: query.formatString(),
         })}`
       );
-      return data?.map((d: SpanSample) => ({
-        ...d,
-        timestamp: moment(d.timestamp).format(DATE_FORMAT),
-      }));
+      return data
+        ?.map((d: SpanSample) => ({
+          ...d,
+          timestamp: moment(d.timestamp).format(DATE_FORMAT),
+        }))
+        .sort(
+          (a: SpanSample, b: SpanSample) => b['span.self_time'] - a['span.self_time']
+        );
     },
     refetchOnWindowFocus: false,
     enabled: Boolean(groupId && transactionName),

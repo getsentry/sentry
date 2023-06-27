@@ -12,7 +12,7 @@ from typing_extensions import TypedDict
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import InvalidParams as InvalidParamsApi
-from sentry.apidocs.constants import RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -147,7 +147,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         responses={
             200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
             401: RESPONSE_UNAUTHORIZED,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=OrganizationExamples.RETRIEVE_EVENT_COUNTS_V2,
     )

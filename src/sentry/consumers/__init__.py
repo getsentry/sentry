@@ -8,7 +8,7 @@ from arroyo.backends.abstract import Consumer
 from arroyo.processing.processor import StreamProcessor
 from django.conf import settings
 
-from sentry.conf.types import ConsumerDefinition
+from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.utils.imports import import_string
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -236,6 +236,8 @@ def get_stream_processor(
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
     logical_topic = consumer_definition["topic"]
+    if not isinstance(logical_topic, str):
+        logical_topic = logical_topic()
 
     if topic is None:
         topic = logical_topic
