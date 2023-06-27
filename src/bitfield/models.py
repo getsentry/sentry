@@ -167,7 +167,7 @@ class TypedBitfieldMeta(type):
         return BitField(
             flags=flags,
             default=clsdict.get("bitfield_default"),
-            null=clsdict.get("bitfield_null"),
+            null=clsdict.get("bitfield_null") or False,
         )
 
     def __int__(self) -> int:
