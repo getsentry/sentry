@@ -1268,7 +1268,6 @@ module = [
     "tests.sentry.hybrid_cloud.test_hook_service",
     "tests.sentry.hybrid_cloud.test_integration",
     "tests.sentry.hybrid_cloud.test_organization",
-    "tests.sentry.hybrid_cloud.test_organizationmapping",
     "tests.sentry.identity.test_oauth2",
     "tests.sentry.incidents.action_handlers",
     "tests.sentry.incidents.action_handlers.test_sentry_app",
