@@ -468,7 +468,7 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str) -> None:
+def check_tag_for_scope_bleed(tag_key: str, expected_value: str) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
@@ -594,7 +594,7 @@ def bind_organization_context(organization):
         op="other", description="bind_organization_context"
     ):
         # This can be used to find errors that may have been mistagged
-        check_tag("organization.slug", organization.slug)
+        check_tag_for_scope_bleed("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
@@ -636,7 +636,7 @@ def bind_ambiguous_org_context(orgs: Sequence[Organization], source: str | None 
 
         # It's also possible that the org seems already to be set but it's just a case of scope
         # bleed. In that case, we want to test for that and proceed.
-        check_tag("organization.slug", MULTIPLE_ORGS_TAG)
+        check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
         scope.set_tag("organization", MULTIPLE_ORGS_TAG)
         scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
@@ -681,7 +681,7 @@ __all__ = (
     "capture_exception_with_scope_check",
     "capture_message",
     "check_current_scope_transaction",
-    "check_tag",
+    "check_tag_for_scope_bleed",
     "configure_scope",
     "configure_sdk",
     "get_options",
