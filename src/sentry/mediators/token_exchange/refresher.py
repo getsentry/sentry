@@ -15,8 +15,8 @@ class Refresher(Mediator):
     """
 
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    refresh_token = Param((str,))
-    client_id = Param((str,))
+    refresh_token = Param(str)
+    client_id = Param(str)
     user = Param("sentry.models.User")
 
     def call(self):

@@ -19,8 +19,8 @@ class GrantExchanger(Mediator):
     """
 
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    code = Param((str,))
-    client_id = Param((str,))
+    code = Param(str)
+    client_id = Param(str)
     user = Param("sentry.models.User")
 
     def call(self):

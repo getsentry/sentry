@@ -8,9 +8,9 @@ from sentry.models import PlatformExternalIssue
 class Creator(Mediator):
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     group = Param("sentry.models.Group")
-    web_url = Param((str,))
-    project = Param((str,))
-    identifier = Param((str,))
+    web_url = Param(str)
+    project = Param(str)
+    identifier = Param(str)
 
     def call(self):
         self._create_external_issue()

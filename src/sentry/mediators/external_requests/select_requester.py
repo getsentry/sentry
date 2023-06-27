@@ -25,9 +25,9 @@ class SelectRequester(Mediator):
 
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     project_slug = Param(str, required=False)
-    uri = Param((str,))
-    query = Param((str,), required=False)
-    dependent_data = Param((str,), required=False)
+    uri = Param(str)
+    query = Param(str, required=False)
+    dependent_data = Param(str, required=False)
 
     def call(self):
         return self._make_request()

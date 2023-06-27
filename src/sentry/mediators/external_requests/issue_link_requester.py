@@ -44,11 +44,11 @@ class IssueLinkRequester(Mediator):
     """
 
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    uri = Param((str,))
+    uri = Param(str)
     group = Param("sentry.models.Group")
     fields = Param(object)
     user = Param("sentry.services.hybrid_cloud.user.RpcUser")
-    action = Param((str,))
+    action = Param(str)
 
     def call(self):
         return self._make_request()

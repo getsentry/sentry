@@ -7,7 +7,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 
 class Updater(Mediator):
     sentry_app_installation = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    status = Param((str,), required=False)
+    status = Param(str, required=False)
 
     def call(self):
         self._update_status()

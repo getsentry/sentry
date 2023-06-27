@@ -7,12 +7,12 @@ from sentry.models import Actor
 
 class Updater(Mediator):
     rule = Param("sentry.models.Rule")
-    name = Param((str,), required=False)
+    name = Param(str, required=False)
     owner = Param("sentry.models.Actor", required=False)
     environment = Param(int, required=False)
     project = Param("sentry.models.Project")
-    action_match = Param((str,), required=False)
-    filter_match = Param((str,), required=False)
+    action_match = Param(str, required=False)
+    filter_match = Param(str, required=False)
     actions = Param(Iterable, required=False)
     conditions = Param(Iterable, required=False)
     frequency = Param(int, required=False)

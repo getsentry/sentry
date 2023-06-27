@@ -8,9 +8,9 @@ from sentry.utils.cache import memoize
 class IssueLinkCreator(Mediator):
     install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
     group = Param("sentry.models.Group")
-    action = Param((str,))
+    action = Param(str)
     fields = Param(object)
-    uri = Param((str,))
+    uri = Param(str)
     user = Param("sentry.services.hybrid_cloud.user.RpcUser")
 
     def call(self):

@@ -9,7 +9,7 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 class InstallationNotifier(Mediator):
     install = Param("sentry.models.SentryAppInstallation")
     user = Param("sentry.models.User")
-    action = Param((str,))
+    action = Param(str)
 
     def call(self):
         self._verify_action()
