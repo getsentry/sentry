@@ -7,8 +7,10 @@ import type {
   SpanFrame,
 } from 'sentry/utils/replays/types';
 import stripOrigin from 'sentry/utils/url/stripOrigin';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 function getCurrentUrl(
+  replayRecord: undefined | ReplayRecord,
   frames: undefined | (BreadcrumbFrame | SpanFrame)[],
   currentOffsetMS: number
 ) {
@@ -21,8 +23,11 @@ function getCurrentUrl(
     return '';
   }
 
+  const initialUrl = replayRecord?.urls[0] ?? '';
+  const origin = initialUrl ? parseUrl(initialUrl)?.origin || initialUrl : '';
+
   if ('category' in mostRecentFrame && mostRecentFrame.category === 'replay.init') {
-    return stripOrigin(mostRecentFrame.message ?? '');
+    return origin + stripOrigin(mostRecentFrame.message ?? '');
   }
 
   if (
@@ -36,10 +41,18 @@ function getCurrentUrl(
   ) {
     // navigation.push will have the pathname while the other `navigate.*`
     // operations will have a full url.
-    return stripOrigin((mostRecentFrame as NavigationFrame).description);
+    return origin + stripOrigin((mostRecentFrame as NavigationFrame).description);
   }
 
   throw new Error('Unknown frame type in getCurrentUrl');
+}
+
+function parseUrl(url: string) {
+  try {
+    return new URL(url);
+  } catch {
+    return undefined;
+  }
 }
 
 export default getCurrentUrl;
