@@ -17,24 +17,21 @@ class DiscordClientTest(TestCase):
             provider="discord",
         )
 
-        self.client = DiscordClient(
-            application_id=self.application_id,
-            bot_token=self.bot_token,
-        )
-
     @responses.activate
     def test_request_attaches_bot_token_header(self):
+        client = DiscordClient(self.application_id, self.bot_token)
         responses.add(
             responses.GET,
             url=DiscordClient.base_url + "/",
             json={},
         )
-        self.client.get("/")
+        client.get("/")
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bot " + self.bot_token
 
     @responses.activate
     def test_get_guild_name(self):
+        client = DiscordClient(self.application_id, self.bot_token)
         guild_id = self.integration.external_id
         server_name = self.integration.name
 
@@ -47,5 +44,5 @@ class DiscordClientTest(TestCase):
             },
         )
 
-        guild_name = self.client.get_guild_name(guild_id)
+        guild_name = client.get_guild_name(guild_id)
         assert guild_name == "Cool server"
