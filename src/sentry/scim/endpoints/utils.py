@@ -8,7 +8,7 @@ from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
 from typing_extensions import TypedDict
 
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
@@ -108,13 +108,15 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request: Request, view, organization):
-        result = super().has_object_permission(request, view, organization)
+    def has_object_permission(self, request: Request, view, organization_context):
+        result = super().has_object_permission(request, view, organization_context)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
             return result
         try:
-            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
+            auth_provider = AuthProvider.objects.get(
+                organization_id=organization_context.organization.id
+            )
         except AuthProvider.DoesNotExist:
             return False
         if not auth_provider.flags.scim_enabled:
@@ -143,7 +145,7 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 
 @extend_schema(tags=["SCIM"])
-class SCIMEndpoint(OrganizationEndpoint):
+class SCIMEndpoint(ControlSiloOrganizationEndpoint):
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 
