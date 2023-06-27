@@ -24,11 +24,6 @@
   color: 'A0CABD'
   description: 'apply to auto-create a Jira shadow ticket'
 
-# Dependabot
-- name: dependencies
-  color: 'ffffff'
-  description: Pull requests that update a dependency file
-
 # Scopes
 - name: 'Scope: Backend'
   color: 'F5B000'
@@ -319,6 +314,9 @@
   color: '584774'
   description: ''
 - name: 'Platform: Python'
+  color: '584774'
+  description: ''
+- name: 'Platform: React Native'
   color: '584774'
   description: ''
 - name: 'Platform: Ruby'
