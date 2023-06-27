@@ -471,10 +471,11 @@ class RavenShim:
 def check_tag_for_scope_bleed(
     tag_key: str, expected_value: str | int, add_to_scope: bool = True
 ) -> None:
-    """Detect a tag already set and being different than what we expect.
-
-    This function checks if a tag has been already been set and if it differs
-    from what we want to set it to.
+    """
+    Detect if the given tag has already been set to a value different than what we expect. If we
+    find a mismatch, log a warning and, if `add_to_scope` is `True`, add scope bleed tags to the
+    scope. (An example of when we don't want to add scope bleed tag is if we're only logging a
+    warning rather than capturing an event.)
     """
     # force the string version to prevent false positives
     expected_value = str(expected_value)
