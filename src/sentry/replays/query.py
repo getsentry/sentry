@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
@@ -38,7 +39,7 @@ from sentry.replays.lib.query import (
     generate_valid_conditions,
     get_valid_sort_commands,
 )
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import SnubaError, raw_snql_query
 
 MAX_PAGE_SIZE = 100
 DEFAULT_PAGE_SIZE = 10
@@ -46,6 +47,8 @@ DEFAULT_OFFSET = 0
 MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 Paginators = namedtuple("Paginators", ("limit", "offset"))
+
+logger = logging.getLogger(__name__)
 
 
 def query_replays_collection(
@@ -407,6 +410,80 @@ def query_replays_dataset_tagkey_values(
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
     )
+
+
+def query_key_replays(organzation_id, project_id, start, end):
+    # ensure that the project has sent at least one replay
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Column("replay_id"),
+                Column("project_id"),
+                QUERY_ALIAS_COLUMN_MAP["count_errors"],
+            ],
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Function("length", parameters=[Column("error_ids")]), Op.GT, 0),
+            ],
+            orderby=[OrderBy(Column("count_errors"), Direction.DESC)],
+            groupby=[Column("replay_id"), Column("project_id")],
+            granularity=Granularity(3600),
+            limit=Limit(20),
+        ),
+        tenant_ids={"organization_id": organzation_id},
+    )
+
+    try:
+        replay_ids_to_filter_results = raw_snql_query(
+            snuba_request,
+            referrer="replays.query.query_replays_dataset_tagkey_values",
+            use_cache=True,
+        )
+    except SnubaError as e:
+        logger.exception(e)
+        return []
+
+    if len(replay_ids_to_filter_results["data"]) == 0:
+        # if no results, no need to carry on
+        return {"data": []}
+    replay_ids_to_filter = []
+
+    for replay in replay_ids_to_filter_results["data"]:
+        replay_ids_to_filter.append(replay["replay_id"])
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=make_select_statement(
+                ["count_errors", "replay_id", "project_id", "duration", "user", "is_archived"],
+                [],
+                [],
+            ),
+            # these should be the only filters in this query,
+            # as all previous filters should have been done subquery,
+            # so project_id, timestamp and replay_id are only filters
+            where=[
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+            ],
+            orderby=[OrderBy(Column("count_errors"), Direction.DESC)],
+            groupby=[Column("project_id"), Column("replay_id")],
+            granularity=Granularity(3600),
+            # this second query doesn't need offsetting / limits, as those are handled by the first query
+        ),
+        tenant_ids={"organization_id": organzation_id},
+    )
+
+    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")["data"]
 
 
 def make_select_statement(
