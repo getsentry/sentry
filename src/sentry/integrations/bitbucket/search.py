@@ -5,7 +5,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
