@@ -139,6 +139,7 @@ class RpcOrganizationFlags(RpcModel):
     codecov_access: bool = False
 
     def as_int(self):
+        # Must maintain the same order as the ORM's `Organization.flags` fields
         return flags_to_bits(
             self.allow_joinleave,
             self.enhanced_privacy,
