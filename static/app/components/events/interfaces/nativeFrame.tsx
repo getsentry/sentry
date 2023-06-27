@@ -220,7 +220,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
-          <SymbolicatorIcon showIcon={status === 'success'}>
+          <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -432,6 +432,6 @@ const StackTraceFrame = styled('li')`
   }
 `;
 
-const SymbolicatorIcon = styled('div')<{showIcon: boolean}>`
-  padding-left: ${p => (p.showIcon ? p.theme.iconSizes.sm : `0px`)};
+const SymbolicatorIcon = styled('div')`
+  width: ${p => p.theme.iconSizes.sm};
 `;
