@@ -11,9 +11,10 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.team import TeamSerializer, TeamWithProjectsSerializer
+from sentry.api.serializers.models.team import BaseTeamSerializer, TeamSerializer
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
+    RESPONSE_BAD_REQUEST,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
@@ -74,7 +75,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 @extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
-    public = {"POST"}
+    public = {"DELETE", "POST"}
     permission_classes = [RelaxedOrganizationPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
@@ -145,7 +146,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @extend_schema(
-        operation_id="Add a Member to a Team",
+        operation_id="Add an Organization Member to a Team",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.member_id("The ID of the organization member to add to the team"),
@@ -153,7 +154,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         ],
         request=None,
         responses={
-            201: TeamSerializer,
+            201: BaseTeamSerializer,
             202: RESPONSE_ACCEPTED,
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
@@ -172,13 +173,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         team_slug: str,
     ) -> Response:
         """
-        If the member needs permission to join the team, an access request will be generated and the
-        returned status code will be **`202`**.
+        If the organization member needs permission to join the team, an access request will be
+        generated and the status code will be **`202`**.
 
-        If the member is already on the team, this will return a **`204`**.
+        If the organization member is already on the team, the status code will **`204`**.
 
         If the team is provisioned through an identity provider, then the member cannot join the
-        team  through Sentry.
+        team through Sentry.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -212,7 +213,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             data=omt.get_audit_log_data(),
         )
 
-        return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=201)
+        return Response(serialize(team, request.user, TeamSerializer()), status=201)
 
     def put(
         self,
@@ -276,6 +277,24 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             tags={"target_team_role": team_role.id, "applying_minimum": str(applying_minimum)},
         )
 
+    @extend_schema(
+        operation_id="Delete an Organization Member from a Team",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.member_id("The ID of the organization member to delete from the team"),
+            GlobalParams.TEAM_SLUG,
+        ],
+        request=None,
+        responses={
+            200: BaseTeamSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: OpenApiResponse(
+                description="This team is managed through your organization's identity provider"
+            ),
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TeamExamples.DELETE_FROM_TEAM,
+    )
     def delete(
         self,
         request: Request,
@@ -284,7 +303,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         team_slug: str,
     ) -> Response:
         """
-        Leave or remove a member from a team
+        Delete an organization member from a team.
         """
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
@@ -317,6 +336,4 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(
-            serialize(team, request.user, TeamSerializer(expand=["externalTeams"])), status=200
-        )
+        return Response(serialize(team, request.user, TeamSerializer()), status=200)

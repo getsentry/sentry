@@ -28,8 +28,6 @@ class TeamExamples:
                 "memberCount": 3,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
                 "orgRole": None,
-                "externalTeams": [],
-                "projects": [],
             },
             status_codes=["201"],
             response_only=True,
@@ -71,6 +69,38 @@ class TeamExamples:
                 "orgRole": None,
             },
             status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
+    DELETE_FROM_TEAM = [
+        OpenApiExample(
+            "Remove a member from a team",
+            value={
+                "id": "4502349234123",
+                "slug": "ancient-gabelers",
+                "name": "Ancient Gabelers",
+                "dateCreated": "2023-05-31T19:47:53.621181Z",
+                "isMember": False,
+                "teamRole": None,
+                "flags": {"idp:provisioned": False},
+                "access": [
+                    "alerts:read",
+                    "event:write",
+                    "project:read",
+                    "team:read",
+                    "member:read",
+                    "project:releases",
+                    "event:read",
+                    "org:read",
+                ],
+                "hasAccess": True,
+                "isPending": False,
+                "memberCount": 3,
+                "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                "orgRole": None,
+            },
+            status_codes=["200"],
             response_only=True,
         )
     ]
