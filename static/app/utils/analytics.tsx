@@ -63,6 +63,7 @@ import {
   stackTraceEventMap,
   StackTraceEventParameters,
 } from './analytics/stackTraceAnalyticsEvents';
+import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
 import {
   TeamInsightsEventParameters,
   workflowEventMap,
@@ -112,6 +113,7 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
+  ...starfishEventMap,
 };
 
 /**
