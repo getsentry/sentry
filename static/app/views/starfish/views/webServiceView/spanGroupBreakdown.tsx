@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
@@ -34,6 +35,7 @@ export function SpanGroupBreakdown({
   isTimeseriesLoading,
   errored,
 }: Props) {
+  const organization = useOrganization();
   const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
   const options: SelectOption<DataDisplayType>[] = [
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
@@ -41,6 +43,10 @@ export function SpanGroupBreakdown({
   ];
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
     DataDisplayType.CUMULATIVE_DURATION
+  );
+
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
   );
 
   if (showSeriesArray.length === 0 && transformedData.length > 0) {
@@ -56,15 +62,19 @@ export function SpanGroupBreakdown({
     }
   }
 
-  const dataAsPercentages = cloneDeep(visibleSeries);
-  const numDataPoints = data[0]?.data?.length ?? 0;
-  for (let i = 0; i < numDataPoints; i++) {
-    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
-    dataAsPercentages.forEach(segment => {
-      const clone = {...segment.data[i]};
-      clone.value = clone.value / totalTimeAtIndex;
-      segment.data[i] = clone;
-    });
+  // Skip these calculations if the feature flag is not enabled
+  let dataAsPercentages;
+  if (hasDropdownFeatureFlag) {
+    dataAsPercentages = cloneDeep(visibleSeries);
+    const numDataPoints = data[0]?.data?.length ?? 0;
+    for (let i = 0; i < numDataPoints; i++) {
+      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+      dataAsPercentages.forEach(segment => {
+        const clone = {...segment.data[i]};
+        clone.value = clone.value / totalTimeAtIndex;
+        segment.data[i] = clone;
+      });
+    }
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) =>
@@ -77,11 +87,13 @@ export function SpanGroupBreakdown({
           <ChartLabel>
             {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
-          <CompactSelect
-            options={options}
-            value={dataDisplayType}
-            onChange={handleChange}
-          />
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
         <Chart
           statsPeriod="24h"
