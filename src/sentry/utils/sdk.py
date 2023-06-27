@@ -468,17 +468,25 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag_for_scope_bleed(tag_key: str, expected_value: str, add_to_scope: bool = True) -> None:
+def check_tag_for_scope_bleed(
+    tag_key: str, expected_value: str | int, add_to_scope: bool = True
+) -> None:
     """Detect a tag already set and being different than what we expect.
 
     This function checks if a tag has been already been set and if it differs
     from what we want to set it to.
     """
+    # force the string version to prevent false positives
+    expected_value = str(expected_value)
+
     with configure_scope() as scope:
         current_value = scope._tags.get(tag_key)
 
         if not current_value:
             return
+
+        # ensure we're comparing apples to apples
+        current_value = str(current_value)
 
         # There are times where we can only narrow down the current org to a list, for example if
         # we've derived it from an integration, since integrations can be shared across multiple orgs.
