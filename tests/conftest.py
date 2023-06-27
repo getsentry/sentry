@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from django.db.transaction import get_connection
+from django.db import connections
 
 from sentry.silo import SiloMode
 
@@ -169,13 +169,14 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     If you are certain you need to delete the objects in a new codepath, check out User.delete
     logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
     create Outbox objects in the same transaction that matches what you delete.
-    """
-    from django.conf import settings
 
-    for using in settings.DATABASES.keys():
+    See sentry.testutils.silo for where the postgres_unprivileged role comes from and
+    how its permissions are assigned.
+    """
+    for conn in connections.all():
         try:
-            with get_connection(using).cursor() as conn:
-                conn.execute("SET ROLE 'postgres'")
+            with conn.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")
         except (RuntimeError, AssertionError) as e:
             # Tests that do not have access to the database should pass through.
             # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
@@ -185,12 +186,12 @@ def protect_hybrid_cloud_writes_and_deletes(request):
                 return
             raise e
 
-        with get_connection(using).cursor() as conn:
-            conn.execute("SET ROLE 'postgres_unprivileged'")
+        with conn.cursor() as cursor:
+            cursor.execute("SET ROLE 'postgres_unprivileged'")
 
     try:
         yield
     finally:
-        for using in settings.DATABASES.keys():
-            with get_connection(using).cursor() as conn:
-                conn.execute("SET ROLE 'postgres'")
+        for connection in connections.all():
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")
