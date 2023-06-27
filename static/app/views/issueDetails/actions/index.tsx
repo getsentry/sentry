@@ -411,18 +411,13 @@ export function Actions(props: Props) {
             disabled: disabled || group.subscriptionDetails?.disabled,
             onAction: onToggleSubscribe,
           },
-          ...(hasEscalatingIssues
-            ? []
-            : [
-                {
-                  key: 'mark-review',
-                  label: t('Mark reviewed'),
-                  disabled: !group.inbox || disabled,
-                  details:
-                    !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-                  onAction: () => onUpdate({inbox: false}),
-                },
-              ]),
+          {
+            key: 'mark-review',
+            label: t('Mark reviewed'),
+            disabled: !group.inbox || disabled,
+            details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+            onAction: () => onUpdate({inbox: false}),
+          },
           {
             key: 'share',
             label: t('Share'),
