@@ -1,7 +1,7 @@
 import logging
 
+from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.providers.oauth2 import OAuth2Login
 from sentry.auth.view import AuthView, ConfigureView
@@ -28,7 +28,7 @@ class FetchUser(AuthView):
         self.org = org
         super().__init__(*args, **kwargs)
 
-    def handle(self, request: Request, helper) -> Response:
+    def handle(self, request: Request, helper) -> HttpResponse:
         with FlyClient(helper.fetch_state("data")["access_token"]) as client:
             """
             Utilize the access token to make final request to token introspection endpoint
