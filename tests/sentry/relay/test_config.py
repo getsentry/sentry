@@ -25,7 +25,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import json, safe
+from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -664,7 +664,7 @@ def test_healthcheck_filter(default_project, has_health_check, health_check_set)
         config = get_project_config(default_project).to_dict()["config"]
 
     _validate_project_config(config)
-    filter_settings = safe.get_path(config, "filterSettings")
+    filter_settings = get_path(config, "filterSettings")
     config_has_health_check = "ignoreTransactions" in filter_settings
     should_have_health_check_config = has_health_check and health_check_set
     assert config_has_health_check == should_have_health_check_config

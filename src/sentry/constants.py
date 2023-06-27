@@ -698,4 +698,5 @@ HEALTH_CHECK_GLOBS = [
     "*heartbeat*",
     "*/health",
     "*/healthz",
+    "*/ping",
 ]

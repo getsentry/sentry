@@ -92,7 +92,7 @@ register(
     },
 )
 
-register(key="filters:health-check", default="0")
+register(key="filters:health-check", default="1")
 
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.
