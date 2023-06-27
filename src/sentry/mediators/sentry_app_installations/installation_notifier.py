@@ -2,13 +2,14 @@ from sentry.api.serializers import AppPlatformEvent, SentryAppInstallationSerial
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.models import SentryAppInstallation, User
 from sentry.utils.cache import memoize
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 
 class InstallationNotifier(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
-    user = Param("sentry.models.User")
+    install = Param(SentryAppInstallation)
+    user = Param(User)
     action = Param(str)
 
     def call(self):

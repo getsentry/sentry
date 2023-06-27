@@ -4,11 +4,12 @@ from sentry.mediators.external_requests.alert_rule_action_requester import Alert
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils.cache import memoize
 
 
 class AlertRuleActionCreator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param(SentryAppInstallation)
     fields = Param(object, default=[])  # array of dicts
 
     def call(self) -> AlertRuleActionResult:

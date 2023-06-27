@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.models import SentryAppInstallation
 from sentry.utils import json
 from sentry.utils.cache import memoize
 
@@ -29,7 +30,7 @@ class AlertRuleActionRequester(Mediator):
     AlertRuleAction settings schema
     """
 
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param(SentryAppInstallation)
     uri = Param(str)
     fields = Param(list, required=False, default=[])
     http_method = Param(str, required=False, default="POST")

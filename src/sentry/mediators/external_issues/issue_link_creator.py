@@ -2,16 +2,19 @@ from sentry.coreapi import APIUnauthorized
 from sentry.mediators import external_issues, external_requests
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.models.group import Group
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.cache import memoize
 
 
 class IssueLinkCreator(Mediator):
-    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    group = Param("sentry.models.Group")
+    install = Param(RpcSentryAppInstallation)
+    group = Param(Group)
     action = Param(str)
     fields = Param(object)
     uri = Param(str)
-    user = Param("sentry.services.hybrid_cloud.user.RpcUser")
+    user = Param(RpcUser)
 
     def call(self):
         self._verify_action()
