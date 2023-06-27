@@ -190,8 +190,8 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
-    yAxis: getTimeseries ? [`sum(${SPAN_SELF_TIME})`] : [],
+    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+    yAxis: getTimeseries ? [`p95(${SPAN_SELF_TIME})`] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
