@@ -1,10 +1,9 @@
 from contextlib import contextmanager
 
-import pytest
-
 from sentry.models import ProjectOption
 from sentry.projectoptions import default_manager, defaults
 from sentry.projectoptions.manager import WellKnownProjectOption
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @contextmanager
@@ -17,7 +16,7 @@ def latest_epoch(value):
         defaults.LATEST_EPOCH = old
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_defaults(default_project):
     default_manager.register(
         key="__sentry_test:test-option",
@@ -33,7 +32,7 @@ def test_defaults(default_project):
     assert default_project.get_option("__sentry_test:test-option") == "latest-value"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def freeze_option(factories, default_team):
     with latest_epoch(42):
         project = factories.create_project(name="Bar", slug="bar", teams=[default_team])

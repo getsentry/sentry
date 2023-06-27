@@ -224,7 +224,7 @@ class ColumnEditCollection extends Component<Props, State> {
   }
 
   startDrag(
-    event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>,
+    event: React.MouseEvent<HTMLElement> | React.TouchEvent<HTMLElement>,
     index: number
   ) {
     const isDragging = this.state.isDragging;
