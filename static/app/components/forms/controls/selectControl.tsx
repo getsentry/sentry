@@ -397,9 +397,17 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     } else {
       flatOptions = choicesOrOptions.flatMap(option => option);
     }
+    /**
+     * Value could be both full OptionType or only OptionType's value field.
+     * We need to map both to full OptionType. See: https://github.com/getsentry/sentry/pull/50163#issuecomment-1599516194
+     */
     mappedValue =
       props.multiple && Array.isArray(value)
-        ? value.map(val => flatOptions.find(option => option.value === val))
+        ? value.map(val =>
+            flatOptions.find(option =>
+              val.value ? option.value === val.value : option.value === val
+            )
+          )
         : flatOptions.find(opt => opt.value === value) || value;
   }
 
