@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -21,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
@@ -133,7 +133,7 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     useErrorSamples(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'p95_comparison' || column.key === 'transaction.duration') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -181,13 +181,7 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     }
 
     if (column.key === 'transaction.duration') {
-      return (
-        <Duration
-          seconds={row['transaction.duration'] / 1000}
-          fixedDigits={2}
-          abbreviation
-        />
-      );
+      return <DurationCell milliseconds={row['transaction.duration']} />;
     }
 
     if (column.key === 'timestamp') {
