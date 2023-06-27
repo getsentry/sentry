@@ -579,14 +579,26 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.expired_pr.save()
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.models.Repository.objects.get")
     @responses.activate
-    def test_comment_reactions_task(self, get_jwt):
+    def test_comment_reactions_task(self, mock_get_repo, get_jwt):
+        mock_get_repo.return_value = self.gh_repo
+
         old_comment = PullRequestComment.objects.create(
             external_id="1",
             pull_request=self.expired_pr,
             created_at=timezone.now() - timedelta(days=35),
             updated_at=timezone.now() - timedelta(days=35),
             group_ids=[1, 2, 3],
+        )
+
+        pr = self.create_pr_issues()
+        PullRequestComment.objects.create(
+            external_id="3",
+            pull_request=pr,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+            group_ids=[6],
         )
 
         responses.add(
@@ -606,6 +618,17 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             responses.GET,
             self.base_url + "/repos/getsentry/sentry/issues/comments/2",
             json=comment_reactions,
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/3",
+            json={
+                "reactions": {
+                    "url": "abcdef",
+                    "+1": 0,
+                    "-1": 0,
+                }
+            },
         )
 
         github_comment_reactions()

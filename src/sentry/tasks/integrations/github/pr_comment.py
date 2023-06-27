@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from itertools import groupby
 from typing import List
 
 import sentry_sdk
@@ -23,7 +24,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import Dataset, raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -249,11 +249,12 @@ def github_comment_reactions():
     comments = PullRequestComment.objects.filter(
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
     )
+    sorted_comments = sorted(comments, key=lambda c: c.pull_request.repository_id)
+    grouped_comments = groupby(sorted_comments, key=lambda c: c.pull_request.repository_id)
 
-    for comment in RangeQuerySetWrapper(comments):
-        pr = comment.pull_request
+    for repository_id, comments in grouped_comments:
         try:
-            repo = Repository.objects.get(id=pr.repository_id)
+            repo = Repository.objects.get(id=repository_id)
         except Repository.DoesNotExist:
             metrics.incr("github_pr_comment.comment_reactions.missing_repo")
             continue
@@ -262,25 +263,27 @@ def github_comment_reactions():
         if not integration:
             logger.error(
                 "github.pr_comment.comment_reactions.integration_missing",
-                extra={"organization_id": pr.organization_id},
+                extra={"organization_id": repo.organization_id},
             )
             metrics.incr("github_pr_comment.comment_reactions.missing_integration")
             return
 
         installation = integration_service.get_installation(
-            integration=integration, organization_id=pr.organization_id
+            integration=integration, organization_id=repo.organization_id
         )
 
         # GitHubAppsClient (GithubClientMixin)
-        # TODO(cathy): create helper function to fetch client for repo
         client = installation.get_client()
 
-        try:
-            reactions = client.get_comment_reactions(repo=repo.name, comment_id=comment.external_id)
+        for comment in comments:
+            try:
+                reactions = client.get_comment_reactions(
+                    repo=repo.name, comment_id=comment.external_id
+                )
 
-            comment.reactions = reactions
-            comment.save()
-        except ApiError as e:
-            metrics.incr("github_pr_comment.comment_reactions.api_error")
-            sentry_sdk.capture_exception(e)
-            continue
+                comment.reactions = reactions
+                comment.save()
+            except ApiError as e:
+                metrics.incr("github_pr_comment.comment_reactions.api_error")
+                sentry_sdk.capture_exception(e)
+                continue
