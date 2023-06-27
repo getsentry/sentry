@@ -653,14 +653,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   team_key_transaction: {
     sortField: null,
     renderFunc: (data, {organization}) => (
-      <Container>
-        <TeamKeyTransactionField
-          isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
+      <TeamKeyTransactionField
+        isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
+        organization={organization}
+        projectSlug={data.project}
+        transactionName={data.transaction}
+      />
     ),
   },
   'trend_percentage()': {
