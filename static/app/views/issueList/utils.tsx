@@ -12,6 +12,7 @@ export enum Query {
   ARCHIVED = 'is:archived',
   ESCALATING = 'is:escalating',
   ONGOING = 'is:ongoing',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -85,6 +86,15 @@ export function getTabs(organization: Organization) {
       {
         name: t('Escalating'),
         analyticsName: 'escalating',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.REGRESSED,
+      {
+        name: t('Regressed'),
+        analyticsName: 'regressed',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },

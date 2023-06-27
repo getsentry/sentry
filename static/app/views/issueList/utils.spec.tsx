@@ -6,7 +6,15 @@ describe('getTabs', () => {
       getTabs(TestStubs.Organization({features: ['escalating-issues']})).map(
         tab => tab[1].name
       )
-    ).toEqual(['Unresolved', 'For Review', 'New', 'Escalating', 'Ongoing', 'Archived']);
+    ).toEqual([
+      'Unresolved',
+      'For Review',
+      'New',
+      'Escalating',
+      'Regressed',
+      'Ongoing',
+      'Archived',
+    ]);
 
     expect(
       getTabs(TestStubs.Organization({features: []})).map(tab => tab[1].name)
