@@ -1,5 +1,4 @@
 import re
-from typing import cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -160,7 +159,8 @@ class ProjectKey(Model):
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
         else:
-            key = cast(str, self.public_key)
+            assert self.public_key is not None
+            key = self.public_key
 
         # If we do not have a scheme or domain/hostname, dsn is never valid
         if not urlparts.netloc or not urlparts.scheme:
