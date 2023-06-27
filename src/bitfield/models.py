@@ -1,3 +1,5 @@
+from typing import Sequence, Union
+
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -176,6 +178,9 @@ class TypedBitfieldMeta(type):
 
 class TypedBitfield(metaclass=TypedBitfieldMeta):
     pass
+
+    bitfield_null: bool
+    bitfield_default: Union[int, Sequence[str]]
 
 
 BitField.register_lookup(BitQueryExactLookupStub)
