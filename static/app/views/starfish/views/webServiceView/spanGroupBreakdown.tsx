@@ -140,8 +140,11 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          if (['db', 'http'].includes(group['span.category'])) {
-            spansLinkQueryParams['span.module'] = group['span.category'];
+          let spansLink;
+          if (group['span.category'] === 'db') {
+            spansLink = `/starfish/database/?${qs.stringify(spansLinkQueryParams)}`;
+          } else if (group['span.category'] === 'http') {
+            spansLink = `/starfish/api/?${qs.stringify(spansLinkQueryParams)}`;
           } else {
             spansLinkQueryParams['span.module'] = 'Other';
           }
@@ -150,7 +153,9 @@ export function SpanGroupBreakdown({
             .filter(c => !['Other'].includes(c));
           spansLinkQueryParams['span.category'] = group['span.category'];
 
-          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          if (!spansLink) {
+            spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+          }
           return (
             <StyledLineItem key={`${group['span.category']}`}>
               <ListItemContainer>
