@@ -1,8 +1,12 @@
 import {Fragment, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import * as qs from 'query-string';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
+import {getInterval} from 'sentry/components/charts/utils';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -30,6 +34,7 @@ import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
@@ -39,7 +44,10 @@ const SPANS_TABLE_LIMIT = 5;
 
 const EventsRequest = withApi(_EventsRequest);
 
+export type SampleFilter = 'ALL' | '500s';
+
 type State = {
+  samplesFilter: SampleFilter;
   spansFilter: ModuleName;
 };
 
@@ -47,20 +55,23 @@ export default function EndpointOverview() {
   const location = useLocation();
   const organization = useOrganization();
 
-  const {endpoint, statsPeriod} = location.query;
+  const {endpoint, 'http.method': httpMethod, statsPeriod} = location.query;
   const transaction = endpoint
     ? Array.isArray(endpoint)
       ? endpoint[0]
       : endpoint
     : undefined;
-  const method = location.query.method
-    ? Array.isArray(location.query.method)
-      ? location.query.method[0]
-      : location.query.method
+  const method = httpMethod
+    ? Array.isArray(httpMethod)
+      ? httpMethod[0]
+      : httpMethod
     : undefined;
   const pageFilter = usePageFilters();
 
-  const [state, setState] = useState<State>({spansFilter: ModuleName.ALL});
+  const [state, setState] = useState<State>({
+    spansFilter: ModuleName.ALL,
+    samplesFilter: 'ALL',
+  });
   const [issueFilter, setIssueFilter] = useState<IssueCategory | 'ALL'>('ALL');
 
   const queryConditions = [
@@ -100,7 +111,7 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}
@@ -116,6 +127,8 @@ export default function EndpointOverview() {
           if (!results) {
             return null;
           }
+          // Force label to be Requests
+          const throughputResults = {seriesName: 'Requests', data: results[0].data};
           return (
             <Fragment>
               <Header>
@@ -132,7 +145,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={(statsPeriod as string) ?? '24h'}
                 height={80}
-                data={[results[0]]}
+                data={[throughputResults]}
                 start=""
                 end=""
                 loading={loading}
@@ -141,6 +154,7 @@ export default function EndpointOverview() {
                 definedAxisTicks={2}
                 disableXAxis
                 chartColors={[THROUGHPUT_COLOR]}
+                aggregateOutputFormat="rate"
                 grid={{
                   left: '8px',
                   right: '0',
@@ -229,6 +243,20 @@ export default function EndpointOverview() {
     );
   }
 
+  const handleViewAllEventsClick = () => {
+    const issuesQuery = new MutableSearch([
+      ...(issueFilter === 'ALL' ? [] : [`issue.category:${issueFilter}`]),
+      `transaction:${transaction}`,
+      `http.method:${method}`,
+    ]);
+    browserHistory.push({
+      pathname: `/issues/?${qs.stringify({
+        ...getDateConditions(pageFilter.selection),
+        query: issuesQuery.formatString(),
+      })}`,
+    });
+  };
+
   return (
     <PageFiltersContainer>
       <Layout.Page>
@@ -272,14 +300,28 @@ export default function EndpointOverview() {
                 <SegmentedControl.Item key="db">{t('db')}</SegmentedControl.Item>
               </SegmentedControl>
             </SegmentedControlContainer>
-            {/* TODO: Add transaction method to filter */}
             <SpanMetricsTable
               filter={state.spansFilter}
               transaction={transaction}
               method={method}
             />
-            <SubHeader>{t('Sample Events')}</SubHeader>
-            <TransactionSamplesTable queryConditions={queryConditions} />
+            <SegmentedControlContainer>
+              <SegmentedControl
+                size="xs"
+                aria-label={t('Filter events')}
+                value={state.samplesFilter}
+                onChange={key => setState({...state, samplesFilter: key})}
+              >
+                <SegmentedControl.Item key="ALL">
+                  {t('Sample Events')}
+                </SegmentedControl.Item>
+                <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
+              </SegmentedControl>
+            </SegmentedControlContainer>
+            <TransactionSamplesTable
+              queryConditions={queryConditions}
+              sampleFilter={state.samplesFilter}
+            />
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
@@ -295,9 +337,13 @@ export default function EndpointOverview() {
                   {t('Performance Only')}
                 </SegmentedControl.Item>
               </SegmentedControl>
+              <Button size="sm" onClick={handleViewAllEventsClick}>
+                {t('View All')}
+              </Button>
             </SegmentedControlContainer>
             <IssuesTable
               issueCategory={issueFilter === 'ALL' ? undefined : issueFilter}
+              httpMethod={method as string}
               transactionName={transaction}
             />
           </Layout.Main>
@@ -320,13 +366,13 @@ function SpanMetricsTable({
   transaction: string | undefined;
   method?: string;
 }) {
-  // TODO: Add transaction http method to query conditions as well, since transaction name alone is not unique
-
   return (
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
-      orderBy="-time_spent_percentage"
-      onSetOrderBy={() => undefined}
+      sort={{
+        field: 'time_spent_percentage()',
+        kind: 'desc',
+      }}
       endpoint={transaction}
       method={method}
       limit={SPANS_TABLE_LIMIT}
@@ -351,13 +397,6 @@ const ChartValue = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const SubHeader = styled('h3')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeLarge};
-  margin: 0;
-  margin-bottom: ${space(1)};
-`;
-
 const SearchContainerWithFilterAndMetrics = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
@@ -376,6 +415,8 @@ const StyledRow = styled(PerformanceLayoutBodyRow)`
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const ChartLabel = styled('div')`

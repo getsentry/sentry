@@ -1,14 +1,15 @@
+import {CSSProperties} from 'react';
 import {Link} from 'react-router';
 
-import DateTime from 'sentry/components/dateTime';
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
+import {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
 
 type Keys = 'transaction_id' | 'timestamp' | 'duration' | 'p95_comparison';
 type TableColumnHeader = GridColumnHeader<Keys>;
@@ -26,37 +27,54 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   },
   {
     key: 'p95_comparison',
-    name: 'Compared to P95',
+    name: 'Compared to baseline',
     width: 200,
   },
 ];
 
 type SpanTableRow = {
-  description: string;
   op: string;
-  'span.self_time': number;
-  span_id: string;
-  timestamp: string;
   transaction: {
     id: string;
     'project.name': string;
     timestamp: string;
     'transaction.duration': number;
   };
-  transaction_id: string;
-};
+} & SpanSample;
 
 type Props = {
   data: SpanTableRow[];
   isLoading: boolean;
   p95: number;
+  highlightedSpanId?: string;
+  onMouseLeaveSample?: () => void;
+  onMouseOverSample?: (sample: SpanSample) => void;
 };
 
-export function SpanSamplesTable({isLoading, data, p95}: Props) {
+export function SpanSamplesTable({
+  isLoading,
+  data,
+  p95,
+  highlightedSpanId,
+  onMouseLeaveSample,
+  onMouseOverSample,
+}: Props) {
   const location = useLocation();
 
+  function handleMouseOverBodyCell(row: SpanTableRow) {
+    if (onMouseOverSample) {
+      onMouseOverSample(row);
+    }
+  }
+
+  function handleMouseLeave() {
+    if (onMouseLeaveSample) {
+      onMouseLeaveSample();
+    }
+  }
+
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'p95_comparison' || column.key === 'duration') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -68,48 +86,56 @@ export function SpanSamplesTable({isLoading, data, p95}: Props) {
   }
 
   function renderBodyCell(column: GridColumnHeader, row: SpanTableRow): React.ReactNode {
+    const shouldHighlight = row.span_id === highlightedSpanId;
+
+    const commonProps = {
+      style: (shouldHighlight ? {fontWeight: 'bold'} : {}) satisfies CSSProperties,
+      onMouseEnter: () => handleMouseOverBodyCell(row),
+    };
+
     if (column.key === 'transaction_id') {
       return (
         <Link
-          to={`/performance/${row.transaction['project.name']}:${row.transaction_id}#span-${row.span_id}`}
+          to={`/performance/${row.project}:${row['transaction.id']}#span-${row.span_id}`}
+          {...commonProps}
         >
-          {row.transaction_id.slice(0, 8)}
+          {row['transaction.id'].slice(0, 8)}
         </Link>
       );
     }
 
     if (column.key === 'duration') {
       return (
-        <SpanDurationBar
-          spanOp={row.op}
-          spanDuration={row['span.self_time']}
-          transactionDuration={row.transaction['transaction.duration']}
-        />
+        <DurationCell containerProps={commonProps} milliseconds={row['span.self_time']} />
       );
     }
 
     if (column.key === 'p95_comparison') {
-      return <DurationComparisonCell duration={row['span.self_time']} p95={p95} />;
+      return (
+        <DurationComparisonCell
+          containerProps={commonProps}
+          duration={row['span.self_time']}
+          p95={p95}
+        />
+      );
     }
 
-    if (column.key === 'timestamp') {
-      return <DateTime date={row.timestamp} year timeZone seconds />;
-    }
-
-    return <span>{row[column.key]}</span>;
+    return <span {...commonProps}>{row[column.key]}</span>;
   }
 
   return (
-    <GridEditable
-      isLoading={isLoading}
-      data={data}
-      columnOrder={COLUMN_ORDER}
-      columnSortBy={[]}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
-      location={location}
-    />
+    <div onMouseLeave={handleMouseLeave}>
+      <GridEditable
+        isLoading={isLoading}
+        data={data}
+        columnOrder={COLUMN_ORDER}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell,
+          renderBodyCell,
+        }}
+        location={location}
+      />
+    </div>
   );
 }

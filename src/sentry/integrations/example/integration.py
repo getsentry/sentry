@@ -4,7 +4,6 @@ from typing import Any, Mapping, Sequence
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -33,7 +32,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()

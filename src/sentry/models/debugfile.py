@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import enum
 import errno
 import hashlib
@@ -8,10 +10,12 @@ import re
 import shutil
 import tempfile
 import uuid
+import zipfile
 from typing import (
     TYPE_CHECKING,
     Any,
     BinaryIO,
+    ClassVar,
     Dict,
     FrozenSet,
     Iterable,
@@ -23,9 +27,8 @@ from typing import (
 )
 
 from django.db import models
-from django.db.models.query import QuerySet
-from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
-from symbolic.debuginfo import BcSymbolMap, UuidMapping
+from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -63,7 +66,7 @@ class BadDif(Exception):
 
 
 class ProjectDebugFileManager(BaseManager):
-    def find_missing(self, checksums: Iterable[str], project: "Project") -> List[str]:
+    def find_missing(self, checksums: Iterable[str], project: Project) -> List[str]:
         if not checksums:
             return []
 
@@ -79,15 +82,9 @@ class ProjectDebugFileManager(BaseManager):
 
         return sorted(missing)
 
-    def find_by_checksums(self, checksums: Iterable[str], project: "Project") -> QuerySet:
-        if not checksums:
-            return []
-        checksums = [x.lower() for x in checksums]
-        return ProjectDebugFile.objects.filter(checksum__in=checksums, project=project)
-
     def find_by_debug_ids(
-        self, project: "Project", debug_ids: List[str], features: Optional[Set[str]] = None
-    ) -> Dict[str, "ProjectDebugFile"]:
+        self, project: Project, debug_ids: List[str], features: Iterable[str] | None = None
+    ) -> Dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 
         If a set of features is specified, only files that satisfy all features
@@ -96,7 +93,7 @@ class ProjectDebugFileManager(BaseManager):
 
         Returns a dict of debug files keyed by their debug identifier.
         """
-        features: FrozenSet[str] = frozenset(features) if features is not None else frozenset()  # type: ignore
+        features = frozenset(features) if features is not None else frozenset()
 
         difs = (
             ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
@@ -104,7 +101,7 @@ class ProjectDebugFileManager(BaseManager):
             .order_by("-id")
         )
 
-        difs_by_id: Dict[str, List["ProjectDebugFile"]] = {}
+        difs_by_id: Dict[str, List[ProjectDebugFile]] = {}
         for dif in difs:
             difs_by_id.setdefault(dif.debug_id, []).append(dif)
 
@@ -143,6 +140,8 @@ class ProjectDebugFile(Model):
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
+
+    difcache: ClassVar[DIFCache]
 
     class Meta:
         index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
@@ -199,12 +198,13 @@ class ProjectDebugFile(Model):
     def features(self) -> FrozenSet[str]:
         return frozenset((self.data or {}).get("features", []))
 
-    def delete(self, *args: Any, **kwargs: Any) -> None:
-        super().delete(*args, **kwargs)
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        ret = super().delete(*args, **kwargs)
         self.file.delete()
+        return ret
 
 
-def clean_redundant_difs(project: "Project", debug_id: str) -> None:
+def clean_redundant_difs(project: Project, debug_id: str) -> None:
     """Deletes redundant debug files from the database and file storage. A debug
     file is considered redundant if there is a newer file with the same debug
     identifier and the same or a superset of its features.
@@ -247,8 +247,8 @@ def clean_redundant_difs(project: "Project", debug_id: str) -> None:
 
 
 def create_dif_from_id(
-    project: "Project",
-    meta: "DifMeta",
+    project: Project,
+    meta: DifMeta,
     fileobj: Optional[BinaryIO] = None,
     file: Optional[File] = None,
 ) -> Tuple[ProjectDebugFile, bool]:
@@ -383,11 +383,11 @@ class DifMeta:
     @classmethod
     def from_object(
         cls,
-        obj: ProjectDebugFile,
+        obj: Object,
         path: str,
         name: Optional[str] = None,
         debug_id: Optional[str] = None,
-    ) -> "DifMeta":
+    ) -> DifMeta:
         if debug_id is not None:
             try:
                 debug_id = normalize_debug_id(debug_id)
@@ -554,7 +554,7 @@ def detect_dif_from_path(
 
 
 def create_debug_file_from_dif(
-    to_create: Iterable[DifMeta], project: "Project"
+    to_create: Iterable[DifMeta], project: Project
 ) -> List[ProjectDebugFile]:
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
@@ -569,7 +569,7 @@ def create_debug_file_from_dif(
 
 
 def create_files_from_dif_zip(
-    fileobj: BinaryIO, project: "Project", accept_unknown: bool = False
+    fileobj: BinaryIO | zipfile.ZipFile, project: Project, accept_unknown: bool = False
 ) -> List[ProjectDebugFile]:
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
@@ -603,11 +603,11 @@ class DIFCache:
     def cache_path(self) -> str:
         return options.get("dsym.cache-path")
 
-    def get_project_path(self, project: "Project") -> str:
+    def get_project_path(self, project: Project) -> str:
         return os.path.join(self.cache_path, str(project.id))
 
     def fetch_difs(
-        self, project: "Project", debug_ids: Iterable[str], features: Optional[Set[str]] = None
+        self, project: Project, debug_ids: Iterable[str], features: Iterable[str] | None = None
     ) -> Mapping[str, str]:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.

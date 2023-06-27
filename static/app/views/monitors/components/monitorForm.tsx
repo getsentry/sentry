@@ -130,6 +130,11 @@ function transformData(_data: Record<string, any>, model: FormModel) {
     return data;
   }, {});
 
+  // If targets are not specified, don't send alert rule config to backend
+  if (!result.alertRule?.targets) {
+    result.alertRule = undefined;
+  }
+
   return result;
 }
 

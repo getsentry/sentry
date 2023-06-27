@@ -1,10 +1,10 @@
 from rest_framework import serializers
 
-from sentry import tsdb
 from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models import ProjectOption
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
+from sentry.tsdb.base import TSDBModel
 
 
 class FilterStatKeys:
@@ -27,16 +27,16 @@ class FilterStatKeys:
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
-    FilterStatKeys.IP_ADDRESS: tsdb.models.project_total_received_ip_address,
-    FilterStatKeys.RELEASE_VERSION: tsdb.models.project_total_received_release_version,
-    FilterStatKeys.ERROR_MESSAGE: tsdb.models.project_total_received_error_message,
-    FilterStatKeys.BROWSER_EXTENSION: tsdb.models.project_total_received_browser_extensions,
-    FilterStatKeys.LEGACY_BROWSER: tsdb.models.project_total_received_legacy_browsers,
-    FilterStatKeys.LOCALHOST: tsdb.models.project_total_received_localhost,
-    FilterStatKeys.WEB_CRAWLER: tsdb.models.project_total_received_web_crawlers,
-    FilterStatKeys.INVALID_CSP: tsdb.models.project_total_received_invalid_csp,
-    FilterStatKeys.CORS: tsdb.models.project_total_received_cors,
-    FilterStatKeys.DISCARDED_HASH: tsdb.models.project_total_received_discarded,
+    FilterStatKeys.IP_ADDRESS: TSDBModel.project_total_received_ip_address,
+    FilterStatKeys.RELEASE_VERSION: TSDBModel.project_total_received_release_version,
+    FilterStatKeys.ERROR_MESSAGE: TSDBModel.project_total_received_error_message,
+    FilterStatKeys.BROWSER_EXTENSION: TSDBModel.project_total_received_browser_extensions,
+    FilterStatKeys.LEGACY_BROWSER: TSDBModel.project_total_received_legacy_browsers,
+    FilterStatKeys.LOCALHOST: TSDBModel.project_total_received_localhost,
+    FilterStatKeys.WEB_CRAWLER: TSDBModel.project_total_received_web_crawlers,
+    FilterStatKeys.INVALID_CSP: TSDBModel.project_total_received_invalid_csp,
+    FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
+    FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
 }
 
 
@@ -200,8 +200,7 @@ _browser_extensions_filter = _FilterSpec(
 )
 
 
-class _LegacyBrowserFilterSerializer(serializers.Serializer):
-    active = serializers.BooleanField()
+class _LegacyBrowserFilterSerializer(_FilterSerializer):
     subfilters = MultipleChoiceField(
         choices=[
             "ie_pre_9",

@@ -11,8 +11,9 @@ from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from typing_extensions import override
 
-from bitfield import BitField
+from bitfield import TypedBitfield
 from sentry import features, roles
 from sentry.app import env
 from sentry.constants import (
@@ -30,12 +31,11 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.options.option import OptionMixin
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -175,40 +175,34 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
     is_test = models.BooleanField(default=False)
 
-    flags = BitField(
-        flags=(
-            (
-                "allow_joinleave",
-                "Allow members to join and leave teams without requiring approval.",
-            ),
-            (
-                "enhanced_privacy",
-                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
-            ),
-            (
-                "disable_shared_issues",
-                "Disable sharing of limited details on issues to anonymous users.",
-            ),
-            (
-                "early_adopter",
-                "Enable early adopter status, gaining access to features prior to public release.",
-            ),
-            ("require_2fa", "Require and enforce two-factor authentication for all members."),
-            (
-                "disable_new_visibility_features",
-                "Temporarily opt out of new visibility features and ui",
-            ),
-            (
-                "require_email_verification",
-                "Require and enforce email verification for all members.",
-            ),
-            (
-                "codecov_access",
-                "Enable codecov integration.",
-            ),
-        ),
-        default=1,
-    )
+    class flags(TypedBitfield):
+        # Allow members to join and leave teams without requiring approval
+        allow_joinleave: bool
+
+        # Enable enhanced privacy controls to limit personally identifiable
+        # information (PII) as well as source code in things like
+        # notifications.
+        enhanced_privacy: bool
+
+        # Disable sharing of limited details on issues to anonymous users.
+        disable_shared_issues: bool
+
+        # Enable early adopter status, gaining access to features prior to public release.
+        early_adopter: bool
+
+        # Require and enforce two-factor authentication for all members.
+        require_2fa: bool
+
+        # Temporarily opt out of new visibility features and ui
+        disable_new_visibility_features: bool
+
+        # Require and enforce email verification for all members.
+        require_email_verification: bool
+
+        # Enable codecov integration.
+        codecov_access: bool
+
+        bitfield_default = 1
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
@@ -263,8 +257,18 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
                 lambda: self.save_with_update_outbox(*args, **kwargs),
             )
         else:
-            with transaction.atomic():
+            with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
+
+    # Override for the default update method to ensure that most atomic updates
+    #  generate an outbox alongside any mutations to ensure data is replicated
+    #  properly to the control silo.
+    @override
+    def update(self, *args, **kwargs):
+        with outbox_context(transaction.atomic()):
+            results = super().update(*args, **kwargs)
+            Organization.outbox_for_update(self.id).save()
+            return results
 
     @classmethod
     def reserve_snowflake_id(cls):
@@ -279,7 +283,7 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic(), flush=False):
             Organization.outbox_for_update(self.id).save()
             return super().delete(**kwargs)
 
@@ -356,12 +360,9 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             role__in=roles,
         )
         if not include_null_users:
-            user_ids_with_role = members_with_role.filter(user_id__isnull=False).values_list(
-                "user_id", flat=True
-            )
-            user_ids = user_service.get_many_ids(
-                filter=dict(is_active=True, user_ids=list(user_ids_with_role))
-            )
+            user_ids = members_with_role.filter(
+                user_id__isnull=False, user_is_active=True
+            ).values_list("user_id", flat=True)
             members_with_role = members_with_role.filter(user_id__in=user_ids)
 
         members_with_role = set(members_with_role.values_list("id", flat=True))

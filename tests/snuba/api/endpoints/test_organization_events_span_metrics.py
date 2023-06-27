@@ -124,8 +124,25 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["sum(span.duration)"] == 420
         assert meta["dataset"] == "spansMetrics"
 
-    # TODO(wmak)
-    # test_percentile
+    def test_percentile(self):
+        self.store_span_metric(
+            1,
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["percentile(span.duration, 0.95)"],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["percentile(span.duration, 0.95)"] == 1
+        assert meta["dataset"] == "spansMetrics"
 
     def test_p50(self):
         self.store_span_metric(
@@ -256,7 +273,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["fields"]["http_error_count()"] == "integer"
         assert meta["fields"]["http_error_rate()"] == "percentage"
 
-    def percentile_percent_change(self):
+    def test_percentile_percent_change(self):
         self.store_span_metric(
             5,
             timestamp=self.six_min_ago,
@@ -267,9 +284,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["percentile_percent_change(span.duration)"],
+                "field": ["percentile_percent_change(span.duration, 0.95)"],
                 "query": "",
-                "orderby": ["-percentile_percent_change()"],
+                "orderby": ["-percentile_percent_change(span.duration, 0.95)"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "statsPeriod": "10m",
@@ -279,9 +296,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["percentile_percent_change()"] == 1
+        assert data[0]["percentile_percent_change(span.duration, 0.95)"] == 1
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["percentile_percent_change()"] == "percentage"
+        assert meta["fields"]["percentile_percent_change(span.duration, 0.95)"] == "percent_change"
 
     def test_http_error_count_percent_change(self):
         for _ in range(4):
@@ -311,7 +328,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(data) == 1
         assert data[0]["http_error_count_percent_change()"] == -0.75
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["http_error_count_percent_change()"] == "percentage"
+        assert meta["fields"]["http_error_count_percent_change()"] == "percent_change"
 
     def test_epm_percent_change(self):
         for _ in range(4):
@@ -340,8 +357,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["epm_percent_change()"] == pytest.approx(-0.75)
         assert data[0]["spm_percent_change()"] == pytest.approx(-0.75)
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["epm_percent_change()"] == "percentage"
-        assert meta["fields"]["spm_percent_change()"] == "percentage"
+        assert meta["fields"]["epm_percent_change()"] == "percent_change"
+        assert meta["fields"]["spm_percent_change()"] == "percent_change"
 
     def test_eps_percent_change(self):
         for _ in range(4):
@@ -370,5 +387,5 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["eps_percent_change()"] == pytest.approx(3)
         assert data[0]["sps_percent_change()"] == pytest.approx(3)
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["eps_percent_change()"] == "percentage"
-        assert meta["fields"]["sps_percent_change()"] == "percentage"
+        assert meta["fields"]["eps_percent_change()"] == "percent_change"
+        assert meta["fields"]["sps_percent_change()"] == "percent_change"

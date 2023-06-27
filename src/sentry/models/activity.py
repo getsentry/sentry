@@ -67,7 +67,7 @@ class ActivityManager(BaseManager):
         send_notification: bool = True,
     ) -> Activity:
         if user:
-            user_id = user.id
+            user_id = user.id  # type: ignore[assignment]
         activity_args = {
             "project_id": group.project_id,
             "group": group,
@@ -90,12 +90,12 @@ class Activity(Model):
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
     # index on (type, ident)
-    type = BoundedPositiveIntegerField(choices=CHOICES)
+    type: models.Field[int | ActivityType, int] = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
-    data = GzippedDictField(null=True)
+    data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(null=True)
 
     objects = ActivityManager()
 

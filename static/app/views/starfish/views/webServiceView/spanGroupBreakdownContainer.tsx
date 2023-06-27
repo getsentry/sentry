@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -20,7 +21,7 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
-export const NULL_SPAN_CATEGORY = '<null>';
+export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
   transaction?: string;
@@ -156,10 +157,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const data = Object.values(seriesByDomain);
 
-  const initialShowSeries = transformedData.map(
-    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
-  );
-
   return (
     <StyledPanel>
       <SpanGroupBreakdown
@@ -168,7 +165,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTableLoading={isSegmentsLoading}
         topSeriesData={data}
         colorPalette={colorPalette}
-        initialShowSeries={initialShowSeries}
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
@@ -191,14 +187,14 @@ const getEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
-    yAxis: getTimeseries ? [`p95(${SPAN_SELF_TIME})`] : [],
+    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
+    yAxis: getTimeseries ? [`sum(${SPAN_SELF_TIME})`] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,
@@ -219,7 +215,7 @@ const getCumulativeTimeEventView = (
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,

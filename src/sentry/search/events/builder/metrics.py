@@ -29,6 +29,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     QueryFramework,
     SelectType,
@@ -288,7 +289,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.MetricsFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -926,7 +927,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
-                if granularity < interval:
+                if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
 

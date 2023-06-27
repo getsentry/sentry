@@ -9,7 +9,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember, outbox_context
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 
@@ -74,7 +74,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        with transaction.atomic():
+        with outbox_context(transaction.atomic(), flush=False):
             om = OrganizationMember.objects.create(
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
@@ -98,7 +98,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
         )
 
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
         async_send_notification(InviteRequestNotification, om, request.user)
 
         return Response(serialize(om), status=201)

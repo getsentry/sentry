@@ -13,7 +13,6 @@ from typing import (
     Union,
 )
 
-import sentry_sdk
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
@@ -222,14 +221,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
-
-        try:
-            assert (user_ids and not team_ids) or (
-                team_ids and not user_ids
-            ), "Must have user_id or team_id when reading settings"
-        except AssertionError as err:
-            sentry_sdk.capture_exception(err)
-
         query = Q()
         if provider:
             query = query & Q(provider=provider.value)
@@ -516,7 +507,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         assert key_field, "Could not resolve key_field"
 
-        # Explicitly typing to satisfy mypy.
         team_ids: Set[int] = set()
         user_ids: Set[int] = set()
         if isinstance(recipient, RpcActor):
@@ -526,7 +516,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         elif isinstance(recipient, User):
             user_ids.add(recipient.id)
 
-        has_settings: bool = (
+        return (
             self._filter(provider=provider, team_ids=team_ids, user_ids=user_ids)
             .filter(
                 value__in={
@@ -538,7 +528,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             )
             .exists()
         )
-        return has_settings
 
     def enable_settings_for_user(
         self,

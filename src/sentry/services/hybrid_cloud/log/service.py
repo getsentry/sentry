@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 from typing import cast
 
@@ -24,6 +26,13 @@ class LogService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def record_user_ip(self, *, event: UserIpEvent) -> None:
+        pass
+
+    @rpc_method
+    @abc.abstractmethod
+    def find_last_log(
+        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+    ) -> AuditLogEvent | None:
         pass
 
 

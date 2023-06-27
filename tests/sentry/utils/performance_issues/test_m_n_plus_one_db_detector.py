@@ -1,14 +1,18 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 from unittest.mock import Mock, call
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import MNPlusOneDBSpanDetector
+from sentry.utils.performance_issues.detectors.mn_plus_one_db_span_detector import (
+    MNPlusOneDBSpanDetector,
+)
 from sentry.utils.performance_issues.performance_detection import (
     _detect_performance_problems,
     get_detection_settings,
@@ -22,10 +26,10 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 class MNPlusOneDBDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = MNPlusOneDBSpanDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = MNPlusOneDBSpanDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -140,24 +144,27 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
         assert self.find_problems(event) == []
 
-    # TODO Abdullah Khan: Uncomment after detection_rate migration
-    # def test_respects_project_option(self):
-    #     project = self.create_project()
-    #     event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
-    #     event["project_id"] = project.id
+    def test_m_n_plus_one_ignores_mostly_not_db(self):
+        event = get_event("m-n-plus-one-db/m-n-plus-one-mostly-http")
+        assert self.find_problems(event) == []
 
-    #     settings = get_detection_settings(project.id)
-    #     detector = MNPlusOneDBSpanDetector(settings, event)
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+        event["project_id"] = project.id
 
-    #     assert detector.is_creation_allowed_for_project(project)
+        settings = get_detection_settings(project.id)
+        detector = MNPlusOneDBSpanDetector(settings, event)
 
-    #     ProjectOption.objects.set_value(
-    #         project=project,
-    #         key="sentry:performance_issue_settings",
-    #         value={"n_plus_one_db_queries_detection_enabled": False},
-    #     )
+        assert detector.is_creation_allowed_for_project(project)
 
-    #     settings = get_detection_settings(project.id)
-    #     detector = MNPlusOneDBSpanDetector(settings, event)
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"n_plus_one_db_queries_detection_enabled": False},
+        )
 
-    #     assert not detector.is_creation_allowed_for_project(project)
+        settings = get_detection_settings(project.id)
+        detector = MNPlusOneDBSpanDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)

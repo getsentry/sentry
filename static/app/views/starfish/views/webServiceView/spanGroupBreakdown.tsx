@@ -1,10 +1,12 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import cloneDeep from 'lodash/cloneDeep';
 import * as qs from 'query-string';
 
 import Checkbox from 'sentry/components/checkbox';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -22,7 +24,6 @@ import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreak
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
@@ -33,22 +34,33 @@ type Props = {
   transaction?: string;
 };
 
+export enum DataDisplayType {
+  CUMULATIVE_DURATION = 'cumulative_duration',
+  PERCENTAGE = 'percentage',
+}
+
 export function SpanGroupBreakdown({
   tableData: transformedData,
   totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
   isTimeseriesLoading,
   errored,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
+  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
+  const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+  ];
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+    DataDisplayType.CUMULATIVE_DURATION
+  );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
+  if (showSeriesArray.length === 0 && transformedData.length > 0) {
+    setShowSeriesArray(transformedData.map(() => true));
+  }
 
   const visibleSeries: Series[] = [];
 
@@ -60,20 +72,43 @@ export function SpanGroupBreakdown({
   }
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
+  const dataAsPercentages = cloneDeep(visibleSeries);
+  const numDataPoints = data[0]?.data?.length ?? 0;
+  for (let i = 0; i < numDataPoints; i++) {
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    dataAsPercentages.forEach(segment => {
+      const clone = {...segment.data[i]};
+      clone.value = clone.value / totalTimeAtIndex;
+      segment.data[i] = clone;
+    });
+  }
+
+  const handleChange = (option: SelectOption<DataDisplayType>) =>
+    setDataDisplayType(option.value);
+
   return (
     <FlexRowContainer>
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {transaction
-              ? t('Endpoint Time Breakdown (P95)')
-              : t('App Time Breakdown (P95)')}
+            {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
+          <CompactSelect
+            options={options}
+            value={dataDisplayType}
+            onChange={handleChange}
+          />
         </Header>
         <Chart
           statsPeriod="24h"
           height={210}
-          data={visibleSeries}
+          data={
+            dataDisplayType === DataDisplayType.PERCENTAGE
+              ? dataAsPercentages
+              : visibleSeries
+          }
+          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""
           end=""
           errored={errored}
@@ -87,7 +122,9 @@ export function SpanGroupBreakdown({
           }}
           definedAxisTicks={6}
           stacked
-          aggregateOutputFormat="duration"
+          aggregateOutputFormat={
+            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+          }
           tooltipFormatterOptions={{
             valueFormatter: value =>
               tooltipFormatterUsingAggregateOutputType(value, 'duration'),
@@ -108,6 +145,9 @@ export function SpanGroupBreakdown({
           } else {
             spansLinkQueryParams['span.module'] = 'Other';
           }
+          spansLinkQueryParams['!span.module'] = transformedData
+            .map(r => r.group['span.category'])
+            .filter(c => !['Other'].includes(c));
           spansLinkQueryParams['span.category'] = group['span.category'];
 
           const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;

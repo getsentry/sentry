@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import type useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
 interface Props
   extends Pick<
-    ReturnType<typeof useReplayData>,
+    ReturnType<typeof useReplayReader>,
     'fetchError' | 'fetching' | 'projectSlug' | 'replay'
   > {}
 

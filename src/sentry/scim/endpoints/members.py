@@ -26,7 +26,7 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
@@ -34,6 +34,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
+from sentry.roles import organization_roles
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import json, metrics
@@ -42,6 +43,7 @@ from sentry.utils.cursors import SCIMCursor
 from .constants import (
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
+    SCIM_403_FORBIDDEN_UPDATE,
     SCIM_409_USER_EXISTS,
     MemberPatchOps,
 )
@@ -201,7 +203,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             200: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
@@ -225,7 +227,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
@@ -268,7 +270,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(self, request: Request, organization, member) -> Response:
@@ -289,7 +291,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             201: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.UPDATE_USER_ROLE,
     )
@@ -299,6 +301,9 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
 
         Currently only updates organization role
         """
+        # Do not allow modifications on members with the highest priority role
+        if member.role == organization_roles.get_top_dog().id:
+            raise SCIMApiError(detail=SCIM_403_FORBIDDEN_UPDATE, status_code=403)
         if request.data.get("sentryOrgRole"):
             # Don't update if the org role is the same
             if (
@@ -368,7 +373,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.LIST_ORG_MEMBERS,
     )
@@ -428,7 +433,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             201: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )

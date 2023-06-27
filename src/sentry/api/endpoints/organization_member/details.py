@@ -14,7 +14,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
@@ -97,7 +97,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -184,7 +184,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                         with transaction.atomic():
                             member.regenerate_token()
                             member.save()
-                        member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -217,13 +216,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
-            if getattr(member.flags, "idp:role-restricted"):
-                return Response(
-                    {
-                        "role": "This user's org-role is managed through your organization's identity provider."
-                    },
-                    status=403,
-                )
+            # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
 
@@ -309,7 +302,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(

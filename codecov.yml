@@ -58,7 +58,7 @@ flags:
     - "src/sentry/**/*.py"
     carryforward: true
     # Do not send any status checks until N coverage reports are uploaded
-    after_n_builds: 16
+    after_n_builds: 17
 
 # Read more here: https://docs.codecov.com/docs/pull-request-comments
 comment:

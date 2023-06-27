@@ -43,9 +43,13 @@ type Props = {
 function SpanSummaryPage({params, location}: Props) {
   const organization = useOrganization();
   const {groupId} = params;
-  const {transaction, endpoint, method} = location.query;
+  const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+
+  if (endpointMethod && queryFilter) {
+    queryFilter['transaction.method'] = endpointMethod;
+  }
 
   const {data: spanMetas} = useSpanMeta(
     groupId,
@@ -77,10 +81,15 @@ function SpanSummaryPage({params, location}: Props) {
       {group: groupId},
       queryFilter,
       [`p95(${SPAN_SELF_TIME})`, 'sps()'],
-      'sidebar-span-metrics'
+      'span-summary-page-metrics'
     );
 
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
+
+  const spanMetricsThroughputSeries = {
+    seriesName: span?.['span.op']?.startsWith('db') ? 'Queries' : 'Requests',
+    data: spanMetricsSeriesData?.['sps()'].data,
+  };
 
   return (
     <Layout.Page>
@@ -101,7 +110,7 @@ function SpanSummaryPage({params, location}: Props) {
                         location
                       )}/?${qs.stringify({
                         endpoint,
-                        method,
+                        'http.method': endpointMethod,
                       })}`
                     ),
                   },
@@ -111,7 +120,9 @@ function SpanSummaryPage({params, location}: Props) {
                 ]}
               />
               <Layout.Title>
-                {method && endpoint ? `${method} ${endpoint}` : t('Span Summary')}
+                {endpointMethod && endpoint
+                  ? `${endpointMethod} ${endpoint}`
+                  : t('Span Summary')}
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -170,7 +181,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[spanMetricsSeriesData?.['sps()']]}
+                        data={[spanMetricsThroughputSeries]}
                         start=""
                         end=""
                         loading={areSpanMetricsSeriesLoading}
@@ -178,6 +189,7 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[THROUGHPUT_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        aggregateOutputFormat="rate"
                         tooltipFormatterOptions={{
                           valueFormatter: value => formatThroughput(value),
                         }}
@@ -205,11 +217,19 @@ function SpanSummaryPage({params, location}: Props) {
               )}
 
               {span && (
-                <SpanTransactionsTable span={span} endpoint={endpoint} method={method} />
+                <SpanTransactionsTable
+                  span={span}
+                  endpoint={endpoint}
+                  endpointMethod={endpointMethod}
+                />
               )}
 
               {transaction && span?.group && (
-                <SampleList groupId={span.group} transactionName={transaction} />
+                <SampleList
+                  groupId={span.group}
+                  transactionName={transaction}
+                  transactionMethod={transactionMethod}
+                />
               )}
             </Layout.Main>
           </Layout.Body>

@@ -37,7 +37,7 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             projects = client.get_projects(self.instance)
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
 
@@ -77,7 +77,7 @@ class VstsIssueSync(IssueSyncMixin):
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         item_type_map = {}
         for item in item_categories:
@@ -183,7 +183,7 @@ class VstsIssueSync(IssueSyncMixin):
                 comment=markdown(description),
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {

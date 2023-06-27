@@ -143,7 +143,7 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def _hydrate_rules(cls, project_id, rules, type=OwnerRuleType.OWNERSHIP_RULE.value):
+    def _hydrate_rules(cls, project_id, rules, type: str = OwnerRuleType.OWNERSHIP_RULE.value):
         """
         Get the last matching rule to take the most precedence.
         """
@@ -168,13 +168,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[
-        Tuple[
-            "Rule",
-            Sequence[Union["Team", "RpcUser"]],
-            Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
-        ]
-    ]:
+    ) -> Sequence[Tuple["Rule", Sequence[Union["Team", "RpcUser"]], str,]]:
         """
         Get the issue owners for a project if there are any.
 

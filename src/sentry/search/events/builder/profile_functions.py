@@ -37,7 +37,7 @@ class ProfileFunctionsQueryBuilderMixin:
 
 
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
-    pass
+    function_alias_prefix = "sentry_"
 
 
 class ProfileFunctionsTimeseriesQueryBuilder(
@@ -115,6 +115,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             if groupby == self.time_column:
                 continue
             if isinstance(groupby, (CurriedFunction, AliasedExpression)):
+                assert groupby.alias is not None
                 translated.append(groupby.alias)
             else:
                 translated.append(groupby.name)

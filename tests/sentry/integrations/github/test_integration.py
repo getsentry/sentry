@@ -11,7 +11,7 @@ from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubInteg
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test

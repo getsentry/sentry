@@ -9,15 +9,16 @@ from sentry import features, quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    get_boost_low_volume_projects_sample_rate,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    get_boost_low_volume_projects_sample_rate,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import get_sliding_window_sample_rate
 from sentry.models import Organization, Project
 
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.RECALIBRATION_RULE, RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
+# These rules types will always be added to the generated rules, irrespectively of the base sample rate.
+ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
@@ -56,10 +57,6 @@ def is_sliding_window_org_enabled(organization: Organization) -> bool:
     ) and not features.has("organizations:ds-sliding-window", organization, actor=None)
 
 
-def can_boost_new_projects(organization: Organization) -> bool:
-    return features.has("organizations:ds-boost-new-projects", organization, actor=None)
-
-
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
     sample_rate = quotas.get_blended_sample_rate(organization_id=organization.id)  # type:ignore
 
@@ -75,9 +72,7 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     #
     # In case the organization or the project have been recently added, we want to boost to 100% in order to give users
     # a better experience. Once this condition will become False, the dynamic sampling systems will kick in.
-    if can_boost_new_projects(organization) and (
-        is_recently_added(model=organization) or is_recently_added(model=project)
-    ):
+    if is_recently_added(model=project) or is_recently_added(model=organization):
         return 1.0
 
     # We want to use the normal sliding window only if the sliding window at the org level is disabled.

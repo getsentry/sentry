@@ -155,7 +155,7 @@ class GetCommitFileChangesTestCase(CommitTestCase):
         self.path_name_set = {file_change.filename for file_change in self.file_changes}
 
     def test_no_paths(self):
-        assert [] == _get_commit_file_changes(self.commits, {})
+        assert [] == _get_commit_file_changes(self.commits, set())
 
     def test_no_valid_paths(self):
         assert [] == _get_commit_file_changes(self.commits, {"/"})
@@ -309,6 +309,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -484,6 +485,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -545,6 +547,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -615,6 +618,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -669,6 +673,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -723,6 +728,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -774,6 +780,7 @@ class GetEventFileCommitters(CommitTestCase):
         ReleaseCommit.objects.create(
             organization_id=self.organization.id, release=self.release, commit=commit, order=1
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -821,6 +828,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -873,6 +881,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -909,6 +918,7 @@ class GetEventFileCommitters(CommitTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -960,6 +970,7 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
