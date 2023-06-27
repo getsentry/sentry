@@ -613,7 +613,7 @@ class CombinedQuerysetPaginator:
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_combined_querysets(self, value, is_prev, limit, extra):
+    def _build_combined_querysets(self, value, is_prev, limit, offset, stop, extra):
         asc = self._is_asc(is_prev)
         combined_querysets = list()
         for intermediary in self.intermediaries:
@@ -641,8 +641,11 @@ class CombinedQuerysetPaginator:
                     queryset = queryset.order_by(key)
                 else:
                     queryset = queryset.order_by(f"-{key}")
-
-            queryset = queryset[: (limit + extra)]
+            # print(len(list(queryset)))
+            # if offset < 1:
+            #     queryset = queryset[:(limit + extra)]
+            # else:
+            #     queryset = queryset[offset:stop]
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -675,25 +678,33 @@ class CombinedQuerysetPaginator:
         extra = 1
         if cursor.is_prev and cursor.value:
             extra += 1
+        stop = offset + limit + extra
         combined_querysets = self._build_combined_querysets(
-            cursor_value, cursor.is_prev, limit, extra
+            cursor_value, cursor.is_prev, limit, offset, stop, extra
         )
 
-        stop = offset + limit + extra
-        results = list(combined_querysets[offset:stop])
+        if offset == 0:
+            combined_querysets = combined_querysets[:(limit + extra)]
+        else:
+            combined_querysets = combined_querysets[offset:stop]
+
+        results = list(combined_querysets)
 
         if cursor.is_prev and cursor.value:
             # If the first result is equal to the cursor_value then it's safe to filter
             # it out, since the value hasn't been updated
             if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
+                print("here")
+                # results = results[:-1] # temp
                 results = results[1:]
             # Otherwise we may have fetched an extra row, just drop it off the end if so.
-            elif len(results) == offset + limit + extra:
-                results = results[:-1]
+            # elif len(results) == offset + limit + extra:
+            #     print("no here")
+            #     results = results[:-1]
 
         # We reversed the results when generating the querysets, so we need to reverse back now.
-        if cursor.is_prev:
-            results.reverse()
+        # if cursor.is_prev:
+        #     results.reverse()
 
         return build_cursor(
             results=results,
