@@ -157,8 +157,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const data = Object.values(seriesByDomain);
 
-  const initialShowSeries = transformedData.map(_ => true);
-
   return (
     <StyledPanel>
       <SpanGroupBreakdown
@@ -167,7 +165,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTableLoading={isSegmentsLoading}
         topSeriesData={data}
         colorPalette={colorPalette}
-        initialShowSeries={initialShowSeries}
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
@@ -197,7 +194,7 @@ const getEventView = (
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,
@@ -218,7 +215,7 @@ const getCumulativeTimeEventView = (
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,

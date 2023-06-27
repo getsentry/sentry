@@ -1084,11 +1084,7 @@ describe('SmartSearchBar', function () {
     });
     it('hides the default group after typing', async function () {
       render(
-        <SmartSearchBar
-          {...defaultProps}
-          defaultSearchGroup={defaultSearchGroup}
-          query=""
-        />
+        <SmartSearchBar {...defaultProps} defaultSearchGroup={defaultSearchGroup} />
       );
 
       const textbox = screen.getByRole('textbox');
@@ -1101,6 +1097,34 @@ describe('SmartSearchBar', function () {
       expect(
         screen.queryByTestId('default-search-group-wrapper')
       ).not.toBeInTheDocument();
+    });
+
+    it('hides the default group after picking item with applyFilter', async function () {
+      render(
+        <SmartSearchBar
+          {...defaultProps}
+          defaultSearchGroup={{
+            ...defaultSearchGroup,
+            children: [
+              {
+                type: ItemType.RECOMMENDED,
+                title: 'Custom Tags',
+                // Filter is applied to all search items when picked
+                applyFilter: item => item.title === 'device',
+              },
+            ],
+          }}
+        />
+      );
+
+      const textbox = screen.getByRole('textbox');
+      await userEvent.click(textbox);
+      expect(await screen.findByText('User identification value')).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Custom Tags'));
+
+      expect(screen.queryByText('Custom Tags')).not.toBeInTheDocument();
+      expect(screen.queryByText('User identification value')).not.toBeInTheDocument();
+      expect(screen.getByText('device')).toBeInTheDocument();
     });
   });
 });
