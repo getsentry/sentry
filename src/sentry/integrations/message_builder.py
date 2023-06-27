@@ -64,18 +64,26 @@ def get_title_link(
     issue_details: bool,
     notification: BaseNotification | None,
     provider: ExternalProviders = ExternalProviders.SLACK,
+    rule_id: int | None = None,
 ) -> str:
+    other_params = {}
+    # add in rule id if we have it
+    if rule_id:
+        other_params["rule_id"] = rule_id
+
     if event and link_to_event:
         url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider]}, event_id=event.event_id
+            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params},
+            event_id=event.event_id,
         )
 
     elif issue_details and notification:
         referrer = notification.get_referrer(provider)
-        url = group.get_absolute_url(params={"referrer": referrer})
-
+        url = group.get_absolute_url(params={"referrer": referrer, **other_params})
     else:
-        url = group.get_absolute_url(params={"referrer": EXTERNAL_PROVIDERS[provider]})
+        url = group.get_absolute_url(
+            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
+        )
 
     return url
 
