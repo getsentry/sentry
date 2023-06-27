@@ -21,6 +21,7 @@ from sentry.types.group import GroupStatus
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.groups import IssueState, ToEscalatingStateTransition, ToUnignoredStateTransition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.manager import LockManager
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
@@ -729,9 +730,8 @@ def process_snoozes(job: PostProcessJob) -> None:
     if job["is_reprocessed"] or not job["has_reappeared"]:
         return
 
-    from sentry.issues.escalating import is_escalating, manage_issue_states
-    from sentry.models import GroupInboxReason, GroupSnooze
-    from sentry.types.group import GroupSubStatus
+    from sentry.issues.escalating import is_escalating
+    from sentry.models import GroupSnooze, GroupStatus
 
     event = job["event"]
     group = event.group
@@ -739,15 +739,13 @@ def process_snoozes(job: PostProcessJob) -> None:
     # Check is group is escalating
     if (
         features.has("organizations:escalating-issues", group.organization)
-        and group.status == GroupStatus.IGNORED
-        and group.substatus == GroupSubStatus.UNTIL_ESCALATING
+        and group.state == IssueState.ARCHIVED_UNTIL_ESCALATING
     ):
         escalating, forecast = is_escalating(group)
         if escalating:
-            manage_issue_states(
-                group, GroupInboxReason.ESCALATING, event, activity_data={"forecast": forecast}
+            ToEscalatingStateTransition.do(
+                group, {"event": event, "activity_data": {"forecast": forecast}}
             )
-
             job["has_reappeared"] = True
         return
 
@@ -791,9 +789,13 @@ def process_snoozes(job: PostProcessJob) -> None:
             }
 
             if features.has("organizations:escalating-issues", group.organization):
-                manage_issue_states(group, GroupInboxReason.ESCALATING, event, snooze_details)
+                ToEscalatingStateTransition.do(
+                    group, {"event": event, "group_inbox_data": snooze_details}
+                )
             else:
-                manage_issue_states(group, GroupInboxReason.UNIGNORED, event, snooze_details)
+                ToUnignoredStateTransition.do(
+                    group, {"event": event, "group_inbox_data": snooze_details}
+                )
 
             snooze.delete()
 
