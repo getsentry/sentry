@@ -44,6 +44,9 @@ export type EChartHighlightHandler = EChartEventHandler<any>;
 interface EChartMouseEventParam {
   // color of component (make sense when componentType is 'series')
   color: string;
+  // subtype of the component to which the clicked glyph belongs
+  // i.e. 'scatter', 'line', etc
+  componentSubType: string;
   // type of the component to which the clicked glyph belongs
   // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
   componentType: string;

@@ -29,7 +29,14 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
-import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {
+  EChartClickHandler,
+  EChartHighlightHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -80,6 +87,9 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onHighlight?: EChartHighlightHandler;
+  onMouseOut?: EChartMouseOutHandler;
+  onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   scatterPlot?: Series[];
   showLegend?: boolean;
@@ -153,6 +163,9 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  onMouseOver,
+  onMouseOut,
+  onHighlight,
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
@@ -369,6 +382,9 @@ function Chart({
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
                 onClick={onClick}
+                onMouseOut={onMouseOut}
+                onMouseOver={onMouseOver}
+                onHighlight={onHighlight}
                 series={[
                   ...series.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
