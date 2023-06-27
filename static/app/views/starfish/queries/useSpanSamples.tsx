@@ -55,6 +55,8 @@ export const useSpanSamples = (options: Options) => {
     'sidebar-span-metrics'
   );
 
+  const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
+
   return useQuery<SpanSample[]>({
     queryKey: [
       'span-samples',
@@ -69,8 +71,10 @@ export const useSpanSamples = (options: Options) => {
         `${url}?${qs.stringify({
           ...dateCondtions,
           ...{utc: location.query.utc},
-          upperBound: computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]),
           lowerBound: 0,
+          firstBound: (maxYValue * 1) / 3,
+          secondBound: (maxYValue * 2) / 3,
+          upperBound: maxYValue,
           query: query.formatString(),
         })}`
       );
