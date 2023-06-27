@@ -115,9 +115,7 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             )
 
         assert response.status_code == 403, response.content
-        assert response.data == {
-            "detail": "Ability to enable/disable detection of a performance issue, is restricted to Sentry superusers."
-        }
+        assert response.data == {"detail": "Passed options are only modifiable internally"}
 
     def test_put_super_user_updates_detection_setting(self):
         with self.feature(PERFORMANCE_ISSUE_FEATURES):

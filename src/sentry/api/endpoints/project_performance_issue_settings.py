@@ -12,7 +12,10 @@ MAX_VALUE = 2147483647
 TEN_SECONDS = 10000  # ten seconds in milliseconds
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
-super_admin_project_settings_options = [
+# These options should only be accessible internally and used by
+# support to enable/disable performance issue detection for an outlying project
+# on a case-by-case basis.
+internal_only_project_setting_options = [
     "uncompressed_assets_detection_enabled",
     "consecutive_http_spans_detection_enabled",
     "large_http_payload_detection_enabled",
@@ -103,13 +106,11 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         body_has_admin_options = any(
-            [option in request.data for option in super_admin_project_settings_options]
+            [option in request.data for option in internal_only_project_setting_options]
         )
         if body_has_admin_options and not is_active_superuser(request):
             return Response(
-                {
-                    "detail": "Ability to enable/disable detection of a performance issue, is restricted to Sentry superusers."
-                },
+                {"detail": "Passed options are only modifiable internally"},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -146,7 +147,7 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
             settings_only_with_admin_options = {
                 option: project_settings[option]
                 for option in project_settings
-                if option in super_admin_project_settings_options
+                if option in internal_only_project_setting_options
             }
             project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings_only_with_admin_options)
 
