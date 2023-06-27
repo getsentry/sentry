@@ -319,7 +319,7 @@ class GitHubAppsClientTest(TestCase):
 
         responses.add(
             method=responses.PATCH,
-            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1/",
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
             json={
                 "id": 1,
                 "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
