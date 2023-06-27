@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import List
 
-import requests
+import sentry_sdk
 from django.db import connection
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
@@ -255,14 +255,32 @@ def github_comment_reactions():
         try:
             repo = Repository.objects.get(id=pr.repository_id)
         except Repository.DoesNotExist:
+            metrics.incr("github_pr_comment.comment_reactions.missing_repo")
             continue
 
-        url = GET_COMMENT_REACTION_URL.format(repo=repo.name, comment_id=comment.external_id)
-        response = requests.get(url)
-        response = response.json()
+        integration = integration_service.get_integration(integration_id=repo.integration_id)
+        if not integration:
+            logger.error(
+                "github.pr_comment.comment_reactions.integration_missing",
+                extra={"organization_id": pr.organization_id},
+            )
+            metrics.incr("github_pr_comment.comment_reactions.missing_integration")
+            return
 
-        reactions = response["reactions"]
-        del reactions["url"]
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=pr.organization_id
+        )
 
-        comment.reactions = reactions
-        comment.save()
+        # GitHubAppsClient (GithubClientMixin)
+        # TODO(cathy): create helper function to fetch client for repo
+        client = installation.get_client()
+
+        try:
+            reactions = client.get_comment_reactions(repo=repo.name, comment_id=comment.external_id)
+
+            comment.reactions = reactions
+            comment.save()
+        except ApiError as e:
+            metrics.incr("github_pr_comment.comment_reactions.api_error")
+            sentry_sdk.capture_exception(e)
+            continue

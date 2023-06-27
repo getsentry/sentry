@@ -567,6 +567,13 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
         self.pr = self.create_pr_issues()
+        self.comment = PullRequestComment.objects.create(
+            external_id="2",
+            pull_request=self.pr,
+            created_at=timezone.now(),
+            updated_at=timezone.now(),
+            group_ids=[4, 5],
+        )
         self.expired_pr = self.create_pr_issues()
         self.expired_pr.date_added = timezone.now() - timedelta(days=35)
         self.expired_pr.save()
@@ -580,14 +587,6 @@ class TestCommentReactionsTask(GithubCommentTestCase):
             created_at=timezone.now() - timedelta(days=35),
             updated_at=timezone.now() - timedelta(days=35),
             group_ids=[1, 2, 3],
-        )
-
-        comment = PullRequestComment.objects.create(
-            external_id="2",
-            pull_request=self.pr,
-            created_at=timezone.now(),
-            updated_at=timezone.now(),
-            group_ids=[4, 5],
         )
 
         responses.add(
@@ -614,7 +613,81 @@ class TestCommentReactionsTask(GithubCommentTestCase):
         old_comment.refresh_from_db()
         assert old_comment.reactions is None
 
-        comment.refresh_from_db()
+        self.comment.refresh_from_db()
         stored_reactions = comment_reactions["reactions"]
         del stored_reactions["url"]
-        assert comment.reactions == stored_reactions
+        assert self.comment.reactions == stored_reactions
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_task_missing_repo(self, mock_metrics, get_jwt):
+        self.gh_repo.delete()
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            status=400,
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions is None
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.missing_repo")
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_task_missing_integration(self, mock_metrics, get_jwt):
+        # invalid integration id
+        self.gh_repo.integration_id = 0
+        self.gh_repo.save()
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            status=400,
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions is None
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.comment_reactions.missing_integration"
+        )
+
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @responses.activate
+    def test_comment_reactions_task_api_error(self, mock_metrics, get_jwt):
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.GET,
+            self.base_url + "/repos/getsentry/sentry/issues/comments/2",
+            status=400,
+            json={},
+        )
+
+        github_comment_reactions()
+
+        self.comment.refresh_from_db()
+        assert self.comment.reactions is None
+        mock_metrics.incr.assert_called_with("github_pr_comment.comment_reactions.api_error")
