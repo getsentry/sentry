@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -27,6 +28,7 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import {Wrapper} from 'sentry/views/discover/table/quickContext/styles';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -161,6 +163,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
+    const {organization, api, location} = this.props;
 
     return (
       <StyledActions>
@@ -177,6 +180,18 @@ class ManageDashboards extends AsyncView<Props, State> {
           onChange={opt => this.handleSortChange(opt.value)}
           position="bottom-end"
         />
+        <Wrapper>
+          <Button
+            onClick={() => {
+              openImportDashboardFromFileModal({organization, api, location});
+            }}
+            size="sm"
+            priority="primary"
+            icon={<IconAdd isCircled />}
+          >
+            {t('Import Dashboard from JSON')}
+          </Button>
+        </Wrapper>
       </StyledActions>
     );
   }
