@@ -1,6 +1,7 @@
 import uuid
 from uuid import uuid4
 
+from sentry.models import GroupStatus
 from sentry.models.release import Release
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import with_feature
@@ -212,3 +213,47 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.data["id"] == str(self.event_c.event_id)
         assert response.data["previousEventID"] == str(self.event_b.event_id)
         assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_skipped_snuba_fields_ignored(self):
+        event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-4"],
+                "contexts": {
+                    "replay": {"replay_id": uuid.uuid4().hex},
+                    "trace": {
+                        "sampled": True,
+                        "span_id": "babaae0d4b7512d9",
+                        "trace_id": "a7d67cf796774551a95be6543cacd459",
+                    },
+                },
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+
+        event_f = self.store_event(
+            data={
+                "event_id": "f" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-4"],
+            },
+            project_id=self.project_1.id,
+        )
+
+        group = event_e.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save(update_fields=["status", "substatus"])
+
+        url = f"/api/0/issues/{group.id}/events/helpful/"
+        response = self.client.get(url, {"query": "is:unresolved has:environment"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(event_e.event_id)
+        assert response.data["previousEventID"] is None
+        assert response.data["nextEventID"] == str(event_f.event_id)
