@@ -1,4 +1,5 @@
 import re
+from typing import cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -9,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedBitfield
 from sentry import features, options
 from sentry.db.models import (
     BaseManager,
@@ -52,15 +53,15 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    roles = BitField(
-        flags=(
-            # access to post events to the store endpoint
-            ("store", "Event API access"),
-            # read/write access to rest API
-            ("api", "Web API access"),
-        ),
-        default=["store"],
-    )
+
+    class roles(TypedBitfield):
+        # access to post events to the store endpoint
+        store: bool
+        # read/write access to rest API
+        api: bool
+
+        bitfield_default = ["store"]
+
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
@@ -159,7 +160,7 @@ class ProjectKey(Model):
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
         else:
-            key = self.public_key
+            key = cast(str, self.public_key)
 
         # If we do not have a scheme or domain/hostname, dsn is never valid
         if not urlparts.netloc or not urlparts.scheme:

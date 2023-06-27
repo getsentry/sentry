@@ -148,4 +148,30 @@ class BitField(BigIntegerField):
         return name, path, args, kwargs
 
 
+class TypedBitfieldMeta(type):
+    def __new__(cls, name, bases, clsdict):
+        if name == "TypedBitfield":
+            return type.__new__(cls, name, bases, clsdict)
+
+        flags = []
+        for attr, ty in clsdict["__annotations__"].items():
+            if attr.startswith("_"):
+                continue
+
+            if attr == "bitfield_default":
+                continue
+
+            assert ty is bool, "bitfields can only hold bools"
+            flags.append(attr)
+
+        return BitField(flags=flags, default=clsdict.get("bitfield_default"))
+
+    def __int__(self) -> int:
+        raise NotImplementedError()
+
+
+class TypedBitfield(metaclass=TypedBitfieldMeta):
+    pass
+
+
 BitField.register_lookup(BitQueryExactLookupStub)
