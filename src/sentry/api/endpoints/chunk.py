@@ -31,10 +31,6 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
-    # TODO: at a later point when we return artifact bundles here
-    #   users will by default upload artifact bundles as this is what
-    #   sentry-cli looks for.
-    # "artifact_bundles",  # Artifact bundles containing source maps.
 )
 
 
@@ -91,6 +87,12 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             or organization.flags.early_adopter
         ):
             accept += ("artifact_bundles",)
+
+        # We introduced the new missing chunks functionality for artifact bundles and in order to synchronize upload
+        # capabilities we need to tell CLI to use the new upload style. This is done since if we have mismatched
+        # versions we might incur into problems like the impossibility for users to upload artifacts.
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
+            accept += ("artifact_bundles_v2",)
 
         return Response(
             {
