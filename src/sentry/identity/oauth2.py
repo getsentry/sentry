@@ -5,6 +5,7 @@ from time import time
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import SSLError
 
@@ -201,7 +202,6 @@ class OAuth2Provider(Provider):
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OAuth2LoginView(PipelineView):
@@ -234,7 +234,7 @@ class OAuth2LoginView(PipelineView):
         }
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         for param in ("code", "error", "state"):
             if param in request.GET:
                 return pipeline.next_step()
@@ -310,7 +310,7 @@ class OAuth2CallbackView(PipelineView):
                 "error_description": "We were not able to parse a JSON response, please try again.",
             }
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")

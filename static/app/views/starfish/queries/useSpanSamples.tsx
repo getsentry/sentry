@@ -24,7 +24,7 @@ type Options = {
   transactionName?: string;
 };
 
-type SpanSample = Pick<
+export type SpanSample = Pick<
   SpanIndexedFieldTypes,
   | SpanIndexedFields.SPAN_SELF_TIME
   | SpanIndexedFields.TRANSACTION_ID
