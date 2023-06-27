@@ -12,6 +12,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     region_silo_only_model,
     sane_repr,
@@ -99,6 +100,7 @@ class PullRequestComment(Model):
     created_at = models.DateTimeField()
     updated_at = models.DateTimeField()
     group_ids = DjangoArrayField(BoundedBigIntegerField())
+    reactions = JSONField(null=True)
 
     class Meta:
         app_label = "sentry"
