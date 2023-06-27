@@ -1,5 +1,4 @@
 import sys
-import types
 
 from sentry.utils.cache import memoize
 
@@ -103,7 +102,7 @@ class Param:
         """
         default = value = self.kwargs.get("default")
 
-        if self.is_lambda_default:
+        if default is not None and callable(default):
             value = default(target)
 
         return value
@@ -117,10 +116,6 @@ class Param:
     @memoize
     def has_default(self):
         return "default" in self.kwargs
-
-    @memoize
-    def is_lambda_default(self):
-        return isinstance(self.kwargs.get("default"), types.LambdaType)
 
     @memoize
     def is_required(self):

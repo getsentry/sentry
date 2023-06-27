@@ -662,7 +662,6 @@ module = [
     "sentry.mediators.external_requests.issue_link_requester",
     "sentry.mediators.external_requests.select_requester",
     "sentry.mediators.mediator",
-    "sentry.mediators.param",
     "sentry.mediators.plugins.migrator",
     "sentry.mediators.project_rules.updater",
     "sentry.mediators.sentry_app_installations.installation_notifier",
