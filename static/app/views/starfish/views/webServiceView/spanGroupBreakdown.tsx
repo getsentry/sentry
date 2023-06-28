@@ -84,9 +84,8 @@ export function SpanGroupBreakdown({
         </Header>
         <Chart
           statsPeriod="24h"
-          height={210}
+          height={190}
           showLegend
-          isLineChart
           data={
             dataDisplayType === DataDisplayType.PERCENTAGE
               ? dataAsPercentages
