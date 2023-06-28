@@ -8,11 +8,10 @@ import pytz
 from freezegun import freeze_time
 from sentry_relay import validate_project_config
 
-from sentry.constants import ObjectStatus
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
     ENVIRONMENT_GLOBS,
-    HEALTH_CHECK_GLOBS,
     RESERVED_IDS,
     Platform,
     RuleType,
@@ -637,3 +636,36 @@ def test_project_config_get_at_path(default_project):
     assert project_cfg.get_at_path("bb") is None
     assert project_cfg.get_at_path("b", "c") is None
     assert project_cfg.get_at_path() == project_cfg
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "has_health_check, health_check_set",
+    [
+        (True, True),
+        (False, True),
+        (True, False),
+        (False, False),
+    ],
+    ids=[
+        "with_healthcheck, option set",
+        "without_healthcheck, option set",
+        "with_healthcheck, option not set",
+        "without_healthcheck, option not set",
+    ],
+)
+def test_healthcheck_filter(default_project, has_health_check, health_check_set):
+    """
+    Tests that the project config properly returns healthcheck filters when the
+    flag is set for the org and the user has enabled healthcheck filters.
+    """
+
+    default_project.update_option("filters:health-check", "1" if health_check_set else "0")
+    with Feature({"organizations:health-check-filter": has_health_check}):
+        config = get_project_config(default_project).to_dict()["config"]
+
+    _validate_project_config(config)
+    filter_settings = get_path(config, "filterSettings")
+    config_has_health_check = "ignoreTransactions" in filter_settings
+    should_have_health_check_config = has_health_check and health_check_set
+    assert config_has_health_check == should_have_health_check_config

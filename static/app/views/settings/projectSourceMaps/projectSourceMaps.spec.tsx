@@ -227,7 +227,9 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[1]).not.toHaveClass('active');
 
       // Search bar
-      expect(screen.getByPlaceholderText('Filter by Bundle ID')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Filter by Bundle ID, Debug ID or Release')
+      ).toBeInTheDocument();
 
       // Date Uploaded can be sorted
       await userEvent.hover(screen.getByTestId('icon-arrow'));
