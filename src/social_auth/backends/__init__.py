@@ -9,9 +9,11 @@ Also the modules *must* define a BACKENDS dictionary with the backend name
 (which is used for URLs matching) and Auth class, otherwise it won't be
 enabled.
 """
+from __future__ import annotations
 
 import logging
 import threading
+from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request
@@ -122,10 +124,10 @@ class SocialAuthBackend:
             out["pipeline_index"] = base_index + idx
             mod_name, func_name = name.rsplit(".", 1)
             mod = __import__(mod_name, {}, {}, [func_name])
-            func = getattr(mod, func_name, None)
+            func = getattr(mod, func_name)
 
             try:
-                result = {}
+                result: dict[str, Any] = {}
                 if func_name == "save_status_to_session":
                     result = func(request, *args, **out) or {}
                 else:
@@ -199,7 +201,7 @@ class OAuthBackend(SocialAuthBackend):
     access_token is always stored.
     """
 
-    EXTRA_DATA = None
+    EXTRA_DATA: list[tuple[str, str]] | None = None
     ID_KEY = "id"
 
     def get_user_id(self, details, response):
@@ -246,7 +248,7 @@ class BaseAuth:
         AUTH_BACKEND   Authorization backend related with this service
     """
 
-    AUTH_BACKEND = None
+    AUTH_BACKEND: type[SocialAuthBackend]
 
     def __init__(self, request, redirect):
         self.request = request
@@ -369,9 +371,9 @@ class OAuthAuth(BaseAuth):
 
     SETTINGS_KEY_NAME = ""
     SETTINGS_SECRET_NAME = ""
-    SCOPE_VAR_NAME = None
+    SCOPE_VAR_NAME: str | None = None
     SCOPE_PARAMETER_NAME = "scope"
-    DEFAULT_SCOPE = None
+    DEFAULT_SCOPE: list[str] | None = None
     SCOPE_SEPARATOR = " "
 
     def __init__(self, request, redirect):
@@ -393,7 +395,7 @@ class OAuthAuth(BaseAuth):
 
     def get_scope(self):
         """Return list with needed access scope"""
-        scope = self.DEFAULT_SCOPE or []
+        scope: list[str] = self.DEFAULT_SCOPE or []
         if self.SCOPE_VAR_NAME:
             scope = scope + setting(self.SCOPE_VAR_NAME, [])
         return scope
@@ -517,7 +519,7 @@ class BaseOAuth1(OAuthAuth):
 
     def access_token(self, token):
         """Return request for access token value"""
-        return self.get_querystring(self.ACCESS_TOKEN_URL, auth=self.oauth_auth(token))
+        return self.request(self.ACCESS_TOKEN_URL, auth=self.oauth_auth(token))
 
 
 class BaseOAuth2(OAuthAuth):
@@ -531,10 +533,10 @@ class BaseOAuth2(OAuthAuth):
         ACCESS_TOKEN_URL        Token URL
     """
 
-    AUTHORIZATION_URL = None
-    ACCESS_TOKEN_URL = None
+    AUTHORIZATION_URL: str
+    ACCESS_TOKEN_URL: str
     REFRESH_TOKEN_URL = None
-    REVOKE_TOKEN_URL = None
+    REVOKE_TOKEN_URL: str | None = None
     REVOKE_TOKEN_METHOD = "POST"
     RESPONSE_TYPE = "code"
     REDIRECT_STATE = True
@@ -681,17 +683,14 @@ class BaseOAuth2(OAuthAuth):
         url = cls.REVOKE_TOKEN_URL.format(token=token, uid=uid)
         params = cls.revoke_token_params(token, uid) or {}
         headers = cls.revoke_token_headers(token, uid) or {}
-        data = None
+        data: bytes | None = None
 
         if cls.REVOKE_TOKEN_METHOD == "GET":
             url = f"{url}?{urlencode(params)}"
         else:
-            data = urlencode(params)
+            data = urlencode(params).encode()
 
-        request = Request(url, data=data, headers=headers)
-        if cls.REVOKE_TOKEN_URL.lower() not in ("get", "post"):
-            # Patch get_method to return the needed method
-            request.get_method = lambda: cls.REVOKE_TOKEN_METHOD
+        request = Request(url, data=data, headers=headers, method=cls.REVOKE_TOKEN_METHOD)
         response = dsa_urlopen(request)
         return cls.process_revoke_token_response(response)
 
@@ -705,7 +704,7 @@ class BaseOAuth2(OAuthAuth):
 
 
 # Cache for discovered backends.
-BACKENDSCACHE = {}
+BACKENDSCACHE: dict[str, type[SocialAuthBackend]] = {}
 
 _import_lock = threading.Lock()
 
