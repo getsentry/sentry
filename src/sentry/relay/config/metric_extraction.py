@@ -52,7 +52,7 @@ class TagSpec(TypedDict):
 
 
 class MetricSpec(TypedDict):
-    category: DataCategory
+    category: Literal["transaction"]
     mri: str
     field: NotRequired[Optional[str]]
     condition: NotRequired[RuleCondition]
