@@ -370,7 +370,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
         )
         responses.add(
             responses.PATCH,
-            self.base_url + "/repos/getsentry/sentry/issues/comments/1/",
+            self.base_url + "/repos/getsentry/sentry/issues/comments/1",
             json={"id": 1},
         )
 
@@ -389,7 +389,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
     @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow_raises_error(self, mock_metrics, get_jwt, mock_issues):
+    def test_comment_workflow_api_error(self, mock_metrics, get_jwt, mock_issues):
         cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
         mock_issues.return_value = [
             {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
@@ -411,6 +411,36 @@ class TestCommentWorkflow(GithubCommentTestCase):
             github_comment_workflow(self.pr.id, self.project.id)
             assert cache.get(self.cache_key) is None
             mock_metrics.incr.assert_called_with("github_pr_comment.api_error")
+
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @with_feature("organizations:pr-comment-bot")
+    @responses.activate
+    def test_comment_workflow_api_error_locked_issue(self, mock_metrics, get_jwt, mock_issues):
+        cache.set(self.cache_key, True, timedelta(minutes=5).total_seconds())
+        mock_issues.return_value = [
+            {"group_id": g.id, "event_count": 10} for g in Group.objects.all()
+        ]
+
+        responses.add(
+            responses.POST,
+            self.base_url + f"/app/installations/{self.installation_id}/access_tokens",
+            json={"token": self.access_token, "expires_at": self.expires_at},
+        )
+        responses.add(
+            responses.POST,
+            self.base_url + "/repos/getsentry/sentry/issues/1/comments",
+            status=400,
+            json={
+                "message": "Unable to create comment because issue is locked.",
+                "documentation_url": "https://docs.github.com/articles/locking-conversations/",
+            },
+        )
+
+        github_comment_workflow(self.pr.id, self.project.id)
+        assert cache.get(self.cache_key) is None
+        assert not mock_metrics.incr.called
 
     @patch(
         "sentry.tasks.integrations.github.pr_comment.pr_to_issue_query",

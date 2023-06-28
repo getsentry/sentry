@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.runner.commands.backup import export, import_
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -15,14 +16,14 @@ def backup_json_filename(tmp_path):
     return backup_json
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_import(backup_json_filename):
     with in_test_psql_role_override("postgres"):
         rv = CliRunner().invoke(import_, backup_json_filename)
     assert rv.exit_code == 0, rv.output
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_import_duplicate_key(backup_json_filename):
     # Adding an element with the same key as the last item in the backed up file
     # to force a duplicate key violation exception
