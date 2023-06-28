@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
@@ -102,6 +103,11 @@ def get_rate_limit_key(
 
     # ApiKeys will be treated with IP ratelimits
     elif ip_address is not None:
+        category = "ip"
+        id = ip_address
+
+    # OrgAuthTokens will be treated with IP ratelimits
+    elif is_org_auth_token_auth(request_auth):
         category = "ip"
         id = ip_address
 

@@ -18,8 +18,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
-from sentry.utils import hashlib
-from sentry.utils.security.orgauthtoken_token import generate_token
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @control_silo_endpoint
@@ -43,7 +42,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization: Organization) -> Response:
         jwt_token = generate_token(organization.slug, generate_region_url())
-        token_hashed = hashlib.sha256_text(jwt_token).hexdigest()
+        token_hashed = hash_token(jwt_token)
 
         name = request.data.get("name")
 

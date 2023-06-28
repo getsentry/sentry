@@ -55,6 +55,7 @@ from sentry.models import (
 )
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -725,6 +726,9 @@ class GroupSerializerBase(Serializer, ABC):
                 token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
             ):
                 return True
+
+        if request and is_org_auth_token_auth(request.auth):
+            return request.auth.organization_id == organization_id
 
         return (
             user.is_authenticated
