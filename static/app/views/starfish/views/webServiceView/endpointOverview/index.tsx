@@ -38,8 +38,8 @@ import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
+import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
 import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
 
@@ -292,7 +292,10 @@ export default function EndpointOverview() {
 
           <Layout.Main>
             <StyledRow minSize={200}>
-              <SpanGroupBreakdownContainer transaction={transaction as string} />
+              <ServiceDurationChartContainer
+                transaction={transaction as string}
+                transactionMethod={method}
+              />
             </StyledRow>
             <SegmentedControlContainer>
               <SegmentedControl
