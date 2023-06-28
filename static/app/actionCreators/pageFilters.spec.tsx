@@ -18,10 +18,9 @@ describe('PageFilters ActionCreators', function () {
   const organization = TestStubs.Organization();
 
   beforeEach(function () {
-    localStorage.getItem.mockClear();
     jest.spyOn(PageFiltersStore, 'updateProjects');
     jest.spyOn(PageFiltersStore, 'onInitializeUrlState').mockImplementation();
-    PageFiltersStore.updateProjects.mockClear();
+    jest.clearAllMocks();
   });
 
   describe('initializeUrlState', function () {
@@ -51,8 +50,9 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
-        pathname: '/mock-pathname/',
         router,
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
       });
 
       expect(localStorage.getItem).toHaveBeenCalledWith(
@@ -82,7 +82,8 @@ describe('PageFilters ActionCreators', function () {
         organization,
         queryParams: {},
         skipLoadLastUsed: true,
-        pathname: '/mock-pathname/',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -90,8 +91,8 @@ describe('PageFilters ActionCreators', function () {
     });
 
     it('does not update local storage (persist) when `shouldPersist` is false', async function () {
-      localStorage.setItem.mockClear();
-      localStorage.getItem.mockReturnValueOnce(
+      jest.clearAllMocks();
+      jest.spyOn(localStorage, 'getItem').mockReturnValueOnce(
         JSON.stringify({
           environments: [],
           projects: [],
@@ -104,6 +105,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {},
         shouldPersist: false,
         router,
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
       });
 
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -138,7 +141,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        pathname: '/mock-pathname/',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         router,
       });
       expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
@@ -161,10 +165,14 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        pathname: '/mock-pathname/',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '3h',
+            utc: null,
+            start: null,
+            end: null,
           },
         },
         router,
@@ -190,10 +198,14 @@ describe('PageFilters ActionCreators', function () {
           statsPeriod: '1h',
           project: '1',
         },
-        pathname: '/mock-pathname/',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
+            utc: null,
+            start: null,
+            end: null,
           },
         },
         router,
@@ -218,10 +230,14 @@ describe('PageFilters ActionCreators', function () {
           end: '2020-04-21T00:53:38',
           project: '1',
         },
-        pathname: '/mock-pathname/',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         defaultSelection: {
           datetime: {
             period: '24h',
+            utc: null,
+            start: null,
+            end: null,
           },
         },
         router,
@@ -245,7 +261,8 @@ describe('PageFilters ActionCreators', function () {
         queryParams: {
           project: '1',
         },
-        pathname: 'mock-pathname',
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
         router,
       });
 
@@ -279,7 +296,7 @@ describe('PageFilters ActionCreators', function () {
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
-            project: ['1'],
+            project: [1],
             environment: [],
             start: null,
             end: null,
@@ -293,8 +310,9 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
-        pathname: '/organizations/org-slug/issues/',
         router,
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
       });
 
       // Confirm that query params are not restored from local storage
@@ -309,7 +327,7 @@ describe('PageFilters ActionCreators', function () {
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
-            project: ['1'],
+            project: [1],
             environment: ['prod'],
             start: null,
             end: null,
@@ -323,8 +341,9 @@ describe('PageFilters ActionCreators', function () {
       initializeUrlState({
         organization,
         queryParams: {},
-        pathname: '/organizations/org-slug/issues/',
         router,
+        memberProjects: [],
+        shouldEnforceSingleProject: false,
       });
 
       // Confirm that only environment is restored from local storage
@@ -346,11 +365,6 @@ describe('PageFilters ActionCreators', function () {
     it('updates', function () {
       updateProjects([1, 2]);
       expect(PageFiltersStore.updateProjects).toHaveBeenCalledWith([1, 2], null);
-    });
-
-    it('does not update invalid projects', function () {
-      updateProjects(['1']);
-      expect(PageFiltersStore.updateProjects).not.toHaveBeenCalled();
     });
 
     it('updates history when queries are different', function () {
@@ -563,7 +577,7 @@ describe('PageFilters ActionCreators', function () {
         .spyOn(PageFilterPersistence, 'getPageFilterStorage')
         .mockReturnValueOnce({
           state: {
-            project: ['1'],
+            project: [1],
             environment: [],
             start: null,
             end: null,
@@ -573,16 +587,19 @@ describe('PageFilters ActionCreators', function () {
           pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         });
 
-      PageFiltersStore.onInitializeUrlState({
-        projects: ['2'],
-        environments: ['prod'],
-        datetime: {
-          start: null,
-          end: null,
-          period: '1d',
-          utc: null,
+      PageFiltersStore.onInitializeUrlState(
+        {
+          projects: [2],
+          environments: ['prod'],
+          datetime: {
+            start: null,
+            end: null,
+            period: '1d',
+            utc: null,
+          },
         },
-      });
+        new Set()
+      );
       PageFiltersStore.updateDesyncedFilters(
         new Set(['projects', 'environments', 'datetime'])
       );
