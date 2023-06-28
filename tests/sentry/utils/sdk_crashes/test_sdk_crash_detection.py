@@ -1,8 +1,6 @@
 import abc
 from unittest.mock import patch
 
-import pytest
-
 from fixtures.sdk_crash_detection.crash_event import get_crash_event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -10,6 +8,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.utils.safe import set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
@@ -29,12 +28,12 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
         sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
 
         if should_be_reported:
-            mock_sdk_crash_reporter.report.assert_called_once()
+            assert mock_sdk_crash_reporter.report.call_count == 1
 
             reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
             assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
         else:
-            mock_sdk_crash_reporter.report.assert_not_called()
+            assert mock_sdk_crash_reporter.report.call_count == 0
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
@@ -52,7 +51,7 @@ class PerformanceEventTestMixin(
 
         sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
 
-        mock_sdk_crash_reporter.report.assert_not_called()
+        assert mock_sdk_crash_reporter.report.call_count == 0
 
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
@@ -78,7 +77,7 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
-    @pytest.mark.django_db(databases="__all__")
+    @django_db_all
     def test_sdk_crash_event_stored_to_sdk_crash_project(self):
 
         cocoa_sdk_crashes_project = self.create_project(

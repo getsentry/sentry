@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -17,6 +17,7 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -24,7 +25,6 @@ import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreak
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
@@ -44,14 +44,14 @@ export function SpanGroupBreakdown({
   tableData: transformedData,
   totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
   isTimeseriesLoading,
   errored,
 }: Props) {
   const {selection} = usePageFilters();
   const theme = useTheme();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
+  const organization = useOrganization();
+  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
   const options: SelectOption<DataDisplayType>[] = [
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
     {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
@@ -60,9 +60,13 @@ export function SpanGroupBreakdown({
     DataDisplayType.CUMULATIVE_DURATION
   );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
+  );
+
+  if (showSeriesArray.length === 0 && transformedData.length > 0) {
+    setShowSeriesArray(transformedData.map(() => true));
+  }
 
   const visibleSeries: Series[] = [];
 
@@ -74,15 +78,19 @@ export function SpanGroupBreakdown({
   }
   const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
-  const dataAsPercentages = cloneDeep(visibleSeries);
-  const numDataPoints = data[0]?.data?.length ?? 0;
-  for (let i = 0; i < numDataPoints; i++) {
-    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
-    dataAsPercentages.forEach(segment => {
-      const clone = {...segment.data[i]};
-      clone.value = clone.value / totalTimeAtIndex;
-      segment.data[i] = clone;
-    });
+  // Skip these calculations if the feature flag is not enabled
+  let dataAsPercentages;
+  if (hasDropdownFeatureFlag) {
+    dataAsPercentages = cloneDeep(visibleSeries);
+    const numDataPoints = data[0]?.data?.length ?? 0;
+    for (let i = 0; i < numDataPoints; i++) {
+      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+      dataAsPercentages.forEach(segment => {
+        const clone = {...segment.data[i]};
+        clone.value = clone.value / totalTimeAtIndex;
+        segment.data[i] = clone;
+      });
+    }
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) =>
@@ -95,11 +103,13 @@ export function SpanGroupBreakdown({
           <ChartLabel>
             {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
           </ChartLabel>
-          <CompactSelect
-            options={options}
-            value={dataDisplayType}
-            onChange={handleChange}
-          />
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
         <Chart
           statsPeriod="24h"
@@ -142,12 +152,20 @@ export function SpanGroupBreakdown({
             start && end
               ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
               : {statsPeriod: period};
-          if (['db', 'http'].includes(group['span.category'])) {
-            spansLinkQueryParams['span.module'] = group['span.category'];
+
+          if (group['span.category'] === 'Other') {
+            spansLinkQueryParams['!span.module'] = ['db', 'http'];
+            spansLinkQueryParams['!span.category'] = transformedData.map(
+              r => r.group['span.category']
+            );
           } else {
-            spansLinkQueryParams['span.module'] = 'Other';
+            if (['db', 'http'].includes(group['span.category'])) {
+              spansLinkQueryParams['span.module'] = group['span.category'];
+            } else {
+              spansLinkQueryParams['span.module'] = 'Other';
+            }
+            spansLinkQueryParams['span.category'] = group['span.category'];
           }
-          spansLinkQueryParams['span.category'] = group['span.category'];
 
           const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
           return (

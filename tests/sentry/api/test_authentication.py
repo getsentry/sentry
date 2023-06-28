@@ -14,6 +14,7 @@ from sentry.api.authentication import (
 from sentry.models import ProjectKeyStatus, Relay
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @control_silo_test(stable=True)
@@ -104,7 +105,7 @@ class TestDSNAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
     sk, pk = generate_key_pair()
@@ -135,7 +136,7 @@ def test_registered_relay(internal):
     assert request.relay_request_data == data
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_statically_configured_relay(settings, internal):
     sk, pk = generate_key_pair()
