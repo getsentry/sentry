@@ -12,9 +12,10 @@ class Config(AppConfig):
         auth.register("fly", FlyOAuth2Provider)
 
         options.register(
-            "auth-fly.client-id", flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK
+            "auth-fly.client-id",
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
         )
         options.register(
             "auth-fly.client-secret",
-            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,
+            flags=options.FLAG_ALLOW_EMPTY | options.FLAG_PRIORITIZE_DISK,  # type: ignore
         )
