@@ -26,8 +26,7 @@ import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/char
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
-import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 import EndpointList from './endpointList';
 
@@ -146,12 +145,9 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <ServiceDurationChartContainer />
+            <SpanGroupBreakdownContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
-          <ChartsContainerItem3>
-            <ServiceTimeSpentBreakdown />
-          </ChartsContainerItem3>
         </ChartsContainer>
       </StyledRow>
 
@@ -177,8 +173,4 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
-`;
-
-const ChartsContainerItem3 = styled('div')`
-  flex: 0.75;
 `;
