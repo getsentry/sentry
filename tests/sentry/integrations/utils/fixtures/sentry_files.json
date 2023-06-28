@@ -2569,7 +2569,6 @@
     "static/app/views/organizationRoot.spec.jsx",
     "tools/__init__.py",
     "tools/bump_action.py",
-    "tools/docker_memory_check.py",
     "tools/flake8_plugin.py",
     "tools/freeze_requirements.py",
     "tools/lib.py",

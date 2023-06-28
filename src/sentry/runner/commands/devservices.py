@@ -15,12 +15,10 @@ import requests
 if TYPE_CHECKING:
     import docker
 
-# Work around a stupid docker issue: https://github.com/docker/for-mac/issues/5025
-RAW_SOCKET_HACK_PATH = os.path.expanduser(
-    "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
-)
-if os.path.exists(RAW_SOCKET_HACK_PATH):
-    os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
+RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+if os.path.exists(RAW_SOCKET_PATH):
+    # If colima's installed, we want to use it.
+    os.environ["DOCKER_HOST"] = f"unix://{RAW_SOCKET_PATH}"
 
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
@@ -35,13 +33,29 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
         try:
             client.ping()
         except (requests.exceptions.ConnectionError, docker.errors.APIError):
-            click.echo("Attempting to start docker...")
             if DARWIN:
+                click.echo("Attempting to start colima...")
+                cpus = int(
+                    subprocess.run(
+                        ("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True
+                    ).stdout
+                )
+                memsize_bytes = cpus = int(
+                    subprocess.run(
+                        ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
+                    ).stdout
+                )
                 subprocess.check_call(
-                    ("open", "-a", "/Applications/Docker.app", "--args", "--unattended")
+                    (
+                        "colima",
+                        "start",
+                        "--cpu",
+                        f"{cpus//2}",
+                        "--memory",
+                        f"{memsize_bytes//(2*1024**3)}",
+                    )
                 )
             else:
-                click.echo("Unable to start docker.")
                 raise click.ClickException("Make sure docker is running.")
 
             max_wait = 60

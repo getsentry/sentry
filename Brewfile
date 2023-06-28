@@ -1,5 +1,10 @@
 # required to run devservices
-cask 'docker'
+# colima is a docker-compatible container runtime
+brew 'colima'
+# while not needed by devservices, the docker cli itself is still useful
+# (not docker desktop/daemon which is provided by the cask)
+# and is used by some make targets
+brew 'docker'
 
 brew 'pyenv'
 
