@@ -2,12 +2,12 @@ from collections import defaultdict
 from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
 from sentry.api.serializers import Serializer
+from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -42,26 +42,24 @@ class NotificationSettingsSerializer(Serializer):
         team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
         user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
-        notifications_settings = notifications_service.get_many(
-            filter=dict(
-                type=type_option,
-                team_ids=list(team_map.keys()),
-                user_ids=list(user_map.keys()),
-            )
+        notifications_settings = NotificationSetting.objects._filter(
+            type=type_option,
+            team_ids=list(team_map.keys()),
+            user_ids=list(user_map.keys()),
         )
 
         result: MutableMapping[
             Union["Team", "User"], MutableMapping[str, Iterable[Any]]
-        ] = defaultdict(lambda: defaultdict(list))
+        ] = defaultdict(lambda: defaultdict(set))
 
-        for notifications_setting in notifications_settings.items():
+        for notifications_setting in notifications_settings:
             target = None
             if notifications_setting.user_id:
                 target = user_map[notifications_setting.user_id]
             if notifications_setting.team_id:
                 target = team_map[notifications_setting.team_id]
             if target:
-                result[target]["settings"].append(notifications_setting)
+                result[target]["settings"].add(notifications_setting)
             else:
                 raise ValueError(
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
@@ -72,7 +70,7 @@ class NotificationSettingsSerializer(Serializer):
             result[recipient]["projects"] = recipient.get_projects()
 
             if isinstance(recipient, Team):
-                result[recipient]["organizations"] = [recipient.organization]
+                result[recipient]["organizations"] = {recipient.organization}
 
             if isinstance(recipient, User):
                 result[recipient]["organizations"] = user.get_orgs()
