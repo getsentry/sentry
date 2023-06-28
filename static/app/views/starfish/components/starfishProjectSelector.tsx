@@ -17,7 +17,11 @@ export function StarfishProjectSelector() {
       value: project.id,
     }));
 
-  return <CompactSelect options={projectOptions} />;
+  const selectedOption = projectOptions.find(option =>
+    selection.projects.includes(parseInt(option.value, 10))
+  );
+
+  return <CompactSelect options={projectOptions} defaultValue={selectedOption?.value} />;
 }
 
 function ProjectOptionLabel({project}: {project: Project}) {
