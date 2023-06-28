@@ -10,7 +10,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -31,6 +30,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -258,7 +258,7 @@ export default function EndpointOverview() {
   };
 
   return (
-    <PageFiltersContainer>
+    <StarfishPageFilterContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -353,7 +353,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </PageFiltersContainer>
+    </StarfishPageFilterContainer>
   );
 }
 
