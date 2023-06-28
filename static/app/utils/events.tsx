@@ -501,7 +501,9 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(event: Event | BaseGroup) {
+export function eventIsProfilingIssue(
+  event: BaseGroup | EventTransaction | GroupTombstoneHelper
+) {
   if (isIssue(event)) {
     const evidenceData = event?.occurrence?.evidenceData ?? {};
     return (
@@ -512,6 +514,6 @@ export function eventIsProfilingIssue(event: Event | BaseGroup) {
   return false;
 }
 
-export function isIssue(event: Event | BaseGroup) {
+export function isIssue(event: BaseGroup | EventTransaction | GroupTombstoneHelper) {
   return !isTombstone(event) && defined(event.issueCategory);
 }
