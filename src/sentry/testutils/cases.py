@@ -3,7 +3,7 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.dates import to_timestamp
 
 __all__ = (
@@ -1302,14 +1302,14 @@ class BaseMetricsTestCase(SnubaTestCase):
         tags: Dict[str, str],
         timestamp: int,
         value,
-        use_case_id: UseCaseKey,
+        use_case_id: Union[UseCaseID, UseCaseKey],
     ):
         mapping_meta = {}
 
         def metric_id(key: str):
             assert isinstance(key, str)
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=key,
             )
@@ -1320,7 +1320,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_key(name):
             assert isinstance(name, str)
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=name,
             )
@@ -1331,11 +1331,11 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseKey.PERFORMANCE:
+            if use_case_id == UseCaseID.TRANSACTIONS or use_case_id == UseCaseKey.PERFORMANCE:
                 return name
 
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=name,
             )
@@ -1364,13 +1364,15 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
+            "version": 2
+            if use_case_id == UseCaseKey.PERFORMANCE or use_case_id == UseCaseID.TRANSACTIONS
+            else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseKey.PERFORMANCE:
+        if use_case_id == UseCaseKey.PERFORMANCE or use_case_id == UseCaseID.TRANSACTIONS:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
@@ -1656,7 +1658,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+        use_case_id: Union[UseCaseKey, UseCaseID] = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1684,7 +1686,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id,
             )
 
     def store_span_metric(

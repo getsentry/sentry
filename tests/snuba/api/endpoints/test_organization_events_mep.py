@@ -12,6 +12,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
@@ -227,6 +228,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             1,
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         response = self.do_request(
