@@ -1,12 +1,12 @@
 import {useCallback, useMemo} from 'react';
 
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame, ErrorFrame} from 'sentry/utils/replays/types';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 interface SortConfig {
   asc: boolean;
-  by: keyof ErrorFrame | string;
-  getValue: (row: ErrorFrame) => any;
+  by: keyof BreadcrumbFrame | string;
+  getValue: (row: BreadcrumbFrame) => any;
 }
 
 const SortStrategies: Record<string, (row: ErrorFrame) => any> = {
