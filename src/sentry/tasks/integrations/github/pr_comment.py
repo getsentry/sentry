@@ -146,13 +146,18 @@ def create_or_update_comment(
             group_ids=issue_list,
         )
     else:
-        client.update_comment(
+        resp = client.update_comment(
             repo=repo.name, comment_id=pr_comment.external_id, data={"body": comment_body}
         )
 
         pr_comment.updated_at = timezone.now()
         pr_comment.group_ids = issue_list
         pr_comment.save()
+
+    metrics.incr(
+        "github_pr_comment.rate_limit_remaining",
+        tags={"remaining": int(resp.headers["X-Ratelimit-Remaining"])},
+    )
 
     logger.info(
         "github.pr_comment.create_or_update_comment",
@@ -290,7 +295,7 @@ def github_comment_reactions():
         except ApiError as e:
             if RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
-                continue
+                break
 
             metrics.incr("github_pr_comment.comment_reactions.api_error")
             sentry_sdk.capture_exception(e)

@@ -335,9 +335,10 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
-    def test_comment_workflow(self, get_jwt, mock_issues):
+    def test_comment_workflow(self, mock_metrics, get_jwt, mock_issues):
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
@@ -350,6 +351,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             responses.POST,
             self.base_url + "/repos/getsentry/sentry/issues/1/comments",
             json={"id": 1},
+            headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
         )
 
         github_comment_workflow(self.pr.id, self.project.id)
@@ -361,13 +363,17 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
         assert pull_request_comment_query[0].external_id == 1
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
     @with_feature("organizations:pr-comment-bot")
     @responses.activate
     @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
-    def test_comment_workflow_updates_comment(self, get_jwt, mock_issues):
+    def test_comment_workflow_updates_comment(self, mock_metrics, get_jwt, mock_issues):
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
         pull_request_comment = PullRequestComment.objects.create(
@@ -387,6 +393,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
             responses.PATCH,
             self.base_url + "/repos/getsentry/sentry/issues/comments/1",
             json={"id": 1},
+            headers={"X-Ratelimit-Limit": "60", "X-Ratelimit-Remaining": "59"},
         )
 
         github_comment_workflow(self.pr.id, self.project.id)
@@ -398,6 +405,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
         pull_request_comment.refresh_from_db()
         assert pull_request_comment.group_ids == [g.id for g in Group.objects.all()]
         assert pull_request_comment.updated_at == timezone.now()
+        mock_metrics.incr.assert_called_with(
+            "github_pr_comment.rate_limit_remaining", tags={"remaining": 59}
+        )
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
