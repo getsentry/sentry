@@ -12,7 +12,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -118,7 +118,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
   useSynchronizeCharts();
 
   return (
-    <ChartPanel title="Duration (P95)">
+    <MiniChartPanel title="Duration (P95)">
       <MinWidthButtonBar gap={1}>
         {tabOrder.map(label => {
           return (
@@ -154,7 +154,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
           top: '8px',
           bottom: '0',
         }}
-        height={165}
+        height={175}
         isLineChart
         definedAxisTicks={6}
         aggregateOutputFormat="duration"
@@ -163,7 +163,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
             tooltipFormatterUsingAggregateOutputType(value, 'duration'),
         }}
       />
-    </ChartPanel>
+    </MiniChartPanel>
   );
 }
 
