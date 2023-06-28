@@ -47,7 +47,6 @@ class BitbucketApiClient(IntegrationProxyClient):
     NOTE: repo is the fully qualified slug containing 'username/repo_slug'
     """
 
-    _use_proxy_url_for_tests = True
     integration_name = "bitbucket"
 
     def __init__(self, integration: RpcIntegration, org_integration_id: int):
