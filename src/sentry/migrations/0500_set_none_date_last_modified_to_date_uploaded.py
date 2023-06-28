@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0496_update_userid_state"),
+        ("sentry", "0499_typed_bitfield_revert"),
     ]
 
     operations = [

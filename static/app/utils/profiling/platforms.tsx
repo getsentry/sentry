@@ -9,7 +9,6 @@ export const supportedProfilingPlatformSDKs = [
   'node',
   'python',
   'php',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony2',
@@ -60,11 +59,6 @@ export function getDocsPlatformSDKForPlatform(
   // Python
   if (platform.startsWith('python')) {
     return 'python';
-  }
-
-  // Rust
-  if (platform === 'rust') {
-    return 'rust';
   }
 
   // PHP

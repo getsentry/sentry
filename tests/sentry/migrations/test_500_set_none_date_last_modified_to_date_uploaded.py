@@ -7,8 +7,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class SetNoneDateLastModifiedToDateUploadedTest(TestMigrations):
-    migrate_from = "0496_update_userid_state"
-    migrate_to = "0497_set_none_date_last_modified_to_date_uploaded"
+    migrate_from = "0499_typed_bitfield_revert"
+    migrate_to = "0500_set_none_date_last_modified_to_date_uploaded"
 
     def setup_before_migration(self, apps):
         ArtifactBundle.objects.create(

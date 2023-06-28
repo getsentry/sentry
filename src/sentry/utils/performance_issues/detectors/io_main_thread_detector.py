@@ -5,7 +5,7 @@ import os
 from collections import defaultdict
 
 import sentry_sdk
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry import features
 from sentry.issues.grouptype import (

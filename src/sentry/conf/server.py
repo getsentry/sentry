@@ -391,6 +391,7 @@ INSTALLED_APPS = (
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )
@@ -1553,6 +1554,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
