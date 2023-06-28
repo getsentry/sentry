@@ -11,6 +11,7 @@ import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/ch
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -155,6 +156,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
           bottom: '0',
         }}
         height={175}
+        chartColors={[P95_COLOR]}
         isLineChart
         definedAxisTicks={6}
         aggregateOutputFormat="duration"

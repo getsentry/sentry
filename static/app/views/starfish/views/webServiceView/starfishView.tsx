@@ -21,6 +21,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -104,7 +105,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   definedAxisTicks={2}
                   stacked
                   isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
+                  chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
                   }}
