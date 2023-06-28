@@ -13,7 +13,7 @@ from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import options
+from sentry import analytics, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -371,6 +371,13 @@ def _create_artifact_bundle(
 ) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+
+        analytics.record(
+            "artifactbundle.manifest_extracted",
+            organization_id=org_id,
+            project_ids=project_ids,
+            has_debug_ids=len(debug_ids_with_types) > 0,
+        )
 
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.

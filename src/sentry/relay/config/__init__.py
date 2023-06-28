@@ -20,7 +20,7 @@ from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
 from sentry import features, killswitches, quotas, utils
-from sentry.constants import ObjectStatus
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -70,7 +70,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> Sequence[str]:
-
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
@@ -117,10 +116,11 @@ def get_public_key_configs(
 def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
-    for flt in get_all_filter_specs():
+    for flt in get_all_filter_specs(project):
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        if settings["isEnabled"]:
+
+        if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
     error_messages: List[str] = []
@@ -536,6 +536,7 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     """
     filter_id = flt.id
     filter_key = f"filters:{filter_id}"
+
     setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
@@ -568,6 +569,11 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')
                 ret_val["options"] = list(setting)
+    elif flt.id == FilterStatKeys.HEALTH_CHECK:
+        if is_enabled:
+            ret_val = {"patterns": HEALTH_CHECK_GLOBS, "isEnabled": True}
+        else:
+            ret_val = {"patterns": [], "isEnabled": False}
     return ret_val
 
 
