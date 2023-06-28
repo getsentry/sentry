@@ -48,7 +48,9 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
                 event = group.get_oldest_event_for_environments(environments)
         elif event_id == "helpful":
             if features.has(
-                "organizations:issue-details-most-helpful-event", group.project.organization
+                "organizations:issue-details-most-helpful-event",
+                group.project.organization,
+                actor=request.user,
             ):
                 with metrics.timer(
                     "api.endpoints.group_event_details.get", tags={"type": "helpful"}
