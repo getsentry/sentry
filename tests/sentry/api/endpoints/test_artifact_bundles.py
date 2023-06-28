@@ -398,6 +398,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
 
         self.login_as(user=self.user)
+        response = self.client.get(url + "?sortBy=date_modified")
+        assert response.status_code == 200, response.content
+        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids
+
+        self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=-date_modified")
         assert response.status_code == 200, response.content
         assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
@@ -407,7 +412,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert (
             response.data["detail"]["message"]
-            == "You can either sort via 'date_added' or '-date_added'"
+            == "You can either sort via 'date_added' or 'date_modified'"
         )
 
     def test_delete_artifact_bundle_with_single_project_connected(self):
