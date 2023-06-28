@@ -55,6 +55,12 @@ export function getColor(frame: BreadcrumbFrame | SpanFrame | ErrorFrame): Color
   }
 }
 
+/**
+ * The breadcrumbType is used as a value for <BreadcrumbIcon/>
+ * We could remove the indirection by associating frames with icons directly.
+ *
+ * @deprecated
+ */
 export function getBreadcrumbType(
   frame: BreadcrumbFrame | SpanFrame | ErrorFrame
 ): BreadcrumbType {
