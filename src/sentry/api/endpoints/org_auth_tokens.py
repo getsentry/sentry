@@ -41,8 +41,8 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         return Response(serialize(token_list, request.user, token=None))
 
     def post(self, request: Request, organization: Organization) -> Response:
-        jwt_token = generate_token(organization.slug, generate_region_url())
-        token_hashed = hash_token(jwt_token)
+        token_str = generate_token(organization.slug, generate_region_url())
+        token_hashed = hash_token(token_str)
 
         name = request.data.get("name")
 
@@ -55,7 +55,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             scope_list=["org:ci"],
             created_by_id=request.user.id,
-            token_last_characters=jwt_token[-4:],
+            token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
         )
 
@@ -95,7 +95,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         )
 
         # This is THE ONLY TIME that the token is available
-        serialized_token = serialize(token, request.user, token=jwt_token)
+        serialized_token = serialize(token, request.user, token=token_str)
 
         if serialized_token is None:
             return Response({"detail": "Error when serializing token."}, status=400)

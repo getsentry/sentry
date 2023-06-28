@@ -199,7 +199,7 @@ class TokenAuthentication(StandardAuthentication):
         if not super().accepts_auth(auth):
             return False
 
-        # Techincally, this will not match if auth length is not 2
+        # Technically, this will not match if auth length is not 2
         # However, we want to run into `authenticate()` in this case, as this throws a more helpful error message
         if len(auth) != 2:
             return True
