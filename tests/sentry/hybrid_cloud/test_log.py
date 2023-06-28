@@ -1,12 +1,11 @@
-import pytest
-
 from sentry.models import AuditLogEntry, OutboxScope, RegionOutbox, UserIP
 from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @all_silo_test
 def test_audit_log_event():
     user = Factories.create_user()
@@ -30,7 +29,7 @@ def test_audit_log_event():
     assert AuditLogEntry.objects.count() == 1
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @all_silo_test
 def test_user_ip_event():
     user = Factories.create_user()

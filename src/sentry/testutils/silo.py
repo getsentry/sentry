@@ -189,6 +189,36 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
         yield
 
 
+def reset_test_role(role: str, using: str, create_role: bool) -> None:
+    connection_names = [conn.alias for conn in connections.all()]
+
+    if create_role:
+        role_exists = False
+        with get_connection(using).cursor() as connection:
+            connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
+            role_exists = connection.fetchone()
+
+        if role_exists:
+            # Drop role permissions on each connection, or we can't drop the role.
+            for alias in connection_names:
+                with get_connection(alias).cursor() as conn:
+                    conn.execute(f"REASSIGN OWNED BY {role} TO postgres")
+                    conn.execute(f"DROP OWNED BY {role} CASCADE")
+
+            # Drop and re-create the role as required.
+            with get_connection(using).cursor() as conn:
+                conn.execute(f"DROP ROLE {role}")
+
+        with get_connection(using).cursor() as conn:
+            conn.execute(f"CREATE ROLE {role}")
+
+    # Create permissions on the current connection as we'll build up permissions incrementally.
+    with get_connection(using).cursor() as conn:
+        conn.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
+        conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
+        conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
+
+
 _role_created: bool = False
 _role_privileges_created: MutableMapping[str, bool] = {}
 
@@ -255,36 +285,6 @@ def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
 # Listen to django's migration signal so that we're not trapped inside
 # test method transactions.
 post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
-
-
-def reset_test_role(role: str, using: str, create_role: bool) -> None:
-    connection_names = [conn.alias for conn in connections.all()]
-
-    if create_role:
-        role_exists = False
-        with get_connection(using).cursor() as connection:
-            connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-            role_exists = connection.fetchone()
-
-        if role_exists:
-            # Drop role permissions on each connection, or we can't drop the role.
-            for alias in connection_names:
-                with get_connection(alias).cursor() as conn:
-                    conn.execute(f"REASSIGN OWNED BY {role} TO postgres")
-                    conn.execute(f"DROP OWNED BY {role} CASCADE")
-
-            # Drop and re-create the role as required.
-            with get_connection(using).cursor() as conn:
-                conn.execute(f"DROP ROLE {role}")
-
-        with get_connection(using).cursor() as conn:
-            conn.execute(f"CREATE ROLE {role}")
-
-    # Create permissions on the current connection as we'll build up permissions incrementally.
-    with get_connection(using).cursor() as conn:
-        conn.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
-        conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
 
 
 def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:

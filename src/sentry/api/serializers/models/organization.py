@@ -40,6 +40,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_PR_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
@@ -436,6 +437,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
     aiSuggestedSolution: bool
+    githubPRBot: bool
     isDynamicallySampled: bool
 
 
@@ -541,6 +543,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
+                "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_PR_BOT_DEFAULT)),
             }
         )
 

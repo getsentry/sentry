@@ -22,16 +22,17 @@ class RpcOrganizationMapping(RpcOrganizationSummary):
     status: Optional[OrganizationStatus] = None
 
 
-class RpcOrganizationMappingUpdate(TypedDict):
+class RpcOrganizationMappingUpdate(TypedDict, total=False):
     """A set of values to be updated on an OrganizationMapping.
 
-    An absent key indicates that the attribute should not be updated. (Compare to a
-    `"customer_id": None` entry, which indicates that `customer_id` should be
-    overwritten with a null value.)
+    An absent key indicates that the attribute should not be updated.
     """
 
     name: str
-    customer_id: Optional[str]
     status: OrganizationStatus
     slug: str
     region_name: str
+
+
+class RpcOrganizationMappingBillingCustomerUpdate(TypedDict):
+    customer_id: Optional[str]
