@@ -7,16 +7,13 @@ import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
-import {PercentChangeCell} from 'sentry/views/starfish/views/webServiceView/endpointList';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
@@ -65,8 +62,7 @@ export default function FailureDetailTable({
 
   function renderBodyCell(
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow,
-    _onSelect?: (row: EndpointDataRow) => void
+    dataRow: TableDataRow
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -91,19 +87,7 @@ export default function FailureDetailTable({
     }
 
     if (field === 'http_error_count_percent_change()') {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
-      return (
-        <NumberContainer>
-          <PercentChangeCell trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </PercentChangeCell>
-        </NumberContainer>
-      );
+      return <PercentChangeCell deltaValue={dataRow[field] as number} />;
     }
 
     return rendered;

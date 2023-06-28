@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import moment from 'moment';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -14,14 +12,14 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
-import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {zeroFillSeries} from 'sentry/views/starfish/utils/zeroFillSeries';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -41,14 +39,8 @@ type ChartProps = {
   moduleName: ModuleName;
 };
 
-function getSegmentLabel(span_operation, action, domain) {
-  if (span_operation === 'http.client') {
-    return t('%s requests to %s', action, domain);
-  }
-  if (span_operation === 'db') {
-    return t('%s queries on %s', action, domain);
-  }
-  return span_operation || domain || undefined;
+function getSegmentLabel(moduleName: ModuleName) {
+  return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
 }
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
@@ -105,13 +97,8 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
-  const {startTime, endTime} = getDateFilters(pageFilters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery({
     eventView,
     initialData: [],
@@ -121,18 +108,13 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'Throughput',
-        data: groupData.map(datum => ({
-          value: datum['sps()'],
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
+    return {
+      seriesName: label ?? 'Throughput',
+      data: groupData.map(datum => ({
+        value: datum['sps()'],
+        name: datum.interval,
+      })),
+    };
   });
 
   return (
@@ -151,6 +133,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
         bottom: '0',
       }}
       definedAxisTicks={4}
+      aggregateOutputFormat="rate"
       stacked
       isLineChart
       chartColors={[THROUGHPUT_COLOR]}
@@ -165,13 +148,8 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
-  const {startTime, endTime} = getDateFilters(pageFilters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = `p95(${SPAN_SELF_TIME})`;
 
   const {isLoading, data} = useSpansQuery({
     eventView,
@@ -182,18 +160,13 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const p95Series = Object.keys(dataByGroup).map(groupName => {
     const groupData = dataByGroup[groupName];
 
-    return zeroFillSeries(
-      {
-        seriesName: label ?? 'p95()',
-        data: groupData.map(datum => ({
-          value: datum['p95(span.duration)'],
-          name: datum.interval,
-        })),
-      },
-      moment.duration(1, 'day'),
-      startTime,
-      endTime
-    );
+    return {
+      seriesName: label,
+      data: groupData.map(datum => ({
+        value: datum[`p95(${SPAN_SELF_TIME})`],
+        name: datum.interval,
+      })),
+    };
   });
 
   return (
@@ -271,7 +244,7 @@ const getEventView = (
     {
       name: '',
       fields: [''],
-      yAxis: ['sps()', 'p50(span.duration)', 'p95(span.duration)'],
+      yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
@@ -296,6 +269,10 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
   }
 
   if (spanCategory) {

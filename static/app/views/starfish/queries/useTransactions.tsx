@@ -25,8 +25,26 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     location
   );
 
-  const response = useDiscoverQuery({eventView, location, orgSlug: slug, referrer});
+  const enabled = Boolean(eventIDs.length);
+
+  const response = useDiscoverQuery({
+    eventView,
+    location,
+    orgSlug: slug,
+    referrer,
+    options: {
+      enabled,
+    },
+  });
   const data = (response.data?.data ?? []) as unknown as Transaction[];
+
+  if (!enabled) {
+    return {
+      isFetching: false,
+      isLoading: false,
+      data: [],
+    };
+  }
 
   return {
     ...response,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 from datetime import datetime, timedelta
 from typing import (
@@ -66,6 +68,7 @@ from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfi
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     SelectType,
     SnubaParams,
@@ -122,6 +125,7 @@ class BaseQueryBuilder:
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
+    function_alias_prefix: str | None = None
     spans_metrics_builder = False
 
     def _dataclass_params(
@@ -824,7 +828,7 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.SnQLFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -1226,7 +1230,7 @@ class QueryBuilder(BaseQueryBuilder):
         return value
 
     def convert_aggregate_filter_to_condition(
-        self, aggregate_filter: event_filter.AggregateFilter
+        self, aggregate_filter: event_search.AggregateFilter
     ) -> Optional[WhereType]:
         name = aggregate_filter.key.name
         value = aggregate_filter.value.value
@@ -1461,7 +1465,9 @@ class QueryBuilder(BaseQueryBuilder):
         alias: Union[str, Any, None] = match.group("alias")
 
         if alias is None:
-            alias = fields.get_function_alias_with_columns(raw_function, arguments)
+            alias = fields.get_function_alias_with_columns(
+                raw_function, arguments, self.function_alias_prefix
+            )
 
         return (function, combinator, arguments, alias)
 

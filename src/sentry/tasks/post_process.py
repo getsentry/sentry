@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
@@ -500,7 +501,7 @@ def post_process_group(
             # instead.
 
             def get_event_raise_exception() -> Event:
-                retrieved = eventstore.get_event_by_id(
+                retrieved = eventstore.backend.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,
@@ -590,6 +591,13 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
+
+        if not is_reprocessed and event.data.get("received"):
+            metrics.timing(
+                "events.time-to-post-process",
+                time() - event.data["received"],
+                instance=event.data["platform"],
+            )
 
 
 def run_post_process_job(job: PostProcessJob):

@@ -18,6 +18,7 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.utils.sdk import configure_scope
 from sentry.utils.strings import to_single_line_str
@@ -189,17 +190,14 @@ class SentryAppPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        org_ids = [
-            org.id
-            for org in organization_service.get_organizations(
-                user_id=request.user.id,
-                only_visible=False,
-                scope=None,
-            )
-        ]
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
-            if sentry_app.owner_id not in {id for id in org_ids}:
+            if not any(sentry_app.owner_id == org.id for org in organizations):
                 raise Http404
 
         # TODO(meredith): make a better way to allow for public
@@ -257,16 +255,12 @@ class SentryAppInstallationsPermission(SentryPermission):
         if is_active_superuser(request):
             return True
 
-        # TODO(hybrid-cloud): replace this with a local silo lookup once org member work is done
-        org_ids = [
-            org.id
-            for org in organization_service.get_organizations(
-                user_id=request.user.id,
-                only_visible=False,
-                scope=None,
-            )
-        ]
-        if organization.id not in org_ids:
+        organizations = (
+            user_service.get_organizations(user_id=request.user.id)
+            if request.user.id is not None
+            else ()
+        )
+        if not any(organization.id == org.id for org in organizations):
             raise Http404
 
         return ensure_scoped_permission(request, self.scope_map.get(request.method))

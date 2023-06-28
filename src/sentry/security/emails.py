@@ -38,6 +38,9 @@ def generate_security_email(
     elif type == "api-token-generated":
         template = "sentry/emails/api-token-generated.txt"
         html_template = "sentry/emails/api-token-generated.html"
+    elif type == "org-auth-token-created":
+        template = "sentry/emails/org-auth-token-created.txt"
+        html_template = "sentry/emails/org-auth-token-created.html"
     else:
         raise ValueError(f"unknown type: {type}")
 

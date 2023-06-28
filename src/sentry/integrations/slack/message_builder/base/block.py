@@ -1,16 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import (
-    Any,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    cast,
-)
+from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -71,7 +62,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     def _build_blocks(
         *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
     ) -> SlackBody:
-        blocks: MutableMapping[str, Any] = {"blocks": list(args)}
+        blocks: dict[str, Any] = {"blocks": list(args)}
 
         if fallback_text:
             blocks["text"] = fallback_text
@@ -79,7 +70,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         if color:
             blocks["color"] = color
 
-        return cast(SlackBody, blocks)
+        return blocks
 
     def as_payload(self) -> Mapping[str, Any]:
         return self.build()  # type: ignore

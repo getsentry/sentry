@@ -116,7 +116,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration", "span.self_time"],
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -133,13 +133,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "percentile",
+                    required_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
+                            ),
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=function_aliases.resolve_metrics_percentile,
+                    result_type_fn=self.reflective_result_type(),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
                     "p50",
                     optional_args=[
                         fields.with_default(
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration", "span.self_time"],
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -157,7 +173,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration", "span.self_time"],
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -175,7 +191,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration", "span.self_time"],
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -203,7 +219,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "span.duration",
                             fields.MetricArg(
                                 "column",
-                                allowed_columns=["span.duration", "span.self_time"],
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                                 allow_custom_measurements=False,
                             ),
                         ),
@@ -211,6 +227,24 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args, alias=alias, fixed_percentile=0.99
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "p100",
+                    optional_args=[
+                        fields.with_default(
+                            "span.duration",
+                            fields.MetricArg(
+                                "column",
+                                allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=False,
+                            ),
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args, alias=alias, fixed_percentile=1
                     ),
                     default_result_type="duration",
                 ),
@@ -248,7 +282,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration", "span.self_time"],
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
@@ -277,31 +311,31 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     required_args=[
                         fields.MetricArg(
                             "column",
-                            allowed_columns=["span.duration", "span.self_time"],
+                            allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
                             allow_custom_measurements=False,
                         ),
                         fields.NumberRange("percentile", 0, 1),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "http_error_count_percent_change",
                     snql_distribution=self._resolve_http_error_count_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "epm_percent_change",
                     snql_distribution=self._resolve_epm_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "eps_percent_change",
                     snql_distribution=self._resolve_eps_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
             ]
         }

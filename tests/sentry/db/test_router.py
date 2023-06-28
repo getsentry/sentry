@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth.models import Permission
 from django.test import override_settings
 
 from sentry.db.router import SiloRouter
@@ -10,19 +11,43 @@ from sentry.testutils.cases import TestCase
 class SiloRouterSimulatedTest(TestCase):
     """Simulated mode can resolve both silos to separate connections"""
 
+    @override_settings(SILO_MODE=None)
+    def test_simulated_no_silo(self):
+        # Simulated silo mode should work the same as with a silo mode defined..
+        router = SiloRouter()
+        router.use_simulated(True)
+        assert "default" == router.db_for_read(Organization)
+        assert "default" == router.db_for_write(Organization)
+        assert router.allow_migrate("default", "sentry", Organization)
+        assert not router.allow_migrate("control", "sentry", Organization)
+
+        assert "control" == router.db_for_write(Permission)
+        assert "control" == router.db_for_read(User)
+        assert "control" == router.db_for_write(User)
+        assert router.allow_migrate("control", "sentry", User)
+        assert not router.allow_migrate("default", "sentry", User)
+
+        assert not router.allow_migrate("default", "django.contrib.auth", Permission)
+        assert router.allow_migrate("control", "django.contrib.auth", Permission)
+
+        # Ensure tables that no longer exist don't fail
+        assert router.allow_migrate(
+            "default", "sentry", model=None, hints={"tables": ["jira_ac_tenant"]}
+        )
+
     @override_settings(SILO_MODE="CONTROL")
     def test_for_control(self):
         router = SiloRouter()
         router.use_simulated(True)
-        assert "region" == router.db_for_read(Organization)
-        assert "region" == router.db_for_write(Organization)
-        assert router.allow_migrate("region", "sentry", Organization)
+        assert "default" == router.db_for_read(Organization)
+        assert "default" == router.db_for_write(Organization)
+        assert router.allow_migrate("default", "sentry", Organization)
         assert not router.allow_migrate("control", "sentry", Organization)
 
         assert "control" == router.db_for_read(User)
         assert "control" == router.db_for_write(User)
         assert router.allow_migrate("control", "sentry", User)
-        assert not router.allow_migrate("region", "sentry", User)
+        assert not router.allow_migrate("default", "sentry", User)
 
         # Ensure tables that no longer exist don't fail
         assert router.allow_migrate(
@@ -33,20 +58,34 @@ class SiloRouterSimulatedTest(TestCase):
     def test_for_region(self):
         router = SiloRouter()
         router.use_simulated(True)
-        assert "region" == router.db_for_read(Organization)
-        assert "region" == router.db_for_write(Organization)
-        assert router.allow_migrate("region", "sentry", Organization)
+        assert "default" == router.db_for_read(Organization)
+        assert "default" == router.db_for_write(Organization)
+        assert router.allow_migrate("default", "sentry", Organization)
         assert not router.allow_migrate("control", "sentry", Organization)
 
         assert "control" == router.db_for_read(User)
         assert "control" == router.db_for_write(User)
         assert router.allow_migrate("control", "sentry", User)
-        assert not router.allow_migrate("region", "sentry", User)
+        assert not router.allow_migrate("default", "sentry", User)
+
+    @override_settings(SILO_MODE="MONOLITH")
+    def test_for_monolith_simulated(self):
+        router = SiloRouter()
+        router.use_simulated(True)
+        assert "default" == router.db_for_read(Organization)
+        assert "control" == router.db_for_read(User)
+
+        assert "default" == router.db_for_write(Organization)
+        assert "control" == router.db_for_write(User)
+
+        assert router.allow_migrate("default", "sentry", Organization)
+        assert not router.allow_migrate("control", "sentry", Organization)
+        assert router.allow_migrate("control", "sentry", User)
+        assert not router.allow_migrate("default", "sentry", User)
 
     @override_settings(SILO_MODE="MONOLITH")
     def test_for_monolith(self):
         router = SiloRouter()
-        router.use_simulated(True)
         assert "default" == router.db_for_read(Organization)
         assert "default" == router.db_for_read(User)
         assert "default" == router.db_for_write(Organization)

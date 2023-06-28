@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from django.db import transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -102,26 +101,25 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
 
         result = validator.validated_data
 
-        with transaction.atomic():
-            app_id: int | None = getattr(request.auth, "application_id", None)
+        app_id: int | None = getattr(request.auth, "application_id", None)
 
-            hook = hook_service.create_service_hook(
-                project_ids=[project.id],
-                organization_id=project.organization.id,
-                url=result["url"],
-                actor_id=request.user.id,
-                events=result.get("events"),
-                application_id=app_id,
-                installation_id=None,  # Just being explicit here.
-            )
+        hook = hook_service.create_service_hook(
+            project_ids=[project.id],
+            organization_id=project.organization.id,
+            url=result["url"],
+            actor_id=request.user.id,
+            events=result.get("events"),
+            application_id=app_id,
+            installation_id=None,  # Just being explicit here.
+        )
 
-            self.create_audit_entry(
-                request=request,
-                organization=project.organization,
-                target_object=hook.id,
-                event=audit_log.get_event_id("SERVICEHOOK_ADD"),
-                data=hook.get_audit_log_data(),
-            )
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=hook.id,
+            event=audit_log.get_event_id("SERVICEHOOK_ADD"),
+            data=hook.get_audit_log_data(),
+        )
 
         return self.respond(
             serialize(ServiceHook.objects.get(id=hook.id), request.user), status=201

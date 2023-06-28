@@ -12,7 +12,7 @@ from sentry.apidocs.constants import (
     RESPONSE_ALREADY_REPORTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
@@ -20,6 +20,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.utils import valid_duration
 from sentry.monitors.validators import MonitorCheckInValidator
 
 from .base import MonitorIngestEndpoint
@@ -46,7 +47,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(
@@ -96,6 +97,9 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         # if a duration is not defined and we're at a finished state, calculate one
         elif params.get("status", checkin.status) in CheckInStatus.FINISHED_VALUES:
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
+            if not valid_duration(duration):
+                return self.respond({"duration": ["Check-in has is too old to update"]}, status=400)
+
             params["duration"] = duration
 
         # TODO(rjo100): will need to remove this when environment is ensured

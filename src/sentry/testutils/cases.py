@@ -155,7 +155,7 @@ from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
 from ..services.hybrid_cloud.actor import RpcActor
-from ..services.hybrid_cloud.organization.serial import serialize_organization
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -423,6 +423,9 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
+    # We need Django to flush all databases.
+    databases = "__all__"
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -797,6 +800,9 @@ class PermissionTestCase(TestCase):
     def assert_member_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "member", **kwargs)
 
+    def assert_manager_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, "manager", **kwargs)
+
     def assert_teamless_member_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
@@ -977,7 +983,7 @@ class IntegrationTestCase(TestCase):
 
         self.organization = self.create_organization(name="foo", owner=self.user)
         with exempt_from_silo_limits():
-            rpc_organization = serialize_organization(self.organization)
+            rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
         self.request = self.make_request(self.user)
@@ -1076,7 +1082,9 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
+            events = eventstore.backend.get_events(
+                snuba_filter, referrer="test.wait_for_event_count"
+            )
             last_events_seen = len(events)
             if len(events) >= total:
                 break
@@ -1561,7 +1569,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
@@ -1570,8 +1578,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         offset: Optional[Offset] = None,
         include_totals: bool = True,
         include_series: bool = True,
-        before_now: str = None,
-        granularity: str = None,
+        before_now: Optional[str] = None,
+        granularity: Optional[str] = None,
     ):
         # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
@@ -1647,7 +1655,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-        project: Optional[id] = None,
+        project: Optional[int] = None,
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
@@ -1687,7 +1695,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-        project: Optional[id] = None,
+        project: Optional[int] = None,
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric

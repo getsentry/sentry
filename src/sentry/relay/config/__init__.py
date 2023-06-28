@@ -19,8 +19,8 @@ import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
-from sentry import features, killswitches, options, quotas, utils
-from sentry.constants import ObjectStatus
+from sentry import features, killswitches, quotas, utils
+from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
 from sentry.grouping.api import get_grouping_config_dict_for_project
@@ -39,7 +39,10 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
-from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
+from sentry.relay.config.metric_extraction import (
+    get_metric_conditional_tagging_rules,
+    get_metric_extraction_config,
+)
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -52,6 +55,7 @@ EXPOSABLE_FEATURES = [
     "projects:span-metrics-extraction",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
+    "organizations:transaction-name-normalize-legacy",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -69,7 +73,6 @@ logger = logging.getLogger(__name__)
 
 
 def get_exposed_features(project: Project) -> Sequence[str]:
-
     active_features = []
     for feature in EXPOSABLE_FEATURES:
         if feature.startswith("organizations:"):
@@ -116,10 +119,11 @@ def get_public_key_configs(
 def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
-    for flt in get_all_filter_specs():
+    for flt in get_all_filter_specs(project):
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        if settings["isEnabled"]:
+
+        if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
     error_messages: List[str] = []
@@ -194,9 +198,7 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
-    if features.has("organizations:dynamic-sampling", project.organization) and options.get(
-        "dynamic-sampling:enabled-biases"
-    ):
+    if features.has("organizations:dynamic-sampling", project.organization):
         # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
         # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
         return {"rules": [], "rulesV2": generate_rules(project)}
@@ -389,6 +391,8 @@ def _get_project_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
 
+        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
+
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
             "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
@@ -537,6 +541,7 @@ def _load_filter_settings(flt: _FilterSpec, project: Project) -> Mapping[str, An
     """
     filter_id = flt.id
     filter_key = f"filters:{filter_id}"
+
     setting = project.get_option(filter_key)
 
     return _filter_option_to_config_setting(flt, setting)
@@ -569,6 +574,11 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
                 # new style filter, per legacy browser type handling
                 # ret_val['options'] = setting.split(' ')
                 ret_val["options"] = list(setting)
+    elif flt.id == FilterStatKeys.HEALTH_CHECK:
+        if is_enabled:
+            ret_val = {"patterns": HEALTH_CHECK_GLOBS, "isEnabled": True}
+        else:
+            ret_val = {"patterns": [], "isEnabled": False}
     return ret_val
 
 

@@ -2,6 +2,8 @@ from django.conf.urls import include, url
 
 from sentry.api.endpoints.group_event_details import GroupEventDetailsEndpoint
 from sentry.api.endpoints.internal.integration_proxy import InternalIntegrationProxyEndpoint
+from sentry.api.endpoints.org_auth_token_details import OrgAuthTokenDetailsEndpoint
+from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_facets_stats_performance import (
     OrganizationEventsFacetsStatsPerformanceEndpoint,
 )
@@ -278,6 +280,7 @@ from .endpoints.organization_events_histogram import OrganizationEventsHistogram
 from .endpoints.organization_events_meta import (
     OrganizationEventsMetaEndpoint,
     OrganizationEventsRelatedIssuesEndpoint,
+    OrganizationSpansSamplesEndpoint,
 )
 from .endpoints.organization_events_span_ops import OrganizationEventsSpanOpsEndpoint
 from .endpoints.organization_events_spans_histogram import OrganizationEventsSpansHistogramEndpoint
@@ -561,7 +564,7 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     url(
-        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|\d+|[A-Fa-f0-9-]{32,36}))/$",
         GroupEventDetailsEndpoint.as_view(),
     ),
     url(
@@ -1221,6 +1224,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-meta",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/spans-samples/$",
+        OrganizationSpansSamplesEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-samples",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/metrics-compatibility/$",
         OrganizationMetricsCompatibility.as_view(),
         name="sentry-api-0-organization-metrics-compatibility",
@@ -1616,6 +1624,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sentry-app-components/$",
         OrganizationSentryAppComponentsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-app-components",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/org-auth-tokens/$",
+        OrgAuthTokensEndpoint.as_view(),
+        name="sentry-api-0-org-auth-tokens",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/org-auth-tokens/(?P<token_id>[^\/]+)/$",
+        OrgAuthTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-org-auth-token-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/stats/$",
