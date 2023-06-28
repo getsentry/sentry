@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Sequence
 
 import sentry_sdk
 import sqlparse
@@ -407,6 +407,11 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     Adds release, user report, sdk updates, and perf issue info to the event.
     """
 
+    def get_attrs(
+        self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False, **kwargs
+    ):
+        return super().get_attrs(item_list, user, is_public)
+
     def _get_release_info(self, user, event, include_full_release_data: bool):
         version = event.get_tag("sentry:release")
         if not version:
@@ -426,7 +431,6 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
-
 
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
