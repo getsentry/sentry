@@ -21,11 +21,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
+import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
 
 import EndpointList from './endpointList';
 
@@ -87,7 +89,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[throughputData]}
                   start=""
                   end=""
@@ -103,7 +105,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   definedAxisTicks={2}
                   stacked
                   isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
+                  chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
                   }}
@@ -113,7 +115,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[errorsData]}
                   start={eventView.start as string}
                   end={eventView.end as string}
@@ -144,9 +146,12 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <SpanGroupBreakdownContainer />
+            <ServiceDurationChartContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
+          <ChartsContainerItem3>
+            <ServiceTimeSpentBreakdown />
+          </ChartsContainerItem3>
         </ChartsContainer>
       </StyledRow>
 
@@ -172,4 +177,8 @@ const ChartsContainerItem = styled('div')`
 
 const ChartsContainerItem2 = styled('div')`
   flex: 1;
+`;
+
+const ChartsContainerItem3 = styled('div')`
+  flex: 0.75;
 `;

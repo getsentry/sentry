@@ -54,8 +54,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
-            # TODO FN: This will eventually be org:ci
-            scope_list=["org:read"],
+            scope_list=["org:ci"],
             created_by_id=request.user.id,
             token_last_characters=jwt_token[-4:],
             token_hashed=token_hashed,

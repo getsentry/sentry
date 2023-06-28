@@ -17,7 +17,6 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -391,6 +390,7 @@ INSTALLED_APPS = (
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )
@@ -1096,12 +1096,12 @@ CELERYBEAT_SCHEDULE_REGION = {
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
-if SILO_MODE == SiloMode.CONTROL.value:
+if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
 
-elif SILO_MODE == SiloMode.REGION.value:
+elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
     CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
@@ -1643,6 +1643,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable specifying inbound filter for health check calls.
+    "organizations:health-check-filter": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2058,6 +2060,7 @@ SENTRY_SCOPES = {
     "org:write",
     "org:admin",
     "org:integrations",
+    "org:ci",
     "member:read",
     "member:write",
     "member:admin",
