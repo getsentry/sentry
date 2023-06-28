@@ -72,7 +72,7 @@ export function SpanGroupBreakdown({
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
+            {transaction ? t('Endpoint Breakdown') : t('Service Breakdown')}
           </ChartLabel>
           {hasDropdownFeatureFlag && (
             <CompactSelect
@@ -84,7 +84,7 @@ export function SpanGroupBreakdown({
         </Header>
         <Chart
           statsPeriod="24h"
-          height={190}
+          height={340}
           showLegend
           data={
             dataDisplayType === DataDisplayType.PERCENTAGE
@@ -111,7 +111,7 @@ export function SpanGroupBreakdown({
           }
           tooltipFormatterOptions={{
             valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
           }}
         />
       </ChartPadding>
