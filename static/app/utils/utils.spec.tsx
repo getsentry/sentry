@@ -167,9 +167,6 @@ describe('utils.parseRepo', function () {
       'example/example'
     );
   });
-  it('should work for nothing passed', function () {
-    expect(parseRepo()).toEqual();
-  });
 });
 
 describe('utils.explodeSlug', function () {
@@ -181,60 +178,26 @@ describe('utils.explodeSlug', function () {
 describe('utils.projectDisplayCompare', function () {
   it('sorts by bookmark and project slug', function () {
     const projects = [
-      {
-        isBookmarked: true,
-        slug: 'm',
-      },
-      {
-        isBookmarked: false,
-        slug: 'm',
-      },
-      {
-        isBookmarked: false,
-        slug: 'a',
-      },
-      {
-        isBookmarked: true,
-        slug: 'a',
-      },
-      {
-        isBookmarked: true,
-        slug: 'z',
-      },
-      {
-        isBookmarked: false,
-        slug: 'z',
-      },
-    ];
+      {isBookmarked: true, slug: 'm'},
+      {isBookmarked: false, slug: 'm'},
+      {isBookmarked: false, slug: 'a'},
+      {isBookmarked: true, slug: 'a'},
+      {isBookmarked: true, slug: 'z'},
+      {isBookmarked: false, slug: 'z'},
+    ].map(TestStubs.Project);
+
+    const expected = [
+      {isBookmarked: true, slug: 'a'},
+      {isBookmarked: true, slug: 'm'},
+      {isBookmarked: true, slug: 'z'},
+      {isBookmarked: false, slug: 'a'},
+      {isBookmarked: false, slug: 'm'},
+      {isBookmarked: false, slug: 'z'},
+    ].map(TestStubs.Project);
 
     const sortedProjects = sortProjects(projects);
 
-    expect(sortedProjects).toEqual([
-      {
-        isBookmarked: true,
-        slug: 'a',
-      },
-      {
-        isBookmarked: true,
-        slug: 'm',
-      },
-      {
-        isBookmarked: true,
-        slug: 'z',
-      },
-      {
-        isBookmarked: false,
-        slug: 'a',
-      },
-      {
-        isBookmarked: false,
-        slug: 'm',
-      },
-      {
-        isBookmarked: false,
-        slug: 'z',
-      },
-    ]);
+    expect(sortedProjects).toEqual(expected);
   });
 });
 
@@ -258,9 +221,11 @@ describe('deepFreeze', function () {
         testObj.foo.push(4);
       },
       () => {
+        // @ts-expect-error
         testObj.bar = '';
       },
       () => {
+        // @ts-expect-error
         delete testObj.foo;
       },
     ].forEach(fn => {
