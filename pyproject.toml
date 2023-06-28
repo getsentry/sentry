@@ -1103,7 +1103,6 @@ module = [
     "sentry_plugins.splunk.plugin",
     "sentry_plugins.trello.plugin",
     "sentry_plugins.twilio.plugin",
-    "sudo.views",
     "tests.acceptance.chartcuterie.test_chart_renderer",
     "tests.acceptance.test_organization_dashboards",
     "tests.acceptance.test_shared_issue",
