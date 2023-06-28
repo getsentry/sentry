@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {
   getStartFromTimeWindow,
-  timeWindowData,
+  timeWindowConfig,
 } from 'sentry/views/monitors/components/overviewTimeline/utils';
 
 import {useTimelineCursor} from './timelineCursor';
@@ -36,7 +36,7 @@ interface TimeMarker {
 }
 
 function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeMarker[] {
-  const {elapsedMinutes, timeMarkerInterval} = timeWindowData[timeWindow];
+  const {elapsedMinutes, timeMarkerInterval} = timeWindowConfig[timeWindow];
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
   const times: TimeMarker[] = [];
@@ -59,7 +59,7 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
     <LabelsContainer>
       {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
-          <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
+          <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
         </TimeLabelContainer>
       ))}
     </LabelsContainer>
@@ -67,7 +67,7 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
 }
 
 export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
-  const {cursorLabelFormat} = timeWindowData[timeWindow];
+  const {cursorLabelFormat} = timeWindowConfig[timeWindow];
 
   const makeCursorText = useCallback(
     (percentPosition: number) => {
