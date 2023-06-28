@@ -49,6 +49,7 @@ type Props = ViewProps & {
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
   height?: number;
+  neutralColor?: boolean;
   transaction?: NormalizedTrendsTransaction;
   trendFunctionField?: TrendFunctionField;
 };
@@ -97,6 +98,7 @@ export function Chart({
   trendFunctionField,
   disableXAxis,
   disableLegend,
+  neutralColor,
   grid,
   height,
   projects,
@@ -124,7 +126,7 @@ export function Chart({
     browserHistory.push(to);
   };
 
-  const lineColor = trendToColor[trendChangeType || ''];
+  const lineColor = trendToColor[neutralColor ? 'neutral' : trendChangeType || ''];
 
   const events =
     statsData && transaction?.project && transaction?.transaction

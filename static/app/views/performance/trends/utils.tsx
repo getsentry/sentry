@@ -115,6 +115,10 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  neutral: {
+    lighter: theme.yellow200,
+    default: theme.yellow300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
