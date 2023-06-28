@@ -29,7 +29,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
@@ -121,7 +121,7 @@ export default function EndpointOverview() {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'p95(transaction.duration)', 'http_error_count()']}
+        yAxis={['tps()', 'http_error_count()']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -168,44 +168,6 @@ export default function EndpointOverview() {
               />
               <SidebarSpacer />
               <Header>
-                <ChartLabel>{DataTitles.p95}</ChartLabel>
-              </Header>
-              <ChartSummaryValue
-                isLoading={isTotalsLoading}
-                value={
-                  defined(totals)
-                    ? tooltipFormatterUsingAggregateOutputType(
-                        totals.data[0]['p95(transaction.duration)'] as number,
-                        'duration'
-                      )
-                    : undefined
-                }
-              />
-              <Chart
-                statsPeriod={(statsPeriod as string) ?? '24h'}
-                height={80}
-                data={[results[1]]}
-                start=""
-                end=""
-                loading={loading}
-                utc={false}
-                isLineChart
-                definedAxisTicks={2}
-                disableXAxis
-                chartColors={[P95_COLOR]}
-                grid={{
-                  left: '8px',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                tooltipFormatterOptions={{
-                  valueFormatter: value =>
-                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                }}
-              />
-              <SidebarSpacer />
-              <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
               </Header>
               <ChartSummaryValue
@@ -222,7 +184,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={eventView.statsPeriod}
                 height={80}
-                data={[results[2]]}
+                data={[results[1]]}
                 start={eventView.start as string}
                 end={eventView.end as string}
                 loading={loading}
