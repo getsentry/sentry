@@ -100,11 +100,13 @@ def _get_authorization_header(
     """
     if expiry_sec is None:
         expiry_sec = 60 * 10  # default to 10 mins
+    token_creation_time = int(time.time())
     with sentry_sdk.start_span(op="jwt", description="Generating AppStoreConnect JWT token"):
         token = jwt.encode(
             {
                 "iss": credentials.issuer_id,
-                "exp": int(time.time()) + expiry_sec,
+                "iat": token_creation_time,
+                "exp": token_creation_time + expiry_sec,
                 "aud": "appstoreconnect-v1",
             },
             credentials.key,
