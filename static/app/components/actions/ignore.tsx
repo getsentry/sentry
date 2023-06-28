@@ -12,6 +12,7 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
   GroupStatusResolution,
+  GroupSubstatus,
   ResolutionStatus,
   ResolutionStatusDetails,
   SelectValue,
@@ -61,6 +62,7 @@ export function getIgnoreActions({
         onUpdate({
           status: ResolutionStatus.IGNORED,
           statusDetails,
+          substatus: GroupSubstatus.ARCHIVED_UNTIL_CONDITION_MET,
         }),
       message: confirmMessage?.() ?? null,
       confirmText: confirmLabel,
