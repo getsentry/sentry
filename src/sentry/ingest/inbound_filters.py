@@ -254,7 +254,7 @@ _web_crawlers_filter = _FilterSpec(
 _healthcheck_filter = _FilterSpec(
     id=FilterStatKeys.HEALTH_CHECK,
     name="Filter out requests to health check endpoints",
-    description="Filters out transactions for health check endpoints, in order to conserve transaction quotas",
+    description="Filters out transactions for health check endpoints to conserve transaction quota.",
     serializer_cls=None,
     config_name="ignoreTransactions",
 )
