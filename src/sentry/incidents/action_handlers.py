@@ -282,7 +282,17 @@ def generate_incident_trigger_email_context(
     snooze_alert_url = None
     if features.has("organizations:mute-metric-alerts", organization):
         snooze_alert = True
-        snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
+        alert_rule_link = organization.absolute_url(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            ),
+            query="referrer=alert_email",
+        )
+        snooze_alert_url = alert_rule_link + "&" + urlencode({"mute": "1"})
 
     return {
         "link": alert_link,
