@@ -11,8 +11,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
 import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Project} from 'sentry/types';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -21,15 +23,31 @@ import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
-type Props = {
+function isProjectSelected(
+  project: Project,
+  selectedProjects: number[],
+  allProjects: Project[]
+): boolean {
+  // Currently does not distinguish between all projects and my projects?
+  // the value of selectedProjects that we receive is set to the same value
+  // regardless if selectedProjects is set to all projects or my projects
+  if (selectedProjects.includes(ALL_ACCESS_PROJECTS)) {
+    return !!allProjects.find(p => p.id === project.id)?.isMember;
+  }
+
+  return selectedProjects.includes(parseInt(project.id, 10));
+}
+
+interface Props extends WithRouterProps<{}, {}> {
   dataCategory: DataCategoryInfo['plural'];
   headers: React.ReactNode[];
+  selectedProjects: number[];
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
-} & WithRouterProps<{}, {}>;
+}
 
 export type TableStat = {
   accepted: number;
@@ -104,17 +122,27 @@ class UsageTable extends Component<Props> {
         {formatUsageWithUnits(dropped, dataCategory, getFormatUsageOptions(dataCategory))}
       </CellStat>,
       <CellStat key={5}>
-        <Button
-          title="Go to project level stats"
-          data-test-id={project.slug}
-          size="xs"
-          onClick={() => {
-            this.loadProject(parseInt(stat.project.id, 10));
-          }}
-        >
-          <StyledIconGraph type="bar" size="sm" />
-          <span>View Stats</span>
-        </Button>
+        {isProjectSelected(
+          stat.project,
+          this.props.selectedProjects,
+          ProjectsStore.getAll()
+        ) ? (
+          <Button disabled size="xs">
+            {t('Project is selected')}
+          </Button>
+        ) : (
+          <Button
+            title="Go to project level stats"
+            data-test-id={project.slug}
+            size="xs"
+            onClick={() => {
+              this.loadProject(parseInt(stat.project.id, 10));
+            }}
+          >
+            <StyledIconGraph type="bar" size="sm" />
+            <span>{t('View Stats')}</span>
+          </Button>
+        )}
         <Link to={stat.projectSettingsLink}>
           <StyledSettingsButton size="xs" title="Go to project settings">
             <SettingsIcon size="sm" />

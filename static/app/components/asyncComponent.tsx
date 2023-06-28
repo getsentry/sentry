@@ -16,7 +16,7 @@ import RouteError from 'sentry/views/routeError';
 
 export type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
 
-type AsyncComponentState = {
+export type AsyncComponentState = {
   [key: string]: any;
   error: boolean;
   errors: Record<string, ResponseMeta>;

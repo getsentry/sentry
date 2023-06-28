@@ -4,7 +4,10 @@ import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import AsyncComponent, {
+  AsyncComponentProps,
+  AsyncComponentState,
+} from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
@@ -19,7 +22,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
-type Props = {
+interface Props extends AsyncComponentProps {
   dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
@@ -40,11 +43,11 @@ type Props = {
   tableCursor?: string;
   tableQuery?: string;
   tableSort?: string;
-} & AsyncComponent['props'];
+}
 
-type State = {
+interface State extends AsyncComponentState {
   projectStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+}
 
 export enum SortBy {
   PROJECT = 'project',
@@ -444,6 +447,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         )}
         <Container data-test-id="usage-stats-table">
           <UsageTable
+            selectedProjects={this.props.projectIds}
             isLoading={loading || loadingProjects}
             isError={error}
             errors={errors as any} // TODO(ts)
