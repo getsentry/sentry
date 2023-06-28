@@ -250,9 +250,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
             if replace_better_priority_aggregation and alias == "better_priority":
-                aggregation = self.aggregation_defs[
-                    "better_priority_issue_platform"  # type:ignore[call-overload]
-                ]
+                aggregation = self.aggregation_defs["better_priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
