@@ -8,6 +8,8 @@ from typing import List, Mapping, Optional, Sequence, cast
 
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -110,6 +112,18 @@ class NotificationsService(RpcService):
     @rpc_method
     @abstractmethod
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: NotificationSettingFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+        serializer: Optional[None] = None,
+    ) -> List[OpaqueSerializedResponse]:
         pass
 
 

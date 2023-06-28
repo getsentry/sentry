@@ -16,7 +16,11 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
-from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import (
+    FilterQueryDatabaseImpl,
+    OpaqueSerializedResponse,
+)
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.notifications.serial import serialize_notification_setting
@@ -168,6 +172,16 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         return self._FQ.get_many(filter)
 
+    def serialize_many(
+        self,
+        *,
+        filter: NotificationSettingFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+        serializer: Optional[Serializer] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
+
     class _NotificationSettingsQuery(
         FilterQueryDatabaseImpl[
             NotificationSetting, NotificationSettingFilterArgs, RpcNotificationSetting, None
@@ -181,7 +195,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             if "provider" in filters and filters["provider"] is not None:
                 query = query.filter(provider=filters["provider"])
             if "type" in filters and filters["type"] is not None:
-                query = query.filter(type=filters["type"])
+                query = query.filter(type=filters["type"].value)
             if "scope_type" in filters and filters["scope_type"] is not None:
                 query = query.filter(scope_type=filters["scope_type"])
             if "scope_identifier" in filters and filters["scope_identifier"] is not None:
@@ -190,7 +204,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 query = query.filter(user_id__in=filters["user_ids"])
             if "team_ids" in filters and len(filters["team_ids"]) > 0:
                 query = query.filter(team_id__in=filters["team_ids"])
-            return list(query)
+            return list(query.all())
 
         def base_query(self, ids_only: bool = False) -> QuerySet:
             return NotificationSetting.objects
