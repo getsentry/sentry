@@ -293,7 +293,11 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     },
     {
       component: (
-        <DateUploadedColumn key="date-modified" onClick={handleSortChangeForModified}>
+        <DateUploadedColumn
+          key="date-modified"
+          data-test-id="date-modified-header"
+          onClick={handleSortChangeForModified}
+        >
           {t('Date Modified')}
           {(sortBy === SortBy.ASC_MODIFIED || sortBy === SortBy.DESC_MODIFIED) && (
             <Tooltip
@@ -306,7 +310,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
             >
               <IconArrow
                 direction={sortBy === SortBy.DESC_MODIFIED ? 'down' : 'up'}
-                data-test-id="icon-arrow"
+                data-test-id="icon-arrow-modified"
               />
             </Tooltip>
           )}
@@ -316,7 +320,11 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     },
     {
       component: (
-        <DateUploadedColumn key="date-uploaded" onClick={handleSortChangeForAdded}>
+        <DateUploadedColumn
+          key="date-uploaded"
+          data-test-id="date-uploaded-header"
+          onClick={handleSortChangeForAdded}
+        >
           {t('Date Uploaded')}
           {(sortBy === SortBy.ASC_ADDED || sortBy === SortBy.DESC_ADDED) && (
             <Tooltip

@@ -232,6 +232,7 @@ describe('ProjectSourceMaps', function () {
       ).toBeInTheDocument();
 
       // Date Uploaded can be sorted
+      await userEvent.click(screen.getByTestId('date-uploaded-header'));
       await userEvent.hover(screen.getByTestId('icon-arrow'));
       expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
       await userEvent.click(screen.getByTestId('icon-arrow'));
@@ -246,8 +247,26 @@ describe('ProjectSourceMaps', function () {
         );
       });
 
+      // Date Modified can be sorted
+      await userEvent.click(screen.getByTestId('date-modifier-header'));
+      await userEvent.hover(screen.getByTestId('icon-arrow-date-modified'));
+      expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow-date-modified'));
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: '-date_modified',
+            }),
+          })
+        );
+      });
+
       // Artifacts
       expect(screen.getByText('39')).toBeInTheDocument();
+      // Date Modified
+      expect(screen.getByText('Mar 10, 2023 8:25 AM UTC')).toBeInTheDocument();
       // Date Uploaded
       expect(screen.getByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
       // Delete button
