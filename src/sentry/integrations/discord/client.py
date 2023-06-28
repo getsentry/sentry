@@ -39,4 +39,4 @@ class DiscordClient(IntegrationProxyClient):
             response = self.get(DiscordClient.GET_GUILD_URL % guild_id, headers=headers)
         except ApiError:
             raise IntegrationError("Could not retrieve Discord guild name")
-        return response["name"]
+        return response["name"]  # type:ignore
