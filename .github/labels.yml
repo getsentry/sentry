@@ -18,6 +18,9 @@
 - name: 'Trigger: Visual Snapshot'
   color: 'A0CABD'
   description: 'add to a PR to run a visual snapshot diff'
+- name: 'Trigger: Silo db'
+  color: 'A0CABD'
+  description: 'Trigger tests with split databases that simulate hybrid cloud data separation in postgres'
 
 # Unito - notion.so/52d10dbfad474328850319e48b057a5b
 - name: 'Sync: Jira'
