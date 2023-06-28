@@ -41,6 +41,7 @@ export enum PerformanceWidgetSetting {
   WORST_FCP_VITALS = 'worst_fcp_vitals',
   WORST_CLS_VITALS = 'worst_cls_vitals',
   WORST_FID_VITALS = 'worst_fid_vitals',
+  MOST_CHANGED = 'most_changed',
   MOST_IMPROVED = 'most_improved',
   MOST_REGRESSED = 'most_regressed',
   MOST_RELATED_ERRORS = 'most_related_errors',
@@ -328,6 +329,15 @@ export const WIDGET_DEFINITIONS: ({
     titleTooltip: t(
       'This compares the baseline (%s) of the past with the present.',
       'regressed'
+    ),
+    fields: [],
+    dataType: GenericPerformanceWidgetDataType.TRENDS,
+  },
+  [PerformanceWidgetSetting.MOST_CHANGED]: {
+    title: t('Most Changed'),
+    titleTooltip: t(
+      'This compares the baseline (%s) of the past with the present.',
+      'changed'
     ),
     fields: [],
     dataType: GenericPerformanceWidgetDataType.TRENDS,

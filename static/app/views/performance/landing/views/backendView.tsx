@@ -43,9 +43,15 @@ export function BackendView(props: BasePerformanceViewProps) {
   const doubleChartRowCharts = [
     PerformanceWidgetSetting.SLOW_HTTP_OPS,
     PerformanceWidgetSetting.SLOW_DB_OPS,
-    PerformanceWidgetSetting.MOST_IMPROVED,
-    PerformanceWidgetSetting.MOST_REGRESSED,
   ];
+
+  if (props.organization.features.includes('performance-new-trends')) {
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
+  } else {
+    doubleChartRowCharts.push(
+      ...[PerformanceWidgetSetting.MOST_REGRESSED, PerformanceWidgetSetting.MOST_IMPROVED]
+    );
+  }
 
   if (showSpanOperationsWidget) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
