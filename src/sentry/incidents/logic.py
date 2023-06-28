@@ -1486,7 +1486,8 @@ def rewrite_trigger_action_fields(action_data):
 
 
 def get_filtered_actions(
-    alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+    alert_rule_data: Mapping[str, Any],
+    action_type: ActionService,
 ):
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
