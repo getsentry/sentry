@@ -606,6 +606,7 @@ class Referrer(Enum):
     TSDB_MODELID_608 = "tsdb-modelid:608"
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
+    TSDB_MODELID_611 = "tsdb-modelid:611"
     TSDB_MODELID_700 = "tsdb-modelid:700"
     TSDB_MODELID_800 = "tsdb-modelid:800"
     TSDB_MODELID_801 = "tsdb-modelid:801"

@@ -17,6 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
+from sentry.ingest.inbound_filters import FilterStatKeys
 
 
 @extend_schema(tags=["Projects"])
@@ -52,8 +53,8 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         """
         Update various inbound data filters for a project.
         """
-        current_filter = None
-        for flt in inbound_filters.get_all_filter_specs():
+
+        for flt in inbound_filters.get_all_filter_specs(project):
             if flt.id == filter_id:
                 current_filter = flt
                 break
@@ -91,7 +92,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             elif new_state == current_state:
                 returned_state = new_state
 
-        if filter_id in ("browser-extensions", "localhost", "web-crawlers"):
+        if filter_id in (
+            FilterStatKeys.BROWSER_EXTENSION,
+            FilterStatKeys.LOCALHOST,
+            FilterStatKeys.WEB_CRAWLER,
+            FilterStatKeys.HEALTH_CHECK,
+        ):
             returned_state = filter_id
             removed = current_state - new_state
 
