@@ -6,17 +6,16 @@ jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
   let data;
-  const user = {
-    id: '5',
-    isSuperuser: false,
-    dateJoined: new Date(2020, 0, 1),
-  };
 
   beforeEach(function () {
-    trackAnalytics.mockClear();
-    ConfigStore.config = {
-      user,
-    };
+    jest.clearAllMocks();
+    ConfigStore.config = TestStubs.Config({
+      user: TestStubs.User({
+        id: '5',
+        isSuperuser: false,
+        dateJoined: new Date(2020, 0, 1),
+      }),
+    });
     GuideStore.init();
     data = [
       {
@@ -38,17 +37,17 @@ describe('GuideStore', function () {
   it('should move through the steps in the guide', function () {
     GuideStore.fetchSucceeded(data);
     // Should pick the first non-seen guide in alphabetic order.
-    expect(GuideStore.state.currentStep).toEqual(0);
-    expect(GuideStore.state.currentGuide.guide).toEqual('issue');
+    expect(GuideStore.getState().currentStep).toEqual(0);
+    expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
     // Should prune steps that don't have anchors.
-    expect(GuideStore.state.currentGuide.steps).toHaveLength(3);
+    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(3);
 
     GuideStore.nextStep();
-    expect(GuideStore.state.currentStep).toEqual(1);
+    expect(GuideStore.getState().currentStep).toEqual(1);
     GuideStore.nextStep();
-    expect(GuideStore.state.currentStep).toEqual(2);
+    expect(GuideStore.getState().currentStep).toEqual(2);
     GuideStore.closeGuide();
-    expect(GuideStore.state.currentGuide).toEqual(null);
+    expect(GuideStore.getState().currentGuide).toEqual(null);
   });
 
   it('should expect anchors to appear in expectedTargets', function () {
@@ -56,13 +55,13 @@ describe('GuideStore', function () {
 
     GuideStore.registerAnchor('new_page_filter_button');
     GuideStore.fetchSucceeded(data);
-    expect(GuideStore.state.currentStep).toEqual(0);
-    expect(GuideStore.state.currentGuide.guide).toEqual('new_page_filters');
+    expect(GuideStore.getState().currentStep).toEqual(0);
+    expect(GuideStore.getState().currentGuide?.guide).toEqual('new_page_filters');
 
     GuideStore.registerAnchor('new_page_filter_button');
 
     // Will not prune steps that don't have anchors
-    expect(GuideStore.state.currentGuide.steps).toHaveLength(2);
+    expect(GuideStore.getState().currentGuide?.steps).toHaveLength(2);
   });
 
   it('should force show a guide with #assistant', function () {
@@ -76,10 +75,10 @@ describe('GuideStore', function () {
 
     GuideStore.fetchSucceeded(data);
     window.location.hash = '#assistant';
-    GuideStore.onURLChange();
-    expect(GuideStore.state.currentGuide.guide).toEqual('issue');
+    window.dispatchEvent(new Event('load'));
+    expect(GuideStore.getState().currentGuide?.guide).toEqual('issue');
     GuideStore.closeGuide();
-    expect(GuideStore.state.currentGuide.guide).toEqual('issue_stream');
+    expect(GuideStore.getState().currentGuide?.guide).toEqual('issue_stream');
     window.location.hash = '';
   });
 
@@ -103,7 +102,7 @@ describe('GuideStore', function () {
 
     expect(spy).toHaveBeenCalledTimes(1);
 
-    GuideStore.updateCurrentGuide();
+    window.dispatchEvent(new Event('load'));
     expect(spy).toHaveBeenCalledTimes(1);
 
     GuideStore.nextStep();
