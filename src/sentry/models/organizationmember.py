@@ -200,7 +200,7 @@ class OrganizationMember(Model):
             {
                 "sso:linked": bool,
                 "sso:invalid": bool,
-                "member-limit-restricted": bool,
+                "member-limit:restricted": bool,
                 "idp:provisioned": bool,
             },
         ),
