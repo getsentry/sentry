@@ -96,6 +96,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB = 1
     JIRA = 2
     GITLAB = 3
+    MSTEAMS = 4
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

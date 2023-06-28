@@ -285,6 +285,11 @@ class IntegrationService(RpcService):
     ) -> None:
         raise NotImplementedError
 
+    @rpc_method
+    @abstractmethod
+    def delete_integration(self, *, integration_id: int) -> None:
+        pass
+
 
 integration_service: IntegrationService = cast(
     IntegrationService, IntegrationService.create_delegation()
