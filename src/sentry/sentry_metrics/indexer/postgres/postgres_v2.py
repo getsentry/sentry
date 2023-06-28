@@ -420,15 +420,17 @@ class PGStringIndexerV2(StringIndexer):
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            strings = table.objects.get_many_from_cache(id=id, use_replica=True)
+            strings = table.objects.get_many_from_cache(ids)
         except table.DoesNotExist:
             return [None] * len(ids)
 
+        id_to_string = {}
         for obj in strings:
             if obj:
                 assert obj.organization_id == org_id
+                id_to_string[obj.id] = obj.string
 
-        return [obj.string if obj else None for obj in strings]
+        return [id_to_string.get(id) for id in ids]
 
     def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
         metrics_paths = {METRIC_PATH_MAPPING[use_case_id] for use_case_id in use_case_ids}
