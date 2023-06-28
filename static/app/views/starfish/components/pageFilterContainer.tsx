@@ -15,7 +15,7 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
     datetime.end = null;
   }
 
-  return <PageFiltersContainer disablePersistence>{props.children}</PageFiltersContainer>;
+  return <PageFiltersContainer>{props.children}</PageFiltersContainer>;
 }
 
 export default StarfishPageFilterContainer;
