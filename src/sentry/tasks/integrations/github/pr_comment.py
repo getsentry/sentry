@@ -49,6 +49,8 @@ SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
 ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
 
+RATE_LIMITED_MESSAGE = "API rate limit exceeded"
+
 
 def format_comment(issues: List[PullRequestIssue]):
     def format_subtitle(subtitle):
@@ -236,6 +238,11 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         cache.delete(cache_key)
 
         if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+            metrics.incr("github_pr_comment.issue_locked_error")
+            return
+
+        elif RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            metrics.incr("github_pr_comment.rate_limited_error")
             return
 
         metrics.incr("github_pr_comment.api_error")
@@ -248,7 +255,7 @@ def github_comment_reactions():
 
     comments = PullRequestComment.objects.filter(
         created_at__gte=datetime.now(tz=timezone.utc) - timedelta(days=30)
-    )
+    ).select_related("pull_request")
 
     for comment in RangeQuerySetWrapper(comments):
         pr = comment.pull_request
@@ -281,6 +288,10 @@ def github_comment_reactions():
             comment.reactions = reactions
             comment.save()
         except ApiError as e:
+            if RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+                metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
+                continue
+
             metrics.incr("github_pr_comment.comment_reactions.api_error")
             sentry_sdk.capture_exception(e)
             continue
