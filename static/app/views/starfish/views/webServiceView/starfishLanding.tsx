@@ -3,9 +3,9 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,6 +13,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 
@@ -29,6 +31,13 @@ type Props = {
 };
 
 export function StarfishLanding(props: Props) {
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const selectedProject = projects.find(project =>
+    selection.projects.includes(parseInt(project.id, 10))
+  );
+
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
       <StarfishProjectSelector />
@@ -41,7 +50,9 @@ export function StarfishLanding(props: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Starfish')}</Layout.Title>
+            <Layout.Title>
+              {selectedProject && <ProjectBadge project={selectedProject} disableLink />}
+            </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
