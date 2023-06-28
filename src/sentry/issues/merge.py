@@ -34,10 +34,10 @@ def handle_merge(
         )
 
     group_list_by_times_seen = sorted(group_list, key=lambda g: (g.times_seen, g.id), reverse=True)
+    group_list_ids = [g.id for g in group_list_by_times_seen]
     primary_group, groups_to_merge = group_list_by_times_seen[0], group_list_by_times_seen[1:]
-
     group_ids_to_merge = [g.id for g in groups_to_merge]
-    group_ids_by_times_seen = [g.id for g in group_list_by_times_seen]
+
     eventstream_state = eventstream.backend.start_merge(
         primary_group.project_id, group_ids_to_merge, primary_group.id
     )
@@ -53,17 +53,13 @@ def handle_merge(
         and primary_group.status == GroupStatus.IGNORED
         and primary_group.substatus == GroupSubStatus.UNTIL_ESCALATING
     )
-    delete_forecasts = has_escalating_flag and not merge_forecasts
-
     merge_groups.delay(
         from_object_ids=group_ids_to_merge,
         to_object_id=primary_group.id,
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
-        handle_forecasts_ids=group_ids_by_times_seen
-        if merge_forecasts or delete_forecasts
-        else None,
-        delete_forecasts=delete_forecasts,
+        handle_forecasts_ids=group_list_ids if has_escalating_flag else None,
+        merge_forecasts=merge_forecasts,
     )
 
     Activity.objects.create(

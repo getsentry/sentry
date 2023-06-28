@@ -260,6 +260,11 @@ def get_group_hourly_count(group: Group) -> int:
     return int(hourly_count)
 
 
+def invalidate_group_hourly_count_cache(group: Group) -> None:
+    key = f"hourly-group-count:{group.project.id}:{group.id}"
+    cache.delete(key)
+
+
 def is_escalating(group: Group) -> Tuple[bool, Optional[int]]:
     """
     Return whether the group is escalating and the daily forecast if it exists.

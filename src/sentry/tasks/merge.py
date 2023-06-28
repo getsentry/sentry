@@ -5,13 +5,9 @@ from django.db import DataError, IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import eventstream, similarity, tsdb
-from sentry.issues.escalating import (
-    GroupsCountResponse,
-    ParsedGroupsCount,
-    query_groups_past_counts,
-)
+from sentry.issues.escalating import invalidate_group_hourly_count_cache
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.forecasts import save_forecast_per_group
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.groupinbox import GroupInbox
@@ -39,16 +35,16 @@ def merge_groups(
     recursed=False,
     eventstream_state=None,
     handle_forecasts_ids: List[int] = None,
-    delete_forecasts: bool = False,
+    merge_forecasts: bool = False,
     **kwargs,
 ):
     """
     Recursively merge groups by deleting group models and groups, and merging times_seen,
-    num_comments, and the group forecast if applicable.
+    and num_comments
 
-    `handle_forecasts_ids`: Group ids whose forecasts need to be merged or deleted, ordered by
-        desc times seen; None if the forecasts do not need to be handled
-    `delete_forecasts`: Boolean if the forecasts should be deleted instead of merged
+    JODI TODO: REWRITE THIS
+    `handle_forecasts_ids`: Group ids whose forecasts need to be deleted
+    `merge_forecasts`: Boolean if the forecast needs to be regenerated after the merge
     """
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models import (
@@ -71,20 +67,11 @@ def merge_groups(
         logger.error("group.malformed.missing_params", extra={"transaction_id": transaction_id})
         return False
 
-    # Delete or merge the forecasts if needed once before recursion
-    if delete_forecasts:
-        handle_forecasts_groups = Group.objects.filter(id__in=handle_forecasts_ids)
+    # Delete the forecasts and invalidate event count cache if needed once before recursion
+    if handle_forecasts_ids:
+        handle_forecasts_groups = list(Group.objects.filter(id__in=handle_forecasts_ids))
+        invalidate_merge_group_hourly_count_cache(handle_forecasts_groups)
         delete_outdated_forecasts(handle_forecasts_groups)
-    elif handle_forecasts_ids:
-        handle_forecasts_groups = Group.objects.filter(id__in=handle_forecasts_ids)
-        primary_group, groups_to_merge = (
-            handle_forecasts_groups[0],
-            handle_forecasts_groups[1:],
-        )
-        past_counts = query_groups_past_counts(handle_forecasts_groups)
-        merged_past_counts = merge_and_parse_past_counts(past_counts, primary_group.id)
-        save_forecast_per_group([primary_group], merged_past_counts)
-        delete_outdated_forecasts(groups_to_merge)
 
     # Operate on one "from" group per task iteration. The task is recursed
     # until each group has been merged.
@@ -225,10 +212,17 @@ def merge_groups(
             transaction_id=transaction_id,
             recursed=True,
             eventstream_state=eventstream_state,
+            merge_forecasts=merge_forecasts,
         )
     elif eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.backend.end_merge(eventstream_state)
+
+        # Delay the forecast generation by one minute so snuba event counts can update
+        if merge_forecasts:
+            regenerate_primary_group_forecast.apply_async(
+                kwargs={"group_id": to_object_id}, queue="merge", countdown=60
+            )
 
 
 def _get_event_environment(event, project, cache):
@@ -312,27 +306,21 @@ def merge_objects(models, group, new_group, limit=1000, logger=None, transaction
     return has_more
 
 
-def merge_and_parse_past_counts(
-    counts: List[GroupsCountResponse], primary_group_id
-) -> ParsedGroupsCount:
-    """
-    Return the parsed snuba response for the primary group counts, where the group counts are
-    merged by the hourBucket.
-    """
-    intervals, data = [], []
-    counts_sorted_by_time = sorted(counts, key=lambda x: x["hourBucket"])
-    intervals_set = set()  # make a set for faster lookup
-    for count_data in counts_sorted_by_time:
-        if count_data["hourBucket"] in intervals_set:
-            data[-1] += count_data["count()"]
-        else:
-            intervals.append(count_data["hourBucket"])
-            data.append(count_data["count()"])
-            intervals_set.add(count_data["hourBucket"])
-
-    return {primary_group_id: {"intervals": intervals, "data": data}}
+@instrumented_task(
+    name="sentry.tasks.merge.regenerate_primary_group_forecast",
+    queue="merge",
+    max_retries=None,
+)
+def regenerate_primary_group_forecast(group_id: int, **kwargs) -> None:
+    group = Group.objects.filter(id=group_id)
+    generate_and_save_forecasts(group)
 
 
 def delete_outdated_forecasts(groups: List[Group]):
     for group in groups:
         EscalatingGroupForecast.delete(group.project.id, group.id)
+
+
+def invalidate_merge_group_hourly_count_cache(groups: List[Group]):
+    for group in groups:
+        invalidate_group_hourly_count_cache(group)

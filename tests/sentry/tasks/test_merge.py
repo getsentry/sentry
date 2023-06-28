@@ -1,36 +1,24 @@
+from time import sleep
 from unittest.mock import patch
 
 from sentry import eventstore, eventstream
-from sentry.issues.escalating import (
-    ParsedGroupsCount,
-    get_group_hourly_count,
-    query_groups_past_counts,
-)
+from sentry.issues.escalating import get_group_hourly_count, query_groups_past_counts
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import Group, GroupEnvironment, GroupMeta, GroupRedirect, GroupStatus, UserReport
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.similarity import _make_index_backend
-from sentry.tasks.merge import merge_and_parse_past_counts, merge_groups
+from sentry.tasks.merge import merge_groups, regenerate_primary_group_forecast
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
-
-EXPECTED_MERGED_AND_PARSED_COUNTS: ParsedGroupsCount = {
-    3: {
-        "intervals": [
-            "2023-06-09T11:00:0000000+00:00",
-            "2023-06-10T08:00:0000000+00:00",
-            "2023-06-10T09:00:0000000+00:00",
-            "2023-06-13T08:00:0000000+00:00",
-        ],
-        "data": [10, 20, 20, 10],
-    }
-}
 
 
 @patch("sentry.similarity.features.index", new=index)
@@ -263,25 +251,29 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert GroupInbox.objects.filter(group=merged_group)[0].reason == GroupInboxReason.NEW.value
         assert not GroupHistory.objects.filter(group=child)
 
-    def test_merge_query_event_counts(self):
+    @with_feature("organizations:escalating-issues-v2")
+    def test_merge_groups_event_counts(self):
         """
-        Test that after merge, events that occur for child group are included in the primary group
-        count query response
+        Test that event counts are merged and that child events are added to the primary group
+        after merge
         """
         project = self.create_project()
-        event1 = self.store_event(
+        for i in range(10, 60):
+            i_str = str(i)
+            event_primary = self.store_event(
+                data={
+                    "event_id": i_str * 16,
+                    "timestamp": iso_format(before_now(seconds=1)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"foo": "bar"},
+                    "environment": self.environment.name,
+                },
+                project_id=project.id,
+            )
+
+        event_child = self.store_event(
             data={
-                "event_id": "a" * 32,
-                "timestamp": iso_format(before_now(seconds=1)),
-                "fingerprint": ["group-1"],
-                "tags": {"foo": "bar"},
-                "environment": self.environment.name,
-            },
-            project_id=project.id,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
+                "event_id": str(60) * 16,
                 "timestamp": iso_format(before_now(seconds=1)),
                 "fingerprint": ["group-2"],
                 "tags": {"foo": "bar"},
@@ -290,21 +282,32 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        target = event1.group
-        child = event2.group
+        primary = event_primary.group
+        child = event_child.group
 
-        target.status, target.substatus = GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING
-        target.save()
+        generate_and_save_forecasts([primary, child])
+        before_merge_hour_count = get_group_hourly_count(primary)
+        before_merge_count = query_groups_past_counts([primary])
+        assert before_merge_hour_count == 50
+        assert before_merge_count[0]["count()"] == 50
+
+        primary.status, primary.substatus = GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING
+        primary.times_seen = 50
+        primary.save()
 
         with self.tasks():
-            eventstream_state = eventstream.start_merge(project.id, [child.id], target.id)
-            merge_groups([child.id], target.id, handle_forecasts_ids=[target.id, child.id])
-            eventstream.end_merge(eventstream_state)
+            eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
+            merge_groups.delay([child.id], primary.id, handle_forecasts_ids=[primary.id, child.id])
+            eventstream.backend.end_merge(eventstream_state)
 
-        assert not Group.objects.filter(id=child.id).exists()
-        assert Group.objects.filter(id=target.id).exists()
+        # Check that the queried primary group count includes the child event
+        sleep(1)  # Sleep for one second to allow snuba to update
+        after_merge_hour_count = get_group_hourly_count(primary)
+        after_merge_count = query_groups_past_counts([primary])
+        assert after_merge_hour_count == 51
+        assert after_merge_count[0]["count()"] == 51
 
-        # Add another event for child group fingerprint, group-2
+        # Add another event after the merge for child group
         self.store_event(
             data={
                 "event_id": "c" * 32,
@@ -316,56 +319,56 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        # Check that the queried target group count includes the child events
-        target_hour_count = get_group_hourly_count(target)
-        target_past_count = query_groups_past_counts([target])
-        assert target_hour_count == 3
-        assert target_past_count[0]["count()"] == 3
+        # Check that the queried primary group count includes the new child event
+        sleep(1)  # Sleep for one second to allow snuba to update
+        target_past_count = query_groups_past_counts([primary])
+        assert target_past_count[0]["count()"] == 52
 
-    def test_merge_and_parse_past_counts(self):
+    def test_regenerate_primary_group_forecast(self):
         """
-        Test that merge_and_parse_past_counts correctly merges group counts by the hourBucket
-        and parses the data into ParsedGroupsCount type.
+        Test that calling regenerate_primary_group_forecast recalculates the forecast based on the
+        new event merged event counts
         """
-        groups_count_response = [
-            {
-                "group_id": 1,
-                "hourBucket": "2023-06-10T08:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
+        project = self.create_project()
+        for i in range(10, 60):
+            i_str = str(i)
+            event_primary = self.store_event(
+                data={
+                    "event_id": i_str * 16,
+                    "timestamp": iso_format(before_now(seconds=1)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"foo": "bar"},
+                    "environment": self.environment.name,
+                },
+                project_id=project.id,
+            )
+
+        event_child = self.store_event(
+            data={
+                "event_id": str(60) * 16,
+                "timestamp": iso_format(before_now(seconds=1)),
+                "fingerprint": ["group-2"],
+                "tags": {"foo": "bar"},
+                "environment": self.environment.name,
             },
-            {
-                "group_id": 1,
-                "hourBucket": "2023-06-10T09:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
-            },
-            {
-                "group_id": 1,
-                "hourBucket": "2023-06-13T08:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
-            },
-            {
-                "group_id": 3,
-                "hourBucket": "2023-06-09T11:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
-            },
-            {
-                "group_id": 3,
-                "hourBucket": "2023-06-10T08:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
-            },
-            {
-                "group_id": 3,
-                "hourBucket": "2023-06-10T09:00:0000000+00:00",
-                "count()": 10,
-                "project_id": 1,
-            },
-        ]
-        merged_and_parsed_counts = merge_and_parse_past_counts(
-            groups_count_response, primary_group_id=3
+            project_id=project.id,
         )
-        assert merged_and_parsed_counts == EXPECTED_MERGED_AND_PARSED_COUNTS
+
+        primary = event_primary.group
+        child = event_child.group
+
+        generate_and_save_forecasts([primary, child])
+        before_merge_forecast = EscalatingGroupForecast.fetch(
+            primary.project.id, primary.id
+        ).forecast
+
+        with self.tasks():
+            eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
+            merge_groups.delay([child.id], primary.id, handle_forecasts_ids=[primary.id, child.id])
+            eventstream.backend.end_merge(eventstream_state)
+
+        regenerate_primary_group_forecast(primary.id)
+        after_merge_forecast = EscalatingGroupForecast.fetch(
+            primary.project.id, primary.id
+        ).forecast
+        assert before_merge_forecast != after_merge_forecast

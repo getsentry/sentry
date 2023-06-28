@@ -1,25 +1,25 @@
 from datetime import datetime, timedelta
 from typing import Any, List
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 import rest_framework
 
-from sentry.issues.escalating import GroupsCountResponse, parse_groups_past_counts
+from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.escalating_group_forecast import (
     DEFAULT_MINIMUM_CEILING_FORECAST,
     EscalatingGroupForecast,
 )
 from sentry.issues.escalating_issues_alg import GroupCount, generate_issue_forecast
-from sentry.issues.forecasts import save_forecast_per_group
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.merge import handle_merge
 from sentry.models import Activity, Group, GroupInboxReason, GroupStatus, add_group_to_inbox
 from sentry.tasks.merge import merge_groups
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
 
 
 class HandleIssueMergeTest(TestCase):
@@ -96,64 +96,52 @@ class HandleIssueMergeTest(TestCase):
 
     @with_feature("organizations:escalating-issues-v2")
     @patch("sentry.tasks.merge.merge_groups.delay", wraps=merge_groups)  # call immediately
-    @patch("sentry.tasks.merge.query_groups_past_counts")
-    def test_handle_merge_recomputes_forecast(
-        self, mock_query_past_counts: Mock, merge_groups: Any
-    ) -> None:
-        """
-        Test that if the primary group is until_escalating, then the forecast is recomputed based
-        on the merged issue and the other forecasts are deleted.
-        """
-        primary_group = self.create_group()
-        primary_group.status = GroupStatus.IGNORED
-        primary_group.substatus = GroupSubStatus.UNTIL_ESCALATING
-        primary_group.save()
-        groups = self.groups
-        groups.append(primary_group)
-
-        now = datetime.now()
-        mock_past_counts = self.mock_get_query_past_counts(groups, now)
-        group_counts = parse_groups_past_counts(mock_past_counts)
-        save_forecast_per_group(groups, group_counts)
-
-        mock_query_past_counts.return_value = mock_past_counts
-        handle_merge(groups, self.project_lookup, self.user)
-
-        primary_group_forecast = EscalatingGroupForecast.fetch(
-            primary_group.project.id, primary_group.id
-        ).forecast
-        expected_primary_group_forecast = self.get_expected_primary_group_forecast(
-            start_time=now, num_groups=len(groups)
-        )
-        assert expected_primary_group_forecast == primary_group_forecast
-
-        for group in groups[:-1]:  # exclude the primary issue
-            # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
-            assert (
-                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
-                == DEFAULT_MINIMUM_CEILING_FORECAST
-            )
-
-    @with_feature("organizations:escalating-issues-v2")
-    @patch("sentry.tasks.merge.merge_groups.delay", wraps=merge_groups)  # call immediately
-    @patch("sentry.tasks.merge.query_groups_past_counts")
-    def test_handle_merge_deletes_forecast(
-        self, mock_query_past_counts: Mock, merge_groups: Any
-    ) -> None:
+    def test_handle_merge_deletes_forecast(self, merge_groups: Any) -> None:
         """
         Test that if the primary issue is not until_escalating, then all forecasts are deleted.
         """
-        primary_group = self.create_group()
-        groups = self.groups
-        mock_past_counts = self.mock_get_query_past_counts(groups, datetime.now())
-        group_counts = parse_groups_past_counts(mock_past_counts)
-        save_forecast_per_group(groups, group_counts)
+        Activity.objects.all().delete()
+        project = list(self.project_lookup.values())[0]
+        for i in range(10, 60):
+            i_str = str(i)
+            event_primary = self.store_event(
+                data={
+                    "event_id": i_str * 16,
+                    "timestamp": iso_format(before_now(seconds=1)),
+                    "fingerprint": ["group-1"],
+                    "tags": {"foo": "bar"},
+                    "environment": self.environment.name,
+                },
+                project_id=project.id,
+            )
 
-        mock_query_past_counts.return_value = mock_past_counts
-        groups.append(primary_group)
-        handle_merge(groups, self.project_lookup, self.user)
+        for i in range(60, 90):
+            i_str = str(i)
+            event_child = self.store_event(
+                data={
+                    "event_id": i_str * 16,
+                    "timestamp": iso_format(before_now(seconds=1)),
+                    "fingerprint": ["group-2"],
+                    "tags": {"foo": "bar"},
+                    "environment": self.environment.name,
+                },
+                project_id=project.id,
+            )
 
-        for group in groups:
+        primary = event_primary.group
+        child = event_child.group
+
+        generate_and_save_forecasts([primary, child])
+        for group in [primary, child]:
+            # assert that the escalating group forecast is not the default (ie. gotten from nodestore)
+            assert (
+                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
+                != DEFAULT_MINIMUM_CEILING_FORECAST
+            )
+
+        handle_merge([primary, child], self.project_lookup, self.user)
+
+        for group in [primary, child]:
             # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
             assert (
                 EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
