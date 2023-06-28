@@ -4,6 +4,7 @@ import logging
 import re
 from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from urllib.parse import quote, urlencode
 
 from django import forms
 from django.http import HttpResponse
@@ -87,6 +88,13 @@ FEATURES = [
         will resolve your linked workitems and vice versa.
         """,
         IntegrationFeatures.ISSUE_SYNC,
+    ),
+    FeatureDescription(
+        """
+        Link your Sentry stack traces back to your Azure DevOps source code with stack
+        trace linking.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
     ),
     FeatureDescription(
         """
@@ -318,6 +326,18 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         config["sync_status_forward"] = sync_status_forward
         return config
 
+    def format_source_url(self, repo: Repository, filepath: str, branch: str) -> str:
+        filepath = filepath.lstrip("/")
+        project = quote(repo.config["project"])
+        repo_id = quote(repo.config["name"])
+        query_string = urlencode(
+            {
+                "path": f"/{filepath}",
+                "version": f"GC{branch}",
+            }
+        )
+        return f"{self.instance}{project}/_git/{repo_id}?{query_string}"
+
     @property
     def instance(self) -> str:
         return self.model.metadata["domain_name"]
@@ -344,6 +364,7 @@ class VstsIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.ISSUE_SYNC,
+            IntegrationFeatures.STACKTRACE_LINK,
             IntegrationFeatures.TICKET_RULES,
         ]
     )

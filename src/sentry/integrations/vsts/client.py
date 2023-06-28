@@ -1,8 +1,10 @@
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
+from urllib.parse import quote
 
 from rest_framework.response import Response
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.models import Repository
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -37,6 +39,8 @@ class VstsApiPath:
     commits_batch = "{instance}_apis/git/repositories/{repo_id}/commitsBatch"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/commits/get-changes
     commits_changes = "{instance}_apis/git/repositories/{repo_id}/commits/{commit_id}/changes"
+    # https://learn.microsoft.com/en-us/rest/api/azure/devops/git/items/get
+    items = "{instance}{project}/_apis/git/repositories/{repo_id}/items"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/get
     project = "{instance}_apis/projects/{project_id}"
     # https://learn.microsoft.com/en-us/rest/api/azure/devops/core/projects/list
@@ -292,6 +296,19 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             VstsApiPath.users.format(account_name=account_name),
             api_preview=True,
             params={"continuationToken": continuation_token},
+        )
+
+    def check_file(self, repo: Repository, path: str, version: str) -> Optional[str]:
+        return self.get_cached(
+            path=VstsApiPath.items.format(
+                instance=repo.config["instance"],
+                project=quote(repo.config["project"]),
+                repo_id=quote(repo.config["name"]),
+            ),
+            params={
+                "path": path,
+                "api-version": "7.0",
+            },
         )
 
     def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
