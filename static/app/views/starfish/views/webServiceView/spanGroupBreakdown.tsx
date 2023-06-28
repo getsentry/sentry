@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -9,13 +8,19 @@ import {Series} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
-import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {
+  DataDisplayType,
+  DataRow,
+} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   colorPalette: string[];
+  dataDisplayType: DataDisplayType;
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
+  options: SelectOption<DataDisplayType>[];
+  setDataDisplayType: any;
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
@@ -23,43 +28,25 @@ type Props = {
   transaction?: string;
 };
 
-export enum DataDisplayType {
-  CUMULATIVE_DURATION = 'cumulative_duration',
-  PERCENTAGE = 'percentage',
-}
-
 export function SpanGroupBreakdown({
-  tableData: transformedData,
   topSeriesData: data,
   transaction,
   isTimeseriesLoading,
   errored,
+  options,
+  dataDisplayType,
+  setDataDisplayType,
 }: Props) {
   const organization = useOrganization();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
-  const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
-  ];
-  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.CUMULATIVE_DURATION
-  );
-
   const hasDropdownFeatureFlag = organization.features.includes(
     'starfish-wsv-chart-dropdown'
   );
-
-  if (showSeriesArray.length === 0 && transformedData.length > 0) {
-    setShowSeriesArray(transformedData.map(() => true));
-  }
 
   const visibleSeries: Series[] = [];
 
   for (let index = 0; index < data.length; index++) {
     const series = data[index];
-    if (showSeriesArray[index]) {
-      visibleSeries.push(series);
-    }
+    visibleSeries.push(series);
   }
 
   // Skip these calculations if the feature flag is not enabled
@@ -97,6 +84,9 @@ export function SpanGroupBreakdown({
         </Header>
         <Chart
           statsPeriod="24h"
+          height={210}
+          showLegend
+          isLineChart
           data={
             dataDisplayType === DataDisplayType.PERCENTAGE
               ? dataAsPercentages
@@ -112,7 +102,7 @@ export function SpanGroupBreakdown({
           grid={{
             left: '0',
             right: '0',
-            top: '8px',
+            top: '20px',
             bottom: '0',
           }}
           definedAxisTicks={6}
@@ -146,6 +136,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
 const FlexRowContainer = styled('div')`
