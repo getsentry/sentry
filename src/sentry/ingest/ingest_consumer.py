@@ -103,7 +103,7 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload)
+    data = json.loads(payload, use_rapid_json=True)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
@@ -236,7 +236,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> None:
     start_time = to_datetime(message["start_time"])
-    feedback = json.loads(message["payload"])
+    feedback = json.loads(message["payload"], use_rapid_json=True)
 
     try:
         save_userreport(project, feedback, start_time=start_time)

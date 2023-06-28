@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytz
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
@@ -83,8 +84,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
+            assert isinstance(message, EmailMultiAlternatives)
             assert self.organization.name in message.subject
             html = message.alternatives[0][0]
+            assert isinstance(html, str)
             assert (
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
             )
