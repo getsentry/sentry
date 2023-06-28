@@ -1,5 +1,6 @@
 import responses
 
+from sentry import options
 from sentry.integrations.discord.client import DiscordClient
 from sentry.testutils.cases import TestCase
 
@@ -10,6 +11,8 @@ class DiscordClientTest(TestCase):
     def setUp(self):
         self.application_id = "application-id"
         self.bot_token = "bot-token"
+        options.set("discord.application-id", self.application_id)
+        options.set("discord.bot-token", self.bot_token)
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",
@@ -18,8 +21,8 @@ class DiscordClientTest(TestCase):
         )
 
     @responses.activate
-    def test_request_attaches_bot_token_header(self):
-        client = DiscordClient(self.application_id, self.bot_token)
+    def test_authorize_request(self):
+        client = DiscordClient()
         responses.add(
             responses.GET,
             url=DiscordClient.base_url + "/",
@@ -30,8 +33,8 @@ class DiscordClientTest(TestCase):
         assert request.headers["Authorization"] == "Bot " + self.bot_token
 
     @responses.activate
-    def test_get_guild_name(self):
-        client = DiscordClient(self.application_id, self.bot_token)
+    def test_manual_get_guild_name(self):
+        client = DiscordClient()
         guild_id = self.integration.external_id
         server_name = self.integration.name
 
@@ -44,5 +47,5 @@ class DiscordClientTest(TestCase):
             },
         )
 
-        guild_name = client.get_guild_name(guild_id)
+        guild_name = client._get_guild_name(guild_id)
         assert guild_name == "Cool server"

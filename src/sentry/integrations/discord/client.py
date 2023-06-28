@@ -1,23 +1,42 @@
 from __future__ import annotations
 
-from sentry.integrations.client import ApiClient
+from requests import PreparedRequest
+
+from sentry import options
+from sentry.api.client import ApiError
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.utils.json import JSONData
 
 
-class DiscordClient(ApiClient):
+class DiscordClient(IntegrationProxyClient):
     integration_name: str = "discord"
     base_url: str = "https://discord.com/api/v10"
 
     # https://discord.com/developers/docs/resources/guild#get-guild
     GET_GUILD_URL = "/guilds/%s"
 
-    def __init__(self, application_id: str, bot_token: str):
-        super().__init__()
-        self.application_id = application_id
-        self.bot_token = bot_token
+    def __init__(
+        self,
+        org_integration_id: int | None = None,
+        logging_context: JSONData | None = None,
+    ):
+        self.application_id = options.get("discord.application-id")
+        self.bot_token = options.get("discord.bot-token")
+        super().__init__(org_integration_id, logging_context=logging_context)
 
-    def request(self, method, path, data=None, params=None):
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+        prepared_request.headers["Authorization"] = f"Bot {self.bot_token}"
+        return prepared_request
+
+    def _get_guild_name(self, guild_id: str) -> str:
+        # Manually add authorization since this method is part of installation where we do not yet
+        # have an integration created
         headers = {"Authorization": f"Bot {self.bot_token}"}
-        return self._request(method, path, headers=headers, data=data, params=params)
-
-    def get_guild_name(self, guild_id: str) -> str:
-        return str(self.get(self.GET_GUILD_URL % guild_id).get("name"))
+        try:
+            response = self.get(DiscordClient.GET_GUILD_URL % guild_id, headers=headers)
+        except ApiError:
+            raise IntegrationError("Could not retrieve Discord guild name")
+        return response["name"]

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -60,15 +60,9 @@ class DiscordIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [DiscordInstallPipeline(self.get_bot_install_url())]
 
-    def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
+    def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        application_id = options.get("discord.application-id")
-        bot_token = options.get("discord.bot-token")
-
-        client = DiscordClient(application_id, bot_token)
-
-        guild_name = client.get_guild_name(guild_id)
-
+        guild_name = DiscordClient()._get_guild_name(str(state.get("guild_id")))
         return {
             "name": guild_name,
             "external_id": guild_id,
