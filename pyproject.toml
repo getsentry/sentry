@@ -1577,5 +1577,31 @@ module = [
     "tests.symbolicator.test_payload_full",
     "tests.symbolicator.test_unreal_full",
 ]
-ignore_errors = true
+disable_error_code = [
+    "abstract",
+    "arg-type",
+    "assignment",
+    "attr-defined",
+    "call-arg",
+    "call-overload",
+    "dict-item",
+    "func-returns-value",
+    "has-type",
+    "index",
+    "list-item",
+    "method-assign",
+    "misc",
+    "no-redef",
+    "operator",
+    "override",
+    "return",
+    "return-value",
+    "type-var",
+    "typeddict-item",
+    "typeddict-unknown-key",
+    "union-attr",
+    "unreachable",
+    "valid-type",
+    "var-annotated",
+]
 # end: sentry modules with typing issues
