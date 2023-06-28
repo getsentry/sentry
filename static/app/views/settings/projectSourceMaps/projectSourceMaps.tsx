@@ -279,58 +279,74 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     ? SourceMapsBundleType.DEBUG_ID
     : SourceMapsBundleType.RELEASE;
   const tableHeaders = [
-    [
-      tabDebugIdBundlesActive ? t('Bundle ID') : t('Name'),
-      [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
-    ],
-    [
-      <ArtifactsTotalColumn key="artifacts-total">{t('Artifacts')}</ArtifactsTotalColumn>,
-      [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
-    ],
-    [
-      <DateUploadedColumn key="date-modified" onClick={handleSortChangeForModified}>
-        {t('Date Modified')}
-        {(sortBy === SortBy.ASC_MODIFIED || sortBy === SortBy.DESC_MODIFIED) && (
-          <Tooltip
-            containerDisplayMode="inline-flex"
-            title={
-              sortBy === SortBy.DESC_MODIFIED
-                ? t('Switch to ascending order')
-                : t('Switch to descending order')
-            }
-          >
-            <IconArrow
-              direction={sortBy === SortBy.DESC_MODIFIED ? 'down' : 'up'}
-              data-test-id="icon-arrow"
-            />
-          </Tooltip>
-        )}
-      </DateUploadedColumn>,
-      [SourceMapsBundleType.DEBUG_ID],
-    ],
-    [
-      <DateUploadedColumn key="date-uploaded" onClick={handleSortChangeForAdded}>
-        {t('Date Uploaded')}
-        {(sortBy === SortBy.ASC_ADDED || sortBy === SortBy.DESC_ADDED) && (
-          <Tooltip
-            containerDisplayMode="inline-flex"
-            title={
-              sortBy === SortBy.DESC_ADDED
-                ? t('Switch to ascending order')
-                : t('Switch to descending order')
-            }
-          >
-            <IconArrow
-              direction={sortBy === SortBy.DESC_ADDED ? 'down' : 'up'}
-              data-test-id="icon-arrow"
-            />
-          </Tooltip>
-        )}
-      </DateUploadedColumn>,
-      [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
-    ],
-    ['', [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID]],
+    {
+      component: tabDebugIdBundlesActive ? t('Bundle ID') : t('Name'),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <ArtifactsTotalColumn key="artifacts-total">
+          {t('Artifacts')}
+        </ArtifactsTotalColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <DateUploadedColumn key="date-modified" onClick={handleSortChangeForModified}>
+          {t('Date Modified')}
+          {(sortBy === SortBy.ASC_MODIFIED || sortBy === SortBy.DESC_MODIFIED) && (
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                sortBy === SortBy.DESC_MODIFIED
+                  ? t('Switch to ascending order')
+                  : t('Switch to descending order')
+              }
+            >
+              <IconArrow
+                direction={sortBy === SortBy.DESC_MODIFIED ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
+            </Tooltip>
+          )}
+        </DateUploadedColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: (
+        <DateUploadedColumn key="date-uploaded" onClick={handleSortChangeForAdded}>
+          {t('Date Uploaded')}
+          {(sortBy === SortBy.ASC_ADDED || sortBy === SortBy.DESC_ADDED) && (
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                sortBy === SortBy.DESC_ADDED
+                  ? t('Switch to ascending order')
+                  : t('Switch to descending order')
+              }
+            >
+              <IconArrow
+                direction={sortBy === SortBy.DESC_ADDED ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
+            </Tooltip>
+          )}
+        </DateUploadedColumn>
+      ),
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
+    {
+      component: '',
+      enabledFor: [SourceMapsBundleType.RELEASE, SourceMapsBundleType.DEBUG_ID],
+    },
   ];
+
+  const Table =
+    currentBundleType === SourceMapsBundleType.DEBUG_ID
+      ? ArtifactBundlesPanelTable
+      : ReleaseBundlesPanelTable;
 
   return (
     <Fragment>
@@ -362,12 +378,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         onSearch={handleSearch}
         query={query}
       />
-      <StyledPanelTable
+      <Table
         headers={tableHeaders
-          .filter(header =>
-            (header[1] as SourceMapsBundleType[]).includes(currentBundleType)
-          )
-          .map(header => header[0])}
+          .filter(header => header.enabledFor.includes(currentBundleType))
+          .map(header => header.component)}
         emptyMessage={
           query
             ? tct('No [tabName] match your search query.', {
@@ -425,7 +439,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                 }/source-maps/release-bundles/${encodeURIComponent(data.name)}`}
               />
             ))}
-      </StyledPanelTable>
+      </Table>
       <Pagination
         pageLinks={
           tabDebugIdBundlesActive
@@ -437,7 +451,34 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   );
 }
 
-const StyledPanelTable = styled(PanelTable)``;
+const ReleaseBundlesPanelTable = styled(PanelTable)`
+  grid-template-columns:
+    minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content)
+    minmax(74px, max-content);
+  > * {
+    :nth-child(-n + 4) {
+      :nth-child(4n-1) {
+        cursor: pointer;
+      }
+    }
+  }
+`;
+
+const ArtifactBundlesPanelTable = styled(PanelTable)`
+  grid-template-columns:
+    minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content) minmax(
+      242px,
+      max-content
+    )
+    minmax(74px, max-content);
+  > * {
+    :nth-child(-n + 5) {
+      :nth-child(5n-1) {
+        cursor: pointer;
+      }
+    }
+  }
+`;
 
 const ArtifactsTotalColumn = styled('div')`
   text-align: right;
