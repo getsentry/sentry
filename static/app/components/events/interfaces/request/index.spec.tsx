@@ -386,7 +386,7 @@ describe('Request entry', function () {
         ).toBeInTheDocument();
       });
 
-      it('highlights graphql query lines with errors', function () {
+      it('highlights graphql query lines with errors', async function () {
         const data: EntryRequest['data'] = {
           apiTarget: 'graphql',
           method: 'POST',
@@ -406,7 +406,11 @@ describe('Request entry', function () {
               data,
             },
           ],
-          contexts: {response: {data: {errors: [{locations: [{line: 1}]}]}}},
+          contexts: {
+            response: {
+              data: {errors: [{message: 'Very bad error', locations: [{line: 1}]}]},
+            },
+          },
         };
 
         const {container} = render(
@@ -417,6 +421,13 @@ describe('Request entry', function () {
         expect(
           container.querySelector('.line-highlight')?.getAttribute('data-start')
         ).toBe('1');
+        expect(
+          screen.getByText('There was 1 GraphQL error raised during this request.')
+        ).toBeInTheDocument();
+
+        await userEvent.click(screen.getByText(/There was 1 GraphQL error/i));
+
+        expect(screen.getByText('Very bad error')).toBeInTheDocument();
       });
     });
   });

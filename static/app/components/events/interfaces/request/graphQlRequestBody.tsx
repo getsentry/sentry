@@ -1,9 +1,15 @@
 import {useEffect, useRef} from 'react';
+import styled from '@emotion/styled';
+import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import uniq from 'lodash/uniq';
 import Prism from 'prismjs';
 
+import Alert from 'sentry/components/alert';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import List from 'sentry/components/list';
+import {tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {EntryRequestDataGraphQl, Event} from 'sentry/types';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
@@ -41,6 +47,32 @@ function getErrorLineNumbers(errors: GraphQlErrors): number[] {
   );
 }
 
+function ErrorsAlert({errors}: {errors: GraphQlErrors}) {
+  if (isEmpty(errors)) {
+    return null;
+  }
+
+  return (
+    <StyledAlert
+      type="error"
+      showIcon
+      expand={
+        <List symbol="bullet">
+          {errors.map((error, i) => (
+            <li key={i}>{error.message}</li>
+          ))}
+        </List>
+      }
+    >
+      {tn(
+        'There was %s GraphQL error raised during this request.',
+        'There were %s errors raised during this request.',
+        errors.length
+      )}
+    </StyledAlert>
+  );
+}
+
 export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
   const ref = useRef<HTMLElement | null>(null);
 
@@ -73,6 +105,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
           {data.query}
         </code>
       </pre>
+      <ErrorsAlert errors={errors} />
       <KeyValueList
         data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
           key,
@@ -84,3 +117,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
     </div>
   );
 }
+
+const StyledAlert = styled(Alert)`
+  margin-top: -${space(1)};
+`;
