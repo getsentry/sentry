@@ -488,8 +488,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
-        # TODO(recap): Should we allow empty string as a way of "removing" or delete the option entirely?
-        # Important for querying Projects that have recap server value set in `ProjectOptions`.
         if result.get("recapServer") is not None:
             if result["recapServer"] == "":
                 project.delete_option("sentry:recap_server")
