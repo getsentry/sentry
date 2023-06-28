@@ -1,6 +1,7 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {Config} from 'sentry/types';
 import withConfig from 'sentry/utils/withConfig';
 
 describe('withConfig HoC', function () {
@@ -9,14 +10,14 @@ describe('withConfig HoC', function () {
   });
 
   it('adds config prop', function () {
-    function MyComponent({config}) {
-      return <div>{config.test}</div>;
+    function MyComponent({config}: {config: Config}) {
+      return <div>{config.dsn}</div>;
     }
     const Container = withConfig(MyComponent);
 
     render(<Container />);
 
-    act(() => void ConfigStore.set('test', 'foo'));
+    act(() => void ConfigStore.set('dsn', 'foo'));
 
     expect(screen.getByText('foo')).toBeInTheDocument();
   });
