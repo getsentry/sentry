@@ -168,9 +168,5 @@ const RecommendedWrapper = styled('div')`
     border: 1px solid ${p => p.theme.border};
     padding: ${space(1.5)} ${space(2)};
     margin: 0;
-
-    &:not(:first-child):not(.group-child) {
-      border-top: 1px solid ${p => p.theme.border};
-    }
   }
 `;
