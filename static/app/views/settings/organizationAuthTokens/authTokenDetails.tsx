@@ -17,6 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, OrgAuthToken} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
+  getApiQueryData,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -103,25 +104,34 @@ function AuthTokenDetailsForm({
       );
 
       // Update get list query
-      setApiQueryData(
-        queryClient,
-        makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
-        (oldData: OrgAuthToken[] | undefined) => {
-          if (!Array.isArray(oldData)) {
+      if (
+        getApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug})
+        )
+      ) {
+        setApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+          (oldData: OrgAuthToken[] | undefined) => {
+            if (!Array.isArray(oldData)) {
+              return oldData;
+            }
+
+            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
+
+            if (existingToken) {
+              existingToken.name = name;
+            }
+
             return oldData;
           }
+        );
+      }
 
-          const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-
-          if (existingToken) {
-            existingToken.name = name;
-          }
-
-          return oldData;
-        }
-      );
-
-      handleGoBack();
+      // Without this, it complains that we are updating state while unmounting, as we are also updating the query cache
+      // which triggers a re-fetch of the query, which then tries to update the state of the component that is unmounting
+      window.setTimeout(handleGoBack, 1);
     },
     onError: error => {
       const message = t('Failed to update the auth token.');
