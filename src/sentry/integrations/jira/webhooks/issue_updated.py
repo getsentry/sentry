@@ -51,7 +51,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
         )
         # Integrations and their corresponding RpcIntegrations share the same id,
         # so we don't need to first convert this to a full Integration object
-        bind_org_context_from_integration(rpc_integration.id)
+        bind_org_context_from_integration(rpc_integration.id, {"webhook": "issue_updated"})
         sentry_sdk.set_tag("integration_id", rpc_integration.id)
 
         data = request.data

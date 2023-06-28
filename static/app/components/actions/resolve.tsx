@@ -239,7 +239,9 @@ function ResolveActions({
         <ResolveButton
           priority={priority}
           size={size}
-          title={t("We'll nag you with a notification if another event is seen.")}
+          title={t(
+            'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab.'
+          )}
           tooltipProps={{delay: 1000, disabled}}
           onClick={() =>
             openConfirmModal({

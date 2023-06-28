@@ -159,6 +159,10 @@ type Props = WithRouterProps & {
   label?: React.ReactNode;
 
   /**
+   * The maximum range (ie. endDate - startDate) allowed to be selected
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -433,6 +437,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       label,
       relativeOptions,
       maxPickableDays,
+      maxDateRange,
       customDropdownButton,
       detached,
       disabled,
@@ -509,6 +514,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                         onChange={this.handleSelectDateRange}
                         onChangeUtc={this.handleUseUtc}
                         maxPickableDays={maxPickableDays}
+                        maxDateRange={maxDateRange}
                       />
                       <SubmitRow>
                         <MultipleSelectorSubmitRow

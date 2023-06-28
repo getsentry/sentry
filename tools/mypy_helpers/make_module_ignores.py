@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import sys
+
+ERROR_RE = re.compile(r".*error:.*\[([^]]+)\]$")
 
 
 def main() -> int:
     shutil.rmtree(".mypy_cache", ignore_errors=True)
 
+    codes = set()
     filenames = set()
     out = subprocess.run(
         (sys.executable, "-m", "tools.mypy_helpers.mypy_without_ignores", *sys.argv[1:]),
@@ -17,6 +21,9 @@ def main() -> int:
         filename, _, _ = line.partition(":")
         if filename.endswith(".py"):
             filenames.add(filename)
+        match = ERROR_RE.match(line)
+        if match is not None:
+            codes.add(match[1])
 
     mods = []
     for filename in sorted(filenames):
@@ -29,12 +36,13 @@ def main() -> int:
             filename = filename[: -len("/__init__")]
         mods.append(filename.replace("/", "."))
     mods_s = "".join(f'    "{mod}",\n' for mod in mods)
+    codes_s = "".join(f'    "{code}",\n' for code in sorted(codes))
     generated = (
         f"# - remove the module from the list and fix the issues!\n"
         f"# - python3 -m tools.mypy_helpers.find_easiest_modules\n"
         f"[[tool.mypy.overrides]]\n"
         f"module = [\n{mods_s}]\n"
-        f"ignore_errors = true\n"
+        f"disable_error_code = [\n{codes_s}]\n"
     )
     with open("pyproject.toml") as f:
         src = f.read()
