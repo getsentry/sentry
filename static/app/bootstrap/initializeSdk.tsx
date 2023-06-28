@@ -252,6 +252,9 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
     const is200 =
       ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
+    const is400 =
+      ['BadRequestError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 400');
     const is401 =
       ['UnauthorizedError', 'RequestError'].includes(type) &&
       !!value.match('(GET|POST|PUT|DELETE) .* 401');
@@ -265,7 +268,7 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
       ['TooManyRequestsError', 'RequestError'].includes(type) &&
       !!value.match('(GET|POST|PUT|DELETE) .* 429');
 
-    if (is200 || is401 || is403 || is404 || is429) {
+    if (is200 || is400 || is401 || is403 || is404 || is429) {
       return true;
     }
   }
