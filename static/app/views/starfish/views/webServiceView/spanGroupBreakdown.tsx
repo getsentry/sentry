@@ -158,7 +158,6 @@ export function SpanGroupBreakdown({
           } else if (group['span.category'] === 'http') {
             spansLink = `/starfish/api/?${qs.stringify(spansLinkQueryParams)}`;
           } else if (group['span.category'] === 'Other') {
-            spansLinkQueryParams['!span.module'] = ['db', 'http'];
             spansLinkQueryParams['!span.category'] = transformedData.map(
               r => r.group['span.category']
             );
