@@ -112,7 +112,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
     # We get the previous factor that was used for the recalibration.
     previous_factor = get_adjusted_factor(org_volume.org_id)
 
-    log_recalibrate_org_state(previous_factor, effective_sample_rate, target_sample_rate)
+    log_recalibrate_org_state(
+        org_volume.org_id, previous_factor, effective_sample_rate, target_sample_rate
+    )
 
     # We want to compute the new adjusted factor.
     adjusted_factor = compute_adjusted_factor(
