@@ -4,10 +4,9 @@ import logging
 import time
 from typing import Callable, Mapping
 
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
@@ -138,7 +137,7 @@ def verify_signature(request):
 class MsTeamsWebhookMixin:
     provider = "msteams"
 
-    def get_integration_from_channel_data(self, request: Request) -> RpcIntegration | None:
+    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
         try:
             data = request.data
             channel_data = data["channelData"]
@@ -148,7 +147,7 @@ class MsTeamsWebhookMixin:
             pass
         return None
 
-    def get_integration_from_payload(self, request: Request) -> RpcIntegration | None:
+    def get_integration_from_payload(self, request: HttpRequest) -> RpcIntegration | None:
         try:
             data = request.data
             payload = data["value"]["payload"]
@@ -166,11 +165,11 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     provider = "msteams"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
-    def post(self, request: Request) -> Response:
+    def post(self, request: HttpRequest) -> HttpResponse:
         # verify_signature will raise the exception corresponding to the error
         verify_signature(request)
 
@@ -203,7 +202,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=204)
 
-    def handle_personal_member_add(self, request: Request):
+    def handle_personal_member_add(self, request: HttpRequest):
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -216,7 +215,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.handle_member_add(data, params, build_personal_installation_message)
 
-    def handle_team_member_added(self, request: Request):
+    def handle_team_member_added(self, request: HttpRequest):
         data = request.data
         team = data["channelData"]["team"]
         data["conversation_id"] = team["id"]
@@ -234,7 +233,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         data: Mapping[str, str],
         params: Mapping[str, str],
         build_installation_card: Callable[[str], AdaptiveCard],
-    ) -> Response:
+    ) -> HttpResponse:
         # only care if our bot is the new member added
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
@@ -261,7 +260,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=201)
 
-    def handle_team_member_removed(self, request: Request):
+    def handle_team_member_removed(self, request: HttpRequest):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -369,7 +368,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             auth=event_write_key,
         )
 
-    def handle_action_submitted(self, request: Request):
+    def handle_action_submitted(self, request: HttpRequest):
         # pull out parameters
         data = request.data
         channel_data = data["channelData"]
@@ -463,7 +462,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return issue_change_response
 
-    def handle_channel_message(self, request: Request):
+    def handle_channel_message(self, request: HttpRequest):
         data = request.data
 
         # check to see if we are mentioned
@@ -489,7 +488,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
 
         return self.respond(status=204)
 
-    def handle_personal_message(self, request: Request):
+    def handle_personal_message(self, request: HttpRequest):
         data = request.data
         command_text = data.get("text", "").strip()
         lowercase_command = command_text.lower()
