@@ -100,7 +100,6 @@ class BaseDateRange extends Component<Props, State> {
   handleSelectDateRange = (range: Range) => {
     const {onChange} = this.props;
     const {startDate, endDate} = range;
-
     const end = endDate ? getEndOfDay(endDate) : endDate;
 
     onChange({
@@ -192,17 +191,21 @@ class BaseDateRange extends Component<Props, State> {
 
     let maxDate = new Date();
 
-    const isSameDay = moment(end).subtract(1, 'day').isSame(moment(start), 'day');
+    // if the start and end date are the same, it means the user can still select another date,
+    // at this point we want to apply the maxDateRange
+    const startDate = moment(start).local();
+    const endDate = moment(end).local();
+    const isSameDay = startDate.isSame(endDate, 'day');
     if (maxDateRange && isSameDay) {
-      minDate = moment(start).subtract(maxDateRange, 'days').toDate();
-      maxDate = moment(start).add(maxDateRange, 'days').toDate();
+      minDate = moment(new Date(start)).subtract(maxDateRange, 'days').toDate();
+      maxDate = moment(new Date(end)).add(maxDateRange, 'days').toDate();
     }
 
     return (
       <div className={className} data-test-id="date-range">
         <DateRangePicker
-          startDate={moment(start).local().toDate()}
-          endDate={moment(end).local().toDate()}
+          startDate={startDate.toDate()}
+          endDate={endDate.toDate()}
           minDate={minDate}
           maxDate={maxDate}
           onChange={this.handleSelectDateRange}

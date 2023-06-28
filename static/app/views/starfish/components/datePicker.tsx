@@ -13,6 +13,7 @@ function StarfishDatePicker() {
         '3d': t('Last 3 days'),
         '7d': t('Last 7 days'),
       }}
+      defaultPeriod="24h"
       alignDropdown="left"
     />
   );
