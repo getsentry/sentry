@@ -2,6 +2,7 @@ import responses
 
 from sentry import options
 from sentry.integrations.discord.client import DiscordClient
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 
 
@@ -49,3 +50,20 @@ class DiscordClientTest(TestCase):
 
         guild_name = client._get_guild_name(guild_id)
         assert guild_name == "Cool server"
+
+    @responses.activate
+    def test_manual_get_guild_name_response_error(self):
+        client = DiscordClient()
+        guild_id = self.integration.external_id
+
+        responses.add(
+            responses.GET,
+            url=DiscordClient.base_url + (DiscordClient.GET_GUILD_URL % guild_id),
+            status=500,
+            json={"message": "aaaaaa"},
+        )
+
+        try:
+            client._get_guild_name(guild_id)
+        except IntegrationError as e:
+            assert e.args[0] == "Could not retrieve Discord guild name"
