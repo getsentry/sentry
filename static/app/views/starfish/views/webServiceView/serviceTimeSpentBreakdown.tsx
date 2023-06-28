@@ -171,26 +171,23 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
 
             const name = segment.name;
             const {start, end, utc, period} = selection.datetime;
+
             const spansLinkQueryParams =
               start && end
                 ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
                 : {statsPeriod: period};
-            let spansLink;
-            if (name === 'db') {
-              spansLink = `/starfish/database/?${qs.stringify(spansLinkQueryParams)}`;
-            } else if (name === 'http') {
-              spansLink = `/starfish/api/?${qs.stringify(spansLinkQueryParams)}`;
-            } else {
-              spansLinkQueryParams['span.module'] = 'Other';
-            }
-            spansLinkQueryParams['!span.module'] = transformedData
-              .map(r => r.name)
-              .filter(c => !['Other'].includes(c));
-            spansLinkQueryParams['span.category'] = name;
 
-            if (!spansLink) {
-              spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+            if (name === 'Other') {
+              spansLinkQueryParams['!span.category'] = transformedData.map(r => r.name);
+            } else {
+              if (['db', 'http'].includes(name)) {
+                spansLinkQueryParams['span.module'] = name;
+              } else {
+                spansLinkQueryParams['span.module'] = 'Other';
+              }
+              spansLinkQueryParams['span.category'] = name;
             }
+            const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
 
             return (
               <li key={`segment-${segment.name}-${index}`}>
