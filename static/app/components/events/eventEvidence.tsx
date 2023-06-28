@@ -19,12 +19,12 @@ export function EventEvidence({event, group, projectSlug}: EvidenceProps) {
     return null;
   }
 
-  const {issueCategory, issueType} =
-    group ?? getIssueCategoryAndTypeFromOccurrenceType(event.occurrence.type);
-
   if (eventIsProfilingIssue(event)) {
     return <ProfileEventEvidence event={event} projectSlug={projectSlug} />;
   }
+
+  const {issueCategory, issueType} =
+    group ?? getIssueCategoryAndTypeFromOccurrenceType(event.occurrence.type);
 
   const config = getConfigForIssueType({issueCategory, issueType}).evidence;
   const evidenceDisplay = event.occurrence?.evidenceDisplay;

@@ -507,7 +507,7 @@ export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneH
     return false;
   }
   if (event.issueCategory === IssueCategory.PROFILE) {
-    return false;
+    return true;
   }
   const evidenceData = event.occurrence?.evidenceData ?? {};
   return evidenceData.templateName === 'profile';
