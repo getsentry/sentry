@@ -632,6 +632,7 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
+GITHUB_PR_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -685,3 +686,18 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+
+# DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: livez, readyz
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+    "*/ping",
+]

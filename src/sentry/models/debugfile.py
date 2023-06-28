@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     BinaryIO,
+    ClassVar,
     Dict,
     FrozenSet,
     Iterable,
@@ -26,8 +27,8 @@ from typing import (
 )
 
 from django.db import models
-from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
-from symbolic.debuginfo import BcSymbolMap, Object, UuidMapping
+from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -82,7 +83,7 @@ class ProjectDebugFileManager(BaseManager):
         return sorted(missing)
 
     def find_by_debug_ids(
-        self, project: Project, debug_ids: List[str], features: Optional[Set[str]] = None
+        self, project: Project, debug_ids: List[str], features: Iterable[str] | None = None
     ) -> Dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 
@@ -92,7 +93,7 @@ class ProjectDebugFileManager(BaseManager):
 
         Returns a dict of debug files keyed by their debug identifier.
         """
-        features: FrozenSet[str] = frozenset(features) if features is not None else frozenset()  # type: ignore
+        features = frozenset(features) if features is not None else frozenset()
 
         difs = (
             ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
@@ -139,6 +140,8 @@ class ProjectDebugFile(Model):
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
     objects = ProjectDebugFileManager()
+
+    difcache: ClassVar[DIFCache]
 
     class Meta:
         index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
@@ -604,7 +607,7 @@ class DIFCache:
         return os.path.join(self.cache_path, str(project.id))
 
     def fetch_difs(
-        self, project: Project, debug_ids: Iterable[str], features: Optional[Set[str]] = None
+        self, project: Project, debug_ids: Iterable[str], features: Iterable[str] | None = None
     ) -> Mapping[str, str]:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
@@ -629,4 +632,4 @@ class DIFCache:
         clear_cached_files(self.cache_path)
 
 
-ProjectDebugFile.difcache = DIFCache()  # type: ignore[attr-defined]
+ProjectDebugFile.difcache = DIFCache()

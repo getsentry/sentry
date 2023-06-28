@@ -16,7 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -82,7 +82,6 @@ class ReleaseProjectModelManager(BaseManager):
         # in the project.
         if (
             features.has("organizations:dynamic-sampling", project.organization)
-            and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)

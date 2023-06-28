@@ -1,8 +1,8 @@
 from django.core.signing import BadSignature, SignatureExpired
+from django.http import HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models import Identity
@@ -34,7 +34,7 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
 class MsTeamsLinkIdentityView(BaseView):
     @transaction_start("MsTeamsLinkIdentityView")
     @never_cache
-    def handle(self, request: Request, signed_params) -> Response:
+    def handle(self, request: Request, signed_params) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):

@@ -1,14 +1,14 @@
-import {CSSProperties, Fragment, useMemo, useState} from 'react';
+import {CSSProperties, Fragment, useCallback, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -20,19 +20,45 @@ import {space} from 'sentry/styles/space';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const MAX_FUNCTIONS = 3;
+import {
+  Accordion,
+  AccordionItem,
+  ContentContainer,
+  HeaderContainer,
+  HeaderTitleLegend,
+  StatusContainer,
+  Subtitle,
+  WidgetContainer,
+} from './styles';
 
-export function SlowestFunctionsWidget() {
+const MAX_FUNCTIONS = 3;
+const CURSOR_NAME = 'slowFnCursor';
+
+interface SlowestFunctionsWidgetProps {
+  userQuery?: string;
+}
+
+export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps) {
+  const location = useLocation();
+
   const [expandedIndex, setExpandedIndex] = useState(0);
 
-  const query = useMemo(() => {
-    const conditions = new MutableSearch('');
-    conditions.setFilterValues('is_application', ['1']);
-    return conditions.formatString();
+  const slowFnCursor = useMemo(
+    () => decodeScalar(location.query[CURSOR_NAME]),
+    [location.query]
+  );
+
+  const handleCursor = useCallback((cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [CURSOR_NAME]: cursor},
+    });
   }, []);
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
@@ -42,8 +68,9 @@ export function SlowestFunctionsWidget() {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
+    cursor: slowFnCursor,
   });
 
   const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
@@ -55,7 +82,7 @@ export function SlowestFunctionsWidget() {
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: MAX_FUNCTIONS,
     // make sure to query for the projects from the top functions
     projects: functionsQuery.isFetched
@@ -72,10 +99,15 @@ export function SlowestFunctionsWidget() {
   const isError = functionsQuery.isError || totalsQuery.isError;
 
   return (
-    <Container>
+    <WidgetContainer>
       <HeaderContainer>
-        <StyledHeaderTitleLegend>{t('Suspect Functions')}</StyledHeaderTitleLegend>
+        <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        <StyledPagination
+          pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
+          size="xs"
+          onCursor={handleCursor}
+        />
       </HeaderContainer>
       <ContentContainer>
         {isLoading && (
@@ -88,7 +120,7 @@ export function SlowestFunctionsWidget() {
             <IconWarning data-test-id="error-indicator" color="gray300" size="lg" />
           </StatusContainer>
         )}
-        {!isError && functionsQuery.isFetched && !hasFunctions && (
+        {!isError && !isLoading && !hasFunctions && (
           <EmptyStateWarning>
             <p>{t('No functions found')}</p>
           </EmptyStateWarning>
@@ -102,24 +134,26 @@ export function SlowestFunctionsWidget() {
               const projectTotalDuration = projectEntry?.['sum()'] ?? f['sum()'];
               return (
                 <SlowestFunctionEntry
-                  key={`${f.package}-${f.function}`}
+                  key={`${f['project.id']}-${f.package}-${f.function}`}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => setExpandedIndex(i)}
                   func={f}
                   totalDuration={projectTotalDuration as number}
+                  query={userQuery ?? ''}
                 />
               );
             })}
           </Accordion>
         )}
       </ContentContainer>
-    </Container>
+    </WidgetContainer>
   );
 }
 
 interface SlowestFunctionEntryProps {
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
+  query: string;
   setExpanded: () => void;
   totalDuration: number;
 }
@@ -129,6 +163,7 @@ const BARS = 10;
 function SlowestFunctionEntry({
   func,
   isExpanded,
+  query,
   setExpanded,
   totalDuration,
 }: SlowestFunctionEntryProps) {
@@ -140,17 +175,15 @@ function SlowestFunctionEntry({
   const score = Math.ceil((((func['sum()'] as number) ?? 0) / totalDuration) * BARS);
   const palette = new Array(BARS).fill([CHART_PALETTE[0][0]]);
 
-  const query = useMemo(() => {
-    const conditions = new MutableSearch('');
-
-    conditions.setFilterValues('is_application', ['1']);
+  const userQuery = useMemo(() => {
+    const conditions = new MutableSearch(query);
 
     conditions.setFilterValues('project.id', [String(func['project.id'])]);
     conditions.setFilterValues('package', [String(func.package)]);
     conditions.setFilterValues('function', [String(func.function)]);
 
     return conditions.formatString();
-  }, [func]);
+  }, [func, query]);
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
     fields: functionTransactionsFields,
@@ -159,43 +192,41 @@ function SlowestFunctionEntry({
       key: 'sum()',
       order: 'desc',
     },
-    query,
+    query: userQuery,
     limit: 5,
     enabled: isExpanded,
   });
 
   return (
     <Fragment>
-      <AccordionItemContainer>
-        <AccordionItem>
-          {project && <IdBadge project={project} avatarSize={16} hideName />}
-          <FunctionName>{func.function}</FunctionName>
-          <Tooltip
-            title={tct(
-              'Appeared [count] times for a total self time of [totalSelfTime]',
-              {
-                count: <Count value={func['count()'] as number} />,
-                totalSelfTime: (
-                  <PerformanceDuration
-                    nanoseconds={func['sum()'] as number}
-                    abbreviation
-                  />
-                ),
-              }
-            )}
-          >
-            <ScoreBar score={score} palette={palette} size={20} radius={0} />
+      <AccordionItem>
+        {project && (
+          <Tooltip title={project.name}>
+            <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
-          <Button
-            icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-            aria-label={t('Expand')}
-            aria-expanded={isExpanded}
-            size="zero"
-            borderless
-            onClick={() => setExpanded()}
-          />
-        </AccordionItem>
-      </AccordionItemContainer>
+        )}
+        <FunctionName>
+          <Tooltip title={func.package}>{func.function}</Tooltip>
+        </FunctionName>
+        <Tooltip
+          title={tct('Appeared [count] times for a total self time of [totalSelfTime]', {
+            count: <Count value={func['count()'] as number} />,
+            totalSelfTime: (
+              <PerformanceDuration nanoseconds={func['sum()'] as number} abbreviation />
+            ),
+          })}
+        >
+          <ScoreBar score={score} palette={palette} size={20} radius={0} />
+        </Tooltip>
+        <Button
+          icon={<IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
+          aria-label={t('Expand')}
+          aria-expanded={isExpanded}
+          size="zero"
+          borderless
+          onClick={() => setExpanded()}
+        />
+      </AccordionItem>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
@@ -284,57 +315,8 @@ const functionTransactionsFields = [
 
 type FunctionTransactionField = (typeof functionTransactionsFields)[number];
 
-const Container = styled(Panel)`
-  display: flex;
-  flex-direction: column;
-  padding-top: ${space(2)};
-`;
-
-const HeaderContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding-left: ${space(2)};
-  padding-right: ${space(2)};
-`;
-
-const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
-  position: relative;
-`;
-
-const Subtitle = styled('div')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeMedium};
-  display: inline-block;
-`;
-
-const ContentContainer = styled('div')`
-  flex: 1 1 auto;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
-
-const Accordion = styled('ul')`
-  padding: ${space(1)} 0 0 0;
+const StyledPagination = styled(Pagination)`
   margin: 0;
-  list-style-type: none;
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-`;
-
-const AccordionItemContainer = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const AccordionItem = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const FunctionName = styled(TextOverflow)`
@@ -345,7 +327,7 @@ const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
   grid-template-columns: 65% 10% 25%;
-  grid-template-rows: auto auto auto auto auto 1fr;
+  grid-template-rows: 18px auto auto auto auto auto;
   padding: ${space(0)} ${space(2)};
 `;
 
@@ -363,15 +345,4 @@ const TransactionsListCell = styled('div')<{align?: CSSProperties['textAlign']}>
   font-size: ${p => p.theme.fontSizeSmall};
   text-align: ${p => p.align};
   padding: ${space(0.5)} 0px;
-`;
-
-const StatusContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1 1 auto;
-
-  .loading {
-    margin: 0 auto;
-  }
 `;

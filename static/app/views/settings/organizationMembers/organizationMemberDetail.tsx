@@ -24,7 +24,6 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
@@ -289,8 +288,6 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
     const showAuth = !pending;
-    const currentUser = configStore.get('user');
-    const isCurrentUser = currentUser.email === email;
 
     return (
       <Fragment>
@@ -399,9 +396,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
         <OrganizationRoleSelect
           enforceAllowed={false}
-          enforceIdpRoleRestricted={member.flags['idp:role-restricted']}
           enforceRetired={hasTeamRoles}
-          isCurrentUser={isCurrentUser}
           disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}

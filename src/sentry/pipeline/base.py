@@ -13,6 +13,7 @@ from sentry import analytics
 from sentry.db.models import Model
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.hashlib import md5_text
+from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
 from ..models import Organization
@@ -102,6 +103,9 @@ class Pipeline(abc.ABC):
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
+        if organization:
+            bind_organization_context(organization)
+
         self.request = request
         self.organization: RpcOrganization | None = (
             serialize_rpc_organization(organization)

@@ -8,15 +8,18 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, roles
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrgAuthTokenPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_region_url
 from sentry.models.organization import Organization
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.user import User
+from sentry.security.utils import capture_security_activity
 from sentry.utils import hashlib
-from sentry.utils.security.orgauthtoken_jwt import generate_token
+from sentry.utils.security.orgauthtoken_token import generate_token
 
 
 @control_silo_endpoint
@@ -51,8 +54,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
-            # TODO FN: This will eventually be org:ci
-            scope_list=["org:read"],
+            scope_list=["org:ci"],
             created_by_id=request.user.id,
             token_last_characters=jwt_token[-4:],
             token_hashed=token_hashed,
@@ -70,6 +72,22 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
             event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
             data=token.get_audit_log_data(),
         )
+
+        # Notify all owners of org of new token
+        owner_ids = OrganizationMemberMapping.objects.filter(
+            organization_id=organization.id, role=roles.get_top_dog().id
+        ).values_list("user_id", flat=True)
+        owners = User.objects.filter(id__in=owner_ids)
+
+        for owner in owners:
+            capture_security_activity(
+                account=owner,
+                type="org-auth-token-created",
+                actor=request.user,
+                ip_address=request.META["REMOTE_ADDR"],
+                context={"organization": organization, "token_name": token.name},
+                send_email=True,
+            )
 
         analytics.record(
             "org_auth_token.created",

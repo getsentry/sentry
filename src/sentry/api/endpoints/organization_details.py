@@ -52,7 +52,7 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
-ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration."
+ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -128,6 +128,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.AI_SUGGESTED_SOLUTION,
     ),
+    (
+        "githubPRBot",
+        "sentry:github_pr_bot",
+        bool,
+        org_serializers.GITHUB_PR_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -171,6 +177,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)

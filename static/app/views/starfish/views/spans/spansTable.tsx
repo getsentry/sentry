@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -80,7 +80,8 @@ export default function SpansTable({
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
-    undefined,
+    endpoint,
+    method,
     spanCategory,
     [sort],
     limit,
@@ -126,16 +127,20 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   endpoint?: string,
-  method?: string
+  endpointMethod?: string
 ): React.ReactNode {
   if (column.key === 'span.description') {
+    const queryString = {
+      endpoint,
+      endpointMethod,
+    };
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
-            to={`/starfish/${extractRoute(location)}/span/${row['span.group']}${
-              endpoint && method ? `?${urlEncode({endpoint, method})}` : ''
-            }`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
+              row['span.group']
+            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
           >
             {row['span.description'] || '<null>'}
           </Link>

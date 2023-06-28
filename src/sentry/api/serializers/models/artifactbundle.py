@@ -19,6 +19,10 @@ class ArtifactBundlesSerializer(Serializer):
 
         return associations
 
+    @staticmethod
+    def _format_date(date):
+        return None if date is None else date.isoformat()[:19] + "Z"
+
     def get_attrs(self, item_list, user):
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
             artifact_bundle_id__in=[r[0] for r in item_list]
@@ -35,7 +39,8 @@ class ArtifactBundlesSerializer(Serializer):
                 "bundle_id": item[1],
                 "associations": self._compute_associations(item, grouped_bundles),
                 "file_count": item[2],
-                "date": item[3],
+                "date_last_modified": item[3],
+                "date_uploaded": item[4],
             }
             for item in item_list
         }
@@ -45,7 +50,8 @@ class ArtifactBundlesSerializer(Serializer):
             "bundleId": str(attrs["bundle_id"]),
             "associations": attrs["associations"],
             "fileCount": attrs["file_count"],
-            "date": attrs["date"].isoformat()[:19] + "Z",
+            "dateModified": self._format_date(attrs["date_last_modified"]),
+            "date": self._format_date(attrs["date_uploaded"]),
         }
 
 
