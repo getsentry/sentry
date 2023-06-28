@@ -10,10 +10,12 @@ urlpatterns = [
     url(
         r"^webhook/$",
         MsTeamsWebhookEndpoint.as_view(),
+        name="sentry-integration-msteams-webhooks",
     ),
     url(
         r"^configure/$",
         MsTeamsExtensionConfigurationView.as_view(),
+        name="sentry-integration-msteams-configure",
     ),
     url(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",
