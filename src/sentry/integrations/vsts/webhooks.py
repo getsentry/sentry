@@ -1,25 +1,29 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.email import parse_email
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
+
 
 UNSET = object()
 logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class WorkItemWebhook(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -35,11 +39,11 @@ class WorkItemWebhook(Endpoint):
 
         # https://docs.microsoft.com/en-us/azure/devops/service-hooks/events?view=azure-devops#workitem.updated
         if event_type == "workitem.updated":
-            try:
-                integration = Integration.objects.get(
-                    provider=PROVIDER_KEY, external_id=external_id
-                )
-            except Integration.DoesNotExist:
+
+            integration = integration_service.get_integration(
+                provider=PROVIDER_KEY, external_id=external_id
+            )
+            if integration is None:
                 logger.info(
                     "vsts.integration-in-webhook-payload-does-not-exist",
                     extra={"external_id": external_id, "event_type": event_type},
@@ -56,7 +60,7 @@ class WorkItemWebhook(Endpoint):
         return self.respond()
 
 
-def check_webhook_secret(request: Request, integration: Integration, event_type: str) -> bool:
+def check_webhook_secret(request: Request, integration: RpcIntegration, event_type: str) -> bool:
     integration_secret = integration.metadata.get("subscription", {}).get("secret")
     webhook_payload_secret = request.META.get("HTTP_SHARED_SECRET")
 
@@ -72,7 +76,7 @@ def check_webhook_secret(request: Request, integration: Integration, event_type:
 
 
 def handle_assign_to(
-    integration: Integration,
+    integration: RpcIntegration,
     external_issue_key: str | None,
     assigned_to: Mapping[str, str] | None,
 ) -> None:
@@ -107,7 +111,7 @@ def handle_assign_to(
 
 
 def handle_status_change(
-    integration: Integration,
+    integration: RpcIntegration,
     external_issue_key: str,
     status_change: Mapping[str, str] | None,
     project: str | None,
@@ -129,7 +133,7 @@ def handle_status_change(
             )
 
 
-def handle_updated_workitem(data: Mapping[str, Any], integration: Integration) -> None:
+def handle_updated_workitem(data: Mapping[str, Any], integration: RpcIntegration) -> None:
     project: str | None = None
     try:
         external_issue_key = data["resource"]["workItemId"]
