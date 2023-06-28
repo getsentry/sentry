@@ -130,7 +130,8 @@ export function Chart({
   const derivedTrendChangeType = organization.features.includes('performance-new-trends')
     ? transaction?.change
     : trendChangeType;
-  const lineColor = trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
+  const lineColor =
+    trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
     statsData && transaction?.project && transaction?.transaction
