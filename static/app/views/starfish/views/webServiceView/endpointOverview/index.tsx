@@ -311,23 +311,25 @@ export default function EndpointOverview() {
               transaction={transaction}
               method={method}
             />
-            <SegmentedControlContainer>
-              <SegmentedControl
-                size="xs"
-                aria-label={t('Filter events')}
-                value={state.samplesFilter}
-                onChange={key => setState({...state, samplesFilter: key})}
-              >
-                <SegmentedControl.Item key="ALL">
-                  {t('Sample Events')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
-              </SegmentedControl>
-            </SegmentedControlContainer>
-            <TransactionSamplesTable
-              queryConditions={queryConditions}
-              sampleFilter={state.samplesFilter}
-            />
+            <RowContainer>
+              <SegmentedControlContainer>
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter events')}
+                  value={state.samplesFilter}
+                  onChange={key => setState({...state, samplesFilter: key})}
+                >
+                  <SegmentedControl.Item key="ALL">
+                    {t('Sample Events')}
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
+                </SegmentedControl>
+              </SegmentedControlContainer>
+              <TransactionSamplesTable
+                queryConditions={queryConditions}
+                sampleFilter={state.samplesFilter}
+              />
+            </RowContainer>
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
@@ -415,14 +417,20 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   }
 `;
 
+const RowContainer = styled('div')`
+  padding-bottom: ${space(4)};
+`;
+
 const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: flex;
   justify-content: space-between;
+  height: 32px;
+  align-items: center;
 `;
 
 const ChartLabel = styled('div')`
