@@ -38,12 +38,10 @@ const BASE_CONFIG: IssueTypeConfig = {
 const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
+  [IssueCategory.PROFILE]: performanceConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
-  if (eventOccurrenceType >= 2000) {
-    return IssueCategory.PROFILE;
-  }
   if (eventOccurrenceType >= 1000) {
     return IssueCategory.PERFORMANCE;
   }
