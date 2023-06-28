@@ -181,9 +181,10 @@ export function getTitle(
       };
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC:
+      const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
         title: customTitle ?? title,
-        subtitle: isIssue(event) ? culprit : '',
+        subtitle: isIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
@@ -501,19 +502,17 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
   };
 }
 
-export function eventIsProfilingIssue(
-  event: BaseGroup | EventTransaction | GroupTombstoneHelper
-) {
-  if (isIssue(event)) {
-    const evidenceData = event?.occurrence?.evidenceData ?? {};
-    return (
-      evidenceData.templateName === 'profile' ||
-      event.issueCategory === IssueCategory.PROFILE
-    );
+export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneHelper) {
+  if (isTombstone(event) || isGroup(event)) {
+    return false;
   }
-  return false;
+  if (event.issueCategory === IssueCategory.PROFILE) {
+    return false;
+  }
+  const evidenceData = event.occurrence?.evidenceData ?? {};
+  return evidenceData.templateName === 'profile';
 }
 
-export function isIssue(event: BaseGroup | EventTransaction | GroupTombstoneHelper) {
-  return !isTombstone(event) && defined(event.issueCategory);
+function isGroup(event: BaseGroup | Event): event is BaseGroup {
+  return (event as BaseGroup).status !== undefined;
 }
