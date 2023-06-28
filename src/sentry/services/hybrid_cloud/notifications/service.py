@@ -4,15 +4,12 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Iterable, List, Mapping, Optional, Sequence, cast
+from typing import List, Mapping, Optional, Sequence, cast
 
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
+from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -112,16 +109,7 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def filter(
-        self,
-        *,
-        provider: Optional[ExternalProviders] = None,
-        type: Optional[NotificationSettingTypes] = None,
-        scope_type: Optional[NotificationScopeType] = None,
-        scope_identifier: Optional[int] = None,
-        user_ids: Optional[Iterable[int]] = None,
-        team_ids: Optional[Iterable[int]] = None,
-    ) -> Iterable[RpcNotificationSetting]:
+    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
         pass
 
 

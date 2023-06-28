@@ -95,7 +95,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         value: NotificationSettingOptionValues,
         scope_type: NotificationScopeType,
         scope_identifier: int,
-        target_id: Optional[int] = None,
         user_id: Optional[int] = None,
         team_id: Optional[int] = None,
     ) -> None:
@@ -114,7 +113,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     type=type.value,
                     scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
-                    target_id=target_id,
                     defaults=defaults,
                 )
                 if not created and setting.value != value.value:
@@ -181,7 +179,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             value=value,
             scope_type=scope_type,
             scope_identifier=scope_identifier,
-            target_id=target_id,
             **{id_key: actor.id},
         )
 
@@ -403,27 +400,23 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         notification_settings: Sequence[NotificationSetting],
         team: Team | None = None,
         user: User | None = None,
-        actor: RpcActor | None = None,
     ) -> None:
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
         """
-        if actor is None:
-            if user is not None:
-                # TODO(hybridcloud): set fetch_actor=False for method call below
-                # when it is no longer necessary to persist NotificationSetting.target_id
-                actor = RpcActor.from_object(user, fetch_actor=False)
-            if team is not None:
-                actor = RpcActor.from_object(team)
-        assert actor
-
         team_ids: Set[int] = set()
         user_ids: Set[int] = set()
-        (team_ids if actor.actor_type == ActorType.TEAM else user_ids).add(actor.id)
 
-        target_id = actor.actor_id
-        assert target_id, "Cannot update settings for None actor_id"
+        if user is not None:
+            user_ids.add(user.id)
+            id_key = "user_id"
+            id = user.id
+        if team is not None:
+            team_ids.add(team.id)
+            id_key = "team_id"
+            id = team.id
+
         for (provider, type, scope_type, scope_identifier, value) in notification_settings:
             # A missing DB row is equivalent to DEFAULT.
             if value == NotificationSettingOptionValues.DEFAULT:
@@ -436,21 +429,19 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     user_ids=user_ids,
                 ).delete()
             else:
-                id_key = "user_id" if actor.actor_type == ActorType.USER else "team_id"
                 self._update_settings(
                     provider,
                     type,
                     value,
                     scope_type,
                     scope_identifier,
-                    target_id,
-                    **{id_key: actor.id},
+                    **{id_key: id},
                 )
         analytics.record(
             "notifications.settings_updated",
-            target_type="user" if actor.actor_type == ActorType.USER else "team",
-            actor_id=target_id,
-            id=actor.id,
+            target_type="user" if user is not None else "team",
+            actor_id=None,
+            id=id,
         )
 
     def remove_parent_settings_for_organization(

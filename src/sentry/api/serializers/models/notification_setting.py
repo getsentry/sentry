@@ -42,10 +42,12 @@ class NotificationSettingsSerializer(Serializer):
         team_map = {t.id: t for t in item_list if isinstance(t, (Team, RpcTeam))}
         user_map = {u.id: u for u in item_list if isinstance(u, (User, RpcUser))}
 
-        notifications_settings = notifications_service.filter(
-            type=type_option,
-            team_ids=list(team_map.keys()),
-            user_ids=list(user_map.keys()),
+        notifications_settings = notifications_service.get_many(
+            filter=dict(
+                type=type_option,
+                team_ids=list(team_map.keys()),
+                user_ids=list(user_map.keys()),
+            )
         )
 
         results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
