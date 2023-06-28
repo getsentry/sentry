@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 from typing import Optional, Sequence
@@ -45,51 +47,51 @@ class MetricsQueryBuilder:
         self.interval: Optional[int] = None
         self.is_alerts_query: bool = False
 
-    def with_select(self, select: Sequence[MetricField]) -> "MetricsQueryBuilder":
+    def with_select(self, select: Sequence[MetricField]) -> MetricsQueryBuilder:
         self.select = select
         return self
 
-    def with_start(self, start: datetime) -> "MetricsQueryBuilder":
+    def with_start(self, start: datetime) -> MetricsQueryBuilder:
         self.start = start
         return self
 
-    def with_end(self, end: datetime) -> "MetricsQueryBuilder":
+    def with_end(self, end: datetime) -> MetricsQueryBuilder:
         self.end = end
         return self
 
-    def with_where(self, where: [ConditionGroup]) -> "MetricsQueryBuilder":
+    def with_where(self, where: Sequence[ConditionGroup]) -> MetricsQueryBuilder:
         self.where = where
         return self
 
-    def with_having(self, having: [ConditionGroup]) -> "MetricsQueryBuilder":
+    def with_having(self, having: list[ConditionGroup]) -> MetricsQueryBuilder:
         self.having = having
         return self
 
-    def with_orderby(self, orderby: Sequence[MetricOrderByField]) -> "MetricsQueryBuilder":
+    def with_orderby(self, orderby: Sequence[MetricOrderByField]) -> MetricsQueryBuilder:
         self.orderby = orderby
         return self
 
-    def with_granularity(self, granularity: Granularity) -> "MetricsQueryBuilder":
+    def with_granularity(self, granularity: Granularity) -> MetricsQueryBuilder:
         self.granularity = granularity
         return self
 
-    def with_include_series(self, include_series: bool) -> "MetricsQueryBuilder":
+    def with_include_series(self, include_series: bool) -> MetricsQueryBuilder:
         self.include_series = include_series
         return self
 
-    def with_include_totals(self, include_totals: bool) -> "MetricsQueryBuilder":
+    def with_include_totals(self, include_totals: bool) -> MetricsQueryBuilder:
         self.include_totals = include_totals
         return self
 
-    def with_limit(self, limit: Limit) -> "MetricsQueryBuilder":
+    def with_limit(self, limit: Limit) -> MetricsQueryBuilder:
         self.limit = limit
         return self
 
-    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> "MetricsQueryBuilder":
+    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> MetricsQueryBuilder:
         self.groupby = groupby
         return self
 
-    def with_interval(self, interval: int) -> "MetricsQueryBuilder":
+    def with_interval(self, interval: int) -> MetricsQueryBuilder:
         self.interval = interval
         return self
 
@@ -149,7 +151,7 @@ def test_validate_select():
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
-            .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])
+            .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])  # type: ignore[arg-type]
             .to_metrics_query_dict()
         )
     with pytest.raises(
@@ -190,7 +192,7 @@ def test_validate_order_by():
             .with_orderby(
                 [
                     MetricOrderByField(
-                        field=MetricField(op="foo", metric_mri=SessionMRI.DURATION.value),
+                        field=MetricField(op="foo", metric_mri=SessionMRI.DURATION.value),  # type: ignore[arg-type]
                         direction=Direction.ASC,
                     )
                 ]
@@ -542,10 +544,14 @@ def test_series_and_totals_validation():
     ],
 )
 def test_granularity_validation(stats_period, interval, error_message):
+    period_t = parse_stats_period(stats_period)
+    assert period_t is not None
+    interval_t = parse_stats_period(interval)
+    assert interval_t is not None
     metrics_query_dict = (
         MetricsQueryBuilder()
-        .with_start(datetime.now() - parse_stats_period(stats_period))
-        .with_granularity(Granularity(int(parse_stats_period(interval).total_seconds())))
+        .with_start(datetime.now() - period_t)
+        .with_granularity(Granularity(int(interval_t.total_seconds())))
         .to_metrics_query_dict()
     )
 
