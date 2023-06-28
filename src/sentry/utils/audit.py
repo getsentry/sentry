@@ -34,10 +34,10 @@ def create_audit_entry(
     api_key = get_api_key_for_audit_log(request)
     org_auth_token = get_org_auth_token_for_audit_log(request)
 
-    # We do not keep any user/key ID for this case for now, but only pass the token ID as a label
+    # We do not keep any user/key ID for this case for now, but only pass the token name as a label
     # Without this, the AuditLogEntry fails on save because it cannot find an actor_label
     if org_auth_token:
-        kwargs["actor_label"] = org_auth_token.id
+        kwargs["actor_label"] = org_auth_token.name
 
     return create_audit_entry_from_user(
         user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, **kwargs

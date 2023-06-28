@@ -95,8 +95,10 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
                 else:
                     # default to anonymous user and use IP ratelimit
                     request.user = SimpleLazyObject(lambda: get_user(request))
-        else:
-            request.user = SimpleLazyObject(lambda: get_user(request))
+                return
+
+        # default to anonymous user and use IP ratelimit
+        request.user = SimpleLazyObject(lambda: get_user(request))
 
     def process_exception(self, request: Request, exception):
         if isinstance(exception, AuthUserPasswordExpired):
