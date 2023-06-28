@@ -42,7 +42,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             },
         ),
         responses={
-            201: RESPONSE_NO_CONTENT,
+            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -114,4 +114,4 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
-        return Response(status=201)
+        return Response(status=204)

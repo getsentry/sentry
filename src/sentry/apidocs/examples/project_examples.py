@@ -8,15 +8,15 @@ key_with_rate_limiting = {
     "secret": "189485c3b8ccf582bf5e12c530ef8858",
     "projectId": 4505281256090153,
     "isActive": True,
-    "rateLimit": {"window": 300, "count": 1000},
+    "rateLimit": {"window": 7200, "count": 1000},
     "dsn": {
-        "secret": "https://a785682ddda742d7a8a4088810d75598:bcd99b3790b3441c85ce4b1eaa854f66@o4504765715316736.ingest.sentry.io/4505281231978496",
-        "public": "https://a785682ddda742d7a8a4088810d75598@o4504765715316736.ingest.sentry.io/4505281231978496",
-        "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/csp-report/?sentry_key=a785682ddda742d7a8a4088810d75598",
-        "security": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/security/?sentry_key=a785682ddda742d7a8a4088810d75598",
-        "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/minidump/?sentry_key=a785682ddda742d7a8a4088810d75598",
-        "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/unreal/a785682ddda742d7a8a4088810d75598/",
-        "cdn": "https://js.sentry-cdn.com/a785682ddda742d7a8a4088810d75598.min.js",
+        "secret": "https://a785682ddda742d7a8a4088810e67701:bcd99b3790b3441c85ce4b1eaa854f66@o4504765715316736.ingest.sentry.io/4505281256090153",
+        "public": "https://a785682ddda742d7a8a4088810e67791@o4504765715316736.ingest.sentry.io/4505281256090153",
+        "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/csp-report/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
+        "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
     },
     "browserSdkVersion": "7.x",
     "browserSdk": {"choices": [["latest", "latest"], ["7.x", "7.x"]]},
@@ -24,7 +24,7 @@ key_with_rate_limiting = {
     "dynamicSdkLoaderOptions": {
         "hasReplay": True,
         "hasPerformance": True,
-        "hasDebug": False,
+        "hasDebug": True,
     },
 }
 
@@ -38,13 +38,13 @@ key_wo_rate_limiting = {
     "isActive": True,
     "rateLimit": None,
     "dsn": {
-        "secret": "https://0bdfcfcaff6547f8923ee34dcfaef1f6:64e7727c85434bdfbbb706409b893339@o4504765715316736.ingest.sentry.io/4505281231978496",
-        "public": "https://0bdfcfcaff6547f8923ee34dcfaef1f6@o4504765715316736.ingest.sentry.io/4505281231978496",
-        "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/csp-report/?sentry_key=0bdfcfcaff6547f8923ee34dcfaef1f6",
-        "security": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/security/?sentry_key=0bdfcfcaff6547f8923ee34dcfaef1f6",
-        "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/minidump/?sentry_key=0bdfcfcaff6547f8923ee34dcfaef1f6",
-        "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281231978496/unreal/0bdfcfcaff6547f8923ee34dcfaef1f6/",
-        "cdn": "https://js.sentry-cdn.com/0bdfcfcaff6547f8923ee34dcfaef1f6.min.js",
+        "secret": "https://a785682ddda742d7a8a4088810e67701:bcd99b3790b3441c85ce4b1eaa854f66@o4504765715316736.ingest.sentry.io/4505281256090153",
+        "public": "https://a785682ddda742d7a8a4088810e67791@o4504765715316736.ingest.sentry.io/4505281256090153",
+        "csp": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/csp-report/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "security": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/security/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "minidump": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/minidump/?sentry_key=a785682ddda719b7a8a4011110d75598",
+        "unreal": "https://o4504765715316736.ingest.sentry.io/api/4505281256090153/unreal/a785682ddda719b7a8a4011110d75598/",
+        "cdn": "https://js.sentry-cdn.com/a785682ddda719b7a8a4011110d75598.min.js",
     },
     "browserSdkVersion": "7.x",
     "browserSdk": {"choices": [["latest", "latest"], ["7.x", "7.x"]]},
@@ -112,11 +112,11 @@ project = {
 
 
 class ProjectExamples:
-    CREATE_CLIENT_KEY = [
+    BASE_KEY = [
         OpenApiExample(
-            "Create a New Client Key",
+            "Client key with rate limiting",
             value=key_with_rate_limiting,
-            status_codes=["201"],
+            status_codes=["200", "201"],
             response_only=True,
         ),
     ]
@@ -137,6 +137,15 @@ class ProjectExamples:
                 key_with_rate_limiting,
                 key_wo_rate_limiting,
             ],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    RETREVE_CLIENT_KEY = [
+        OpenApiExample(
+            "Retrieve an Existing Client Key",
+            value=key_wo_rate_limiting,
             status_codes=["200"],
             response_only=True,
         ),
