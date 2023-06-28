@@ -1,12 +1,7 @@
 from dataclasses import dataclass
-from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, List, Literal, Sequence, Tuple, TypedDict, Union, cast
 
-from typing_extensions import NotRequired
-
-from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
-from sentry.constants import DataCategory
-from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Project,
     ProjectTransactionThreshold,
@@ -14,109 +9,18 @@ from sentry.models import (
     TransactionMetric,
 )
 
-# GENERIC METRIC EXTRACTION
 
-
-# Name component of MRIs used for custom alert metrics.
-# TODO: Move to a common module.
-CUSTOM_ALERT_METRIC_NAME = "transactions/alert"
-
-# Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 1
-
-
-RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
-
-
-class ComparingRuleCondition(TypedDict):
-    op: Literal["eq", "gt", "gte", "lt", "lte", "glob"]
+class RuleConditionInner(TypedDict):
+    op: Literal["eq", "gt", "gte"]
     name: str
     value: Any
 
 
-class LogicalRuleCondition(TypedDict):
-    op: Literal["and", "or"]
-    inner: Sequence[RuleCondition]
-
-
-class NotRuleCondition(TypedDict):
-    op: Literal["not"]
-    inner: RuleCondition
-
-
-class TagSpec(TypedDict):
-    key: str
-    field: NotRequired[str]
-    value: NotRequired[str]
-    condition: NotRequired[RuleCondition]
-
-
-class MetricSpec(TypedDict):
-    category: Literal["transaction"]
-    mri: str
-    field: NotRequired[Optional[str]]
-    condition: NotRequired[RuleCondition]
-    tags: NotRequired[Sequence[TagSpec]]
-
-
-class MetricExtractionConfig(TypedDict):
-    version: int
-    metrics: List[MetricSpec]
-
-
-def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
-    if not features.has("organizations:metrics-extraction", project.organization):
-        return None
-
-    alerts = AlertRule.objects.filter(
-        project=project, status=AlertRuleStatus.PENDING
-    ).select_related("snuba_query")
-
-    metrics: List[MetricSpec] = []
-    for alert in alerts:
-        metric = _convert_alert_to_metric(alert)
-        if metric:
-            metrics.append(metric)
-
-    if not metrics:
-        return None
-
-    return {
-        "version": _METRIC_EXTRACTION_VERSION,
-        "metrics": metrics,
-    }
-
-
-def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
-    if not alert.is_custom_metric:
-        return None
-
-    # TODO: Determine these based on the alert.snuba_query.field:
-    metric_type = "c"
-    metric_unit = "none"
-    field = None
-
-    condition = _convert_alert_query_to_condition(alert.snuba_query.query)
-    query_hash = str(alert.id)  # TODO: Hash field + condition
-
-    return {
-        "category": DataCategory.TRANSACTION,
-        "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@{metric_unit}",
-        "field": field,
-        "condition": condition,
-        "tags": [{"key": "query_hash", "value": query_hash}],
-    }
-
-
-def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-    # TODO: Parse and convert the query using QueryBuilder
-    return {
-        "op": "and",
-        "inner": [],
-    }
-
-
-# CONDITIONAL TAGGING
+# mypy does not support recursive types. type definition is a very small subset
+# of the values relay actually accepts
+class RuleCondition(TypedDict):
+    op: Literal["and"]
+    inner: Sequence[RuleConditionInner]
 
 
 class MetricConditionalTaggingRule(TypedDict):
@@ -198,7 +102,7 @@ def _threshold_to_rules(
     threshold: Union[
         ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
     ],
-    extra_conditions: Sequence[RuleCondition],
+    extra_conditions: Sequence[RuleConditionInner],
 ) -> Sequence[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
         "condition": {
