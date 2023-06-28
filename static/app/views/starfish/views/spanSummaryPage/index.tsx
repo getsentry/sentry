@@ -6,7 +6,6 @@ import * as qs from 'query-string';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -22,6 +21,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
@@ -134,7 +134,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   return (
     <Layout.Page>
-      <PageFiltersContainer>
+      <StarfishPageFilterContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -255,7 +255,7 @@ function SpanSummaryPage({params, location}: Props) {
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </PageFiltersContainer>
+      </StarfishPageFilterContainer>
     </Layout.Page>
   );
 }

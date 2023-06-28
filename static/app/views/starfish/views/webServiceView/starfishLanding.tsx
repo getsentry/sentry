@@ -3,7 +3,6 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
@@ -15,6 +14,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 
 import {StarfishView} from './starfishView';
 
@@ -32,7 +32,7 @@ export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
       <ProjectPageFilter />
-      <DatePageFilter alignDropdown="left" />
+      <StarfishDatePicker />
     </PageFilterBar>
   );
 
