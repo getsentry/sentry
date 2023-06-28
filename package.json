@@ -205,12 +205,7 @@
     "fsevents": "^2.3.2"
   },
   "resolutions": {
-    "**/ua-parser-js": "<=0.7.28",
-    "**/@sentry/node": "^7.57.0-beta.0",
-    "**/@sentry/hub": "^7.57.0-beta.0",
-    "**/@sentry/core": "^7.57.0-beta.0",
-    "**/@sentry/types": "^7.57.0-beta.0",
-    "**/@sentry/utils": "^7.57.0-beta.0"
+    "**/ua-parser-js": "<=0.7.28"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
