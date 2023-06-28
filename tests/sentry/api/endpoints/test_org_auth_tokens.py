@@ -20,7 +20,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         token2 = OrgAuthToken.objects.create(
@@ -28,7 +28,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 2",
             token_hashed="ABCDEF2",
             token_last_characters="xyz2",
-            scope_list=["project:read"],
+            scope_list=["org:ci"],
             date_last_used="2023-01-02T00:00:00.000Z",
         )
         token3 = OrgAuthToken.objects.create(
@@ -36,7 +36,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 3",
             token_hashed="ABCDEF3",
             token_last_characters="xyz3",
-            scope_list=["project:read"],
+            scope_list=["org:ci"],
             date_last_used="2023-01-01T00:00:00.000Z",
         )
         # Deleted tokens are not returned
@@ -45,7 +45,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 4",
             token_hashed="ABCDEF4",
             token_last_characters="xyz3",
-            scope_list=["project:read"],
+            scope_list=["org:ci"],
             date_deactivated="2023-01-01T00:00:00.000Z",
         )
         # tokens from other org are not returned
@@ -54,7 +54,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 5",
             token_hashed="ABCDEF5",
             token_last_characters="xyz3",
-            scope_list=["project:read"],
+            scope_list=["org:ci"],
         )
 
         self.login_as(self.user)
@@ -76,7 +76,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         OrgAuthToken.objects.create(
@@ -84,7 +84,7 @@ class OrgAuthTokensListTest(APITestCase):
             name="token 2",
             token_hashed="ABCDEF2",
             token_last_characters="xyz2",
-            scope_list=["project:read"],
+            scope_list=["org:ci"],
             date_last_used="2023-01-02T00:00:00.000Z",
         )
 
@@ -124,7 +124,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert token.get("dateCreated") is not None
         assert token.get("dateLastUsed") is None
         assert token.get("projectLastUsed") is None
-        assert token.get("scopes") == ["org:read"]
+        assert token.get("scopes") == ["org:ci"]
         assert token.get("name") == "test token"
 
         tokenDb = OrgAuthToken.objects.get(id=token.get("id"))
