@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from sentry.sentry_metrics.configuration import UseCaseKey
-
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -26,7 +24,7 @@ from snuba_sdk.conditions import ConditionGroup
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     MetricIndexNotFound,
     resolve_tag_key,
@@ -684,13 +682,11 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
 def get_series(
     projects: Sequence[Project],
     metrics_query: MetricsQuery,
-    use_case_id: Union[UseCaseID, UseCaseKey],
+    use_case_id: UseCaseID,
     include_meta: bool = False,
     tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Get time series for the given query"""
-    if isinstance(use_case_id, UseCaseID):
-        use_case_id = METRIC_PATH_MAPPING[use_case_id]
 
     organization_id = projects[0].organization_id if projects else None
     tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
