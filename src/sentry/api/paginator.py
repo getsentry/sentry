@@ -618,22 +618,12 @@ class CombinedQuerysetPaginator:
         combined_querysets = list()
         for intermediary in self.intermediaries:
             key = intermediary.order_by[0]
-            filters = {}
             annotate = {}
-
             if self.case_insensitive:
                 key = f"{key}_lower"
                 annotate[key] = Lower(intermediary.order_by[0])
 
-            if asc:
-                filter_condition = f"{key}__gte"
-            else:
-                filter_condition = f"{key}__lte"
-
-            if value is not None:
-                filters[filter_condition] = value
-
-            queryset = intermediary.queryset.annotate(**annotate).filter(**filters)
+            queryset = intermediary.queryset.annotate(**annotate)
             for key in intermediary.order_by:
                 if self.case_insensitive:
                     key = f"{key}_lower"
@@ -642,11 +632,12 @@ class CombinedQuerysetPaginator:
                 else:
                     queryset = queryset.order_by(f"-{key}")
 
+            queryset = queryset[: (limit + extra)]
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
             sort_keys = []
-            sort_keys.append(self.get_item_key(item, is_prev))
+            sort_keys.append(self.get_item_key(item))
             if len(self.model_key_map.get(type(item))) > 1:
                 sort_keys.extend(iter(self.model_key_map.get(type(item))[1:]))
             sort_keys.append(type(item).__name__)
@@ -660,54 +651,44 @@ class CombinedQuerysetPaginator:
         return combined_querysets
 
     def get_result(self, cursor=None, limit=100):
+        # offset is page #
+        # value is page limit
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
         if cursor.value:
-            cursor_value = self.value_from_cursor(cursor)
+            cursor_value = int(self.value_from_cursor(cursor))
         else:
             cursor_value = None
 
         limit = min(limit, MAX_LIMIT)
-
-        offset = cursor.offset
         extra = 1
-        if cursor.is_prev and cursor.value:
-            extra += 1
-        stop = offset + limit + extra
+
         combined_querysets = self._build_combined_querysets(
             cursor_value, cursor.is_prev, limit, extra
         )
 
-        # if cursor.is_prev:
-        #     combined_querysets = combined_querysets[offset:(limit + extra)]
-        if offset == 0:
-            combined_querysets = combined_querysets[:(limit + extra)]
-        else:
-            combined_querysets = combined_querysets[offset:stop]
+        page = int(cursor.offset)
+        offset = int(page * cursor_value if cursor_value is not None else page)
+        stop = offset + (cursor_value or limit) + 1
 
-        results = list(combined_querysets)
-        if cursor.is_prev and cursor.value:
-            # If the first result is equal to the cursor_value then it's safe to filter
-            # it out, since the value hasn't been updated
-            if results and self.get_item_key(results[0], for_prev=True) == cursor.value:
-                results = results[1:]
-            # Otherwise we may have fetched an extra row, just drop it off the end if so.
-            elif len(results) == offset + limit + extra:
-                results = results[:-1]
+        if offset >= 26:
+            raise BadPaginationError("Pagination offset too large")
+        if offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
 
-        # # We reversed the results when generating the querysets, so we need to reverse back now.
-        if cursor.is_prev:
-            results.reverse()
+        results = list(combined_querysets[offset:stop])
+        if cursor.value != limit:
+            results = results[-(limit + 1) :]
 
-        return build_cursor(
-            results=results,
-            cursor=cursor,
-            key=self.get_item_key,
-            limit=limit,
-            is_desc=self.desc,
-            on_results=self.on_results,
-        )
+        next_cursor = Cursor(limit, page + 1, False, len(results) > limit)
+        prev_cursor = Cursor(limit, page - 1, True, page > 0)
+
+        results = list(results[:limit])
+        if self.on_results:
+            results = self.on_results(results)
+
+        return CursorResult(results=results, next=next_cursor, prev=prev_cursor)
 
 
 class ChainPaginator:

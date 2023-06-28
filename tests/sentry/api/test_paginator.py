@@ -782,7 +782,6 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 
         result = paginator.get_result(limit=25, cursor=None)
         page1_results = list(result)
-        # print("page 1 results: ", page1_results)
         assert len(result) == 25
         assert result[0].id == alert_rule_ids[0]
         assert result[24].id == rule_ids[9]
@@ -795,7 +794,6 @@ class CombinedQuerysetPaginatorTest(APITestCase):
 
         prev_cursor = result.prev
         result = list(paginator.get_result(limit=25, cursor=prev_cursor))
-        # print("results: ", result)
         assert len(result) == 25
         assert result == page1_results
 
