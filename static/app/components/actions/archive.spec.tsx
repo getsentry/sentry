@@ -20,7 +20,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: ResolutionStatus.IGNORED,
       statusDetails: {},
-      substatus: 'until_escalating',
+      substatus: 'archived_until_escalating',
     });
   });
 
@@ -33,6 +33,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
       statusDetails: {},
+      substatus: 'archived_forever',
     });
   });
 
@@ -54,7 +55,7 @@ describe('ArchiveActions', () => {
     expect(onUpdate).toHaveBeenCalledWith({
       status: ResolutionStatus.IGNORED,
       statusDetails: {},
-      substatus: 'until_escalating',
+      substatus: 'archived_until_escalating',
     });
   });
 

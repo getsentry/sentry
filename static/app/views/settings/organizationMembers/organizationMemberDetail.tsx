@@ -24,7 +24,6 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconRefresh} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import configStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
@@ -53,7 +52,7 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  groupOrgRoles: Member['orgRolesFromTeams']; // Form state
+  groupOrgRoles: Member['groupOrgRoles']; // Form state
   member: Member | null;
   orgRole: Member['orgRole']; // Form state
   teamRoles: Member['teamRoles']; // Form state
@@ -89,11 +88,11 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
   onRequestSuccess({data, stateKey}: {data: Member; stateKey: string}) {
     if (stateKey === 'member') {
-      const {orgRole, teamRoles, orgRolesFromTeams} = data;
+      const {orgRole, teamRoles, groupOrgRoles} = data;
       this.setState({
         orgRole,
         teamRoles,
-        groupOrgRoles: orgRolesFromTeams,
+        groupOrgRoles,
       });
     }
   }
@@ -289,8 +288,6 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const {email, expired, pending, invite_link: inviteLink} = member;
     const canResend = !expired;
     const showAuth = !pending;
-    const currentUser = configStore.get('user');
-    const isCurrentUser = currentUser.email === email;
 
     return (
       <Fragment>
@@ -399,9 +396,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
         <OrganizationRoleSelect
           enforceAllowed={false}
-          enforceIdpRoleRestricted={member.flags['idp:role-restricted']}
           enforceRetired={hasTeamRoles}
-          isCurrentUser={isCurrentUser}
           disabled={!canEdit}
           roleList={orgRoleList}
           roleSelected={orgRole}

@@ -74,6 +74,24 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
 
+    def test_rule_snoozed_by_user(self):
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
+
+    def test_user_rule_snoozed(self):
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
+
     def test_user_alerts_disabled(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -101,6 +119,30 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             (self.user.id, self.user.email),
             (new_user.id, new_user.email),
         }
+
+    def test_rule_snoozed_by_one_user_in_team(self):
+        new_user = self.create_user()
+        self.create_team_membership(team=self.team, user=new_user)
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.team.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(user_id=new_user.id, alert_rule=self.incident.alert_rule)
+        assert set(handler.get_targets()) == {
+            (self.user.id, self.user.email),
+        }
+
+    def test_team_rule_snoozed(self):
+        new_user = self.create_user()
+        self.create_team_membership(team=self.team, user=new_user)
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.team.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
 
     def test_team_alert_disabled(self):
         NotificationSetting.objects.update_settings(
@@ -199,7 +241,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                         "project_slug": self.project.slug,
                         "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
                     },
-                )
+                ),
+                query="referrer=alert_email",
             ),
             "incident_name": incident.title,
             "aggregate": aggregate,
@@ -217,6 +260,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": False,
+            "snooze_alert_url": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -354,7 +399,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
@@ -388,7 +433,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"

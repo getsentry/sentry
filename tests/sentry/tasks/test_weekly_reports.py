@@ -5,13 +5,14 @@ from unittest import mock
 
 import pytz
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.constants import DataCategory
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import GroupStatus, GroupSubStatus, OrganizationMember, Project, UserOption
+from sentry.models import GroupStatus, OrganizationMember, Project, UserOption
 from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
@@ -25,6 +26,7 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -82,8 +84,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
+            assert isinstance(message, EmailMultiAlternatives)
             assert self.organization.name in message.subject
             html = message.alternatives[0][0]
+            assert isinstance(html, str)
             assert (
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
             )
@@ -112,9 +116,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        OrganizationMember.objects.filter(user=self.user).update(
-            flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user_id=self.user.id).update(
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+            )
 
         # disabled
         deliver_reports(ctx)
@@ -169,7 +174,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_organization_project_issue_substatus_summaries(self):
         self.login_as(user=self.user)
 
@@ -311,7 +316,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert "Weekly Report for" in message_params["subject"]
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_message_builder_substatus_simple(self, message_builder):
         now = timezone.now()
         three_days_ago = now - timedelta(days=3)
@@ -428,6 +433,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             "color": "#422C6E",
             "dropped_error_count": 2,
             "accepted_error_count": 1,
+            "accepted_replay_count": 0,
+            "dropped_replay_count": 0,
             "dropped_transaction_count": 9,
             "accepted_transaction_count": 3,
         }
@@ -435,6 +442,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert ctx["trends"]["series"][-2][1][0] == {
             "color": "#422C6E",
             "error_count": 1,
+            "replay_count": 0,
             "transaction_count": 3,
         }
 
@@ -458,3 +466,52 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
         assert mock_send_email.call_count == 0
+
+    @with_feature("organizations:session-replay")
+    @with_feature("organizations:session-replay-weekly-email")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_message_builder_replays(self, message_builder):
+
+        now = timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        for outcome, category, num in [
+            (Outcome.ACCEPTED, DataCategory.REPLAY, 6),
+            (Outcome.RATE_LIMITED, DataCategory.REPLAY, 7),
+        ]:
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome,
+                    "category": category,
+                    "timestamp": two_days_ago,
+                    "key_id": 1,
+                },
+                num_times=num,
+            )
+
+        prepare_organization_report(timestamp, ONE_DAY * 7, self.organization.id)
+
+        message_params = message_builder.call_args.kwargs
+        ctx = message_params["context"]
+
+        assert ctx["trends"]["legend"][0] == {
+            "slug": "bar",
+            "url": f"http://testserver/organizations/baz/issues/?project={self.project.id}",
+            "color": "#422C6E",
+            "dropped_error_count": 0,
+            "accepted_error_count": 0,
+            "accepted_replay_count": 6,
+            "dropped_replay_count": 7,
+            "dropped_transaction_count": 0,
+            "accepted_transaction_count": 0,
+        }
+
+        assert ctx["trends"]["series"][-2][1][0] == {
+            "color": "#422C6E",
+            "error_count": 0,
+            "replay_count": 6,
+            "transaction_count": 0,
+        }

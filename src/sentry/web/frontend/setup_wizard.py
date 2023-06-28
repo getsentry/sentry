@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db.models import F
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
@@ -45,7 +44,7 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def get(self, request: Request, wizard_hash) -> Response:
+    def get(self, request: Request, wizard_hash) -> HttpResponse:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
@@ -59,7 +58,7 @@ class SetupWizardView(BaseView):
 
         orgs = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:read")],
-            member_set__user=request.user,
+            member_set__user_id=request.user.id,
             status=OrganizationStatus.ACTIVE,
         ).order_by("-date_added")[:50]
 

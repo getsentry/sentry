@@ -52,15 +52,13 @@ from sentry.models import (
     ReleaseCommit,
     Repository,
     Rule,
-    User,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
-from sentry.utils.performance_issues.performance_detection import (
-    EventPerformanceProblem,
-    PerformanceProblem,
-)
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.web.helpers import render_to_string
 
 if TYPE_CHECKING:
@@ -108,9 +106,9 @@ def get_group_counts_by_project(
 
 def get_repos(
     commits: Iterable[Commit],
-    users_by_email: Mapping[str, User],
+    users_by_email: Mapping[str, RpcUser],
     organization: Organization,
-) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, User | None]]]]:
+) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, RpcUser | None]]]]:
     repositories_by_id = {
         repository_id: {"name": repository_name, "commits": []}
         for repository_id, repository_name in Repository.objects.filter(
@@ -203,11 +201,8 @@ def get_group_settings_link(
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    return str(
-        organization.absolute_url(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
+    return organization.absolute_url(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
 
 
@@ -367,8 +362,8 @@ def occurrence_perf_to_email_html(context: Any) -> Any:
 
 def perf_to_email_html(
     spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem = None,
-    event: Event = None,
+    problem: Optional[PerformanceProblem] = None,
+    event: Optional[Event] = None,
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
@@ -555,7 +550,7 @@ class PerformanceProblemContext:
 
     def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum: float = 0.0
+        sum = 0.0
         for span in spans:
             if span:
                 sum += self.get_span_duration(span).total_seconds() * 1000

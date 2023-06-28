@@ -9,7 +9,7 @@ def make_threads_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"threads": data})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("threads")
         insta_snapshot(
@@ -30,6 +30,7 @@ basic_payload = dict(
             "crashed": False,
             "current": True,
             "name": "Main Thread",
+            "state": "RUNNABLE",
             "stacktrace": {
                 "frames": [
                     {"filename": "foo/baz.c", "function": "main", "lineno": 1, "in_app": True}
@@ -39,6 +40,15 @@ basic_payload = dict(
                 "frames": [
                     {"filename": None, "lineno": 1, "function": "<redacted>", "in_app": True}
                 ]
+            },
+            "held_locks": {
+                "0x0d3a2f0a": {
+                    "type": 8,
+                    "address": "0x0d3a2f0a",
+                    "package_name": "java.lang",
+                    "class_name": "Object",
+                    "thread_id": 11,
+                },
             },
         }
     ]
@@ -56,6 +66,8 @@ def test_basics(make_threads_snapshot):
         {"values": [{"id": None}]},
         {"values": [{"name": None}]},
         {"values": [{"stacktrace": None}]},
+        {"values": [{"state": None}]},
+        {"values": [{"held_locks": None}]},
     ],
 )
 def test_null_values(make_threads_snapshot, input):

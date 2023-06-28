@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from django.contrib.postgres.fields import ArrayField as DjangoArrayField
 from django.db import models
 from django.db.models.signals import post_save
 from django.utils import timezone
@@ -11,6 +12,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     region_silo_only_model,
     sane_repr,
@@ -55,12 +57,12 @@ class PullRequest(Model):
 
     key = models.CharField(max_length=64)  # example, 5131 on github
 
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
 
     title = models.TextField(null=True)
     message = models.TextField(null=True)
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
-    merge_commit_sha = models.CharField(max_length=64, null=True)
+    merge_commit_sha = models.CharField(max_length=64, null=True, db_index=True)
 
     objects = PullRequestManager()
 
@@ -87,3 +89,19 @@ class PullRequestCommit(Model):
         app_label = "sentry"
         db_table = "sentry_pullrequest_commit"
         unique_together = (("pull_request", "commit"),)
+
+
+@region_silo_only_model
+class PullRequestComment(Model):
+    __include_in_export__ = False
+
+    external_id = BoundedBigIntegerField()
+    pull_request = FlexibleForeignKey("sentry.PullRequest", unique=True)
+    created_at = models.DateTimeField()
+    updated_at = models.DateTimeField()
+    group_ids = DjangoArrayField(BoundedBigIntegerField())
+    reactions = JSONField(null=True)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_comment"

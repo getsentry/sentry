@@ -124,13 +124,11 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     XXX(epurkhiser): Used in coordination with construct_reply.
      Bot posted messages will not have the type at all.
     """
-    # Explicitly typing to satisfy mypy.
-    is_message: bool = data.get("original_message", {}).get("type") == "message"
-    return is_message
+    return data.get("original_message", {}).get("type") == "message"
 
 
 @region_silo_endpoint
-class SlackActionEndpoint(Endpoint):  # type: ignore
+class SlackActionEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     slack_request_class = SlackActionRequest
@@ -226,7 +224,8 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             "status": status_data[0],
         }
 
-        if len(status_data) > 1:
+        # sub-status only applies to ignored/archived issues
+        if len(status_data) > 1 and status_data[0] == "ignored":
             status["substatus"] = status_data[1]
 
         resolve_type = status_data[-1]
@@ -240,9 +239,10 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             "integrations.slack.status",
+            organization_id=group.project.organization.id,
             status=status["status"],
             resolve_type=resolve_type,
-            actor_id=user.id,
+            user_id=user.id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:

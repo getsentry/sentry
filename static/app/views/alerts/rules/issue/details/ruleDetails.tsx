@@ -26,6 +26,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
+import {RuleActionsCategories} from 'sentry/types/alerts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   ApiQueryKey,
@@ -39,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
+import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -212,8 +214,9 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     );
   }
 
-  const hasSnoozeFeature = organization.features.includes('mute-alerts');
   const isSnoozed = rule.snooze;
+
+  const ruleActionCategory = getRuleActionCategory(rule);
 
   const duplicateLink = {
     pathname: `/organizations/${organization.slug}/alerts/new/issue/`,
@@ -224,13 +227,9 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       referrer: 'issue_rule_details',
     },
   };
-
   function renderIncompatibleAlert() {
     const incompatibleRule = findIncompatibleRules(rule);
-    if (
-      (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) &&
-      organization.features.includes('issue-alert-incompatible-rules')
-    ) {
+    if (incompatibleRule.conditionIndices || incompatibleRule.filterIndices) {
       return (
         <Alert type="error" showIcon>
           {tct(
@@ -290,19 +289,19 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {hasSnoozeFeature && (
-              <Access access={['alerts:write']}>
-                {({hasAccess}) => (
-                  <SnoozeAlert
-                    isSnoozed={isSnoozed}
-                    onSnooze={onSnooze}
-                    ruleId={rule.id}
-                    projectSlug={projectSlug}
-                    hasAccess={hasAccess}
-                  />
-                )}
-              </Access>
-            )}
+            <Access access={['alerts:write']}>
+              {({hasAccess}) => (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={projectSlug}
+                  ruleActionCategory={ruleActionCategory}
+                  hasAccess={hasAccess}
+                  type="issue"
+                />
+              )}
+            </Access>
             <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
               {t('Duplicate')}
             </Button>
@@ -325,15 +324,20 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
-          {hasSnoozeFeature && isSnoozed && (
+          {isSnoozed && (
             <Alert showIcon>
-              {tct(
-                "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
-                {
-                  creator: rule.snoozeCreatedBy,
-                  forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
-                }
-              )}
+              {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
+                ? tct(
+                    "[creator] muted this alert so these notifications won't be sent in the future.",
+                    {creator: rule.snoozeCreatedBy}
+                  )
+                : tct(
+                    "[creator] muted this alert[forEveryone]so you won't get these notifications in the future.",
+                    {
+                      creator: rule.snoozeCreatedBy,
+                      forEveryone: rule.snoozeForEveryone ? ' for everyone ' : ' ',
+                    }
+                  )}
             </Alert>
           )}
           <StyledPageTimeRangeSelector

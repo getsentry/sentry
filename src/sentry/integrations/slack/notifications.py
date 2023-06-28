@@ -24,14 +24,14 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
-class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
+class SlackNotifyBasicMixin(NotifyBasicMixin):
     def send_message(self, channel_id: str, message: str) -> None:
         payload = {"channel": channel_id, "text": message}
         try:
             self.get_client().post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             message = str(e)
-            if message != "Expired url":
+            if message not in ["Expired url", "channel_not_found"]:
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
 
 

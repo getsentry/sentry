@@ -204,7 +204,9 @@ function FormField(props: FormFieldProps) {
   // re-create the mockModel every time as it will invalidate many use*
   // dependnecies.
   //
-  // We get around this by just updating the mock model props every runder
+  // We get around this by just updating the mock model props every render so
+  // anything calling `getValue` or `getError` will have the latest controlled
+  // values.
   //
   // TODO(epurkhiser): IN the future you should not be able to use anything
   // wrapping FormField without it being wrapped in a Form. There's just too

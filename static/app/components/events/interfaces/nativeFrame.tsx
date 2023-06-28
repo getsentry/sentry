@@ -19,7 +19,6 @@ import StrictClick from 'sentry/components/strictClick';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFileBroken} from 'sentry/icons/iconFileBroken';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
@@ -221,7 +220,7 @@ function NativeFrame({
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
         <RowHeader expandable={expandable} expanded={expanded}>
-          <div>
+          <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
                 title={t(
@@ -238,12 +237,8 @@ function NativeFrame({
               >
                 <IconWarning size="sm" color="warningText" />
               </Tooltip>
-            ) : (
-              <Tooltip title={t('This frame has been successfully symbolicated')}>
-                <IconCheckmark size="sm" color="successText" />
-              </Tooltip>
-            )}
-          </div>
+            ) : null}
+          </SymbolicatorIcon>
           <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
@@ -346,12 +341,12 @@ function NativeFrame({
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
 const AddressCell = styled('div')`
+  font-family: ${p => p.theme.text.familyMono};
   ${p => p.onClick && `cursor: pointer`};
   ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
 const FunctionNameCell = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
   word-break: break-all;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
@@ -435,4 +430,8 @@ const StackTraceFrame = styled('li')`
       border-bottom: 1px solid ${p => p.theme.border};
     }
   }
+`;
+
+const SymbolicatorIcon = styled('div')`
+  width: ${p => p.theme.iconSizes.sm};
 `;

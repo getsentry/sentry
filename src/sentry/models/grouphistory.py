@@ -120,7 +120,11 @@ PREVIOUS_STATUSES = {
     GroupHistoryStatus.ASSIGNED: (GroupHistoryStatus.UNASSIGNED,),
     GroupHistoryStatus.UNASSIGNED: (GroupHistoryStatus.ASSIGNED,),
     GroupHistoryStatus.REGRESSED: RESOLVED_STATUSES,
-    GroupHistoryStatus.ESCALATING: (GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,),
+    GroupHistoryStatus.ESCALATING: (
+        GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING,
+        GroupHistoryStatus.ARCHIVED_UNTIL_CONDITION_MET,
+        GroupHistoryStatus.IGNORED,
+    ),
 }
 
 ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
@@ -129,7 +133,8 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
     ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
-    ActivityType.AUTO_SET_ONGOING: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.AUTO_SET_ONGOING.value: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.SET_ESCALATING.value: GroupHistoryStatus.ESCALATING,
 }
 
 

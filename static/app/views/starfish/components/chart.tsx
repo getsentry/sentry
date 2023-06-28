@@ -1,34 +1,68 @@
-import {useEffect, useRef, useState} from 'react';
+import {RefObject, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {LineSeriesOption} from 'echarts';
 import * as echarts from 'echarts/core';
 import {
   TooltipFormatterCallback,
   TopLevelFormatterParams,
+  XAXisOption,
   YAXisOption,
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
+import moment from 'moment';
 
 import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
-import {getFormatter} from 'sentry/components/charts/components/tooltip';
-import {LineChart} from 'sentry/components/charts/lineChart';
+import {
+  FormatterOptions,
+  getFormatter,
+} from 'sentry/components/charts/components/tooltip';
+import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
+import TransitionChart from 'sentry/components/charts/transitionChart';
+import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
-import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {
+  EChartClickHandler,
+  EChartHighlightHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
+import {DAY, HOUR} from 'sentry/utils/formatters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
+export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
+  [SpanMetricsFields.SPAN_DURATION]: {
+    outputType: 'duration',
+  },
+  [SpanMetricsFields.SPAN_SELF_TIME]: {
+    outputType: 'duration',
+  },
+  // local is only used with `time_spent_percentage` function
+  local: {
+    outputType: 'duration',
+  },
+};
 
 type Props = {
   data: Series[];
@@ -37,10 +71,15 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
-  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
+  aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
+  chartGroup?: string;
+  dataMax?: number;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  durationUnit?: number;
+  errored?: boolean;
+  forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
   height?: number;
   hideYAxisSplitLine?: boolean;
@@ -48,11 +87,15 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onHighlight?: EChartHighlightHandler;
+  onMouseOut?: EChartMouseOutHandler;
+  onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   scatterPlot?: Series[];
   showLegend?: boolean;
   stacked?: boolean;
   throughput?: {count: number; interval: string}[];
+  tooltipFormatterOptions?: FormatterOptions;
 };
 
 function computeMax(data: Series[]) {
@@ -62,10 +105,10 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[]) {
+export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
-  if (data.length > 2) {
+  if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
       maxValue += max(data[i].data.map(point => point.value)) as number;
     }
@@ -92,11 +135,12 @@ function computeAxisMax(data: Series[]) {
   }
 
   const step = 10 ** Math.floor(power) * scale;
-  return Math.round(Math.ceil(maxValue / step) * step);
+  return Math.ceil(Math.ceil(maxValue / step) * step);
 }
 
 function Chart({
   data,
+  dataMax,
   previousData,
   statsPeriod,
   start,
@@ -107,6 +151,7 @@ function Chart({
   grid,
   disableXAxis,
   definedAxisTicks,
+  durationUnit,
   chartColors,
   isBarChart,
   isLineChart,
@@ -118,18 +163,25 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  onMouseOver,
+  onMouseOut,
+  onHighlight,
+  forwardedRef,
+  chartGroup,
+  tooltipFormatterOptions = {},
+  errored,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
-  const chart = useRef<ReactEchartsRef>(null);
+  const pageFilter = usePageFilters();
+  const {startTime, endTime} = getDateFilters(pageFilter.selection);
 
-  const echartsInstance = chart.current?.getEchartsInstance();
+  const defaultRef = useRef<ReactEchartsRef>(null);
+  const chartRef = forwardedRef || defaultRef;
+
+  const echartsInstance = chartRef?.current?.getEchartsInstance();
   if (echartsInstance && !echartsInstance.group) {
-    echartsInstance.group = STARFISH_CHART_GROUP;
-  }
-
-  if (!data || data.length <= 0) {
-    return null;
+    echartsInstance.group = chartGroup ?? STARFISH_CHART_GROUP;
   }
 
   const colors = chartColors ?? theme.charts.getColorPalette(4);
@@ -141,17 +193,20 @@ function Chart({
     aggregateOutputFormat === 'percentage' ||
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
-  let dataMax = durationOnly
-    ? computeAxisMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
-    : percentOnly
-    ? computeMax(data)
-    : undefined;
-  // Fix an issue where max == 1 for duration charts would look funky cause we round
-  if (dataMax === 1 && durationOnly) {
-    dataMax += 1;
+  if (!dataMax) {
+    dataMax = durationOnly
+      ? computeAxisMax(
+          [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+          stacked
+        )
+      : percentOnly
+      ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+      : undefined;
+    // Fix an issue where max == 1 for duration charts would look funky cause we round
+    if (dataMax === 1 && durationOnly) {
+      dataMax += 1;
+    }
   }
-
-  const durationUnit = getDurationUnit(data);
 
   let transformedThroughput: LineSeriesOption[] | undefined = undefined;
   const additionalAxis: YAXisOption[] = [];
@@ -169,7 +224,7 @@ function Chart({
       }),
     ];
     additionalAxis.push({
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: 'value',
@@ -185,7 +240,7 @@ function Chart({
 
   const yAxes = [
     {
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: log ? 'log' : 'value',
@@ -196,7 +251,7 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit
+            durationUnit ?? getDurationUnit(data)
           );
         },
       },
@@ -215,12 +270,20 @@ function Chart({
         return element.classList.contains('echarts-for-react');
       }
     );
-    if (hoveredEchartElement === chart.current?.ele) {
+
+    if (hoveredEchartElement === chartRef?.current?.ele) {
       // Return undefined to use default formatter
       return getFormatter({
         isGroupedByDate: true,
         showTimeInTooltip: true,
         utc,
+        valueFormatter: (value, seriesName) => {
+          return tooltipFormatter(
+            value,
+            aggregateOutputFormat ?? aggregateOutputType(seriesName)
+          );
+        },
+        ...tooltipFormatterOptions,
       })(params, asyncTicket);
     }
     // Return empty string, ie no tooltip
@@ -262,113 +325,177 @@ function Chart({
     },
   } as Omit<AreaChartProps, 'series'>;
 
-  if (loading) {
-    if (isLineChart) {
-      return <LineChart height={height} series={[]} {...areaChartProps} />;
-    }
-    if (isBarChart) {
-      return <BarChart height={height} series={[]} {...areaChartProps} />;
-    }
-    return <AreaChart height={height} series={[]} {...areaChartProps} />;
-  }
-  const series = data.map((values, _) => ({
+  const series: Series[] = data.map((values, _) => ({
     ...values,
     yAxisIndex: 0,
     xAxisIndex: 0,
   }));
 
-  const xAxis = disableXAxis
+  const xAxisInterval = getXAxisInterval(startTime, endTime);
+
+  const xAxis: XAXisOption = disableXAxis
     ? {
         show: false,
         axisLabel: {show: true, margin: 0},
         axisLine: {show: false},
       }
-    : undefined;
+    : {
+        type: 'time',
+        maxInterval: xAxisInterval,
+        axisLabel: {
+          formatter: function (value: number) {
+            if (endTime.diff(startTime, 'days') > 30) {
+              return moment(value).format('MMMM DD');
+            }
+            if (startTime.isSame(endTime, 'day')) {
+              return moment(value).format('HH:mm');
+            }
+            return moment(value).format('MMMM DD HH:mm');
+          },
+        },
+      };
 
-  return (
-    <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
-      {zoomRenderProps => {
-        if (isLineChart) {
+  function getChart() {
+    if (errored) {
+      return (
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    return (
+      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+        {zoomRenderProps => {
+          if (isLineChart) {
+            return (
+              <BaseChart
+                {...zoomRenderProps}
+                ref={chartRef}
+                height={height}
+                previousPeriod={previousData}
+                additionalSeries={transformedThroughput}
+                xAxis={xAxis}
+                yAxes={areaChartProps.yAxes}
+                tooltip={areaChartProps.tooltip}
+                colors={colors}
+                grid={grid}
+                legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
+                onMouseOut={onMouseOut}
+                onMouseOver={onMouseOver}
+                onHighlight={onHighlight}
+                series={[
+                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                    LineSeries({
+                      ...options,
+                      name: seriesName,
+                      data: seriesData?.map(({value, name}) => [name, value]),
+                      animation: false,
+                      animationThreshold: 1,
+                      animationDuration: 0,
+                    })
+                  ),
+                  ...(scatterPlot ?? []).map(
+                    ({seriesName, data: seriesData, ...options}) =>
+                      ScatterSeries({
+                        ...options,
+                        name: seriesName,
+                        data: seriesData?.map(({value, name}) => [name, value]),
+                        animation: false,
+                      })
+                  ),
+                ]}
+              />
+            );
+          }
+
+          if (isBarChart) {
+            return (
+              <BarChart
+                height={height}
+                series={series}
+                xAxis={xAxis}
+                additionalSeries={transformedThroughput}
+                yAxes={areaChartProps.yAxes}
+                tooltip={areaChartProps.tooltip}
+                colors={colors}
+                grid={grid}
+                legend={showLegend ? {top: 0, right: 0} : undefined}
+              />
+            );
+          }
+
           return (
-            <BaseChart
-              {...zoomRenderProps}
-              ref={chart}
+            <AreaChart
+              forwardedRef={chartRef}
               height={height}
+              {...zoomRenderProps}
+              series={series}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
-              yAxes={areaChartProps.yAxes}
-              tooltip={areaChartProps.tooltip}
-              colors={colors}
-              grid={grid}
-              legend={showLegend ? {top: 0, right: 0} : undefined}
-              onClick={onClick}
-              series={[
-                ...series.map(({seriesName, data: seriesData, ...options}) =>
-                  LineSeries({
-                    ...options,
-                    name: seriesName,
-                    data: seriesData?.map(({value, name}) => [name, value]),
-                    animation: false,
-                    animationThreshold: 1,
-                    animationDuration: 0,
-                  })
-                ),
-                ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
-                  ScatterSeries({
-                    ...options,
-                    name: seriesName,
-                    data: seriesData?.map(({value, name}) => [name, value]),
-                    animation: false,
-                  })
-                ),
-              ]}
+              stacked={stacked}
+              {...areaChartProps}
             />
           );
-        }
-
-        if (isBarChart) {
-          return (
-            <BarChart
-              height={height}
-              series={series}
-              xAxis={xAxis}
-              additionalSeries={transformedThroughput}
-              yAxes={areaChartProps.yAxes}
-              tooltip={areaChartProps.tooltip}
-              colors={colors}
-              grid={grid}
-              legend={showLegend ? {top: 0, right: 0} : undefined}
-            />
-          );
-        }
-
-        return (
-          <AreaChart
-            forwardedRef={chart}
-            height={height}
-            {...zoomRenderProps}
-            series={series}
-            previousPeriod={previousData}
-            additionalSeries={transformedThroughput}
-            xAxis={xAxis}
-            stacked={stacked}
-            {...areaChartProps}
-          />
-        );
-      }}
-    </ChartZoom>
+        }}
+      </ChartZoom>
+    );
+  }
+  return (
+    <TransitionChart
+      loading={loading}
+      reloading={loading}
+      height={height ? `${height}px` : undefined}
+    >
+      <LoadingScreen loading={loading} />
+      {getChart()}
+    </TransitionChart>
   );
 }
 
 export default Chart;
 
-export function useSynchronizeCharts(deps: boolean[]) {
+export function useSynchronizeCharts(deps: boolean[] = []) {
   const [synchronized, setSynchronized] = useState<boolean>(false);
   useEffect(() => {
-    if (deps.every(dep => dep) && !synchronized) {
+    if (deps.every(Boolean)) {
       echarts.connect(STARFISH_CHART_GROUP);
       setSynchronized(true);
     }
   }, [deps, synchronized]);
+}
+
+const getXAxisInterval = (startTime: moment.Moment, endTime: moment.Moment) => {
+  const dateRange = endTime.diff(startTime);
+  if (dateRange >= 30 * DAY) {
+    return 7 * DAY;
+  }
+  if (dateRange >= 3 * DAY) {
+    return DAY;
+  }
+  if (dateRange >= 1 * DAY) {
+    return 12 * HOUR;
+  }
+  return HOUR;
+};
+
+const StyledTransparentLoadingMask = styled(props => (
+  <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
+))`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+function LoadingScreen({loading}: {loading: boolean}) {
+  if (!loading) {
+    return null;
+  }
+  return (
+    <StyledTransparentLoadingMask visible={loading}>
+      <LoadingIndicator mini />
+    </StyledTransparentLoadingMask>
+  );
 }

@@ -159,7 +159,7 @@ class SelectMembers extends Component<Props, State> {
           // has not registered for sentry yet, but has been invited
           (members
             ? (members as Member[])
-                .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+                .filter(({user}) => user && !usersInProjectById.includes(user.id))
                 .map(this.createUnmentionableUser)
             : []) as MentionableUser[]
       )

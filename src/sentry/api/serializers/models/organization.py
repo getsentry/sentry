@@ -40,6 +40,7 @@ from sentry.constants import (
     ATTACHMENTS_ROLE_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    GITHUB_PR_BOT_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
@@ -93,7 +94,7 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
 }
 
 
-class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
+class BaseOrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
     slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
 
@@ -122,7 +123,7 @@ class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
         return value
 
 
-class TrustedRelaySerializer(serializers.Serializer):  # type: ignore
+class TrustedRelaySerializer(serializers.Serializer):
     internal_external = (
         ("name", "name"),
         ("description", "description"),
@@ -203,7 +204,7 @@ class ControlSiloOrganizationSerializerResponse(TypedDict):
     name: str
 
 
-class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
+class ControlSiloOrganizationSerializer(Serializer):
     def serialize(
         self, obj: RpcOrganizationSummary, attrs: Mapping[str, Any], user: User
     ) -> ControlSiloOrganizationSerializerResponse:
@@ -215,7 +216,7 @@ class ControlSiloOrganizationSerializer(Serializer):  # type: ignore
 
 
 @register(Organization)
-class OrganizationSerializer(Serializer):  # type: ignore
+class OrganizationSerializer(Serializer):
     def get_attrs(
         self, item_list: Sequence[Organization], user: User
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
@@ -374,7 +375,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
 
 
 @register(OrganizationOnboardingTask)
-class OnboardingTasksSerializer(Serializer):  # type: ignore
+class OnboardingTasksSerializer(Serializer):
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
@@ -436,6 +437,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     onboardingTasks: OnboardingTasksSerializerResponse
     codecovAccess: bool
     aiSuggestedSolution: bool
+    githubPRBot: bool
     isDynamicallySampled: bool
 
 
@@ -541,6 +543,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "aiSuggestedSolution": bool(
                     obj.get_option("sentry:ai_suggested_solution", AI_SUGGESTED_SOLUTION)
                 ),
+                "githubPRBot": bool(obj.get_option("sentry:github_pr_bot", GITHUB_PR_BOT_DEFAULT)),
             }
         )
 
@@ -556,7 +559,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             team__organization=obj
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
-        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)
+        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
         context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
 
         return context

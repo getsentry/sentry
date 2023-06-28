@@ -17,9 +17,7 @@ from . import FireTest
 @freeze_time()
 class MsTeamsActionHandlerTest(FireTest, TestCase):
     @responses.activate
-    def run_test(self, incident, method):
-        from sentry.integrations.msteams.card_builder import build_incident_attachment
-
+    def setUp(self):
         with exempt_from_silo_limits():
             integration = Integration.objects.create(
                 provider="msteams",
@@ -43,12 +41,16 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
             json={"conversations": channels},
         )
 
-        action = self.create_alert_rule_trigger_action(
+        self.action = self.create_alert_rule_trigger_action(
             target_identifier=channel_name,
             type=AlertRuleTriggerAction.Type.MSTEAMS,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration=integration,
         )
+
+    @responses.activate
+    def run_test(self, incident, method):
+        from sentry.integrations.msteams.card_builder import build_incident_attachment
 
         responses.add(
             method=responses.POST,
@@ -57,11 +59,11 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
             json={},
         )
 
-        handler = MsTeamsActionHandler(action, incident, self.project)
+        handler = MsTeamsActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
-        data = json.loads(responses.calls[1].request.body)
+        data = json.loads(responses.calls[0].request.body)
 
         assert data["attachments"][0]["content"] == build_incident_attachment(
             incident, IncidentStatus(incident.status), metric_value
@@ -69,3 +71,25 @@ class MsTeamsActionHandlerTest(FireTest, TestCase):
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
+
+    def test_resolve_metric_alert(self):
+        self.run_fire_test("resolve")
+
+    @responses.activate
+    def test_rule_snoozed(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        self.snooze_rule(alert_rule=alert_rule)
+        responses.add(
+            method=responses.POST,
+            url="https://smba.trafficmanager.net/amer/v3/conversations/d_s/activities",
+            status=200,
+            json={},
+        )
+
+        handler = MsTeamsActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 0

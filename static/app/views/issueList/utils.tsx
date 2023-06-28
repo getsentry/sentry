@@ -4,7 +4,8 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -42,7 +43,8 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
+  const hasAssignToMe = organization.features.includes('assign-to-me');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -54,7 +56,7 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.FOR_REVIEW,
+      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
@@ -166,6 +168,7 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
+  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -182,6 +185,8 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.NEW:
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
+      return t('Priority');
+    case IssueSortOptions.BETTER_PRIORITY:
       return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
@@ -209,6 +214,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

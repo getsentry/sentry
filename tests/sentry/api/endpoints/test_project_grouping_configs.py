@@ -35,11 +35,11 @@ class ProjectGroupingConfigsTest(APITestCase):
     def test_feature_flag_off(self):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         for config in response.data:
-            assert config["latest"] == (config["id"] == "newstyle:2019-10-29")
+            assert config["latest"] == (config["id"] == "newstyle:2023-01-11")
 
     @with_feature({"organizations:grouping-tree-ui": True})
     @mock.patch("sentry.grouping.strategies.base.projectoptions.LATEST_EPOCH", 7)
     def test_feature_flag_on(self):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         for config in response.data:
-            assert config["latest"] == (config["id"] == "newstyle:2019-10-29")
+            assert config["latest"] == (config["id"] == "newstyle:2023-01-11")

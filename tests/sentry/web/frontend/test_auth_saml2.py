@@ -3,20 +3,19 @@ from functools import cached_property
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
-import pytest
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.helper import AuthHelperSessionStore
-from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
+from sentry.auth.providers.saml2.provider import Attributes, SAML2Provider
 from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 dummy_provider_config = {
     "idp": {
@@ -44,7 +43,6 @@ class DummySAML2Provider(SAML2Provider):
         return dummy_provider_config
 
 
-@pytest.mark.skipif(not HAS_SAML2, reason="SAML2 library is not installed")
 @control_silo_test
 class AuthSAML2Test(AuthProviderTestCase):
     provider = DummySAML2Provider
@@ -209,7 +207,8 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_auth_setup(self, auth_log):
         # enable require 2FA and enroll user
         TotpInterface().enroll(self.user)
-        self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
+        with exempt_from_silo_limits():
+            self.org.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
         assert self.org.flags.require_2fa.is_set
 
         self.auth_provider.delete()

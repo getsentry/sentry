@@ -8,12 +8,13 @@ from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-from sentry.search.events.fields import InvalidSearchQuery
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
-from sentry.utils.snuba import Dataset
+from sentry.utils.pytest.fixtures import django_db_all
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
@@ -59,7 +60,7 @@ def query_builder_fns(arg_name="query_builder_fn"):
     [pytest.param(column.alias, column.column, id=column.alias) for column in PROFILE_COLUMNS],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@django_db_all
 def test_field_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
@@ -163,7 +164,7 @@ def test_field_resolution(query_builder_fn, params, field, resolved):
     ],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@django_db_all
 def test_aggregate_resolution(query_builder_fn, params, field, resolved):
     builder = query_builder_fn(
         dataset=Dataset.Profiles,
@@ -228,7 +229,7 @@ def test_aggregate_resolution(query_builder_fn, params, field, resolved):
     ],
 )
 @query_builder_fns()
-@pytest.mark.django_db
+@django_db_all
 def test_invalid_field_resolution(query_builder_fn, params, field, message):
     with pytest.raises(InvalidSearchQuery, match=message):
         query_builder_fn(
@@ -492,7 +493,7 @@ def is_null(column: str) -> Function:
         ),
     ],
 )
-@pytest.mark.django_db
+@django_db_all
 def test_where_resolution(params, query, conditions):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -506,7 +507,7 @@ def test_where_resolution(params, query, conditions):
 
 
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
-@pytest.mark.django_db
+@django_db_all
 def test_where_resolution_project_slug(params, field):
     project = params["project_objects"][0]
 
@@ -529,7 +530,7 @@ def test_where_resolution_project_slug(params, field):
 
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
 @pytest.mark.parametrize("direction", [pytest.param("", id="asc"), pytest.param("-", id="desc")])
-@pytest.mark.django_db
+@django_db_all
 def test_order_by_resolution_project_slug(params, field, direction):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -567,7 +568,7 @@ def test_order_by_resolution_project_slug(params, field, direction):
         for column in PROFILE_COLUMNS
     ],
 )
-@pytest.mark.django_db
+@django_db_all
 def test_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -593,7 +594,7 @@ def test_has_resolution(params, field, column):
         for column in PROFILE_COLUMNS
     ],
 )
-@pytest.mark.django_db
+@django_db_all
 def test_not_has_resolution(params, field, column):
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,

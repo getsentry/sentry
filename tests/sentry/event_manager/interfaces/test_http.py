@@ -9,7 +9,7 @@ def make_http_snapshot(insta_snapshot):
     def inner(data):
         mgr = EventManager(data={"request": data})
         mgr.normalize()
-        evt = eventstore.create_event(data=mgr.get_data())
+        evt = eventstore.backend.create_event(data=mgr.get_data())
 
         interface = evt.interfaces.get("request")
 
@@ -25,6 +25,7 @@ def test_basic(make_http_snapshot):
 def test_full(make_http_snapshot):
     make_http_snapshot(
         dict(
+            api_target="foo",
             method="GET",
             url="http://example.com",
             query_string="foo=bar",

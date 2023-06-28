@@ -7,7 +7,7 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -591,3 +591,73 @@ class ReleaseRefsSerializerTest(TestCase):
         serializer = ReleaseSerializerWithProjects(data=data)
 
         assert serializer.is_valid()
+
+
+class GroupEventReleaseSerializerTest(TestCase, SnubaTestCase):
+    def test_simple(self):
+        user = self.create_user()
+        project = self.create_project()
+        project2 = self.create_project(organization=project.organization)
+        release_version = uuid4().hex
+
+        release = Release.objects.create(
+            organization_id=project.organization_id, version=release_version
+        )
+        release.add_project(project)
+        release.add_project(project2)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=1)
+        ReleaseProject.objects.filter(release=release, project=project2).update(new_groups=1)
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "release": release_version,
+                "environment": "prod",
+            },
+            project_id=project.id,
+        )
+
+        release = Release.objects.get(version=release_version)
+        env = Environment.objects.create(organization_id=project.organization_id, name="production")
+        env.add_project(project)
+        commit_author = CommitAuthor.objects.create(
+            name="stebe", email="stebe@sentry.io", organization_id=project.organization_id
+        )
+        commit = Commit.objects.create(
+            organization_id=project.organization_id,
+            repository_id=1,
+            key="abc",
+            author=commit_author,
+            message="waddap",
+        )
+        ReleaseCommit.objects.create(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            release=release,
+            commit=commit,
+            order=1,
+        )
+        release.update(authors=[str(commit_author.id)], commit_count=1, last_commit_id=commit.id)
+
+        deploy = Deploy.objects.create(
+            organization_id=project.organization_id, release=release, environment_id=env.id
+        )
+        release.update(total_deploys=1, last_deploy_id=deploy.id)
+
+        result = serialize(release, user, GroupEventReleaseSerializer())
+
+        assert result["id"] == release.id
+        assert result["commitCount"] == 1
+        assert result["data"] == release.data
+        assert result["dateReleased"] == release.date_released
+        assert result["deployCount"] == release.total_deploys
+        assert result["ref"] == release.ref
+        assert result["lastCommit"]["id"] == commit.key
+        assert result["lastDeploy"]["id"] == str(deploy.id)
+
+        assert result["version"] == release.version
+        assert result["versionInfo"]["package"] is None
+        assert result["versionInfo"]["version"]["raw"] == release_version
+        assert result["versionInfo"]["buildHash"] == release_version
+        assert result["versionInfo"]["description"] == release_version[:12]

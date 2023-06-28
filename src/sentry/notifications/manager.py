@@ -13,7 +13,6 @@ from typing import (
     Union,
 )
 
-import sentry_sdk
 from django.db import transaction
 from django.db.models import Q, QuerySet
 
@@ -38,12 +37,12 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -222,14 +221,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_ids: Iterable[int] | None = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates types to actual attributes to column types."""
-
-        try:
-            assert (user_ids and not team_ids) or (
-                team_ids and not user_ids
-            ), "Must have user_id or team_id when reading settings"
-        except AssertionError as err:
-            sentry_sdk.capture_exception(err)
-
         query = Q()
         if provider:
             query = query & Q(provider=provider.value)
@@ -402,11 +393,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         dictionary. Finally, we traverse the set of users and return the ones
         that should get a notification.
         """
-        from sentry.models.user import User
 
-        user_ids = project.member_set.values_list("user", flat=True)
-        users = User.objects.filter(id__in=user_ids)
-        return self.filter_to_accepting_recipients(project, users)
+        user_ids = project.member_set.values_list("user_id", flat=True)
+        return self.filter_to_accepting_recipients(
+            project, {RpcUser(id=user_id) for user_id in user_ids}
+        )
 
     def update_settings_bulk(
         self,
@@ -505,7 +496,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     ) -> bool:
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
 
         key_field = None
         if isinstance(recipient, RpcActor):
@@ -517,7 +507,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
         assert key_field, "Could not resolve key_field"
 
-        # Explicitly typing to satisfy mypy.
         team_ids: Set[int] = set()
         user_ids: Set[int] = set()
         if isinstance(recipient, RpcActor):
@@ -527,7 +516,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         elif isinstance(recipient, User):
             user_ids.add(recipient.id)
 
-        has_settings: bool = (
+        return (
             self._filter(provider=provider, team_ids=team_ids, user_ids=user_ids)
             .filter(
                 value__in={
@@ -539,7 +528,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
             )
             .exists()
         )
-        return has_settings
 
     def enable_settings_for_user(
         self,

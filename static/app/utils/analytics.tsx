@@ -63,31 +63,34 @@ import {
   stackTraceEventMap,
   StackTraceEventParameters,
 } from './analytics/stackTraceAnalyticsEvents';
+import {starfishEventMap} from './analytics/starfishAnalyticsEvents';
 import {
   TeamInsightsEventParameters,
   workflowEventMap,
 } from './analytics/workflowAnalyticsEvents';
 
-type EventParameters = GrowthEventParameters &
-  CoreUIEventParameters &
-  DashboardsEventParameters &
-  DiscoverEventParameters &
-  IssueEventParameters &
-  MonitorsEventParameters &
-  PerformanceEventParameters &
-  ProfilingEventParameters &
-  ReleasesEventParameters &
-  ReplayEventParameters &
-  SearchEventParameters &
-  SettingsEventParameters &
-  TeamInsightsEventParameters &
-  DynamicSamplingEventParameters &
-  OnboardingEventParameters &
-  StackTraceEventParameters &
-  AiSuggestedSolutionEventParameters &
-  EcosystemEventParameters &
-  IntegrationEventParameters &
-  ProjectCreationEventParameters;
+interface EventParameters
+  extends GrowthEventParameters,
+    CoreUIEventParameters,
+    DashboardsEventParameters,
+    DiscoverEventParameters,
+    IssueEventParameters,
+    MonitorsEventParameters,
+    PerformanceEventParameters,
+    ProfilingEventParameters,
+    ReleasesEventParameters,
+    ReplayEventParameters,
+    SearchEventParameters,
+    SettingsEventParameters,
+    TeamInsightsEventParameters,
+    DynamicSamplingEventParameters,
+    OnboardingEventParameters,
+    StackTraceEventParameters,
+    AiSuggestedSolutionEventParameters,
+    EcosystemEventParameters,
+    IntegrationEventParameters,
+    ProjectCreationEventParameters,
+    Record<string, Record<string, any>> {}
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -110,6 +113,7 @@ const allEventMap: Record<string, string | null> = {
   ...ecosystemEventMap,
   ...integrationEventMap,
   ...projectCreationEventMap,
+  ...starfishEventMap,
 };
 
 /**

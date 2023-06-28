@@ -9,6 +9,7 @@ from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
@@ -17,10 +18,10 @@ from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
     InvalidFunctionArgument,
-    InvalidSearchQuery,
     NumberRange,
     NumericColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
@@ -74,14 +75,27 @@ COLUMNS = [
     Column(alias="platform.name", column="platform", kind=Kind.STRING),
     Column(alias="environment", column="environment", kind=Kind.STRING),
     Column(alias="release", column="release", kind=Kind.STRING),
-    Column(alias="retention_days", column="retention_days", kind=Kind.INTEGER),
-    Column(alias="function.duration", column="percentiles", kind=Kind.DURATION),
+    Column(
+        alias="function.duration",
+        column="percentiles",
+        kind=Kind.DURATION,
+        unit=Duration.NANOSECOND,
+    ),
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
+AGG_STATE_COLUMNS = [
+    "count",
+    "percentiles",
+    "avg",
+    "sum",
+    "min",
+    "max",
+]
 
-class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
+
+class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -94,7 +108,7 @@ class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -121,19 +135,13 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     non_nullable_keys = {
         "project.id",
         "project_id",
-        "transaction_name",
+        "transaction",
         "timestamp",
-        "depth",
-        "parent_fingerprint",
         "fingerprint",
-        "name",
+        "function",
         "package",
-        "path",
         "is_application",
-        "platform",
-        "os_name",
-        "os_version",
-        "retention_days",
+        "platform.name",
     }
 
     def __init__(self, builder: builder.QueryBuilder):
@@ -316,6 +324,25 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "slope",
+                    required_args=[SnQLStringArg("column", allowed_strings=AGG_STATE_COLUMNS)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "tupleElement",
+                        [
+                            Function(
+                                "simpleLinearRegression",
+                                [
+                                    Function("toUInt32", [SnQLColumn("timestamp")]),
+                                    Function("finalizeAggregation", [SnQLColumn(args["column"])]),
+                                ],
+                            ),
+                            1,
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
                 ),
             ]
         }

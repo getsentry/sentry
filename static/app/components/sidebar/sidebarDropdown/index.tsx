@@ -158,7 +158,7 @@ function SidebarDropdown({
                         {t('User settings')}
                       </SidebarMenuItem>
                       <SidebarMenuItem to="/settings/account/api/">
-                        {t('API keys')}
+                        {t('User auth tokens')}
                       </SidebarMenuItem>
                       {hasOrganization && (
                         <Hook

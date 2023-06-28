@@ -70,6 +70,7 @@ from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
@@ -77,7 +78,7 @@ from sentry.types.group import SUBSTATUS_TO_STR
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import Dataset, aliased_query, raw_query
+from sentry.utils.snuba import aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -238,7 +239,7 @@ class GroupSerializerBase(Serializer, ABC):
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
         user_ids = {r[-1] for r in release_resolutions.values()}
-        user_ids.update(r.actor_id for r in ignore_items.values())
+        user_ids.update(r.actor_id for r in ignore_items.values() if r.actor_id is not None)
         if user_ids:
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": user_ids, "is_active": True},
@@ -761,7 +762,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

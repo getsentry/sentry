@@ -14,6 +14,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     organization_service,
 )
+from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
@@ -186,11 +187,11 @@ class ApiInviteHelper:
             self.invite_context.member.token or self.invite_context.member.legacy_token,
             self.token,
         )
-        return tokens_are_equal  # type: ignore[no-any-return]
+        return tokens_are_equal
 
     @property
     def user_authenticated(self) -> bool:
-        return self.request.user.is_authenticated  # type: ignore[no-any-return]
+        return self.request.user.is_authenticated
 
     @property
     def member_already_exists(self) -> bool:
@@ -254,6 +255,14 @@ class ApiInviteHelper:
         )
 
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
+        organization_service.schedule_signal(
+            member_joined,
+            organization_id=member.organization_id,
+            args=dict(
+                user_id=member.user_id,
+                organization_member_id=member.id,
+            ),
+        )
 
         return member
 

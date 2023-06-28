@@ -1,16 +1,13 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
-import ActivityItem, {ActivityAuthorType} from 'sentry/components/activity/item';
-import {space} from 'sentry/styles/space';
+import {ActivityAuthorType, ActivityItem} from 'sentry/components/activity/item';
 import {User} from 'sentry/types';
 import {NoteType} from 'sentry/types/alerts';
 import {ActivityType} from 'sentry/views/alerts/types';
 
-import NoteBody from './body';
-import EditorTools from './editorTools';
-import NoteHeader from './header';
-import NoteInput from './input';
+import {NoteBody} from './body';
+import {NoteHeader} from './header';
+import {NoteInput} from './input';
 
 type Props = {
   /**
@@ -88,27 +85,9 @@ function Note(props: Props) {
     date: dateCreated,
   };
 
-  if (!editing) {
-    const header = (
-      <NoteHeader
-        {...{authorName, user}}
-        onEdit={() => setEditing(true)}
-        onDelete={() => onDelete(props)}
-      />
-    );
-
+  if (editing) {
     return (
-      <ActivityItemWithEditing {...activityItemProps} header={header}>
-        <NoteBody text={text} />
-      </ActivityItemWithEditing>
-    );
-  }
-
-  // When editing, `NoteInput` has its own header, pass render func to control
-  // rendering of bubble body
-  return (
-    <ActivityItemNote {...activityItemProps}>
-      {() => (
+      <ActivityItem noPadding {...activityItemProps}>
         <NoteInput
           {...{noteId, minHeight, text, projectSlugs}}
           onEditFinish={() => setEditing(false)}
@@ -118,55 +97,24 @@ function Note(props: Props) {
           }}
           onCreate={note => onCreate?.(note)}
         />
-      )}
-    </ActivityItemNote>
+      </ActivityItem>
+    );
+  }
+
+  const header = (
+    <NoteHeader
+      user={user}
+      authorName={authorName}
+      onEdit={() => setEditing(true)}
+      onDelete={() => onDelete(props)}
+    />
+  );
+
+  return (
+    <ActivityItem {...activityItemProps} header={header}>
+      <NoteBody text={text} />
+    </ActivityItem>
   );
 }
 
-const ActivityItemNote = styled(ActivityItem)`
-  /* this was nested under ".activity-note.activity-bubble" */
-  ul {
-    list-style: disc;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4,
-  p,
-  ul:not(.nav),
-  ol,
-  pre,
-  hr,
-  blockquote {
-    margin-bottom: ${space(2)};
-  }
-
-  ul,
-  ol {
-    padding-left: 20px;
-  }
-
-  p {
-    a {
-      word-wrap: break-word;
-    }
-  }
-
-  blockquote {
-    font-size: 15px;
-    border-left: 5px solid ${p => p.theme.innerBorder};
-    padding-left: ${space(1)};
-    margin-left: 0;
-  }
-`;
-
-const ActivityItemWithEditing = styled(ActivityItemNote)`
-  &:hover {
-    ${EditorTools} {
-      display: inline-block;
-    }
-  }
-`;
-
-export default Note;
+export {Note};

@@ -45,7 +45,7 @@ type BaseField = {
   confirm?: {[key: string]: React.ReactNode};
   defaultValue?: FieldValue;
   disabled?: boolean | ((props: any) => boolean);
-  disabledReason?: string;
+  disabledReason?: React.ReactNode;
   extraHelp?: string;
   flexibleControlStateSize?: boolean;
   formatLabel?: (value: number | '') => React.ReactNode;
@@ -77,6 +77,7 @@ type BaseField = {
   required?: boolean;
   /** Does editing this field need to clear all other fields? */
   resetsForm?: boolean;
+  rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
   saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
   /**
@@ -109,6 +110,8 @@ export interface CustomType {
 
 type InputType = {type: 'string' | 'secret'} & {
   autoComplete?: string;
+  maxLength?: number;
+  minLength?: number;
 };
 
 type SelectControlType = {type: 'choice' | 'select'} & {

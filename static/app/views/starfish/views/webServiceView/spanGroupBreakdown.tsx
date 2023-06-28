@@ -1,46 +1,57 @@
-import {Fragment, useEffect, useState} from 'react';
-import {Link} from 'react-router';
+import {useState} from 'react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import cloneDeep from 'lodash/cloneDeep';
 
-import Checkbox from 'sentry/components/checkbox';
-import Duration from 'sentry/components/duration';
-import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
-import {t, tct} from 'sentry/locale';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {getUtcDateString} from 'sentry/utils/dates';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
-import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
-import {getSegmentLabelForTable} from 'sentry/views/starfish/components/breakdownBar';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
 import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
+  isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
+  isTimeseriesLoading: boolean;
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  errored?: boolean;
+  transaction?: string;
 };
+
+export enum DataDisplayType {
+  CUMULATIVE_DURATION = 'cumulative_duration',
+  PERCENTAGE = 'percentage',
+}
 
 export function SpanGroupBreakdown({
   tableData: transformedData,
-  totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
+  transaction,
+  isTimeseriesLoading,
+  errored,
 }: Props) {
-  const {selection} = usePageFilters();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
+  const organization = useOrganization();
+  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>([]);
+  const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+  ];
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+    DataDisplayType.CUMULATIVE_DURATION
+  );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
+  );
+
+  if (showSeriesArray.length === 0 && transformedData.length > 0) {
+    setShowSeriesArray(transformedData.map(() => true));
+  }
 
   const visibleSeries: Series[] = [];
 
@@ -51,19 +62,52 @@ export function SpanGroupBreakdown({
     }
   }
 
+  // Skip these calculations if the feature flag is not enabled
+  let dataAsPercentages;
+  if (hasDropdownFeatureFlag) {
+    dataAsPercentages = cloneDeep(visibleSeries);
+    const numDataPoints = data[0]?.data?.length ?? 0;
+    for (let i = 0; i < numDataPoints; i++) {
+      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+      dataAsPercentages.forEach(segment => {
+        const clone = {...segment.data[i]};
+        clone.value = clone.value / totalTimeAtIndex;
+        segment.data[i] = clone;
+      });
+    }
+  }
+
+  const handleChange = (option: SelectOption<DataDisplayType>) =>
+    setDataDisplayType(option.value);
+
   return (
-    <Fragment>
+    <FlexRowContainer>
       <ChartPadding>
         <Header>
-          <ChartLabel>{'p50 of Span Groups With Highest Cumulative Times'}</ChartLabel>
+          <ChartLabel>
+            {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
+          </ChartLabel>
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
         <Chart
           statsPeriod="24h"
-          height={175}
-          data={visibleSeries}
+          data={
+            dataDisplayType === DataDisplayType.PERCENTAGE
+              ? dataAsPercentages
+              : visibleSeries
+          }
+          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""
           end=""
-          loading={false}
+          errored={errored}
+          loading={isTimeseriesLoading}
           utc={false}
           grid={{
             left: '0',
@@ -73,117 +117,22 @@ export function SpanGroupBreakdown({
           }}
           definedAxisTicks={6}
           stacked
-          aggregateOutputFormat="duration"
+          aggregateOutputFormat={
+            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+          }
+          tooltipFormatterOptions={{
+            valueFormatter: value =>
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+          }}
         />
       </ChartPadding>
-      <ListContainer>
-        {transformedData.map((row, index) => {
-          const checkedValue = showSeriesArray[index];
-          const group = row.group;
-          const {start, end, utc, period} = selection.datetime;
-          const spansLinkQueryParams =
-            start && end
-              ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-              : {statsPeriod: period};
-          ['span_operation', 'action', 'domain'].forEach(key => {
-            if (group[key] !== undefined && group[key] !== null) {
-              spansLinkQueryParams[key] = group[key];
-            }
-          });
-
-          const spansLink =
-            group.module === 'other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
-          return (
-            <StyledLineItem
-              key={`${group.span_operation}-${group.action}-${group.domain}`}
-            >
-              <ListItemContainer>
-                <StyledTopResultsIndicator
-                  count={Math.max(transformedData.length - 1, 1)}
-                  index={index}
-                />
-                <Checkbox
-                  size="sm"
-                  checked={checkedValue}
-                  onChange={() => {
-                    const updatedSeries = [...showSeriesArray];
-                    updatedSeries[index] = !checkedValue;
-                    setShowSeriesArray(updatedSeries);
-                  }}
-                />
-                <TextAlignLeft>
-                  <Link to={spansLink}>
-                    <TextOverflow>
-                      {getSegmentLabelForTable(
-                        group.span_operation,
-                        group.action,
-                        group.domain
-                      )}
-                    </TextOverflow>
-                  </Link>
-                </TextAlignLeft>
-                <RightAlignedCell>
-                  <Tooltip
-                    title={t(
-                      'This group of spans account for %s of the cumulative time on your web service',
-                      formatPercentage(row.cumulativeTime / totalValues, 1)
-                    )}
-                    containerDisplayMode="block"
-                    position="top"
-                  >
-                    <NumberContainer>
-                      {tct('[cumulativeTime] ([cumulativeTimePercentage])', {
-                        cumulativeTime: (
-                          <Duration
-                            seconds={row.cumulativeTime / 1000}
-                            fixedDigits={1}
-                            abbreviation
-                          />
-                        ),
-                        cumulativeTimePercentage: formatPercentage(
-                          row.cumulativeTime / totalValues,
-                          1
-                        ),
-                      })}
-                    </NumberContainer>
-                  </Tooltip>
-                </RightAlignedCell>
-              </ListItemContainer>
-            </StyledLineItem>
-          );
-        })}
-      </ListContainer>
-    </Fragment>
+    </FlexRowContainer>
   );
 }
 
-const StyledLineItem = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const ListItemContainer = styled('div')`
-  display: flex;
-  border-top: 1px solid ${p => p.theme.border};
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const ListContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
-  margin: 0;
-  list-style-type: none;
-`;
-
-const TextAlignLeft = styled('span')`
-  text-align: left;
-  width: 100%;
-  padding: 0 ${space(1.5)};
-`;
-
 const ChartPadding = styled('div')`
   padding: 0 ${space(2)};
+  flex: 2;
 `;
 
 const ChartLabel = styled('p')`
@@ -199,6 +148,8 @@ const Header = styled('div')`
   justify-content: space-between;
 `;
 
-const StyledTopResultsIndicator = styled(TopResultsIndicator)`
-  margin-top: 0px;
+const FlexRowContainer = styled('div')`
+  display: flex;
+  min-height: 200px;
+  padding-bottom: ${space(2)};
 `;

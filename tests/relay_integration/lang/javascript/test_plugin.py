@@ -393,6 +393,60 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
+    def test_nonhandled_frames_inapp_normalization(self, process_with_symbolicator):
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "node",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "native",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "[native code]",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                                {
+                                    "abs_path": "app://dist/bundle/file.min.js",
+                                    "lineno": 1,
+                                    "colno": 1,
+                                    "in_app": True,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        exception = event.interfaces["exception"]
+
+        if process_with_symbolicator:
+            frame_list = exception.values[0].stacktrace.frames
+            assert not frame_list[0].in_app  # should be overwritten due to `native` abs_path
+            assert not frame_list[1].in_app  # should be overwritten due to `[native code]` abs_path
+            assert frame_list[2].in_app  # should not be touched and retain `in_app: true`
+
+            raw_frame_list = exception.values[0].raw_stacktrace.frames
+            # none of the raw frames should be altered
+            assert raw_frame_list[0].in_app
+            assert raw_frame_list[1].in_app
+            assert raw_frame_list[2].in_app
+
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -463,6 +517,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
@@ -745,6 +802,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         expected = "\treturn a + b; // fôo"
         assert frame.context_line == expected
@@ -812,6 +872,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         assert len(frame_list) == 1
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.abs_path == "app:///nofiles.js"
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
@@ -883,6 +946,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
 
         expected = "\treturn a + b; // fôo"
@@ -912,6 +978,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         assert raw_frame.lineno == 1
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1065,6 +1134,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1073,6 +1145,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1226,6 +1301,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1234,6 +1312,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -1579,6 +1660,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -1587,6 +1671,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release-old"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2047,6 +2134,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "debug-id"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2055,6 +2145,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "debug-id"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2066,6 +2159,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         ]
 
         frame = frame_list[2]
+        if process_with_symbolicator:
+            assert "resolved_with" not in frame.data
+            assert "symbolicated" not in frame.data
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2212,6 +2308,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             frame_list = exception.values[0].stacktrace.frames
 
             frame = frame_list[0]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "debug-id"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a + b; // fôo"
             if process_with_symbolicator:
@@ -2220,6 +2319,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 assert frame.post_context == ["}", ""]
 
             frame = frame_list[1]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "debug-id"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a * b;"
             assert frame.post_context == [
@@ -2643,6 +2745,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
         frame_list = exception.values[0].stacktrace.frames
 
         frame = frame_list[0]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         if process_with_symbolicator:
@@ -2651,6 +2756,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert frame.post_context == ["}", ""]
 
         frame = frame_list[1]
+        if process_with_symbolicator:
+            assert frame.data["resolved_with"] == "release"
+            assert frame.data["symbolicated"]
         assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a * b;"
         assert frame.post_context == [
@@ -2795,6 +2903,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
             frame_list = exception.values[0].stacktrace.frames
 
             frame = frame_list[0]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "release"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a + b; // fôo"
             if process_with_symbolicator:
@@ -2803,6 +2914,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
                 assert frame.post_context == ["}", ""]
 
             frame = frame_list[1]
+            if process_with_symbolicator:
+                assert frame.data["resolved_with"] == "release"
+                assert frame.data["symbolicated"]
             assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
             assert frame.context_line == "\treturn a * b;"
             assert frame.post_context == [

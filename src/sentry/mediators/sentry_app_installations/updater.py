@@ -1,7 +1,7 @@
 from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators.param import if_param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param, if_param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 
 

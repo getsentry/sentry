@@ -1,4 +1,4 @@
-from rest_framework.exceptions import NotFound, ParseError, PermissionDenied
+from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.rpc import (
 
 
 @all_silo_endpoint
-class RpcServiceEndpoint(Endpoint):  # type: ignore
+class RpcServiceEndpoint(Endpoint):
     permission_classes = ()
 
     def _is_authorized(self, request: Request) -> bool:
@@ -43,5 +43,6 @@ class RpcServiceEndpoint(Endpoint):  # type: ignore
             raise NotFound from e
         except RpcArgumentException as e:
             raise ParseError from e
-
+        except Exception as e:
+            raise ValidationError from e
         return Response(data=result)

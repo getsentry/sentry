@@ -74,8 +74,6 @@ class Migration(migrations.Migration):
     # transaction.
     atomic = False
 
-    initial = True
-
     dependencies = []
 
     operations = [

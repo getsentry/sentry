@@ -10,7 +10,8 @@ from django.db.models import Q
 
 from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
-from sentry.models import Group, Project, ProjectOwnership, Rule, RuleSnooze
+from sentry.models import Group, Project, ProjectOwnership, Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
 from sentry.services.hybrid_cloud.actor import RpcActor
@@ -157,9 +158,7 @@ def sort_records(records: Sequence[Record]) -> Sequence[Record]:
     """Sorts records ordered from newest to oldest."""
 
     def sort_func(record: Record) -> datetime:
-        # Explicitly typing to satisfy mypy.
-        key: datetime = record.value.event.datetime
-        return key
+        return record.value.event.datetime
 
     return sorted(records, key=sort_func, reverse=True)
 

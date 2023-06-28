@@ -5,7 +5,9 @@ from django.http import HttpRequest
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.signals import receivers_raise_on_send
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class ApiInviteHelperTest(TestCase):
@@ -44,7 +46,7 @@ class ApiInviteHelperTest(TestCase):
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -63,11 +65,13 @@ class ApiInviteHelperTest(TestCase):
             ),
             None,
         )
-        helper.accept_invite()
+
+        with receivers_raise_on_send(), outbox_runner():
+            helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -91,7 +95,7 @@ class ApiInviteHelperTest(TestCase):
         # Invite cannot be accepted without AuthIdentity if SSO is required
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is not None
-        assert om.user is None
+        assert om.user_id is None
 
     @patch("sentry.api.invite_helper.create_audit_entry")
     @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
@@ -118,4 +122,4 @@ class ApiInviteHelperTest(TestCase):
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id

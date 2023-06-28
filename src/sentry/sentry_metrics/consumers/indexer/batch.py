@@ -100,6 +100,10 @@ class IndexerBatch:
         self.is_output_sliced = is_output_sliced
         self.__input_codec = input_codec
 
+        self.__message_count: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_size_sum: MutableMapping[UseCaseID, int] = defaultdict(int)
+        self.__message_size_max: MutableMapping[UseCaseID, int] = defaultdict(int)
+
         self._extract_messages()
 
     @metrics.wraps("process_messages.extract_messages")
@@ -110,6 +114,7 @@ class IndexerBatch:
         for msg in self.outer_message.payload:
             assert isinstance(msg.value, BrokerValue)
             partition_offset = PartitionIdxOffset(msg.value.partition.index, msg.value.offset)
+
             try:
                 parsed_payload: ParsedMessage = json.loads(
                     msg.payload.value.decode("utf-8"), use_rapid_json=True
@@ -138,7 +143,9 @@ class IndexerBatch:
                 )
 
             try:
-                parsed_payload["use_case_id"] = extract_use_case_id(parsed_payload["name"])
+                parsed_payload["use_case_id"] = use_case_id = extract_use_case_id(
+                    parsed_payload["name"]
+                )
             except ValidationError:
                 self.skipped_offsets.add(partition_offset)
                 logger.error(
@@ -147,6 +154,12 @@ class IndexerBatch:
                     exc_info=True,
                 )
                 continue
+
+            self.__message_count[use_case_id] += 1
+            self.__message_size_max[use_case_id] = max(
+                len(msg.payload.value), self.__message_size_max[use_case_id]
+            )
+            self.__message_size_sum[use_case_id] += len(msg.payload.value)
 
             # Ensure that the parsed_payload can be cast back to to
             # IngestMetric. If there are any schema changes, this check would
@@ -158,23 +171,16 @@ class IndexerBatch:
 
     @metrics.wraps("process_messages.filter_messages")
     def filter_messages(self, keys_to_remove: Sequence[PartitionIdxOffset]) -> None:
-        metrics.incr(
-            "sentry_metrics.indexer.process_messages.dropped_message",
-            amount=len(keys_to_remove),
-            tags={
-                "reason": "cardinality_limit",
-            },
-        )
-
         # XXX: it is useful to be able to get a sample of organization ids that are affected by rate limits, but this is really slow.
         for offset in keys_to_remove:
-            sentry_sdk.set_tag(
-                "sentry_metrics.organization_id", self.parsed_payloads_by_offset[offset]["org_id"]
-            )
-            sentry_sdk.set_tag(
-                "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
-            )
             if _should_sample_debug_log():
+                sentry_sdk.set_tag(
+                    "sentry_metrics.organization_id",
+                    self.parsed_payloads_by_offset[offset]["org_id"],
+                )
+                sentry_sdk.set_tag(
+                    "sentry_metrics.metric_name", self.parsed_payloads_by_offset[offset]["name"]
+                )
                 logger.error(
                     "process_messages.dropped_message",
                     extra={
@@ -281,13 +287,6 @@ class IndexerBatch:
                 message.value.partition.index, message.value.offset
             )
             if partition_offset in self.skipped_offsets:
-                logger.info(
-                    "process_message.offset_skipped",
-                    extra={
-                        "offset": message.value.offset,
-                        "partition": message.value.partition.index,
-                    },
-                )
                 continue
             old_payload_value = self.parsed_payloads_by_offset.pop(partition_offset)
 
@@ -346,6 +345,7 @@ class IndexerBatch:
                     tags={
                         "reason": "writes_limit",
                         "string_type": "tags",
+                        "use_case_id": use_case_id.value,
                     },
                 )
                 if _should_sample_debug_log():
@@ -357,6 +357,7 @@ class IndexerBatch:
                             "num_global_quotas": exceeded_global_quotas,
                             "num_org_quotas": exceeded_org_quotas,
                             "org_batch_size": len(mapping[use_case_id][org_id]),
+                            "use_case_id": use_case_id.value,
                         },
                     )
                 continue
@@ -378,7 +379,9 @@ class IndexerBatch:
                 metrics.incr(
                     "sentry_metrics.indexer.process_messages.dropped_message",
                     tags={
+                        "reason": "missing_numeric_metric_id",
                         "string_type": "metric_id",
+                        "use_case_id": use_case_id.value,
                     },
                 )
 
@@ -393,6 +396,7 @@ class IndexerBatch:
                                 and metadata.fetch_type_ext.is_global
                             ),
                             "org_batch_size": len(mapping[use_case_id][org_id]),
+                            "use_case_id": use_case_id.value,
                         },
                     )
                 continue
@@ -459,5 +463,20 @@ class IndexerBatch:
             else:
                 new_messages.append(Message(message.value.replace(kafka_payload)))
 
-        metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
+        for use_case_id in self.__message_count:
+            metrics.incr(
+                "metrics_consumer.process_message.messages_seen",
+                amount=self.__message_count[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+            )
+            metrics.timing(
+                "metrics_consumer.process_message.message.size.avg",
+                self.__message_size_sum[use_case_id] / self.__message_count[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+            )
+            metrics.timing(
+                "metrics_consumer.process_message.message.size.max",
+                self.__message_size_max[use_case_id],
+                tags={"use_case_id": use_case_id.value},
+            )
         return new_messages

@@ -10,7 +10,8 @@ from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import GroupEvent
-from sentry.models import Environment, GroupRuleStatus, Rule, RuleSnooze
+from sentry.models import Environment, GroupRuleStatus, Rule
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import EventState, history, rules
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
@@ -27,6 +28,13 @@ def get_match_function(match_name: str) -> Callable[..., bool] | None:
     elif match_name == "none":
         return lambda bool_iter: not any(bool_iter)
     return None
+
+
+def is_condition_slow(condition: Mapping[str, str]) -> bool:
+    for slow_conditions in SLOW_CONDITION_MATCHES:
+        if slow_conditions in condition["id"]:
+            return True
+    return False
 
 
 class RuleProcessor:
@@ -186,11 +194,7 @@ class RuleProcessor:
                 filter_list.append(rule_cond)
 
         # Sort `condition_list` so that most expensive conditions run last.
-        condition_list.sort(
-            key=lambda condition: any(
-                condition_match in condition["id"] for condition_match in SLOW_CONDITION_MATCHES
-            )
-        )
+        condition_list.sort(key=lambda condition: is_condition_slow(condition))
 
         for predicate_list, match, name in (
             (filter_list, filter_match, "filter"),

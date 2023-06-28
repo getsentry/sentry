@@ -21,9 +21,6 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    # These values are ONLY set for historical US SaaS region.  This helps bridge support for member invite tools that
-    # did not require an organization context, and only had a member_id.  However, organization member ids are not
-    # globally unique -- do not expect these to be set for other regions.
     organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -48,10 +45,11 @@ class OrganizationMemberMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmembermapping"
-        unique_together = (
+        unique_together = (("organization_id", "organizationmember_id"),)
+
+        index_together = (
             ("organization_id", "user"),
             ("organization_id", "email"),
-            ("organization_id", "organizationmember_id"),
         )
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

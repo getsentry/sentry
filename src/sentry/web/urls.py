@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 
 from django.conf import settings
 from django.conf.urls import include, url
 from django.http import HttpResponse
+from django.urls import URLPattern, URLResolver
 from django.views.generic import RedirectView
 
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
@@ -58,7 +61,7 @@ __all__ = ("urlpatterns",)
 generic_react_page_view = GenericReactPageView.as_view()
 react_page_view = ReactPageView.as_view()
 
-urlpatterns = []
+urlpatterns: list[URLResolver | URLPattern] = []
 
 if getattr(settings, "DEBUG_VIEWS", settings.DEBUG):
     from sentry.web.debug_urls import urlpatterns as debug_urls
@@ -100,6 +103,12 @@ urlpatterns += [
         r"^api/client-config/?$",
         api.ClientConfigView.as_view(),
         name="sentry-api-client-config",
+    ),
+    # Forbidden Relay endpoint
+    url(
+        r"^api/relay/.*$",
+        api.not_found,
+        name="sentry-api-internal-relay",
     ),
     # We do not want to have webpack assets served under a versioned URL, as these assets have
     # a filecontent-based hash in its filenames so that it can be cached long term
@@ -214,7 +223,7 @@ urlpatterns += [
                     r"^sso/$",
                     AuthProviderLoginView.as_view(),
                     name="sentry-auth-sso",
-                ),
+                ),  # OAuth Pipeline for SSO redirect URI
                 url(
                     r"^logout/$",
                     AuthLogoutView.as_view(),
@@ -894,6 +903,16 @@ urlpatterns += [
                     name="sentry-organization-stats",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/$",
+                    react_page_view,
+                    name="sentry-organization-replays",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-replay-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
@@ -1002,11 +1021,7 @@ urlpatterns += [
                     r"^(?P<provider_id>[\w_-]+)/setup/$",
                     PipelineAdvancerView.as_view(),
                     name="sentry-extension-setup",
-                ),
-                url(
-                    r"^cloudflare/",
-                    include("sentry.integrations.cloudflare.urls"),
-                ),
+                ),  # OAuth Pipeline for integration redirect URI
                 url(
                     r"^jira/",
                     include("sentry.integrations.jira.urls"),

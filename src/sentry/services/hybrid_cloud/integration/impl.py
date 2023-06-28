@@ -49,9 +49,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return False
 
-    def close(self) -> None:
-        pass
-
     def page_integration_ids(
         self,
         *,
@@ -154,6 +151,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         try:
             integration = Integration.objects.get(**integration_kwargs)
         except Integration.DoesNotExist:
+            return None
+        except Integration.MultipleObjectsReturned:
             return None
         return serialize_integration(integration)
 

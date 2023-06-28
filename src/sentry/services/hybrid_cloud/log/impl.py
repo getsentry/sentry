@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sentry_sdk
 from django.db import IntegrityError
 
@@ -7,9 +9,6 @@ from sentry.utils import metrics
 
 
 class DatabaseBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         entry = AuditLogEntry.from_event(event)
         try:
@@ -53,11 +52,22 @@ class DatabaseBackedLogService(LogService):
             # TODO: Break the foreign key and simply remove this code path.
             metrics.incr("hybrid_cloud.audit_log.user_ip_event.stale_event")
 
+    def find_last_log(
+        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+    ) -> AuditLogEvent | None:
+        last_entry: AuditLogEntry | None = AuditLogEntry.objects.filter(
+            organization_id=organization_id,
+            target_object=target_object_id,
+            event=event,
+        ).last()
+
+        if last_entry is None:
+            return None
+
+        return last_entry.as_event()
+
 
 class OutboxBackedLogService(LogService):
-    def close(self) -> None:
-        pass
-
     def record_audit_log(self, *, event: AuditLogEvent) -> None:
         RegionOutbox(
             shard_scope=OutboxScope.AUDIT_LOG_SCOPE,
@@ -75,3 +85,8 @@ class OutboxBackedLogService(LogService):
             object_identifier=event.user_id,
             payload=event.__dict__,
         ).save()
+
+    def find_last_log(
+        self, *, organization_id: int | None, target_object_id: int | None, event: int | None
+    ) -> AuditLogEvent | None:
+        return None

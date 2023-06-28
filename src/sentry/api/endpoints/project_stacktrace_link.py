@@ -186,7 +186,7 @@ def get_code_mapping_configs(project: Project) -> List[RepositoryProjectPathConf
 
 
 @region_silo_endpoint
-class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the

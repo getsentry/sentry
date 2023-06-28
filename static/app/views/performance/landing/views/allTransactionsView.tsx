@@ -3,7 +3,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
@@ -14,18 +14,21 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     props.organization.features.includes('performance-new-widget-designs') &&
     canUseMetricsData(props.organization);
 
-  const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_REGRESSED,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-    PerformanceWidgetSetting.MOST_IMPROVED,
-  ];
+  const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
+
+  if (props.organization.features.includes('performance-new-trends')) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+  } else {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
+  }
 
   if (showSpanOperationsWidget) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);
   }
 
   return (
-    <PerformanceDisplayProvider value={{performanceType: PROJECT_PERFORMANCE_TYPE.ANY}}>
+    <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div data-test-id="all-transactions-view">
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />
         <TripleChartRow
