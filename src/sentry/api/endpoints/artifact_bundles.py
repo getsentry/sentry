@@ -25,7 +25,7 @@ ORDER_BY_FIELDS_MAPPING = {"date_added": "date_uploaded", "date_modified": "date
 class InvalidSortByParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "invalid_sort_by_parameter"
-    message = "You can either sort via `date_added` or `date_modified`"
+    message = "You can either sort via 'date_added' or 'date_modified'"
 
 
 class ArtifactBundlesMixin:
