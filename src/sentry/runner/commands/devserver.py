@@ -231,10 +231,8 @@ def devserver(
         os.environ["SENTRY_REGION"] = "us"
 
     if ingest and not workers:
-        raise click.ClickException(
-            "Used --ingest without --workers. "
-            "Workers are required to get any data out of relay again."
-        )
+        click.echo("--ingest was provided, implicitly enabling --workers")
+        workers = True
 
     if workers:
         kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
