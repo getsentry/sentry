@@ -401,6 +401,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team: Team | None = None,
         user: User | None = None,
     ) -> None:
+        assert user or team, "Cannot update settings if user or team is not passed"
+
         """
         Given a list of _valid_ notification settings as tuples of column
         values, save them to the DB. This does not execute as a transaction.
