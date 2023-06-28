@@ -198,7 +198,8 @@ class BaseDateRange extends Component<Props, State> {
     const isSameDay = startDate.isSame(endDate, 'day');
     if (maxDateRange && isSameDay) {
       minDate = moment(new Date(start)).subtract(maxDateRange, 'days').toDate();
-      maxDate = moment(new Date(end)).add(maxDateRange, 'days').toDate();
+      const newMaxDate = moment(new Date(end)).add(maxDateRange, 'days').toDate();
+      maxDate = newMaxDate > maxDate ? maxDate : newMaxDate;
     }
 
     return (
