@@ -21,12 +21,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
 import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 import EndpointList from './endpointList';
 
@@ -104,7 +105,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   definedAxisTicks={2}
                   stacked
                   isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
+                  chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
                   }}
@@ -145,7 +146,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
       <StyledRow minSize={200}>
         <ChartsContainer>
           <ChartsContainerItem>
-            <SpanGroupBreakdownContainer />
+            <ServiceDurationChartContainer />
           </ChartsContainerItem>
           <ChartsContainerItem2>{renderCharts()}</ChartsContainerItem2>
           <ChartsContainerItem3>
