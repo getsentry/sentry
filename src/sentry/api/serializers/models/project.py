@@ -27,6 +27,7 @@ from sentry import features, options, projectoptions, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.api.serializers.models.team import get_org_roles
+from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
@@ -252,7 +253,7 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
     isInternal: bool
     isPublic: bool
-    avatar: Any  # TODO: use Avatar type from other serializers
+    avatar: SerializedAvatarFields
     color: str
     status: str  # TODO enum/literal
 
@@ -814,6 +815,64 @@ def bulk_fetch_project_latest_releases(projects):
             (tuple(str(i.id) for i in projects),),
         )
     )
+
+
+# PEP 589 https://peps.python.org/pep-0589/#alternative-syntax specifies we can use alterative
+# syntax to create TypedDicts with special characters in the keys. However "This syntax doesn't
+# support inheritance..." and cannot be used in class declarations, so we use this workaround to
+# inherit from an alternatively declared TypedDict with all the special character keys.
+class ProjectOptions(
+    TypedDict(
+        "OptionsWithSpecialCharacters",
+        {
+            "sentry:symbol_sources": str,
+            "sentry:builtin_symbol_sources": List[str],
+            "sentry:error_messages": List[str],
+            "sentry:releases": List[str],
+            "sentry:blacklisted_ips": List[str],
+            "filters:react-hydration-errors": bool,
+            "sentry:token": str,
+            "quotas:spike-protection-disabled": bool,
+            "sentry:option-epoch": 11,
+            "sentry:csp_ignored_sources_defaults": bool,
+            "sentry:csp_ignored_sources": str,
+            "sentry:reprocessing_active": bool,
+            "filters:blacklisted_ips": str,
+            "filters:releases": str,
+            "filters:error_messages": str,
+            "feedback:branding": bool,
+        },
+    )
+):
+    pass
+
+
+class DetailedProjectResponse(OrganizationProjectResponse):
+    options: ProjectOptions
+    digestsMinDelay: int
+    digestsMaxDelay: int
+    subjectPrefix: str
+    allowedDomains: List[str]
+    resolveAge: int
+    dataScrubber: bool
+    dataScrubberDefaults: bool
+    safeFields: List[str]
+    storeCrashReports: Optional[int]
+    sensitiveFields: List[str]
+    subjectTemplate: str
+    securityToken: str
+    securityTokenHeader: Optional[str]
+    verifySSL: bool
+    scrubIPAddresses: bool
+    scrapeJavaScript: bool
+    groupingConfig: str
+    groupingEnhancements: str
+    groupingEnhancementsBase: Optional[str]
+    secondaryGroupingExpiry: int
+    secondaryGroupingConfig: Optional[str]
+    groupingAutoUpdate: bool
+    fingerprintingRules: Optional[Dict[str, Any]]
+    # tests/sentry/grouping/test_fingerprinting.py:27
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
