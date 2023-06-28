@@ -11,26 +11,12 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Mapping,
-    MutableSequence,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Any, Callable, Dict, Mapping, MutableSequence, Optional, Tuple, TypeVar, overload
 from urllib.parse import urlparse
 
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.silo.base import SiloMode
-from sentry.types.region import Region
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -404,6 +390,7 @@ INSTALLED_APPS = (
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )
@@ -638,7 +625,7 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 
 # List of the available regions, or a JSON string
 # that is parsed.
-SENTRY_REGION_CONFIG: Union[Iterable[Region], str] = ()
+SENTRY_REGION_CONFIG: Any = tuple()
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
@@ -1109,12 +1096,12 @@ CELERYBEAT_SCHEDULE_REGION = {
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
-if SILO_MODE == SiloMode.CONTROL.value:
+if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
 
-elif SILO_MODE == SiloMode.REGION.value:
+elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
     CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
@@ -1403,12 +1390,18 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
+    # Extract on demand metrics
+    "organizations:on-demand-metrics-extraction": False,
+    # Extract on demand metrics (experimental features)
+    "organizations:on-demand-metrics-extraction-experimental": False,
     # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": True,
     # Mark URL transactions scrubbed by regex patterns as "sanitized".
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
+    # Normalize transactions from legacy SDKs (source:unknown).
+    "organizations:transaction-name-normalize-legacy": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1452,8 +1445,6 @@ SENTRY_FEATURES = {
     "organizations:dashboards-mep": False,
     # Enable release health widget in dashboards
     "organizations:dashboards-rh-widget": False,
-    # Enable the dynamic sampling "Transaction Name" priority in the UI
-    "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
     "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
@@ -1470,6 +1461,8 @@ SENTRY_FEATURES = {
     "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
+    # Enable sorting Issue detail events by 'most helpful'
+    "organizations:issue-details-most-helpful-event": False,
     # Enable prefetching of issues from the issue list when hovered
     "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
@@ -1485,6 +1478,8 @@ SENTRY_FEATURES = {
     "organizations:org-subdomains": False,
     # Enable project selection on the stats page
     "organizations:project-stats": True,
+    # Enable performance change explorer panel on trends page
+    "organizations:performance-change-explorer": False,
     # Enable interpolation of null data points in charts instead of zerofilling in performance
     "organizations:performance-chart-interpolation": False,
     # Enable views for anomaly detection
@@ -1540,18 +1535,10 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
-    # Enable session replay click search banner rollout for eligible SDKs
-    "organizations:session-replay-click-search-banner-rollout": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled for those orgs who participated in the Replay Beta program
-    "organizations:session-replay-beta-grace": False,
     # Enabled experimental session replay errors view, replacing issues
     "organizations:session-replay-errors-tab": False,
-    # Enable replay GA messaging (update paths from AM1 to AM2)
-    "organizations:session-replay-ga": False,
-    # Enabled experimental session replay network data view
-    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
@@ -1559,12 +1546,15 @@ SENTRY_FEATURES = {
     "organizations:session-replay-recording-scrubbing": False,
     # Enable subquery optimizations for the replay_index page
     "organizations:session-replay-index-subquery": False,
+    "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1598,8 +1588,6 @@ SENTRY_FEATURES = {
     "organizations:ds-sliding-window": False,
     # Enable the sliding window per org
     "organizations:ds-sliding-window-org": False,
-    # Enable new project/org boost
-    "organizations:ds-boost-new-projects": False,
     # Enable the org recalibration
     "organizations:ds-org-recalibration": False,
     # Enable view hierarchies options
@@ -1655,6 +1643,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable specifying inbound filter for health check calls.
+    "organizations:health-check-filter": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -2070,6 +2060,7 @@ SENTRY_SCOPES = {
     "org:write",
     "org:admin",
     "org:integrations",
+    "org:ci",
     "member:read",
     "member:write",
     "member:admin",
@@ -2972,7 +2963,7 @@ SENTRY_USER_PERMISSIONS = ("broadcasts.admin", "users.admin", "options.admin")
 # Reading items from this default configuration directly might break deploys.
 # To correctly read items from this dictionary and not worry about the format,
 # see `sentry.utils.kafka_config.get_kafka_consumer_cluster_options`.
-KAFKA_CLUSTERS = {
+KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
     "default": {
         "common": {"bootstrap.servers": "127.0.0.1:9092"},
         "producers": {
@@ -3374,7 +3365,8 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
 
-MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
+MAX_FAST_CONDITION_ISSUE_ALERTS = 200
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
@@ -3427,17 +3419,15 @@ if USE_SILOS:
 
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
-    SENTRY_REGION_CONFIG = json.dumps(
-        [
-            {
-                "name": "us",
-                "snowflake_id": 1,
-                "category": "MULTI_TENANT",
-                "address": "http://localhost:8000",
-                "api_token": "dev-region-silo-token",
-            }
-        ]
-    )
+    SENTRY_REGION_CONFIG = [
+        {
+            "name": "us",
+            "snowflake_id": 1,
+            "category": "MULTI_TENANT",
+            "address": "http://localhost:8000",
+            "api_token": "dev-region-silo-token",
+        }
+    ]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
@@ -3517,8 +3507,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
-
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
@@ -3541,7 +3529,7 @@ SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
 # However, the service *must* be defined.
 SENTRY_PROCESSING_SERVICES: Mapping[str, Any] = {
     "celery": {"redis": "default"},
-    "attachments-store": {"redis": "rc-short"},
+    "attachments-store": {"redis": "default"},
     "processing-store": {},  # "redis": "processing"},
     "processing-locks": {"redis": "default"},
     "post-process-locks": {"redis": "default"},

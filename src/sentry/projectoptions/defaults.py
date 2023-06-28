@@ -92,6 +92,8 @@ register(
     },
 )
 
+register(key="filters:health-check", default="1")
+
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
@@ -100,8 +102,6 @@ register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
-    "slow_db_query_duration_threshold": 1000.0,
-    "n_plus_one_db_duration_threshold": 100.0,
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
     "large_http_payload_detection_enabled": True,

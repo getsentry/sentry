@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import defaultdict
 from datetime import timedelta
 from typing import Mapping, Sequence
@@ -39,7 +41,7 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
             .exclude(release=release)
             .order_by("-release__date_added")
         )
-        releases_by_project: Mapping[int, Sequence[Release]] = defaultdict(list)
+        releases_by_project: Mapping[int, list[Release]] = defaultdict(list)
         for rp in prev_release_projects:
             releases_by_project[rp.project.id].append(rp.release)
 
@@ -81,3 +83,5 @@ def get_suspect_resolutions_releases(release: Release) -> Sequence[int]:
             )
 
         return suspect_resolution_issue_ids
+    else:
+        return []

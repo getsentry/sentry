@@ -13,12 +13,12 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
-    BoundedAutoField,
+    BoundedBigAutoField,
     control_silo_only_model,
     sane_repr,
 )
@@ -70,7 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -128,13 +128,12 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_("The date the password was changed last."),
     )
 
-    flags = BitField(
-        flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-        ),
-        default=0,
-        null=True,
-    )
+    class flags(TypedClassBitField):
+        # Do we need to ask this user for newsletter consent?
+        newsletter_consent_prompt: bool
+
+        bitfield_default = 0
+        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
 

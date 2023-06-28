@@ -156,13 +156,14 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            self.create_organization_mapping(
-                organization_id=101010,
-                slug="abcslug",
-                name="The Thing",
-                idempotency_key="",
-                region_name="some-region",
-            )
+            with in_test_psql_role_override("postgres"):
+                self.create_organization_mapping(
+                    organization_id=101010,
+                    slug="abcslug",
+                    name="The Thing",
+                    idempotency_key="",
+                    region_name="some-region",
+                )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()
 

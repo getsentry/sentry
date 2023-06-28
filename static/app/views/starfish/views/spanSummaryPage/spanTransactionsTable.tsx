@@ -14,9 +14,13 @@ import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {
+  renderHeadCell,
+  SORTABLE_FIELDS,
+} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
@@ -29,14 +33,20 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 type Row = {
   metrics: SpanTransactionMetrics;
   transaction: string;
+  transactionMethod: string;
 };
 
 type Props = {
+  sort: ValidSort;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
-  method?: string;
+  endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
+};
+
+type ValidSort = Sort & {
+  field: keyof Row;
 };
 
 export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
@@ -46,7 +56,8 @@ export function SpanTransactionsTable({
   openSidebar,
   onClickTransaction,
   endpoint,
-  method,
+  endpointMethod,
+  sort,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -56,11 +67,15 @@ export function SpanTransactionsTable({
     meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span, endpoint ? [endpoint] : undefined);
+  } = useSpanTransactionMetrics(span, {
+    transactions: endpoint ? [endpoint] : undefined,
+    sorts: [sort],
+  });
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
       transaction: row.transaction,
+      transactionMethod: row['transaction.method'],
       metrics: row,
     };
   });
@@ -70,7 +85,7 @@ export function SpanTransactionsTable({
       return (
         <TransactionCell
           endpoint={endpoint}
-          method={method}
+          endpointMethod={endpointMethod}
           span={span}
           row={row}
           column={column}
@@ -103,7 +118,7 @@ export function SpanTransactionsTable({
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
-          renderHeadCell: col => renderHeadCell({column: col}),
+          renderHeadCell: col => renderHeadCell({column: col, sort, location}),
           renderBodyCell,
         }}
         location={location}
@@ -131,24 +146,28 @@ type CellProps = {
   row: Row;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
-  method?: string;
+  endpointMethod?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function TransactionCell({span, column, row, endpoint, method, location}: CellProps) {
+function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
+  const label = row.transactionMethod
+    ? `${row.transactionMethod} ${row.transaction}`
+    : row.transaction;
   return (
     <Fragment>
       <Link
-        to={`/starfish/${extractRoute(location)}/span/${encodeURIComponent(
+        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
           endpoint,
-          method,
+          endpointMethod,
           transaction: row.transaction,
+          transactionMethod: row.transactionMethod,
         })}`}
       >
-        <Truncate value={row[column.key]} maxLength={75} />
+        <Truncate value={label} maxLength={75} />
       </Link>
     </Fragment>
   );
@@ -196,3 +215,7 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
   margin-left: auto;
 `;
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
+}
