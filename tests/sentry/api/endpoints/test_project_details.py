@@ -170,6 +170,29 @@ class ProjectDetailsTest(APITestCase):
         )
         assert not response.data["hasAlertIntegrationInstalled"]
 
+    def test_filters_disabled_plugins(self):
+        from sentry.plugins.base import plugins
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert response.data["plugins"] == []
+
+        asana_plugin = plugins.get("asana")
+        asana_plugin.enable(project)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert len(response.data["plugins"]) == 1
+        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
+
     def test_project_renamed_302(self):
         project = self.create_project()
         self.login_as(user=self.user)
