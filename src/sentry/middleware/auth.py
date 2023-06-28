@@ -77,7 +77,9 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
         if user is not None:
             request.user = user
             request.user_from_signed_request = True
-        elif auth:
+            return
+
+        if auth:
             for authenticator_class in [
                 TokenAuthentication,
                 OrgAuthTokenAuthentication,

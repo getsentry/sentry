@@ -727,7 +727,12 @@ class GroupSerializerBase(Serializer, ABC):
             ):
                 return True
 
-        if request and is_org_auth_token_auth(request.auth):
+        if (
+            request
+            and user.is_anonymous
+            and hasattr(request, "auth")
+            and is_org_auth_token_auth(request.auth)
+        ):
             return request.auth.organization_id == organization_id
 
         return (
