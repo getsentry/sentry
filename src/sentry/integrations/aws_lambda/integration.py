@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
-from sentry.api.serializers import serialize
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -25,6 +24,7 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, or
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
+from ...services.hybrid_cloud.project import project_service
 from .client import ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
@@ -258,7 +258,10 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             return pipeline.next_step()
 
         projects = sorted(projects, key=lambda p: p.slug)
-        serialized_projects = [serialize(x, request.user) for x in projects]
+        serialized_projects = project_service.serialize_many(
+            organization_id=organization.id,
+            filter=dict(project_ids=[p.id for p in projects]),
+        )
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
