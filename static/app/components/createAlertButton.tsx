@@ -23,7 +23,7 @@ import {
   DEFAULT_WIZARD_TEMPLATE,
 } from 'sentry/views/alerts/wizard/options';
 
-export type CreateAlertFromViewButtonProps = ButtonProps & {
+export type CreateAlertFromViewButtonProps = Omit<ButtonProps, 'aria-label'> & {
   /**
    * Discover query used to create the alert
    */
