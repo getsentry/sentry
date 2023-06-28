@@ -59,7 +59,8 @@ class MetricAlertDetails extends Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     if (
-      prevProps.location.search !== this.props.location.search ||
+      (prevProps.location.search !== this.props.location.search &&
+        prevProps.location.query.mute !== '1') ||
       prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {
