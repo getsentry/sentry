@@ -18,7 +18,7 @@ import SpansTable, {isAValidSort} from './spansTable';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'sps()',
+  field: 'time_spent_percentage()',
 };
 const LIMIT: number = 25;
 

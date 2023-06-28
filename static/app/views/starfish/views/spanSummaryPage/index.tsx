@@ -11,6 +11,8 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {fromSorts} from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -31,11 +33,20 @@ import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
+import {
+  isAValidSort,
+  SpanTransactionsTable,
+} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
+
+const DEFAULT_SORT: Sort = {
+  kind: 'desc',
+  field: 'time_spent_percentage(local)',
+};
 
 type Props = {
   location: Location;
@@ -47,6 +58,9 @@ function SpanSummaryPage({params, location}: Props) {
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+  const sort =
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
     queryFilter['transaction.method'] = endpointMethod;
@@ -225,6 +239,7 @@ function SpanSummaryPage({params, location}: Props) {
               {span && (
                 <SpanTransactionsTable
                   span={span}
+                  sort={sort}
                   endpoint={endpoint}
                   endpointMethod={endpointMethod}
                 />
