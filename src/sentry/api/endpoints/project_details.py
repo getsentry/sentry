@@ -346,7 +346,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -388,6 +388,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
+
+        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
 
         return Response(data)
 
