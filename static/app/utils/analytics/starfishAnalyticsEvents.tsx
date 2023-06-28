@@ -22,6 +22,9 @@ export type StarfishEventParameters = {
     direction: string;
     header: string;
   };
+  'starfish.web_service_view.endpoint_list.search': {
+    query: string;
+  };
 };
 
 export type StarfishEventKey = keyof StarfishEventParameters;
@@ -36,4 +39,6 @@ export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
     'Starfish: Web Service View Endpoint List Endpoint Clicked',
   'starfish.web_service_view.endpoint_list.header.clicked':
     'Starfish: Web Service View Endpoint List Header Clicked',
+  'starfish.web_service_view.endpoint_list.search':
+    'Starfish: Web Service View Endpoint List Search',
 };
