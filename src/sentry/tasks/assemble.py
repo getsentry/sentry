@@ -373,7 +373,7 @@ def _create_artifact_bundle(
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
         analytics.record(
-            "artifactbundle.assemble_complete",
+            "artifactbundle.manifest_extracted",
             organization_id=org_id,
             project_ids=project_ids,
             has_debug_ids=len(debug_ids_with_types) > 0,

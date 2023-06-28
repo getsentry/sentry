@@ -1,8 +1,8 @@
 from sentry import analytics
 
 
-class ArtifactBundleAssembleComplete(analytics.Event):
-    type = "artifactbundle.assemble_complete"
+class ArtifactBundleManifestExtracted(analytics.Event):
+    type = "artifactbundle.manifest_extracted"
 
     attributes = (
         analytics.Attribute("organization_id"),
@@ -11,4 +11,4 @@ class ArtifactBundleAssembleComplete(analytics.Event):
     )
 
 
-analytics.register(ArtifactBundleAssembleComplete)
+analytics.register(ArtifactBundleManifestExtracted)
