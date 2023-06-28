@@ -29,7 +29,6 @@ describe('CreateAlertFromViewButton', () => {
     });
     render(
       <CreateAlertFromViewButton
-        location={location}
         organization={organization}
         eventView={eventView}
         projects={[TestStubs.Project()]}
@@ -56,7 +55,6 @@ describe('CreateAlertFromViewButton', () => {
 
     render(
       <CreateAlertFromViewButton
-        location={location}
         organization={noAccessOrg}
         eventView={eventView}
         projects={[noAccessProj]}
@@ -82,7 +80,6 @@ describe('CreateAlertFromViewButton', () => {
 
     render(
       <CreateAlertFromViewButton
-        location={location}
         organization={organization}
         eventView={eventView}
         projects={[noAccessProj]}
@@ -122,7 +119,6 @@ describe('CreateAlertFromViewButton', () => {
 
     render(
       <CreateAlertFromViewButton
-        location={location}
         organization={noAccessOrg}
         eventView={eventView}
         projects={projects}
@@ -199,7 +195,6 @@ describe('CreateAlertFromViewButton', () => {
     });
     render(
       <CreateAlertFromViewButton
-        location={location}
         organization={organization}
         eventView={eventView}
         projects={[TestStubs.Project()]}
