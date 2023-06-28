@@ -14,7 +14,7 @@ export default function DBModule() {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('DB')}</Layout.Title>
+            <Layout.Title>{t('Database Queries')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
