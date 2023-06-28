@@ -688,7 +688,6 @@ class AuthHelper(Pipeline):
         query_params = request.GET
         provider_param = query_params.get("provider")
         config_param = query_params.get("config")
-        provider_query = None
 
         if not (req_state or (config_param and provider_param)):
             return None
@@ -706,12 +705,13 @@ class AuthHelper(Pipeline):
             provider_query = AuthProvider.objects.filter(
                 provider=provider_param, config=config_dict
             )
-
-        if provider_query.exists():
-            flow = cls.FLOW_LOGIN
-            provider_key = provider_param
-            provider_model = provider_query[0]
-            organization = Organization.objects.filter(id=provider_model.organization_id)[0]
+            if provider_query.exists():
+                flow = cls.FLOW_LOGIN
+                provider_key = provider_param
+                provider_model = provider_query[0]
+                organization = Organization.objects.filter(id=provider_model.organization_id)[0]
+            else:
+                return None
 
         if not organization:
             logging.info("Invalid SSO data found")
