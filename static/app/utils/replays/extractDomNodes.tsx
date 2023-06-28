@@ -1,31 +1,35 @@
 import * as Sentry from '@sentry/react';
-import type {eventWithTime} from '@sentry-internal/rrweb';
-import {EventType, Replayer} from '@sentry-internal/rrweb';
+import {Replayer} from '@sentry-internal/rrweb';
 import first from 'lodash/first';
 
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbFrame,
+  RecordingFrame,
+  SpanFrame,
+} from 'sentry/utils/replays/types';
+import {EventType} from 'sentry/utils/replays/types';
 import requestIdleCallback from 'sentry/utils/window/requestIdleCallback';
 
 export type Extraction = {
-  crumb: Crumb;
+  frame: BreadcrumbFrame | SpanFrame;
   html: string;
   timestamp: number;
 };
 
 type Args = {
-  crumbs: Crumb[] | undefined;
   finishedAt: Date | undefined;
-  rrwebEvents: eventWithTime[] | undefined;
+  frames: (BreadcrumbFrame | SpanFrame)[] | undefined;
+  rrwebEvents: RecordingFrame[] | undefined;
 };
 
 function _extractDomNodes({
-  crumbs,
+  frames,
   rrwebEvents,
   finishedAt,
 }: Args): Promise<Extraction[]> {
-  // Get a list of the breadcrumbs that relate directly to the DOM, for each
-  // crumb we will extract the referenced HTML.
-  if (!crumbs || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
+  // Get a list of the BreadcrumbFrames that relate directly to the DOM, for each
+  // frame we will extract the referenced HTML.
+  if (!frames || !rrwebEvents || rrwebEvents.length < 2 || !finishedAt) {
     return Promise.reject();
   }
 
@@ -45,7 +49,7 @@ function _extractDomNodes({
     // ReplayerReader added. RRWeb will skip that event when it comes time to render
     const lastEvent = rrwebEvents[rrwebEvents.length - 2];
 
-    const isLastRRWebEvent = (event: eventWithTime) => lastEvent === event;
+    const isLastRRWebEvent = (event: RecordingFrame) => lastEvent === event;
 
     const replayerRef = new Replayer(rrwebEvents, {
       root: domRoot,
@@ -57,7 +61,7 @@ function _extractDomNodes({
       triggerFocus: false,
       plugins: [
         new BreadcrumbReferencesPlugin({
-          crumbs,
+          frames,
           isFinished: isLastRRWebEvent,
           onFinish: rows => {
             resolve(rows);
@@ -96,31 +100,31 @@ export default function extractDomNodes(args: Args): Promise<Extraction[]> {
 }
 
 type PluginOpts = {
-  crumbs: Crumb[];
-  isFinished: (event: eventWithTime) => boolean;
+  frames: (BreadcrumbFrame | SpanFrame)[];
+  isFinished: (event: RecordingFrame) => boolean;
   onFinish: (mutations: Extraction[]) => void;
 };
 
 class BreadcrumbReferencesPlugin {
-  crumbs: Crumb[];
-  isFinished: (event: eventWithTime) => boolean;
+  frames: (BreadcrumbFrame | SpanFrame)[];
+  isFinished: (event: RecordingFrame) => boolean;
   onFinish: (mutations: Extraction[]) => void;
 
   nextExtract: null | Extraction['html'] = null;
   activities: Extraction[] = [];
 
-  constructor({crumbs, isFinished, onFinish}: PluginOpts) {
-    this.crumbs = crumbs;
+  constructor({frames, isFinished, onFinish}: PluginOpts) {
+    this.frames = frames;
     this.isFinished = isFinished;
     this.onFinish = onFinish;
   }
 
-  handler(event: eventWithTime, _isSync: boolean, {replayer}: {replayer: Replayer}) {
+  handler(event: RecordingFrame, _isSync: boolean, {replayer}: {replayer: Replayer}) {
     if (event.type === EventType.FullSnapshot) {
-      this.extractNextCrumb({replayer});
+      this.extractNextFrame({replayer});
     } else if (event.type === EventType.IncrementalSnapshot) {
-      this.extractCurrentCrumb(event, {replayer});
-      this.extractNextCrumb({replayer});
+      this.extractCurrentFrame(event, {replayer});
+      this.extractNextFrame({replayer});
     }
 
     if (this.isFinished(event)) {
@@ -128,43 +132,41 @@ class BreadcrumbReferencesPlugin {
     }
   }
 
-  extractCurrentCrumb(event: eventWithTime, {replayer}: {replayer: Replayer}) {
-    const crumb = first(this.crumbs);
-    const crumbTimestamp = +new Date(crumb?.timestamp || '');
+  extractCurrentFrame(event: RecordingFrame, {replayer}: {replayer: Replayer}) {
+    const frame = first(this.frames);
 
-    if (!crumb || !crumbTimestamp || crumbTimestamp > event.timestamp) {
+    if (!frame || !frame?.timestampMs || frame.timestampMs > event.timestamp) {
       return;
     }
 
-    const truncated = extractNode(crumb, replayer) || this.nextExtract;
+    const truncated = extractNode(frame, replayer) || this.nextExtract;
     if (truncated) {
       this.activities.push({
-        crumb,
+        frame,
         html: truncated,
-        timestamp: crumbTimestamp,
+        timestamp: frame.timestampMs,
       });
     }
 
     this.nextExtract = null;
-    this.crumbs.shift();
+    this.frames.shift();
   }
 
-  extractNextCrumb({replayer}: {replayer: Replayer}) {
-    const crumb = first(this.crumbs);
-    const crumbTimestamp = +new Date(crumb?.timestamp || '');
+  extractNextFrame({replayer}: {replayer: Replayer}) {
+    const frame = first(this.frames);
 
-    if (!crumb || !crumbTimestamp) {
+    if (!frame || !frame?.timestampMs) {
       return;
     }
 
-    this.nextExtract = extractNode(crumb, replayer);
+    this.nextExtract = extractNode(frame, replayer);
   }
 }
 
-function extractNode(crumb: Crumb, replayer: Replayer) {
+function extractNode(frame: BreadcrumbFrame | SpanFrame, replayer: Replayer) {
   const mirror = replayer.getMirror();
   // @ts-expect-error
-  const nodeId = crumb.data?.nodeId || '';
+  const nodeId = (frame.data?.nodeId ?? -1) as number;
   const node = mirror.getNode(nodeId);
   // @ts-expect-error
   const html = node?.outerHTML || node?.textContent || '';
@@ -178,36 +180,32 @@ function extractNode(crumb: Crumb, replayer: Replayer) {
   return truncated;
 }
 
+function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
+  for (let i = 0; i < collection.length; i++) {
+    const child = collection[i];
+
+    if (child.nodeName === 'STYLE') {
+      child.textContent = '/* Inline CSS */';
+    }
+
+    if (child.nodeName === 'svg') {
+      child.innerHTML = '<!-- SVG -->';
+    }
+
+    if (max <= current) {
+      if (child.childElementCount > 0) {
+        child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
+      }
+    } else {
+      removeChildLevel(max, child.children, current + 1);
+    }
+  }
+}
+
 function removeNodesAtLevel(html: string, level: number) {
   const parser = new DOMParser();
   try {
     const doc = parser.parseFromString(html, 'text/html');
-
-    const removeChildLevel = (
-      max: number,
-      collection: HTMLCollection,
-      current: number = 0
-    ) => {
-      for (let i = 0; i < collection.length; i++) {
-        const child = collection[i];
-
-        if (child.nodeName === 'STYLE') {
-          child.textContent = '/* Inline CSS */';
-        }
-
-        if (child.nodeName === 'svg') {
-          child.innerHTML = '<!-- SVG -->';
-        }
-
-        if (max <= current) {
-          if (child.childElementCount > 0) {
-            child.innerHTML = `<!-- ${child.childElementCount} descendents -->`;
-          }
-        } else {
-          removeChildLevel(max, child.children, current + 1);
-        }
-      }
-    };
 
     removeChildLevel(level, doc.body.children);
     return doc.body.innerHTML;

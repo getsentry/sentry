@@ -13,6 +13,7 @@ import type {
   SpanFrame as TRawSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
 } from '@sentry/replay';
+import invariant from 'invariant';
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -44,6 +45,12 @@ export function isOptionFrameEvent(
   attachment: Record<string, any>
 ): attachment is TOptionFrameEvent {
   return attachment.data?.tag === 'options';
+}
+
+export function frameOpOrCategory(frame: BreadcrumbFrame | SpanFrame | ErrorFrame) {
+  const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
+  invariant(val, 'Frame has no category or op');
+  return val;
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;

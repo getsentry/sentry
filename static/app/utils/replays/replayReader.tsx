@@ -234,8 +234,17 @@ export default class ReplayReader {
     )
   );
 
-  getDOMFrames = memoize(() =>
-    this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {}))
+  getDOMFrames = memoize(() => [
+    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+  ]);
+
+  getDomNodes = memoize(() =>
+    extractDomNodes({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      finishedAt: this.replayRecord.finished_at,
+    })
   );
 
   getMemoryFrames = memoize(() =>
@@ -321,14 +330,6 @@ export default class ReplayReader {
   getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
-
-  getDomNodes = memoize(() =>
-    extractDomNodes({
-      crumbs: this.getCrumbsWithRRWebNodes(),
-      rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this.replayRecord.finished_at,
-    })
-  );
 
   sdkConfig = memoize(() => {
     const found = this.rrwebEvents.find(
