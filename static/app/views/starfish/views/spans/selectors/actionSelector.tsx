@@ -92,6 +92,11 @@ function getEventView(
   if (moduleName) {
     queryConditions.push('!span.action:""');
   }
+
+  if (moduleName === ModuleName.DB) {
+    queryConditions.push('!span.op:db.redis');
+  }
+
   if (spanCategory) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
       queryConditions.push(`!has:span.category`);
