@@ -233,7 +233,7 @@ export default function EndpointOverview() {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Starfish'),
+                  label: t('Web Service'),
                   to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
                 },
                 {
