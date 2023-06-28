@@ -3,7 +3,7 @@ import logging
 from django.db import models
 from django.utils import timezone
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
@@ -53,13 +53,13 @@ class AuthProvider(Model):
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
 
-    flags = BitField(
-        flags=(
-            ("allow_unlinked", "Grant access to members who have not linked SSO accounts."),
-            ("scim_enabled", "Enable SCIM for member and team provisioning and syncing"),
-        ),
-        default=0,
-    )
+    class flags(TypedClassBitField):
+        # Grant access to members who have not linked SSO accounts.
+        allow_unlinked: bool
+        # Enable SCIM for member and team provisioning and syncing.
+        scim_enabled: bool
+
+        bitfield_default = 0
 
     class Meta:
         app_label = "sentry"
