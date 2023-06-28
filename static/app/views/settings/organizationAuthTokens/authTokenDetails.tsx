@@ -129,9 +129,7 @@ function AuthTokenDetailsForm({
         );
       }
 
-      // Without this, it complains that we are updating state while unmounting, as we are also updating the query cache
-      // which triggers a re-fetch of the query, which then tries to update the state of the component that is unmounting
-      window.setTimeout(handleGoBack, 1);
+      handleGoBack();
     },
     onError: error => {
       const message = t('Failed to update the auth token.');
