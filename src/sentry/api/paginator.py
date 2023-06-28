@@ -613,7 +613,7 @@ class CombinedQuerysetPaginator:
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
 
-    def _build_combined_querysets(self, value, is_prev, limit, extra):
+    def _build_combined_querysets(self, is_prev):
         asc = self._is_asc(is_prev)
         combined_querysets = list()
         for intermediary in self.intermediaries:
@@ -632,7 +632,6 @@ class CombinedQuerysetPaginator:
                 else:
                     queryset = queryset.order_by(f"-{key}")
 
-            queryset = queryset[: (limit + extra)]
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -656,21 +655,15 @@ class CombinedQuerysetPaginator:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
-        if cursor.value:
-            cursor_value = int(self.value_from_cursor(cursor))
-        else:
-            cursor_value = None
-
         limit = min(limit, MAX_LIMIT)
-        extra = 1
+        # extra = 1
 
-        combined_querysets = self._build_combined_querysets(
-            cursor_value, cursor.is_prev, limit, extra
-        )
+        combined_querysets = self._build_combined_querysets(cursor.is_prev)
 
         page = int(cursor.offset)
-        offset = int(page * cursor_value if cursor_value is not None else page)
-        stop = offset + (cursor_value or limit) + 1
+        cursor_value = int(cursor.value)
+        offset = page * cursor_value
+        stop = offset + (int(cursor_value) or limit) + 1
 
         if offset >= 26:
             raise BadPaginationError("Pagination offset too large")
