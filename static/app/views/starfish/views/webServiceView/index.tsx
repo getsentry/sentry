@@ -61,7 +61,7 @@ function WebServiceView({selection, location, router}: Props) {
   ]);
 
   return (
-    <SentryDocumentTitle title={t('Starfish')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Web Service')} orgSlug={organization.slug}>
       <StarfishPageFilterContainer>
         <StarfishLanding
           router={router}

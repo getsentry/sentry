@@ -111,7 +111,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const crumbs: Crumb[] = [];
   crumbs.push({
-    label: t('Starfish'),
+    label: t('Web Service'),
     to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
   });
   const extractedRoute = extractRoute(location);
