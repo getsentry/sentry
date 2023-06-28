@@ -74,7 +74,8 @@ class OrganizationMemberSerializerTest(TestCase):
 
         request = self.make_request(user=user)
 
-        UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+        with exempt_from_silo_limits():
+            UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
 
         invite_state = get_invite_state(member.id, org.slug, user.id)
         assert invite_state, "Expected invite state, logic bug?"
