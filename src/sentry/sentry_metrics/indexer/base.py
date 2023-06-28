@@ -6,6 +6,8 @@ from itertools import groupby
 from typing import (
     Any,
     Callable,
+    Collection,
+    List,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -443,6 +445,7 @@ class StringIndexer(Service):
         "bulk_record",
         "resolve_shared_org",
         "reverse_shared_org_resolve",
+        "bulk_reverse_resolve",
     )
 
     def bulk_record(
@@ -503,6 +506,16 @@ class StringIndexer(Service):
         UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
+        """
+        raise NotImplementedError()
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> List[Optional[str]]:
+        """Lookup the stored strings for multiple ids belonging to the same use-case and organisation.
+
+        Returns a list with the same length as the ids parameter, the resolved strings correspond with the
+        positions in the ids parameter. If an id is not resolved the corresponding position will be None.
         """
         raise NotImplementedError()
 
