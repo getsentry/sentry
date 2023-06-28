@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,6 +20,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
@@ -331,8 +334,10 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
+    public = {"DELETE"}
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -751,22 +756,23 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
+    @extend_schema(
+        operation_id="Delete a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @sudo_required
     def delete(self, request: Request, project) -> Response:
         """
-        Delete a Project
-        ````````````````
-
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefore is not immediate.
-        However once deletion has begun the state of a project changes and
-        will be hidden from most public views.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
-        :auth: required
+        Deletion happens asynchronously and therefore is not immediate. However once deletion has
+        begun the state of a project changes and will be hidden from most public views.
         """
         if project.is_internal_project():
             return Response(
@@ -841,4 +847,5 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     ),
                     data={**project.get_audit_log_data(), "name": rule["id"]},
                 )
+                return
                 return
