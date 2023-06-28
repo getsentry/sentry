@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
