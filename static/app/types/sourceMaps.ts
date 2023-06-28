@@ -7,6 +7,7 @@ export type DebugIdBundle = {
   associations: DebugIdBundleAssociation[];
   bundleId: string;
   date: string;
+  dateModified: string | null;
   // TODO(Pri): Remove this type once fully transitioned to associations.
   dist: string | null;
   fileCount: number;
