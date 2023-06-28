@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -165,10 +165,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
 
   // query params
   const query = decodeScalar(location.query.query);
+
+  const [sortBy, setSortBy] = useState(
+    location.query.sort ?? tabDebugIdBundlesActive
+      ? SortBy.DESC_MODIFIED
+      : SortBy.DESC_ADDED
+  );
   // The default sorting order changes based on the tab.
-  const sortBy =
-    location.query.sort ??
-    (tabDebugIdBundlesActive ? SortBy.DESC_MODIFIED : SortBy.DESC_ADDED);
   const cursor = location.query.cursor ?? '';
 
   useEffect(() => {
@@ -226,24 +229,28 @@ export function ProjectSourceMaps({location, router, project}: Props) {
   );
 
   const handleSortChangeForModified = useCallback(() => {
+    const newSortBy =
+      sortBy !== SortBy.DESC_MODIFIED ? SortBy.DESC_MODIFIED : SortBy.ASC_MODIFIED;
+    setSortBy(newSortBy);
     router.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         cursor: undefined,
-        sort:
-          sortBy !== SortBy.DESC_MODIFIED ? SortBy.DESC_MODIFIED : SortBy.ASC_MODIFIED,
+        sort: newSortBy,
       },
     });
   }, [location, router, sortBy]);
 
   const handleSortChangeForAdded = useCallback(() => {
+    const newSortBy = sortBy !== SortBy.DESC_ADDED ? SortBy.DESC_ADDED : SortBy.ASC_ADDED;
+    setSortBy(newSortBy);
     router.push({
       pathname: location.pathname,
       query: {
         ...location.query,
         cursor: undefined,
-        sort: sortBy !== SortBy.DESC_ADDED ? SortBy.DESC_ADDED : SortBy.ASC_ADDED,
+        sort: newSortBy,
       },
     });
   }, [location, router, sortBy]);
