@@ -110,7 +110,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             group.first_seen = first_seen
             group.save()
 
-            if (now - first_seen).days >= 3:
+            if (now - first_seen).days >= 7:
                 older_groups.append(group)
             else:
                 new_groups.append(group)
