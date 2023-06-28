@@ -632,6 +632,7 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 APDEX_THRESHOLD_DEFAULT = 300
 AI_SUGGESTED_SOLUTION = True
+GITHUB_PR_BOT_DEFAULT = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

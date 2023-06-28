@@ -3,6 +3,7 @@ import copy
 import pytest
 
 from sentry.datascrubbing import scrub_data
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def merge_pii_configs(prefixes_and_configs):
@@ -16,7 +17,7 @@ def merge_pii_configs(prefixes_and_configs):
     return rv
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize("field", ["ooo", "oöö", "o o", "o\no", "o'o"])
 def test_scrub_data(field, default_project):
     project = default_project
