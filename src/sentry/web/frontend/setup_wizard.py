@@ -60,7 +60,7 @@ class SetupWizardView(BaseView):
             member_set__role__in=[x.id for x in roles.with_scope("org:read")],
             member_set__user_id=request.user.id,
             status=OrganizationStatus.ACTIVE,
-        ).order_by("-date_added")[:50]
+        ).order_by("-date_added")[:100]
 
         filled_projects = []
 
@@ -68,7 +68,7 @@ class SetupWizardView(BaseView):
             projects = list(
                 Project.objects.filter(organization=org, status=ObjectStatus.ACTIVE).order_by(
                     "-date_added"
-                )[:50]
+                )[:500]
             )
             for project in projects:
                 enriched_project = serialize(project)
