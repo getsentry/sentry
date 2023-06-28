@@ -6,7 +6,6 @@ import {Location} from 'history';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -15,6 +14,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 
 import {StarfishView} from './starfishView';
 
@@ -31,7 +31,7 @@ type Props = {
 export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
-      <ProjectPageFilter />
+      <StarfishProjectSelector />
       <DatePageFilter alignDropdown="left" />
     </PageFilterBar>
   );

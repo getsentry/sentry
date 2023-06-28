@@ -1,0 +1,25 @@
+import {CompactSelect} from 'sentry/components/compactSelect';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Project} from 'sentry/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
+
+const ALLOWED_PLATFORMS = new Set(['python']);
+
+export function StarfishProjectSelector() {
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
+
+  const projectOptions = projects
+    .filter(project => ALLOWED_PLATFORMS.has(project.platform ?? '') && project.isMember)
+    .map(project => ({
+      label: <ProjectOptionLabel project={project} />,
+      value: project.id,
+    }));
+
+  return <CompactSelect options={projectOptions} />;
+}
+
+function ProjectOptionLabel({project}: {project: Project}) {
+  return <ProjectBadge project={project} avatarSize={20} disableLink />;
+}
