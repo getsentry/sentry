@@ -10,5 +10,5 @@ export function extractRoute(location: Location) {
   if (location.pathname.match(/^\/starfish\/endpoint-overview\//)) {
     return 'endpoint-overview';
   }
-  return 'spans';
+  return null;
 }

@@ -100,13 +100,14 @@ function SpanSummaryPage({params, location}: Props) {
     label: t('Starfish'),
     to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
   });
-  if (ROUTE_NAMES[extractRoute(location)]) {
+  const extractedRoute = extractRoute(location);
+  if (extractedRoute && ROUTE_NAMES[extractedRoute]) {
     crumbs.push({
-      label: ROUTE_NAMES[extractRoute(location)],
+      label: ROUTE_NAMES[extractedRoute],
       to: normalizeUrl(
-        `/organizations/${organization.slug}/starfish/${extractRoute(
-          location
-        )}/?${qs.stringify({
+        `/organizations/${organization.slug}/starfish/${
+          extractedRoute ?? 'spans'
+        }/?${qs.stringify({
           endpoint,
           'http.method': endpointMethod,
         })}`
