@@ -78,7 +78,6 @@ def generate_issue_forecast(
 
     ts_max = max(ts_data)
 
-
     # if we have less than a week's worth of data (new issue),
     # set the threshold to 10x the max of the dataset to account for
     # how the pattern of the issue will change over the first week
