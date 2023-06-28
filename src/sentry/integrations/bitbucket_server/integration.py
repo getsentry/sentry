@@ -29,7 +29,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
 
-from .client import BitbucketServer, BitbucketServerSetupClient
+from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -238,10 +238,10 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             except Identity.DoesNotExist:
                 raise IntegrationError("Identity not found.")
 
-        return BitbucketServer(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+        return BitbucketServerClient(
+            integration=self.model,
+            identity_id=self.org_integration.default_auth_id,
+            org_integration_id=self.org_integration.id,
         )
 
     @property
