@@ -3,10 +3,10 @@ from __future__ import annotations
 from requests import PreparedRequest
 
 from sentry import options
-from sentry.api.client import ApiError
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.utils.json import JSONData
 
 
