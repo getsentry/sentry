@@ -20,10 +20,13 @@ from sentry.models import (
     IdentityProvider,
     Integration,
 )
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils.http import absolute_uri
 
 
+@region_silo_test(stable=True)
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
         self.access_token = "1234567890"
@@ -110,7 +113,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert mock.call_count == 1
             args = mock.call_args[1]
 
-            assert args["integration"].__class__ == Integration
+            assert isinstance(args["integration"], RpcIntegration)
             assert args["email"] == "lauryn@sentry.io"
             assert args["external_issue_key"] == work_item_id
             assert args["assign"] is True
@@ -133,7 +136,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert mock.call_count == 1
             args = mock.call_args[1]
 
-            assert args["integration"].__class__ == Integration
+            assert isinstance(args["integration"], RpcIntegration)
             assert args["email"] is None
             assert args["external_issue_key"] == work_item_id
             assert args["assign"] is False
