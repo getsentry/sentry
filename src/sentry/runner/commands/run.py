@@ -756,7 +756,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
-            healthcheck_file=None,
+            healthcheck_file_path=None,
         )
         for consumer_name in consumer_names
     ]
