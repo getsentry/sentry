@@ -50,7 +50,7 @@ class BaseGroupCounts(SnubaTestCase, TestCase):
         for _ in range(count):
             data["timestamp"] = (
                 datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)
-            ).timestamp()  # type: ignore[assignment]
+            ).timestamp()
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
@@ -99,15 +99,12 @@ class HistoricGroupCounts(
         assert len(Group.objects.all()) == 4
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        # type: ignore[union-attr]
         assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
         assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
 
         profile_issue_occurrence_bucket = {
             "count()": 1,
-            # type: ignore[union-attr]
             "group_id": profile_issue_occurrence.group.id,
-            # type: ignore[union-attr]
             "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),
             "project_id": self.project.id,
         }
