@@ -41,7 +41,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
     start: selection.datetime.start ?? undefined,
     end: selection.datetime.end ?? undefined,
     range: selection.datetime.period ?? undefined,
-    projects: [1],
+    projects: selection.projects,
     version: 2,
     interval: getInterval(selection.datetime, 'low'),
   });
@@ -79,7 +79,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
     end: selection.datetime.end ?? undefined,
     range: selection.datetime.period ?? undefined,
     orderby: '-sum_span_self_time',
-    projects: [1],
+    projects: selection.projects,
     version: 2,
     topEvents: '4',
     interval: getInterval(selection.datetime, 'low'),
