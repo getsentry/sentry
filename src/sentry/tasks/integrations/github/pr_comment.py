@@ -45,6 +45,8 @@ Have questions? Reach out to us in the #proj-github-pr-comments channel.
 
 SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
 
+ISSUE_LOCKED_ERROR_MESSAGE = "Unable to create comment because issue is locked."
+
 
 def format_comment(issues: List[PullRequestIssue]):
     def format_subtitle(subtitle):
@@ -113,7 +115,7 @@ def get_comment_contents(issue_list: List[int]) -> List[PullRequestIssue]:
     """Retrieve the issue information that will be used for comment contents"""
     issues = Group.objects.filter(id__in=issue_list).all()
     return [
-        PullRequestIssue(title=issue.title, subtitle=issue.message, url=issue.get_absolute_url())
+        PullRequestIssue(title=issue.title, subtitle=issue.culprit, url=issue.get_absolute_url())
         for issue in issues
     ]
 
@@ -230,5 +232,9 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         )
     except ApiError as e:
         cache.delete(cache_key)
+
+        if ISSUE_LOCKED_ERROR_MESSAGE in e.json.get("message", ""):
+            return
+
         metrics.incr("github_pr_comment.api_error")
         raise e

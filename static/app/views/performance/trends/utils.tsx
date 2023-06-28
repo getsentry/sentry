@@ -119,6 +119,12 @@ export const trendToColor = {
     lighter: theme.yellow200,
     default: theme.yellow300,
   },
+  // TODO remove this once backend starts sending
+  // TrendChangeType.IMPROVED as change type
+  improvement: {
+    lighter: theme.green200,
+    default: theme.green300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -273,6 +279,10 @@ export function modifyTrendView(
     // remove metrics-incompatible filters
     if (query.hasFilter('transaction.duration')) {
       query.removeFilter('transaction.duration');
+    }
+
+    if (trendParameter.column && query.hasFilter(trendParameter.column)) {
+      query.removeFilter(trendParameter.column);
     }
     trendView.query = query.formatString();
   }

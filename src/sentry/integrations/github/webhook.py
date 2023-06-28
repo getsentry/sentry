@@ -450,7 +450,7 @@ class GitHubWebhookBase(Endpoint):
 
         return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -523,7 +523,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "installation": InstallationEventWebhook,
     }
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)

@@ -103,6 +103,7 @@ export function Chart({
   height,
   projects,
   project,
+  organization,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -126,7 +127,10 @@ export function Chart({
     browserHistory.push(to);
   };
 
-  const lineColor = trendToColor[neutralColor ? 'neutral' : trendChangeType || ''];
+  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
+    ? transaction?.change
+    : trendChangeType;
+  const lineColor = trendToColor[neutralColor ? 'neutral' : derivedTrendChangeType || trendChangeType];
 
   const events =
     statsData && transaction?.project && transaction?.transaction

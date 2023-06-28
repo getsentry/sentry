@@ -15,7 +15,7 @@ export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
     return <DatabaseSpanDescription spanMeta={spanMeta} />;
   }
 
-  return <div>{spanMeta['span.description']}</div>;
+  return <DescriptionWrapper>{spanMeta['span.description']}</DescriptionWrapper>;
 }
 
 function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
@@ -33,4 +33,8 @@ function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
 
 const CodeWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const DescriptionWrapper = styled('div')`
+  word-break: break-word;
 `;
