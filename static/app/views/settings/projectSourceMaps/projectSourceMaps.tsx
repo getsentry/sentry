@@ -274,7 +274,9 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       </NavTabs>
       <SearchBarWithMarginBottom
         placeholder={
-          tabDebugIdBundlesActive ? t('Filter by Bundle ID') : t('Filter by Name')
+          tabDebugIdBundlesActive
+            ? t('Filter by Bundle ID, Debug ID or Release')
+            : t('Filter by Name')
         }
         onSearch={handleSearch}
         query={query}
