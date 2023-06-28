@@ -31,7 +31,7 @@ export default function Spans() {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Spans')}</Layout.Title>
+            <Layout.Title>{getTitle(spanCategory)}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 
@@ -47,3 +47,28 @@ export default function Spans() {
     </Layout.Page>
   );
 }
+
+const getTitle = (spanCategory?: string) => {
+  if (spanCategory === 'http') {
+    return t('API Calls');
+  }
+  if (spanCategory === 'db') {
+    return t('Database Queries');
+  }
+  if (spanCategory === 'cache') {
+    return t('Cache Queries');
+  }
+  if (spanCategory === 'serialize') {
+    return t('Serializers');
+  }
+  if (spanCategory === 'middleware') {
+    return t('Middleware Tasks');
+  }
+  if (spanCategory === 'app') {
+    return t('Application Tasks');
+  }
+  if (spanCategory === 'Other') {
+    return t('Other Requests');
+  }
+  return t('Spans');
+};
