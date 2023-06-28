@@ -54,7 +54,7 @@ def update_inbox(
                     GroupStatus.UNRESOLVED,
                     group.substatus,
                     group,
-                    activity_data={"after_days": TRANSITION_AFTER_DAYS},
+                    activity_data={"manually": True},
                 )
 
             issue_mark_reviewed.send_robust(
