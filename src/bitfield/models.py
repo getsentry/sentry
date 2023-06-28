@@ -7,7 +7,7 @@ from bitfield.types import Bit, BitHandler
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
 # Twice faster than bin(i)[2:] or math.floor(math.log(i))
-MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
+MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)  # type: ignore[attr-defined]  #  typeddjango/django-stubs#1598
 
 
 class BitFieldFlags:
@@ -110,7 +110,8 @@ class BitField(BigIntegerField):
                 new_value |= Bit(flags.index(flag))
             default = new_value
 
-        BigIntegerField.__init__(self, default=default, *args, **kwargs)
+        kwargs["default"] = default
+        BigIntegerField.__init__(self, *args, **kwargs)
         self.flags = flags
         self.labels = labels
 

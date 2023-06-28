@@ -10,7 +10,6 @@ import {getInterval} from 'sentry/components/charts/utils';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -29,8 +28,9 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import {ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -38,8 +38,8 @@ import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
+import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
 import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
-import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
 
@@ -121,7 +121,7 @@ export default function EndpointOverview() {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'p95(transaction.duration)', 'http_error_count()']}
+        yAxis={['tps()', 'http_error_count()']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -168,44 +168,6 @@ export default function EndpointOverview() {
               />
               <SidebarSpacer />
               <Header>
-                <ChartLabel>{DataTitles.p95}</ChartLabel>
-              </Header>
-              <ChartSummaryValue
-                isLoading={isTotalsLoading}
-                value={
-                  defined(totals)
-                    ? tooltipFormatterUsingAggregateOutputType(
-                        totals.data[0]['p95(transaction.duration)'] as number,
-                        'duration'
-                      )
-                    : undefined
-                }
-              />
-              <Chart
-                statsPeriod={(statsPeriod as string) ?? '24h'}
-                height={80}
-                data={[results[1]]}
-                start=""
-                end=""
-                loading={loading}
-                utc={false}
-                isLineChart
-                definedAxisTicks={2}
-                disableXAxis
-                chartColors={[P95_COLOR]}
-                grid={{
-                  left: '8px',
-                  right: '0',
-                  top: '8px',
-                  bottom: '0',
-                }}
-                tooltipFormatterOptions={{
-                  valueFormatter: value =>
-                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-                }}
-              />
-              <SidebarSpacer />
-              <Header>
                 <ChartLabel>{DataTitles.errorCount}</ChartLabel>
               </Header>
               <ChartSummaryValue
@@ -222,7 +184,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={eventView.statsPeriod}
                 height={80}
-                data={[results[2]]}
+                data={[results[1]]}
                 start={eventView.start as string}
                 end={eventView.end as string}
                 loading={loading}
@@ -264,7 +226,7 @@ export default function EndpointOverview() {
   };
 
   return (
-    <PageFiltersContainer>
+    <StarfishPageFilterContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -292,7 +254,10 @@ export default function EndpointOverview() {
 
           <Layout.Main>
             <StyledRow minSize={200}>
-              <SpanGroupBreakdownContainer transaction={transaction as string} />
+              <ServiceDurationChartContainer
+                transaction={transaction as string}
+                transactionMethod={method}
+              />
             </StyledRow>
             <SegmentedControlContainer>
               <SegmentedControl
@@ -311,23 +276,25 @@ export default function EndpointOverview() {
               transaction={transaction}
               method={method}
             />
-            <SegmentedControlContainer>
-              <SegmentedControl
-                size="xs"
-                aria-label={t('Filter events')}
-                value={state.samplesFilter}
-                onChange={key => setState({...state, samplesFilter: key})}
-              >
-                <SegmentedControl.Item key="ALL">
-                  {t('Sample Events')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
-              </SegmentedControl>
-            </SegmentedControlContainer>
-            <TransactionSamplesTable
-              queryConditions={queryConditions}
-              sampleFilter={state.samplesFilter}
-            />
+            <RowContainer>
+              <SegmentedControlContainer>
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter events')}
+                  value={state.samplesFilter}
+                  onChange={key => setState({...state, samplesFilter: key})}
+                >
+                  <SegmentedControl.Item key="ALL">
+                    {t('Sample Events')}
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="500s">{t('5XXs')}</SegmentedControl.Item>
+                </SegmentedControl>
+              </SegmentedControlContainer>
+              <TransactionSamplesTable
+                queryConditions={queryConditions}
+                sampleFilter={state.samplesFilter}
+              />
+            </RowContainer>
             <SegmentedControlContainer>
               <SegmentedControl
                 size="xs"
@@ -359,7 +326,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </PageFiltersContainer>
+    </StarfishPageFilterContainer>
   );
 }
 
@@ -415,14 +382,20 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   }
 `;
 
+const RowContainer = styled('div')`
+  padding-bottom: ${space(4)};
+`;
+
 const StyledRow = styled(PerformanceLayoutBodyRow)`
-  margin-bottom: ${space(2)};
+  margin-bottom: ${space(4)};
 `;
 
 const SegmentedControlContainer = styled('div')`
   margin-bottom: ${space(2)};
   display: flex;
   justify-content: space-between;
+  height: 32px;
+  align-items: center;
 `;
 
 const ChartLabel = styled('div')`
