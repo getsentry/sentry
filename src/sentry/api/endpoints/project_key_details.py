@@ -41,7 +41,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.GET_CLIENT_KEY,
+        examples=ProjectExamples.BASE_KEY,
     )
     def get(self, request: Request, project, key_id) -> Response:
         """
@@ -75,7 +75,7 @@ class ProjectKeyDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.UPDATE_CLIENT_KEY,
+        examples=ProjectExamples.BASE_KEY,
     )
     def put(self, request: Request, project, key_id) -> Response:
         """
