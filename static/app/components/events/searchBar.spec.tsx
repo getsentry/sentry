@@ -3,12 +3,20 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
+import {Organization} from 'sentry/types';
 
 const selectNthAutocompleteItem = async index => {
   await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
 
   const items = await screen.findAllByTestId('search-autocomplete-item');
-  await userEvent.click(items.at(index), {delay: null});
+
+  const item = items.at(index);
+
+  if (item === undefined) {
+    throw new Error('Invalid item index');
+  }
+
+  await userEvent.click(item, {delay: null});
 };
 
 async function setQuery(query) {
@@ -20,8 +28,8 @@ async function setQuery(query) {
 describe('Events > SearchBar', function () {
   let options;
   let tagValuesMock;
-  let organization;
-  let props;
+  let organization: Organization;
+  let props: React.ComponentProps<typeof SearchBar>;
 
   beforeEach(function () {
     organization = TestStubs.Organization();
@@ -31,9 +39,9 @@ describe('Events > SearchBar', function () {
     };
     TagStore.reset();
     TagStore.loadTagsSuccess([
-      {count: 3, key: 'gpu', name: 'Gpu'},
-      {count: 3, key: 'mytag', name: 'Mytag'},
-      {count: 0, key: 'browser', name: 'Browser'},
+      {totalValues: 3, key: 'gpu', name: 'Gpu'},
+      {totalValues: 3, key: 'mytag', name: 'Mytag'},
+      {totalValues: 0, key: 'browser', name: 'Browser'},
     ]);
 
     options = TestStubs.routerContext();
@@ -51,7 +59,7 @@ describe('Events > SearchBar', function () {
 
     tagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/gpu/values/',
-      body: [{count: 2, name: 'Nvidia 1080ti'}],
+      body: [{totalValues: 2, name: 'Nvidia 1080ti'}],
     });
   });
 
@@ -277,6 +285,9 @@ describe('Events > SearchBar', function () {
           'measurements.custom.ratio': {
             key: 'measurements.custom.ratio',
             name: 'measurements.custom.ratio',
+            functions: [],
+            fieldType: 'test',
+            unit: '',
           },
         }}
       />
