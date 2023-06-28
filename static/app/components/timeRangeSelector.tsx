@@ -84,6 +84,10 @@ export interface TimeRangeSelectorProps
    */
   end?: DateString;
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -136,6 +140,7 @@ export function TimeRangeSelector({
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
+  maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
   menuWidth,
@@ -385,6 +390,7 @@ export function TimeRangeSelector({
                         });
                       }}
                       maxPickableDays={maxPickableDays}
+                      maxDateRange={maxDateRange}
                     />
                   </AbsoluteDateRangeWrap>
                 )}
