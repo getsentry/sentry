@@ -39,7 +39,10 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
-from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
+from sentry.relay.config.metric_extraction import (
+    get_metric_conditional_tagging_rules,
+    get_metric_extraction_config,
+)
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -387,6 +390,8 @@ def _get_project_config(
         add_experimental_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
+
+        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {
