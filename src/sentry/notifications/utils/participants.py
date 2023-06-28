@@ -339,12 +339,11 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     `event`: The event that suspect committers are wanted for
     """
 
-    suspect_committers = []
     committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
         project, event
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
-    suspect_committers = user_service.get_many_by_email(emails=user_emails)
+    suspect_committers = user_service.get_many_by_email(emails=user_emails, is_verified=True)
     in_project_user_ids = set(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=[project],
