@@ -121,10 +121,10 @@ class BreadcrumbReferencesPlugin {
 
   handler(event: RecordingFrame, _isSync: boolean, {replayer}: {replayer: Replayer}) {
     if (event.type === EventType.FullSnapshot) {
-      this.extractNextCrumb({replayer});
+      this.extractNextFrame({replayer});
     } else if (event.type === EventType.IncrementalSnapshot) {
-      this.extractCurrentCrumb(event, {replayer});
-      this.extractNextCrumb({replayer});
+      this.extractCurrentFrame(event, {replayer});
+      this.extractNextFrame({replayer});
     }
 
     if (this.isFinished(event)) {
@@ -132,11 +132,10 @@ class BreadcrumbReferencesPlugin {
     }
   }
 
-  extractCurrentCrumb(event: RecordingFrame, {replayer}: {replayer: Replayer}) {
+  extractCurrentFrame(event: RecordingFrame, {replayer}: {replayer: Replayer}) {
     const frame = first(this.frames);
-    const crumbTimestamp = frame?.timestampMs;
 
-    if (!frame || !crumbTimestamp || crumbTimestamp > event.timestamp) {
+    if (!frame || !frame?.timestampMs || frame.timestampMs > event.timestamp) {
       return;
     }
 
@@ -145,7 +144,7 @@ class BreadcrumbReferencesPlugin {
       this.activities.push({
         frame,
         html: truncated,
-        timestamp: crumbTimestamp,
+        timestamp: frame.timestampMs,
       });
     }
 
@@ -153,7 +152,7 @@ class BreadcrumbReferencesPlugin {
     this.frames.shift();
   }
 
-  extractNextCrumb({replayer}: {replayer: Replayer}) {
+  extractNextFrame({replayer}: {replayer: Replayer}) {
     const frame = first(this.frames);
 
     if (!frame || !frame?.timestampMs) {
