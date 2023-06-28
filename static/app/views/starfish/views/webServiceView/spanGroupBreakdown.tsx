@@ -154,7 +154,6 @@ export function SpanGroupBreakdown({
               : {statsPeriod: period};
 
           if (group['span.category'] === 'Other') {
-            spansLinkQueryParams['!span.module'] = ['db', 'http'];
             spansLinkQueryParams['!span.category'] = transformedData.map(
               r => r.group['span.category']
             );
