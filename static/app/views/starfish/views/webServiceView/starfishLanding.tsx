@@ -13,8 +13,8 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 
 import {StarfishView} from './starfishView';
 
