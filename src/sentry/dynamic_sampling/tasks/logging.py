@@ -42,4 +42,18 @@ def log_query_timeout(query: str, offset: int) -> None:
 
 
 def log_recalibrate_orgs_errors(errors: Dict[str, List[str]]) -> None:
-    logger.info("dynamic_sampling.recalibrate_orgs", extra={"errors": errors})
+    logger.info("dynamic_sampling.recalibrate_orgs_errors", extra={"errors": errors})
+
+
+def log_recalibrate_org_state(
+    prev_factor: float, effective_sample_rate: float, target_sample_rate: float
+) -> None:
+    logger.info(
+        "dynamic_sampling.recalibrate_org_state",
+        extra={
+            "previous_factor": prev_factor,
+            "effective_sample_rate": effective_sample_rate,
+            "target_sample_rate": target_sample_rate,
+            "target_effective_ratio": target_sample_rate / effective_sample_rate,
+        },
+    )
