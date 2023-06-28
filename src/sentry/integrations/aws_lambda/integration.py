@@ -21,10 +21,10 @@ from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import Integration, OrganizationIntegration, User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
-from ...services.hybrid_cloud.project import project_service
 from .client import ConfigurationError, gen_aws_client
 from .utils import (
     ALL_AWS_REGIONS,
