@@ -6,6 +6,7 @@ import type {
   NavigationFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
+import parseUrl from 'sentry/utils/url/parseUrl';
 import stripOrigin from 'sentry/utils/url/stripOrigin';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -45,14 +46,6 @@ function getCurrentUrl(
   }
 
   throw new Error('Unknown frame type in getCurrentUrl');
-}
-
-function parseUrl(url: string) {
-  try {
-    return new URL(url);
-  } catch {
-    return undefined;
-  }
 }
 
 export default getCurrentUrl;
