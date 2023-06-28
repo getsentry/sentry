@@ -33,9 +33,10 @@ from sentry.auth.idpmigration import (
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.locks import locks
-from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, User
+from sentry.models import AuditLogEntry, AuthIdentity, AuthProvider, Organization, User
 from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.pipeline.provider import PipelineProvider
+from sentry.pipeline.types import PipelineRequestState
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
@@ -683,21 +684,45 @@ class AuthHelper(Pipeline):
 
     @classmethod
     def get_for_request(cls, request: HttpRequest) -> AuthHelper | None:
-        req_state = cls.unpack_state(request)
-        if not req_state:
+        req_state: PipelineRequestState = cls.unpack_state(request)
+        query_params = request.GET
+        provider_param = query_params.get("provider")
+        config_param = query_params.get("config")
+        provider_query = None
+
+        if not (req_state or (config_param and provider_param)):
             return None
 
-        if not req_state.organization:
+        # req_state.state is a redis session store
+        flow: int = req_state.state.flow
+        provider_key = req_state.provider_key
+        provider_model = req_state.provider_model
+        organization = req_state.organization
+
+        if provider_param and config_param:
+            # TODO: validate provider is acceptable provider
+            # TODO: validate config matches shape of provider config
+            config_dict = json.loads(config_param)
+            provider_query = AuthProvider.objects.filter(
+                provider=provider_param, config=config_dict
+            )
+
+        if provider_query.exists():
+            flow = cls.FLOW_LOGIN
+            provider_key = provider_param
+            provider_model = provider_query[0]
+            organization = Organization.objects.filter(id=provider_model.organization_id)[0]
+
+        if not organization:
             logging.info("Invalid SSO data found")
             return None
-        flow = req_state.state.flow
 
         return cls(
             request=request,
-            organization=req_state.organization,
+            organization=organization,
             flow=flow,
-            auth_provider=req_state.provider_model,
-            provider_key=req_state.provider_key,
+            auth_provider=provider_model,
+            provider_key=provider_key,
         )
 
     def __init__(
