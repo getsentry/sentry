@@ -116,7 +116,9 @@ function ArchiveActions({
       <ArchiveButton
         size={size}
         tooltipProps={{delay: 1000, disabled}}
-        title={t('Archive issue until a high number of events are seen.')}
+        title={t(
+          'We’ll nag you with a notification if the issue gets worse. All archived issues can be found in the Archived tab.'
+        )}
         onClick={() => onArchive(ARCHIVE_UNTIL_ESCALATING)}
         disabled={disabled}
       >
