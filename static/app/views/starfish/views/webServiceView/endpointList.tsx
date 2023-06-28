@@ -256,6 +256,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
   const columnOrder = eventView
