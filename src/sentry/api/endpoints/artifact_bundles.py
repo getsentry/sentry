@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from typing import Optional
 
@@ -40,6 +41,14 @@ class ArtifactBundlesMixin:
 
         raise InvalidSortByParameter
 
+    @classmethod
+    def is_valid_uuid(cls, value):
+        try:
+            uuid.UUID(str(value))
+            return True
+        except ValueError:
+            return False
+
 
 @region_silo_endpoint
 class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
@@ -76,11 +85,18 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             raise ResourceDoesNotExist
 
         if query:
-            query_q = (
-                Q(bundle_id__icontains=query)
-                | Q(releaseartifactbundle__release_name__icontains=query)
-                | Q(releaseartifactbundle__dist_name__icontains=query)
+            # By default, we want to exact match the release or dist.
+            query_q = Q(releaseartifactbundle__release_name=query) | Q(
+                releaseartifactbundle__dist_name=query
             )
+
+            # In case the query contains an actual UUID, we will also try to match the bundle id or debug id. Checking
+            # for the type before making the query saves us one join when not needed.
+            if self.is_valid_uuid(query):
+                query_q |= Q(bundle_id=query) | Q(debugidartifactbundle__debug_id=query)
+
+            # At the end we apply the chain of OR filters to the query. In case both the release and debug ids tables
+            # are used, we will make two left outer joins.
             queryset = queryset.filter(query_q)
 
         return self.paginate(
