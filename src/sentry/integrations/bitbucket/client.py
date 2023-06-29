@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
@@ -9,12 +10,14 @@ from requests import PreparedRequest
 from sentry.integrations.utils import get_query_hash
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
 
 BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
+
+logger = logging.getLogger(__name__)
 
 
 class BitbucketAPIPath:
@@ -49,11 +52,16 @@ class BitbucketApiClient(IntegrationProxyClient):
 
     integration_name = "bitbucket"
 
-    def __init__(self, integration: RpcIntegration, org_integration_id: int):
-        # subject is probably the clientKey
+    def __init__(self, integration: RpcIntegration, org_integration_id: int | None = None):
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
+        # subject is probably the clientKey
         self.subject = integration.external_id
+
+        if not org_integration_id:
+            org_integration_id = infer_org_integration(
+                integration_id=integration.id, ctx_logger=logger
+            )
         super().__init__(
             org_integration_id=org_integration_id, verify_ssl=True, logging_context=None
         )
