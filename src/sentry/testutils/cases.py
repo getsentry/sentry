@@ -1625,6 +1625,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
+        "span.self_time": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1702,7 +1703,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     def store_span_metric(
         self,
         value: List[int] | int,
-        metric: str = "span.duration",
+        metric: str = "span.self_time",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
