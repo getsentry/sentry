@@ -160,7 +160,7 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
     # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
         default_project.organization
     )
 

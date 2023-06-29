@@ -374,7 +374,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             paginator_options = {}
 
         # filter out groups which are beyond the retention period
-        retention = quotas.get_event_retention(organization=projects[0].organization)
+        retention = quotas.backend.get_event_retention(organization=projects[0].organization)
         if retention:
             retention_window_start = timezone.now() - timedelta(days=retention)
         else:

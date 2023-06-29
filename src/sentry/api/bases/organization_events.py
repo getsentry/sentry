@@ -444,7 +444,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600
 
                 if comparison_delta is not None:
-                    retention = quotas.get_event_retention(organization=organization)
+                    retention = quotas.backend.get_event_retention(organization=organization)
                     comparison_start = params["start"] - comparison_delta
                     if retention and comparison_start < timezone.now() - timedelta(days=retention):
                         raise ValidationError("Comparison period is outside your retention window")
