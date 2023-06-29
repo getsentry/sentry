@@ -131,19 +131,20 @@ class HandleIssueMergeTest(TestCase):
         primary = event_primary.group
         child = event_child.group
 
-        generate_and_save_forecasts([primary, child])
-        for group in [primary, child]:
-            # assert that the escalating group forecast is not the default (ie. gotten from nodestore)
-            assert (
-                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
-                != DEFAULT_MINIMUM_CEILING_FORECAST
-            )
+        if primary and child:
+            generate_and_save_forecasts([primary, child])
+            for group in [primary, child]:
+                # assert that the escalating group forecast is not the default (ie. gotten from nodestore)
+                assert (
+                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
+                    != DEFAULT_MINIMUM_CEILING_FORECAST
+                )
 
-        handle_merge([primary, child], self.project_lookup, self.user)
+            handle_merge([primary, child], self.project_lookup, self.user)
 
-        for group in [primary, child]:
-            # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
-            assert (
-                EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
-                == DEFAULT_MINIMUM_CEILING_FORECAST
-            )
+            for group in [primary, child]:
+                # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
+                assert (
+                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
+                    == DEFAULT_MINIMUM_CEILING_FORECAST
+                )

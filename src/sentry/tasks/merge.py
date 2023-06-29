@@ -42,7 +42,6 @@ def merge_groups(
     Recursively merge groups by deleting group models and groups, and merging times_seen,
     and num_comments
 
-    JODI TODO: REWRITE THIS
     `handle_forecasts_ids`: Group ids whose forecasts need to be deleted
     `merge_forecasts`: Boolean if the forecast needs to be regenerated after the merge
     """
