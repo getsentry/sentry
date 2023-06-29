@@ -117,7 +117,7 @@ class VstsApiMixin:
         )
 
 
-class VstsPreInstallApiClient(ApiClient, VstsApiMixin):
+class VstsSetupApiClient(ApiClient, VstsApiMixin):
     integration_name = "vsts"
 
     def __init__(self, oauth_redirect_url: str, access_token: str):

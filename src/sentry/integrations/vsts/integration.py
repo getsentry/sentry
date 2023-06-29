@@ -48,7 +48,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
-from .client import VstsApiClient, VstsPreInstallApiClient
+from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
 
 DESCRIPTION = """
@@ -455,7 +455,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     def create_subscription(
         self, instance: str | None, oauth_data: Mapping[str, Any]
     ) -> tuple[int, str]:
-        client = VstsPreInstallApiClient(
+        client = VstsSetupApiClient(
             oauth_redirect_url=self.oauth_redirect_url,
             access_token=oauth_data["access_token"],
         )
