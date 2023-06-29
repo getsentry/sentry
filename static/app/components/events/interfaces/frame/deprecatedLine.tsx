@@ -449,8 +449,8 @@ const DefaultLineTitleWrapper = styled('div')<{isSystemLabel: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: ${p => (p.isSystemLabel ? p.theme.subText : 'default')};
-  font-style: ${p => (p.isSystemLabel ? 'italic' : 'default')};
+  color: ${p => (p.isSystemLabel ? p.theme.subText : '')};
+  font-style: ${p => (p.isSystemLabel ? 'italic' : '')};
 `;
 
 const LeftLineTitle = styled('div')`
