@@ -86,8 +86,7 @@ class MetricSpec(TypedDict):
        not count any specific field but rather the occurrence of the event. As
        such, there is no value expression, and the field is set to `None`.
        Semantics of specifying remain undefined at this point.
-     - Distribution metrics require a numeric value. If the value at the
-       specified path is not numeric, metric extraction will be skipped.
+     - Distribution metrics require a numeric value.
      - Set metrics require a string value, which is then emitted into the set as
        unique value. Insertion of numbers and other types is undefined.
     """
