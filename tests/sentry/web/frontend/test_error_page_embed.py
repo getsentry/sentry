@@ -72,6 +72,7 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 200, resp.content
         assert resp["Access-Control-Allow-Origin"] == "*"
+        assert resp["Cross-Origin-Resource-Policy"] == "cross-origin"
         self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
 
     def test_uses_locale_from_header(self):

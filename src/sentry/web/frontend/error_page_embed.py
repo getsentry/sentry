@@ -233,4 +233,10 @@ class ErrorPageEmbedView(View):
         # User feedback dialog should be available regardless of cross-origin policy
         errorPageEmbedResponse["Access-Control-Allow-Origin"] = "*"
 
+        # We add a lenient CORP policy because the dialog may be accessed from
+        # any cross-origin websites and we don't want it to be blocked when
+        # people set strict cross-origin embedder policy:
+        # https://developer.mozilla.org/en-US/docs/Web/HTTP/Cross-Origin_Resource_Policy#relationship_to_cross-origin_embedder_policy_coep
+        errorPageEmbedResponse["Cross-Origin-Resource-Policy"] = "cross-origin"
+
         return errorPageEmbedResponse
