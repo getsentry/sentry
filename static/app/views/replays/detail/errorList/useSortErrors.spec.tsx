@@ -2,12 +2,8 @@ import {act} from 'react-test-renderer';
 
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-// import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-// import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
-// import type {Color} from 'sentry/utils/theme';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
-
-import useSortErrors from './useSortErrors';
+import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useUrlParams', () => {
@@ -29,7 +25,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
   hydrateErrors(
     TestStubs.ReplayRecord({started_at: new Date('2023-06-09T12:00:00+00:00')}),
     [
-      TestStubs.ReplayError({
+      TestStubs.Replay.RawReplayError({
         'error.type': ['RangeError'],
         timestamp: new Date('2023-06-09T12:00:00+00:00'),
         id: '415ecb5c85ac43b19f1886bb41ddab96',
@@ -38,16 +34,16 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
         title: 'Invalid time value',
         'project.name': 'javascript',
       }),
-      TestStubs.ReplayError({
+      TestStubs.Replay.RawReplayError({
         'error.type': ['TypeError'],
         timestamp: new Date('2023-06-09T12:10:00+00:00'),
         id: 'ac43b19f1886bb41ddab96415ecb5c85',
         'issue.id': 22,
         issue: 'NEXTJS-TYPE',
         title: `undefined is not an object (evaluating 'e.apply').`,
-        'project.name': 'javascript',
+        'project.name': 'next-js',
       }),
-      TestStubs.ReplayError({
+      TestStubs.Replay.RawReplayError({
         'error.type': ['TypeError'],
         timestamp: new Date('2023-06-09T12:20:00+00:00'),
         id: '9f1886bb41ddab96415ecb5c85ac43b1',

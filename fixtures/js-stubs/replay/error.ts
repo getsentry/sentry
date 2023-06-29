@@ -6,12 +6,12 @@ export function RawReplayError(
   error: Overwrite<Partial<TRawReplayError>, {timestamp: Date}>
 ): TRawReplayError {
   return {
-    'error.type': [] as string[],
+    'error.type': error['error.type'] ?? ([] as string[]),
     id: error.id ?? 'e123',
     issue: error.issue ?? 'JS-374',
-    'issue.id': 3740335939,
-    'project.name': 'javascript',
+    'issue.id': error['issue.id'] ?? 3740335939,
+    'project.name': error['project.name'] ?? 'javascript',
     timestamp: error.timestamp.toISOString(),
-    title: 'A Redirect with :orgId param on customer domain',
+    title: error.title ?? 'A Redirect with :orgId param on customer domain',
   };
 }

@@ -32,8 +32,7 @@ type Return = {
 
 const FILTERS = {
   project: (item: ErrorFrame, projects: string[]) =>
-    // @ts-expect-error
-    projects.length === 0 || projects.includes(item.data.project || ''),
+    projects.length === 0 || projects.includes(item.data.projectSlug),
 
   searchTerm: (item: ErrorFrame, searchTerm: string) =>
     [item.message, ...item.data.labels].some(str =>
@@ -60,12 +59,7 @@ function useErrorFilters({errorFrames}: Options): Return {
   const getProjectOptions = useCallback(
     () =>
       Array.from(
-        new Set(
-          errorFrames
-            // @ts-expect-error
-            .map(crumb => crumb.data.project)
-            .concat(project)
-        )
+        new Set(errorFrames.map(crumb => crumb.data.projectSlug).concat(project))
       )
         .filter(Boolean)
         .sort()
