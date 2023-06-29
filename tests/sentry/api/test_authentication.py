@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 import pytest
 from django.http import HttpRequest
@@ -9,11 +10,17 @@ from sentry_relay import generate_key_pair
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
+    OrgAuthTokenAuthentication,
     RelayAuthentication,
+    TokenAuthentication,
 )
 from sentry.models import ProjectKeyStatus, Relay
+from sentry.models.apitoken import ApiToken
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
+from sentry.utils.security.orgauthtoken_token import hash_token
 
 
 @control_silo_test(stable=True)
@@ -104,7 +111,82 @@ class TestDSNAuthentication(TestCase):
             self.auth.authenticate(request)
 
 
-@pytest.mark.django_db(databases="__all__")
+class TestOrgAuthTokenAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = OrgAuthTokenAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.token = "sntrys_abc123_xyz"
+        self.org_auth_token = OrgAuthToken.objects.create(
+            name="Test Token 1",
+            token_hashed=hash_token(self.token),
+            organization_id=self.org.id,
+            token_last_characters="xyz",
+            scope_list=[],
+            date_last_used=None,
+        )
+
+    def test_authenticate(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous
+        assert auth == self.org_auth_token
+
+    def test_no_match(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = "Bearer sntrys_abc"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    def test_inactive_key(self):
+        self.org_auth_token.update(date_deactivated=datetime.now())
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
+class TestTokenAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.auth = TokenAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.token = "abc123"
+        self.api_token = ApiToken.objects.create(
+            token=self.token,
+            user=self.user,
+        )
+
+    def test_authenticate(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user == self.user
+        assert auth == self.api_token
+
+    def test_no_match(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+
+@django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
     sk, pk = generate_key_pair()
@@ -135,7 +217,7 @@ def test_registered_relay(internal):
     assert request.relay_request_data == data
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_statically_configured_relay(settings, internal):
     sk, pk = generate_key_pair()

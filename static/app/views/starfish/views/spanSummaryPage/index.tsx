@@ -1,15 +1,16 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import * as qs from 'query-string';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
+import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {fromSorts} from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {
   PageErrorAlert,
   PageErrorProvider,
@@ -19,22 +20,33 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
+import {SpanMeta, useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
-import {SpanTransactionsTable} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
+import {
+  isAValidSort,
+  SpanTransactionsTable,
+} from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
+
+const DEFAULT_SORT: Sort = {
+  kind: 'desc',
+  field: 'time_spent_percentage(local)',
+};
 
 type Props = {
   location: Location;
@@ -46,12 +58,15 @@ function SpanSummaryPage({params, location}: Props) {
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+  const sort =
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
     queryFilter['transaction.method'] = endpointMethod;
   }
 
-  const {data: spanMetas} = useSpanMeta(
+  const {data: spanMetas, isLoading: isSpanMetaLoading} = useSpanMeta(
     groupId,
     queryFilter,
     'span-summary-page-span-meta'
@@ -91,38 +106,43 @@ function SpanSummaryPage({params, location}: Props) {
     data: spanMetricsSeriesData?.['sps()'].data,
   };
 
+  const title = getDescriptionLabel(location, span, true);
+  const spanDescriptionCardTitle = getDescriptionLabel(location, span);
+
+  const crumbs: Crumb[] = [];
+  crumbs.push({
+    label: t('Web Service'),
+    to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
+  });
+  const extractedRoute = extractRoute(location);
+  if (extractedRoute && ROUTE_NAMES[extractedRoute]) {
+    crumbs.push({
+      label: ROUTE_NAMES[extractedRoute],
+      to: normalizeUrl(
+        `/organizations/${organization.slug}/starfish/${
+          extractedRoute ?? 'spans'
+        }/?${qs.stringify({
+          endpoint,
+          'http.method': endpointMethod,
+        })}`
+      ),
+    });
+  }
+  crumbs.push({
+    label: title,
+  });
+
   return (
     <Layout.Page>
-      <PageFiltersContainer>
+      <StarfishPageFilterContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Starfish'),
-                    to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
-                  },
-                  {
-                    label: ROUTE_NAMES[extractRoute(location)],
-                    to: normalizeUrl(
-                      `/organizations/${organization.slug}/starfish/${extractRoute(
-                        location
-                      )}/?${qs.stringify({
-                        endpoint,
-                        'http.method': endpointMethod,
-                      })}`
-                    ),
-                  },
-                  {
-                    label: t('Span Summary'),
-                  },
-                ]}
-              />
+              {!isSpanMetaLoading && <Breadcrumbs crumbs={crumbs} />}
               <Layout.Title>
                 {endpointMethod && endpoint
                   ? `${endpointMethod} ${endpoint}`
-                  : t('Span Summary')}
+                  : !isSpanMetaLoading && title}
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -131,7 +151,7 @@ function SpanSummaryPage({params, location}: Props) {
               <PageErrorAlert />
               <BlockContainer>
                 <FilterOptionsContainer>
-                  <DatePageFilter alignDropdown="left" />
+                  <StarfishDatePicker />
                 </FilterOptionsContainer>
                 <BlockContainer>
                   <Block title={t('Operation')}>{span?.['span.op']}</Block>
@@ -169,7 +189,7 @@ function SpanSummaryPage({params, location}: Props) {
                     <Panel>
                       <DescriptionPanelBody>
                         <DescriptionContainer>
-                          <DescriptionTitle>{t('Span Description')}</DescriptionTitle>
+                          <DescriptionTitle>{spanDescriptionCardTitle}</DescriptionTitle>
                           <SpanDescription spanMeta={spanMetas?.[0]} />
                         </DescriptionContainer>
                       </DescriptionPanelBody>
@@ -219,6 +239,7 @@ function SpanSummaryPage({params, location}: Props) {
               {span && (
                 <SpanTransactionsTable
                   span={span}
+                  sort={sort}
                   endpoint={endpoint}
                   endpointMethod={endpointMethod}
                 />
@@ -234,7 +255,7 @@ function SpanSummaryPage({params, location}: Props) {
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </PageFiltersContainer>
+      </StarfishPageFilterContainer>
     </Layout.Page>
   );
 }
@@ -318,3 +339,32 @@ const DescriptionTitle = styled('h4')`
 `;
 
 export default SpanSummaryPage;
+
+const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boolean) => {
+  const module = extractRoute(location);
+  if (module === 'api') {
+    return title ? t('URL Request Summary') : t('URL Request');
+  }
+  if (module === 'database') {
+    return title ? t('Query Summary') : t('Query');
+  }
+
+  const spanOp = spanMeta['span.op'];
+  let label;
+  if (spanOp?.startsWith('http')) {
+    label = title ? t('URL Request Summary') : t('URL Request');
+  }
+  if (spanOp?.startsWith('db')) {
+    label = title ? t('Query Summary') : t('Query');
+  }
+  if (spanOp?.startsWith('serialize')) {
+    label = title ? t('Serializer Summary') : t('Serializer');
+  }
+  if (spanOp?.startsWith('task')) {
+    label = title ? t('Task Summary') : t('Task');
+  }
+  if (!label) {
+    label = title ? t('Span Summary') : t('Span Description');
+  }
+  return label;
+};

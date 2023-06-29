@@ -9,6 +9,7 @@ from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
 from sentry.tasks.relay import build_project_config
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture
@@ -98,7 +99,7 @@ def project_config_get_mock(monkeypatch):
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_return_full_config_if_in_cache(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
@@ -110,7 +111,7 @@ def test_return_full_config_if_in_cache(
     }
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_return_partial_config_if_in_cache(
     monkeypatch,
     call_endpoint,
@@ -131,7 +132,7 @@ def test_return_partial_config_if_in_cache(
     assert result == expected
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_proj_in_cache_and_another_pending(
     call_endpoint, default_projectkey, single_mock_proj_cached
 ):
@@ -146,7 +147,7 @@ def test_proj_in_cache_and_another_pending(
 
 
 @patch("sentry.tasks.relay.build_project_config.delay")
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_enqueue_task_if_config_not_cached_not_queued(
     schedule_mock,
     call_endpoint,
@@ -159,7 +160,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
 
 
 @patch("sentry.tasks.relay.build_project_config.delay")
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
     call_endpoint,
@@ -173,7 +174,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
 
 
 @patch("sentry.relay.projectconfig_cache.backend.set_many")
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
     default_projectkey,

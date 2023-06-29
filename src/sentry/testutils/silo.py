@@ -186,7 +186,7 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
         yield
 
 
-def reset_test_role(role: str) -> None:
+def reset_test_role(role: str, using: str | None = None, create_role: bool | None = None) -> None:
     with connections["default"].cursor() as connection:
         connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
         if connection.fetchone():
