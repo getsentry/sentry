@@ -82,19 +82,19 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.ESCALATING,
+      Query.REGRESSED,
       {
-        name: t('Escalating'),
-        analyticsName: 'escalating',
+        name: t('Regressed'),
+        analyticsName: 'regressed',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
     ],
     [
-      Query.REGRESSED,
+      Query.ESCALATING,
       {
-        name: t('Regressed'),
-        analyticsName: 'regressed',
+        name: t('Escalating'),
+        analyticsName: 'escalating',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
