@@ -49,6 +49,9 @@ def get_group_substatus_text(group: Group) -> str:
     return "New Alert"
 
 
+GENERIC_TEMPLATE_NAME = "generic"
+
+
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
     metrics_key = "issue_alert"
@@ -74,14 +77,15 @@ class AlertRuleNotification(ProjectNotification):
         self.rules = notification.rules
 
         if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            # profile issues use the generic template for now
             if event.occurrence.evidence_data.get("template_name") == "profile":
-                issue_category_name = "generic"
+                email_template_name = GENERIC_TEMPLATE_NAME
             else:
-                issue_category_name = event.group.issue_category.name.lower()
+                email_template_name = event.group.issue_category.name.lower()
         else:
-            issue_category_name = "generic"
+            email_template_name = GENERIC_TEMPLATE_NAME
 
-        self.template_path = f"sentry/emails/{issue_category_name}"
+        self.template_path = f"sentry/emails/{email_template_name}"
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
@@ -164,8 +168,9 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
-        if self.group.issue_category == GroupCategory.PERFORMANCE:
-            # TODO: This needs to filter to only "real" perf issues, not re-categorised profile issues
+        template_name = self.event.occurence.evidence_data.get("template_name")
+
+        if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
             context.update(
