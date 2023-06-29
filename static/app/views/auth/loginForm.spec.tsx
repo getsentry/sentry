@@ -12,7 +12,14 @@ async function doLogin() {
 }
 
 describe('LoginForm', function () {
-  const api = new MockApiClient();
+  const emptyAuthConfig = {
+    canRegister: false,
+    githubLoginLink: '',
+    googleLoginLink: '',
+    hasNewsletter: false,
+    serverHostname: '',
+    vstsLoginLink: '',
+  };
 
   it('handles errors', async function () {
     MockApiClient.addMockResponse({
@@ -25,8 +32,7 @@ describe('LoginForm', function () {
       },
     });
 
-    const authConfig = {};
-    render(<LoginForm api={api} authConfig={authConfig} />);
+    render(<LoginForm authConfig={emptyAuthConfig} />);
     await doLogin();
 
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
@@ -48,8 +54,7 @@ describe('LoginForm', function () {
       },
     });
 
-    const authConfig = {};
-    render(<LoginForm api={api} authConfig={authConfig} />);
+    render(<LoginForm authConfig={emptyAuthConfig} />);
     await doLogin();
 
     expect(mockRequest).toHaveBeenCalledWith(
@@ -65,11 +70,12 @@ describe('LoginForm', function () {
 
   it('renders login provider buttons', function () {
     const authConfig = {
+      ...emptyAuthConfig,
       vstsLoginLink: '/vstsLogin',
       githubLoginLink: '/githubLogin',
     };
 
-    render(<LoginForm api={api} authConfig={authConfig} />);
+    render(<LoginForm authConfig={authConfig} />);
 
     expect(screen.getByText('Sign in with GitHub')).toBeInTheDocument();
     expect(screen.getByText('Sign in with Azure DevOps')).toBeInTheDocument();
