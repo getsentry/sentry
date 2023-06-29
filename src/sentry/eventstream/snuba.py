@@ -434,6 +434,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
             # Needed since "generic-events" does not have a schema yet
             codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
 
+        print(serialized_data)  # noqa
         codec.decode(serialized_data.encode("utf-8"), validate=True)
 
         try:
