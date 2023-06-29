@@ -17,7 +17,7 @@ class ProjectServiceHookStatsTest(APITestCase):
             f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/{hook.guid}/stats/"
         )
 
-        tsdb.incr(TSDBModel.servicehook_fired, hook.id, count=3)
+        tsdb.backend.incr(TSDBModel.servicehook_fired, hook.id, count=3)
 
         response = self.client.get(path)
         assert response.status_code == 200

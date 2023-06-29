@@ -416,7 +416,7 @@ def repair_tsdb_data(caches, project, events):
     for timestamp, data in counters.items():
         for model, keys in data.items():
             for (key, environment_id), value in keys.items():
-                tsdb.incr(model, key, timestamp, value, environment_id=environment_id)
+                tsdb.backend.incr(model, key, timestamp, value, environment_id=environment_id)
 
     for timestamp, data in sets.items():
         for model, keys in data.items():

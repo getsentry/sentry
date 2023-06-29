@@ -67,4 +67,4 @@ class DataForwardingPlugin(Plugin):
         if success is False:
             # TODO(dcramer): record failure
             pass
-        tsdb.incr(TSDBModel.project_total_forwarded, event.project.id, count=1)
+        tsdb.backend.incr(TSDBModel.project_total_forwarded, event.project.id, count=1)

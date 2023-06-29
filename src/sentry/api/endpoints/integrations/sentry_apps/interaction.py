@@ -93,6 +93,6 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
             key = sentry_app.id
 
         # Timestamp is automatically created
-        tsdb.incr(model, key)
+        tsdb.backend.incr(model, key)
 
         return Response({}, status=201)
