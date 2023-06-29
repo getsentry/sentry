@@ -135,15 +135,15 @@ SOME_EXCEPTION = RuntimeError("foo")
 @django_db_all
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
-@mock.patch("sentry.relay.config.sentry_sdk")
-def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
+@mock.patch("sentry.relay.config.logger")
+def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
-    assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
+    assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
 
 
 @django_db_all
