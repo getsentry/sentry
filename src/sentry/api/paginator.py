@@ -631,7 +631,6 @@ class CombinedQuerysetPaginator:
                     queryset = queryset.order_by(key)
                 else:
                     queryset = queryset.order_by(f"-{key}")
-
             combined_querysets += list(queryset)
 
         def _sort_combined_querysets(item):
@@ -644,7 +643,7 @@ class CombinedQuerysetPaginator:
 
         combined_querysets.sort(
             key=_sort_combined_querysets,
-            reverse=not asc,
+            reverse=asc if is_prev else not asc,
         )
 
         return combined_querysets

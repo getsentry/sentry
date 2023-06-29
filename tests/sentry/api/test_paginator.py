@@ -672,6 +672,11 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert len(result) == 5
         assert page2_results[-1].id == rule_ids[-1]
 
+        prev_cursor = result.prev
+        result = list(paginator.get_result(limit=25, cursor=prev_cursor))
+        assert len(result) == 25
+        assert result == page1_results
+
     def test_only_metric_alert_rules(self):
         project = self.project
         AlertRule.objects.all().delete()
@@ -727,6 +732,11 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         page2_results = list(result)
         assert len(result) == 5
         assert page2_results[-1].id == alert_rule_ids[-1]
+
+        prev_cursor = result.prev
+        result = list(paginator.get_result(limit=25, cursor=prev_cursor))
+        assert len(result) == 25
+        assert result == page1_results
 
     def test_issue_and_metric_alert_rules(self):
         project = self.project
