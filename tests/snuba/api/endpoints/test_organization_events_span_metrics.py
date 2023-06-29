@@ -58,6 +58,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_count(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -104,10 +105,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_sum(self):
         self.store_span_metric(
             321,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         self.store_span_metric(
             99,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -128,6 +131,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_percentile(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -148,6 +152,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_p50(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -169,6 +174,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(6):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         response = self.do_request(
@@ -192,6 +198,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(6):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         response = self.do_request(
@@ -215,9 +222,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"transaction": "foo_transaction"},
                 timestamp=self.min_ago,
             )
+            self.store_span_metric(
+                1,
+                tags={"transaction": "foo_transaction"},
+                timestamp=self.min_ago,
+            )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
         self.store_span_metric(
             1,
             tags={"transaction": "bar_transaction"},
@@ -247,11 +266,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"span.status_code": "500"},
                 timestamp=self.min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             tags={"span.status_code": "200"},
             timestamp=self.min_ago,
         )
@@ -277,10 +298,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_percentile_percent_change(self):
         self.store_span_metric(
             5,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
         )
         self.store_span_metric(
             10,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -305,11 +328,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"span.status_code": "500"},
                 timestamp=self.six_min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             tags={"span.status_code": "500"},
             timestamp=self.min_ago,
         )
@@ -335,10 +360,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.six_min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -365,10 +392,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
         )
         response = self.do_request(
@@ -395,7 +424,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_span_metric(
             100,
             internal_metric=constants.SELF_TIME_LIGHT,
-            entity="metrics_distributions",
             tags={"transaction": "foo_transaction"},
             timestamp=self.min_ago,
         )
