@@ -78,7 +78,10 @@ class AlertRuleNotification(ProjectNotification):
 
         if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
             # profile issues use the generic template for now
-            if event.occurrence.evidence_data.get("template_name") == "profile":
+            if (
+                event.occurrence
+                and event.occurrence.evidence_data.get("template_name") == "profile"
+            ):
                 email_template_name = GENERIC_TEMPLATE_NAME
             else:
                 email_template_name = event.group.issue_category.name.lower()
@@ -168,7 +171,11 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
-        template_name = self.event.occurence.evidence_data.get("template_name")
+        template_name = (
+            self.event.occurence.get("evidence_data", {}).get("template_name")
+            if self.event.occurrence
+            else None
+        )
 
         if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
