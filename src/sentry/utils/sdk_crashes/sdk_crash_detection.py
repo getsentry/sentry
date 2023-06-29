@@ -6,6 +6,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -54,7 +55,7 @@ class SDKCrashDetection:
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
             # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
-            sdk_crash_event_data = event.data
+            sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
