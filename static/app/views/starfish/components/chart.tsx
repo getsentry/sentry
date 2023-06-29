@@ -31,6 +31,7 @@ import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
+  EChartEventHandler,
   EChartHighlightHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
@@ -88,6 +89,11 @@ type Props = {
   log?: boolean;
   onClick?: EChartClickHandler;
   onHighlight?: EChartHighlightHandler;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
@@ -170,6 +176,7 @@ function Chart({
   chartGroup,
   tooltipFormatterOptions = {},
   errored,
+  onLegendSelectChanged,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -437,6 +444,7 @@ function Chart({
               xAxis={xAxis}
               stacked={stacked}
               {...areaChartProps}
+              onLegendSelectChanged={onLegendSelectChanged}
             />
           );
         }}
