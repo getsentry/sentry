@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey
 from sentry.models.apitoken import is_api_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 
 
 def is_considered_sudo(request):
@@ -16,6 +17,7 @@ def is_considered_sudo(request):
         request.is_sudo()
         or isinstance(request.auth, ApiKey)
         or is_api_token_auth(request.auth)
+        or is_org_auth_token_auth(request.auth)
         or request.user.is_authenticated
         and not request.user.has_usable_password()
     )

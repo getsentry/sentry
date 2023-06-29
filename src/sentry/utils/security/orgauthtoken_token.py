@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.conf import settings
 
-from sentry.utils import json
+from sentry.utils import hashlib, json
 
 SENTRY_ORG_AUTH_TOKEN_PREFIX = "sntrys_"
 
@@ -43,3 +43,7 @@ def parse_token(token: str):
 
 def base64_encode_str(str):
     return b64encode(str.encode("ascii")).decode("ascii")
+
+
+def hash_token(token: str):
+    return hashlib.sha256_text(token).hexdigest()

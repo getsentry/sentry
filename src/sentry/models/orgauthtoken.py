@@ -60,6 +60,9 @@ class OrgAuthToken(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "scopes": self.get_scopes()}
 
+    def get_allowed_origins(self):
+        return ()
+
     def get_scopes(self):
         return self.scope_list
 
@@ -68,3 +71,12 @@ class OrgAuthToken(Model):
 
     def is_active(self) -> bool:
         return self.date_deactivated is None
+
+
+def is_org_auth_token_auth(auth: object) -> bool:
+    """:returns True when an API token is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "org_auth_token"
+    return isinstance(auth, OrgAuthToken)

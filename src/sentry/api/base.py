@@ -35,7 +35,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.http import is_valid_origin, origin_from_request
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -64,7 +64,12 @@ CURSOR_LINK_HEADER = (
     '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 )
 
-DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
+DEFAULT_AUTHENTICATION = (
+    TokenAuthentication,
+    OrgAuthTokenAuthentication,
+    ApiKeyAuthentication,
+    SessionAuthentication,
+)
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
