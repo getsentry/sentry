@@ -1,6 +1,10 @@
 import responses
 
 from sentry import options
+
+# from django.test import override_settings
+# from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
+# from sentry.silo.base import SiloMode
 from sentry.integrations.discord.client import DiscordClient
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
@@ -20,22 +24,21 @@ class DiscordClientTest(TestCase):
             name="Cool server",
             provider="discord",
         )
+        self.client = DiscordClient(self.integration.id)
 
     @responses.activate
     def test_authorize_request(self):
-        client = DiscordClient()
         responses.add(
             responses.GET,
             url=DiscordClient.base_url + "/",
             json={},
         )
-        client.get("/")
+        self.client.get("/")
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bot " + self.bot_token
 
     @responses.activate
-    def test_manual_get_guild_name(self):
-        client = DiscordClient()
+    def test_get_guild_name(self):
         guild_id = self.integration.external_id
         server_name = self.integration.name
 
@@ -48,12 +51,28 @@ class DiscordClientTest(TestCase):
             },
         )
 
-        guild_name = client._get_guild_name(guild_id)
+        guild_name = self.client.get_guild_name(guild_id)
+        assert guild_name == "Cool server"
+
+    @responses.activate
+    def test_manual_get_guild_name(self):
+        guild_id = self.integration.external_id
+        server_name = self.integration.name
+
+        responses.add(
+            responses.GET,
+            url=DiscordClient.base_url + (DiscordClient.GET_GUILD_URL % guild_id),
+            json={
+                "id": guild_id,
+                "name": server_name,
+            },
+        )
+
+        guild_name = self.client._get_guild_name(guild_id)
         assert guild_name == "Cool server"
 
     @responses.activate
     def test_manual_get_guild_name_response_error(self):
-        client = DiscordClient()
         guild_id = self.integration.external_id
 
         responses.add(
@@ -64,6 +83,26 @@ class DiscordClientTest(TestCase):
         )
 
         try:
-            client._get_guild_name(guild_id)
+            self.client._get_guild_name(guild_id)
         except IntegrationError as e:
             assert e.args[0] == "Could not retrieve Discord guild name"
+
+
+# control_address = "http://controlserver"
+# secret = "secret-has-6-letters"
+#
+# @override_settings(
+#    SENTRY_CONTROL_ADDRESS=control_address,
+#    SENTRY_SUBNET_SECRET=secret,
+# )
+# class DiscordProxyClientTest(TestCase):
+#    def setUp(self):
+#        self.integration = self.create_integration(
+#            organization=self.organization,
+#            provider="discord",
+#            name="Cool server",
+#            external_id="1234567890",
+#        )
+#        self.installation = self.integration.get_installation(organization_id=self.organization.id)
+#        self.client = DiscordClient()
+#
