@@ -1,8 +1,4 @@
-import {
-  breadcrumbFactory,
-  rrwebEventListFactory,
-} from 'sentry/utils/replays/replayDataUtils';
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import {breadcrumbFactory} from 'sentry/utils/replays/replayDataUtils';
 
 const fooSpan = TestStubs.ReplaySpanPayload({
   op: 'foo',
@@ -140,51 +136,5 @@ describe('breadcrumbFactory', () => {
     expect(toTime(results[0].timestamp)).toBeLessThan(toTime(results[1].timestamp));
     expect(toTime(results[1].timestamp)).toBeLessThan(toTime(results[2].timestamp));
     expect(toTime(results[2].timestamp)).toBeLessThan(toTime(results[3].timestamp));
-  });
-});
-
-describe('rrwebEventListFactory', () => {
-  it('returns a list of replay events for highlights', function () {
-    const replayRecord = {
-      started_at: new Date(13),
-      finished_at: new Date(213),
-    } as ReplayRecord;
-
-    const results = rrwebEventListFactory(replayRecord, []);
-
-    expect(results).toMatchInlineSnapshot(`
-      [
-        {
-          "data": {
-            "tag": "replay-end",
-          },
-          "timestamp": 13,
-          "type": 5,
-        },
-      ]
-    `);
-  });
-
-  it('merges and sorts rrweb-events and span data', function () {
-    const startTimestampMs = 0;
-    const endTimestampMs = 10_000;
-
-    const replayRecord = {
-      started_at: new Date(startTimestampMs),
-      finished_at: new Date(endTimestampMs),
-    } as ReplayRecord;
-
-    expect(
-      rrwebEventListFactory(replayRecord, [
-        {type: 0, timestamp: 5_000, data: {}},
-        {type: 1, timestamp: 1_000, data: {}},
-        {type: 2, timestamp: 3_000, data: {} as any},
-      ])
-    ).toEqual([
-      {type: 1, timestamp: 0, data: {}},
-      {type: 2, timestamp: 3_000, data: {}},
-      {type: 0, timestamp: 5_000, data: {}},
-      {type: 5, timestamp: 10_000, data: {tag: 'replay-end'}},
-    ]);
   });
 });
