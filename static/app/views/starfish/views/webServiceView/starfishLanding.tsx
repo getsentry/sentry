@@ -6,6 +6,7 @@ import {Location} from 'history';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -51,12 +52,14 @@ export function StarfishLanding(props: Props) {
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
-              {selectedProject && (
+              {selectedProject ? (
                 <ProjectBadge
                   project={selectedProject}
                   hideOverflow={false}
                   disableLink
                 />
+              ) : (
+                t('Web Service')
               )}
             </Layout.Title>
           </Layout.HeaderContent>

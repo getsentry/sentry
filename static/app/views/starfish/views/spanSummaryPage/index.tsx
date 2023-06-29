@@ -4,7 +4,6 @@ import {Location} from 'history';
 import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
@@ -21,6 +20,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -111,7 +111,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const crumbs: Crumb[] = [];
   crumbs.push({
-    label: t('Starfish'),
+    label: t('Web Service'),
     to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
   });
   const extractedRoute = extractRoute(location);
@@ -151,7 +151,7 @@ function SpanSummaryPage({params, location}: Props) {
               <PageErrorAlert />
               <BlockContainer>
                 <FilterOptionsContainer>
-                  <DatePageFilter alignDropdown="left" />
+                  <StarfishDatePicker />
                 </FilterOptionsContainer>
                 <BlockContainer>
                   <Block title={t('Operation')}>{span?.['span.op']}</Block>

@@ -35,6 +35,5 @@ variants:
   default:
     component:
       contributes: false
-      contributes_to_similarity: true
       hint: custom fingerprint takes precedence
     type: component

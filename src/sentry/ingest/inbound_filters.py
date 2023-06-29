@@ -25,7 +25,7 @@ class FilterStatKeys:
     CORS = "cors"
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
-    HEALTH_CHECK = "health-check"  # Ignore health-check transactions
+    HEALTH_CHECK = "filtered-transaction"  # Ignore health-check transactions
 
 
 FILTER_STAT_KEYS_TO_VALUES = {

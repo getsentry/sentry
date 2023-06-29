@@ -394,3 +394,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             client.send_card(channel, attachment)
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+
+    def delete_integration(self, *, integration_id: int) -> None:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return
+        integration.delete()
