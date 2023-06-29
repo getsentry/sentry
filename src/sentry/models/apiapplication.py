@@ -5,7 +5,7 @@ from uuid import uuid4
 import petname
 from django.db import models, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import (
     BaseManager,

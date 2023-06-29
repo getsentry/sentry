@@ -13,8 +13,8 @@ from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
@@ -244,7 +244,7 @@ class UserAdmin(admin.ModelAdmin):
             form = self.change_password_form(user, request.POST)
             if form.is_valid():
                 form.save()
-                msg = ugettext("Password changed successfully.")
+                msg = gettext("Password changed successfully.")
                 messages.success(request, msg)
                 return HttpResponseRedirect("..")
         else:

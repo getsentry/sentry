@@ -3,7 +3,7 @@ import uuid
 from enum import Enum
 from unittest import TestCase
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.utils import json
 

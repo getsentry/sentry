@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from fido2 import cbor
 from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base

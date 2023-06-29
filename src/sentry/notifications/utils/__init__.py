@@ -23,7 +23,7 @@ from urllib.parse import parse_qs, urlparse
 from django.db.models import Count
 from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import integrations
 from sentry.eventstore.models import Event, GroupEvent
