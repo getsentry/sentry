@@ -1,23 +1,25 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
 
 describe('SettingsLayout', function () {
+  const {routerProps} = initializeOrg();
+
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
         problems: [],
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization()],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 401,
@@ -25,7 +27,7 @@ describe('SettingsLayout', function () {
         sudoRequired: true,
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/authenticators/',
       body: [],
     });
@@ -38,7 +40,7 @@ describe('SettingsLayout', function () {
   it('renders', function () {
     const {container} = render(
       <BreadcrumbContextProvider>
-        <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
+        <SettingsLayout {...routerProps}>content</SettingsLayout>
       </BreadcrumbContextProvider>
     );
 
@@ -49,11 +51,11 @@ describe('SettingsLayout', function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout
-          router={TestStubs.router()}
-          route={{}}
-          routes={[]}
+          {...routerProps}
           renderNavigation={() => <nav aria-label="Test Nav" />}
-        />
+        >
+          content
+        </SettingsLayout>
       </BreadcrumbContextProvider>
     );
 
@@ -64,13 +66,13 @@ describe('SettingsLayout', function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout
-          router={TestStubs.router()}
-          route={{}}
-          routes={[]}
+          {...routerProps}
           renderNavigation={opts =>
             opts.isMobileNavVisible ? <nav aria-label="Test Nav" /> : null
           }
-        />
+        >
+          content
+        </SettingsLayout>
       </BreadcrumbContextProvider>
     );
 
