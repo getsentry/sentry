@@ -5,6 +5,10 @@ from django.db import router, transaction
 _default_atomic_impl = transaction.atomic
 
 
+class MismatchedSiloTransactionError(Exception):
+    pass
+
+
 def siloed_atomic(using: Optional[str] = None, savepoint: bool = True):
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
@@ -15,15 +19,28 @@ def siloed_atomic(using: Optional[str] = None, savepoint: bool = True):
         )
         using = router.db_for_write(model_to_route_to)
 
-    if using == router.db_for_write(ControlOutbox):
-        assert (
-            SiloMode.get_current_mode() != SiloMode.REGION
-        ), f"Cannot use transaction.atomic({using}) in Region Mode"
+    both_silos_route_to_same_db = router.db_for_write(ControlOutbox) == router.db_for_write(
+        RegionOutbox
+    )
 
-    if using == router.db_for_write(RegionOutbox):
-        assert (
-            SiloMode.get_current_mode() != SiloMode.CONTROL
-        ), f"Cannot use transaction.atomic({using}) in Control Mode"
+    current_silo_mode = SiloMode.get_current_mode()
+    if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
+        pass
+    elif (
+        using == router.db_for_write(ControlOutbox)
+        and SiloMode.get_current_mode() != SiloMode.REGION
+    ):
+        raise MismatchedSiloTransactionError(
+            f"Cannot use transaction.atomic({using}) in Region Mode"
+        )
+
+    elif (
+        using == router.db_for_write(RegionOutbox)
+        and SiloMode.get_current_mode() != SiloMode.CONTROL
+    ):
+        raise MismatchedSiloTransactionError(
+            f"Cannot use transaction.atomic({using}) in Control Mode"
+        )
 
     return _default_atomic_impl(using=using, savepoint=savepoint)
 
