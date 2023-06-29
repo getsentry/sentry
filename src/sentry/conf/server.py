@@ -1093,6 +1093,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
+    "github_comment_reactions": {
+        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -3419,7 +3423,7 @@ if USE_SILOS:
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://localhost:8000",
+            "address": "http://us.localhost:8000",
             "api_token": "dev-region-silo-token",
         }
     ]

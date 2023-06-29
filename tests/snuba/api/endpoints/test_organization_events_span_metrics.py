@@ -112,7 +112,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["sum(span.duration)"],
+                "field": ["sum(span.self_time)"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -122,7 +122,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["sum(span.duration)"] == 420
+        assert data[0]["sum(span.self_time)"] == 420
         assert meta["dataset"] == "spansMetrics"
 
     def test_percentile(self):
@@ -132,7 +132,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["percentile(span.duration, 0.95)"],
+                "field": ["percentile(span.self_time, 0.95)"],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
@@ -142,7 +142,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["percentile(span.duration, 0.95)"] == 1
+        assert data[0]["percentile(span.self_time, 0.95)"] == 1
         assert meta["dataset"] == "spansMetrics"
 
     def test_p50(self):
@@ -285,9 +285,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         response = self.do_request(
             {
-                "field": ["percentile_percent_change(span.duration, 0.95)"],
+                "field": ["percentile_percent_change(span.self_time, 0.95)"],
                 "query": "",
-                "orderby": ["-percentile_percent_change(span.duration, 0.95)"],
+                "orderby": ["-percentile_percent_change(span.self_time, 0.95)"],
                 "project": self.project.id,
                 "dataset": "spansMetrics",
                 "statsPeriod": "10m",
@@ -297,9 +297,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 1
-        assert data[0]["percentile_percent_change(span.duration, 0.95)"] == 1
+        assert data[0]["percentile_percent_change(span.self_time, 0.95)"] == 1
         assert meta["dataset"] == "spansMetrics"
-        assert meta["fields"]["percentile_percent_change(span.duration, 0.95)"] == "percent_change"
+        assert meta["fields"]["percentile_percent_change(span.self_time, 0.95)"] == "percent_change"
 
     def test_http_error_count_percent_change(self):
         for _ in range(4):
