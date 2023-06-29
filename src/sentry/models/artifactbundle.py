@@ -113,7 +113,11 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        # This unique index is a safeguard to avoid having the same bundle with the same release/dist connected to two
+        # separate orgs. In case maintaining this unique index is too expensive, we can just leverage the correctness
+        # of the implementation that inserts into the database.
+        unique_together = (("release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -121,7 +125,7 @@ class DebugIdArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    debug_id = models.UUIDField()
+    debug_id = models.UUIDField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
@@ -130,8 +134,10 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        # We can have the same debug_id pointing to different artifact_bundle(s) because the user might upload
-        # the same artifacts twice, or they might have certain build files that don't change across builds.
+        index_together = (("organization_id", "debug_id", "source_file_type", "artifact_bundle"),)
+        # This unique index is a safeguard to avoid having the same bundle with the same debug id connected to two
+        # separate orgs. In case maintaining this unique index is too expensive, we can just leverage the correctness
+        # of the implementation that inserts into the database.
         unique_together = (("debug_id", "artifact_bundle", "source_file_type"),)
 
 
