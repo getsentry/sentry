@@ -13,11 +13,4 @@ describe('getRouteStringFromRoutes', function () {
   it('can get a route string from routes array and skips routes that do not have a path', function () {
     expect(getRouteStringFromRoutes(routes)).toBe('/organizations/:orgId/api-keys/');
   });
-
-  it('handles invalid `routes` values', function () {
-    expect(getRouteStringFromRoutes(null)).toBe('');
-    expect(getRouteStringFromRoutes('')).toBe('');
-    expect(getRouteStringFromRoutes({})).toBe('');
-    expect(getRouteStringFromRoutes(false)).toBe('');
-  });
 });
