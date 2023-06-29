@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -261,7 +261,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                 "release": "foow",
             },
             value=5,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         response = self.get_success_response(
             self.organization.slug,
