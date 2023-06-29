@@ -75,15 +75,6 @@ def fetch_associated_groups(
     cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
     cols.append(Columns.TRACE_ID.value.event_name)
 
-    timestamp_alias, trace_id_alias, project_id_alias = (
-        Columns.TIMESTAMP.value.alias,
-        Columns.TRACE_ID.value.alias,
-        Columns.PROJECT_ID.value.alias,
-    )
-    assert timestamp_alias is not None
-    assert trace_id_alias is not None
-    assert project_id_alias is not None
-
     # query snuba for related errors and their associated issues
     snql_request = Request(
         dataset=dataset.value,
@@ -93,28 +84,28 @@ def fetch_associated_groups(
             select=[Column(col) for col in cols],
             where=[
                 Condition(
-                    Column(DATASETS[dataset][timestamp_alias]),
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
                     Op.GTE,
                     query_start,
                 ),
                 Condition(
-                    Column(DATASETS[dataset][timestamp_alias]),
+                    Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]),
                     Op.LT,
                     query_end,
                 ),
                 Condition(
-                    Column(DATASETS[dataset][trace_id_alias]),
+                    Column(DATASETS[dataset][Columns.TRACE_ID.value.alias]),
                     Op.IN,
                     trace_ids,
                 ),
                 Condition(
-                    Column(DATASETS[dataset][project_id_alias]),
+                    Column(DATASETS[dataset][Columns.PROJECT_ID.value.alias]),
                     Op.EQ,
                     project_id,
                 ),
             ],
             orderby=[
-                OrderBy(Column(DATASETS[dataset][timestamp_alias]), Direction.DESC),
+                OrderBy(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Direction.DESC),
             ],
             limit=Limit(DEFAULT_LIMIT),
             offset=Offset(DEFAULT_OFFSET),

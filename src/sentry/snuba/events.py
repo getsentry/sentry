@@ -9,7 +9,7 @@ class Column:
     event_name: Optional[str]
     transaction_name: Optional[str]
     discover_name: Optional[str]
-    alias: Optional[str]
+    alias: str
     issue_platform_name: Optional[str] = None
 
 
