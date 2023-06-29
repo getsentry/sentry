@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.utils.http import absolute_uri
 
@@ -125,7 +126,9 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
-    def request(self, method, path, data=None, params=None, api_preview: bool = False):
+    def request(
+        self, method, path, data=None, params=None, api_preview: bool = False
+    ) -> BaseApiResponseX:
         headers = prepare_headers(
             access_token=self.access_token,
             api_version=self.api_version,
