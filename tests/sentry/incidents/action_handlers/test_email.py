@@ -267,7 +267,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                     "sentry-metric-alert-details",
                     kwargs={
                         "organization_slug": self.organization.slug,
-                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
+                        "alert_rule_id": incident.alert_rule.id,
                     },
                 ),
                 query="referrer=alert_email",

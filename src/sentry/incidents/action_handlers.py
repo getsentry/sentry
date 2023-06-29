@@ -287,7 +287,7 @@ def generate_incident_trigger_email_context(
                 "sentry-metric-alert-details",
                 kwargs={
                     "organization_slug": organization.slug,
-                    "alert_rule_id": alert_rule.id,
+                    "alert_rule_id": incident.alert_rule.id,
                 },
             ),
             query="referrer=alert_email",
