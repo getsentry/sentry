@@ -7,6 +7,7 @@ import responses
 from fixtures.vsts import CREATE_SUBSCRIPTION, VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegration, VstsIntegrationProvider
 from sentry.models import (
+    Identity,
     Integration,
     IntegrationExternalProject,
     OrganizationIntegration,
@@ -444,7 +445,10 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        installation.default_identity.data["expires"] = 1566851050
+        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity.data["expires"] = 1566851050
+        identity.save()
+
         responses.replace(
             responses.POST,
             "https://app.vssps.visualstudio.com/oauth2/token",
