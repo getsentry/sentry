@@ -5,6 +5,7 @@ brew 'colima'
 # (not docker desktop/daemon which is provided by the cask)
 # and is used by some make targets
 brew 'docker'
+brew 'docker-buildx'
 
 brew 'pyenv'
 
