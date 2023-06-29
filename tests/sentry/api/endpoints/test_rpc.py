@@ -74,7 +74,8 @@ class RpcServiceEndpointTest(APITestCase):
         path = self._get_path("organization", "get_organization_by_id")
         response = self.client.post(path, {"args": {"id": 0}})
         assert response.status_code == 200
-        assert response.data is None
+        assert "meta" in response.data
+        assert response.data["value"] is None
 
     @override_settings(DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
     def test_with_object_response(self):
@@ -84,8 +85,9 @@ class RpcServiceEndpointTest(APITestCase):
         response = self.client.post(path, {"args": {"id": organization.id}})
         assert response.status_code == 200
         assert response.data
+        assert "meta" in response.data
 
-        response_obj = RpcUserOrganizationContext.parse_obj(response.data)
+        response_obj = RpcUserOrganizationContext.parse_obj(response.data["value"])
         assert response_obj.organization.id == organization.id
         assert response_obj.organization.slug == organization.slug
         assert response_obj.organization.name == organization.name
@@ -123,11 +125,12 @@ class RpcServiceEndpointTest(APITestCase):
             },
         )
         assert response.status_code == 200
-        assert response.json() == [
+        response_body = response.json()
+        assert response_body["value"] == [
             {
                 "scope_type": NotificationScopeType.USER.value,
                 "scope_identifier": self.user.id,
-                "target_id": response.data[0]["target_id"],
+                "target_id": response_body["value"][0]["target_id"],
                 "team_id": None,
                 "user_id": self.user.id,
                 "provider": ExternalProviders.EMAIL.value,
