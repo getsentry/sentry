@@ -1,9 +1,12 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
 describe('App', function () {
+  const {routerProps} = initializeOrg();
+
   beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/',
@@ -34,7 +37,7 @@ describe('App', function () {
 
   it('renders', function () {
     render(
-      <App params={{orgId: 'org-slug'}}>
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
@@ -48,7 +51,7 @@ describe('App', function () {
     user.flags.newsletter_consent_prompt = true;
 
     render(
-      <App params={{orgId: 'org-slug'}}>
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
@@ -66,10 +69,9 @@ describe('App', function () {
   it('renders InstallWizard', async function () {
     ConfigStore.get('user').isSuperuser = true;
     ConfigStore.set('needsUpgrade', true);
-    ConfigStore.set('version', {current: '1.33.7'});
 
     render(
-      <App params={{orgId: 'org-slug'}}>
+      <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
@@ -83,7 +85,7 @@ describe('App', function () {
   it('redirects to sentryUrl on invalid org slug', function () {
     const {sentryUrl} = ConfigStore.get('links');
     render(
-      <App params={{orgId: 'albertos%2fapples'}}>
+      <App {...routerProps} params={{orgId: 'albertos%2fapples'}}>
         <div>placeholder content</div>
       </App>
     );
