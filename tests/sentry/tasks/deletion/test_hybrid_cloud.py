@@ -18,6 +18,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
 from sentry.types.region import find_regions_for_user
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)
@@ -56,7 +57,7 @@ def saved_search_owner_id_field():
     return SavedSearch._meta.get_field("owner_id")
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     reset_watermarks()
 
@@ -71,7 +72,7 @@ def test_no_work_is_no_op(task_runner, saved_search_owner_id_field):
     assert get_watermark("tombstone", saved_search_owner_id_field) == (0, tid)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_watermark_and_transaction_id(task_runner, saved_search_owner_id_field):
     _, tid1 = get_watermark("tombstone", saved_search_owner_id_field)
     # TODO: Add another test to validate the tid is unique per field
@@ -112,7 +113,7 @@ def setup_deletable_objects(
     assert False, "find_regions_for_user could not determine a region for production."
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @region_silo_test(stable=True)
 def test_region_processing(task_runner):
     reset_watermarks()
@@ -148,7 +149,7 @@ def test_region_processing(task_runner):
 
 
 # No need to run both saas and control tests for this logic, the silo testing is baked in directly.
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @no_silo_test(stable=True)
 def test_control_processing(task_runner):
     reset_watermarks()

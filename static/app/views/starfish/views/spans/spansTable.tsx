@@ -138,9 +138,9 @@ function renderBodyCell(
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
-            to={`/starfish/${extractRoute(location)}/span/${row['span.group']}${
-              queryString ? `?${qs.stringify(queryString)}` : ''
-            }`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
+              row['span.group']
+            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
           >
             {row['span.description'] || '<null>'}
           </Link>

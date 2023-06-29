@@ -6,7 +6,6 @@ from typing import Any, Mapping, MutableMapping, Sequence
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.message_builder import AbstractMessageBuilder
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.notifications.utils.actions import MessageAction
 from sentry.utils.assets import get_asset_url
@@ -39,11 +38,8 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
     def build_fallback_text(self, obj: Group | Event | GroupEvent, project_slug: str) -> str:
         """Fallback text is used in the message preview popup."""
         title = obj.title
-        group = getattr(obj, "group", obj)
         if isinstance(obj, GroupEvent) and obj.occurrence is not None:
             title = obj.occurrence.issue_title
-        elif group.issue_category == GroupCategory.PERFORMANCE:
-            title = group.issue_type.description
 
         return f"[{project_slug}] {title}"
 

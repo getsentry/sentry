@@ -19,7 +19,7 @@ class Double:
 
 class MockMediator(Mediator):
     user = Param(dict)
-    name = Param((str,), default=lambda self: self.user["name"])
+    name = Param(str, default=lambda self: self.user["name"])
     age = Param(int, required=False)
 
     def call(self):
