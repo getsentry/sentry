@@ -6,13 +6,14 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GetScopeTestCase(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
+        self.user_actor = RpcActor.from_orm_user(self.user)
 
     def test_get_scope_user(self):
-        scope_type, scope_identifier = get_scope(actor=RpcActor.from_orm_user(self.user))
+        scope_type, scope_identifier = get_scope(actor=self.user_actor)
         assert scope_type == NotificationScopeType.USER
         assert scope_identifier == self.user.id
 
@@ -24,28 +25,22 @@ class GetScopeTestCase(TestCase):
 
     def test_get_scope_project(self):
         project = Project(id=1)
-        scope_type, scope_identifier = get_scope(
-            actor=RpcActor.from_orm_user(self.user), project=project
-        )
+        scope_type, scope_identifier = get_scope(actor=self.user_actor, project=project)
         assert scope_type == NotificationScopeType.PROJECT
         assert scope_identifier == project.id
 
-        scope_type, scope_identifier = get_scope(
-            actor=RpcActor.from_orm_user(self.user), project=project.id
-        )
+        scope_type, scope_identifier = get_scope(actor=self.user_actor, project=project.id)
         assert scope_type == NotificationScopeType.PROJECT
         assert scope_identifier == project.id
 
     def test_get_scope_organization(self):
         organization = Organization(id=1)
-        scope_type, scope_identifier = get_scope(
-            actor=RpcActor.from_orm_user(self.user), organization=organization
-        )
+        scope_type, scope_identifier = get_scope(actor=self.user_actor, organization=organization)
         assert scope_type == NotificationScopeType.ORGANIZATION
         assert scope_identifier == organization.id
 
         scope_type, scope_identifier = get_scope(
-            actor=RpcActor.from_orm_user(self.user), organization=organization.id
+            actor=self.user_actor, organization=organization.id
         )
         assert scope_type == NotificationScopeType.ORGANIZATION
         assert scope_identifier == organization.id
