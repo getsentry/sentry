@@ -285,7 +285,7 @@ export class DeprecatedLine extends Component<Props, State> {
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
-          <DefaultLineTitleWrapper>
+          <DefaultLineTitleWrapper isSystemLabel={!data.inApp}>
             <LeftLineTitle>
               <SourceMapWarning frame={data} debugFrames={debugFrames} />
               <div>
@@ -445,10 +445,12 @@ const RepeatedFrames = styled('div')`
   display: inline-block;
 `;
 
-const DefaultLineTitleWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')<{isSystemLabel: boolean}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  color: ${p => (p.isSystemLabel ? p.theme.subText : 'default')};
+  font-style: ${p => (p.isSystemLabel ? 'italic' : 'default')};
 `;
 
 const LeftLineTitle = styled('div')`
