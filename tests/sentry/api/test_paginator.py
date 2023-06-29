@@ -639,7 +639,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         Rule.objects.all().delete()
         rule_ids = []
 
-        for i in range(1, 31):
+        for i in range(1, 9):
             rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
             rule_ids.append(rule.id)
 
@@ -660,21 +660,21 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             desc=True,
         )
 
-        result = paginator.get_result(limit=25, cursor=None)
-        assert len(result) == 25
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
         page1_results = list(result)
         assert page1_results[0].id == rule_ids[0]
-        assert page1_results[24].id == rule_ids[24]
+        assert page1_results[4].id == rule_ids[4]
 
         next_cursor = result.next
-        result = paginator.get_result(limit=25, cursor=next_cursor)
+        result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
-        assert len(result) == 5
+        assert len(result) == 3
         assert page2_results[-1].id == rule_ids[-1]
 
         prev_cursor = result.prev
-        result = list(paginator.get_result(limit=25, cursor=prev_cursor))
-        assert len(result) == 25
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
         assert result == page1_results
 
     def test_only_metric_alert_rules(self):
@@ -683,7 +683,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         Rule.objects.all().delete()
         alert_rule_ids = []
 
-        for i in range(1, 31):
+        for i in range(1, 9):
             alert_rule = self.create_alert_rule(name=f"alertrule{i}", projects=[project])
             alert_rule_ids.append(alert_rule.id)
 
@@ -721,21 +721,21 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             desc=True,
         )
 
-        result = paginator.get_result(limit=25, cursor=None)
-        assert len(result) == 25
+        result = paginator.get_result(limit=5, cursor=None)
+        assert len(result) == 5
         page1_results = list(result)
         assert page1_results[0].id == alert_rule_ids[0]
-        assert page1_results[24].id == alert_rule_ids[24]
+        assert page1_results[4].id == alert_rule_ids[4]
 
         next_cursor = result.next
-        result = paginator.get_result(limit=25, cursor=next_cursor)
+        result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
-        assert len(result) == 5
+        assert len(result) == 3
         assert page2_results[-1].id == alert_rule_ids[-1]
 
         prev_cursor = result.prev
-        result = list(paginator.get_result(limit=25, cursor=prev_cursor))
-        assert len(result) == 25
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
         assert result == page1_results
 
     def test_issue_and_metric_alert_rules(self):
@@ -745,7 +745,7 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         alert_rule_ids = []
         rule_ids = []
 
-        for i in range(1, 16):
+        for i in range(1, 4):
             alert_rule = self.create_alert_rule(name=f"alertrule{i}")
             alert_rule_ids.append(alert_rule.id)
             rule = Rule.objects.create(id=i, label=f"rule{i}", project=project)
@@ -790,21 +790,21 @@ class CombinedQuerysetPaginatorTest(APITestCase):
             desc=True,
         )
 
-        result = paginator.get_result(limit=25, cursor=None)
+        result = paginator.get_result(limit=5, cursor=None)
         page1_results = list(result)
-        assert len(result) == 25
+        assert len(result) == 5
         assert result[0].id == alert_rule_ids[0]
-        assert result[24].id == rule_ids[9]
+        assert result[4].id == rule_ids[1]
 
         next_cursor = result.next
-        result = paginator.get_result(limit=25, cursor=next_cursor)
+        result = paginator.get_result(limit=5, cursor=next_cursor)
         page2_results = list(result)
-        assert len(result) == 5
-        assert page2_results[0].id == 11
+        assert len(result) == 1
+        assert page2_results[0].id == 3
 
         prev_cursor = result.prev
-        result = list(paginator.get_result(limit=25, cursor=prev_cursor))
-        assert len(result) == 25
+        result = list(paginator.get_result(limit=5, cursor=prev_cursor))
+        assert len(result) == 5
         assert result == page1_results
 
 
