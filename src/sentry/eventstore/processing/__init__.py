@@ -1,12 +1,9 @@
 from django.conf import settings
 
-from sentry.eventstore.processing.base import EventProcessingStore
-from sentry.utils.services import LazyServiceWrapper
+from sentry.utils.imports import import_string
 
-event_processing_store = LazyServiceWrapper(
-    EventProcessingStore,
-    settings.SENTRY_EVENT_PROCESSING_STORE,
-    settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS,
+event_processing_store = import_string(settings.SENTRY_EVENT_PROCESSING_STORE)(
+    **settings.SENTRY_EVENT_PROCESSING_STORE_OPTIONS
 )
 
 
