@@ -13,7 +13,7 @@ from django.utils.functional import SimpleLazyObject
 from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models import (
     Environment,
     Group,
@@ -544,9 +544,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
         if message_filter:
 
-            def _perf_issue_message_condition(query: str) -> Q:
+            def _issue_platform_issue_message_condition(query: str) -> Q:
                 return Q(
-                    type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
+                    ~Q(type=ErrorGroupType.type_id),
                     message__icontains=query,
                 )
 
@@ -554,13 +554,15 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 {
                     "message": QCallbackCondition(
                         lambda query: Q(type=ErrorGroupType.type_id)
-                        | _perf_issue_message_condition(query)
+                        | _issue_platform_issue_message_condition(query)
                     )
                     # negation should only apply on the message search icontains, we have to include the
                     # type filter(type=GroupType.ERROR) check since we don't wanna search on the message
                     # column when type=GroupType.ERROR - we delegate that to snuba in that case
                     if not message_filter.is_negation
-                    else QCallbackCondition(lambda query: _perf_issue_message_condition(query))
+                    else QCallbackCondition(
+                        lambda query: _issue_platform_issue_message_condition(query)
+                    )
                 }
             )
 
