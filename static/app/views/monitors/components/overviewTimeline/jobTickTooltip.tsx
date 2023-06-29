@@ -13,7 +13,7 @@ import {
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus, statusToText} from 'sentry/views/monitors/utils';
 
-import {timeWindowData} from './utils';
+import {timeWindowConfig} from './utils';
 
 interface Props extends Omit<TooltipProps, 'title'> {
   jobTick: JobTickData;
@@ -22,7 +22,7 @@ interface Props extends Omit<TooltipProps, 'title'> {
 
 export function JobTickTooltip({jobTick, timeWindow, children, ...props}: Props) {
   const {startTs, endTs, envMapping} = jobTick;
-  const {dateTimeProps} = timeWindowData[timeWindow];
+  const {dateTimeProps} = timeWindowConfig[timeWindow];
   const capturedEnvs = Object.keys(envMapping);
   const representsSingleJob =
     capturedEnvs.length === 1 &&
