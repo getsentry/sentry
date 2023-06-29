@@ -11,6 +11,8 @@ from uuid import uuid4
 from django.conf import settings
 from django.db import models, transaction
 from django.db.models import Q, QuerySet
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -656,3 +658,15 @@ class OrganizationMember(Model):
             .exists()
         )
         return is_only_owner
+
+
+@receiver(pre_save, sender=OrganizationMember)
+def check_last_owner(sender, instance, **kwargs):
+    highest_priority_role = organization_roles.get_top_dog().id
+    owner_queryset = sender.objects.filter(role=highest_priority_role)
+    if (
+        owner_queryset.count() == 1
+        and owner_queryset.get().id == instance.id
+        and instance.role != highest_priority_role
+    ):
+        raise Exception("You cannot demote the last owner in the organization")
