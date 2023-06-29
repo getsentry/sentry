@@ -24,9 +24,6 @@ from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-
-# from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
@@ -45,6 +42,7 @@ from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
+    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
