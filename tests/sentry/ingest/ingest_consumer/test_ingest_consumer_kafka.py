@@ -14,6 +14,7 @@ from sentry.ingest.consumer_v2.factory import get_ingest_consumer
 from sentry.ingest.types import ConsumerType
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils.pytest.fixtures import django_db_all
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def random_group_id():
     return f"test-consumer-{random.randint(0, 2 ** 16)}"
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     task_runner,
     kafka_producer,
@@ -142,7 +143,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["contexts"]["trace"]
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_ingest_topic_can_be_overridden(
     task_runner,
     kafka_admin,

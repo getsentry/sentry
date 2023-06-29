@@ -1,12 +1,11 @@
-import pytest
-
 from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_many_from_object_users():
     users = [Factories.create_user(), Factories.create_user()]
     actors = RpcActor.many_from_object(users)
@@ -21,7 +20,7 @@ def test_many_from_object_users():
     assert actors[1].actor_type == ActorType.USER
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_many_from_object_rpc_users():
     orm_users = [Factories.create_user(), Factories.create_user()]
     user_ids = [u.id for u in orm_users]
@@ -39,7 +38,7 @@ def test_many_from_object_rpc_users():
     assert actors[1].actor_type == ActorType.USER
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_many_from_object_users_missing_actors():
     users = [Factories.create_user(), Factories.create_user()]
     # Clear all actors
@@ -54,7 +53,7 @@ def test_many_from_object_users_missing_actors():
     assert len(actors) == 2, "Actors should be generated"
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_many_from_object_teams():
     organization = Factories.create_organization()
     teams = [
@@ -76,7 +75,7 @@ def test_many_from_object_teams():
     assert actors[1].slug
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_many_from_object_mixed():
     organization = Factories.create_organization()
     teams = [

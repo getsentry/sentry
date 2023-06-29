@@ -25,6 +25,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
@@ -193,7 +194,7 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
         )
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
 @use_real_service(organization_service, None)
@@ -204,7 +205,7 @@ def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
 @use_real_service(organization_service, None)
@@ -226,7 +227,7 @@ def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]])
         assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
 @use_real_service(organization_service, None)
@@ -241,7 +242,7 @@ def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[Us
     assert set(all_org_roles) == set(service_org_roles)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
 @use_real_service(organization_service, None)
