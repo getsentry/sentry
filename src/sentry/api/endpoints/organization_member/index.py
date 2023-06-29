@@ -57,7 +57,10 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
     def validate_email(self, email):
         users = user_service.get_many_by_email(
-            emails=[email], is_active=True, organization_id=self.context["organization"].id
+            emails=[email],
+            is_active=True,
+            organization_id=self.context["organization"].id,
+            is_verified=False,
         )
         queryset = OrganizationMember.objects.filter(
             Q(email=email) | Q(user_id__in=[u.id for u in users]),
@@ -132,7 +135,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             for key, value in tokens.items():
                 if key == "email":
                     email_user_ids = user_service.get_many_by_email(
-                        emails=value, organization_id=organization.id
+                        emails=value, organization_id=organization.id, is_verified=False
                     )
                     queryset = queryset.filter(
                         Q(email__in=value) | Q(user_id__in=[u.id for u in email_user_ids])

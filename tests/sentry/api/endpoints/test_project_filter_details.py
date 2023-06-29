@@ -19,7 +19,7 @@ class ProjectFilterDetailsTest(APITestCase):
 
         project.update_option("filters:browser-extensions", "0")
         self.get_success_response(
-            org.slug, project.slug, "browser-extensions", active=True, status_code=201
+            org.slug, project.slug, "browser-extensions", active=True, status_code=204
         )
 
         assert project.get_option("filters:browser-extensions") == "1"
@@ -35,7 +35,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project.update_option("filters:health-check", "0")
         with Feature("organizations:health-check-filter"):
             self.get_success_response(
-                org.slug, project.slug, "health-check", active=True, status_code=201
+                org.slug, project.slug, "health-check", active=True, status_code=204
             )
         # option was changed by the request
         assert project.get_option("filters:health-check") == "1"
@@ -43,7 +43,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project.update_option("filters:health-check", "1")
         with Feature("organizations:health-check-filter"):
             self.get_success_response(
-                org.slug, project.slug, "health-check", active=False, status_code=201
+                org.slug, project.slug, "health-check", active=False, status_code=204
             )
         # option was changed by the request
         assert project.get_option("filters:health-check") == "0"
@@ -60,7 +60,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project.update_option("filters:health-check", "0")
         with Feature({"organizations:health-check-filter": False}):
             resp = self.get_response(
-                org.slug, project.slug, "health-check", active=True, status_code=201
+                org.slug, project.slug, "health-check", active=True, status_code=204
             )
         # check we return error
         assert resp.status_code == 404
@@ -99,7 +99,7 @@ class ProjectFilterDetailsTest(APITestCase):
             project.slug,
             "legacy-browsers",
             subfilters=new_subfilters,
-            status_code=201,
+            status_code=204,
         )
 
         assert set(project.get_option("filters:legacy-browsers")) == set(new_subfilters)

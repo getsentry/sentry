@@ -17,7 +17,6 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -1097,12 +1096,12 @@ CELERYBEAT_SCHEDULE_REGION = {
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
-if SILO_MODE == SiloMode.CONTROL.value:
+if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
 
-elif SILO_MODE == SiloMode.REGION.value:
+elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
     CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
@@ -3507,8 +3506,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
-
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.

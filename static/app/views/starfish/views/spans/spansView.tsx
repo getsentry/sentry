@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -18,7 +18,7 @@ import SpansTable, {isAValidSort} from './spansTable';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
-  field: 'sps()',
+  field: 'time_spent_percentage()',
 };
 const LIMIT: number = 25;
 
@@ -51,7 +51,7 @@ export default function SpansView(props: Props) {
   return (
     <Fragment>
       <FilterOptionsContainer>
-        <DatePageFilter alignDropdown="left" />
+        <StarfishDatePicker />
       </FilterOptionsContainer>
 
       <PaddedContainer>
