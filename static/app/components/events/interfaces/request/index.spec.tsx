@@ -408,7 +408,9 @@ describe('Request entry', function () {
           ],
           contexts: {
             response: {
-              data: {errors: [{message: 'Very bad error', locations: [{line: 1}]}]},
+              data: {
+                errors: [{message: 'Very bad error', locations: [{line: 1, column: 2}]}],
+              },
             },
           },
         };
@@ -427,7 +429,7 @@ describe('Request entry', function () {
 
         await userEvent.click(screen.getByText(/There was 1 GraphQL error/i));
 
-        expect(screen.getByText('Very bad error')).toBeInTheDocument();
+        expect(screen.getByText('Line 1 Column 2: Very bad error')).toBeInTheDocument();
       });
     });
   });

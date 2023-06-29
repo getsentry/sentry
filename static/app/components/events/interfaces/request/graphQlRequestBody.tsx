@@ -8,20 +8,21 @@ import Prism from 'prismjs';
 import Alert from 'sentry/components/alert';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import List from 'sentry/components/list';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {EntryRequestDataGraphQl, Event} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {loadPrismLanguage} from 'sentry/utils/loadPrismLanguage';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
 
-type GraphQlErrors = Array<{
+type GraphQlError = {
   locations?: Array<{column: number; line: number}>;
   message?: string;
   path?: string[];
-}>;
+};
 
-function getGraphQlErrorsFromResponseContext(event: Event): GraphQlErrors {
+function getGraphQlErrorsFromResponseContext(event: Event): GraphQlError[] {
   const responseData = event.contexts?.response?.data;
 
   if (
@@ -37,7 +38,7 @@ function getGraphQlErrorsFromResponseContext(event: Event): GraphQlErrors {
   return [];
 }
 
-function getErrorLineNumbers(errors: GraphQlErrors): number[] {
+function getErrorLineNumbers(errors: GraphQlError[]): number[] {
   return uniq(
     errors.flatMap(
       error =>
@@ -47,8 +48,25 @@ function getErrorLineNumbers(errors: GraphQlErrors): number[] {
   );
 }
 
-function ErrorsAlert({errors}: {errors: GraphQlErrors}) {
-  if (isEmpty(errors)) {
+function formatErrorAlertMessage(error: GraphQlError) {
+  const {locations, message} = error;
+
+  if (!locations || isEmpty(locations)) {
+    return message;
+  }
+
+  const prefix = locations
+    .filter(loc => defined(loc.line) && defined(loc.column))
+    .map(loc => t('Line %s Column %s', loc.line, loc.column))
+    .join(', ');
+
+  return `${prefix}: ${message}`;
+}
+
+function ErrorsAlert({errors}: {errors: GraphQlError[]}) {
+  const errorsWithMessage = errors.filter(error => !isEmpty(error.message));
+
+  if (isEmpty(errorsWithMessage)) {
     return null;
   }
 
@@ -58,8 +76,8 @@ function ErrorsAlert({errors}: {errors: GraphQlErrors}) {
       showIcon
       expand={
         <List symbol="bullet">
-          {errors.map((error, i) => (
-            <li key={i}>{error.message}</li>
+          {errorsWithMessage.map((error, i) => (
+            <li key={i}>{formatErrorAlertMessage(error)}</li>
           ))}
         </List>
       }
@@ -67,7 +85,7 @@ function ErrorsAlert({errors}: {errors: GraphQlErrors}) {
       {tn(
         'There was %s GraphQL error raised during this request.',
         'There were %s errors raised during this request.',
-        errors.length
+        errorsWithMessage.length
       )}
     </StyledAlert>
   );
