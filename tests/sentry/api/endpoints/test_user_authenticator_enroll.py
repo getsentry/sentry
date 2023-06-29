@@ -189,7 +189,8 @@ class UserAuthenticatorEnrollTest(APITestCase):
             }
 
     @mock.patch(
-        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.is_limited", return_value=True
+        "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.backend.is_limited",
+        return_value=True,
     )
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
     def test_rate_limited(self, try_enroll, is_limited):

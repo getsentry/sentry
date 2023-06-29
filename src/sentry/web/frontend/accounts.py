@@ -53,7 +53,7 @@ def recover(request):
         "user_agent": request.META.get("HTTP_USER_AGENT"),
     }
 
-    if request.method == "POST" and ratelimiter.is_limited(
+    if request.method == "POST" and ratelimiter.backend.is_limited(
         "accounts:recover:{}".format(extra["ip_address"]),
         limit=5,
         window=60,  # 5 per minute should be enough for anyone
@@ -149,7 +149,7 @@ set_password_confirm = update_wrapper(set_password_confirm, recover)
 def start_confirm_email(request):
     from sentry import ratelimits as ratelimiter
 
-    if ratelimiter.is_limited(
+    if ratelimiter.backend.is_limited(
         f"auth:confirm-email:{request.user.id}",
         limit=10,
         window=60,  # 10 per minute should be enough for anyone

@@ -166,7 +166,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
         :auth: required
         """
-        if ratelimiter.is_limited(
+        if ratelimiter.backend.is_limited(
             f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
             limit=10,
             window=86400,  # 10 per day should be fine

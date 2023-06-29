@@ -104,7 +104,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
 
         phone_number = phone_number_as_e164(self.phone_number)
 
-        if ratelimiter.is_limited(
+        if ratelimiter.backend.is_limited(
             f"sms:{md5(phone_number.encode('utf-8')).hexdigest()}",
             limit=3,
             window=300,

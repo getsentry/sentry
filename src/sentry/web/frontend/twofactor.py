@@ -120,7 +120,7 @@ class TwoFactorAuthView(BaseView):
         challenge = activation = None
         interface = self.negotiate_interface(request, interfaces)
 
-        if request.method == "POST" and ratelimiter.is_limited(
+        if request.method == "POST" and ratelimiter.backend.is_limited(
             f"auth-2fa:user:{user.id}", limit=5, window=60
         ):
             # TODO: Maybe email the account owner or do something to notify someone

@@ -221,7 +221,7 @@ class AuthLoginView(BaseView):
                 op == "login" and request.POST.get("username") and request.POST.get("password")
             )
 
-            if login_attempt and ratelimiter.is_limited(
+            if login_attempt and ratelimiter.backend.is_limited(
                 "auth:login:username:{}".format(
                     md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
                 ),

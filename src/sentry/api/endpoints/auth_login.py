@@ -33,7 +33,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         login_form = AuthenticationForm(request, request.data)
 
         # Rate limit logins
-        is_limited = ratelimiter.is_limited(
+        is_limited = ratelimiter.backend.is_limited(
             "auth:login:username:{}".format(
                 md5_text(login_form.clean_username(request.data.get("username"))).hexdigest()
             ),

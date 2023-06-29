@@ -50,7 +50,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         self.get_error_response(self.organization.slug, status_code=403)
 
     @patch(
-        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
+        "sentry.api.endpoints.organization_member.requests.join.ratelimiter.backend.is_limited",
         return_value=True,
     )
     def test_ratelimit(self, is_limited):
