@@ -100,7 +100,7 @@ def get_rate_limit_key(
         category = "user"
         id = request_user.id
 
-    # ApiKeys will be treated with IP ratelimits
+    # ApiKeys & OrgAuthTokens will be treated with IP ratelimits
     elif ip_address is not None:
         category = "ip"
         id = ip_address

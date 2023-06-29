@@ -23,7 +23,6 @@ type Props = {
   issue: Group;
   orgId: Organization['id'];
   project: Project;
-  v2: boolean;
   aggregate?: {
     exception: number;
     message: number;
@@ -95,9 +94,9 @@ class Item extends Component<Props, State> {
   };
 
   render() {
-    const {aggregate, scoresByInterface, issue, v2} = this.props;
+    const {aggregate, scoresByInterface, issue} = this.props;
     const {visible, busy} = this.state;
-    const similarInterfaces = v2 ? ['similarity'] : ['exception', 'message'];
+    const similarInterfaces = ['exception', 'message'];
 
     if (!visible) {
       return null;

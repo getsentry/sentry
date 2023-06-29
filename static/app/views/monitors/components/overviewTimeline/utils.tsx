@@ -5,7 +5,7 @@ import {getFormat} from 'sentry/utils/dates';
 import {TimeWindow, TimeWindowData} from './types';
 
 // Stores options and data which correspond to each selectable time window
-export const timeWindowData: TimeWindowData = {
+export const timeWindowConfig: TimeWindowData = {
   '1h': {
     cursorLabelFormat: getFormat({timeOnly: true, seconds: true}),
     elapsedMinutes: 60,
@@ -33,7 +33,7 @@ export const timeWindowData: TimeWindowData = {
 };
 
 export function getStartFromTimeWindow(end: Date, timeWindow: TimeWindow): Date {
-  const {elapsedMinutes} = timeWindowData[timeWindow];
+  const {elapsedMinutes} = timeWindowConfig[timeWindow];
   const start = moment(end).subtract(elapsedMinutes, 'minute');
 
   return start.toDate();
