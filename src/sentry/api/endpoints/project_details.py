@@ -45,6 +45,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
+from sentry.tasks.recap_servers import RECAP_SERVER_OPTION_KEY, poll_project_recap_server
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -490,9 +491,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if result.get("recapServer") is not None:
             if result["recapServer"] == "":
-                project.delete_option("sentry:recap_server")
+                project.delete_option(RECAP_SERVER_OPTION_KEY)
             else:
-                project.update_option("sentry:recap_server", result["recapServer"])
+                project.update_option(RECAP_SERVER_OPTION_KEY, result["recapServer"])
+                poll_project_recap_server(project.id)
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):
