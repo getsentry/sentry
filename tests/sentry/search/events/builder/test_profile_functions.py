@@ -60,6 +60,16 @@ def params():
             Condition(Column("name"), Op("!="), ""),
             id="not empty function",
         ),
+        pytest.param(
+            "fingerprint:123",
+            Condition(Column("fingerprint"), Op("="), 123),
+            id="fingerprint",
+        ),
+        pytest.param(
+            "!fingerprint:123",
+            Condition(Column("fingerprint"), Op("!="), 123),
+            id="not fingerprint",
+        ),
     ],
 )
 @django_db_all

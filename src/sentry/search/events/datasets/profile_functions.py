@@ -152,10 +152,23 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
+            "fingerprint": self._fingerprint_filter_converter,
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
+
+    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        try:
+            return Condition(
+                self.builder.column("fingerprint"),
+                Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
+                int(search_filter.value.value),
+            )
+        except ValueError:
+            raise InvalidSearchQuery(
+                "Invalid value for fingerprint condition. Accepted values are numeric."
+            )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
