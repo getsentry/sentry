@@ -475,8 +475,11 @@ def dispatch_remote_call(
         charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
         metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
         response_body = response.read().decode(charset)
-    serial_response = json.loads(response_body)
-    return service.deserialize_rpc_response(method_name, serial_response)
+    if response_body:
+        serial_response = json.loads(response_body)
+        return service.deserialize_rpc_response(method_name, serial_response)
+    else:
+        return None
 
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
