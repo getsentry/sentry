@@ -82,7 +82,7 @@ class StandardAuthentication(QuietBasicAuthentication):
     token_name = None
 
     def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return True if auth and auth[0].lower() == self.token_name else False
+        return auth and auth[0].lower() == self.token_name
 
     def authenticate(self, request: Request):
         auth = get_authorization_header(request).split()
@@ -135,7 +135,7 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
     token_name = b"basic"
 
     def accepts_auth(self, auth: "list[bytes]") -> bool:
-        return True if auth and auth[0].lower() == self.token_name else False
+        return auth and auth[0].lower() == self.token_name
 
     def authenticate_credentials(self, userid, password, request=None):
         # We don't use request, but it needs to be passed through to DRF 3.7+.
