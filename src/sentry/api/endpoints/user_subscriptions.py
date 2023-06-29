@@ -35,7 +35,7 @@ class UserSubscriptionsEndpoint(UserEndpoint):
 
         # This returns a dict with `subscriber` and `subscriptions`
         # Returns `None` if no subscriptions for user
-        sub = newsletter.get_subscriptions(user)
+        sub = newsletter.backend.get_subscriptions(user)
         if sub is None or not newsletter.is_enabled():
             return self.respond([])
 

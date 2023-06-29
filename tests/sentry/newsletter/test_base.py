@@ -15,7 +15,7 @@ class BaseNewsletterTest(TestCase):
         user = self.create_user("subscriber@example.com")
         newsletter.update_subscription(user)
 
-        assert newsletter.get_subscriptions(user) is None
+        assert newsletter.backend.get_subscriptions(user) is None
         assert newsletter.create_or_update_subscription(user) is None
         assert newsletter.create_or_update_subscriptions(user) is None
 
@@ -23,6 +23,6 @@ class BaseNewsletterTest(TestCase):
         user = self.create_user("subscriber@example.com")
         newsletter.update_subscriptions(user)
 
-        assert newsletter.get_subscriptions(user) is None
+        assert newsletter.backend.get_subscriptions(user) is None
         assert newsletter.create_or_update_subscription(user) is None
         assert newsletter.create_or_update_subscriptions(user) is None

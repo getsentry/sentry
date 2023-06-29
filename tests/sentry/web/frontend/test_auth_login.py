@@ -415,7 +415,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.name == "Foo Bar"
         assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
-        assert newsletter.get_subscriptions(user) == {"subscriptions": []}
+        assert newsletter.backend.get_subscriptions(user) == {"subscriptions": []}
 
     def test_registration_subscribe_to_newsletter(self):
         options.set("auth.allow-registration", True)
@@ -437,7 +437,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
 
-        results = newsletter.get_subscriptions(user)["subscriptions"]
+        results = newsletter.backend.get_subscriptions(user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == newsletter.get_default_list_id()
         assert results[0].subscribed
