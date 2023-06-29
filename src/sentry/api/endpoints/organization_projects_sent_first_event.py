@@ -23,5 +23,5 @@ class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
         :auth: required
         """
         projects = self.get_projects(request, organization)
-        seen_first_event = any(p.first_event is not None for p in projects)
+        seen_first_event = any(p.first_event for p in projects)
         return Response(serialize({"sentFirstEvent": seen_first_event}, request.user))
