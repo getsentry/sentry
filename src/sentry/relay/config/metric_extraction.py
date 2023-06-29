@@ -65,7 +65,7 @@ class MetricExtractionConfig(TypedDict):
 
 
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
-    if not features.has("organizations:metrics-extraction", project.organization):
+    if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
     alerts = AlertRule.objects.filter(
