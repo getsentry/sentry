@@ -272,8 +272,7 @@ function NativeFrame({
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
             ) : (
               `<${t('unknown')}>`
-            )}
-            {' '}
+            )}{' '}
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
