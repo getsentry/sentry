@@ -48,7 +48,12 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.notifications.utils import (
+    get_group_settings_link,
+    get_interface_list,
+    get_issue_replay_link,
+    get_rules,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.types.group import GroupSubStatus
@@ -448,7 +453,7 @@ def alert(request):
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
             "replay_id": replay_id,
-            "replay_url": absolute_uri(f"/replays/{replay_id}?referrer=alert_email"),
+            "issue_replays_url": get_issue_replay_link(group, event),
         },
     ).render(request)
 

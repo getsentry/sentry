@@ -226,7 +226,7 @@
 
       {% block table %}{% endblock %}
 
-      {% if replay_id and replay_url %}
+      {% if replay_id and issue_replays_url %}
       <div class="interface">
         <h3 class="title">Session Replay</h3>
         <table>
@@ -235,12 +235,12 @@
           </colgroup>
           <tbody>
             <tr>
-              <th>Replay ID:</th>
+              <th>Session Replay:</th>
               <td>
-                <a href="{{ replay_url }}">
+                <a href="{{ issue_replays_url }}">
                   <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="12px" height="12px"
                     alt="Session Replay">
-                  {{ replay_id }}
+                  See a replay of this issue
                 </a>
               </td>
             </tr>

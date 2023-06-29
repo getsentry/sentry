@@ -22,8 +22,8 @@ from sentry.notifications.utils import (
     get_group_settings_link,
     get_integration_link,
     get_interface_list,
+    get_issue_replay_link,
     get_performance_issue_alert_subtitle,
-    get_replay_details_link,
     get_replay_id,
     get_rules,
     get_transaction_data,
@@ -162,15 +162,15 @@ class AlertRuleNotification(ProjectNotification):
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
         has_session_replay = features.has("organizations:session-replay", self.organization)
-        has_replay_link = features.has(
+        show_replay_link = features.has(
             "organizations:session-replay-issue-emails", self.organization
         )
-        replay_id = get_replay_id(self.event)
-        if has_session_replay and has_replay_link and replay_id:
+        replay_id = get_replay_id(self.event, self.group)
+        if has_session_replay and show_replay_link and replay_id:
             context.update(
                 {
                     "replay_id": replay_id,
-                    "replay_url": get_replay_details_link(self.organization, replay_id),
+                    "issue_replays_url": get_issue_replay_link(self.group, self.organization),
                 }
             )
 

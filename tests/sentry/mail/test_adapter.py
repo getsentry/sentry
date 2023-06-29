@@ -645,7 +645,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[-1]
 
         assert (
-            f"/organization/{organization.slug}/replays/123456789/?referrer=alert_email"
+            f"/organization/{organization.slug}/issue/{event.id}/replays/?referrer=alert_email"
             in msg.alternatives[0][0]
         )
 

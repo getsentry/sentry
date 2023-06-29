@@ -206,10 +206,8 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     )
 
 
-def get_replay_details_link(organization: Organization, replay_id: str) -> str:
-    return organization.absolute_url(
-        f"/organizations/{organization.slug}/replays/{replay_id}?referrer=alert_email"
-    )
+def get_issue_replay_link(group: Group, referrer: str = ""):
+    return str(group.get_absolute_url() + (f"/replays/?referrer={referrer}"))
 
 
 @dataclass
@@ -495,10 +493,13 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
         notify(provider, notification, participants, shared_context, extra_context)
 
 
-def get_replay_id(event: Event) -> str | None:
-    evidence_replay_id = event.occurrence.evidence_data.get("replay_id", "")
+def get_replay_id(event: Event, group: Group) -> str | None:
     tags_replay_id = event.get_tag("replay_id")
-    return evidence_replay_id or tags_replay_id
+    if group.occurrence is not None:
+        evidence_replay_id = group.occurrence.evidence_data.get("replay_id", "")
+        return evidence_replay_id or tags_replay_id
+
+    return tags_replay_id
 
 
 @dataclass
