@@ -11,7 +11,6 @@ export enum Query {
   NEW = 'is:new',
   ARCHIVED = 'is:archived',
   ESCALATING = 'is:escalating',
-  ONGOING = 'is:ongoing',
   REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
