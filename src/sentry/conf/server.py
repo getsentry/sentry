@@ -3187,6 +3187,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
 
+# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
+
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
