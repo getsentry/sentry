@@ -198,4 +198,5 @@ class UserSocialAuth(models.Model):
 
     @classmethod
     def user_model(cls):
-        return apps.get_model(*AUTH_USER_MODEL.split("."))
+        db, name = AUTH_USER_MODEL.split(".")
+        return apps.get_model(db, name)

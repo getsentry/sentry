@@ -16,6 +16,7 @@ from sentry.models import (
     AuthIdentity,
     AuthProvider,
     OrganizationMemberMapping,
+    OrgAuthToken,
     SentryAppInstallationToken,
     User,
 )
@@ -317,6 +318,7 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
+AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
 
 

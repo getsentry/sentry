@@ -386,7 +386,7 @@ function DropdownItem({
             : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-        isGrouped={isChild}
+        isChild={isChild}
         isDisabled={isDisabled}
       >
         {children}
@@ -484,13 +484,7 @@ const Info = styled('div')`
   }
 `;
 
-const ListItem = styled('li')`
-  &:not(:first-child):not(.group-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const SearchDropdownGroup = styled(ListItem)``;
+const SearchDropdownGroup = styled('li')``;
 
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;
@@ -527,12 +521,13 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   }}
 `;
 
-const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boolean}>`
+const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: 4px ${space(2)};
 
-  min-height: ${p => (p.isGrouped ? '30px' : '36px')};
+  min-height: ${p => (p.isChild ? '30px' : '36px')};
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
 
   ${p => {
     if (!p.isDisabled) {
@@ -548,6 +543,7 @@ const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boole
 
     return '';
   }}
+
 
   display: flex;
   flex-direction: row;

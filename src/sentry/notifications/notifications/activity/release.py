@@ -47,7 +47,9 @@ class ReleaseActivityNotification(ActivityNotification):
         self.commit_list = list(Commit.objects.get_for_release(self.release))
         self.email_list = {c.author.email for c in self.commit_list if c.author}
         users = user_service.get_many_by_email(
-            emails=list(self.email_list), organization_id=self.organization.id
+            emails=list(self.email_list),
+            organization_id=self.organization.id,
+            is_verified=True,
         )
         self.user_ids = {u.id for u in users}
         self.repos = get_repos(self.commit_list, {u.email: u for u in users}, self.organization)

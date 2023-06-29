@@ -32,26 +32,26 @@ describe('getCurrentUrl', () => {
   it('should return the origin of the first url from the url array if the offset is early', () => {
     const frames = [PAGELOAD_FRAME, NAV_FRAME];
     const offsetMS = 0;
-    const url = getCurrentUrl(frames, offsetMS);
+    const url = getCurrentUrl(TestStubs.ReplayRecord(), frames, offsetMS);
 
-    expect(url).toBe('/');
+    expect(url).toBe('http://localhost:3000/');
   });
 
   it('should return the first navigation url when the offset is after that', () => {
     const frames = [PAGELOAD_FRAME, NAV_FRAME];
     const offsetMS = Number(NAVIGATION_DATE) - Number(START_DATE) + 10;
-    const url = getCurrentUrl(frames, offsetMS);
+    const url = getCurrentUrl(TestStubs.ReplayRecord(), frames, offsetMS);
 
     expect(url).toBe(
-      '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js'
+      'http://localhost:3000/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js'
     );
   });
 
-  it('should use the domain that is included in the crumb, if the crumb is a valid url', () => {
+  it('should use the domain that is included in the ReplayRecord, not the one in the frame', () => {
     const frames = [NEW_DOMAIN_FRAME];
     const offsetMS = Number(NEW_DOMAIN_DATE) - Number(START_DATE) + 10;
-    const url = getCurrentUrl(frames, offsetMS);
+    const url = getCurrentUrl(TestStubs.ReplayRecord(), frames, offsetMS);
 
-    expect(url).toBe('/report/jquery.min.js');
+    expect(url).toBe('http://localhost:3000/report/jquery.min.js');
   });
 });

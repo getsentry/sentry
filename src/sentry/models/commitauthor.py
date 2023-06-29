@@ -52,7 +52,7 @@ class CommitAuthor(Model):
 
         if self.users is not None:
             return self.users
-        users = user_service.get_many_by_email(emails=[self.email])
+        users = user_service.get_many_by_email(emails=[self.email], is_verified=True)
         org_member_user_ids = set(
             OrganizationMember.objects.filter(
                 organization_id=self.organization_id, user_id__in={u.id for u in users}

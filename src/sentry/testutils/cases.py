@@ -424,7 +424,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
@@ -495,10 +495,16 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 
 class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     pass
 
 
 class PerformanceIssueTestCase(BaseTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     def create_performance_issue(
         self,
         tags=None,
@@ -570,6 +576,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     method = "get"
 
@@ -1017,6 +1026,9 @@ class SnubaTestCase(BaseTestCase):
     Useful when you are working on acceptance tests or integration
     tests that require snuba.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     def setUp(self):
         super().setUp()
@@ -1613,6 +1625,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
+        "span.self_time": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1690,7 +1703,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     def store_span_metric(
         self,
         value: List[int] | int,
-        metric: str = "span.duration",
+        metric: str = "span.self_time",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
