@@ -85,7 +85,7 @@ def build_tag_fields(
     if tags:
         event_tags = event_for_tags.tags if event_for_tags else []
         for key, value in event_tags:
-            std_key = tagstore.get_standardized_key(key)
+            std_key = tagstore.backend.get_standardized_key(key)
             if std_key not in tags:
                 continue
 

@@ -95,7 +95,7 @@ class TagKeySerializer(Serializer):
         from sentry import tagstore
 
         output = {
-            "key": tagstore.get_standardized_key(obj.key),
+            "key": tagstore.backend.get_standardized_key(obj.key),
             "name": tagstore.get_tag_key_label(obj.key),
         }
         if obj.values_seen is not None:
@@ -113,7 +113,7 @@ class TagValueSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         from sentry import tagstore
 
-        key = tagstore.get_standardized_key(obj.key)
+        key = tagstore.backend.get_standardized_key(obj.key)
         serialized = {
             "key": key,
             "name": tagstore.get_tag_value_label(obj.key, obj.value),

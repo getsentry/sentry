@@ -41,7 +41,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                 resp = defaultdict(lambda: {"key": "", "topValues": []})
                 for row in facets:
                     values = resp[row.key]
-                    values["key"] = tagstore.get_standardized_key(row.key)
+                    values["key"] = tagstore.backend.get_standardized_key(row.key)
                     values["topValues"].append(
                         {
                             "name": tagstore.get_tag_value_label(row.key, row.value),

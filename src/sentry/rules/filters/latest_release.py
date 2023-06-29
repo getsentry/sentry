@@ -87,7 +87,7 @@ class LatestReleaseFilter(EventFilter):
         releases = (
             v.lower()
             for k, v in event.tags
-            if k.lower() == "release" or tagstore.get_standardized_key(k) == "release"
+            if k.lower() == "release" or tagstore.backend.get_standardized_key(k) == "release"
         )
 
         for release in releases:
