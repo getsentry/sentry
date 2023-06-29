@@ -478,6 +478,13 @@ class MonitorEnvironment(Model):
     def get_audit_log_data(self):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
+    def get_last_successful_checkin(self):
+        return (
+            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
+            .order_by("-date_added")
+            .first()
+        )
+
     def mark_failed(
         self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
     ):
@@ -534,6 +541,12 @@ class MonitorEnvironment(Model):
 
             occurrence_data = get_occurrence_data(reason, **occurrence_context)
 
+            # Get last successful check-in to show in evidence display
+            last_successful_checkin_timestamp = "None"
+            last_successful_checkin = self.get_last_successful_checkin()
+            if last_successful_checkin:
+                last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
+
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
@@ -551,7 +564,9 @@ class MonitorEnvironment(Model):
                     ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
-                        name="Last check-in", value=last_checkin.isoformat(), important=False
+                        name="Last successful check-in",
+                        value=last_successful_checkin_timestamp,
+                        important=False,
                     ),
                 ],
                 evidence_data={},

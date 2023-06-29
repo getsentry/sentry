@@ -13,7 +13,9 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.monitors.models import (
+    CheckInStatus,
     Monitor,
+    MonitorCheckIn,
     MonitorEnvironment,
     MonitorEnvironmentLimitsExceeded,
     MonitorFailure,
@@ -314,6 +316,13 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
 
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
+
         last_checkin = timezone.now()
         assert monitor_environment.mark_failed(last_checkin=last_checkin)
 
@@ -339,8 +348,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -391,6 +400,12 @@ class MonitorEnvironmentTestCase(TestCase):
             environment=self.environment,
             status=monitor.status,
         )
+        successful_check_in = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            status=CheckInStatus.OK,
+        )
         last_checkin = timezone.now()
         assert monitor_environment.mark_failed(
             last_checkin=last_checkin,
@@ -420,8 +435,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": successful_check_in.date_added.isoformat(),
                         "important": False,
                     },
                 ],
@@ -506,8 +521,8 @@ class MonitorEnvironmentTestCase(TestCase):
                         "important": False,
                     },
                     {
-                        "name": "Last check-in",
-                        "value": last_checkin.isoformat(),
+                        "name": "Last successful check-in",
+                        "value": "None",
                         "important": False,
                     },
                 ],
