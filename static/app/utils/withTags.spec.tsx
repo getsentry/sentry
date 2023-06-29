@@ -1,7 +1,27 @@
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import {TagCollection} from 'sentry/types';
 import withTags from 'sentry/utils/withTags';
+
+interface TestComponentProps {
+  tags: TagCollection;
+  other?: string;
+}
+
+function TestComponent({other, tags}: TestComponentProps) {
+  return (
+    <div>
+      <span>{other}</span>
+      {tags &&
+        Object.entries(tags).map(([key, tag]) => (
+          <em key={key}>
+            {tag.key} : {tag.name}
+          </em>
+        ))}
+    </div>
+  );
+}
 
 describe('withTags HoC', function () {
   beforeEach(() => {
@@ -9,28 +29,14 @@ describe('withTags HoC', function () {
   });
 
   it('works', function () {
-    function MyComponent({other, tags}) {
-      return (
-        <div>
-          <span>{other}</span>
-          {tags &&
-            Object.entries(tags).map(([key, tag]) => (
-              <em key={key}>
-                {tag.key} : {tag.name}
-              </em>
-            ))}
-        </div>
-      );
-    }
-
-    const Container = withTags(MyComponent);
+    const Container = withTags(TestComponent);
     render(<Container other="value" />);
 
     // Should forward props.
     expect(screen.getByText('value')).toBeInTheDocument();
 
     act(() => {
-      TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism', count: 1}]);
+      TagStore.loadTagsSuccess([{name: 'Mechanism', key: 'mechanism', totalValues: 1}]);
     });
 
     // Should forward prop
