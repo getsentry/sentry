@@ -5,9 +5,16 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SsoForm from 'sentry/views/auth/ssoForm';
 
 describe('SsoForm', function () {
-  const api = new MockApiClient();
+  const emptyAuthConfig = {
+    canRegister: false,
+    githubLoginLink: '',
+    googleLoginLink: '',
+    hasNewsletter: false,
+    serverHostname: '',
+    vstsLoginLink: '',
+  };
 
-  async function doSso(apiRequest) {
+  async function doSso(apiRequest: jest.Mock) {
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Organization ID'}),
       'org123'
@@ -22,10 +29,11 @@ describe('SsoForm', function () {
 
   it('renders', function () {
     const authConfig = {
+      ...emptyAuthConfig,
       serverHostname: 'testserver',
     };
 
-    render(<SsoForm api={api} authConfig={authConfig} />);
+    render(<SsoForm authConfig={authConfig} />);
 
     expect(screen.getByLabelText('Organization ID')).toBeInTheDocument();
   });
@@ -40,9 +48,7 @@ describe('SsoForm', function () {
       },
     });
 
-    const authConfig = {};
-
-    render(<SsoForm api={api} authConfig={authConfig} />);
+    render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
@@ -58,8 +64,7 @@ describe('SsoForm', function () {
       },
     });
 
-    const authConfig = {};
-    render(<SsoForm api={api} authConfig={authConfig} />);
+    render(<SsoForm authConfig={emptyAuthConfig} />);
     await doSso(mockRequest);
 
     await waitFor(() =>
