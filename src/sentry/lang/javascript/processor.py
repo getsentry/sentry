@@ -17,7 +17,7 @@ from urllib.parse import urlsplit
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from requests.utils import get_encoding_from_headers
 from symbolic.sourcemap import SourceView
 from symbolic.sourcemapcache import SourceMapCache as SmCache
@@ -190,7 +190,7 @@ def discover_sourcemap(result):
     sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
     sourcemap_url = find_sourcemap(sourcemap_header, result.body)
     sourcemap_url = (
-        force_text(non_standard_url_join(result.url, force_text(sourcemap_url)))
+        force_str(non_standard_url_join(result.url, force_str(sourcemap_url)))
         if sourcemap_url is not None
         else None
     )

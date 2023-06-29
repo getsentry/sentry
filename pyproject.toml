@@ -1467,7 +1467,6 @@ module = [
     "tests.sentry.testutils.helpers.test_features",
     "tests.sentry.tsdb.test_redissnuba",
     "tests.sentry.utils.email.test_list_resolver",
-    "tests.sentry.utils.kvstore.test_common",
     "tests.sentry.utils.locking.backends.test_redis",
     "tests.sentry.utils.suspect_resolutions.test_metric_correlation",
     "tests.sentry.utils.test_audit",
@@ -1565,7 +1564,6 @@ disable_error_code = [
     "typeddict-unknown-key",
     "union-attr",
     "unreachable",
-    "valid-type",
     "var-annotated",
 ]
 # end: sentry modules with typing issues

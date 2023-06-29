@@ -1,7 +1,7 @@
 from typing import Any, Callable, Mapping, TypeVar, Union
 
 from django.db.models import Model
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 
 from sentry.utils.hashlib import md5_text
 
@@ -29,7 +29,7 @@ def make_key(model: Any, prefix: str, kwargs: Mapping[str, Union[Model, int, str
     kwargs_bits = []
     for k, v in sorted(kwargs.items()):
         k = __prep_key(model, k)
-        v = smart_text(__prep_value(model, k, v))
+        v = smart_str(__prep_value(model, k, v))
         kwargs_bits.append(f"{k}={v}")
     kwargs_bits_str = ":".join(kwargs_bits)
 
