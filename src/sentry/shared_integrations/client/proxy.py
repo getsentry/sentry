@@ -87,13 +87,15 @@ class IntegrationProxyClient(ApiClient):
             self.proxy_url = self.base_url
 
     @control_silo_function
-    def authorize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+    def authorize_request(
+        self, prepared_request: PreparedRequest, **kwargs: Any
+    ) -> PreparedRequest:
         """
         Used in the Control Silo to authorize all outgoing requests to the service provider.
         """
         return prepared_request
 
-    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
+    def finalize_request(self, prepared_request: PreparedRequest, **kwargs: Any) -> PreparedRequest:
         """
         Every request through these subclassed clients run this method.
         If running as a monolith/control, we must authorize each request before sending.
@@ -103,7 +105,7 @@ class IntegrationProxyClient(ApiClient):
         """
 
         if not self._should_proxy_to_control or not prepared_request.url:
-            prepared_request = self.authorize_request(prepared_request=prepared_request)
+            prepared_request = self.authorize_request(prepared_request=prepared_request, **kwargs)
             return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
