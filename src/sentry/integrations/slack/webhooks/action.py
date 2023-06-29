@@ -82,7 +82,7 @@ def update_group(
     request: Request,
 ) -> Response:
     if not group.organization.has_access(user):
-        raise ApiClient.ApiError(
+        raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
 

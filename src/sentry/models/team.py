@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
 from sentry.constants import ObjectStatus

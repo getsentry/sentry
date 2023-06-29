@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, List
 
 from django.utils.datastructures import OrderedSet
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 

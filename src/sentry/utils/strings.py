@@ -8,7 +8,7 @@ import string
 import zlib
 from typing import Any, Callable, overload
 
-from django.utils.encoding import force_text, smart_text
+from django.utils.encoding import force_str, smart_str
 
 _sprintf_placeholder_re = re.compile(
     r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"
@@ -84,7 +84,7 @@ def decompress(value: str) -> bytes:
 def strip(value: str | None) -> str:
     if not value:
         return ""
-    return smart_text(value).strip()
+    return smart_str(value).strip()
 
 
 def soft_hyphenate(value: str, length: int, hyphen: str = "\u00ad") -> str:
@@ -117,7 +117,7 @@ def soft_break(value: str, length: int, process: Callable[[str], str] = lambda c
 
 def to_unicode(value: Any) -> str:
     try:
-        value = str(force_text(value))
+        value = str(force_str(value))
     except (UnicodeEncodeError, UnicodeDecodeError):
         value = "(Error decoding value)"
     except Exception:  # in some cases we get a different exception

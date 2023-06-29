@@ -1,7 +1,7 @@
 from django import forms
 from django.forms.utils import ErrorList
-from django.utils.encoding import force_text
-from django.utils.translation import ugettext_lazy as _
+from django.utils.encoding import force_str
+from django.utils.translation import gettext_lazy as _
 from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 from requests.exceptions import SSLError
 
@@ -87,7 +87,7 @@ def process_metadata(form_cls, request, helper):
     saml_form = SAMLForm(data)
     if not saml_form.is_valid():
         field_errors = [
-            "{}: {}".format(k, ", ".join(force_text(i) for i in v))
+            "{}: {}".format(k, ", ".join(force_str(i) for i in v))
             for k, v in saml_form.errors.items()
         ]
         error_list = ", ".join(field_errors)
