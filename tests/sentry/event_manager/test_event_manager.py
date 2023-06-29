@@ -1279,7 +1279,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             event.project.organization_id, "totally unique environment"
         ).id
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
@@ -1287,7 +1287,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"referrer": "r", "organization_id": 123},
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,
@@ -1295,7 +1295,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.project.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             (event.group.id,),
             event.datetime,
@@ -1304,7 +1304,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             tenant_ids={"organization_id": 123, "referrer": "r"},
         ) == {event.group.id: 1}
 
-        assert tsdb.get_distinct_counts_totals(
+        assert tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_project,
             (event.project.id,),
             event.datetime,

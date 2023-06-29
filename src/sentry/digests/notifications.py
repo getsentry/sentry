@@ -91,7 +91,7 @@ def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any
             end,
             tenant_ids=tenant_ids,
         ),
-        "user_counts": tsdb.get_distinct_counts_totals(
+        "user_counts": tsdb.backend.get_distinct_counts_totals(
             TSDBModel.users_affected_by_group,
             list(groups.keys()),
             start,
