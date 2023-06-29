@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
 import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
-export const WidgetContainer = styled(Panel)`
-  height: 340px;
+export const WidgetContainer = styled(Panel)<{height?: string}>`
+  ${p => defined(p.height) && `height: ${p.height};`}
   display: flex;
   flex-direction: column;
   padding-top: ${space(2)};

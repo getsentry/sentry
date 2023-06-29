@@ -24,7 +24,7 @@ describe('SlowestFunctionsWidget', function () {
       statusCode: 400,
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('SlowestFunctionsWidget', function () {
       ],
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -160,7 +160,7 @@ describe('SlowestFunctionsWidget', function () {
       ],
     });
 
-    render(<SlowestFunctionsWidget />);
+    render(<SlowestFunctionsWidget widgetHeight="100px" />);
 
     // starts by rendering loading
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
