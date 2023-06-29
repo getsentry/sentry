@@ -133,7 +133,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         else:
             ratelimit_key = f"{monitor.id}:{env_rate_limit_key}"
 
-        if ratelimits.is_limited(
+        if ratelimits.backend.is_limited(
             f"monitor-checkins:{ratelimit_key}",
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,

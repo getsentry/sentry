@@ -749,7 +749,6 @@ module = [
     "sentry.monitors.endpoints.base",
     "sentry.monitors.endpoints.monitor_ingest_checkin_attachment",
     "sentry.monitors.endpoints.monitor_ingest_checkin_details",
-    "sentry.monitors.endpoints.monitor_ingest_checkin_index",
     "sentry.monitors.endpoints.organization_monitor_checkin_attachment",
     "sentry.monitors.endpoints.organization_monitor_details",
     "sentry.monitors.endpoints.organization_monitor_index",

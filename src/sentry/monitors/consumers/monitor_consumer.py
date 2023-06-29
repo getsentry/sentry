@@ -127,7 +127,7 @@ def _process_message(wrapper: Dict) -> None:
         "source_sdk": source_sdk,
     }
 
-    if ratelimits.is_limited(
+    if ratelimits.backend.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
         window=CHECKIN_QUOTA_WINDOW,

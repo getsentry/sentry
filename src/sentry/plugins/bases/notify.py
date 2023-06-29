@@ -148,7 +148,9 @@ class NotificationPlugin(Plugin):
         return self.get_notification_recipients(project, f"{self.get_conf_key()}:alert")
 
     def __is_rate_limited(self, group, event):
-        return ratelimits.is_limited(project=group.project, key=self.get_conf_key(), limit=10)
+        return ratelimits.backend.is_limited(
+            project=group.project, key=self.get_conf_key(), limit=10
+        )
 
     def is_configured(self, project):
         raise NotImplementedError

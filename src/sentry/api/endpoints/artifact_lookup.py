@@ -52,7 +52,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             raise Http404
         ty, ty_id = split
 
-        rate_limited = ratelimits.is_limited(
+        rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:ArtifactLookupEndpoint:download:{download_id}:{project.id}",
             limit=10,
