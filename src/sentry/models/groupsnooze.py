@@ -95,7 +95,7 @@ class GroupSnooze(Model):
         end = timezone.now()
         start = end - timedelta(minutes=self.window)
 
-        rate = tsdb.get_sums(
+        rate = tsdb.backend.get_sums(
             model=get_issue_tsdb_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
