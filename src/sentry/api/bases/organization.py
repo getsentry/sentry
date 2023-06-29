@@ -219,8 +219,6 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
         bind_organization_context(organization_context.organization)
 
-        # request._request.organization = organization
-
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
         # Never track any org (regardless of whether the user does or doesn't have

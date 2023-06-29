@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +9,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -20,7 +21,13 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        integration_id: int,
+        **kwds: Any,
+    ) -> Response:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````
@@ -31,14 +38,14 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization.id, integration_id)
+        integration = self.get_integration(organization_context.organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}
             return self.respond(context)
 
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization_context.organization.id
         )
 
         if isinstance(install, RepositoryMixin):

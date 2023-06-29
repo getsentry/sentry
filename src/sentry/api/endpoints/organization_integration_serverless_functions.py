@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -7,6 +9,7 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -19,14 +22,20 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        integration_id: int,
+        **kwds: Any,
+    ) -> Response:
         """
         Get the list of repository project path configs in an integration
         """
-        integration = self.get_integration(organization.id, integration_id)
+        integration = self.get_integration(organization_context.organization.id, integration_id)
 
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization_context.organization.id
         )
 
         if not isinstance(install, ServerlessMixin):
@@ -39,10 +48,16 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
 
         return self.respond(serverless_functions)
 
-    def post(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization.id, integration_id)
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        integration_id: int,
+        **kwds: Any,
+    ) -> Response:
+        integration = self.get_integration(organization_context.organization.id, integration_id)
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization.id
+            integration=integration, organization_id=organization_context.organization.id
         )
 
         if not isinstance(install, ServerlessMixin):
