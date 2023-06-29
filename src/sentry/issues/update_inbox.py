@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from sentry import features
 from sentry.issues.ongoing import transition_group_to_ongoing
-from sentry.models import Group, Project, User
+from sentry.models import Group, GroupStatus, Project, User
 from sentry.models.groupinbox import (
     GroupInboxReason,
     GroupInboxRemoveAction,
@@ -12,7 +12,7 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.signals import issue_mark_reviewed
-from sentry.types.group import GroupStatus, GroupSubStatus
+from sentry.types.group import GroupSubStatus
 
 
 def update_inbox(
@@ -36,9 +36,10 @@ def update_inbox(
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
     elif not in_inbox:
         has_escalating = features.has(
-            "organizations:escalating-issues", group.project.organization, actor=acting_user
+            "organizations:escalating-issues", group_list[0].project.organization, actor=acting_user
         )
         for group in group_list:
+            # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
                 group,
                 action=GroupInboxRemoveAction.MARK_REVIEWED,
@@ -51,7 +52,7 @@ def update_inbox(
                 and group.status == GroupStatus.UNRESOLVED
             ):
                 transition_group_to_ongoing(
-                    GroupStatus.UNRESOLVED,
+                    group.status,
                     group.substatus,
                     group,
                     activity_data={"manually": True},

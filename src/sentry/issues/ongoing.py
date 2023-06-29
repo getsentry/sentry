@@ -5,9 +5,7 @@ from django.db.models.signals import post_save
 from sentry.models import (
     Activity,
     Group,
-    GroupInboxReason,
     GroupStatus,
-    add_group_to_inbox,
     record_group_history_from_activity_type,
     remove_group_from_inbox,
 )
@@ -36,8 +34,6 @@ def transition_group_to_ongoing(
         )
 
         remove_group_from_inbox(group)
-
-        add_group_to_inbox(group, GroupInboxReason.ONGOING)
 
         Activity.objects.create_group_activity(
             group, ActivityType.AUTO_SET_ONGOING, data=activity_data, send_notification=False
