@@ -49,19 +49,15 @@ export function SpanGroupBreakdown({
     visibleSeries.push(series);
   }
 
-  // Skip these calculations if the feature flag is not enabled
-  let dataAsPercentages;
-  if (hasDropdownFeatureFlag) {
-    dataAsPercentages = cloneDeep(visibleSeries);
-    const numDataPoints = data[0]?.data?.length ?? 0;
-    for (let i = 0; i < numDataPoints; i++) {
-      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
-      dataAsPercentages.forEach(segment => {
-        const clone = {...segment.data[i]};
-        clone.value = clone.value / totalTimeAtIndex;
-        segment.data[i] = clone;
-      });
-    }
+  const dataAsPercentages = cloneDeep(visibleSeries);
+  const numDataPoints = data[0]?.data?.length ?? 0;
+  for (let i = 0; i < numDataPoints; i++) {
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    dataAsPercentages.forEach(segment => {
+      const clone = {...segment.data[i]};
+      clone.value = clone.value / totalTimeAtIndex;
+      segment.data[i] = clone;
+    });
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) =>
