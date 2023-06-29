@@ -1,6 +1,7 @@
 from datetime import timedelta
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 import pytest
@@ -8,7 +9,6 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlquote
 
 from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface

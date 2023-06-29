@@ -1,7 +1,7 @@
 from functools import cached_property
+from urllib.parse import quote as urlquote
 
 from django.urls import reverse
-from django.utils.http import urlquote
 
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test

@@ -1,10 +1,10 @@
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 
 from sentry.auth.authenticators import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface

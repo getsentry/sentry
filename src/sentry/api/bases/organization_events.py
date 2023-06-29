@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.utils import timezone
-from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
