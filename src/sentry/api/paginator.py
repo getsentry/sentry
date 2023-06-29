@@ -642,7 +642,6 @@ class CombinedQuerysetPaginator:
             cursor = Cursor(0, 0, 0)
 
         limit = min(limit, MAX_LIMIT)
-        # extra = 1
 
         combined_querysets = self._build_combined_querysets(cursor.is_prev)
 
