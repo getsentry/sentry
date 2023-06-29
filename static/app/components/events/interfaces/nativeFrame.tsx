@@ -344,7 +344,6 @@ export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-
 
 const AddressCellWrapper = styled('div')`
   display: flex;
-  justify-content: center;
 `;
 
 const AddressCell = styled('div')`
