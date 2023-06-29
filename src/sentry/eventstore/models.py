@@ -814,8 +814,6 @@ class EventSubjectTemplateData:
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title
-            elif self.event.group and self.event.group.issue_category == GroupCategory.PERFORMANCE:
-                return self.event.group.issue_type.description
             else:
                 return self.event.title
 

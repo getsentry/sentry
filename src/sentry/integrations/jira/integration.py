@@ -19,7 +19,6 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -329,19 +328,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def get_performance_issue_body(self, event):
-        (
-            transaction_name,
-            parent_span,
-            num_repeating_spans,
-            repeating_spans,
-        ) = self.get_performance_issue_description_data(event)
-
-        body = f"| *Transaction Name* | {truncatechars(transaction_name, MAX_CHAR)} |\n"
-        body += f"| *Parent Span* | {truncatechars(parent_span, MAX_CHAR)} |\n"
-        body += f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, MAX_CHAR)} |"
-        return body
-
     def get_generic_issue_body(self, event):
         body = ""
         important = event.occurrence.important_evidence_display
@@ -362,9 +348,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = self.get_generic_issue_body(event)
-            output.extend([body])
-        elif group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.get_performance_issue_body(event)
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
