@@ -37,7 +37,47 @@ EVENT_DATA_ALLOWLIST = {
         "version": Allow.SIMPLE_TYPE,
         "integrations": Allow.NEVER.with_explanation("Users can add their own integrations."),
     },
-    "exception": Allow.ALL.with_explanation("We strip the exception data separately."),
+    "exception": {
+        "values": {
+            "stacktrace": {
+                "frames": {
+                    "filename": Allow.SIMPLE_TYPE,
+                    "function": Allow.SIMPLE_TYPE,
+                    "raw_function": Allow.SIMPLE_TYPE,
+                    "module": Allow.SIMPLE_TYPE,
+                    "abs_path": Allow.SIMPLE_TYPE,
+                    "in_app": Allow.SIMPLE_TYPE,
+                    "instruction_addr": Allow.SIMPLE_TYPE,
+                    "addr_mode": Allow.SIMPLE_TYPE,
+                    "symbol": Allow.SIMPLE_TYPE,
+                    "symbol_addr": Allow.SIMPLE_TYPE,
+                    "image_addr": Allow.SIMPLE_TYPE,
+                    "package": Allow.SIMPLE_TYPE,
+                    "platform": Allow.SIMPLE_TYPE,
+                }
+            },
+            "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
+            "type": Allow.SIMPLE_TYPE,
+            "mechanism": {
+                "handled": Allow.SIMPLE_TYPE,
+                "type": Allow.SIMPLE_TYPE,
+                "meta": {
+                    "signal": {
+                        "number": Allow.SIMPLE_TYPE,
+                        "code": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                        "code_name": Allow.SIMPLE_TYPE,
+                    },
+                    "mach_exception": {
+                        "exception": Allow.SIMPLE_TYPE,
+                        "code": Allow.SIMPLE_TYPE,
+                        "subcode": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                    },
+                },
+            },
+        }
+    },
     "debug_meta": Allow.ALL,
     "contexts": {
         "device": {
@@ -106,6 +146,10 @@ def _strip_event_data_with_allowlist(
             stripped_data[data_key] = _strip_event_data_with_allowlist(
                 data_value, allowlist_for_data
             )
+        elif isinstance(data_value, Sequence):
+            stripped_data[data_key] = [
+                _strip_event_data_with_allowlist(item, allowlist_for_data) for item in data_value
+            ]
 
     return stripped_data
 

@@ -44,7 +44,7 @@ class SDKCrashDetection:
         # Getting the frames and checking if the event is unhandled might different per platform.
         # We will change this once we implement this for more platforms.
         is_unhandled = (
-            get_path(event.data, "exception", "values", -1, "mechanism", "data", "handled") is False
+            get_path(event.data, "exception", "values", -1, "mechanism", "handled") is False
         )
         if is_unhandled is False:
             return None
