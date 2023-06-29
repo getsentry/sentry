@@ -91,12 +91,20 @@ export const fields: Record<string, Field> = {
   },
 
   // TODO(recap): Move this to a separate page or debug files one, not general settings
-  recapServer: {
-    name: 'recapServer',
+  recapServerUrl: {
+    name: 'recapServerUrl',
     type: 'string',
     placeholder: t('URL'),
     label: t('Recap Server URL'),
     help: t('URL to the Recap Server events should be polled from'),
+  },
+
+  recapServerToken: {
+    name: 'recapServerToken',
+    type: 'string',
+    placeholder: t('Token'),
+    label: t('Recap Server Token'),
+    help: t('Auth Token to the configured Recap Server'),
   },
 
   subjectPrefix: {

@@ -5,8 +5,9 @@ import responses
 
 from sentry import eventstore
 from sentry.tasks.recap_servers import (
-    RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY,
-    RECAP_SERVER_OPTION_KEY,
+    RECAP_SERVER_LATEST_ID,
+    RECAP_SERVER_TOKEN_OPTION,
+    RECAP_SERVER_URL_OPTION,
     poll_project_recap_server,
     poll_recap_servers,
 )
@@ -72,7 +73,7 @@ class RecapServersTest(TestCase):
         self,
         poll_project_recap_server,
     ):
-        self.project.update_option(RECAP_SERVER_OPTION_KEY, "http://example.com")
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
 
         poll_recap_servers()
 
@@ -82,9 +83,9 @@ class RecapServersTest(TestCase):
     @patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     @pytest.mark.django_db
     def test_poll_recap_servers_multiple_projects(self, poll_project_recap_server):
-        self.project.update_option(RECAP_SERVER_OPTION_KEY, "http://example.com")
-        self.project_dos.update_option(RECAP_SERVER_OPTION_KEY, "http://example-dos.com")
-        self.project_tres.update_option(RECAP_SERVER_OPTION_KEY, "http://example-tres.com")
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        self.project_dos.update_option(RECAP_SERVER_URL_OPTION, "http://example-dos.com")
+        self.project_tres.update_option(RECAP_SERVER_URL_OPTION, "http://example-tres.com")
 
         poll_recap_servers()
 
@@ -122,14 +123,14 @@ class RecapServersTest(TestCase):
             content_type="application/json",
         )
 
-        self.project.update_option(RECAP_SERVER_OPTION_KEY, "http://example.com")
-        assert self.project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY) is None
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        assert self.project.get_option(RECAP_SERVER_LATEST_ID) is None
 
         poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
         assert store_crash.call_count == 3
-        assert self.project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY) == 1337
+        assert self.project.get_option(RECAP_SERVER_LATEST_ID) == 1337
 
     @pytest.mark.django_db
     @patch("sentry.tasks.recap_servers.store_crash")
@@ -150,14 +151,32 @@ class RecapServersTest(TestCase):
             body=json.dumps(payload),
             content_type="application/json",
         )
-        self.project.update_option(RECAP_SERVER_OPTION_KEY, "http://example.com")
-        self.project.update_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY, 8)
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        self.project.update_option(RECAP_SERVER_LATEST_ID, 8)
 
         poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
         assert store_crash.call_count == 2
-        assert self.project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY) == 1337
+        assert self.project.get_option(RECAP_SERVER_LATEST_ID) == 1337
+
+    @pytest.mark.django_db
+    @patch("sentry.tasks.recap_servers.store_crash")
+    @responses.activate
+    def test_poll_project_recap_server_auth_token_header(self, store_crash):
+        outgoing_recap_request = responses.get(
+            url="http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000",
+            body=json.dumps({"results": 0}),
+            content_type="application/json",
+            match=[responses.matchers.header_matcher({"Authorization": "Bearer mkey"})],
+        )
+
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        self.project.update_option(RECAP_SERVER_TOKEN_OPTION, "mkey")
+
+        poll_project_recap_server(self.project.id)
+
+        assert outgoing_recap_request.call_count == 1
 
     @pytest.mark.django_db
     @responses.activate
@@ -171,7 +190,7 @@ class RecapServersTest(TestCase):
             body=json.dumps(payload),
             content_type="application/json",
         )
-        self.project.update_option(RECAP_SERVER_OPTION_KEY, "http://example.com")
+        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
 
         poll_project_recap_server(self.project.id)
 

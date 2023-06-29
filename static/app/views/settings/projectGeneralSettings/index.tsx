@@ -307,7 +307,12 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             {...jsonFormProps}
             title={t('Project Details')}
             // TODO(recap): Move this to a separate page or debug files one, not general settings
-            fields={[fields.name, fields.platform, fields.recapServer]}
+            fields={[
+              fields.name,
+              fields.platform,
+              fields.recapServerUrl,
+              fields.recapServerToken,
+            ]}
           />
 
           <JsonForm

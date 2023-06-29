@@ -17,15 +17,16 @@ from sentry.utils.safe import safe_execute
 # If that changes in the future, we should add a timing metrics to the task below and make sure to add
 # appropriate alerts for Sentry in case the transaction's duration takes significant time (~>30s).
 
-# NOTE: Should we restore `RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY` to 0 when recap server url changes?
+# NOTE: Should we restore `RECAP_SERVER_LATEST_ID` to 0 when recap server url changes?
 # Preferably we'd keep track of server_identity<->latest_id mappings in the future.
 
 # NOTE: Instead of using "legacy" `eventstore`, we can think about going through Relay, using project_key
 # (see: sentry/utils/sdk.py) and mimick sending data as a regular SDK event payload.
 
 
-RECAP_SERVER_OPTION_KEY = "sentry:recap_server"
-RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY = "sentry:recap_server_poll_id"
+RECAP_SERVER_URL_OPTION = "sentry:recap_server_url"
+RECAP_SERVER_TOKEN_OPTION = "sentry:recap_server_auth_token"
+RECAP_SERVER_LATEST_ID = "sentry:recap_server_poll_id"
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 )
 def poll_recap_servers(**kwargs):
     project_ids = (
-        ProjectOption.objects.filter(key=RECAP_SERVER_OPTION_KEY)
+        ProjectOption.objects.filter(key=RECAP_SERVER_URL_OPTION)
         .exclude(value__isnull=True)
         .values_list("project_id", flat=True)
     )
@@ -57,16 +58,16 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         logger.warning("Polled project do not exist", extra={"project_id": project_id})
         return
 
-    recap_server = project.get_option(RECAP_SERVER_OPTION_KEY)
+    recap_server_url = project.get_option(RECAP_SERVER_URL_OPTION)
     # Just a guard in case someone removes recap url in the exact moment we trigger polling task
-    if recap_server is None:
+    if recap_server_url is None:
         logger.warning(
             "Polled project has no recap server url configured", extra={"project": project}
         )
         return
 
-    latest_id = project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY, 0)
-    url = recap_server.strip().rstrip("/") + "/rest/v1/crashes;sort=id:ascending"
+    latest_id = project.get_option(RECAP_SERVER_LATEST_ID, 0)
+    url = recap_server_url.strip().rstrip("/") + "/rest/v1/crashes;sort=id:ascending"
 
     # For initial query, we limit number of crashes to 1_000 items, which is the default of Recap Server,
     # and for all following requests, we do not limit the number, as it's already capped at 10_000 by the server.
@@ -79,7 +80,14 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         # Exclusive bounds range - {N TO *}
         url = url + urllib.parse.quote(f";q=id:{{{latest_id} TO *}}", safe=";=:")
 
-    result = http.fetch_file(url, headers={"Accept": "*/*"}, verify_ssl=False)
+    headers = {
+        "Accept": "application/vnd.scea.recap.crashes+json; version=1",
+    }
+    access_token = project.get_option(RECAP_SERVER_TOKEN_OPTION, None)
+    if access_token is not None:
+        headers["Authorization"] = f"Bearer {access_token}"
+
+    result = http.fetch_file(url, headers=headers)
 
     try:
         crashes = json.loads(result.body)
@@ -104,7 +112,7 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         latest_id = max(latest_id, crash["id"])
         store_crash(crash, project, url)
 
-    project.update_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY, latest_id)
+    project.update_option(RECAP_SERVER_LATEST_ID, latest_id)
 
 
 def store_crash(crash, project: Project, url: str) -> None:
