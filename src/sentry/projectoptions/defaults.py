@@ -92,6 +92,9 @@ register(
     },
 )
 
+# NOTE: this is the HealthCheck filter, the name should match Relay reason (which is filtered-transaction)
+register(key="filters:filtered-transaction", default="1")
+
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})

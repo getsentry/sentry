@@ -690,6 +690,10 @@ def profiles_consumer(**options):
     "--synchronize-commit-group",
     help="Consumer group that the Snuba writer is committing its offset as.",
 )
+@click.option(
+    "--healthcheck-file-path",
+    help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
 @strict_offset_reset_option()
 @configuration
 def basic_consumer(consumer_name, consumer_args, topic, **options):
@@ -752,6 +756,7 @@ def dev_consumer(consumer_names):
             max_poll_interval_ms=None,
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
+            healthcheck_file_path=None,
         )
         for consumer_name in consumer_names
     ]

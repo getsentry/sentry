@@ -372,13 +372,11 @@ def test_transaction_clusterer_generates_rules(default_project):
             {
                 "pattern": "/rule/*/0/**",
                 "expiry": "1970-04-01T00:00:00Z",
-                "scope": {"source": "url"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },
             {
                 "pattern": "/rule/*/1/**",
                 "expiry": "1970-04-01T00:00:01Z",
-                "scope": {"source": "url"},
                 "redaction": {"method": "replace", "substitution": "*"},
             },
         ]
