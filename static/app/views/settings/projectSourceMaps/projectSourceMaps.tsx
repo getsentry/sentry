@@ -59,15 +59,17 @@ function SourceMapsTableRow({
 }: {
   bundleType: SourceMapsBundleType;
   date: string;
-  dateModified: string | null;
   fileCount: number;
   link: string;
   name: string;
   onDelete: (name: string) => void;
+  dateModified?: string;
   idColumnDetails?: React.ReactNode;
 }) {
   const isEmptyReleaseBundle =
     bundleType === SourceMapsBundleType.RELEASE && fileCount === -1;
+  const showDateModified =
+    bundleType === SourceMapsBundleType.DEBUG_ID && dateModified !== undefined;
 
   return (
     <Fragment>
@@ -89,7 +91,7 @@ function SourceMapsTableRow({
           <Count value={fileCount} />
         )}
       </ArtifactsTotalColumn>
-      {bundleType === SourceMapsBundleType.DEBUG_ID && dateModified !== null && (
+      {showDateModified && (
         <Column>
           <DateTime date={dateModified} timeZone />
         </Column>
@@ -444,7 +446,6 @@ export function ProjectSourceMaps({location, router, project}: Props) {
               <SourceMapsTableRow
                 key={data.name}
                 bundleType={SourceMapsBundleType.RELEASE}
-                dateModified={null}
                 date={data.date}
                 fileCount={data.fileCount}
                 name={data.name}
