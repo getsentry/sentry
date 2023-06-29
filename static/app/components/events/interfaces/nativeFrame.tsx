@@ -273,7 +273,7 @@ function NativeFrame({
             ) : (
               `<${t('unknown')}>`
             )}
-            &nbsp;
+            {' '}
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
