@@ -32,7 +32,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
 
             function_matchers = ["*sentrycrash*", "**[[]Sentry*"]
             for matcher in function_matchers:
-                if glob_match(frame.get("function"), matcher, ignorecase=True):
+                if glob_match(function, matcher, ignorecase=True):
                     return True
 
         filename = frame.get("filename")
