@@ -57,7 +57,7 @@ class FlyOAuth2Provider(OAuth2Provider):
             # TODO: determine which org to configure SSO for
             org = data["user"]["organizations"][0]
 
-        return {"org": {id: cast(Dict, org).get("id")}}
+        return {"org": {"id": cast(Dict, org).get("id")}}
 
     def build_identity(self, state):
         """
