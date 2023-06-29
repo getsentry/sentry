@@ -141,10 +141,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   handleThresholdsReset = () => {
     const {projectId} = this.props.params;
-    const {organization} = this.props;
+    const {organization, project} = this.props;
 
     this.setState({
       loading: true,
+    });
+
+    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+      organization,
+      project_slug: project.slug,
     });
 
     this.api.request(
@@ -532,6 +537,19 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
               saveOnBlur
+              onSubmitSuccess={(option: {[key: string]: number}) => {
+                const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+                trackAnalytics(
+                  'performance_views.project_issue_detection_threshold_changed',
+                  {
+                    organization,
+                    project_slug: project.slug,
+                    threshold_key,
+                    threshold_value,
+                  }
+                );
+              }}
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (

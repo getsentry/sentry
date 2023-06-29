@@ -1,4 +1,5 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization} from 'sentry/types';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;
@@ -91,6 +92,16 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
+  'performance_views.project_issue_detection_threshold_changed': {
+    organization: Organization;
+    project_slug: string;
+    threshold_key: string;
+    threshold_value: number;
+  };
+  'performance_views.project_issue_detection_thresholds_reset': {
+    organization: Organization;
+    project_slug: string;
+  };
   'performance_views.project_transaction_threshold.change': {
     from: string;
     key: string;
@@ -239,6 +250,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.project_transaction_threshold.change':
     'Project Transaction Threshold: Changed',
+  'performance_views.project_issue_detection_threshold_changed':
+    'Performance Views: Changed detector threshold of an issue for a project',
+  'performance_views.project_issue_detection_thresholds_reset':
+    'Performance Views: Reset the detector thresholds of an issue for a project',
   'performance_views.project_transaction_threshold.clear':
     'Project Transaction Threshold: Cleared',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
