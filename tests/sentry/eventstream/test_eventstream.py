@@ -239,6 +239,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             "primary_hash": "acbd18db4cc2f85cedef654fccc4a4d8",
             "skip_consume": False,
             "received_timestamp": event.data["received"],
+            "group_states": [],
         }
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
