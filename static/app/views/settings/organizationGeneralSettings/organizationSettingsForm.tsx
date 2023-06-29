@@ -125,7 +125,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
             </Link>
           </Fragment>
         ),
-        disabled: hasGithubIntegration,
+        disabled: !hasGithubIntegration,
         disabledReason: (
           <Fragment>
             {t('You must have a GitHub integration to enable this feature.')}
