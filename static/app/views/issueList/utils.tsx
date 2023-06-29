@@ -100,15 +100,6 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.ONGOING,
-      {
-        name: t('Ongoing'),
-        analyticsName: 'ongoing',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
       Query.ARCHIVED,
       {
         name: t('Archived'),
