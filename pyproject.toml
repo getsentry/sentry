@@ -591,7 +591,6 @@ module = [
     "sentry.integrations.slack.actions.form",
     "sentry.integrations.slack.client",
     "sentry.integrations.slack.integration",
-    "sentry.integrations.slack.message_builder.base.base",
     "sentry.integrations.slack.message_builder.issues",
     "sentry.integrations.slack.message_builder.metric_alerts",
     "sentry.integrations.slack.message_builder.notifications.digest",
