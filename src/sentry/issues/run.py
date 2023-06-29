@@ -54,11 +54,9 @@ def create_ingest_occurences_consumer(
     input_block_size: int,
     output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
-    from sentry.utils.batching_kafka_consumer import create_topics
     from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
     kafka_cluster = get_topic_definition(topic_name)["cluster"]
-    create_topics(kafka_cluster, [topic_name])
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
