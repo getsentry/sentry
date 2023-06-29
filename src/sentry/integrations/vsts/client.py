@@ -179,7 +179,7 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
     def create_work_item(
         self,
         instance: str,
-        project: "Project",
+        project: Project,
         item_type: Optional[str] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
