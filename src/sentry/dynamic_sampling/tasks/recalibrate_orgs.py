@@ -1,8 +1,7 @@
 import time
-from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Generator, List
+from typing import Generator, List
 
 from snuba_sdk import (
     Column,
@@ -31,8 +30,8 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_factor,
 )
 from sentry.dynamic_sampling.tasks.logging import (
+    log_recalibrate_org_error,
     log_recalibrate_org_state,
-    log_recalibrate_orgs_errors,
     log_sample_rate_source,
 )
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
@@ -79,17 +78,12 @@ class OrganizationDataVolume:
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    errors: Dict[str, List[str]] = defaultdict(list)
-
     for orgs in get_active_orgs(1000):
         for org_volume in fetch_org_volumes(orgs):
             try:
                 recalibrate_org(org_volume)
             except RecalibrationError as e:
-                errors[str(org_volume.org_id)].append(e.message)
-
-    if errors:
-        log_recalibrate_orgs_errors(errors=errors)
+                log_recalibrate_org_error(org_volume.org_id, e.message)
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume) -> None:

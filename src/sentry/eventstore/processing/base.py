@@ -5,6 +5,7 @@ import sentry_sdk
 
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kvstore.abstract import KVStorage
+from sentry.utils.services import Service
 
 DEFAULT_TIMEOUT = 60 * 60 * 24
 
@@ -12,7 +13,7 @@ DEFAULT_TIMEOUT = 60 * 60 * 24
 Event = Any
 
 
-class EventProcessingStore:
+class EventProcessingStore(Service):
     """
     Store for event blobs during processing
 

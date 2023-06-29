@@ -15,6 +15,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {IssueCategory, NewQuery} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
@@ -27,8 +28,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
-import {ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
-import Chart from 'sentry/views/starfish/components/chart';
+import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
+import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
@@ -38,8 +39,7 @@ import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import IssuesTable from 'sentry/views/starfish/views/webServiceView/endpointOverview/issuesTable';
-import {ServiceDurationChartContainer} from 'sentry/views/starfish/views/webServiceView/serviceDurationChartContainer';
-import {ServiceTimeSpentBreakdown} from 'sentry/views/starfish/views/webServiceView/serviceTimeSpentBreakdown';
+import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const SPANS_TABLE_LIMIT = 5;
 
@@ -121,7 +121,7 @@ export default function EndpointOverview() {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()']}
+        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -130,8 +130,49 @@ export default function EndpointOverview() {
           }
           // Force label to be Requests
           const throughputResults = {seriesName: 'Requests', data: results[0].data};
+          const percentileData: Series = {
+            seriesName: t('Requests'),
+            data: results[2].data,
+          };
           return (
             <Fragment>
+              <Header>
+                <ChartLabel>{DataTitles.p95}</ChartLabel>
+              </Header>
+              <ChartSummaryValue
+                isLoading={isTotalsLoading}
+                value={
+                  defined(totals)
+                    ? t(
+                        '%sms',
+                        (totals.data[0]['p95(transaction.duration)'] as number).toFixed(2)
+                      )
+                    : undefined
+                }
+              />
+              <Chart
+                statsPeriod={eventView.statsPeriod}
+                height={80}
+                data={[percentileData]}
+                start={eventView.start as string}
+                end={eventView.end as string}
+                loading={loading}
+                utc={false}
+                grid={{
+                  left: '8px',
+                  right: '0',
+                  top: '8px',
+                  bottom: '0',
+                }}
+                disableXAxis
+                definedAxisTicks={2}
+                isLineChart
+                chartColors={[P95_COLOR]}
+                tooltipFormatterOptions={{
+                  valueFormatter: value =>
+                    tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                }}
+              />
               <Header>
                 <ChartLabel>{DataTitles.throughput}</ChartLabel>
               </Header>
@@ -200,10 +241,6 @@ export default function EndpointOverview() {
                 chartColors={[ERRORS_COLOR]}
               />
               <SidebarSpacer />
-              <ServiceTimeSpentBreakdown
-                transaction={transaction}
-                transactionMethod={method}
-              />
             </Fragment>
           );
         }}
@@ -225,6 +262,8 @@ export default function EndpointOverview() {
     });
   };
 
+  useSynchronizeCharts();
+
   return (
     <StarfishPageFilterContainer>
       <Layout.Page>
@@ -233,7 +272,7 @@ export default function EndpointOverview() {
             <Breadcrumbs
               crumbs={[
                 {
-                  label: t('Starfish'),
+                  label: t('Web Service'),
                   to: normalizeUrl(`/organizations/${organization.slug}/starfish/`),
                 },
                 {
@@ -254,9 +293,9 @@ export default function EndpointOverview() {
 
           <Layout.Main>
             <StyledRow minSize={200}>
-              <ServiceDurationChartContainer
+              <SpanGroupBreakdownContainer
                 transaction={transaction as string}
-                transactionMethod={method}
+                // transactionMethod={method}
               />
             </StyledRow>
             <SegmentedControlContainer>
