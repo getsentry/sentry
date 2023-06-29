@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Any, Mapping, Sequence
 
 
 class SDKCrashDetector(ABC):
     @abstractmethod
-    def is_sdk_crash(self) -> bool:
+    def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
         Returns true if the stacktrace stems from an SDK crash.
 
@@ -12,5 +13,5 @@ class SDKCrashDetector(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def is_sdk_frame(self) -> bool:
+    def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
         raise NotImplementedError
