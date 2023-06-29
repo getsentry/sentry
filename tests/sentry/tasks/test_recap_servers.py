@@ -17,6 +17,7 @@ crash_payload = {
     "_links": {
         "self": {"href": "ApiBaseUrl/burp/137?field=stopReason"},
         "files": {"href": "ApiBaseUrl/burp/137/files", "custom": True},
+        "password": "should_be_redacted",
     },
     "stopReason": "SEGFAULT",
     "detailedStackTrace": [
@@ -136,10 +137,9 @@ class RecapServersTest(TestCase):
     @responses.activate
     def test_poll_project_recap_server_following_request(self, store_crash):
         payload = {
-            "results": 3,
+            "results": 2,
             "_embedded": {
                 "crash": [
-                    {"id": 1},
                     {"id": 1337},
                     {"id": 42},
                 ]
@@ -158,7 +158,7 @@ class RecapServersTest(TestCase):
         poll_project_recap_server(self.project.id)
 
         assert outgoing_recap_request.call_count == 1
-        assert store_crash.call_count == 3
+        assert store_crash.call_count == 2
         assert self.project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY) == 1337
 
     @pytest.mark.django_db
@@ -185,6 +185,11 @@ class RecapServersTest(TestCase):
         events_tags = [event.tags for event in events]
 
         # TODO(recap): Add more assetions on `event.data` when the time comes
+
+        # Make sure that event went though the normalization and pii scrubbing process
+        assert events[0].data["contexts"]["_links"]["password"] == "[Filtered]"
+        assert events[1].data["contexts"]["_links"]["password"] == "[Filtered]"
+
         assert [
             ("crash_id", "42"),
             ("level", "error"),

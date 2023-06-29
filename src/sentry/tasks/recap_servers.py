@@ -83,7 +83,7 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
             raise json.JSONDecodeError
     except json.JSONDecodeError as exc:
         logger.exception(
-            "Polled project endpoint responded with with json",
+            "Polled project endpoint did not responded with valid json",
             exc_info=exc,
             extra={project: project, url: url},
         )
@@ -151,7 +151,6 @@ def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any
         "contexts": {
             "_links": crash["_links"],
             # "detailedStackTrace": detailed_st,
-            "user": {"password": "should_be_redacted"},
         },
         "tags": {"url": url, "crash_id": crash["id"]},
     }
