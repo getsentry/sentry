@@ -1,7 +1,9 @@
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
+from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition
 from typing_extensions import NotRequired
 
 from sentry import features
@@ -14,6 +16,9 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +110,33 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
+SUPPORTED_QUERY_TERMS = {
+    # "browser.name": "event.browser.name", TODO is a function
+    "contexts[geo.country_code]": "event.geo.country_code",
+    "http_method": "event.http.method",
+    # "http.status_code": "event.http.status_code",  TODO is a function
+    # "os.name": "event.os.name",  TODO is a function
+    "release": "event.release",
+    "transaction_op": "event.transaction.op",
+    "transaction_status": "event.transaction.status",
+    "duration": "event.duration",
+}
+
+AGGREGATE_TO_METRIC_TYPE = {
+    "count": "counter",
+    "avg": "distribution",
+    "percentile": "distribution",
+    "p50": "distribution",
+    "p75": "distribution",
+    "p95": "distribution",
+    "p99": "distribution",
+    "p100": "distribution",
+    # not supported yet
+    "failure_rate": None,
+    "apdex": None,
+}
+
+
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
     """
     Returns generic metric extraction config for the given project.
@@ -145,29 +177,78 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
     if not alert.is_custom_metric:
         return None
 
-    # TODO: Determine these based on the alert.snuba_query.field:
-    metric_type = "c"
-    metric_unit = "none"
-    field = None
+    query = alert.snuba_query.query
+    field_info = _extract_field_info(alert.snuba_query.aggregate)
 
-    condition = _convert_alert_query_to_condition(alert.snuba_query.query)
-    query_hash = str(alert.id)  # TODO: Hash field + condition
+    condition = _convert_alert_query_to_condition(query)
+    query_hash = _get_query_hash(field_info.name, query)
 
     return {
-        "category": DataCategory.TRANSACTION.api_name(),
-        "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@{metric_unit}",
-        "field": field,
+        "category": DataCategory.TRANSACTION,
+        "mri": field_info.mri_string,
+        "field": field_info.name,
         "condition": condition,
         "tags": [{"key": "query_hash", "value": query_hash}],
     }
 
 
+def _extract_field_info(aggregate: str):
+    agg_fn, rest = aggregate.split("(")
+    field = rest.split(")")[0]
+
+    metric_type = AGGREGATE_TO_METRIC_TYPE.get(agg_fn)
+
+    mri = f"{metric_type[0]}:transactions/{field}@none"
+
+    return parse_mri(mri)
+
+
 def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-    # TODO: Parse and convert the query using QueryBuilder
+
+    qb = QueryBuilder(
+        dataset=Dataset.Transactions,
+        query=query,
+        params={"start": datetime.now(), "end": datetime.now()},
+    )
+
+    where, having = qb.resolve_conditions(query, False)
+
+    if len(having) > 0:
+        raise NotImplementedError("Having conditions are not supported")
+
+    # empty query
+    if len(where) == 0:
+        return {"op": "and", "inner": []}
+    # single top-level condition
+    elif len(where) == 1:
+        return _convert_condition(where[0])
+    # multiple top-level conditions are ANDed together
+    else:
+        return _convert_condition(BooleanCondition(BooleanOp.AND, conditions=where))
+
+
+def _convert_condition(condition: Union[Condition, BooleanCondition]) -> RuleCondition:
+    if isinstance(condition, BooleanCondition):
+        return {
+            "op": condition.op.name.lower(),
+            "inner": [_convert_condition(c) for c in condition.conditions],
+        }
+
+    assert isinstance(condition, Condition)
+    assert isinstance(condition.lhs, Column)
+
+    if condition.lhs.name not in SUPPORTED_QUERY_TERMS:
+        raise NotImplementedError(f"Unsupported query term: {condition.lhs.name}")
+
     return {
-        "op": "and",
-        "inner": [],
+        "op": condition.op.name.lower(),
+        "name": SUPPORTED_QUERY_TERMS[condition.lhs.name],
+        "value": condition.rhs,
     }
+
+
+def _get_query_hash(name: str, filters: str) -> str:
+    return name + ";" + filters
 
 
 # CONDITIONAL TAGGING
