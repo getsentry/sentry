@@ -8,7 +8,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text, smart_str
+from django.utils.encoding import force_bytes, force_str, smart_str
 from google.api_core.exceptions import GatewayTimeout, ServiceUnavailable
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
@@ -114,9 +114,9 @@ def safe_join(base, *paths):
     Paths outside the base path indicate a possible security
     sensitive operation.
     """
-    base_path = force_text(base)
+    base_path = force_str(base)
     base_path = base_path.rstrip("/")
-    paths = [force_text(p) for p in paths]
+    paths = [force_str(p) for p in paths]
 
     final_path = base_path + "/"
     for path in paths:

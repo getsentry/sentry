@@ -5,7 +5,7 @@ Generic way to sign and unsign data for use in urls.
 import base64
 
 from django.core.signing import TimestampSigner
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 
 from sentry.utils.json import dumps, loads
 
@@ -17,7 +17,7 @@ def sign(**kwargs):
     Signs all passed kwargs and produces a base64 string which may be passed to
     unsign which will verify the string has not been tampered with.
     """
-    return force_text(
+    return force_str(
         base64.urlsafe_b64encode(
             TimestampSigner(salt=SALT).sign(dumps(kwargs)).encode("utf-8")
         ).rstrip(b"=")

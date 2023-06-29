@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 import lxml.html
 import toronado
 from django.core.mail import EmailMultiAlternatives
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import options
 from sentry.db.models import Model
@@ -158,7 +158,7 @@ class MessageBuilder:
         message_id = make_msgid(get_from_email_domain())
         headers.setdefault("Message-Id", message_id)
 
-        subject = force_text(self.subject)
+        subject = force_str(self.subject)
 
         reference = self.reference
         if isinstance(reference, Activity):

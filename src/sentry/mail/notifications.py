@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 import sentry_sdk
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import options
 from sentry.models import Project, ProjectOption, Team
@@ -41,7 +41,7 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 
 def build_subject_prefix(project: Project) -> str:
-    return force_text(
+    return force_str(
         ProjectOption.objects.get_value(project, "mail:subject_prefix")
         or options.get("mail.subject-prefix")
     )
