@@ -119,8 +119,14 @@ def handle_status_change(
     if status_change is None:
         return
 
-    for org_id in integration.organizationintegration_set.values_list("organization_id", flat=True):
-        installation = integration.get_installation(organization_id=org_id)
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+
+    for org_integration in org_integrations:
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=org_integration.organization_id
+        )
         if isinstance(installation, IssueSyncMixin):
             installation.sync_status_inbound(
                 external_issue_key,
