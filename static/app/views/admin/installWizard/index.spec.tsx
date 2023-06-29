@@ -1,11 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
 import InstallWizard from 'sentry/views/admin/installWizard';
 
 describe('InstallWizard', function () {
   beforeEach(function () {
-    ConfigStore.set('version', '1.33.7');
     MockApiClient.addMockResponse({
       url: '/internal/options/?query=is:required',
       body: TestStubs.InstallWizard(),
