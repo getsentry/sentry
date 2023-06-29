@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+import os
 import shutil
 import sys
 import time
@@ -51,9 +52,9 @@ def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
-    config_path = tmpdir_factory.mktemp(prefix)
-    config_path.chmod(0o755)
-    config_path = str(config_path)
+    # TODO: move test mktemps to use /tmp/colima, will need to run the whole test suite
+    config_path = f"/tmp/colima/{prefix}"
+    os.makedirs(config_path)
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:

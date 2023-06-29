@@ -40,7 +40,7 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                         ("sysctl", "-n", "hw.ncpu"), check=True, capture_output=True
                     ).stdout
                 )
-                memsize_bytes = cpus = int(
+                memsize_bytes = int(
                     subprocess.run(
                         ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
                     ).stdout
