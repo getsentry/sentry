@@ -23,7 +23,7 @@ class DiscordClientTest(TestCase):
             name="Cool server",
             provider="discord",
         )
-        self.client = DiscordClient(self.integration.id)
+        self.discord_client = DiscordClient(self.integration.id)
 
     @responses.activate
     def test_authorize_request(self):
@@ -32,7 +32,7 @@ class DiscordClientTest(TestCase):
             url=DiscordClient.base_url + "/",
             json={},
         )
-        self.client.get("/")
+        self.discord_client.get("/")
         request = responses.calls[0].request
         assert request.headers["Authorization"] == "Bot " + self.bot_token
 
@@ -50,7 +50,7 @@ class DiscordClientTest(TestCase):
             },
         )
 
-        guild_name = self.client.get_guild_name(guild_id)
+        guild_name = self.discord_client.get_guild_name(guild_id)
         assert guild_name == "Cool server"
 
     @responses.activate
@@ -67,7 +67,7 @@ class DiscordClientTest(TestCase):
             },
         )
 
-        guild_name = self.client._get_guild_name(guild_id)
+        guild_name = self.discord_client._get_guild_name(guild_id)
         assert guild_name == "Cool server"
 
     @responses.activate
@@ -82,7 +82,7 @@ class DiscordClientTest(TestCase):
         )
 
         try:
-            self.client._get_guild_name(guild_id)
+            self.discord_client._get_guild_name(guild_id)
         except IntegrationError as e:
             assert e.args[0] == "Could not retrieve Discord guild name"
 
@@ -104,7 +104,7 @@ class DiscordProxyClientTest(TestCase):
             external_id="1234567890",
         )
         self.installation = self.integration.get_installation(organization_id=self.organization.id)
-        self.client = DiscordClient(self.integration.id)
+        self.discord_client = DiscordClient(self.integration.id)
 
     @responses.activate
     def test_integration_proxy_is_active(self):

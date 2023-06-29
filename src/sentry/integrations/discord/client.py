@@ -28,10 +28,10 @@ class DiscordClient(IntegrationProxyClient):
     ):
         self.application_id = options.get("discord.application-id")
         self.bot_token = options.get("discord.bot-token")
-        self.integration_id = integration_id
+        self.integration_id: int | None = integration_id
         if not org_integration_id and integration_id is not None:
             org_integration_id = infer_org_integration(
-                integration_id=self.integration_id, ctx_logger=logger
+                integration_id=integration_id, ctx_logger=logger
             )
         super().__init__(org_integration_id, verify_ssl, logging_context)
 
