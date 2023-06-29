@@ -30,7 +30,7 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
         {
             "function": "LoginViewController.viewDidAppear",
             "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-            "package": "SentryApp",
+            "package": "/private/var/containers/Bundle/Application/D9118D4F-E47F-47D3-96A2-35E854245CB4/iOS-Swift.app/iOS-Swift",
             "in_app": True,
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
@@ -39,37 +39,53 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
         {
             "function": "-[UIViewController _setViewAppearState:isAnimating:]",
             "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UIViewController __viewDidAppear:]",
             "symbol": "-[UIViewController __viewDidAppear:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UIViewController _endAppearanceTransition:]",
             "symbol": "-[UIViewController _endAppearanceTransition:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
             "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
             "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
+        },
+        {
+            "filename": "EventStripperTestFrame.swift",
+            "function": "function",
+            "raw_function": "raw_function",
+            "module": "module",
+            "abs_path": "abs_path",
+            "in_app": False,
+            "instruction_addr": "0x1a4e8f000",
+            "addr_mode": "0x1a4e8f000",
+            "symbol": "symbol",
+            "symbol_addr": "0x1a4e8f000",
+            "image_addr": "0x1a4e8f000",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+            "platform": "platform",
+            "post_context": ["should_be_removed"],
         },
     ]
 
@@ -99,8 +115,26 @@ def get_crash_event_with_frames(
                     "stacktrace": {
                         "frames": frames,
                     },
-                    "type": "SIGABRT",
-                    "mechanism": {"handled": handled},
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",
+                    "mechanism": {
+                        "handled": handled,
+                        "type": "mach",
+                        "meta": {
+                            "signal": {
+                                "number": 11,
+                                "code": 0,
+                                "name": "SIGSEGV",
+                                "code_name": "SEGV_NOOP",
+                            },
+                            "mach_exception": {
+                                "exception": 1,
+                                "code": 1,
+                                "subcode": 0,
+                                "name": "EXC_BAD_ACCESS",
+                            },
+                        },
+                    },
                 }
             ]
         },
