@@ -23,6 +23,7 @@ from sentry.models import (
     Integration,
 )
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
@@ -145,11 +146,10 @@ class VstsWebhookWorkItemTest(APITestCase):
 
     @responses.activate
     def test_inbound_status_sync_resolve(self):
-        responses.add(
-            responses.GET,
-            "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
-            json=WORK_ITEM_STATES,
-            match=[
+
+        header_validation = []
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            header_validation = [
                 matchers.header_matcher(
                     {
                         "Accept": "application/json; api-version=4.1-preview.1",
@@ -159,7 +159,12 @@ class VstsWebhookWorkItemTest(APITestCase):
                         "Authorization": f"Bearer {self.access_token}",
                     }
                 )
-            ],
+            ]
+        responses.add(
+            responses.GET,
+            "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
+            json=WORK_ITEM_STATES,
+            match=header_validation,
         )
 
         work_item_id = 33
