@@ -1101,8 +1101,9 @@ CELERYBEAT_SCHEDULE_REGION = {
     },
     "poll_recap_servers": {
         "task": "sentry.tasks.poll_recap_servers",
-        # TODO(recap): Change to run every 5 minutes
-        "schedule": timedelta(seconds=10),
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
 }
 
