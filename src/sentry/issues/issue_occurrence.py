@@ -167,7 +167,7 @@ class IssueOccurrence:
 
     @classmethod
     def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:
-        results = nodestore.get(cls.build_storage_identifier(id_, project_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(id_, project_id))
         if results:
             return IssueOccurrence.from_dict(results)
         return None
@@ -177,7 +177,7 @@ class IssueOccurrence:
         cls, ids: Sequence[str], project_id: int
     ) -> Sequence[Optional[IssueOccurrence]]:
         ids = [cls.build_storage_identifier(id, project_id) for id in ids]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             IssueOccurrence.from_dict(results[_id]) if results.get(_id) else None for _id in ids
         ]

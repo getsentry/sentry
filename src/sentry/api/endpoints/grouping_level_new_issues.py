@@ -210,7 +210,7 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
         for row in query_res
     }
 
-    node_data = nodestore.get_multi(list(event_ids.values()))
+    node_data = nodestore.backend.get_multi(list(event_ids.values()))
 
     response = []
 

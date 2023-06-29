@@ -45,8 +45,8 @@ class DeleteGroupTest(TestCase):
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)
 
-        assert nodestore.get(node_id)
-        assert nodestore.get(node_id_2)
+        assert nodestore.backend.get(node_id)
+        assert nodestore.backend.get(node_id_2)
 
         with self.tasks():
             delete_groups(object_ids=[group.id])
@@ -54,5 +54,5 @@ class DeleteGroupTest(TestCase):
         assert not GroupRedirect.objects.filter(group_id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
         assert not Group.objects.filter(id=group.id).exists()
-        assert not nodestore.get(node_id)
-        assert not nodestore.get(node_id_2)
+        assert not nodestore.backend.get(node_id)
+        assert not nodestore.backend.get(node_id_2)

@@ -134,7 +134,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert events[1].event_id == "b" * 32
         assert events[2].event_id == "a" * 32
 
-    @mock.patch("sentry.nodestore.get_multi")
+    @mock.patch("sentry.nodestore.backend.get_multi")
     def test_get_unfetched_events(self, get_multi):
         events = self.eventstore.get_unfetched_events(
             filter=Filter(project_ids=[self.project1.id]),
@@ -143,7 +143,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert len(events) == 1
         assert get_multi.call_count == 0
 
-    @mock.patch("sentry.nodestore.get_multi")
+    @mock.patch("sentry.nodestore.backend.get_multi")
     def test_get_unfetched_transactions(self, get_multi):
         transactions_proj1 = self.eventstore.get_unfetched_transactions(
             filter=Filter(project_ids=[self.project1.id]),

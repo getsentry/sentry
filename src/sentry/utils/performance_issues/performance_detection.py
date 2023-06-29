@@ -99,7 +99,7 @@ class EventPerformanceProblem:
         cls, items: Sequence[Tuple[Event, str]]
     ) -> Sequence[Optional[EventPerformanceProblem]]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
-        results = nodestore.get_multi(ids)
+        results = nodestore.backend.get_multi(ids)
         return [
             cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
             for _id, (event, _) in zip(ids, items)

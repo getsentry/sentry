@@ -105,7 +105,7 @@ class NodeData(MutableMapping):
             return self._node_data
 
         elif self.id:
-            self.bind_data(nodestore.get(self.id) or {})
+            self.bind_data(nodestore.backend.get(self.id) or {})
             return self._node_data
 
         rv = {}

@@ -386,7 +386,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         event = Event(
             event_id=occurrence.event_id,
             project_id=project_id,
-            data=nodestore.get(Event.generate_node_id(project_id, occurrence.event_id)),
+            data=nodestore.backend.get(Event.generate_node_id(project_id, occurrence.event_id)),
         )
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
