@@ -129,7 +129,8 @@ class DiscordProxyClientTest(TestCase):
 
         responses.add(
             method=responses.GET,
-            url="http://controlserver/api/0/internal/integration-proxy"
+            url=control_address
+            + PROXY_BASE_PATH
             + DiscordClient.GET_GUILD_URL % self.integration.external_id,
             json={"guild_id": "1234567890", "name": "Cool server"},
             status=200,
