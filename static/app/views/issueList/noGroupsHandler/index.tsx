@@ -73,12 +73,12 @@ class NoGroupsHandler extends Component<Props, State> {
 
     // If no projects are selected, then we must check every project the user is a
     // member of and make sure there are no first events for all of the projects
-    let firstEventQuery = {};
+    // Set project to -1 for all projects
+    // Do not pass a project id for "my projects"
+    let firstEventQuery: {project?: number[]} = {};
     const projectsQuery: {per_page: number; query?: string} = {per_page: 1};
 
-    if (!selectedProjectIds || !selectedProjectIds.length) {
-      firstEventQuery = {is_member: true};
-    } else {
+    if (selectedProjectIds?.length) {
       firstEventQuery = {project: selectedProjectIds};
       projectsQuery.query = selectedProjectIds.map(id => `id:${id}`).join(' ');
     }
