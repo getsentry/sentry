@@ -328,7 +328,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "An error occurred during the last check-in.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -393,7 +393,9 @@ class MonitorEnvironmentTestCase(TestCase):
         )
         last_checkin = timezone.now()
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.DURATION
+            last_checkin=last_checkin,
+            reason=MonitorFailure.DURATION,
+            occurrence_context={"duration": 30},
         )
 
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 1
@@ -407,7 +409,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": "Check-in exceeded maximum duration of 30 minutes.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
@@ -471,8 +473,11 @@ class MonitorEnvironmentTestCase(TestCase):
             status=monitor.status,
         )
         last_checkin = timezone.now()
+        expected_time = monitor.get_next_scheduled_checkin_without_margin(last_checkin)
         assert monitor_environment.mark_failed(
-            last_checkin=last_checkin, reason=MonitorFailure.MISSED_CHECKIN
+            last_checkin=last_checkin,
+            reason=MonitorFailure.MISSED_CHECKIN,
+            occurrence_context={"expected_time": expected_time},
         )
 
         monitor.refresh_from_db()
@@ -490,7 +495,7 @@ class MonitorEnvironmentTestCase(TestCase):
                 "project_id": self.project.id,
                 "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
                 "issue_title": f"Monitor failure: {monitor.name}",
-                "subtitle": "",
+                "subtitle": f"No check-in reported at {expected_time}.",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
