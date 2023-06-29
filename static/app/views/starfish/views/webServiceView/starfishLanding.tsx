@@ -51,7 +51,13 @@ export function StarfishLanding(props: Props) {
         <Layout.Header>
           <Layout.HeaderContent>
             <Layout.Title>
-              {selectedProject && <ProjectBadge project={selectedProject} disableLink />}
+              {selectedProject && (
+                <ProjectBadge
+                  project={selectedProject}
+                  hideOverflow={false}
+                  disableLink
+                />
+              )}
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>

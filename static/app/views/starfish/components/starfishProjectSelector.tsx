@@ -37,5 +37,7 @@ export function StarfishProjectSelector() {
 }
 
 function ProjectOptionLabel({project}: {project: Project}) {
-  return <ProjectBadge project={project} avatarSize={20} disableLink />;
+  return (
+    <ProjectBadge project={project} avatarSize={20} hideOverflow={false} disableLink />
+  );
 }
