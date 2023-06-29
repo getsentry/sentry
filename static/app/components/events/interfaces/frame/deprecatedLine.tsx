@@ -305,7 +305,7 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
