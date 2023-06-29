@@ -31,7 +31,8 @@ from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
@@ -410,7 +411,7 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if use_case_id is UseCaseID.TRANSACTIONS:
+        if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]

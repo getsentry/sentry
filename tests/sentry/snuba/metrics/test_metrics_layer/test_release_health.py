@@ -8,7 +8,7 @@ from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Column, Condition, Limit, Offset, Op
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import MetricField, MetricGroupByField
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
@@ -48,7 +48,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         assert data["meta"] == sorted(
             [
@@ -76,7 +76,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             query.to_metrics_query(),
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )["meta"] == sorted(
             [
                 {"name": "session.errored", "type": "Float64"},
@@ -123,7 +123,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["errored_sessions_alias"] == 7
@@ -170,7 +170,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 5.5, 4), (5.5, 9.0, 4)]
@@ -203,7 +203,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         hist = [(2.0, 4.0, 2), (4.0, 6.0, 3)]
@@ -254,7 +254,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             [self.project],
             metrics_query=metrics_query,
             include_meta=True,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         group = data["groups"][0]
         assert group["totals"]["anr_alias"] == 0.5
@@ -303,7 +303,7 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         data = get_series(
             [self.project],
             metrics_query=metrics_query,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
         groups = data["groups"]
