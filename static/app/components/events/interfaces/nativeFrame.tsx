@@ -219,7 +219,11 @@ function NativeFrame({
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <RowHeader expandable={expandable} expanded={expanded}>
+        <RowHeader
+          expandable={expandable}
+          expanded={expanded}
+          isSystemLabel={!frame.inApp}
+        >
           <SymbolicatorIcon>
             {status === 'error' ? (
               <Tooltip
@@ -267,7 +271,7 @@ function NativeFrame({
               {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
             </Tooltip>
           </AddressCell>
-          <FunctionNameCell isSystemLabel={!frame.inApp}>
+          <FunctionNameCell>
             {functionName ? (
               <AnnotatedText value={functionName.value} meta={functionName.meta} />
             ) : (
@@ -340,10 +344,8 @@ const AddressCell = styled('div')`
   ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
-const FunctionNameCell = styled('div')<{isSystemLabel: boolean}>`
+const FunctionNameCell = styled('div')`
   word-break: break-all;
-  color: ${p => (p.isSystemLabel ? p.theme.subText : 'default')};
-  font-style: ${p => (p.isSystemLabel ? 'italic' : 'default')};
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/6;
@@ -398,7 +400,11 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
+const RowHeader = styled('span')<{
+  expandable: boolean;
+  expanded: boolean;
+  isSystemLabel: boolean;
+}>`
   display: grid;
   grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
   grid-template-rows: repeat(2, auto);
@@ -408,6 +414,8 @@ const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   background-color: ${p => p.theme.bodyBackground};
   font-size: ${p => p.theme.codeFontSize};
   padding: ${space(1)};
+  color: ${p => (p.isSystemLabel ? p.theme.subText : '')};
+  font-style: ${p => (p.isSystemLabel ? 'italic' : '')};
   ${p => p.expandable && `cursor: pointer;`};
   ${p =>
     p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
