@@ -3,6 +3,7 @@ from time import time
 from unittest.mock import patch
 
 import responses
+from responses import matchers
 
 from fixtures.vsts import (
     WORK_ITEM_STATES,
@@ -148,7 +149,19 @@ class VstsWebhookWorkItemTest(APITestCase):
             responses.GET,
             "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
             json=WORK_ITEM_STATES,
+            match=[
+                matchers.header_matcher(
+                    {
+                        "Accept": "application/json; api-version=4.1-preview.1",
+                        "Content-Type": "application/json",
+                        "X-HTTP-Method-Override": "GET",
+                        "X-TFS-FedAuthRedirect": "Suppress",
+                        "Authorization": f"Bearer {self.access_token}",
+                    }
+                )
+            ],
         )
+
         work_item_id = 33
         num_groups = 5
         external_issue = ExternalIssue.objects.create(
