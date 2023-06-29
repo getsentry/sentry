@@ -3514,7 +3514,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[profile, error] my_tag:1"
+                search_filter_query="issue.category:[performance, error] my_tag:1"
             )
             assert list(results) == [
                 self.profile_group_1,

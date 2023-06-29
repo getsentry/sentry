@@ -16,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -281,7 +281,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -289,7 +289,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -333,7 +333,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -341,7 +341,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
