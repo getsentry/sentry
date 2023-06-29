@@ -21,12 +21,10 @@ variants:
   app:
     component:
       contributes: true
-      contributes_to_similarity: true
       hint: null
     type: component
   system:
     component:
       contributes: true
-      contributes_to_similarity: true
       hint: null
     type: component
