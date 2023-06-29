@@ -103,6 +103,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
+                    "examples()",
                 ],
                 query=query,
                 params=params,
@@ -218,7 +219,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()"]
+                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
                     }
                 )
                 formatted_results.append(formatted_result)
