@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
@@ -53,7 +53,7 @@ class JSONField(TextField):
 
     def value_to_string(self, obj):
         """Return value from object converted to string properly"""
-        return smart_text(self.value_from_object(obj))
+        return smart_str(self.value_from_object(obj))
 
     def value_from_object(self, obj):
         """Return value dumped to string."""

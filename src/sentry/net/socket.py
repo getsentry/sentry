@@ -4,7 +4,7 @@ import socket
 from urllib.parse import urlparse
 
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
 from urllib3.util.connection import _set_socket_options, allowed_gai_family
 
@@ -23,7 +23,7 @@ def is_ipaddress_allowed(ip):
     """
     if not DISALLOWED_IPS:
         return True
-    ip_address = ipaddress.ip_address(force_text(ip, strings_only=True))
+    ip_address = ipaddress.ip_address(force_str(ip, strings_only=True))
     for ip_network in DISALLOWED_IPS:
         if ip_address in ip_network:
             return False
@@ -44,7 +44,7 @@ def ensure_fqdn(hostname):
     if not settings.SENTRY_ENSURE_FQDN:
         return hostname
 
-    hostname = force_text(hostname, strings_only=True)
+    hostname = force_str(hostname, strings_only=True)
 
     # Already fully qualified if it ends in a "."
     if hostname[-1:] == ".":
