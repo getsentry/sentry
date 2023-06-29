@@ -9,7 +9,7 @@ jest.mock('sentry/actionCreators/formSearch');
 jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
-  let orgsMock;
+  let orgsMock: jest.Mock;
   const routerContext = TestStubs.routerContext([
     {
       router: TestStubs.router({
@@ -27,22 +27,18 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      query: 'foo',
       body: [TestStubs.Project({slug: 'foo-project'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      query: 'foo',
       body: [TestStubs.Team({slug: 'foo-team'})],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      query: 'foo',
       body: TestStubs.Members(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',
-      query: 'foo',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -51,7 +47,6 @@ describe('SettingsSearch', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
-      query: 'foo',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -65,7 +60,7 @@ describe('SettingsSearch', function () {
   });
 
   it('renders', function () {
-    render(<SettingsSearch params={{}} />);
+    render(<SettingsSearch />);
 
     // renders input
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
