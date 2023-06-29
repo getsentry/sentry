@@ -1,5 +1,6 @@
 import pytest
-from django.db import connection
+from django.db import router
+from django.db.transaction import get_connection
 
 from sentry import deletions
 from sentry.models import (
@@ -82,9 +83,14 @@ class TestSentryAppIntallationDeletionTask(TestCase):
         with pytest.raises(SentryAppInstallation.DoesNotExist):
             SentryAppInstallation.objects.get(pk=self.install.id)
 
+        # The connection name needs to match the correct silo where the table
+        # resides when running in split mode, so check for the split DB flag.
+        # connection_name = "control" if os.environ.get("SENTRY_USE_SPLIT_DBS") else "default"
+        connection = get_connection(router.db_for_write(SentryAppInstallation))
+        c = connection.cursor()
+
         # The QuerySet will automatically NOT include deleted installs, so we
         # use a raw sql query to ensure it still exists.
-        c = connection.cursor()
         c.execute(
             "SELECT COUNT(1) "
             "FROM sentry_sentryappinstallation "

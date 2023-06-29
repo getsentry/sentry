@@ -468,7 +468,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres"), inner:
+        with in_test_psql_role_override("postgres", using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield

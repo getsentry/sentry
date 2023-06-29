@@ -5,7 +5,7 @@ from typing import List
 from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
@@ -177,7 +177,7 @@ class User(BaseModel, AbstractBaseUser):
             return super().update(*args, **kwds)
 
     def save(self, *args, **kwargs):
-        with outbox_context(transaction.atomic(), flush=False):
+        with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
             if not self.username:
                 self.username = self.email
             result = super().save(*args, **kwargs)
