@@ -21,6 +21,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import ProjectKey, ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -669,3 +670,57 @@ def test_healthcheck_filter(default_project, has_health_check, health_check_set)
     config_has_health_check = "ignoreTransactions" in filter_settings
     should_have_health_check_config = has_health_check and health_check_set
     assert config_has_health_check == should_have_health_check_config
+
+
+@django_db_all
+def test_alert_metric_extraction_rules_empty(default_project):
+    features = {
+        "organizations:transaction-metrics-extraction": True,
+        "organizations:on-demand-metrics-extraction": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project).to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=False)
+        assert "metricExtraction" not in config
+
+
+@django_db_all
+def test_alert_metric_extraction_rules(default_project, factories):
+    # Alert compatible with out-of-the-box metrics. This should NOT be included
+    # in the config.
+    factories.create_alert_rule(
+        default_project.organization,
+        [default_project],
+        query="event.type:transaction environment:production",
+        dataset=Dataset.Transactions,
+    )
+
+    # Alert requiring an on-demand metric. This should be included in the config.
+    factories.create_alert_rule(
+        default_project.organization,
+        [default_project],
+        query="event.type:transaction transaction.duration:<10m",
+        dataset=Dataset.Transactions,
+    )
+
+    features = {
+        "organizations:transaction-metrics-extraction": True,
+        "organizations:on-demand-metrics-extraction": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project).to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=False)
+        assert config["metricExtraction"] == {
+            "version": 1,
+            "metrics": [
+                {
+                    "category": "transaction",
+                    "mri": "c:transactions/alert@none",
+                    "field": None,
+                    "condition": {"op": "and", "inner": []},
+                    "tags": [{"key": "query_hash", "value": "2"}],
+                }
+            ],
+        }

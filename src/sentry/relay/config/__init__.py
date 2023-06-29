@@ -301,8 +301,8 @@ def add_experimental_config(
     """
     try:
         subconfig = function(*args, **kwargs)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    except Exception:
+        logger.error("Exception while building Relay project config field", exc_info=True)
     else:
         if subconfig is not None:
             config[key] = subconfig

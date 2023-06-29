@@ -120,7 +120,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     alerts = (
         AlertRule.objects.fetch_for_project(project)
-        .filter(status=AlertRuleStatus.PENDING)
+        .filter(status=AlertRuleStatus.PENDING.value)
         .select_related("snuba_query")
     )
 
@@ -155,7 +155,7 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
     query_hash = str(alert.id)  # TODO: Hash field + condition
 
     return {
-        "category": DataCategory.TRANSACTION,
+        "category": DataCategory.TRANSACTION.api_name(),
         "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@{metric_unit}",
         "field": field,
         "condition": condition,
