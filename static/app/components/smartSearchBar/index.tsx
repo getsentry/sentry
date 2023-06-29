@@ -1771,7 +1771,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
       trackAnalytics('search.key_autocompleted', {
         organization: this.props.organization,
         search_operator: replaceText,
