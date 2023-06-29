@@ -17,6 +17,13 @@ from sentry.utils.safe import safe_execute
 # If that changes in the future, we should add a timing metrics to the task below and make sure to add
 # appropriate alerts for Sentry in case the transaction's duration takes significant time (~>30s).
 
+# NOTE: Should we restore `RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY` to 0 when recap server url changes?
+# Preferably we'd keep track of server_identity<->latest_id mappings in the future.
+
+# NOTE: Instead of using "legacy" `eventstore`, we can think about going through Relay, using project_key
+# (see: sentry/utils/sdk.py) and mimick sending data as a regular SDK event payload.
+
+
 RECAP_SERVER_OPTION_KEY = "sentry:recap_server"
 RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY = "sentry:recap_server_poll_id"
 
