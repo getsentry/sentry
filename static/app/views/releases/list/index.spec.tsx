@@ -16,9 +16,10 @@ import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const {organization, routerContext, router} = initializeOrg();
+  const {organization, routerContext, router, routerProps} = initializeOrg();
 
   const props = {
+    ...routerProps,
     router,
     organization,
     selection: {
@@ -26,10 +27,14 @@ describe('ReleasesList', () => {
       environments: [],
       datetime: {
         period: '14d',
+        start: null,
+        end: null,
+        utc: null,
       },
     },
     params: {orgId: organization.slug},
     location: {
+      ...routerProps.location,
       query: {
         query: 'derp',
         sort: ReleasesSortOption.SESSIONS,
@@ -85,12 +90,14 @@ describe('ReleasesList', () => {
     });
     const items = await screen.findAllByTestId('release-panel');
 
-    expect(within(items.at(0)).getByText('1.0.0')).toBeInTheDocument();
-    expect(within(items.at(0)).getByText('Adoption')).toBeInTheDocument();
-    expect(within(items.at(1)).getByText('1.0.1')).toBeInTheDocument();
-    expect(within(items.at(1)).getByText('0%')).toBeInTheDocument();
-    expect(within(items.at(2)).getByText('af4f231ec9a8')).toBeInTheDocument();
-    expect(within(items.at(2)).getByText('Project Name')).toBeInTheDocument();
+    expect(items.length).toEqual(3);
+
+    expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
+    expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
+    expect(within(items.at(1)!).getByText('1.0.1')).toBeInTheDocument();
+    expect(within(items.at(1)!).getByText('0%')).toBeInTheDocument();
+    expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
+    expect(within(items.at(2)!).getByText('Project Name')).toBeInTheDocument();
   });
 
   it('displays the right empty state', async () => {
@@ -119,11 +126,11 @@ describe('ReleasesList', () => {
       body: [],
     });
     // does not have releases set up and no releases
-    location = {query: {}};
+    location = {...routerProps.location, query: {}};
     const {rerender} = render(
       <ReleasesList
-        location={location}
         {...props}
+        location={location}
         selection={{...props.selection, projects: [4]}}
       />,
       {
@@ -143,11 +150,7 @@ describe('ReleasesList', () => {
         organization={org}
         location={location}
         selection={{...props.selection, projects: [3]}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
+      />
     );
     expect(
       screen.getByText("There are no releases that match: 'abc'.")
@@ -160,11 +163,7 @@ describe('ReleasesList', () => {
         organization={org}
         location={location}
         selection={{...props.selection, projects: [3]}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
+      />
     );
     expect(
       screen.getByText('There are no releases with data in the last 7 days.')
@@ -177,11 +176,7 @@ describe('ReleasesList', () => {
         organization={org}
         location={location}
         selection={{...props.selection, projects: [3]}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
+      />
     );
     expect(
       screen.getByText(
@@ -196,11 +191,7 @@ describe('ReleasesList', () => {
         organization={org}
         location={location}
         selection={{...props.selection, projects: [3]}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
+      />
     );
     expect(
       screen.getByText(
@@ -215,11 +206,7 @@ describe('ReleasesList', () => {
         organization={org}
         location={location}
         selection={{...props.selection, projects: [3]}}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
+      />
     );
     expect(
       screen.getByText('There are no releases with semantic versioning.')
@@ -274,9 +261,11 @@ describe('ReleasesList', () => {
     await userEvent.clear(input);
     await userEvent.type(input, 'a{enter}');
 
-    expect(router.push).toHaveBeenCalledWith({
-      query: expect.objectContaining({query: 'a'}),
-    });
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({query: 'a'}),
+      })
+    );
   });
 
   it('sorts releases', async () => {
@@ -303,11 +292,13 @@ describe('ReleasesList', () => {
 
     await userEvent.click(dateCreatedOption);
 
-    expect(router.push).toHaveBeenCalledWith({
-      query: expect.objectContaining({
-        sort: ReleasesSortOption.DATE,
-      }),
-    });
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sort: ReleasesSortOption.DATE,
+        }),
+      })
+    );
   });
 
   it('disables adoption sort when more than one environment is selected', async () => {
@@ -318,7 +309,7 @@ describe('ReleasesList', () => {
     render(
       <ReleasesList
         {...adoptionProps}
-        location={{query: {sort: ReleasesSortOption.ADOPTION}}}
+        location={{...routerProps.location, query: {sort: ReleasesSortOption.ADOPTION}}}
         selection={{...props.selection, environments: ['a', 'b']}}
       />,
       {
@@ -352,18 +343,23 @@ describe('ReleasesList', () => {
 
     await userEvent.click(crashFreeUsersOption);
 
-    expect(router.push).toHaveBeenCalledWith({
-      query: expect.objectContaining({
-        display: ReleasesDisplayOption.USERS,
-      }),
-    });
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          display: ReleasesDisplayOption.USERS,
+        }),
+      })
+    );
   });
 
   it('displays archived releases', async () => {
     render(
       <ReleasesList
         {...props}
-        location={{query: {status: ReleasesStatusOption.ARCHIVED}}}
+        location={{
+          ...routerProps.location,
+          query: {status: ReleasesStatusOption.ARCHIVED},
+        }}
       />,
       {
         context: routerContext,
@@ -398,20 +394,24 @@ describe('ReleasesList', () => {
     expect(statusArchivedOption).toBeInTheDocument();
 
     await userEvent.click(statusActiveOption);
-    expect(router.push).toHaveBeenLastCalledWith({
-      query: expect.objectContaining({
-        status: ReleasesStatusOption.ACTIVE,
-      }),
-    });
+    expect(router.push).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          status: ReleasesStatusOption.ACTIVE,
+        }),
+      })
+    );
 
     await userEvent.click(statusTriggerButton);
     statusArchivedOption = screen.getByRole('option', {name: 'Archived'});
     await userEvent.click(statusArchivedOption);
-    expect(router.push).toHaveBeenLastCalledWith({
-      query: expect.objectContaining({
-        status: ReleasesStatusOption.ARCHIVED,
-      }),
-    });
+    expect(router.push).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          status: ReleasesStatusOption.ARCHIVED,
+        }),
+      })
+    );
   });
 
   it('calls api with only explicitly permitted query params', () => {
