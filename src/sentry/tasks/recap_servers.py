@@ -66,11 +66,15 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         return
 
     latest_id = project.get_option(RECAP_SERVER_MOST_RECENT_POLLED_ID_KEY, 0)
-    url = recap_server.strip().rstrip("/") + "/rest/v1/crashes"
+    url = recap_server.strip().rstrip("/") + "/rest/v1/crashes;sort=id:ascending"
 
+    # For initial query, we limit number of crashes to 1_000 items, which is the default of Recap Server,
+    # and for all following requests, we do not limit the number, as it's already capped at 10_000 by the server.
     # For non-initial queries, we want to filter for all events that happened _after_ our previously
-    # fetched crashes, base on the most recent ID
-    if latest_id != 0:
+    # fetched crashes, base on the most recent ID.
+    if latest_id == 0:
+        url = url + ";limit=1000"
+    else:
         # Apache Solr format requires us to encode the query.
         # Exclusive bounds range - {N TO *}
         url = url + urllib.parse.quote(f";q=id:{{{latest_id} TO *}}", safe=";=:")

@@ -116,9 +116,8 @@ class RecapServersTest(TestCase):
                 ]
             },
         }
-        outgoing_recap_request = responses.add(
-            method=responses.GET,
-            url="http://example.com/rest/v1/crashes",
+        outgoing_recap_request = responses.get(
+            url="http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000",
             body=json.dumps(payload),
             content_type="application/json",
         )
@@ -146,9 +145,8 @@ class RecapServersTest(TestCase):
             },
         }
         # Encoded query: {8 TO *}
-        outgoing_recap_request = responses.add(
-            method=responses.GET,
-            url="http://example.com/rest/v1/crashes;q=id:%7B8%20TO%20%2A%7D",
+        outgoing_recap_request = responses.get(
+            url="http://example.com/rest/v1/crashes;sort=id:ascending;q=id:%7B8%20TO%20%2A%7D",
             body=json.dumps(payload),
             content_type="application/json",
         )
@@ -168,9 +166,8 @@ class RecapServersTest(TestCase):
             "results": 2,
             "_embedded": {"crash": [self.get_crash_payload(1337), self.get_crash_payload(42)]},
         }
-        responses.add(
-            method=responses.GET,
-            url="http://example.com/rest/v1/crashes",
+        responses.get(
+            url="http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000",
             body=json.dumps(payload),
             content_type="application/json",
         )
@@ -193,10 +190,10 @@ class RecapServersTest(TestCase):
         assert [
             ("crash_id", "42"),
             ("level", "error"),
-            ("url", "http://example.com/rest/v1/crashes"),
+            ("url", "http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000"),
         ] in events_tags
         assert [
             ("crash_id", "1337"),
             ("level", "error"),
-            ("url", "http://example.com/rest/v1/crashes"),
+            ("url", "http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000"),
         ] in events_tags
