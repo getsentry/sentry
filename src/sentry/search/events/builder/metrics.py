@@ -36,7 +36,6 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
@@ -652,9 +651,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
@@ -1053,9 +1052,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

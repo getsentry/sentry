@@ -45,7 +45,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MetricField,
     MetricGroupByField,
@@ -75,7 +75,7 @@ MINUTE = 60  # 60 seconds
 HOUR = MINUTE * 60
 DAY = HOUR * 24
 LEGACY_SESSIONS_DEFAULT_ROLLUP = HOUR
-USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
+USE_CASE_ID = UseCaseID.SESSIONS
 
 logger = logging.getLogger(__name__)
 
