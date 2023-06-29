@@ -54,14 +54,14 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
-        logger.warning("Polled project do not exist", extra={project_id: project_id})
+        logger.warning("Polled project do not exist", extra={"project_id": project_id})
         return
 
     recap_server = project.get_option(RECAP_SERVER_OPTION_KEY)
     # Just a guard in case someone removes recap url in the exact moment we trigger polling task
     if recap_server is None:
         logger.warning(
-            "Polled project has no recap server url configured", extra={project: project}
+            "Polled project has no recap server url configured", extra={"project": project}
         )
         return
 
@@ -73,7 +73,7 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     # For non-initial queries, we want to filter for all events that happened _after_ our previously
     # fetched crashes, base on the most recent ID.
     if latest_id == 0:
-        url = url + ";limit=1000"
+        url = f"{url};limit=1000"
     else:
         # Apache Solr format requires us to encode the query.
         # Exclusive bounds range - {N TO *}
@@ -84,12 +84,16 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     try:
         crashes = json.loads(result.body)
         if not isinstance(crashes, dict):
-            raise json.JSONDecodeError
+            logger.exception(
+                "Polled project endpoint did not responded with json object",
+                extra={"project": project},
+            )
+            return
     except json.JSONDecodeError as exc:
         logger.exception(
             "Polled project endpoint did not responded with valid json",
             exc_info=exc,
-            extra={project: project, url: url},
+            extra={"project": project, "url": url},
         )
         return
 
@@ -108,7 +112,9 @@ def store_crash(crash, project: Project, url: str) -> None:
         event = translate_crash_to_event(crash, project, url)
     except KeyError as exc:
         logger.exception(
-            "Crash dump data has invalid payload", exc_info=exc, extra={project: project, url: url}
+            "Crash dump data has invalid payload",
+            exc_info=exc,
+            extra={"project": project, "url": url},
         )
         return
 
