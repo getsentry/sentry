@@ -661,7 +661,7 @@ def test_healthcheck_filter(default_project, has_health_check, health_check_set)
     flag is set for the org and the user has enabled healthcheck filters.
     """
 
-    default_project.update_option("filters:health-check", "1" if health_check_set else "0")
+    default_project.update_option("filters:filtered-transaction", "1" if health_check_set else "0")
     with Feature({"organizations:health-check-filter": has_health_check}):
         config = get_project_config(default_project).to_dict()["config"]
 
