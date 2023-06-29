@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import enum
 import logging
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
 
@@ -24,6 +27,9 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
+_Everyone = enum.Enum("_Everyone", "EVERYONE")
+
+
 @region_silo_only_model
 class ProjectOwnership(Model):
     __include_in_export__ = True
@@ -41,7 +47,7 @@ class ProjectOwnership(Model):
     suspect_committer_auto_assignment = models.BooleanField(default=False)
 
     # An object to indicate ownership is implicitly everyone
-    Everyone = object()
+    Everyone = _Everyone.EVERYONE
 
     class Meta:
         app_label = "sentry"
@@ -96,7 +102,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_owners(
         cls, project_id: int, data: Mapping[str, Any]
-    ) -> Tuple[Union["Everyone", Sequence["ActorTuple"]], Optional[Sequence[Rule]]]:
+    ) -> Tuple[_Everyone | Sequence[ActorTuple], Optional[Sequence[Rule]]]:
         """
         For a given project_id, and event data blob.
         We combine the schemas from IssueOwners and CodeOwners.
@@ -143,7 +149,7 @@ class ProjectOwnership(Model):
         return ordered_actors, rules
 
     @classmethod
-    def _hydrate_rules(cls, project_id, rules, type=OwnerRuleType.OWNERSHIP_RULE.value):
+    def _hydrate_rules(cls, project_id, rules, type: str = OwnerRuleType.OWNERSHIP_RULE.value):
         """
         Get the last matching rule to take the most precedence.
         """
@@ -157,7 +163,7 @@ class ProjectOwnership(Model):
             (
                 rule,
                 ActorTuple.resolve_many(
-                    [actors.get(owner) for owner in rule.owners if actors.get(owner)]
+                    [actors[owner] for owner in rule.owners if owner in actors]
                 ),
                 type,
             )
@@ -168,13 +174,7 @@ class ProjectOwnership(Model):
     @classmethod
     def get_issue_owners(
         cls, project_id, data, limit=2
-    ) -> Sequence[
-        Tuple[
-            "Rule",
-            Sequence[Union["Team", "RpcUser"]],
-            Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
-        ]
-    ]:
+    ) -> Sequence[Tuple[Rule, Sequence[Union[Team, RpcUser]], str,]]:
         """
         Get the issue owners for a project if there are any.
 
@@ -340,9 +340,9 @@ class ProjectOwnership(Model):
     @classmethod
     def _matching_ownership_rules(
         cls,
-        ownership: Union["ProjectOwnership", "ProjectCodeOwners"],
+        ownership: Union[ProjectOwnership, ProjectCodeOwners],
         data: Mapping[str, Any],
-    ) -> Sequence["Rule"]:
+    ) -> Sequence[Rule]:
         rules = []
 
         if ownership.schema is not None:

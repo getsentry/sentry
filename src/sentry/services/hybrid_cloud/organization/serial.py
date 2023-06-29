@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Iterable, List, MutableMapping, Set, cast
+from typing import Iterable, List, MutableMapping, Set
 
 from sentry.constants import ObjectStatus
 from sentry.models import (
@@ -35,11 +35,8 @@ def unescape_flag_name(flag_name: str) -> str:
 
 
 def _serialize_member_flags(member: OrganizationMember) -> RpcOrganizationMemberFlags:
-    return cast(
-        RpcOrganizationMemberFlags,
-        RpcOrganizationMemberFlags.serialize_by_field_name(
-            member.flags, name_transform=unescape_flag_name, value_transform=bool
-        ),
+    return RpcOrganizationMemberFlags.serialize_by_field_name(
+        member.flags, name_transform=unescape_flag_name, value_transform=bool
     )
 
 
@@ -93,10 +90,7 @@ def summarize_member(member: OrganizationMember) -> RpcOrganizationMemberSummary
 
 
 def _serialize_flags(org: Organization) -> RpcOrganizationFlags:
-    return cast(
-        RpcOrganizationFlags,
-        RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool),
-    )
+    return RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool)
 
 
 def _serialize_team(team: Team) -> RpcTeam:
@@ -133,7 +127,7 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
     )
 
 
-def serialize_organization(org: Organization) -> RpcOrganization:
+def serialize_rpc_organization(org: Organization) -> RpcOrganization:
     rpc_org: RpcOrganization = RpcOrganization(
         slug=org.slug,
         id=org.id,

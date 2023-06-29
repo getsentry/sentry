@@ -27,14 +27,11 @@ export function SpanOperationSelector({
   const {selection} = usePageFilters();
 
   const location = useLocation();
-  const query = getQuery(moduleName);
   const eventView = getEventView(moduleName, selection, spanCategory);
 
   const {data: operations} = useSpansQuery<[{'span.op': string}]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
   });
 
   const options = [
@@ -63,17 +60,6 @@ export function SpanOperationSelector({
   );
 }
 
-function getQuery(moduleName: ModuleName) {
-  return `SELECT span_operation as "span.op", count()
-    FROM spans_experimental_starfish
-    WHERE span_operation != ''
-    ${moduleName !== ModuleName.ALL ? `AND module = '${moduleName}'` : ''}
-    GROUP BY span_operation
-    ORDER BY count() DESC
-    LIMIT 25
-  `;
-}
-
 function getEventView(
   moduleName: ModuleName,
   pageFilters: PageFilters,
@@ -83,6 +69,11 @@ function getEventView(
   if (moduleName) {
     queryConditions.push(`span.module:${moduleName}`);
   }
+
+  if (moduleName === ModuleName.DB) {
+    queryConditions.push('!span.op:db.redis');
+  }
+
   if (spanCategory) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
       queryConditions.push(`!has:span.category`);

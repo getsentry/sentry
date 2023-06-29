@@ -698,24 +698,24 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "http_error_count_percent_change",
                     snql_distribution=self._resolve_http_error_count_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "epm_percent_change",
                     snql_distribution=self._resolve_epm_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "eps_percent_change",
                     snql_distribution=self._resolve_eps_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
             ]
         }
@@ -1259,39 +1259,13 @@ class MetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _get_middle(self):
-        """Get the middle for percent change functions"""
-        if self.builder.start is None or self.builder.end is None:
-            raise InvalidSearchQuery("Need both start & end to use percentile_percent_change")
-        return self.builder.start + (self.builder.end - self.builder.start) / 2
-
-    def _first_half_condition(self):
-        """Create the first half condition for percent_change functions"""
-        return Function(
-            "less",
-            [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
-            ],
-        )
-
-    def _second_half_condition(self):
-        """Create the second half condition for percent_change functions"""
-        return Function(
-            "greaterOrEquals",
-            [
-                Function("toDateTime", [self._get_middle()]),
-                self.builder.column("timestamp"),
-            ],
-        )
-
     def _resolve_http_error_count_percent_change(
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        first_half = self._resolve_http_error_count({}, None, self._first_half_condition())
-        second_half = self._resolve_http_error_count({}, None, self._second_half_condition())
+        first_half = self._resolve_http_error_count({}, None, self.builder.first_half_condition())
+        second_half = self._resolve_http_error_count({}, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percentile_percent_change(
@@ -1303,13 +1277,13 @@ class MetricsDatasetConfig(DatasetConfig):
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._first_half_condition()],
+            extra_conditions=[self.builder.first_half_condition()],
         )
         second_half = function_aliases.resolve_metrics_percentile(
             args=args,
             alias=None,
             fixed_percentile=args["percentile"],
-            extra_conditions=[self._second_half_condition()],
+            extra_conditions=[self.builder.second_half_condition()],
         )
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
@@ -1318,8 +1292,8 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        first_half = self._resolve_epm(args, None, self._first_half_condition())
-        second_half = self._resolve_epm(args, None, self._second_half_condition())
+        first_half = self._resolve_epm(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_epm(args, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_eps_percent_change(
@@ -1327,8 +1301,8 @@ class MetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        first_half = self._resolve_eps(args, None, self._first_half_condition())
-        second_half = self._resolve_eps(args, None, self._second_half_condition())
+        first_half = self._resolve_eps(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percent_change_function(self, first_half, second_half, alias):

@@ -16,6 +16,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
+from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.issues.escalating import manage_issue_states
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
@@ -1729,10 +1730,10 @@ class PostProcessGroupPerformanceTest(
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
         # but because post-processing is async, this causes the assert to fail because it doesn't
         # wait for the side effects to happen
-        call_order = []
-        mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
-        mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
-        mock_process_rules.side_effect = call_order.append(mock_process_rules)
+        call_order = [mock_handle_owner_assignment, mock_handle_auto_assignment, mock_process_rules]
+        mock_handle_owner_assignment.side_effect = None
+        mock_handle_auto_assignment.side_effect = None
+        mock_process_rules.side_effect = None
 
         post_process_group(
             **group_state,
@@ -1755,7 +1756,7 @@ class PostProcessGroupPerformanceTest(
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):
-    @patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
+    @patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
     def test_process_transaction_event_clusterer(
         self,
         mock_store_transaction_name,
@@ -1786,7 +1787,9 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             group_states=None,
         )
 
-        assert mock_store_transaction_name.mock_calls == [mock.call(self.project, "foo")]
+        assert mock_store_transaction_name.mock_calls == [
+            mock.call(ClustererNamespace.TRANSACTIONS, self.project, "foo")
+        ]
 
 
 @region_silo_test

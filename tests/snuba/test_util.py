@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 
 from sentry.models import GroupHash
+from sentry.receivers import create_default_projects
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.utils import snuba
 
 
 class SnubaUtilTest(TestCase, SnubaTestCase):
     def test_filter_keys_set(self):
+        create_default_projects()
         snuba.raw_query(
             start=datetime.now(),
             end=datetime.now(),

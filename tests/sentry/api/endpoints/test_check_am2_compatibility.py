@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from django.urls import reverse
 from rest_framework import status
 
+from sentry.tasks.check_am2_compatibility import CheckStatus, set_check_results, set_check_status
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -28,15 +31,50 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         return ret_val
 
-    def test_check_endpoint_results_with_superuser_permissions(self):
+    @patch(
+        "sentry.tasks.check_am2_compatibility.CheckAM2Compatibility.run_compatibility_check",
+        return_value={},
+    )
+    def test_check_endpoint_results_with_superuser_permissions_and_no_cached_value(
+        self, run_compatibility_check
+    ):
         self.login_as(self.superuser, superuser=True)
 
         url = self.get_url(self.org.id)
-        response = self.client.get(url)
 
-        assert "widgets" in response.data
-        assert "alerts" in response.data
-        assert "sdks" in response.data
+        with self.tasks():
+            response = self.client.get(url)
+
+        assert response.data["status"] == CheckStatus.IN_PROGRESS.value
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        run_compatibility_check.assert_called_once()
+
+    def test_check_endpoint_results_with_superuser_permissions_and_in_progress_cached_value(self):
+        self.login_as(self.superuser, superuser=True)
+
+        url = self.get_url(self.org.id)
+        set_check_status(self.org.id, CheckStatus.ERROR)
+        with self.tasks():
+            response = self.client.get(url)
+
+        assert response.data["status"] == CheckStatus.ERROR.value
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+
+    def test_check_endpoint_results_with_superuser_permissions_and_done_cached_value(self):
+        self.login_as(self.superuser, superuser=True)
+
+        results = {"results": {"widgets": [], "alerts": [], "sdsks": {}}, "errors": []}
+
+        url = self.get_url(self.org.id)
+        set_check_status(self.org.id, CheckStatus.DONE)
+        set_check_results(self.org.id, results)
+        with self.tasks():
+            response = self.client.get(url)
+
+        assert response.data["status"] == CheckStatus.DONE.value
+        assert response.data["results"] == results["results"]
+        assert response.data["errors"] == []
+        assert response.status_code == status.HTTP_200_OK
 
     def test_check_endpoint_results_without_superuser_permissions(self):
         self.login_as(self.owner)

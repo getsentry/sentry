@@ -1,3 +1,4 @@
+import uuid
 from collections import defaultdict
 from typing import Optional
 
@@ -17,11 +18,15 @@ from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializ
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
 from sentry.utils.db import atomic_transaction
 
+# We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
+# restrict the number of order by fields that are possible in the API.
+ORDER_BY_FIELDS_MAPPING = {"date_added": "date_uploaded", "date_modified": "date_last_modified"}
+
 
 class InvalidSortByParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "invalid_sort_by_parameter"
-    message = "You can either sort via 'date_added' or '-date_added'"
+    message = "You can either sort via 'date_added' or 'date_modified'"
 
 
 class ArtifactBundlesMixin:
@@ -30,11 +35,19 @@ class ArtifactBundlesMixin:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
-        if sort_by == "date_added":
-            order_by = "date_uploaded"
+        order_by = ORDER_BY_FIELDS_MAPPING.get(sort_by)
+        if order_by is not None:
             return f"-{order_by}" if is_desc else order_by
 
         raise InvalidSortByParameter
+
+    @classmethod
+    def is_valid_uuid(cls, value):
+        try:
+            uuid.UUID(str(value))
+            return True
+        except ValueError:
+            return False
 
 
 @region_silo_endpoint
@@ -60,19 +73,30 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 ArtifactBundle.objects.filter(
                     organization_id=project.organization_id,
                     projectartifactbundle__project_id=project.id,
-                ).values_list("id", "bundle_id", "artifact_count", "date_uploaded")
+                ).values_list(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
                 # We want to use the more efficient DISTINCT ON.
-                .distinct("id", "bundle_id", "artifact_count", "date_uploaded")
+                .distinct(
+                    "id", "bundle_id", "artifact_count", "date_last_modified", "date_uploaded"
+                )
             )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
 
         if query:
-            query_q = (
-                Q(bundle_id__icontains=query)
-                | Q(releaseartifactbundle__release_name__icontains=query)
-                | Q(releaseartifactbundle__dist_name__icontains=query)
+            # By default, we want to exact match the release or dist.
+            query_q = Q(releaseartifactbundle__release_name=query) | Q(
+                releaseartifactbundle__dist_name=query
             )
+
+            # In case the query contains an actual UUID, we will also try to match the bundle id or debug id. Checking
+            # for the type before making the query saves us one join when not needed.
+            if self.is_valid_uuid(query):
+                query_q |= Q(bundle_id=query) | Q(debugidartifactbundle__debug_id=query)
+
+            # At the end we apply the chain of OR filters to the query. In case both the release and debug ids tables
+            # are used, we will make two left outer joins.
             queryset = queryset.filter(query_q)
 
         return self.paginate(

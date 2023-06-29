@@ -110,8 +110,14 @@ def delete(option, no_input):
     default=False,
     help="Skip options that are not set in DB/setting fi this flag is set.",
 )
+@click.option(
+    "--pretty-print",
+    is_flag=True,
+    default=False,
+    help="Prints the options in (key) : (value) format.",
+)
 @configuration
-def dump(flags: int, only_set: bool) -> None:
+def dump(flags: int, only_set: bool, pretty_print: bool) -> None:
     """
     Dump the values of all options except for those flagged as credential.
     For each option it provides name, value, last update channel, whether
@@ -137,12 +143,15 @@ def dump(flags: int, only_set: bool) -> None:
                         f"Option: {opt.name} is a credential. Skipping. Not showing this to you."
                     )
 
-                click.echo(
-                    f"Option: {opt.name}. Set: {is_set}. Set in settings: "
-                    f"{set_on_disk is not None}. "
-                    f"Last channel: {last_update_channel.value if last_update_channel else 'None'}. "
-                    f"Value: {value}"
-                )
+                if pretty_print:
+                    click.echo(f"{opt.name} : {value}")
+                else:
+                    click.echo(
+                        f"Option: {opt.name}. Set: {is_set}. Set in settings: "
+                        f"{set_on_disk is not None}. "
+                        f"Last channel: {last_update_channel.value if last_update_channel else 'None'}. "
+                        f"Value: {value}"
+                    )
 
 
 @config.command(name="generate-secret-key")

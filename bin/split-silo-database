@@ -3,13 +3,17 @@
 from typing import List
 
 import click
+import docker
 from django.apps import apps
 
-import docker
 from sentry.runner import configure
 from sentry.silo.base import SiloMode
 
 configure()
+
+from django.conf import settings
+
+from sentry.models.organizationmapping import OrganizationMapping
 
 
 def exec_run(container, command):
@@ -47,7 +51,26 @@ def split_database(tables: List[str], source: str, destination: str, reset: bool
     exec_run(postgres, import_command)
 
 
+def revise_organization_mappings(legacy_region_name: str):
+    if settings.SENTRY_MONOLITH_REGION == legacy_region_name:
+        click.echo(
+            "> No OrganizationMapping have been modified. Set 'SENTRY_MONOLITH_REGION' in sentry.conf.py to update monolith mappings."
+        )
+    else:
+        qs = OrganizationMapping.objects.filter(region_name=legacy_region_name)
+        record_count = len(qs)
+        qs.update(region_name=settings.SENTRY_MONOLITH_REGION)
+        click.echo(
+            f"> {record_count} OrganizationMapping record(s) have been updated from '{legacy_region_name}' to '{settings.SENTRY_MONOLITH_REGION}'"
+        )
+
+
 @click.command()
+@click.option(
+    "--legacy-region-name",
+    default="--monolith--",
+    help="Previous value of settings.SENTRY_MONOLITH_REGION to overwrite in organization mappings",
+)
 @click.option("--verbose", default=False, is_flag=True, help="Enable verbose logging")
 @click.option(
     "--reset",
@@ -56,7 +79,7 @@ def split_database(tables: List[str], source: str, destination: str, reset: bool
     help="Reset the target databases to be empty before loading extracted data and schema.",
 )
 @click.option("--database", default="sentry", help="Which database to derive splits from")
-def main(database: str, reset: bool, verbose: bool):
+def main(database: str, reset: bool, verbose: bool, legacy_region_name: str):
     """
     This is a development tool that can convert a monolith database into
     control + region databases by using silo annotations.
@@ -75,6 +98,7 @@ def main(database: str, reset: bool, verbose: bool):
         if SiloMode.REGION in silo_limit.modes:
             region_tables.append(model._meta.db_table)
 
+    revise_organization_mappings(legacy_region_name=legacy_region_name)
     split_database(control_tables, database, "control", reset=reset, verbose=verbose)
     split_database(region_tables, database, "region", reset=reset, verbose=verbose)
 

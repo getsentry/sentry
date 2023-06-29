@@ -4,12 +4,19 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import cast
+from typing import List, Optional, cast
 
 from sentry.services.hybrid_cloud import OptionValue
-from sentry.services.hybrid_cloud.project import RpcProject, RpcProjectOptionValue
-from sentry.services.hybrid_cloud.region import ByOrganizationIdAttribute
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.project import (
+    ProjectFilterArgs,
+    RpcProject,
+    RpcProjectOptionValue,
+)
+from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationIdAttribute
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -36,6 +43,23 @@ class ProjectService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationIdAttribute("project"))
     @abstractmethod
     def delete_option(self, *, project: RpcProject, key: str) -> None:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_by_id(self, *, organization_id: int, id: int) -> Optional[RpcProject]:
+        pass
+
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        organization_id: int,
+        filter: ProjectFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
         pass
 
 

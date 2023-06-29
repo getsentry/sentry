@@ -22,6 +22,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.query import celery_run_batch_query
@@ -260,14 +261,14 @@ def truncate_denormalizations(project, group):
         Environment.objects.filter(projects=group.project).values_list("id", flat=True)
     )
 
-    tsdb.delete([tsdb.models.group], [group.id], environment_ids=environment_ids)
+    tsdb.delete([TSDBModel.group], [group.id], environment_ids=environment_ids)
 
     tsdb.delete_distinct_counts(
-        [tsdb.models.users_affected_by_group], [group.id], environment_ids=environment_ids
+        [TSDBModel.users_affected_by_group], [group.id], environment_ids=environment_ids
     )
 
     tsdb.delete_frequencies(
-        [tsdb.models.frequent_releases_by_group, tsdb.models.frequent_environments_by_group],
+        [TSDBModel.frequent_releases_by_group, TSDBModel.frequent_environments_by_group],
         [group.id],
     )
 
@@ -380,15 +381,15 @@ def collect_tsdb_data(caches, project, events):
     for event in events:
         environment = caches["Environment"](project.organization_id, get_environment_name(event))
 
-        counters[event.datetime][tsdb.models.group][(event.group_id, environment.id)] += 1
+        counters[event.datetime][TSDBModel.group][(event.group_id, environment.id)] += 1
 
         user = event.data.get("user")
         if user:
-            sets[event.datetime][tsdb.models.users_affected_by_group][
+            sets[event.datetime][TSDBModel.users_affected_by_group][
                 (event.group_id, environment.id)
             ].add(get_event_user_from_interface(user).tag_value)
 
-        frequencies[event.datetime][tsdb.models.frequent_environments_by_group][event.group_id][
+        frequencies[event.datetime][TSDBModel.frequent_environments_by_group][event.group_id][
             environment.id
         ] += 1
 
@@ -402,7 +403,7 @@ def collect_tsdb_data(caches, project, events):
                 caches["Release"](project.organization_id, release).id,
             )
 
-            frequencies[event.datetime][tsdb.models.frequent_releases_by_group][event.group_id][
+            frequencies[event.datetime][TSDBModel.frequent_releases_by_group][event.group_id][
                 grouprelease.id
             ] += 1
 

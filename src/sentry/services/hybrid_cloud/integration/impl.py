@@ -152,6 +152,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration = Integration.objects.get(**integration_kwargs)
         except Integration.DoesNotExist:
             return None
+        except Integration.MultipleObjectsReturned:
+            return None
         return serialize_integration(integration)
 
     def get_organization_integrations(
@@ -392,3 +394,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             client.send_card(channel, attachment)
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+
+    def delete_integration(self, *, integration_id: int) -> None:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return
+        integration.delete()

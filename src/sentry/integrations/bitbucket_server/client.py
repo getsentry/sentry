@@ -2,9 +2,14 @@ import logging
 from urllib.parse import parse_qsl
 
 from oauthlib.oauth1 import SIGNATURE_RSA
+from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.integrations.client import ApiClient
+from sentry.models.identity import Identity
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -91,7 +96,7 @@ class BitbucketServerSetupClient(ApiClient):
         return self._request(*args, **kwargs)
 
 
-class BitbucketServer(ApiClient):
+class BitbucketServerClient(IntegrationProxyClient):
     """
     Contains the BitBucket Server specifics in order to communicate with bitbucket
 
@@ -102,36 +107,57 @@ class BitbucketServer(ApiClient):
 
     integration_name = "bitbucket_server"
 
-    def __init__(self, base_url, credentials, verify_ssl):
-        super().__init__(verify_ssl)
+    def __init__(
+        self,
+        integration: RpcIntegration,
+        identity_id: int,
+        org_integration_id: int,
+    ):
+        self.base_url = integration.metadata["base_url"]
+        self.identity_id = identity_id
+        super().__init__(
+            org_integration_id=org_integration_id,
+            verify_ssl=integration.metadata["verify_ssl"],
+            logging_context=None,
+        )
 
-        self.base_url = base_url
-        self.credentials = credentials
+    @control_silo_function
+    def authorize_request(self, prepared_request: PreparedRequest):
+        """Bitbucket Server authorizes with RSA-signed OAuth1 scheme"""
+        identity = Identity.objects.filter(id=self.identity_id).first()
+        if not identity:
+            return prepared_request
+        auth_scheme = OAuth1(
+            client_key=identity.data["consumer_key"],
+            rsa_key=identity.data["private_key"],
+            resource_owner_key=identity.data["access_token"],
+            resource_owner_secret=identity.data["access_token_secret"],
+            signature_method=SIGNATURE_RSA,
+            signature_type="auth_header",
+        )
+        prepared_request.prepare_auth(auth=auth_scheme)
+        return prepared_request
 
     def get_repos(self):
         return self.get(
             BitbucketServerAPIPath.repositories,
-            auth=self.get_auth(),
             params={"limit": 250, "permission": "REPO_ADMIN"},
         )
 
     def search_repositories(self, query_string):
         return self.get(
             BitbucketServerAPIPath.repositories,
-            auth=self.get_auth(),
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
         )
 
     def get_repo(self, project, repo):
         return self.get(
             BitbucketServerAPIPath.repository.format(project=project, repo=repo),
-            auth=self.get_auth(),
         )
 
     def create_hook(self, project, repo, data):
         return self.post(
             BitbucketServerAPIPath.repository_hooks.format(project=project, repo=repo),
-            auth=self.get_auth(),
             data=data,
         )
 
@@ -140,7 +166,6 @@ class BitbucketServer(ApiClient):
             BitbucketServerAPIPath.repository_hook.format(
                 project=project, repo=repo, id=webhook_id
             ),
-            auth=self.get_auth(),
         )
 
     def get_commits(self, project, repo, from_hash, to_hash, limit=1000):
@@ -162,7 +187,6 @@ class BitbucketServer(ApiClient):
     def get_last_commits(self, project, repo, limit=10):
         return self.get(
             BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
-            auth=self.get_auth(),
             params={"merges": "exclude", "limit": limit},
         )["values"]
 
@@ -179,16 +203,6 @@ class BitbucketServer(ApiClient):
         return self._get_values(
             BitbucketServerAPIPath.commit_changes.format(project=project, repo=repo, commit=commit),
             {"limit": limit},
-        )
-
-    def get_auth(self):
-        return OAuth1(
-            client_key=self.credentials["consumer_key"],
-            rsa_key=self.credentials["private_key"],
-            resource_owner_key=self.credentials["access_token"],
-            resource_owner_secret=self.credentials["access_token_secret"],
-            signature_method=SIGNATURE_RSA,
-            signature_type="auth_header",
         )
 
     def _get_values(self, uri, params, max_pages=1000000):
@@ -211,7 +225,7 @@ class BitbucketServer(ApiClient):
                 f"Loading values for paginated uri starting from {start}",
                 extra={"uri": uri, "params": new_params},
             )
-            data = self.get(uri, auth=self.get_auth(), params=new_params)
+            data = self.get(uri, params=new_params)
             logger.debug(
                 f'{len(data["values"])} values loaded', extra={"uri": uri, "params": new_params}
             )

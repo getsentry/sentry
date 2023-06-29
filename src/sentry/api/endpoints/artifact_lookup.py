@@ -7,7 +7,8 @@ from django.db import router
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry import options, ratelimits
 from sentry.api.base import region_silo_endpoint
@@ -135,9 +136,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         bundle_file_ids = set()
 
         def update_bundles(inner_bundles: Set[Tuple[int, datetime]], resolved: str):
-            for (bundle_id, date_added, file_id) in inner_bundles:
+            for (bundle_id, date_added) in inner_bundles:
                 used_artifact_bundles[bundle_id] = date_added
-                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", file_id, resolved))
+                bundle_file_ids.add((f"artifact_bundle/{bundle_id}", resolved))
 
         if debug_id:
             bundles = get_artifact_bundles_containing_debug_id(debug_id, project)
@@ -155,8 +156,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
             release, dist = try_resolve_release_dist(project, release_name, dist_name)
             if release:
-                for (releasefile_id, file_id) in get_legacy_release_bundles(release, dist):
-                    bundle_file_ids.add((f"release_file/{releasefile_id}", file_id, "release-old"))
+                for releasefile_id in get_legacy_release_bundles(release, dist):
+                    bundle_file_ids.add((f"release_file/{releasefile_id}", "release-old"))
                 individual_files = get_legacy_releasefile_by_file_url(release, dist, url)
 
         if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
@@ -167,31 +168,11 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # Then: Construct our response
         url_constructor = UrlConstructor(request, project)
 
-        # NOTE: the reason we still use the `file_id` as the `id` we return is
-        # because downstream symbolicator relies on that for its internal caching.
-        # We do not want to hard-refresh those caches, so we will rather do a
-        # gradual update here.
-        # The problem with using the `file_id` is that it could potentially
-        # conflict with the `ProjectDebugFile` id that is returned by the
-        # `debug_files` end point and powers native symbolication.
-        # A native debug file (ProjectDebugFile.id) could in theory conflict
-        # with a JS bundle (File.id). Moving over to `download_id` removes that
-        # conflict, as the `download_id` is prefixed with the entity.
-        def pick_id_to_return(download_id: str, file_id: int) -> str:
-            # the sampling here happens based on the `project_id`, to have
-            # stable cutover based on project, and we don’t balloon the cache
-            # size by randomly using either this or the other id for the same
-            # events.
-            should_use_new_id = (
-                project.id % 1000 < options.get("symbolicator.sourcemap-lookup-id-rate") * 1000
-            )
-            return download_id if should_use_new_id else str(file_id)
-
         found_artifacts = []
-        for (download_id, file_id, resolved_with) in bundle_file_ids:
+        for (download_id, resolved_with) in bundle_file_ids:
             found_artifacts.append(
                 {
-                    "id": pick_id_to_return(download_id, file_id),
+                    "id": download_id,
                     "type": "bundle",
                     "url": url_constructor.url_for_file_id(download_id),
                     "resolved_with": resolved_with,
@@ -199,11 +180,10 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
 
         for release_file in individual_files:
-            file_id = release_file.file.id
             download_id = f"release_file/{release_file.id}"
             found_artifacts.append(
                 {
-                    "id": pick_id_to_return(download_id, file_id),
+                    "id": download_id,
                     "type": "file",
                     "url": url_constructor.url_for_file_id(download_id),
                     # The `name` is the url/abs_path of the file,
@@ -274,7 +254,7 @@ def renew_artifact_bundles(used_artifact_bundles: Mapping[int, datetime]):
 
 def get_artifact_bundles_containing_debug_id(
     debug_id: str, project: Project
-) -> Set[Tuple[int, datetime, int]]:
+) -> Set[Tuple[int, datetime]]:
     # We want to have the newest `File` for each `debug_id`.
     return set(
         ArtifactBundle.objects.filter(
@@ -282,7 +262,7 @@ def get_artifact_bundles_containing_debug_id(
             projectartifactbundle__project_id=project.id,
             debugidartifactbundle__debug_id=debug_id,
         )
-        .values_list("id", "date_added", "file_id")
+        .values_list("id", "date_added")
         .order_by("-date_uploaded")[:1]
     )
 
@@ -291,7 +271,7 @@ def get_release_artifacts(
     project: Project,
     release_name: str,
     dist_name: Optional[str],
-) -> Set[Tuple[int, datetime, int]]:
+) -> Set[Tuple[int, datetime]]:
     return set(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -301,7 +281,7 @@ def get_release_artifacts(
             # See `_create_artifact_bundle` in `src/sentry/tasks/assemble.py` for the reference.
             releaseartifactbundle__dist_name=dist_name or "",
         )
-        .values_list("id", "date_added", "file_id")
+        .values_list("id", "date_added")
         .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
     )
 
@@ -329,9 +309,7 @@ def try_resolve_release_dist(
     return release, dist
 
 
-def get_legacy_release_bundles(
-    release: Release, dist: Optional[Distribution]
-) -> Set[Tuple[int, int]]:
+def get_legacy_release_bundles(release: Release, dist: Optional[Distribution]) -> Set[int]:
     return set(
         ReleaseFile.objects.filter(
             release_id=release.id,
@@ -341,7 +319,7 @@ def get_legacy_release_bundles(
             artifact_count=0,
             # similarly the special `type` is also used for release archives.
             file__type=RELEASE_BUNDLE_TYPE,
-        ).values_list("id", "file_id")
+        ).values_list("id", flat=True)
         # TODO: this `order_by` might be incredibly slow
         # we want to have a hard limit on the returned bundles here. and we would
         # want to pick the most recently uploaded ones. that should mostly be

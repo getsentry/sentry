@@ -4,6 +4,7 @@ import {Location} from 'history';
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
 import type {ButtonProps} from 'sentry/components/button';
+import {ProductSelectionProps} from 'sentry/components/onboarding/productSelection';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -89,11 +90,10 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type ReplayGracePeriodAlertProps = {organization: Organization};
-
 type ReplayOnboardingAlertProps = {children: React.ReactNode};
 type ReplayFeedbackButton = {children: React.ReactNode};
 type ReplayOnboardingCTAProps = {children: React.ReactNode; organization: Organization};
+type ProductUnavailableCTAProps = {organization: Organization};
 
 type ProfilingBetaAlertBannerProps = {
   organization: Organization;
@@ -107,6 +107,13 @@ type ProfilingUpgradePlanButtonProps = ButtonProps & {
 
 type ProfilingAM1OrMMXUpgrade = {
   fallback: React.ReactNode;
+  organization: Organization;
+};
+
+type ProductSelectionAvailabilityProps = Pick<
+  ProductSelectionProps,
+  'lazyLoader' | 'skipLazyLoader'
+> & {
   organization: Organization;
 };
 
@@ -166,10 +173,11 @@ export type ComponentHooks = {
   'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
+  'component:product-selection-availability': () => React.ComponentType<ProductSelectionAvailabilityProps>;
+  'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:profiling-am1-or-mmx-upgrade': () => React.ComponentType<ProfilingAM1OrMMXUpgrade>;
   'component:profiling-billing-banner': () => React.ComponentType<ProfilingBetaAlertBannerProps>;
   'component:profiling-upgrade-plan-button': () => React.ComponentType<ProfilingUpgradePlanButtonProps>;
-  'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
   'component:replay-feedback-button': () => React.ComponentType<ReplayFeedbackButton>;
   'component:replay-onboarding-alert': () => React.ComponentType<ReplayOnboardingAlertProps>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;

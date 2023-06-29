@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from fido2.ctap2 import AuthenticatorData
 from rest_framework import status
 from rest_framework.request import Request
@@ -167,7 +167,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Authenticator)):
             authenticator.delete()
 
             # if we delete an actual authenticator and all that

@@ -1,33 +1,21 @@
-import styled from '@emotion/styled';
-
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
-import {ComparisonLabel} from 'sentry/views/starfish/components/samplesTable/common';
+import {NumberContainer} from 'sentry/utils/discover/styles';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 type Props = {
-  delta?: number;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
   throughputPerSecond?: number;
 };
 
-export default function ThroughputCell({throughputPerSecond, delta}: Props) {
+export default function ThroughputCell({throughputPerSecond, containerProps}: Props) {
   const throughput = throughputPerSecond ? throughputPerSecond.toFixed(2) : '--';
+
   return (
-    <Container>
-      <span>{`${formatAbbreviatedNumber(throughput)}/${t('s')}`}</span>
-      {delta ? (
-        <ComparisonLabel value={delta * -1}>
-          {delta > 0 ? '+' : ''}
-          {formatPercentage(delta)}
-        </ComparisonLabel>
-      ) : null}
-    </Container>
+    <NumberContainer {...containerProps}>
+      {formatAbbreviatedNumber(throughput)}/{t('s')}
+    </NumberContainer>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;

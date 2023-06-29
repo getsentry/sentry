@@ -30,12 +30,6 @@ export const experimentList = [
     parameter: 'exposed',
     assignments: [0, 1],
   },
-  {
-    key: 'PrioritySortExperiment',
-    type: ExperimentType.USER,
-    parameter: 'variant',
-    assignments: ['baseline', 'variant1', 'variant2'],
-  },
 ] as const;
 
 export const experimentConfig = experimentList.reduce(

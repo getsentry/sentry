@@ -110,7 +110,7 @@ class EventStream(Service):
                 queue=queue,
             )
 
-    def _get_queue_for_post_process(self, event: Event) -> str:
+    def _get_queue_for_post_process(self, event: Event | GroupEvent) -> str:
         event_type = self._get_event_type(event)
         if event_type == EventStreamEventType.Transaction:
             return "post_process_transactions"

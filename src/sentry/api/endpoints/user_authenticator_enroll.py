@@ -106,7 +106,7 @@ def get_serializer_field_metadata(serializer, fields=None):
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     @sudo_required
-    def get(self, request: Request, user, interface_id) -> Response:
+    def get(self, request: Request, user, interface_id) -> HttpResponse:
         """
         Get Authenticator Interface
         ```````````````````````````
@@ -156,7 +156,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
 
     @sudo_required
     @email_verification_required
-    def post(self, request: Request, user, interface_id) -> Response:
+    def post(self, request: Request, user, interface_id) -> HttpResponse:
         """
         Enroll in authenticator interface
         `````````````````````````````````
