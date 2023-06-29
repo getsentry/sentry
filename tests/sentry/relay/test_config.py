@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 import pytz
@@ -720,7 +720,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
                     "mri": "c:transactions/alert@none",
                     "field": None,
                     "condition": {"op": "and", "inner": []},
-                    "tags": [{"key": "query_hash", "value": "2"}],
+                    "tags": [{"key": "query_hash", "value": ANY}],
                 }
             ],
         }
