@@ -3371,7 +3371,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         event_id_1 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1),
+            self.build_occurrence_data(event_id=event_id_1, issue_title="File I/O on Main Thread"),
             {
                 "event_id": event_id_1,
                 "project_id": self.project.id,
@@ -3386,7 +3386,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         event_id_2 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_2, fingerprint=["put-me-in-group-2"]),
+            self.build_occurrence_data(
+                event_id=event_id_2,
+                fingerprint=["put-me-in-group-2"],
+                issue_title="File I/O on Main Thread",
+            ),
             {
                 "event_id": event_id_2,
                 "project_id": self.project.id,
@@ -3460,6 +3464,13 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             results = self.make_query(
                 search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
+            assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+    def test_generic_query_message(self):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
+            results = self.make_query(search_filter_query="File I/O")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_perf(self):
