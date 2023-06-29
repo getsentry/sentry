@@ -1,6 +1,9 @@
 from time import time
+from unittest import mock
+from unittest.mock import call
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 from django.test import override_settings
 from responses import matchers
@@ -11,12 +14,17 @@ from sentry.integrations.vsts.integration import VstsIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
 @control_silo_test(stable=True)
 class VstsApiClientTest(VstsIntegrationTestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metric_patch(self):
+        with mock.patch("sentry.shared_integrations.track_response.metrics") as self.metrics:
+            yield
+
     def test_refreshes_expired_token(self):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
@@ -86,6 +94,77 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             .get_projects(self.vsts_base_url)
         )
         assert len(projects) == 220
+
+    @responses.activate
+    def test_simple(self):
+        responses.add(
+            responses.GET,
+            "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits",
+            body=b"{}",
+            match=[matchers.query_param_matcher({"commit": "b", "$top": "10"})],
+        )
+
+        self.assert_installation()
+        integration = Integration.objects.get(provider="vsts")
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                provider="visualstudio",
+                name="example",
+                organization_id=self.organization.id,
+                config={
+                    "instance": self.vsts_base_url,
+                    "project": "project-name",
+                    "name": "example",
+                },
+                integration_id=integration.id,
+                external_id="albertos-apples",
+            )
+
+        client = integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        ).get_client()
+
+        responses.calls.reset()
+        client.get_commits(
+            instance=self.vsts_base_url, repo_id=repo.external_id, commit="b", limit=10
+        )
+
+        assert len(responses.calls) == 1
+
+        # Check if metrics is generated properly
+        calls = [
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+            call(
+                "integrations.http_response",
+                sample_rate=1.0,
+                tags={"integration": "vsts", "status": 200},
+            ),
+        ]
+        assert self.metrics.incr.mock_calls == calls
 
 
 def assert_proxy_request(request, is_proxy=True):
