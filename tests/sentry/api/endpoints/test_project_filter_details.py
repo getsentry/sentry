@@ -35,7 +35,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project.update_option("filters:filtered-transaction", "0")
         with Feature("organizations:health-check-filter"):
             self.get_success_response(
-                org.slug, project.slug, "health-check", active=True, status_code=204
+                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
             )
         # option was changed by the request
         assert project.get_option("filters:filtered-transaction") == "1"
@@ -60,7 +60,7 @@ class ProjectFilterDetailsTest(APITestCase):
         project.update_option("filters:filtered-transaction", "0")
         with Feature({"organizations:health-check-filter": False}):
             resp = self.get_response(
-                org.slug, project.slug, "health-check", active=True, status_code=204
+                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
             )
         # check we return error
         assert resp.status_code == 404

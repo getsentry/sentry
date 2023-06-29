@@ -42,14 +42,14 @@ class ProjectFiltersTest(APITestCase):
         project.update_option("filters:filtered-transaction", "0")
         with Feature("organizations:health-check-filter"):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is False
 
         project.update_option("filters:filtered-transaction", "1")
         with Feature("organizations:health-check-filter"):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is True
 
@@ -66,5 +66,5 @@ class ProjectFiltersTest(APITestCase):
         project.update_option("filters:filtered-transaction", "1")
         with Feature({"organizations:health-check-filter": False}):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is None
