@@ -17,6 +17,13 @@ describe('OrganizationSettingsForm', function () {
       url: `/organizations/${organization.slug}/auth-provider/`,
       method: 'GET',
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/?provider_key=github`,
+      method: 'GET',
+      body: {
+        providers: [{canAdd: true}],
+      },
+    });
     onSave.mockReset();
   });
 
@@ -160,5 +167,27 @@ describe('OrganizationSettingsForm', function () {
         },
       })
     );
+  });
+
+  it('enable PR bot is disabled without GitHub integration', function () {
+    render(
+      <OrganizationSettingsForm
+        location={TestStubs.location()}
+        orgId={organization.slug}
+        access={new Set(['org:write'])}
+        initialData={TestStubs.Organization()}
+        onSave={onSave}
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['pr-comment-bot'],
+        },
+      }
+    );
+
+    expect(
+      screen.getByRole('checkbox', {name: /Enable Pull Request Bot/})
+    ).toBeDisabled();
   });
 });
