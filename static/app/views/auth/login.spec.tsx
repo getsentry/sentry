@@ -1,8 +1,11 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Login from 'sentry/views/auth/login';
 
 describe('Login', function () {
+  const {routerProps} = initializeOrg();
+
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -13,7 +16,7 @@ describe('Login', function () {
       body: {},
     });
 
-    render(<Login params={{}} />);
+    render(<Login {...routerProps} />);
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -24,7 +27,7 @@ describe('Login', function () {
       statusCode: 500,
     });
 
-    render(<Login params={{}} />);
+    render(<Login {...routerProps} />);
 
     expect(
       await screen.findByText('Unable to load authentication configuration')
@@ -37,7 +40,7 @@ describe('Login', function () {
       body: {canRegister: false},
     });
 
-    render(<Login params={{}} />);
+    render(<Login {...routerProps} />);
 
     expect(await screen.findByText('Lost your password?')).toBeInTheDocument();
     expect(screen.queryByText('Register')).not.toBeInTheDocument();
@@ -49,7 +52,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    render(<Login params={{}} />);
+    render(<Login {...routerProps} />);
 
     expect(await screen.findByRole('link', {name: 'Register'})).toBeInTheDocument();
   });
@@ -60,7 +63,7 @@ describe('Login', function () {
       body: {canRegister: true},
     });
 
-    render(<Login params={{}} />);
+    render(<Login {...routerProps} />);
 
     // Default tab is login
     expect(await screen.findByPlaceholderText('username or email')).toBeInTheDocument();
