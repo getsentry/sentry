@@ -2,7 +2,7 @@ import datetime
 import functools
 from abc import abstractmethod
 from datetime import timedelta
-from typing import Any, Callable, Mapping, Optional, Set
+from typing import Any, Callable, Mapping, Optional, Set, Tuple
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -16,7 +16,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BaseValue, Commit, Message, Partition, Topic
 from django.utils import timezone
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.sentry_metrics.consumers.indexer.common import get_config
 from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
@@ -100,11 +100,20 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
 class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(
         self,
-        use_case_id: UseCaseKey,
         max_batch_size: int,
         max_batch_time: float,
+        ingest_profile: str,
+        indexer_db: str,
     ) -> None:
-        self.__use_case_id = use_case_id
+        from sentry.sentry_metrics.configuration import (
+            IndexerStorage,
+            UseCaseKey,
+            get_ingest_config,
+        )
+
+        self.config = get_ingest_config(UseCaseKey(ingest_profile), IndexerStorage(indexer_db))
+
+        self.__use_case_id = self.config.use_case_id
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = max_batch_time
         self.__metrics = get_metrics()
@@ -156,30 +165,33 @@ def get_last_seen_updater(
     max_batch_time: float,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    ingest_config: MetricsIngestConfiguration,
-) -> StreamProcessor[KafkaPayload]:
+    ingest_profile: str,
+    indexer_db: str,
+) -> Tuple[MetricsIngestConfiguration, StreamProcessor[KafkaPayload]]:
     """
     The last_seen updater uses output from the metrics indexer to update the
     last_seen field in the sentry_stringindexer and sentry_perfstringindexer database
     tables. This enables us to do deletions of tag keys/values that haven't been
     accessed over the past N days (generally, 90).
     """
+
     processing_factory = LastSeenUpdaterStrategyFactory(
-        ingest_config.use_case_id,
+        ingest_profile=ingest_profile,
+        indexer_db=indexer_db,
         max_batch_size=max_batch_size,
         max_batch_time=max_batch_time,
     )
 
-    return StreamProcessor(
+    return processing_factory.config, StreamProcessor(
         KafkaConsumer(
             get_config(
-                ingest_config.output_topic,
+                processing_factory.config.output_topic,
                 group_id,
                 auto_offset_reset=auto_offset_reset,
                 strict_offset_reset=strict_offset_reset,
             )
         ),
-        Topic(ingest_config.output_topic),
+        Topic(processing_factory.config.output_topic),
         processing_factory,
         IMMEDIATE,
     )
