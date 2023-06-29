@@ -1093,6 +1093,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
+    "github_comment_reactions": {
+        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -3184,19 +3188,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# The grouping strategy to use for driving similarity-v2. You can add multiple
-# strategies here to index them all. This is useful for transitioning a
-# similarity dataset to newer grouping configurations.
-#
-# The dictionary value represents the redis prefix to use.
-#
-# Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "similarity:2020-07-23": "a",
-}
+# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
@@ -3406,7 +3400,9 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-if USE_SILOS:
+# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
+# Split databases are also required for the USE_SILOS devserver flow.
+if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
@@ -3415,6 +3411,9 @@ if USE_SILOS:
     # silo database is the 'default' elsewhere in application logic.
     DATABASES["default"]["NAME"] = "region"
 
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     SENTRY_REGION_CONFIG = [
@@ -3422,7 +3421,7 @@ if USE_SILOS:
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://localhost:8000",
+            "address": "http://us.localhost:8000",
             "api_token": "dev-region-silo-token",
         }
     ]
@@ -3434,7 +3433,6 @@ if USE_SILOS:
             "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
 # How long we should wait for a gateway proxy request to return before giving up

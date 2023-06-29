@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 __all__ = (
     "BoundedAutoField",

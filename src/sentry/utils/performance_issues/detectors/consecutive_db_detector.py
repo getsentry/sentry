@@ -4,7 +4,7 @@ import re
 from datetime import timedelta
 from typing import Any, List, Mapping, Optional, Sequence
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType

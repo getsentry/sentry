@@ -10,7 +10,7 @@ from typing import IO, TYPE_CHECKING, Any, Generator, Mapping, NoReturn, TypeVar
 
 import rapidjson
 import sentry_sdk
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
 from django.utils.timezone import is_aware
@@ -67,7 +67,7 @@ def better_default_encoder(o: object) -> object:
         return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):
-        return force_text(o)
+        return force_str(o)
     raise TypeError(repr(o) + " is not JSON serializable")
 
 

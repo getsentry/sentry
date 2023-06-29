@@ -39,7 +39,7 @@ const STAT_OPS = {
   localhost: {title: t('Localhost'), color: theme.blue300},
   'release-version': {title: t('Release'), color: theme.purple200},
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
-  'health-check': {title: t('Health Check'), color: theme.yellow400},
+  'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
 };
 
 class ProjectFiltersChart extends Component<Props, State> {
