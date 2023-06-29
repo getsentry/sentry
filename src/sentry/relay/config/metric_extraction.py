@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
@@ -14,6 +15,9 @@ from sentry.models import (
     TransactionMetric,
 )
 
+logger = logging.getLogger(__name__)
+
+
 # GENERIC METRIC EXTRACTION
 
 
@@ -23,6 +27,10 @@ CUSTOM_ALERT_METRIC_NAME = "transactions/alert"
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
+
+# Maximum number of custom metrics that can be extracted for alert rules with
+# advanced filter expressions.
+_MAX_ALERT_METRICS = 100
 
 
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
@@ -68,18 +76,23 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
-    alerts = AlertRule.objects.filter(
-        project=project, status=AlertRuleStatus.PENDING
-    ).select_related("snuba_query")
+    alerts = (
+        AlertRule.objects.fetch_for_project(project)
+        .filter(status=AlertRuleStatus.PENDING)
+        .select_related("snuba_query")
+    )
 
     metrics: List[MetricSpec] = []
     for alert in alerts:
-        metric = _convert_alert_to_metric(alert)
-        if metric:
+        if metric := _convert_alert_to_metric(alert):
             metrics.append(metric)
 
     if not metrics:
         return None
+
+    if len(metrics) > _MAX_ALERT_METRICS:
+        logger.error("Too many custom alert metrics for project")
+        metrics = metrics[:_MAX_ALERT_METRICS]
 
     return {
         "version": _METRIC_EXTRACTION_VERSION,
