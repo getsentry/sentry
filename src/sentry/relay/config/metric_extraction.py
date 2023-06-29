@@ -32,27 +32,42 @@ _METRIC_EXTRACTION_VERSION = 1
 # advanced filter expressions.
 _MAX_ALERT_METRICS = 100
 
-
+# Base type for conditions to evaluate on payloads.
+# TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 
 class ComparingRuleCondition(TypedDict):
+    """RuleCondition that compares a named field to a reference value."""
+
     op: Literal["eq", "gt", "gte", "lt", "lte", "glob"]
     name: str
     value: Any
 
 
 class LogicalRuleCondition(TypedDict):
+    """RuleCondition that applies a logical operator to a sequence of conditions."""
+
     op: Literal["and", "or"]
     inner: Sequence[RuleCondition]
 
 
 class NotRuleCondition(TypedDict):
+    """RuleCondition that negates an inner condition."""
+
     op: Literal["not"]
     inner: RuleCondition
 
 
 class TagSpec(TypedDict):
+    """
+    Configuration for a tag to add to a metric.
+
+    Tags values can be static if defined through `value` or dynamically queried
+    from the payload if defined through `field`. These two options are mutually
+    exclusive, behavior is undefined if both are specified.
+    """
+
     key: str
     field: NotRequired[str]
     value: NotRequired[str]
@@ -60,6 +75,23 @@ class TagSpec(TypedDict):
 
 
 class MetricSpec(TypedDict):
+    """
+    Specification for a metric to extract from some data.
+
+    The metric type is given as part of the MRI (metric reference identifier)
+    which must follow the form: `<type>:<namespace>/<name>@<unit>`.
+
+    How the metric's value is obtained depends on the metric type:
+     - Counter metrics are a special case, since the default product counters do
+       not count any specific field but rather the occurrence of the event. As
+       such, there is no value expression, and the field is set to `None`.
+       Semantics of specifying remain undefined at this point.
+     - Distribution metrics require a numeric value. If the value at the
+       specified path is not numeric, metric extraction will be skipped.
+     - Set metrics require a string value, which is then emitted into the set as
+       unique value. Insertion of numbers and other types is undefined.
+    """
+
     category: Literal["transaction"]
     mri: str
     field: NotRequired[Optional[str]]
@@ -68,11 +100,21 @@ class MetricSpec(TypedDict):
 
 
 class MetricExtractionConfig(TypedDict):
+    """Configuration for generic extraction of metrics from all data categories."""
+
     version: int
     metrics: List[MetricSpec]
 
 
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
+    """
+    Returns generic metric extraction config for the given project.
+
+    This requires respective feature flags to be enabled. At the moment, metrics
+    for the following models are extracted:
+     - Performance alert rules which advanced filter expressions.
+    """
+
     if not features.has("organizations:on-demand-metrics-extraction", project.organization):
         return None
 
