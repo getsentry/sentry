@@ -1,6 +1,5 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AdminSettings from 'sentry/views/admin/adminSettings';
 
 // TODO(dcramer): this doesnt really test anything as we need to
@@ -8,7 +7,7 @@ import AdminSettings from 'sentry/views/admin/adminSettings';
 describe('AdminSettings', function () {
   describe('render()', function () {
     beforeEach(() => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/internal/options/',
         body: {
           'system.url-prefix': {
@@ -115,7 +114,7 @@ describe('AdminSettings', function () {
     });
 
     it('renders', function () {
-      const wrapper = render(<AdminSettings params={{}} />);
+      const wrapper = render(<AdminSettings />);
       expect(wrapper.container).toSnapshot();
     });
   });
