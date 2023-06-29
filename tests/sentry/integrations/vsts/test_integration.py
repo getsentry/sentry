@@ -274,7 +274,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        installation.default_identity.data["expires"] = 1566851050
+        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity.data["expires"] = 1566851050
+        identity.save()
 
         responses.replace(
             responses.POST,
