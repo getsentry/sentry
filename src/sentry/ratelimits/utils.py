@@ -159,7 +159,7 @@ def above_rate_limit_check(
     # paths. Ideally there is just one lua script that does both and just says what kind of limit was hit
     # (if any)
     rate_limit_type = RateLimitType.NOT_LIMITED
-    window_limited, current, reset_time = ratelimiter.backend.is_limited_with_value(
+    window_limited, current, reset_time = ratelimiter.is_limited_with_value(
         key, limit=rate_limit.limit, window=rate_limit.window
     )
     remaining = rate_limit.limit - current if not window_limited else 0
@@ -213,7 +213,7 @@ def for_organization_member_invite(
 
     return any(
         (
-            ratelimiter.backend.is_limited(
+            ratelimiter.is_limited(
                 "members:invite-by-user:{}".format(
                     md5_text(user.id if user and user.is_authenticated else str(auth)).hexdigest()
                 ),
@@ -221,11 +221,11 @@ def for_organization_member_invite(
             )
             if (user or auth)
             else None,
-            ratelimiter.backend.is_limited(
+            ratelimiter.is_limited(
                 f"members:invite-by-org:{md5_text(organization.id).hexdigest()}",
                 **config["members:invite-by-org"],
             ),
-            ratelimiter.backend.is_limited(
+            ratelimiter.is_limited(
                 "members:org-invite-to-email:{}-{}".format(
                     organization.id, md5_text(email.lower()).hexdigest()
                 ),
