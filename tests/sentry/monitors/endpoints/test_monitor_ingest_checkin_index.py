@@ -1,12 +1,12 @@
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import quote as urlquote
 from uuid import UUID
 
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
