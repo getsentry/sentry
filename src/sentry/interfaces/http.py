@@ -3,7 +3,7 @@ __all__ = ("Http",)
 import re
 from urllib.parse import parse_qsl
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.interfaces.base import Interface
 from sentry.utils import json

@@ -3,7 +3,7 @@ import logging
 from django.contrib import messages
 from django.http import HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
