@@ -2,7 +2,7 @@ import bisect
 import functools
 import math
 from datetime import datetime
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
@@ -596,19 +596,6 @@ class CombinedQuerysetPaginator:
             )
         else:
             return self._prep_value(item, self.key_from_item(item), for_prev)
-
-    def value_from_cursor(self, cursor):
-        if self.using_dates:
-            return datetime.fromtimestamp(float(cursor.value) / self.multiplier).replace(
-                tzinfo=timezone.utc
-            )
-        else:
-            value = cursor.value
-            if isinstance(value, float):
-                return math.floor(value) if self._is_asc(cursor.is_prev) else math.ceil(value)
-            if isinstance(value, str):
-                return unquote(value)
-            return value
 
     def _is_asc(self, is_prev):
         return (self.desc and is_prev) or not (self.desc or is_prev)
