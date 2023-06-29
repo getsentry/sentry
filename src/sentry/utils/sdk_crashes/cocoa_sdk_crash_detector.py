@@ -24,7 +24,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
         function = frame.get("function")
 
-        if function is not None:
+        if function:
             # [SentrySDK crash] is a testing function causing a crash.
             # Therefore, we don't want to mark it a as a SDK crash.
             if "SentrySDK crash" in function:
