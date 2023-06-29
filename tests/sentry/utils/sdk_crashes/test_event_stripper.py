@@ -1,5 +1,4 @@
 import abc
-from unittest.mock import Mock
 
 from fixtures.sdk_crash_detection.crash_event import (
     IN_APP_FRAME,
@@ -43,28 +42,11 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             "platform",
             "sdk",
             "exception",
-            "debug_meta",
             "contexts",
         }
 
         for key in keys_kept:
             assert stripped_event_data.get(key) is not None, f"key {key} should be kept"
-
-    def test_strip_event_data_without_debug_meta(self):
-        event_data = get_crash_event()
-        debug_meta = dict(get_path(event_data, "debug_meta"))
-        debug_meta.pop("images")
-        event_data["debug_meta"] = debug_meta
-
-        event = self.create_event(
-            data=event_data,
-            project_id=self.project.id,
-        )
-
-        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
-
-        debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
-        assert debug_meta_images is None
 
     def test_strip_event_data_strips_context(self):
         event = self.create_event(
@@ -207,20 +189,6 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "platform": "platform",
         }
-
-    def test_strip_event_data_strips_non_referenced_dsyms(self):
-        event = self.create_event(
-            data=get_crash_event(),
-            project_id=self.project.id,
-        )
-
-        stripped_event_data = strip_event_data(event.data, Mock())
-
-        debug_meta_images = get_path(stripped_event_data, "debug_meta", "images")
-
-        image_addresses = set(map(lambda image: image["image_addr"], debug_meta_images))
-        expected_image_addresses = {"0x1a4e8f000", "0x100304000", "0x100260000"}
-        assert image_addresses == expected_image_addresses
 
     def test_strip_frames_sentry_in_app_frame_kept(self):
         frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=True)

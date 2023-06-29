@@ -13,9 +13,6 @@ class Allow(Enum):
     """Keeps the event data if it is of type str, int, float, bool."""
     SIMPLE_TYPE = auto()
 
-    """Keeps the event data no matter the type."""
-    ALL = auto()
-
     """
     Doesn't keep the event data no matter the type. This can be used to explicitly
     specify that data should be removed with an explanation.
@@ -78,7 +75,6 @@ EVENT_DATA_ALLOWLIST = {
             },
         }
     },
-    "debug_meta": Allow.ALL,
     "contexts": {
         "device": {
             "family": Allow.SIMPLE_TYPE,
@@ -109,11 +105,6 @@ def strip_event_data(
         stripped_frames = _strip_frames(frames, sdk_crash_detector)
         new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
-    debug_meta_images = get_path(new_event_data, "debug_meta", "images")
-    if debug_meta_images is not None:
-        stripped_debug_meta_images = _strip_debug_meta(debug_meta_images, stripped_frames)
-        new_event_data["debug_meta"]["images"] = stripped_debug_meta_images
-
     return new_event_data
 
 
@@ -137,8 +128,6 @@ def _strip_event_data_with_allowlist(
 
             if allowed is Allow.SIMPLE_TYPE and isinstance(data_value, (str, int, float, bool)):
                 stripped_data[data_key] = data_value
-            elif allowed is Allow.ALL:
-                stripped_data[data_key] = data_value
             else:
                 continue
 
@@ -152,15 +141,6 @@ def _strip_event_data_with_allowlist(
             ]
 
     return stripped_data
-
-
-def _strip_debug_meta(
-    debug_meta_images: Sequence[Mapping[str, Any]], frames: Sequence[Mapping[str, Any]]
-) -> Sequence[Mapping[str, Any]]:
-
-    frame_image_addresses = {frame["image_addr"] for frame in frames}
-
-    return [image for image in debug_meta_images if image["image_addr"] in frame_image_addresses]
 
 
 def _strip_frames(
