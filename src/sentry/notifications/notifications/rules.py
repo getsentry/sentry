@@ -72,11 +72,16 @@ class AlertRuleNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
-        self.template_path = (
-            f"sentry/emails/{event.group.issue_category.name.lower()}"
-            if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
-            else "sentry/emails/generic"
-        )
+
+        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            if event.occurrence.evidence_data.get("template_name") == "profile":
+                issue_category_name = "generic"
+            else:
+                issue_category_name = event.group.issue_category.name.lower()
+        else:
+            issue_category_name = "generic"
+
+        self.template_path = f"sentry/emails/{issue_category_name}"
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
