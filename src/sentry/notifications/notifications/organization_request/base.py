@@ -37,8 +37,8 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
 
     def determine_recipients(self) -> Iterable[RpcActor]:
         return [
-            RpcActor(id=user.id, actor_type=ActorType.USER)
-            for user in self.role_based_recipient_strategy.determine_recipients()
+            RpcActor(id=member.user_id, actor_type=ActorType.USER)
+            for member in self.role_based_recipient_strategy.determine_member_recipients()
         ]
 
     def get_notification_title(
