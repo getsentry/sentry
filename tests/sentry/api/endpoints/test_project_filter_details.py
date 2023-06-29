@@ -19,7 +19,7 @@ class ProjectFilterDetailsTest(APITestCase):
 
         project.update_option("filters:browser-extensions", "0")
         self.get_success_response(
-            org.slug, project.slug, "browser-extensions", active=True, status_code=201
+            org.slug, project.slug, "browser-extensions", active=True, status_code=204
         )
 
         assert project.get_option("filters:browser-extensions") == "1"
@@ -32,21 +32,21 @@ class ProjectFilterDetailsTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
-        project.update_option("filters:health-check", "0")
+        project.update_option("filters:filtered-transaction", "0")
         with Feature("organizations:health-check-filter"):
             self.get_success_response(
-                org.slug, project.slug, "health-check", active=True, status_code=201
+                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
             )
         # option was changed by the request
-        assert project.get_option("filters:health-check") == "1"
+        assert project.get_option("filters:filtered-transaction") == "1"
 
-        project.update_option("filters:health-check", "1")
+        project.update_option("filters:filtered-transaction", "1")
         with Feature("organizations:health-check-filter"):
             self.get_success_response(
-                org.slug, project.slug, "health-check", active=False, status_code=201
+                org.slug, project.slug, "filtered-transaction", active=False, status_code=204
             )
         # option was changed by the request
-        assert project.get_option("filters:health-check") == "0"
+        assert project.get_option("filters:filtered-transaction") == "0"
 
     def test_put_health_check_filter_free_plan(self):
         """
@@ -57,15 +57,15 @@ class ProjectFilterDetailsTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
-        project.update_option("filters:health-check", "0")
+        project.update_option("filters:filtered-transaction", "0")
         with Feature({"organizations:health-check-filter": False}):
             resp = self.get_response(
-                org.slug, project.slug, "health-check", active=True, status_code=201
+                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
             )
         # check we return error
         assert resp.status_code == 404
         # check we did not touch the option (the request did not change anything)
-        assert project.get_option("filters:health-check") == "0"
+        assert project.get_option("filters:filtered-transaction") == "0"
 
     def test_put_legacy_browsers(self):
         org = self.create_organization(name="baz", slug="1", owner=self.user)
@@ -99,7 +99,7 @@ class ProjectFilterDetailsTest(APITestCase):
             project.slug,
             "legacy-browsers",
             subfilters=new_subfilters,
-            status_code=201,
+            status_code=204,
         )
 
         assert set(project.get_option("filters:legacy-browsers")) == set(new_subfilters)

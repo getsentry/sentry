@@ -4,7 +4,12 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, DSNAuthentication, TokenAuthentication
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    DSNAuthentication,
+    OrgAuthTokenAuthentication,
+    TokenAuthentication,
+)
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
@@ -105,7 +110,12 @@ class MonitorIngestEndpoint(Endpoint):
           - When using DSN auth
     """
 
-    authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
+    authentication_classes = (
+        DSNAuthentication,
+        TokenAuthentication,
+        OrgAuthTokenAuthentication,
+        ApiKeyAuthentication,
+    )
     permission_classes = (ProjectMonitorPermission,)
 
     allow_auto_create_monitors = False

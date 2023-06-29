@@ -46,6 +46,7 @@ class SiloRouter:
         "django_content_type",
         "django_site",
         "django_session",
+        "auth_user",
         "auth_group",
         "auth_permission",
         "auth_group_permissions",
