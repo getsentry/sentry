@@ -18,6 +18,7 @@ import withProjects from 'sentry/utils/withProjects';
 
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
+import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {
   dataCategory: DataCategoryInfo['plural'];
@@ -57,7 +58,7 @@ export enum SortBy {
 }
 
 class UsageStatsProjects extends AsyncComponent<Props, State> {
-  static MAX_ROWS_USAGE_TABLE = 25;
+  static MAX_ROWS_USAGE_TABLE = 10;
 
   componentDidUpdate(prevProps: Props) {
     const {
@@ -160,10 +161,9 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     }
   }
 
-  get tableCursor() {
+  get tableOffset() {
     const {tableCursor} = this.props;
-    const offset = Number(tableCursor?.split(':')[1]);
-    return isNaN(offset) ? 0 : offset;
+    return getOffsetFromCursor(tableCursor);
   }
 
   /**
@@ -172,17 +172,14 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
    * page doesn't scroll too deeply for organizations with a lot of projects
    */
   get pageLink() {
+    const offset = this.tableOffset;
     const numRows = this.filteredProjects.length;
-    const offset = this.tableCursor;
-    const prevOffset = offset - UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
-    const nextOffset = offset + UsageStatsProjects.MAX_ROWS_USAGE_TABLE;
 
-    return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
-      0,
-      prevOffset
-    )}:1", <link>; rel="next"; results="${
-      nextOffset < numRows
-    }"; cursor="0:${nextOffset}:0"`;
+    return getPaginationPageLink({
+      numRows,
+      pageSize: UsageStatsProjects.MAX_ROWS_USAGE_TABLE,
+      offset,
+    });
   }
 
   get projectSelectionFilter(): (p: Project) => boolean {
@@ -399,7 +396,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           : a.project.slug.localeCompare(b.project.slug);
       });
 
-      const offset = this.tableCursor;
+      const offset = this.tableOffset;
 
       return {
         tableStats: tableStats.slice(
