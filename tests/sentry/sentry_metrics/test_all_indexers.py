@@ -489,7 +489,14 @@ def test_bulk_reverse_resolve(indexer):
 
     indexes = [a, production, b, unknown1, release, environment, c, unknown2]
     # we expect the indexer to resolve the indexes to the original strings and return None for unknown indexes
-    expected_result = ["aaa", "production", "bbb", None, "release", "environment", "ccc", None]
+    expected_result = {
+        a: "aaa",
+        b: "bbb",
+        c: "ccc",
+        production: "production",
+        release: "release",
+        environment: "environment",
+    }
     actual_result = static_indexer.bulk_reverse_resolve(use_case_id, org_id, indexes)
 
     assert actual_result == expected_result

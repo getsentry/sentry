@@ -7,7 +7,6 @@ from typing import (
     Any,
     Callable,
     Collection,
-    List,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -511,11 +510,11 @@ class StringIndexer(Service):
 
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
-    ) -> List[Optional[str]]:
+    ) -> Mapping[int, str]:
         """Lookup the stored strings for multiple ids belonging to the same use-case and organisation.
 
-        Returns a list with the same length as the ids parameter, the resolved strings correspond with the
-        positions in the ids parameter. If an id is not resolved the corresponding position will be None.
+        Returns a mapping between the ids and their corresponding string values.
+        If an id can't be mapped the return value will not contain any entry for this id.
         """
         raise NotImplementedError()
 

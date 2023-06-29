@@ -1,4 +1,4 @@
-from typing import Collection, List, Mapping, Optional, Set
+from typing import Collection, Dict, Mapping, Optional, Set
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -225,31 +225,21 @@ class StaticStringIndexer(StringIndexer):
 
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
-    ) -> List[Optional[str]]:
-        ret_val: List[Optional[str]] = [None] * len(ids)
-        # keeps a mapping from the position in the request to the base indexer
-        # to the position in the global result (since shared strings are not going into the
-        # base indexer query)
-        unresolved_ids_map = []
+    ) -> Mapping[int, str]:
+        shared_strings: Dict[int, str] = {}
         unresolved_ids = []
-        for idx, ident in enumerate(ids):
+        for ident in ids:
             if ident in REVERSE_SHARED_STRINGS:
                 # resolved the shared string
-                ret_val[idx] = REVERSE_SHARED_STRINGS[ident]
+                shared_strings[ident] = REVERSE_SHARED_STRINGS[ident]
             else:
                 # remember the position of the strings we need to resolve
-                unresolved_ids_map.append(idx)
                 unresolved_ids.append(ident)
 
         # insert the strings resolved by the base indexer in the global result
-        if len(unresolved_ids) > 0:
-            resolved_strings = self.indexer.bulk_reverse_resolve(
-                use_case_id, org_id, unresolved_ids
-            )
-            for idx, resolved_str in enumerate(resolved_strings):
-                position = unresolved_ids_map[idx]
-                ret_val[position] = resolved_strings[idx]
-        return ret_val
+        org_strings = self.indexer.bulk_reverse_resolve(use_case_id, org_id, unresolved_ids)
+
+        return {**org_strings, **shared_strings}
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:

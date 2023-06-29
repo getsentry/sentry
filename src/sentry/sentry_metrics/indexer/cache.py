@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Collection, List, Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Collection, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
 from django.core.cache import caches
@@ -179,7 +179,7 @@ class CachingIndexer(StringIndexer):
 
     def bulk_reverse_resolve(
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
-    ) -> List[Optional[str]]:
+    ) -> Mapping[int, str]:
         return self.indexer.bulk_reverse_resolve(use_case_id, org_id, ids)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
