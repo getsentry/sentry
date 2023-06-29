@@ -233,7 +233,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
                 "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10"
                 == request.url
             )
-            assert client.base_url.lower() in request.url
+            assert client.base_url and (client.base_url.lower() in request.url)
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -255,7 +255,7 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
                 "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10"
                 == request.url
             )
-            assert client.base_url.lower() in request.url
+            assert client.base_url and (client.base_url.lower() in request.url)
             assert_proxy_request(request, is_proxy=False)
 
         responses.calls.reset()
@@ -277,5 +277,5 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
                 "http://controlserver/api/0/internal/integration-proxy/_apis/git/repositories/albertos-apples/commits?commit=b&%24top=10"
                 == request.url
             )
-            assert client.base_url.lower() not in request.url
+            assert client.base_url and (client.base_url.lower() not in request.url)
             assert_proxy_request(request, is_proxy=True)
