@@ -83,7 +83,6 @@ class SentryAppUpdater:
     allowed_origins: List[str] | None = None
     popularity: int | None = None
     features: List[str] | None = None
-    # user = Param("sentry.models.User")
 
     def run(self, user: User) -> SentryApp:
         with transaction.atomic():

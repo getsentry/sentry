@@ -214,9 +214,9 @@ class Mediator:
         from sentry.app import env
 
         if (
-            not env.request
+            env.request is None
             or not hasattr(env.request, "resolver_match")
-            or not hasattr(env.request.resolver_match, "kwargs")
+            or env.request.resolver_match is None
         ):
             return {}
 

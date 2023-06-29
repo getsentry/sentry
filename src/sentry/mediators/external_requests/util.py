@@ -3,7 +3,7 @@ from typing import Any
 
 from jsonschema import Draft7Validator
 from requests.exceptions import ConnectionError, Timeout
-from rest_framework.response import Response
+from requests.models import Response
 
 from sentry.http import safe_urlopen
 from sentry.models import SentryApp
