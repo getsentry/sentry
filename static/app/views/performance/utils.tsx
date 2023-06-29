@@ -235,13 +235,15 @@ export function trendsTargetRoute({
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  if (conditions.hasFilter('tpm()')) {
-    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-  } else {
-    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-  }
-  // Metrics don't support duration filters
+  // Trends on metrics don't need these conditions
   if (!organization.features.includes('performance-new-trends')) {
+    // No need to carry over tpm filters to transaction summary
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+    } else {
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+    }
+
     if (conditions.hasFilter('transaction.duration')) {
       modifiedConditions.setFilterValues(
         'transaction.duration',
@@ -356,17 +358,24 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProjectID(
+export function getProject(
   eventData: EventData,
   projects: Project[]
-): string | undefined {
+): Project | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
     return undefined;
   }
 
-  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug);
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  return getProject(eventData, projects)?.id;
 }
 
 export function transformTransaction(

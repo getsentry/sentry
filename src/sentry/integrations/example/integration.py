@@ -4,7 +4,6 @@ from typing import Any, Mapping, Sequence
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations import (
     FeatureDescription,
@@ -15,8 +14,9 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
-from sentry.models import ExternalIssue, Repository
+from sentry.models import ExternalIssue, Integration, Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -32,7 +32,7 @@ class ExampleSetupView(PipelineView):
         </form>
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "name" in request.POST:
             pipeline.bind_state("name", request.POST["name"])
             return pipeline.next_step()
@@ -191,7 +191,12 @@ class ExampleIntegrationProvider(IntegrationProvider):
     def get_config(self):
         return [{"name": "name", "label": "Name", "type": "text", "required": True}]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         Migrator.run(integration=integration, organization=organization)
 
     def build_integration(self, state):

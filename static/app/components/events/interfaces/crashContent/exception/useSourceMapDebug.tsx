@@ -50,9 +50,8 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
-interface SDKOutOfDate extends BaseSourceMapDebugError {
-  data: {sdkName: string; sdkVersion: string; showMigrationGuide: boolean};
-  type: SourceMapProcessingIssueType.SDK_OUT_OF_DATE;
+interface NotPartOfPipelineError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE;
 }
 
 export type SourceMapDebugError =
@@ -65,7 +64,7 @@ export type SourceMapDebugError =
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
   | NoURLMatchDebugError
-  | SDKOutOfDate;
+  | NotPartOfPipelineError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -81,7 +80,7 @@ export enum SourceMapProcessingIssueType {
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
-  SDK_OUT_OF_DATE = 'sdk_out_of_date',
+  NOT_PART_OF_PIPELINE = 'not_part_of_pipeline',
 }
 
 const sourceMapDebugQuery = ({

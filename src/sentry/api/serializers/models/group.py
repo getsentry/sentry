@@ -239,7 +239,7 @@ class GroupSerializerBase(Serializer, ABC):
         release_resolutions, commit_resolutions = self._resolve_resolutions(item_list, user)
 
         user_ids = {r[-1] for r in release_resolutions.values()}
-        user_ids.update(r.actor_id for r in ignore_items.values())
+        user_ids.update(r.actor_id for r in ignore_items.values() if r.actor_id is not None)
         if user_ids:
             serialized_users = user_service.serialize_many(
                 filter={"user_ids": user_ids, "is_active": True},
@@ -762,7 +762,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

@@ -5,7 +5,6 @@ from hashlib import sha256
 
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations import FeatureDescription, IntegrationFeatures
 from sentry.models import ApiKey, ProjectOption, Repository
@@ -48,7 +47,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         return hmac.compare_digest(heroku_hmac, computed_hmac)
 
-    def handle(self, request: Request) -> Response:
+    def handle(self, request: Request) -> HttpResponse:
         heroku_hmac = request.headers.get("Heroku-Webhook-Hmac-SHA256")
 
         if not self.is_valid_signature(request.body.decode("utf-8"), heroku_hmac):
@@ -60,7 +59,9 @@ class HerokuReleaseHook(ReleaseHook):
         email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
 
         users = user_service.get_many_by_email(
-            emails=[email], organization_id=self.project.organization_id
+            emails=[email],
+            organization_id=self.project.organization_id,
+            is_verified=False,
         )
         user = users[0] if users else None
         if user is None:

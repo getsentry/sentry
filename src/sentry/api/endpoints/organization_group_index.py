@@ -184,6 +184,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
             return func(val) if val is not None else default
 
+        # XXX(CEO): these default values are based on sort E
         return {
             "better_priority": {
                 "log_level": _coerce(

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -73,8 +73,10 @@ class GroupAssigneeManager(BaseManager):
             affected = True
 
         if affected:
-            issue_assigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            transaction.on_commit(
+                lambda: issue_assigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                )
             )
             data = {
                 "assignee": str(assigned_to.id),

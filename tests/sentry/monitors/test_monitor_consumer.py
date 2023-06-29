@@ -21,6 +21,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.locking.manager import LockManager
@@ -52,6 +53,7 @@ class MonitorConsumerTest(TestCase):
     ) -> None:
         now = datetime.now()
         self.guid = uuid.uuid4().hex if not guid else guid
+        self.trace_id = uuid.uuid4().hex
 
         payload = {
             "monitor_slug": monitor_slug,
@@ -59,6 +61,7 @@ class MonitorConsumerTest(TestCase):
             "duration": None,
             "check_in_id": self.guid,
             "environment": "production",
+            "contexts": {"trace": {"trace_id": self.trace_id}},
         }
         payload.update(overrides)
 
@@ -104,6 +107,7 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         # the expected time should not include the margin of 5 minutes
         assert checkin.expected_time == expected_time - timedelta(minutes=5)
+        assert checkin.trace_id.hex == self.trace_id
 
     def test_passing(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
@@ -169,6 +173,32 @@ class MonitorConsumerTest(TestCase):
 
         # Lock should prevent creation of new check-in
         assert len(MonitorCheckIn.objects.filter(monitor=monitor)) == 0
+
+    def test_check_in_timeout_at(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_message(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+            minutes=TIMEOUT
+        )
+        assert checkin.timeout_at == timeout_at
+
+        new_guid = uuid.uuid4().hex
+        self.send_message(
+            "my-other-monitor",
+            guid=new_guid,
+            status="in_progress",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "max_runtime": 5,
+            },
+            environment="my-environment",
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=new_guid)
+        timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
+        assert checkin.timeout_at == timeout_at
 
     def test_check_in_update(self):
         monitor = self._create_monitor(slug="my-monitor")
@@ -316,7 +346,7 @@ class MonitorConsumerTest(TestCase):
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
 
-        # Try to ingest two the second will be rate limited
+        # Test invalid explicit durations
         self.send_message("my-monitor", status="in_progress")
 
         # Invalid check-in updates
@@ -338,6 +368,21 @@ class MonitorConsumerTest(TestCase):
         assert len(checkins) == 1
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
+        # Test invalid implicit duration
+        old_checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=MonitorEnvironment.objects.filter(monitor=monitor).first(),
+            project_id=self.project.id,
+            status=CheckInStatus.IN_PROGRESS,
+            date_added=monitor.date_added - timedelta(weeks=52),
+        )
+
+        self.send_message("my-monitor", guid=old_checkin.guid)
+
+        checkin = MonitorCheckIn.objects.get(guid=old_checkin.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.duration is None
+
     def test_monitor_upsert(self):
         self.send_message(
             "my-monitor",
@@ -355,6 +400,28 @@ class MonitorConsumerTest(TestCase):
             monitor=monitor, environment__name="my-environment"
         )
         assert monitor_environment is not None
+
+    def test_monitor_upsert_invalid_slug(self):
+        self.send_message(
+            "some/slug@with-weird|stuff",
+            monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
+        )
+
+        # invalid slug is slugified
+        monitor = Monitor.objects.get(slug="someslugwith-weirdstuff")
+        assert monitor is not None
+
+    def test_monitor_upsert_temp_dual_read_invalid_slug(self):
+        monitor = self._create_monitor(slug="my/monitor/invalid-slug")
+
+        self.send_message(
+            "my/monitor/invalid-slug",
+            monitor_config={"schedule": {"type": "crontab", "value": "0 * * * *"}},
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.monitor_id == monitor.id
 
     def test_monitor_invalid_config(self):
         self.send_message(

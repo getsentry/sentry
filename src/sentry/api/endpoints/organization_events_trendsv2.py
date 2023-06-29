@@ -1,8 +1,11 @@
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor
+from datetime import timedelta
 
 import sentry_sdk
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,6 +22,7 @@ from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.snuba import SnubaTSResult
 
@@ -33,6 +37,12 @@ TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
+ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
+
+DEFAULT_RATE_LIMIT = 10
+DEFAULT_RATE_LIMIT_WINDOW = 1
+DEFAULT_CONCURRENT_RATE_LIMIT = 10
+ORGANIZATION_RATE_LIMIT = 25
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -42,6 +52,8 @@ ads_connection_pool = connection_from_url(
     ),
     timeout=settings.ANOMALY_DETECTION_TIMEOUT,
 )
+
+_query_thread_pool = ThreadPoolExecutor()
 
 
 def get_trends(snuba_io):
@@ -56,6 +68,21 @@ def get_trends(snuba_io):
 
 @region_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase):
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.USER: RateLimit(
+                DEFAULT_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, DEFAULT_CONCURRENT_RATE_LIMIT
+            ),
+            RateLimitCategory.ORGANIZATION: RateLimit(
+                ORGANIZATION_RATE_LIMIT, DEFAULT_RATE_LIMIT_WINDOW, ORGANIZATION_RATE_LIMIT
+            ),
+        }
+    }
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-new-trends", organization, actor=request.user
@@ -69,6 +96,18 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+
+        modified_params = params.copy()
+        delta = modified_params["end"] - modified_params["start"]
+        duration = delta.total_seconds()
+        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
+            new_start = modified_params["end"] - timedelta(days=30)
+            min_start = timezone.now() - timedelta(days=90)
+            modified_params["start"] = new_start if min_start < new_start else min_start
+            sentry_sdk.set_tag("performance.trendsv2.extra_data_fetched", True)
+            sentry_sdk.set_tag(
+                "performance.trendsv2.optimized_start_out_of_bounds", new_start > min_start
+            )
 
         trend_type = request.GET.get("trendType", REGRESSION)
         if trend_type not in TREND_TYPES:
@@ -108,7 +147,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
             return f"transaction:[{top_transaction_as_str}]"
 
-        def get_timeseries(top_events, params, rollup, zerofill_results):
+        def get_timeseries(top_events, _, rollup, zerofill_results):
             # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
             split_top_events = [
@@ -123,7 +162,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params,
+                modified_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
@@ -160,7 +199,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
-                            item["data"], params["start"], params["end"], rollup, "time"
+                            item["data"],
+                            modified_params["start"],
+                            modified_params["end"],
+                            rollup,
+                            "time",
                         )
                         if zerofill_results
                         else item["data"],
@@ -169,8 +212,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "order": item["order"],
                         "meta": result["meta"],
                     },
-                    params["start"],
-                    params["end"],
+                    modified_params["start"],
+                    modified_params["end"],
                     rollup,
                 )
             return formatted_results
@@ -206,14 +249,56 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "" if trend_type == ANY else request.GET.get("sort", "trend_percentage()")
             )
             trends_request["trendFunction"] = trend_function
-            trends_request["data"] = stats_data
 
-            # Send the data to microservice
-            trends = get_trends(trends_request)
-            sentry_sdk.set_tag("performance.trendsv2.trends", len(trends.get("data", [])) > 0)
+            # list of requests to send to microservice async
+            trends_requests = []
 
-            trending_events = trends["data"]
-            return trending_events, trends_request
+            # format start and end
+            for data in list(stats_data.items()):
+                data_start = data[1].pop("start", "")
+                data_end = data[1].pop("end", "")
+                # data start and end that analysis is ran on
+                data[1]["data_start"] = data_start
+                data[1]["data_end"] = data_end
+                # user requested start and end
+                data[1]["request_start"] = params["start"].timestamp()
+                data[1]["request_end"] = data_end
+
+            # split the txns data into multiple dictionaries
+            split_transactions_data = [
+                dict(list(stats_data.items())[i : i + EVENTS_PER_QUERY])
+                for i in range(0, len(stats_data), EVENTS_PER_QUERY)
+            ]
+
+            for i in range(len(split_transactions_data)):
+                trends_request = trends_request.copy()
+                trends_request["data"] = split_transactions_data[i]
+                trends_requests.append(trends_request)
+
+            # send the data to microservice
+            results = list(_query_thread_pool.map(get_trends, trends_requests))
+            trend_results = []
+
+            # append all the results
+            for result in results:
+                output_dict = result["data"]
+                trend_results += output_dict
+
+            # sort the results into trending events list
+            if trends_request["sort"] == "trend_percentage()":
+                trending_events = sorted(trend_results, key=lambda d: d["trend_percentage"])
+            elif trends_request["sort"] == "-trend_percentage()":
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["trend_percentage"], reverse=True
+                )
+            else:
+                trending_events = sorted(
+                    trend_results, key=lambda d: d["absolute_percentage_change"], reverse=True
+                )
+
+            sentry_sdk.set_tag("performance.trendsv2.trends", len(trending_events) > 0)
+
+            return trending_events, trends_requests
 
         def paginate_trending_events(offset, limit):
             return {"data": trending_events[offset : limit + offset]}
@@ -228,7 +313,15 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                     project = t["project"]
                     t_p_key = project + "," + transaction_name
                     if t_p_key in stats_data:
-                        trending_transaction_names_stats[t_p_key] = stats_data[t_p_key]
+                        selected_stats_data = stats_data[t_p_key]
+                        idx = next(
+                            i
+                            for i, data in enumerate(selected_stats_data["data"])
+                            if data[0] >= params["start"].timestamp()
+                        )
+                        parsed_stats_data = selected_stats_data["data"][idx:]
+                        selected_stats_data["data"] = parsed_stats_data
+                        trending_transaction_names_stats[t_p_key] = selected_stats_data
                     else:
                         logger.warning(
                             "trends.trends-request.timeseries.key-mismatch",
@@ -239,13 +332,13 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "events": self.handle_results_with_meta(
                     request,
                     organization,
-                    params["project_id"],
+                    modified_params["project_id"],
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
                 "stats": trending_transaction_names_stats,
-                # Temporary change to see what stats data is returned
-                "raw_stats": trends_request
+                # temporary change to see what stats data is returned
+                "raw_stats": trends_requests
                 if features.has(
                     "organizations:performance-trendsv2-dev-only",
                     organization,
@@ -274,7 +367,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "events": self.handle_results_with_meta(
                             request,
                             organization,
-                            params["project_id"],
+                            modified_params["project_id"],
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),
@@ -285,7 +378,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             (
                 trending_events,
-                trends_request,
+                trends_requests,
             ) = get_trends_data(stats_data, request)
 
             with self.handle_query_errors():

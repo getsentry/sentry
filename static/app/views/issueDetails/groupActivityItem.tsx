@@ -30,7 +30,7 @@ type Props = {
 
 function GroupActivityItem({activity, organization, projectId, author}: Props) {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   function getIgnoredMessage(data: GroupActivitySetIgnored['data']) {
     const ignoredOrArchived = hasEscalatingIssuesUi ? t('archived') : t('ignored');

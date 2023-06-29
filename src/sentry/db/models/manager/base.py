@@ -8,10 +8,10 @@ from enum import IntEnum, auto
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     Generator,
     Generic,
-    Iterable,
     Mapping,
     MutableMapping,
     Optional,
@@ -29,7 +29,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -97,17 +97,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             _local_cache.cache = {}
             _local_cache.generation = gen
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = _local_cache.cache
-        return cache_
+        return _local_cache.cache
 
     def _get_cache(self) -> MutableMapping[str, Any]:
         if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = weakref.WeakKeyDictionary()
 
-        # Explicitly typing to satisfy mypy.
-        cache_: MutableMapping[str, Any] = self.__local_cache.value
-        return cache_
+        return self.__local_cache.value
 
     def _set_cache(self, value: Any) -> None:
         self.__local_cache.value = value
@@ -255,11 +251,11 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         class_prepared.connect(self.__class_prepared, sender=model)
 
     def get(self, *args: Any, **kwargs: Any) -> M:
-        # Explicitly typing to satisfy mypy.
-        model: M = super().get(*args, **kwargs)
-        return model
+        return super().get(*args, **kwargs)
 
-    def get_from_cache(self, use_replica: bool = False, **kwargs: Any) -> M:
+    def get_from_cache(
+        self, use_replica: bool = settings.SENTRY_MODEL_CACHE_USE_REPLICA, **kwargs: Any
+    ) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -323,13 +319,11 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
             kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
-            # Explicitly typing to satisfy mypy.
-            r: M = retval
-            return r
+            return retval
         else:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
-    def get_many_from_cache(self, values: Sequence[str], key: str = "pk") -> Sequence[Any]:
+    def get_many_from_cache(self, values: Collection[str | int], key: str = "pk") -> Sequence[Any]:
         """
         Wrapper around `QuerySet.filter(pk__in=values)` which supports caching of
         the intermediate value.  Callee is responsible for making sure the
@@ -508,15 +502,13 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 next_action(self.model)
 
 
-def create_silo_limited_copy(
-    self: BaseManager[M], limit: SiloLimit, read_modes: Iterable[SiloMode]
-) -> BaseManager[M]:
+def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseManager[M]:
     """Create a copy of this manager that enforces silo limitations."""
 
     # Dynamically create a subclass of this manager's class, adding overrides.
     cls = type(self)
     overrides = {
-        "get_queryset": limit.create_override(cls.get_queryset, extra_modes=read_modes),
+        "get_queryset": limit.create_override(cls.get_queryset),
         "bulk_create": limit.create_override(cls.bulk_create),
         "bulk_update": limit.create_override(cls.bulk_update),
         "create": limit.create_override(cls.create),

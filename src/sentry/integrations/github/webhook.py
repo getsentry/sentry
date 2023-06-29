@@ -87,6 +87,7 @@ class Webhook:
                 )
             }
 
+            # TODO: Replace with repository_service; deal with potential multiple regions
             repos = Repository.objects.filter(
                 organization_id__in=orgs.keys(),
                 provider=f"integrations:{self.provider}",
@@ -188,14 +189,10 @@ class PushEventWebhook(Webhook):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = options.get("github-app.id")
-        return external_id
+        return options.get("github-app.id")
 
     def should_ignore_commit(self, commit: Mapping[str, Any]) -> bool:
-        # Explicitly typing to satisfy mypy.
-        should_ignore: bool = GitHubRepositoryProvider.should_ignore_commit(commit["message"])
-        return should_ignore
+        return GitHubRepositoryProvider.should_ignore_commit(commit["message"])
 
     def _handle(
         self,
@@ -312,6 +309,7 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
 
+            author.preload_users()
             try:
                 with transaction.atomic():
                     c = Commit.objects.create(
@@ -348,9 +346,7 @@ class PullRequestEventWebhook(Webhook):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = options.get("github-app.id")
-        return external_id
+        return options.get("github-app.id")
 
     def _handle(
         self,
@@ -417,6 +413,7 @@ class PullRequestEventWebhook(Webhook):
                 },
             )
 
+        author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
@@ -451,11 +448,9 @@ class GitHubWebhookBase(Endpoint):
             raise NotImplementedError(f"signature method {method} is not supported")
         expected = hmac.new(key=secret.encode("utf-8"), msg=body, digestmod=mod).hexdigest()
 
-        # Explicitly typing to satisfy mypy.
-        is_valid: bool = constant_time_compare(expected, signature)
-        return is_valid
+        return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -492,7 +487,7 @@ class GitHubWebhookBase(Endpoint):
         if not handler:
             logger.error(
                 "github.webhook.missing-handler",
-                extra={"event": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
             return HttpResponse(status=204)
 
@@ -528,7 +523,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "installation": InstallationEventWebhook,
     }
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -536,9 +531,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         return super().dispatch(request, *args, **kwargs)
 
     def get_secret(self) -> str | None:
-        # Explicitly typing to satisfy mypy.
-        secret: str = options.get("github-app.webhook-secret")
-        return secret
+        return options.get("github-app.webhook-secret")
 
     def post(self, request: Request) -> HttpResponse:
         return self.handle(request)

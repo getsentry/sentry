@@ -201,11 +201,8 @@ def get_group_settings_link(
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    # Explicitly typing to satisfy mypy.
-    return str(
-        organization.absolute_url(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
+    return organization.absolute_url(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
     )
 
 
@@ -365,8 +362,8 @@ def occurrence_perf_to_email_html(context: Any) -> Any:
 
 def perf_to_email_html(
     spans: Union[List[Dict[str, Union[str, float]]], None],
-    problem: PerformanceProblem = None,
-    event: Event = None,
+    problem: Optional[PerformanceProblem] = None,
+    event: Optional[Event] = None,
 ) -> Any:
     """Generate the email HTML for a performance issue alert"""
     if not problem:
@@ -553,7 +550,7 @@ class PerformanceProblemContext:
 
     def _sum_span_duration(self, spans: list[Dict[str, Any] | None]) -> float:
         "Given non-overlapping spans, find the sum of the span durations in milliseconds"
-        sum: float = 0.0
+        sum = 0.0
         for span in spans:
             if span:
                 sum += self.get_span_duration(span).total_seconds() * 1000

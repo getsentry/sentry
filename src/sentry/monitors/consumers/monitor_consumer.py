@@ -11,12 +11,13 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.db import transaction
+from django.utils.text import slugify
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models import Project
 from sentry.monitors.models import (
+    MAX_SLUG_LENGTH,
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -25,8 +26,9 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
     MonitorType,
 )
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
-from sentry.monitors.validators import ConfigValidator
+from sentry.monitors.tasks import TIMEOUT
+from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created, valid_duration
+from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
 from sentry.utils import json, metrics
 from sentry.utils.dates import to_datetime
 from sentry.utils.locking import UnableToAcquireLock
@@ -44,6 +46,7 @@ CHECKIN_QUOTA_WINDOW = 60
 def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
+    monitor_slug_from_param: str,
     config: Optional[Dict],
 ):
     try:
@@ -54,6 +57,21 @@ def _ensure_monitor_with_config(
         )
     except Monitor.DoesNotExist:
         monitor = None
+
+    # XXX(epurkhiser): Temporary dual-read logic to handle some monitors
+    # that were created before we correctly slugified slugs on upsert in
+    # this consumer.
+    #
+    # Once all slugs are correctly slugified we can remove this.
+    if not monitor:
+        try:
+            monitor = Monitor.objects.get(
+                slug=monitor_slug_from_param,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
+        except Monitor.DoesNotExist:
+            pass
 
     if not config:
         return monitor
@@ -89,25 +107,20 @@ def _ensure_monitor_with_config(
     return monitor
 
 
-# TODO(rjo100): Move check-in logic through the validator
-def valid_duration(duration: Optional[int]) -> bool:
-    if duration and (duration < 0 or duration > BoundedPositiveIntegerField.MAX_VALUE):
-        return False
-
-    return True
-
-
 def _process_message(wrapper: Dict) -> None:
-    # TODO: validate payload schema
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
     source_sdk = wrapper["sdk"]
 
+    # Ensure the monitor_slug is slugified, since we are not running this
+    # through the MonitorValidator we must do this here.
+    monitor_slug = slugify(params["monitor_slug"])[:MAX_SLUG_LENGTH].strip("-")
+
     environment = params.get("environment")
     project = Project.objects.get_from_cache(id=project_id)
 
-    ratelimit_key = f"{project.organization_id}:{params['monitor_slug']}:{environment}"
+    ratelimit_key = f"{project.organization_id}:{monitor_slug}:{environment}"
 
     metric_kwargs = {
         "source": "consumer",
@@ -123,7 +136,7 @@ def _process_message(wrapper: Dict) -> None:
             "monitors.checkin.dropped.ratelimited",
             tags={**metric_kwargs},
         )
-        logger.debug("monitor check in rate limited: %s", params["monitor_slug"])
+        logger.debug("monitor check in rate limited: %s", monitor_slug)
         return
 
     def update_existing_check_in(
@@ -168,7 +181,7 @@ def _process_message(wrapper: Dict) -> None:
                 "monitors.checkin.result",
                 tags={**metric_kwargs, "status": "failed_duration_check"},
             )
-            logger.debug("check-in duration is invalid: %s", project.organization_id)
+            logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
             return
 
         existing_check_in.update(status=updated_status, duration=updated_duration)
@@ -177,10 +190,40 @@ def _process_message(wrapper: Dict) -> None:
 
     try:
         with transaction.atomic():
-            monitor_config = params.get("monitor_config")
+            monitor_config = params.pop("monitor_config", None)
+
+            params["duration"] = (
+                # Duration is specified in seconds from the client, it is
+                # stored in the checkin model as milliseconds
+                int(params["duration"] * 1000)
+                if params.get("duration") is not None
+                else None
+            )
+
+            validator = MonitorCheckInValidator(
+                data=params,
+                partial=True,
+                context={
+                    "project": project,
+                },
+            )
+
+            if not validator.is_valid():
+                metrics.incr(
+                    "monitors.checkin.result",
+                    tags={**metric_kwargs, "status": "failed_checkin_validation"},
+                )
+                logger.info("monitor_checkin.validation.failed", extra={**params})
+                return
+
+            validated_params = validator.validated_data
+
             try:
                 monitor = _ensure_monitor_with_config(
-                    project, params["monitor_slug"], monitor_config
+                    project,
+                    monitor_slug,
+                    params["monitor_slug"],
+                    monitor_config,
                 )
 
                 if not monitor:
@@ -207,19 +250,10 @@ def _process_message(wrapper: Dict) -> None:
                     "monitors.checkin.result",
                     tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
                 )
-                logger.debug(
-                    "monitor environment exceeds limits for monitor: %s", params["monitor_slug"]
-                )
+                logger.debug("monitor environment exceeds limits for monitor: %s", monitor_slug)
                 return
 
-            status = getattr(CheckInStatus, params["status"].upper())
-            duration = (
-                # Duration is specified in seconds from the client, it is
-                # stored in the checkin model as milliseconds
-                int(params["duration"] * 1000)
-                if params.get("duration") is not None
-                else None
-            )
+            status = getattr(CheckInStatus, validated_params["status"].upper())
 
             # Invalid UUIDs will raise ValueError
             check_in_id = uuid.UUID(params["check_in_id"])
@@ -241,28 +275,30 @@ def _process_message(wrapper: Dict) -> None:
                         guid=check_in_id,
                     )
 
-                update_existing_check_in(check_in, status, duration)
+                update_existing_check_in(check_in, status, validated_params["duration"])
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
                 # Note that the clock of this worker may be off from what Relay is reporting.
                 date_added = start_time
+                duration = validated_params["duration"]
                 if duration is not None:
                     date_added -= datetime.timedelta(milliseconds=duration)
-
-                if not valid_duration(duration):
-                    metrics.incr(
-                        "monitors.checkin.result",
-                        tags={**metric_kwargs, "status": "failed_duration_check"},
-                    )
-                    logger.debug("check-in duration is invalid: %s", project.organization_id)
-                    return
 
                 expected_time = None
                 if monitor_environment.last_checkin:
                     expected_time = monitor.get_next_scheduled_checkin_without_margin(
                         monitor_environment.last_checkin
                     )
+
+                monitor_config = monitor.get_validated_config()
+                timeout_at = None
+                if status == CheckInStatus.IN_PROGRESS:
+                    timeout_at = date_added.replace(second=0, microsecond=0) + datetime.timedelta(
+                        minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+                    )
+
+                trace_id = validated_params.get("contexts", {}).get("trace", {}).get("trace_id")
 
                 # If the UUID is unset (zero value) generate a new UUID
                 if check_in_id.int == 0:
@@ -280,7 +316,9 @@ def _process_message(wrapper: Dict) -> None:
                                 "date_added": date_added,
                                 "date_updated": start_time,
                                 "expected_time": expected_time,
-                                "monitor_config": monitor.get_validated_config(),
+                                "timeout_at": timeout_at,
+                                "monitor_config": monitor_config,
+                                "trace_id": trace_id,
                             },
                             project_id=project_id,
                             monitor=monitor,

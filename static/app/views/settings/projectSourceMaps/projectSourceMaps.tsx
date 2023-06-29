@@ -8,7 +8,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import Badge from 'sentry/components/badge';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
@@ -271,29 +270,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         </ListLink>
         <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
           {t('Release Bundles')}
-          <Tooltip
-            title={tct(
-              'Release Bundles have been deprecated in favor of Artifact Bundles. Learn more about [link:Artifact Bundles].',
-              {
-                link: (
-                  <ExternalLink
-                    href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/"
-                    onClick={event => {
-                      event.stopPropagation();
-                    }}
-                  />
-                ),
-              }
-            )}
-            isHoverable
-          >
-            <Badge type="warning" text={t('Deprecated')} />
-          </Tooltip>
         </ListLink>
       </NavTabs>
       <SearchBarWithMarginBottom
         placeholder={
-          tabDebugIdBundlesActive ? t('Filter by Bundle ID') : t('Filter by Name')
+          tabDebugIdBundlesActive
+            ? t('Filter by Bundle ID, Debug ID or Release')
+            : t('Filter by Name')
         }
         onSearch={handleSearch}
         query={query}

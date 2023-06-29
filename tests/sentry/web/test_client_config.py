@@ -127,3 +127,15 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
 
     with override_settings(SILO_MODE=SiloMode.CONTROL):
         assert get_client_config(request) == base_line
+
+
+@pytest.mark.django_db(transaction=True)
+def test_client_config_deleted_user():
+    request, user = make_user_request_from_org()
+    request.user = user
+
+    user.delete()
+
+    result = get_client_config(request)
+    assert result["isAuthenticated"] is False
+    assert result["user"] is None

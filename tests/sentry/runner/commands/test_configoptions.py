@@ -9,6 +9,7 @@ from sentry.runner.commands.configoptions import (
     CHANNEL_UPDATE_MSG,
     DB_VALUE,
     DRIFT_MSG,
+    SET_MSG,
     UNSET_MSG,
     UPDATE_MSG,
     configoptions,
@@ -43,10 +44,14 @@ class ConfigOptionsTest(CliTestCase):
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
+        # These options represent a scenario where we set options otherwise
+        # unset.
         options.delete("int_option")
-        options.delete("str_option")
         options.delete("map_option")
         options.delete("list_option")
+        # This is the scenario where we change the value of a previously set
+        # option.
+        options.set("str_option", "old value", channel=UpdateChannel.AUTOMATOR)
         # This option will test the drift scenario. We set it to a different
         # value with respect to the file.
         options.set("drifted_option", [1, 2, 3], channel=UpdateChannel.CLI)
@@ -76,7 +81,6 @@ class ConfigOptionsTest(CliTestCase):
         def assert_not_set() -> None:
             self._clean_cache()
             assert not options.isset("int_option")
-            assert not options.isset("str_option")
             assert not options.isset("map_option")
             assert not options.isset("list_option")
 
@@ -84,10 +88,10 @@ class ConfigOptionsTest(CliTestCase):
             assert rv.exit_code == 0, rv.output
             output = "\n".join(
                 [
-                    UPDATE_MSG % "int_option",
-                    UPDATE_MSG % "str_option",
-                    UPDATE_MSG % "map_option",
-                    UPDATE_MSG % "list_option",
+                    SET_MSG % ("int_option", 40),
+                    UPDATE_MSG % ("str_option", "old value", "new value"),
+                    SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                    SET_MSG % ("list_option", [1, 2]),
                     DRIFT_MSG % "drifted_option",
                     DB_VALUE % "drifted_option",
                     "- 1",
@@ -151,10 +155,10 @@ class ConfigOptionsTest(CliTestCase):
         assert rv.exit_code == 0, rv.output
         output = "\n".join(
             [
-                UPDATE_MSG % "int_option",
-                UPDATE_MSG % "str_option",
-                UPDATE_MSG % "map_option",
-                UPDATE_MSG % "list_option",
+                SET_MSG % ("int_option", 40),
+                UPDATE_MSG % ("str_option", "old value", "new value"),
+                SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                SET_MSG % ("list_option", [1, 2]),
                 DRIFT_MSG % "drifted_option",
                 DB_VALUE % "drifted_option",
                 "- 1",

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from django.test import override_settings
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth import AuthService
@@ -12,7 +13,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationMemberFlags,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_organization
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.rpc import (
     RpcSendException,
     dispatch_remote_call,
@@ -45,17 +46,18 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        OrganizationMapping.objects.update_or_create(
-            organization_id=organization.id,
-            defaults={
-                "slug": organization.slug,
-                "name": organization.name,
-                "region_name": target_region.name,
-            },
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMapping.objects.update_or_create(
+                organization_id=organization.id,
+                defaults={
+                    "slug": organization.slug,
+                    "name": organization.name,
+                    "region_name": target_region.name,
+                },
+            )
 
         serial_user = RpcUser(id=user.id)
-        serial_org = serialize_organization(organization)
+        serial_org = serialize_rpc_organization(organization)
 
         service = OrganizationService.create_delegation()
         with override_regions(_REGIONS), override_settings(SILO_MODE=SiloMode.CONTROL):
@@ -109,7 +111,7 @@ class RpcServiceTest(TestCase):
         user = self.create_user()
         organization = self.create_organization()
 
-        serial_org = serialize_organization(organization)
+        serial_org = serialize_rpc_organization(organization)
         serial_arguments = dict(
             organization_id=serial_org.id,
             default_org_role=serial_org.default_role,
@@ -158,7 +160,7 @@ class DispatchRemoteCallTest(TestCase):
     @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
     def test_region_to_control_happy_path(self, mock_urlopen):
         org = self.create_organization()
-        response_value = RpcUserOrganizationContext(organization=serialize_organization(org))
+        response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
         self._set_up_mock_response(mock_urlopen, response_value.dict())
 
         result = dispatch_remote_call(

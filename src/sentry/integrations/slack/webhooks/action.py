@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, List, Mapping, MutableMapping, Sequence
 
 import requests as requests_
+import sentry_sdk
 from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -21,6 +22,7 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models import Group, InviteStatus, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.defaults import NOTIFICATION_SETTINGS_ALL_SOMETIMES
@@ -80,7 +82,7 @@ def update_group(
     request: Request,
 ) -> Response:
     if not group.organization.has_access(user):
-        raise ApiClient.ApiError(
+        raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
 
@@ -124,9 +126,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     XXX(epurkhiser): Used in coordination with construct_reply.
      Bot posted messages will not have the type at all.
     """
-    # Explicitly typing to satisfy mypy.
-    is_message: bool = data.get("original_message", {}).get("type") == "message"
-    return is_message
+    return data.get("original_message", {}).get("type") == "message"
 
 
 @region_silo_endpoint
@@ -430,6 +430,11 @@ class SlackActionEndpoint(Endpoint):
             slack_request.validate()
         except SlackRequestError as e:
             return self.respond(status=e.status)
+
+        # Set organization scope
+
+        bind_org_context_from_integration(slack_request.integration.id)
+        sentry_sdk.set_tag("integration_id", slack_request.integration.id)
 
         # Actions list may be empty when receiving a dialog response.
 

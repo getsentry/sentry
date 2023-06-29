@@ -248,7 +248,7 @@ describe('IssueListActions', function () {
 
   it('can archive an issue until escalating', async () => {
     const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const org_escalating = {...organization, features: ['escalating-issues-ui']};
+    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
       url: `/organizations/${org_escalating.slug}/issues/`,
       method: 'PUT',
@@ -278,6 +278,29 @@ describe('IssueListActions', function () {
       'issues_stream.archived',
       expect.objectContaining({
         action_substatus: 'archived_until_escalating',
+      })
+    );
+  });
+
+  it('can unarchive an issue when the query contains is:archived', async () => {
+    const org_escalating = {...organization, features: ['escalating-issues']};
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org_escalating.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} query="is:archived" />, {
+      organization: org_escalating,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({id: ['1'], project: [1]}),
+        data: {status: 'unresolved'},
       })
     );
   });
@@ -343,9 +366,9 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
 
-    it('hides mark reviewed button with escalating-issues-ui flag', function () {
+    it('hides mark reviewed button with escalating-issues flag', function () {
       render(<WrappedComponent {...defaultProps} />, {
-        organization: {...organization, features: ['escalating-issues-ui']},
+        organization: {...organization, features: ['escalating-issues']},
       });
 
       expect(

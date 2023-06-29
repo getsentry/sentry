@@ -1,7 +1,10 @@
+import pytest
+
 from sentry.models import Organization, OrganizationMapping
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip("Migration is no longer runnable. Retain until migration is removed.")
 class BackfillNotificationSettingTest(TestMigrations):
     migrate_from = "0471_dashboard_widget_description"
     migrate_to = "0472_delete_past_organization_mappings"

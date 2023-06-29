@@ -48,6 +48,7 @@ from sentry.issues.search import (
 from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -68,7 +69,7 @@ DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "has_stacktrace": 0,
     "relative_volume": 1,
     "event_halflife_hours": 4,
-    "issue_halflife_hours": 72,
+    "issue_halflife_hours": 12,
     "v2": True,
     "norm": False,
 }
@@ -154,8 +155,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dataset(self) -> snuba.Dataset:
-        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+    def dataset(self) -> Dataset:
+        """This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
         raise NotImplementedError
 
     @property
@@ -249,9 +250,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
             if replace_better_priority_aggregation and alias == "better_priority":
-                aggregation = self.aggregation_defs[
-                    "better_priority_issue_platform"  # type:ignore[call-overload]
-                ]
+                aggregation = self.aggregation_defs["better_priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -719,8 +718,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     }
 
     @property
-    def dataset(self) -> snuba.Dataset:
-        return snuba.Dataset.Events
+    def dataset(self) -> Dataset:
+        return Dataset.Events
 
     def query(
         self,

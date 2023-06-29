@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any, Optional
 from unittest.mock import patch
 
 import responses
@@ -15,13 +18,12 @@ from sentry.incidents.models import (
     IncidentStatus,
 )
 from sentry.integrations.slack.client import SlackClient
-from sentry.models import AuditLogEntry, Integration, RuleSnooze
+from sentry.models import AuditLogEntry, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.types import Dict
 
 
 @region_silo_test(stable=True)
@@ -133,42 +135,6 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             assert resp.data["aggregate"] == "count_unique(user)"
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
-    def test_with_snooze_rule(self):
-        self.login_as(self.member_user)
-
-        RuleSnooze.objects.create(
-            user_id=self.member_user.id,
-            owner_id=self.member_user.id,
-            alert_rule=self.alert_rule,
-            until=None,
-        )
-
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id
-            )
-
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == "You"
-
-    def test_with_snooze_rule_everyone(self):
-        user2 = self.create_user("user2@example.com")
-        self.login_as(self.member_user)
-
-        RuleSnooze.objects.create(
-            owner_id=user2.id,
-            alert_rule=self.alert_rule,
-            until=None,
-        )
-
-        with self.feature("organizations:incidents"):
-            response = self.get_success_response(
-                self.organization.slug, self.project.slug, self.alert_rule.id
-            )
-
-        assert response.data["snooze"]
-        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
-
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
@@ -237,7 +203,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-    def _mock_slack_response(self, url: str, body: Dict, status: int = 200) -> None:
+    def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
             url=url,
@@ -248,8 +214,8 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 
     def _project_alert_rule_api_call(
         self,
-        channelName: str = None,
-        channelID: str = None,
+        channelName: Optional[str] = None,
+        channelID: Optional[str] = None,
     ) -> Request:
         """
         Call the project alert rule API but do some Slack integration set up before doing so

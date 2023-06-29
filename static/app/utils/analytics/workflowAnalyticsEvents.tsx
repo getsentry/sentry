@@ -22,8 +22,10 @@ export type BaseEventAnalyticsParams = {
   has_commit: boolean;
   has_exception_group: boolean;
   has_release: boolean;
+  has_source_context: boolean;
   has_source_maps: boolean;
   has_trace: boolean;
+  is_symbolicated: boolean;
   num_commits: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
@@ -32,9 +34,11 @@ export type BaseEventAnalyticsParams = {
   error_has_user_feedback?: boolean;
   event_errors?: string;
   event_platform?: string;
+  event_runtime?: string;
   event_type?: string;
   frames_with_sourcemaps_percent?: number;
   frames_without_source_maps_percent?: number;
+  has_graphql_request?: boolean;
   has_otel?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
@@ -55,7 +59,6 @@ export type TeamInsightsEventParameters = {
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
-  'alert_wizard.option_viewed': {alert_type: string};
   'edit_alert_rule.add_row': {
     name: string;
     project_id: string;
@@ -135,7 +138,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
-  'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
