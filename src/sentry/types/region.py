@@ -70,6 +70,7 @@ class Region:
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             and self.category == RegionCategory.MULTI_TENANT
             and region_url_template is not None
+            and self.name != settings.SENTRY_MONOLITH_REGION
         ):
             expected_address = generate_region_url(self.name)
             if self.address != expected_address:
@@ -109,6 +110,10 @@ class GlobalRegionDirectory:
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
 
+    def validate_all(self) -> None:
+        for region in self.regions:
+            region.validate()
+
 
 def _parse_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
@@ -127,6 +132,11 @@ def _parse_config(region_config: Any) -> Iterable[Region]:
             yield Region(**config_value)
 
 
+def load_from_config(region_config: Any) -> GlobalRegionDirectory:
+    region_objs = list(_parse_config(region_config))
+    return GlobalRegionDirectory(region_objs)
+
+
 _global_regions: GlobalRegionDirectory | None = None
 
 
@@ -140,9 +150,7 @@ def load_global_regions() -> GlobalRegionDirectory:
     # For now, assume that all region configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    config = settings.SENTRY_REGION_CONFIG
-    config = list(_parse_config(config))
-    _global_regions = GlobalRegionDirectory(config)
+    _global_regions = load_from_config(settings.SENTRY_REGION_CONFIG)
     return _global_regions
 
 

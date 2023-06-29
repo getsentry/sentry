@@ -3423,7 +3423,7 @@ if USE_SILOS:
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://localhost:8000",
+            "address": "http://us.localhost:8000",
             "api_token": "dev-region-silo-token",
         }
     ]
