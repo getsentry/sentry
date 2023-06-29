@@ -17,6 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -98,6 +99,12 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             end: eventView.end,
           })}`}
           style={{display: `block`, width: `100%`}}
+          onClick={() => {
+            trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {
+              organization,
+              endpoint: dataRow.transaction,
+            });
+          }}
         >
           {prefix}
           {dataRow.transaction}
@@ -216,6 +223,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAnalytics('starfish.web_service_view.endpoint_list.header.clicked', {
+            organization,
+            direction: currentSortKind === 'desc' ? 'asc' : 'desc',
+            header: title || field.field,
+          });
+        }}
       />
     );
 
@@ -242,6 +256,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
   const columnOrder = eventView
