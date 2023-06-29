@@ -63,6 +63,4 @@ class RedisRuleStatus:
         elif status == "failed":
             value["error"] = SLACK_FAILED_MESSAGE
 
-        # Explicitly typing to satisfy mypy.
-        _value: str = json.dumps(value)
-        return _value
+        return json.dumps(value)

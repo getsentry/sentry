@@ -28,16 +28,14 @@ export function ActionSelector({
   const {selection} = usePageFilters();
 
   const location = useLocation();
-  const query = getQuery(moduleName);
   const eventView = getEventView(moduleName, selection, spanCategory);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
   const {data: actions} = useSpansQuery<[{'span.action': string}]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query && !useHTTPActions),
+    enabled: !useHTTPActions,
   });
 
   const options = useHTTPActions
@@ -85,18 +83,6 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   '': t('Action'),
 };
 
-function getQuery(moduleName?: string) {
-  return `SELECT action as "span.action", count()
-    FROM spans_experimental_starfish
-    WHERE 1 = 1
-    ${moduleName ? `AND module = '${moduleName}'` : ''}
-    AND action != ''
-    GROUP BY action
-    ORDER BY count() DESC
-    LIMIT 25
-  `;
-}
-
 function getEventView(
   moduleName: ModuleName,
   pageFilters: PageFilters,
@@ -106,6 +92,11 @@ function getEventView(
   if (moduleName) {
     queryConditions.push('!span.action:""');
   }
+
+  if (moduleName === ModuleName.DB) {
+    queryConditions.push('!span.op:db.redis');
+  }
+
   if (spanCategory) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
       queryConditions.push(`!has:span.category`);

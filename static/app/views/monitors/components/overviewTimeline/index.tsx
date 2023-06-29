@@ -1,12 +1,10 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
-import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -71,7 +69,6 @@ export function OverviewTimeline({monitorList}: Props) {
   return (
     <MonitorListPanel>
       <ListFilters>
-        <Button size="xs" icon={<IconSort size="xs" />} aria-label={t('Reverse sort')} />
         <SegmentedControl<TimeWindow>
           value={timeWindow}
           onChange={handleResolutionChange}
@@ -91,6 +88,7 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
       <GridLineOverlay
+        showCursor={!isLoading}
         timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}
@@ -102,12 +100,15 @@ export function OverviewTimeline({monitorList}: Props) {
           {isLoading || !monitorStats ? (
             <Placeholder />
           ) : (
-            <CheckInTimeline
-              bucketedData={monitorStats[monitor.slug]}
-              end={nowRef.current}
-              start={start}
-              width={timelineWidth}
-            />
+            <div>
+              <CheckInTimeline
+                timeWindow={timeWindow}
+                bucketedData={monitorStats[monitor.slug]}
+                end={nowRef.current}
+                start={start}
+                width={timelineWidth}
+              />
+            </div>
           )}
         </Fragment>
       ))}
@@ -132,6 +133,18 @@ function MonitorDetails({monitor}: {monitor: Monitor}) {
 const MonitorListPanel = styled(Panel)`
   display: grid;
   grid-template-columns: 350px 1fr;
+
+  a,
+  a + div {
+    transition: background 50ms ease-in-out;
+  }
+
+  a:hover,
+  a:hover + div,
+  a:has(+ div:hover),
+  a + div:hover {
+    background: ${p => p.theme.backgroundSecondary};
+  }
 `;
 
 const DetailsContainer = styled(Link)`
@@ -139,10 +152,6 @@ const DetailsContainer = styled(Link)`
   padding: ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
   border-radius: 0;
-
-  &:hover {
-    color: unset;
-  }
 `;
 
 const Name = styled('h3')`

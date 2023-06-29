@@ -6,6 +6,7 @@ from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry import tsdb
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.models import (
     Activity,
@@ -124,11 +125,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         url = f"/api/0/issues/{group.id}/"
 
-        from sentry.api.endpoints.group_details import tsdb
-
-        with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
-        ) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
             response = self.client.get(url, {"environment": "production"}, format="json")
             assert response.status_code == 200
             assert get_range.call_count == 2
@@ -319,6 +316,7 @@ class GroupUpdateTest(APITestCase):
 
         snooze = GroupSnooze.objects.get(group=group)
 
+        assert snooze.until is not None
         assert snooze.until > timezone.now() + timedelta(minutes=29)
         assert snooze.until < timezone.now() + timedelta(minutes=31)
 

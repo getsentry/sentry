@@ -2,11 +2,13 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.models import Project
+from sentry.models import FileBlobOwner, Project
+from sentry.models.apitoken import is_api_token_auth
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -16,8 +18,25 @@ from sentry.tasks.assemble import (
 from sentry.utils import json
 
 
+class OrganizationArtifactBundleAssembleMixin:
+    @classmethod
+    def find_missing_chunks(cls, organization, chunks):
+        """
+        Returns a list of chunks which are missing for an org.
+        """
+        owned = set(
+            FileBlobOwner.objects.filter(
+                blob__checksum__in=chunks, organization_id=organization.id
+            ).values_list("blob__checksum", flat=True)
+        )
+
+        return list(set(chunks) - owned)
+
+
 @region_silo_endpoint
-class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+class OrganizationArtifactBundleAssembleEndpoint(
+    OrganizationReleasesBaseEndpoint, OrganizationArtifactBundleAssembleMixin
+):
     def post(self, request: Request, organization) -> Response:
         """
         Assembles an artifact bundle and stores the debug ids in the database.
@@ -63,10 +82,29 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
-        state, detail = get_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum)
+        # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
+        # regressions for our users.
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
+            # We check if all requested chunks have been uploaded.
+            missing_chunks = self.find_missing_chunks(organization, chunks)
+            # In case there are some missing chunks, we will tell the client which chunks we require.
+            if missing_chunks:
+                return Response(
+                    {
+                        "state": ChunkFileState.NOT_FOUND,
+                        "missingChunks": missing_chunks,
+                    }
+                )
+
+        # We want to check the current state of the assemble status.
+        state, detail = get_assemble_status(AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum)
         if state == ChunkFileState.OK:
             return Response({"state": state, "detail": None, "missingChunks": []}, status=200)
         elif state is not None:
+            # In case we have some state into the cache, we will not perform any assembly task again and rather we will
+            # return. This might cause issues with CLI because it might have uploaded the same bundle chunks two times
+            # in a row but only the first call the assemble started the assembly task, all subsequent calls will get
+            # an assemble status.
             return Response({"state": state, "detail": detail, "missingChunks": []})
 
         # There is neither a known file nor a cached state, so we will
@@ -76,7 +114,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200)
 
         set_assemble_status(
-            AssembleTask.ARTIFACTS, organization.id, checksum, ChunkFileState.CREATED
+            AssembleTask.ARTIFACT_BUNDLE, organization.id, checksum, ChunkFileState.CREATED
         )
 
         from sentry.tasks.assemble import assemble_artifacts
@@ -101,6 +139,15 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 "chunks": chunks,
                 "upload_as_artifact_bundle": True,
             }
+        )
+
+        analytics.record(
+            "artifactbundle.assemble",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization.id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            auth_type="api_token" if is_api_token_auth(request.auth) else None,
         )
 
         return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)

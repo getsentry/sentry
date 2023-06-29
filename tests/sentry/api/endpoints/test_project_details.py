@@ -31,7 +31,7 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature, faux, with_feature
+from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -872,19 +872,16 @@ class ProjectUpdateTest(APITestCase):
 
             # check that audit entry was created with redacted password
             assert create_audit_entry.called
-            call = faux.faux(create_audit_entry)
 
-            assert call.kwarg_equals(
-                "data",
-                {
-                    "sentry:symbol_sources": [redacted_source],
-                    "id": self.project.id,
-                    "slug": self.project.slug,
-                    "name": self.project.name,
-                    "status": self.project.status,
-                    "public": self.project.public,
-                },
-            )
+            ((_, kwargs),) = create_audit_entry.call_args_list
+            assert kwargs["data"] == {
+                "sentry:symbol_sources": [redacted_source],
+                "id": self.project.id,
+                "slug": self.project.slug,
+                "name": self.project.name,
+                "status": self.project.status,
+                "public": self.project.public,
+            }
 
             self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
@@ -1383,6 +1380,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
@@ -1409,6 +1407,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 {"id": "boostKeyTransactions", "active": True},
                 {"id": "boostLowVolumeTransactions", "active": True},
                 {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+                {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
@@ -1531,6 +1530,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
             {"id": "boostKeyTransactions", "active": False},
             {"id": "boostLowVolumeTransactions", "active": False},
             {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": False},
+            {"id": RuleType.RECALIBRATION_RULE.value, "active": False},
         ]
         with Feature(
             {

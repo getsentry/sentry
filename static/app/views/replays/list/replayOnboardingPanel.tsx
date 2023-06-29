@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -116,25 +115,13 @@ export default function ReplayOnboardingPanel() {
       <OnboardingPanel
         image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}
       >
-        <Feature
-          features={['session-replay-ga']}
-          organization={organization}
-          renderDisabled={() => (
-            <SetupReplaysCTA
-              orgSlug={organization.slug}
-              primaryAction={primaryAction}
-              disabled={primaryActionDisabled}
-            />
-          )}
-        >
-          <OnboardingCTAHook organization={organization}>
-            <SetupReplaysCTA
-              orgSlug={organization.slug}
-              primaryAction={primaryAction}
-              disabled={primaryActionDisabled}
-            />
-          </OnboardingCTAHook>
-        </Feature>
+        <OnboardingCTAHook organization={organization}>
+          <SetupReplaysCTA
+            orgSlug={organization.slug}
+            primaryAction={primaryAction}
+            disabled={primaryActionDisabled}
+          />
+        </OnboardingCTAHook>
       </OnboardingPanel>
     </Fragment>
   );

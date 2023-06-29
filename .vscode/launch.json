@@ -9,7 +9,7 @@
       "type": "chrome",
       "request": "launch",
       "url": "http://dev.getsentry.net:8000",
-      "webRoot": "${workspaceRoot}/src/sentry/static/sentry/app"
+      "webRoot": "${workspaceRoot}/static"
     },
     {
       "name": "sentry backend",
@@ -41,20 +41,21 @@
         "--runInBand",
         "--watch",
         "--verbose",
-        "${file}"],
+        "${file}"
+      ],
       // if we don't set this, output goes to the VSCode debug terminal, which
       // only prints the test output if "outputCapture" is also set, and even
       // then won't print in color
       "console": "integratedTerminal",
       // since we're not using it, don't automatically switch to it
-      "internalConsoleOptions": "neverOpen",
+      "internalConsoleOptions": "neverOpen"
     },
     {
       "name": "pytest - current file",
       "type": "python",
       "request": "launch",
       "module": "pytest",
-      "args": ["${file}"],
+      "args": ["--verbose", "${file}"],
       "django": true,
       "env": {
         "SENTRY_MODEL_MANIFEST_FILE_PATH": "./model-manifest.json"

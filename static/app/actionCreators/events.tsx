@@ -2,7 +2,7 @@ import {LocationDescriptor} from 'history';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import {ApiResult, Client, ResponseMeta} from 'sentry/api';
 import {canIncludePreviousPeriod} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import {
@@ -160,6 +160,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean = false>(
 export type EventQuery = {
   field: string[];
   query: string;
+  cursor?: string;
   dataset?: DiscoverDatasets;
   environment?: string[];
   equation?: string[];
@@ -192,13 +193,14 @@ export function fetchTagFacets(
   api: Client,
   orgSlug: string,
   query: EventQuery
-): Promise<Tag[]> {
-  const urlParams = pick(query, Object.values(PERFORMANCE_URL_PARAM));
+): Promise<ApiResult<Tag[]>> {
+  const urlParams = pick(query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
 
   const queryOption = {...urlParams, query: query.query};
 
   return api.requestPromise(`/organizations/${orgSlug}/events-facets/`, {
     query: queryOption,
+    includeAllArgs: true,
   });
 }
 

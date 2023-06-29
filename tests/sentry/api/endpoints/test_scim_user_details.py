@@ -71,6 +71,19 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         self.restricted_custom_role_member.flags["idp:role-restricted"] = True
         self.restricted_custom_role_member.save()
 
+    def test_owner(self):
+        """Owners cannot be edited by this API"""
+        self.owner = self.create_member(
+            user=self.create_user(), organization=self.organization, role="owner"
+        )
+        self.get_error_response(
+            self.organization.slug,
+            self.owner.id,
+            method="put",
+            status_code=403,
+            **generate_put_data(self.owner, role="member"),
+        )
+
     def test_invalid_role(self):
         self.get_error_response(
             self.organization.slug,

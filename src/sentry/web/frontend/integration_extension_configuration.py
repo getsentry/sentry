@@ -2,15 +2,15 @@ import logging
 
 from django.conf import settings
 from django.core.signing import SignatureExpired
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.http import urlencode
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, integrations
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.models import Organization, OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
-    def get(self, request: Request, *args, **kwargs) -> Response:
+    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
         if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,
@@ -51,12 +51,15 @@ class IntegrationExtensionConfigurationView(BaseView):
 
         # check if we have one org
         organization = None
-        organizations = request.user.get_orgs()
-        if organizations.count() == 1:
+        organizations = user_service.get_organizations(user_id=request.user.id)
+        if len(organizations) == 1:
             organization = organizations[0]
         # if we have an org slug in the query param, use that org
         elif "orgSlug" in request.GET:
-            organization = Organization.objects.get(slug=request.GET["orgSlug"])
+            organization_context = organization_service.get_organization_by_slug(
+                slug=request.GET["orgSlug"], only_visible=False
+            )
+            organization = organization_context.organization if organization_context else None
 
         org_id = organization.id if organization else None
         log_params = {"organization_id": org_id, "provider": self.provider}
@@ -72,10 +75,10 @@ class IntegrationExtensionConfigurationView(BaseView):
             # only continue in the pipeline if there is at least one feature we can get
             if self.has_one_required_feature(organization, request.user):
                 # check that the user has the org:integrations permission
-                org_member = OrganizationMember.objects.get(
-                    organization=organization, user_id=request.user.id
+                org_member = organization_service.check_membership_by_id(
+                    organization_id=organization.id, user_id=request.user.id
                 )
-                if "org:integrations" in org_member.get_scopes():
+                if org_member and "org:integrations" in org_member.scopes:
                     try:
                         pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()

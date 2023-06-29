@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Tooltip} from 'sentry/components/tooltip';
 
@@ -57,7 +52,9 @@ describe('Tooltip', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('My Button'));
-    await waitForElementToBeRemoved(() => screen.queryByText('bar'));
+    await waitFor(() => {
+      expect(screen.queryByText('bar')).not.toBeInTheDocument();
+    });
   });
 
   it('disables and does not render', async function () {
@@ -72,6 +69,32 @@ describe('Tooltip', function () {
     expect(screen.queryByText('test')).not.toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('My Button'));
+  });
+
+  it('resets visibility when becoming disabled', async function () {
+    const {rerender} = render(
+      <Tooltip delay={0} title="test" disabled={false}>
+        <span>My Button</span>
+      </Tooltip>
+    );
+
+    await userEvent.hover(screen.getByText('My Button'));
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    rerender(
+      <Tooltip delay={0} title="test" disabled>
+        <span>My Button</span>
+      </Tooltip>
+    );
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
+
+    // Becomes enabled again
+    rerender(
+      <Tooltip delay={0} title="test" disabled={false}>
+        <span>My Button</span>
+      </Tooltip>
+    );
+    expect(screen.queryByText('test')).not.toBeInTheDocument();
   });
 
   it('does not render an empty tooltip', async function () {

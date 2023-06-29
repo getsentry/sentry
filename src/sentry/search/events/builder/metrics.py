@@ -29,6 +29,7 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     QueryFramework,
     SelectType,
@@ -36,6 +37,7 @@ from sentry.search.events.types import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import to_timestamp
@@ -92,6 +94,15 @@ class MetricsQueryBuilder(QueryBuilder):
     def is_performance(self) -> bool:
         return self.dataset is Dataset.PerformanceMetrics
 
+    @property
+    def use_case_id(self) -> UseCaseID:
+        if self.is_performance:
+            return UseCaseID.TRANSACTIONS
+        elif self.spans_metrics_builder:
+            return UseCaseID.SPANS
+        else:
+            return UseCaseID.SESSIONS
+
     def resolve_query(
         self,
         query: Optional[str] = None,
@@ -131,8 +142,6 @@ class MetricsQueryBuilder(QueryBuilder):
         if col.startswith("tags["):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
-        if col in constants.METRIC_UNAVAILBLE_COLUMNS:
-            raise IncompatibleMetricsQuery(f"{col} is unavailable")
 
         if self.use_metrics_layer:
             if col in ["project_id", "timestamp"]:
@@ -280,7 +289,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.MetricsFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -315,11 +324,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_metric_index(self, value: str) -> Optional[int]:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
         if value not in self._indexer_cache:
-            if self.is_performance:
-                use_case_id = UseCaseKey.PERFORMANCE
-            else:
-                use_case_id = UseCaseKey.RELEASE_HEALTH
-            result = indexer.resolve(use_case_id, self.organization_id, value)
+            result = indexer.resolve(self.use_case_id, self.organization_id, value)
             self._indexer_cache[value] = result
 
         return self._indexer_cache[value]
@@ -922,7 +927,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
-                if granularity < interval:
+                if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
 
