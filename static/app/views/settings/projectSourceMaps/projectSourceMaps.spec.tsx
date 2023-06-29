@@ -110,7 +110,7 @@ describe('ProjectSourceMaps', function () {
           '/projects/org-slug/project-slug/files/source-maps/',
           expect.objectContaining({
             query: expect.objectContaining({
-              sortBy: '-date_added',
+              sortBy: 'date_added',
             }),
           })
         );
@@ -232,8 +232,24 @@ describe('ProjectSourceMaps', function () {
       ).toBeInTheDocument();
 
       // Date Uploaded can be sorted
+      await userEvent.click(screen.getByTestId('date-uploaded-header'));
       await userEvent.hover(screen.getByTestId('icon-arrow'));
       expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow'));
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'date_added',
+            }),
+          })
+        );
+      });
+
+      // Date Uploaded can be sorted in descending
+      await userEvent.hover(screen.getByTestId('icon-arrow'));
+      expect(await screen.findByText('Switch to descending order')).toBeInTheDocument();
       await userEvent.click(screen.getByTestId('icon-arrow'));
       await waitFor(() => {
         expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
@@ -246,8 +262,43 @@ describe('ProjectSourceMaps', function () {
         );
       });
 
+      // Date Modified can be sorted
+      await userEvent.click(screen.getByTestId('date-modified-header'));
+      await userEvent.hover(screen.getByTestId('icon-arrow-modified'));
+      expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow-modified'));
+
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'date_modified',
+            }),
+          })
+        );
+      });
+
+      // Date Modified can be sorted in descending
+      await userEvent.hover(screen.getByTestId('icon-arrow-modified'));
+      expect(await screen.findByText('Switch to descending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow-modified'));
+
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: '-date_modified',
+            }),
+          })
+        );
+      });
+
       // Artifacts
       expect(screen.getByText('39')).toBeInTheDocument();
+      // Date Modified
+      expect(screen.getByText('Mar 10, 2023 8:25 AM UTC')).toBeInTheDocument();
       // Date Uploaded
       expect(screen.getByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
       // Delete button
