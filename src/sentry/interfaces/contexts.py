@@ -1,6 +1,6 @@
 import string
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
@@ -87,7 +87,7 @@ class ContextType:
             # Even if the value is an empty string,
             # we still want to display the info the UI
             if value is not None:
-                ctx_data[force_text(key)] = value
+                ctx_data[force_str(key)] = value
         self.data = ctx_data
 
     def to_json(self):
