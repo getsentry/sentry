@@ -22,8 +22,8 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         return False
 
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
-        function = frame.get("function")
 
+        function = frame.get("function")
         if function:
             # [SentrySDK crash] is a testing function causing a crash.
             # Therefore, we don't want to mark it a as a SDK crash.
@@ -36,7 +36,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
                     return True
 
         filename = frame.get("filename")
-        if filename is not None:
+        if filename:
             filenameMatchers = ["Sentry**"]
             for matcher in filenameMatchers:
                 if glob_match(filename, matcher, ignorecase=True):
