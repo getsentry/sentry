@@ -1,6 +1,5 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AdminQuotas from 'sentry/views/admin/adminQuotas';
 
 // TODO(dcramer): this doesnt really test anything as we need to
@@ -8,7 +7,7 @@ import AdminQuotas from 'sentry/views/admin/adminQuotas';
 describe('AdminQuotas', function () {
   describe('render()', function () {
     beforeEach(() => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/internal/quotas/',
         body: {
           options: {
@@ -25,7 +24,7 @@ describe('AdminQuotas', function () {
         body: [],
       });
 
-      const wrapper = render(<AdminQuotas params={{}} />);
+      const wrapper = render(<AdminQuotas />);
       expect(wrapper.container).toSnapshot();
     });
   });
