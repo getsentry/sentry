@@ -173,5 +173,4 @@ const RecommendedWrapper = styled('div')`
 
 const StyledIconStar = styled(IconStar)`
   margin-bottom: 1px;
-  color: red;
 `;
