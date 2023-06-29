@@ -64,6 +64,7 @@ export const PAGE_QUERY_PARAMS = [
   'sort',
   'query',
   'cursor',
+  'spikeCursor',
 ];
 
 export type OrganizationStatsProps = {
@@ -71,12 +72,7 @@ export type OrganizationStatsProps = {
   selection: PageFilters;
 } & RouteComponentProps<{}, {}>;
 
-type State = {};
-
-export class OrganizationStats<
-  P extends OrganizationStatsProps = OrganizationStatsProps,
-  S extends State = State
-> extends Component<P, S> {
+export class OrganizationStats extends Component<OrganizationStatsProps> {
   get dataCategory(): DataCategoryInfo['plural'] {
     const dataCategory = this.props.location?.query?.dataCategory;
 
