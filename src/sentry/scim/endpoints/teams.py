@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import List
 
 import sentry_sdk
 from django.db import IntegrityError, transaction
@@ -9,6 +10,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import TypedDict
 
 from sentry import audit_log
 from sentry.api.base import control_silo_endpoint
@@ -29,6 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
@@ -49,7 +52,6 @@ from .utils import (
     SCIMFilterError,
     SCIMQueryParamSerializer,
     parse_filter_conditions,
-    scim_response_envelope,
 )
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -82,6 +84,14 @@ def _team_expand(excluded_attributes):
     return None if "members" in excluded_attributes else ["members"]
 
 
+class SCIMListResponseDict(TypedDict):
+    schemas: List[str]
+    totalResults: int
+    startIndex: int
+    itemsPerPage: int
+    Resources: List[OrganizationTeamSCIMSerializerResponse]
+
+
 @extend_schema(tags=["SCIM"])
 @control_silo_endpoint
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -99,8 +109,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
-            200: scim_response_envelope(
-                "SCIMTeamIndexResponse", OrganizationTeamSCIMSerializerResponse
+            200: inline_sentry_response_serializer(
+                "SCIMListResponseEnvelopeSCIMTeamIndexResponse", SCIMListResponseDict
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
