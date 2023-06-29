@@ -159,7 +159,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
             stats = {g.id: tsdb.make_series(0, **query_params) for g in groups}
         else:
             org_id = groups[0].project.organization_id if groups else None
-            stats = tsdb.get_range(
+            stats = tsdb.backend.get_range(
                 model=TSDBModel.group,
                 keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],

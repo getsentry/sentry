@@ -366,7 +366,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         rollup_duration = 3600
 
-        time_series = tsdb.get_range(
+        time_series = tsdb.backend.get_range(
             TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
@@ -375,7 +375,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
-        environment_time_series = tsdb.get_range(
+        environment_time_series = tsdb.backend.get_range(
             TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),

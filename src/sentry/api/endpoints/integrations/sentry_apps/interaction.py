@@ -30,7 +30,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
         :qparam resolution - optional
         """
 
-        views = tsdb.get_range(
+        views = tsdb.backend.get_range(
             model=TSDBModel.sentry_app_viewed,
             keys=[sentry_app.id],
             **self._parse_args(request),
@@ -39,7 +39,7 @@ class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
 
         components = app_service.find_app_components(app_id=sentry_app.id)
 
-        component_interactions = tsdb.get_range(
+        component_interactions = tsdb.backend.get_range(
             model=TSDBModel.sentry_app_component_interacted,
             keys=[
                 get_component_interaction_key(sentry_app, component.type)

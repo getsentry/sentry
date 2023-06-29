@@ -31,7 +31,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         from sentry.api.endpoints.group_details import tsdb
 
         with mock.patch(
-            "sentry.api.endpoints.group_details.tsdb.get_range", side_effect=tsdb.get_range
+            "sentry.api.endpoints.group_details.tsdb.backend.get_range",
+            side_effect=tsdb.backend.get_range,
         ) as get_range:
             response = self.client.get(
                 f"{url}?environment=production&environment=staging", format="json"
