@@ -20,6 +20,9 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_simple(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        self.organization
+        self.project
+        self.team
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
         safe_urlread.return_value = json.dumps({"notices": [], "version": {"stable": "1.0.0"}})
 
@@ -39,7 +42,7 @@ class SendBeaconTest(TestCase):
                 "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
-                    "users": 0,
+                    "users": 1,
                     "projects": 1,
                     "teams": 1,
                     "events.24h": 0,
@@ -59,6 +62,9 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.safe_urlread")
     @responses.activate
     def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
+        self.organization
+        self.project
+        self.team
         mock_get_all_package_versions.return_value = {"foo": "1.0"}
         safe_urlread.return_value = json.dumps({"notices": [], "version": {"stable": "1.0.0"}})
 
@@ -78,7 +84,7 @@ class SendBeaconTest(TestCase):
                 "python_version": platform.python_version(),
                 "data": {
                     "organizations": 1,
-                    "users": 0,
+                    "users": 1,
                     "projects": 1,
                     "teams": 1,
                     "events.24h": 0,

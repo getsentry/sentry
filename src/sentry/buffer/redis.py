@@ -8,7 +8,8 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.buffer import Buffer
+from sentry.buffer.base import Buffer
+from sentry.exceptions import InvalidConfiguration
 from sentry.tasks.process_buffer import process_incr, process_pending
 from sentry.utils import json, metrics
 from sentry.utils.compat import crc32

@@ -2,16 +2,19 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-
+import abc
 from abc import abstractmethod
-from typing import Any, Iterable, List, Optional, cast
+from typing import Any, Iterable, List, Mapping, Optional, Union, cast
 
-from sentry.services.hybrid_cloud import OptionValue
-from sentry.services.hybrid_cloud.organization import (
+from django.dispatch import Signal
+
+from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
+from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
     RpcUserInviteContext,
@@ -25,7 +28,7 @@ from sentry.services.hybrid_cloud.region import (
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -239,9 +242,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def update_default_role(
-        self, *, organization_id: int, default_role: str
-    ) -> RpcOrganizationMember:
+    def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
@@ -274,5 +275,59 @@ class OrganizationService(RpcService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         pass
 
+    @regional_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def send_signal(
+        self,
+        *,
+        signal: RpcOrganizationSignal,
+        organization_id: int,
+        args: Mapping[str, Optional[Union[int, str]]],
+    ) -> None:
+        pass
+
+    def schedule_signal(
+        self,
+        signal: Signal,
+        organization_id: int,
+        args: Mapping[str, Optional[Union[int, str]]],
+    ) -> None:
+        _organization_signal_service.schedule_signal(
+            signal=signal, organization_id=organization_id, args=args
+        )
+
+
+class OrganizationSignalService(abc.ABC):
+    @abc.abstractmethod
+    def schedule_signal(
+        self,
+        signal: Signal,
+        organization_id: int,
+        args: Mapping[str, Optional[Union[int, str]]],
+    ) -> None:
+        pass
+
+
+def _signal_from_outbox() -> OrganizationSignalService:
+    from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationSignalService
+
+    return OutboxBackedOrganizationSignalService()
+
+
+def _signal_from_on_commit() -> OrganizationSignalService:
+    from sentry.services.hybrid_cloud.organization.impl import (
+        OnCommitBackedOrganizationSignalService,
+    )
+
+    return OnCommitBackedOrganizationSignalService()
+
+
+_organization_signal_service: OrganizationSignalService = silo_mode_delegation(
+    {
+        SiloMode.REGION: _signal_from_on_commit,
+        SiloMode.CONTROL: _signal_from_outbox,
+        SiloMode.MONOLITH: _signal_from_on_commit,
+    }
+)
 
 organization_service = cast(OrganizationService, OrganizationService.create_delegation())

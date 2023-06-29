@@ -178,8 +178,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
+    const isOrgOwner = hasEveryAccess(['org:admin'], {
+      organization: this.props.organization,
+    });
 
     return (
       <FieldGroup
@@ -192,7 +194,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           }
         )}
       >
-        {!isProjectAdmin &&
+        {!isOrgOwner &&
           t('You do not have the required permission to transfer this project.')}
 
         {isInternal &&
@@ -200,7 +202,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin && !isInternal && (
+        {isOrgOwner && !isInternal && (
           <Confirm
             onConfirm={this.handleTransferProject}
             priority="danger"

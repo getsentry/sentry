@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {urlEncode} from '@sentry/utils';
 import {Location} from 'history';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {Organization} from 'sentry/types';
@@ -17,6 +16,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 import {useSpanList} from 'sentry/views/starfish/queries/useSpanList';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
@@ -80,7 +80,8 @@ export default function SpansTable({
 
   const {isLoading, data, meta, pageLinks} = useSpanList(
     moduleName ?? ModuleName.ALL,
-    undefined,
+    endpoint,
+    method,
     spanCategory,
     [sort],
     limit,
@@ -108,7 +109,7 @@ export default function SpansTable({
           },
         ]}
         grid={{
-          renderHeadCell: column => renderHeadCell(column, sort, location),
+          renderHeadCell: column => renderHeadCell({column, sort, location}),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization, endpoint, method),
         }}
@@ -119,26 +120,6 @@ export default function SpansTable({
   );
 }
 
-function renderHeadCell(column: Column, sort: Sort, location: Location) {
-  return (
-    <SortLink
-      align="left"
-      canSort={SORTABLE_FIELDS.has(column.key)}
-      direction={sort.field === column.key ? sort.kind : undefined}
-      title={column.name}
-      generateSortLink={() => {
-        return {
-          ...location,
-          query: {
-            ...location.query,
-            [QueryParameterNames.SORT]: `-${column.key}`,
-          },
-        };
-      }}
-    />
-  );
-}
-
 function renderBodyCell(
   column: Column,
   row: Row,
@@ -146,16 +127,20 @@ function renderBodyCell(
   location: Location,
   organization: Organization,
   endpoint?: string,
-  method?: string
+  endpointMethod?: string
 ): React.ReactNode {
   if (column.key === 'span.description') {
+    const queryString = {
+      endpoint,
+      endpointMethod,
+    };
     return (
       <OverflowEllipsisTextContainer>
         {row['span.group'] ? (
           <Link
-            to={`/starfish/${extractRoute(location)}/span/${row['span.group']}${
-              endpoint && method ? `?${urlEncode({endpoint, method})}` : ''
-            }`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
+              row['span.group']
+            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
           >
             {row['span.description'] || '<null>'}
           </Link>

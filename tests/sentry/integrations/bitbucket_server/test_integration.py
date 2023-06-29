@@ -8,7 +8,7 @@ from sentry.testutils import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class BitbucketServerIntegrationTest(IntegrationTestCase):
     provider = BitbucketServerIntegrationProvider
 

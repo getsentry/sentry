@@ -15,7 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
@@ -46,7 +46,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization, project, monitor) -> Response:
@@ -75,7 +75,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(self, request: Request, organization, project, monitor) -> Response:
@@ -154,7 +154,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:

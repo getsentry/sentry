@@ -44,9 +44,7 @@ class IntegrationRepositoryProvider:
             provider=self.repo_provider,
         )
 
-        # Explicitly typing to satisfy mypy.
-        installation: IntegrationInstallation = integration_model.get_installation(organization_id)
-        return installation
+        return integration_model.get_installation(organization_id)
 
     def dispatch(self, request: Request, organization, **kwargs):
         try:

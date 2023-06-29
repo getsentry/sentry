@@ -269,9 +269,9 @@ describe('projectPerformance', function () {
       },
       statusCode: 200,
     });
-    const endpointMock = MockApiClient.addMockResponse({
+    const delete_request_mock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'PUT',
+      method: 'DELETE',
     });
 
     render(
@@ -295,23 +295,6 @@ describe('projectPerformance', function () {
 
     await userEvent.click(confirmButton);
 
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/projects/org-slug/project-slug/performance-issues/configure/',
-      expect.objectContaining({
-        data: {
-          n_plus_one_db_duration_threshold: 100,
-        },
-      })
-    );
-
-    // Should not be able to reset thresholds that are disabled by admin
-    expect(endpointMock).toHaveBeenCalledWith(
-      '/projects/org-slug/project-slug/performance-issues/configure/',
-      expect.not.objectContaining({
-        data: {
-          slow_db_query_duration_threshold: 1000,
-        },
-      })
-    );
+    expect(delete_request_mock).toHaveBeenCalled();
   });
 });
