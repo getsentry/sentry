@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import itertools
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Iterator, Tuple
+from typing import Generic, Iterator, Tuple
 
 import pytest
 
@@ -9,7 +11,7 @@ from sentry.utils.kvstore.abstract import K, KVStorage, V
 
 
 @dataclass
-class Properties:
+class Properties(Generic[K, V]):
     store: KVStorage[K, V]
     keys: Iterator[K]
     values: Iterator[V]

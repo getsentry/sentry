@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from django.db import models, transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models import (
     BaseManager,
@@ -48,7 +48,7 @@ class ApiToken(Model, HasApiScopes):
     __repr__ = sane_repr("user_id", "token", "application_id")
 
     def __str__(self):
-        return force_text(self.token)
+        return force_str(self.token)
 
     @classmethod
     def from_grant(cls, grant):

@@ -1,7 +1,7 @@
 import pytest
 from django import forms
 from django.db import models
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.testutils import TestCase
@@ -89,7 +89,7 @@ class JSONFieldTest(TestCase):
         formfield = field.formfield()
         self.assertRaisesMessage(
             forms.ValidationError,
-            force_text(formfield.error_messages["required"]),
+            force_str(formfield.error_messages["required"]),
             formfield.clean,
             value="",
         )
@@ -99,7 +99,7 @@ class JSONFieldTest(TestCase):
         formfield = field.formfield()
         self.assertRaisesMessage(
             forms.ValidationError,
-            force_text(formfield.error_messages["required"]),
+            force_str(formfield.error_messages["required"]),
             formfield.clean,
             value=None,
         )

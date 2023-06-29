@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
@@ -55,10 +55,13 @@ class OrgAuthToken(Model):
     __repr__ = sane_repr("organization_id", "token_hashed")
 
     def __str__(self):
-        return force_text(self.token_hashed)
+        return force_str(self.token_hashed)
 
     def get_audit_log_data(self):
         return {"name": self.name, "scopes": self.get_scopes()}
+
+    def get_allowed_origins(self):
+        return ()
 
     def get_scopes(self):
         return self.scope_list
@@ -68,3 +71,12 @@ class OrgAuthToken(Model):
 
     def is_active(self) -> bool:
         return self.date_deactivated is None
+
+
+def is_org_auth_token_auth(auth: object) -> bool:
+    """:returns True when an API token is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "org_auth_token"
+    return isinstance(auth, OrgAuthToken)
