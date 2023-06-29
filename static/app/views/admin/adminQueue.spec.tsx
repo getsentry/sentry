@@ -1,6 +1,5 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AdminQueue from 'sentry/views/admin/adminQueue';
 
 // TODO(dcramer): this doesnt really test anything as we need to
@@ -8,7 +7,7 @@ import AdminQueue from 'sentry/views/admin/adminQueue';
 describe('AdminQueue', function () {
   describe('render()', function () {
     beforeEach(() => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/internal/queue/tasks/',
         body: [
           'celery.backend_cleanup',
@@ -54,7 +53,7 @@ describe('AdminQueue', function () {
         body: [],
       });
 
-      const wrapper = render(<AdminQueue params={{}} />);
+      const wrapper = render(<AdminQueue />);
       expect(wrapper.container).toSnapshot();
     });
   });
