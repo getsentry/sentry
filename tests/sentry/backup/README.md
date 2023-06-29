@@ -1,6 +1,9 @@
 # Backup tests
 
-This directory tests a number of scenarios where we take an empty database, import a given backup `.json` file, optionally perform some transform, re-export it and validate the diff. The expected result is that only the changes we have made are reflected in the final diff between the original input `.json` that we imported, and the final output `.json` that we exported.
+This directory tests a number of scenarios where we take an empty database, import a given backup
+`.json` file, optionally perform some transform, re-export it and validate the diff. The expected
+result is that only the changes we have made are reflected in the final diff between the original
+input `.json` that we imported, and the final output `.json` that we exported.
 
 ## Comparators
 
@@ -34,4 +37,5 @@ A number of default starter snapshots are provided to bootstrap this test flow.
 
 ### fresh_install.json
 
-This represents the state of the database immediately after running `./install.sh` to create a new instance of `self-hosted`.
+This represents the state of the database immediately after running `./install.sh` to create a new
+instance of `self-hosted`.
