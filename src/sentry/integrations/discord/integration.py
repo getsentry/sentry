@@ -62,7 +62,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, object]) -> Mapping[str, object]:
         guild_id = str(state.get("guild_id"))
-        guild_name = DiscordClient()._get_guild_name(str(state.get("guild_id")))
+        guild_name = DiscordClient()._get_guild_name(guild_id)
         return {
             "name": guild_name,
             "external_id": guild_id,
