@@ -3,8 +3,9 @@ from typing import Any, Dict, List, Optional, Set
 
 from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Op, Or
 
+from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
-from sentry.search.events.types import ParamsType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
@@ -13,6 +14,7 @@ from sentry.utils.snuba import bulk_snql_query
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
+    has_transaction = False
 
     def get_field_type(self, field: str) -> Optional[str]:
         if field in self.meta_resolver_map:
@@ -21,6 +23,24 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
             return "duration"
 
         return None
+
+    def resolve_select(
+        self, selected_columns: Optional[List[str]], equations: Optional[List[str]]
+    ) -> List[SelectType]:
+        if selected_columns and "transaction" in selected_columns:
+            self.has_transaction = True
+        return super().resolve_select(selected_columns, equations)
+
+    def resolve_metric_index(self, value: str) -> Optional[int]:
+        """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+
+        # This check is a bit brittle, and depends on resolve_conditions happening before resolve_select
+        if value == "transaction":
+            self.has_transaction = True
+        if not self.has_transaction and value == constants.SPAN_METRICS_MAP["span.self_time"]:
+            return super().resolve_metric_index(constants.SELF_TIME_LIGHT)
+
+        return super().resolve_metric_index(value)
 
 
 class TimeseriesSpansMetricsQueryBuilder(SpansMetricsQueryBuilder, TimeseriesMetricQueryBuilder):

@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+from sentry.search.events import constants
 from sentry.testutils import MetricsEnhancedPerformanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
@@ -57,6 +58,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_count(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -103,10 +105,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_sum(self):
         self.store_span_metric(
             321,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         self.store_span_metric(
             99,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -127,6 +131,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_percentile(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -147,6 +152,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_p50(self):
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -168,6 +174,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(6):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         response = self.do_request(
@@ -191,6 +198,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(6):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         response = self.do_request(
@@ -214,9 +222,21 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"transaction": "foo_transaction"},
                 timestamp=self.min_ago,
             )
+            self.store_span_metric(
+                1,
+                tags={"transaction": "foo_transaction"},
+                timestamp=self.min_ago,
+            )
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
         self.store_span_metric(
             1,
             tags={"transaction": "bar_transaction"},
@@ -246,11 +266,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"span.status_code": "500"},
                 timestamp=self.min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             tags={"span.status_code": "200"},
             timestamp=self.min_ago,
         )
@@ -276,10 +298,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
     def test_percentile_percent_change(self):
         self.store_span_metric(
             5,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
         )
         self.store_span_metric(
             10,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -304,11 +328,13 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 tags={"span.status_code": "500"},
                 timestamp=self.six_min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             tags={"span.status_code": "500"},
             timestamp=self.min_ago,
         )
@@ -334,10 +360,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.six_min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.min_ago,
         )
         response = self.do_request(
@@ -364,10 +392,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         for _ in range(4):
             self.store_span_metric(
                 1,
+                internal_metric=constants.SELF_TIME_LIGHT,
                 timestamp=self.min_ago,
             )
         self.store_span_metric(
             1,
+            internal_metric=constants.SELF_TIME_LIGHT,
             timestamp=self.six_min_ago,
         )
         response = self.do_request(
@@ -389,3 +419,64 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "spansMetrics"
         assert meta["fields"]["eps_percent_change()"] == "percent_change"
         assert meta["fields"]["sps_percent_change()"] == "percent_change"
+
+    def test_use_self_time_light(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": ["p50(span.self_time)"],
+                # Should be 0 since its filtering on transaction
+                "query": "transaction:foo_transaction",
+                "orderby": ["-p50(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["p50(span.self_time)"] == 0
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["p50(span.self_time)"] == "duration"
+
+        response = self.do_request(
+            {
+                # Should be 0 since it has a transaction column
+                "field": ["transaction", "p50(span.self_time)"],
+                "query": "",
+                "orderby": ["-p50(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 0
+
+        response = self.do_request(
+            {
+                "field": ["p50(span.self_time)"],
+                # Should be 100 since its not filtering on transaction
+                "query": "",
+                "orderby": ["-p50(span.self_time)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["p50(span.self_time)"] == 100
+        assert meta["dataset"] == "spansMetrics"
+        assert meta["fields"]["p50(span.self_time)"] == "duration"
