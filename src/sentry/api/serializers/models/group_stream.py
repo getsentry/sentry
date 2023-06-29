@@ -259,7 +259,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
                 if missed_items:
                     project_ids = list({item.project_id for item in missed_items})
-                    project_sessions = release_health.get_num_sessions_per_project(
+                    project_sessions = release_health.backend.get_num_sessions_per_project(
                         project_ids,
                         self.start,
                         self.end,

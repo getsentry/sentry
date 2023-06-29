@@ -471,7 +471,7 @@ class ReleaseSerializer(Serializer):
 
         # XXX: Legacy should be removed later
         if with_health_data:
-            health_data = release_health.get_release_health_data_overview(
+            health_data = release_health.backend.get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,

@@ -431,7 +431,7 @@ class ProjectSerializer(Serializer):
         current_interval_start = now - (segments * interval)
         previous_interval_start = now - (2 * segments * interval)
 
-        project_health_data_dict = release_health.get_current_and_previous_crash_free_rates(
+        project_health_data_dict = release_health.backend.get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
             current_start=current_interval_start,
             current_end=now,
@@ -459,7 +459,7 @@ class ProjectSerializer(Serializer):
         # call -> check_has_data with those ids and then update our `project_health_data_dict`
         # accordingly
         if check_has_health_data_ids:
-            projects_with_health_data = release_health.check_has_health_data(
+            projects_with_health_data = release_health.backend.check_has_health_data(
                 check_has_health_data_ids
             )
             for project_id in projects_with_health_data:

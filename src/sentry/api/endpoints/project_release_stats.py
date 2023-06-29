@@ -15,7 +15,7 @@ def upsert_missing_release(project, version):
     try:
         return ReleaseProject.objects.get(project=project, release__version=version).release
     except ReleaseProject.DoesNotExist:
-        rows = release_health.get_oldest_health_data_for_releases([(project.id, version)])
+        rows = release_health.backend.get_oldest_health_data_for_releases([(project.id, version)])
         if rows:
             oldest = next(rows.values())
             release = Release.get_or_create(project=project, version=version, date_added=oldest)
@@ -65,7 +65,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         if release is None:
             raise ResourceDoesNotExist
 
-        stats, totals = release_health.get_project_release_stats(
+        stats, totals = release_health.backend.get_project_release_stats(
             project_id=params["project_id"][0],
             release=version,
             stat=stats_type,
@@ -76,7 +76,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         )
 
         users_breakdown = []
-        for data in release_health.get_crash_free_breakdown(
+        for data in release_health.backend.get_crash_free_breakdown(
             project_id=params["project_id"][0],
             release=version,
             environments=params.get("environment"),

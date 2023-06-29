@@ -463,7 +463,7 @@ def _get_release_health_data_overview(
         # If we're already looking at a 90 day horizon we don't need to
         # fire another query, we can already assume there is no data.
         if summary_stats_period != "90d":
-            has_health_data = release_health.check_has_health_data(missing_releases)
+            has_health_data = release_health.backend.check_has_health_data(missing_releases)
         else:
             has_health_data = ()
         for key in missing_releases:
@@ -483,7 +483,7 @@ def _get_release_health_data_overview(
                     health_stats_period: _make_stats(stats_start, stats_rollup, stats_buckets)
                 }
 
-    release_adoption = release_health.get_release_adoption(project_releases, environments)
+    release_adoption = release_health.backend.get_release_adoption(project_releases, environments)
     for key in rv:
         adoption_info = release_adoption.get(key) or {}
         rv[key]["adoption"] = adoption_info.get("adoption")
