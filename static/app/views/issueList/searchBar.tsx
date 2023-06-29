@@ -96,7 +96,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   const recommendedGroup: SearchGroup = {
     title: t('Recommended'),
     type: 'header',
-    icon: <IconStar size="xs" />,
+    icon: <StyledIconStar size="xs" />,
     childrenWrapper: RecommendedWrapper,
     children: [
       {
@@ -169,4 +169,9 @@ const RecommendedWrapper = styled('div')`
     padding: ${space(1.5)} ${space(2)};
     margin: 0;
   }
+`;
+
+const StyledIconStar = styled(IconStar)`
+  margin-bottom: 1px;
+  color: red;
 `;
