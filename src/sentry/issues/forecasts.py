@@ -19,6 +19,7 @@ from sentry.issues.escalating_issues_alg import (
     standard_version,
 )
 from sentry.models import Group
+from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
 
@@ -71,3 +72,16 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     )
     group_counts = parse_groups_past_counts(past_counts)
     save_forecast_per_group(groups, group_counts)
+
+
+@instrumented_task(
+    name="sentry.tasks.weekly_escalating_forecast.generate_and_save_missing_forecasts",
+    queue="weekly_escalating_forecast",
+)
+def generate_and_save_missing_forecasts(group_id: int) -> None:
+    """
+    Runs generate_and_save_forecasts in a task as a fallback if the forecast does not exist.
+    This should not happen, but exists as a fallback.
+    """
+    group = Group.objects.filter(id=group_id)
+    generate_and_save_forecasts(group)
