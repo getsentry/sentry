@@ -25,7 +25,7 @@ class FilterStatKeys:
     CORS = "cors"
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
-    HEALTH_CHECK = "health-check"  # Ignore health-check transactions
+    HEALTH_CHECK = "filtered-transaction"  # Ignore health-check transactions
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
@@ -253,8 +253,8 @@ _web_crawlers_filter = _FilterSpec(
 
 _healthcheck_filter = _FilterSpec(
     id=FilterStatKeys.HEALTH_CHECK,
-    name="Filter out requests to health check endpoints",
-    description="Filters out transactions for health check endpoints, in order to conserve transaction quotas",
+    name="Filter out health check transactions",
+    description="Filter transactions that match most common naming patterns for health checks.",
     serializer_cls=None,
     config_name="ignoreTransactions",
 )

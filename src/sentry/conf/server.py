@@ -3186,19 +3186,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# The grouping strategy to use for driving similarity-v2. You can add multiple
-# strategies here to index them all. This is useful for transitioning a
-# similarity dataset to newer grouping configurations.
-#
-# The dictionary value represents the redis prefix to use.
-#
-# Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "similarity:2020-07-23": "a",
-}
+# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
@@ -3408,7 +3398,9 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-if USE_SILOS:
+# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
+# Split databases are also required for the USE_SILOS devserver flow.
+if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
@@ -3417,6 +3409,9 @@ if USE_SILOS:
     # silo database is the 'default' elsewhere in application logic.
     DATABASES["default"]["NAME"] = "region"
 
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     SENTRY_REGION_CONFIG = [
@@ -3436,7 +3431,6 @@ if USE_SILOS:
             "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
 # How long we should wait for a gateway proxy request to return before giving up
@@ -3506,8 +3500,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
-
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
 
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
