@@ -7,16 +7,17 @@ import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
+  const replayRecord = replay?.getReplay();
   const frames = replay?.getNavigationFrames();
 
   const url = useMemo(() => {
     try {
-      return getCurrentUrl(frames, currentTime);
+      return getCurrentUrl(replayRecord, frames, currentTime);
     } catch (err) {
       Sentry.captureException(err);
       return '';
     }
-  }, [frames, currentTime]);
+  }, [replayRecord, frames, currentTime]);
 
   if (!replay || !url) {
     return (
