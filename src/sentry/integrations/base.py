@@ -20,11 +20,13 @@ from typing import (
 from urllib.request import Request
 
 from sentry import audit_log
-from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+
+# from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
@@ -188,7 +190,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
 
     @classmethod
     def get_installation(
-        cls, model: M, organization_id: int, **kwargs: Any
+        cls, model: RpcIntegration, organization_id: int, **kwargs: Any
     ) -> IntegrationInstallation:
         if cls.integration_cls is None:
             raise NotImplementedError
@@ -296,7 +298,7 @@ class IntegrationInstallation:
 
     logger = logging.getLogger("sentry.integrations")
 
-    def __init__(self, model: M, organization_id: int) -> None:
+    def __init__(self, model: RpcIntegration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
         self._org_integration: RpcOrganizationIntegration | None

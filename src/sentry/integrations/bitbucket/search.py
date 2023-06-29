@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.integrations.bitbucket.integration import BitbucketIntegration
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -30,9 +31,9 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
         if not query:
             return Response({"detail": "query is a required parameter"}, status=400)
 
-        installation = integration_service.get_installation(
+        installation: BitbucketIntegration = integration_service.get_installation(
             integration=integration, organization_id=organization.id
-        )
+        )  # type: ignore
 
         if field == "externalIssue":
             repo = request.GET.get("repo")

@@ -91,11 +91,15 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
             json={"ok": True},
             status=200,
         )
+        org_integration = self.install.org_integration
+        if not org_integration:
+            raise AttributeError("Not associated with an organization")
 
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
+
             client = BitbucketApiProxyTestClient(
                 integration=self.integration,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration.id,
             )
             client.get_repo(repo="test-repo")
             request = responses.calls[0].request
@@ -108,7 +112,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = BitbucketApiProxyTestClient(
                 integration=self.integration,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration.id,
             )
             client.get_repo(repo="test-repo")
             request = responses.calls[0].request
@@ -121,7 +125,7 @@ class BitbucketApiClientTest(TestCase, BaseTestCase):
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = BitbucketApiProxyTestClient(
                 integration=self.integration,
-                org_integration_id=self.install.org_integration.id,
+                org_integration_id=org_integration.id,
             )
             client.get_repo(repo="test-repo")
             request = responses.calls[0].request
