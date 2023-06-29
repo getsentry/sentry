@@ -27,7 +27,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
         :pparam string key: the tag key to look up.
         :auth: required
         """
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids = {"organization_id": project.organization_id}
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)

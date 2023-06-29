@@ -23,7 +23,9 @@ class GroupTagsEndpoint(GroupEndpoint):
 
         # optional queryparam `key` can be used to get results
         # only for specific keys.
-        keys = [tagstore.prefix_reserved_key(k) for k in request.GET.getlist("key") if k] or None
+        keys = [
+            tagstore.backend.prefix_reserved_key(k) for k in request.GET.getlist("key") if k
+        ] or None
 
         # There are 2 use-cases for this method. For the 'Tags' tab we
         # get the top 10 values, for the tag distribution bars we get 9

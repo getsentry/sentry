@@ -24,7 +24,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         :pparam string key: the tag key to look the values up for.
         :auth: required
         """
-        lookup_key = tagstore.prefix_reserved_key(key)
+        lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids = {"organization_id": group.project.organization_id}
