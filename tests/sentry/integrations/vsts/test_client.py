@@ -158,11 +158,6 @@ class VstsApiClientTest(VstsIntegrationTestCase):
                 sample_rate=1.0,
                 tags={"integration": "vsts", "status": 200},
             ),
-            call(
-                "integrations.http_response",
-                sample_rate=1.0,
-                tags={"integration": "vsts", "status": 200},
-            ),
         ]
         assert self.metrics.incr.mock_calls == calls
 
