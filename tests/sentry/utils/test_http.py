@@ -4,7 +4,6 @@ from unittest import mock
 from django.http import HttpRequest
 
 from sentry import options
-from sentry.models import Project
 from sentry.testutils import TestCase
 from sentry.utils.http import absolute_uri, get_origins, is_valid_origin, origin_from_request
 
@@ -30,27 +29,26 @@ class AbsoluteUriTest(unittest.TestCase):
 
 
 class GetOriginsTestCase(TestCase):
-    def test_project_default(self):
-        project = Project.objects.get()
+    def setUp(self) -> None:
+        self.project = self.create_project()
 
+    def test_project_default(self):
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
-            result = get_origins(project)
+            result = get_origins(self.project)
             self.assertEqual(result, frozenset(["*"]))
 
     def test_project(self):
-        project = Project.objects.get()
-        project.update_option("sentry:origins", ["http://foo.example"])
+        self.project.update_option("sentry:origins", ["http://foo.example"])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
-            result = get_origins(project)
+            result = get_origins(self.project)
             self.assertEqual(result, frozenset(["http://foo.example"]))
 
     def test_project_and_setting(self):
-        project = Project.objects.get()
-        project.update_option("sentry:origins", ["http://foo.example"])
+        self.project.update_option("sentry:origins", ["http://foo.example"])
 
         with self.settings(SENTRY_ALLOW_ORIGIN="http://example.com"):
-            result = get_origins(project)
+            result = get_origins(self.project)
             self.assertEqual(result, frozenset(["http://foo.example"]))
 
     def test_setting_empty(self):
@@ -69,11 +67,10 @@ class GetOriginsTestCase(TestCase):
             self.assertEqual(result, frozenset(["http://example.com"]))
 
     def test_empty_origin_values(self):
-        project = Project.objects.get()
-        project.update_option("sentry:origins", ["*", None, ""])
+        self.project.update_option("sentry:origins", ["*", None, ""])
 
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
-            result = get_origins(project)
+            result = get_origins(self.project)
             self.assertEqual(result, frozenset(["*"]))
 
 

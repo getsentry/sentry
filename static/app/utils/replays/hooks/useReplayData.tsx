@@ -1,10 +1,9 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
 import parseLinkHeader, {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
-import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useProjects from 'sentry/utils/useProjects';
@@ -32,9 +31,9 @@ type Options = {
   orgSlug: string;
 
   /**
-   * The projectSlug and replayId concatenated together
+   * The replayId
    */
-  replaySlug: string;
+  replayId: string;
 
   /**
    * Default: 50
@@ -50,13 +49,12 @@ type Options = {
 };
 
 interface Result {
+  attachments: unknown[];
+  errors: ReplayError[];
   fetchError: undefined | RequestError;
   fetching: boolean;
   onRetry: () => void;
   projectSlug: string | null;
-  replay: ReplayReader | null;
-  replayErrors: ReplayError[];
-  replayId: string;
   replayRecord: ReplayRecord | undefined;
 }
 
@@ -88,22 +86,22 @@ const INITIAL_STATE: State = Object.freeze({
  * Front-end processing, filtering and re-mixing of the different data streams
  * must be delegated to the `ReplayReader` class.
  *
- * @param {orgSlug, replaySlug} Where to find the root replay event
+ * @param {orgSlug, replayId} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
 function useReplayData({
-  replaySlug,
+  replayId,
   orgSlug,
   errorsPerPage = 50,
   segmentsPerPage = 100,
 }: Options): Result {
-  const replayId = parseReplayId(replaySlug);
   const projects = useProjects();
 
   const api = useApi();
 
   const [state, setState] = useState<State>(INITIAL_STATE);
   const [attachments, setAttachments] = useState<unknown[]>([]);
+  const attachmentMap = useRef<Map<string, unknown[]>>(new Map()); // Map keys are always iterated by insertion order
   const [errors, setErrors] = useState<ReplayError[]>([]);
   const [replayRecord, setReplayRecord] = useState<ReplayRecord>();
 
@@ -134,6 +132,7 @@ function useReplayData({
 
     const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
     const cursors = new Array(pages).fill(0).map((_, i) => `0:${segmentsPerPage * i}:0`);
+    cursors.forEach(cursor => attachmentMap.current.set(cursor, []));
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -148,7 +147,9 @@ function useReplayData({
           }
         );
         promise.then(response => {
-          setAttachments(prev => (prev ?? []).concat(...response));
+          attachmentMap.current.set(cursor, response);
+          const flattened = Array.from(attachmentMap.current.values()).flat(2);
+          setAttachments(flattened);
         });
         return promise;
       })
@@ -211,40 +212,15 @@ function useReplayData({
     fetchAttachments().catch(onError);
   }, [state.fetchError, fetchAttachments, onError]);
 
-  const replay = useMemo(() => {
-    return ReplayReader.factory({
-      attachments,
-      errors,
-      replayRecord,
-    });
-  }, [attachments, errors, replayRecord]);
-
   return {
-    replayErrors: errors,
+    attachments,
+    errors,
     fetchError: state.fetchError,
     fetching: state.fetchingAttachments || state.fetchingErrors || state.fetchingReplay,
     onRetry: loadData,
-    replay,
-    replayRecord,
     projectSlug,
-    replayId,
+    replayRecord,
   };
-}
-
-// see https://github.com/getsentry/sentry/pull/47859
-// replays can apply to many projects when incorporating backend errors
-// this makes having project in the `replaySlug` obsolete
-// we must keep this url schema for now for backward compat but we should remove it at some point
-// TODO: remove support for projectSlug in replay url?
-function parseReplayId(replaySlug: string) {
-  const maybeProjectSlugAndReplayId = replaySlug.split(':');
-  if (maybeProjectSlugAndReplayId.length === 2) {
-    return maybeProjectSlugAndReplayId[1];
-  }
-
-  // if there is no projectSlug then we assume we just have the replayId
-  // all other cases would be a malformed url
-  return maybeProjectSlugAndReplayId[0];
 }
 
 function makeFetchReplayApiUrl(orgSlug: string, replayId: string) {

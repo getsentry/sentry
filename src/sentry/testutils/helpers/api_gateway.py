@@ -9,8 +9,10 @@ from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase
-from sentry.types.region import Region, RegionCategory
+from sentry.types.region import Region, RegionCategory, clear_global_regions
 from sentry.utils import json
 
 SENTRY_REGION_CONFIG = [
@@ -116,6 +118,7 @@ def provision_middleware():
 class ApiGatewayTestCase(APITestCase):
     def setUp(self):
         super().setUp()
+        clear_global_regions()
         responses.add(
             responses.GET,
             "http://region1.testserver/get",
@@ -131,6 +134,11 @@ class ApiGatewayTestCase(APITestCase):
             content_type="application/json",
             adding_headers={"test": "header"},
         )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+                region_name="region1"
+            )
 
         # Echos the request body and header back for verification
         def return_request_body(request):

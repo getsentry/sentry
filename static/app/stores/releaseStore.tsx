@@ -35,6 +35,7 @@ interface ReleaseStoreDefinition extends StoreDefinition {
     releaseVersion: string,
     data: Release | null
   ): void;
+  reset(): void;
   state: {
     deploys: StoreDeploys;
     deploysError: StoreError;

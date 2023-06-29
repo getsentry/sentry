@@ -144,6 +144,14 @@ def validate_silo_mode():
 
 
 @pytest.fixture(autouse=True)
+def setup_simulate_on_commit(request):
+    from sentry.testutils.hybrid_cloud import simulate_on_commit
+
+    with simulate_on_commit(request):
+        yield
+
+
+@pytest.fixture(autouse=True)
 def protect_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
@@ -164,7 +172,12 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     create Outbox objects in the same transaction that matches what you delete.
     """
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.models import OrganizationMember, OrganizationMemberMapping
+    from sentry.models import (
+        Organization,
+        OrganizationMapping,
+        OrganizationMember,
+        OrganizationMemberMapping,
+    )
     from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
 
     try:
@@ -197,6 +210,13 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
     restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="UPDATE")
+    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
+    # identifiers are not snowflake ids.
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
 
     restrict_role(
         role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"

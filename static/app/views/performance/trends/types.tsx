@@ -34,6 +34,7 @@ export type TrendParameter = {
 export enum TrendChangeType {
   IMPROVED = 'improved',
   REGRESSION = 'regression',
+  ANY = 'any',
 }
 
 export enum TrendFunctionField {
@@ -87,6 +88,9 @@ export type TrendsTransaction = {
   trend_difference: number;
   trend_percentage: number;
   breakpoint?: number;
+  // TODO change type to TrendsChangeType
+  // once backend sends it
+  change?: string;
   count_percentage?: number;
   count_range_1?: number;
   count_range_2?: number;

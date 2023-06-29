@@ -15,9 +15,9 @@ import useInitialTimeOffsetMs, {
   TimeOffsetLocationQueryParams,
 } from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import useReplayLayout from 'sentry/utils/replays/hooks/useReplayLayout';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
@@ -39,20 +39,20 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
   const {
+    errors: replayErrors,
+    fetchError,
     fetching,
     onRetry,
-    replay,
-    replayRecord,
-    fetchError,
     projectSlug,
+    replay,
     replayId,
-    replayErrors,
-  } = useReplayData({
+    replayRecord,
+  } = useReplayReader({
     replaySlug,
     orgSlug,
   });
 
-  useLogReplayDataLoaded({fetching, fetchError, replay, projectSlug});
+  useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
@@ -110,7 +110,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+  if (!fetching && replay && replay.getRRWebFrames().length < 2) {
     return (
       <Page
         orgSlug={orgSlug}

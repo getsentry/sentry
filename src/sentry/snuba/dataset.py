@@ -23,6 +23,7 @@ class Dataset(Enum):
 class EntityKey(Enum):
     Events = "events"
     Sessions = "sessions"
+    Spans = "spans"
     Transactions = "transactions"
     MetricsSets = "metrics_sets"
     MetricsCounters = "metrics_counters"

@@ -13,7 +13,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
@@ -48,31 +48,32 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert metadata["domain_name"] == self.vsts_base_url
 
     def test_migrate_repositories(self):
-        accessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name=self.project_a["name"],
-            url=f"{self.vsts_base_url}/_git/{self.repo_name}",
-            provider="visualstudio",
-            external_id=self.repo_id,
-            config={"name": self.project_a["name"], "project": self.project_a["name"]},
-        )
+        with exempt_from_silo_limits():
+            accessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name=self.project_a["name"],
+                url=f"{self.vsts_base_url}/_git/{self.repo_name}",
+                provider="visualstudio",
+                external_id=self.repo_id,
+                config={"name": self.project_a["name"], "project": self.project_a["name"]},
+            )
 
-        inaccessible_repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="NotReachable",
-            url="https://randoaccount.visualstudio.com/Product/_git/NotReachable",
-            provider="visualstudio",
-            external_id="123456789",
-            config={"name": "NotReachable", "project": "NotReachable"},
-        )
+            inaccessible_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="NotReachable",
+                url="https://randoaccount.visualstudio.com/Product/_git/NotReachable",
+                provider="visualstudio",
+                external_id="123456789",
+                config={"name": "NotReachable", "project": "NotReachable"},
+            )
 
         with self.tasks():
             self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
 
-        assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
-
-        assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
+        with exempt_from_silo_limits():
+            assert Repository.objects.get(id=accessible_repo.id).integration_id == integration.id
+            assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
 
     def test_accounts_list_failure(self):
         responses.replace(
@@ -146,7 +147,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         assert subscription["id"] is not None and subscription["secret"] is not None
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
