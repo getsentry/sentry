@@ -19,6 +19,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
 )
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
@@ -352,7 +353,13 @@ def process_commit_context(
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
 
-            if features.has("organizations:pr-comment-bot", project.organization):
+            if features.has(
+                "organizations:pr-comment-bot", project.organization
+            ) and OrganizationOption.objects.get_value(
+                organization=project.organization,
+                key="sentry:github_pr_bot",
+                default=True,
+            ):
                 logger.info(
                     "github.pr_comment",
                     extra={"organization_id": project.organization_id},
