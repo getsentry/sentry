@@ -256,41 +256,18 @@ def get_helpful_event_for_environments(
     all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
     all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
 
-    end = group.last_seen + timedelta(minutes=1)
-    start = end - timedelta(days=14)
-
-    if search_filters:
-        for search_filter in search_filters:
-            if search_filter.key.name not in GroupSerializerSnuba.skip_snuba_fields:
-                filter_keys = {
-                    "organization_id": group.project.organization_id,
-                    "project_id": [group.project.id],
-                    "environment_id": [env.id for env in environments],
-                }
-                formatted_conditions, projects_to_filter, group_ids = format_search_filter(
-                    search_filter, params=filter_keys
-                )
-
-                # if no re-formatted conditions, use fallback method
-                new_condition = None
-                if formatted_conditions:
-                    new_condition = formatted_conditions[0]
-                elif group_ids:
-                    new_condition = convert_search_filter_to_snuba_query(
-                        search_filter, params=filter_keys
-                    )
-
-                if new_condition:
-                    conditions.append(new_condition)
     if conditions:
         all_conditions.extend(conditions)
+
+    end = group.last_seen + timedelta(minutes=1)
+    start = end - timedelta(days=14)
 
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
         start=start,
         end=end,
-        conditions=conditions,
+        conditions=all_conditions,
         limit=1,
         orderby=EventOrdering.MOST_HELPFUL.value,
         referrer="Group.get_helpful",
@@ -676,6 +653,7 @@ class Group(Model):
         maybe_event = get_helpful_event_for_environments(
             environments,
             self,
+            conditions,
         )
         return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
 
