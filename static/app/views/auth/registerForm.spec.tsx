@@ -6,9 +6,16 @@ import ConfigStore from 'sentry/stores/configStore';
 import RegisterForm from 'sentry/views/auth/registerForm';
 
 describe('Register', function () {
-  const api = new MockApiClient();
+  const emptyAuthConfig = {
+    canRegister: false,
+    githubLoginLink: '',
+    googleLoginLink: '',
+    hasNewsletter: false,
+    serverHostname: '',
+    vstsLoginLink: '',
+  };
 
-  async function doLogin(apiRequest) {
+  async function doLogin(apiRequest: jest.Mock) {
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
     await userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
     await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
@@ -39,9 +46,7 @@ describe('Register', function () {
       },
     });
 
-    const authConfig = {};
-
-    render(<RegisterForm api={api} authConfig={authConfig} />);
+    render(<RegisterForm authConfig={emptyAuthConfig} />);
     await doLogin(mockRequest);
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
@@ -63,9 +68,7 @@ describe('Register', function () {
       },
     });
 
-    const authConfig = {};
-
-    render(<RegisterForm api={api} authConfig={authConfig} />);
+    render(<RegisterForm authConfig={emptyAuthConfig} />);
     await doLogin(mockRequest);
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
