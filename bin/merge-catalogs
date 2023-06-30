@@ -47,7 +47,7 @@ def cli(locale):
         catalog[msg.id] = msg
 
     with open(catalog_file, "wb") as f:
-        write_po(f, catalog)
+        write_po(f, catalog, no_location=True)
 
 
 if __name__ == "__main__":
