@@ -21,6 +21,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
@@ -57,7 +58,7 @@ def format_comment(issues: List[PullRequestIssue]):
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
 
     def format_url(url):
-        return url + "?referrer=github-pr-bot"
+        return url + "?referrer=" + GITHUB_PR_BOT_REFERRER
 
     issue_list = "\n".join(
         [
