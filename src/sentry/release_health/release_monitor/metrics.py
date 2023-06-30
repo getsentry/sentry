@@ -2,7 +2,7 @@ import logging
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, Set
 
 from snuba_sdk import (
     Column,
@@ -164,13 +164,18 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     if more_results:
                         data = data[:-1]
 
+                    # convert indexes back to strings
+                    indexes: Set[int] = set()
                     for row in data:
-                        env_name = indexer.reverse_resolve(
-                            UseCaseKey.RELEASE_HEALTH, org_id, row[env_key]
-                        )
-                        release_name = indexer.reverse_resolve(
-                            UseCaseKey.RELEASE_HEALTH, org_id, row[release_key]
-                        )
+                        indexes.add(row[env_key])
+                        indexes.add(row[release_key])
+                    resolved_strings = indexer.bulk_reverse_resolve(
+                        UseCaseKey.RELEASE_HEALTH, org_id, indexes
+                    )
+
+                    for row in data:
+                        env_name = resolved_strings.get(row[env_key])
+                        release_name = resolved_strings.get(row[release_key])
                         row_totals = totals[row["project_id"]].setdefault(
                             env_name, {"total_sessions": 0, "releases": defaultdict(int)}  # type: ignore
                         )
