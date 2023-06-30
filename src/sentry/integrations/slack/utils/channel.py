@@ -208,14 +208,15 @@ def get_channel_id_with_timeout_new(
     id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
-    cursor = ""
     try:  # Check for channel
         channel_id = check_for_channel(client, name)
+        prefix = "#"
     except ApiError as e:
         if str(e) != "channel_not_found":
             raise e
         # Check if user
         while True:
+            cursor = ""
             # Slack limits the response of `<list_type>.list` to 1000 channels
             try:
                 items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
@@ -234,6 +235,7 @@ def get_channel_id_with_timeout_new(
                 # so we return immediately if we find a match.
                 # convert to lower case since all names in Slack are lowercase
                 if name and c["name"].lower() == name.lower():
+                    prefix = "@"
                     return prefix, c["id"], False
                 # If we don't get a match on a unique identifier, we look through
                 # the users' display names, and error if there is a repeat.
@@ -242,6 +244,7 @@ def get_channel_id_with_timeout_new(
                     if id_data:
                         found_duplicate = True
                     else:
+                        prefix = "@"
                         id_data = (prefix, c["id"], False)
 
             cursor = items.get("response_metadata", {}).get("next_cursor", None)
