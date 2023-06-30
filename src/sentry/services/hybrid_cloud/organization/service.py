@@ -189,6 +189,24 @@ class OrganizationService(RpcService):
             return None
         return org_context
 
+    def get_organization_by_slug_or_id(
+        self, *, identifier: str, only_visible: bool, user_id: Optional[int] = None
+    ) -> Optional[RpcUserOrganizationContext]:
+        from sentry.models import OrganizationStatus
+
+        org_id = self.check_organization_by_slug(slug=identifier, only_visible=only_visible)
+        if org_id is None:
+            org_id = identifier
+
+        org_context = self.get_organization_by_id(id=org_id, user_id=user_id)
+        if (
+            only_visible
+            and org_context
+            and org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
+            return None
+        return org_context
+
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def add_organization_member(
