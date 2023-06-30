@@ -518,7 +518,7 @@ class MonitorEnvironment(Model):
             organization = Organization.objects.get(id=self.monitor.organization_id)
             use_issue_platform = features.has(
                 "organizations:issue-platform", organization=organization
-            )
+            ) and features.has("organizations:crons-issue-platform", organization=organization)
         except Organization.DoesNotExist:
             pass
 
