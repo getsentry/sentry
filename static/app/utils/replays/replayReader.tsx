@@ -206,7 +206,7 @@ export default class ReplayReader {
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
 
-  getCacheKey = () => this._cacheKey;
+  toJSON = () => this._cacheKey;
 
   /**
    * @returns Duration of Replay (milliseonds)

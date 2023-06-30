@@ -32,15 +32,11 @@ const cellMeasurer = {
 };
 
 function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
-  return useQuery(
-    ['getDomNodes', replay?.getCacheKey()],
-    () => replay?.getDomNodes() ?? [],
-    {
-      enabled: Boolean(replay),
-      initialData: [],
-      cacheTime: Infinity,
-    }
-  );
+  return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
+    enabled: Boolean(replay),
+    initialData: [],
+    cacheTime: Infinity,
+  });
 }
 
 function DomMutations({replay, startTimestampMs}: Props) {
