@@ -223,6 +223,16 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        rule_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": self.organization.slug,
+                    "alert_rule_id": incident.alert_rule.id,
+                },
+            ),
+            query="referrer=alert_email",
+        )
         expected = {
             "link": self.organization.absolute_url(
                 reverse(
@@ -234,17 +244,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
                 ),
                 query="referrer=alert_email",
             ),
-            "rule_link": self.organization.absolute_url(
-                reverse(
-                    "sentry-alert-rule",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "project_slug": self.project.slug,
-                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-                    },
-                ),
-                query="referrer=alert_email",
-            ),
+            "rule_link": rule_link,
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
@@ -262,17 +262,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
-            "snooze_alert_url": self.organization.absolute_url(
-                reverse(
-                    "sentry-metric-alert-details",
-                    kwargs={
-                        "organization_slug": self.organization.slug,
-                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-                    },
-                ),
-                query="referrer=alert_email",
-            )
-            + "&mute=1",
+            "snooze_alert_url": rule_link + "&mute=1",
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -302,16 +292,6 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             },
         )
         assert self.organization.absolute_url(path) in result["link"]
-
-        path = reverse(
-            "sentry-alert-rule",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
-                "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-            },
-        )
-        assert self.organization.absolute_url(path) in result["rule_link"]
 
     def test_resolve(self):
         status = TriggerStatus.RESOLVED
