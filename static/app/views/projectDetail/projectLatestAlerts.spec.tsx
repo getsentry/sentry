@@ -5,7 +5,8 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import ProjectLatestAlerts from 'sentry/views/projectDetail/projectLatestAlerts';
 
 describe('ProjectDetail > ProjectLatestAlerts', function () {
-  let endpointMock, rulesEndpointMock;
+  let endpointMock: jest.Mock;
+  let rulesEndpointMock: jest.Mock;
   const {organization, project, router, routerContext} = initializeOrg();
 
   beforeEach(function () {
@@ -132,9 +133,9 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
       <ProjectLatestAlerts
         organization={organization}
         projectSlug={project.slug}
-        location={{
+        location={TestStubs.location({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
-        }}
+        })}
         isProjectStabilized
       />
     );
