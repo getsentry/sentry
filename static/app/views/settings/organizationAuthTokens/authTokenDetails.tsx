@@ -6,8 +6,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Form, TextField} from 'sentry/components/forms';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
