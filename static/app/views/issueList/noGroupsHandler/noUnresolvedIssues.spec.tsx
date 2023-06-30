@@ -4,9 +4,10 @@ import NoUnresolvedIssues from 'sentry/views/issueList/noGroupsHandler/noUnresol
 
 describe('NoUnresolvedIssues', function () {
   it('renders', function () {
-    render(<NoUnresolvedIssues title="No issues" />);
+    render(<NoUnresolvedIssues title="No issues" subtitle="Go make some issues!" />);
 
     expect(screen.getByText('No issues')).toBeInTheDocument();
+    expect(screen.getByText('Go make some issues!')).toBeInTheDocument();
     expect(screen.getByAltText('No issues found spot illustration')).toBeInTheDocument();
   });
 });
