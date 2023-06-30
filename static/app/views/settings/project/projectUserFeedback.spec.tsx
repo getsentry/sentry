@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectUserFeedback from 'sentry/views/settings/project/projectUserFeedback';
 
 describe('ProjectUserFeedback', function () {
-  const {organization, project, routerContext} = initializeOrg();
+  const {routerProps, organization, project, routerContext} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -24,11 +24,13 @@ describe('ProjectUserFeedback', function () {
   it('can toggle sentry branding option', async function () {
     render(
       <ProjectUserFeedback
-        organizatigon={organization}
+        {...routerProps}
+        organization={organization}
         project={project}
-        params={{orgId: organization.slug, projectId: project.slug}}
       />,
-      {context: routerContext}
+      {
+        context: routerContext,
+      }
     );
 
     const mock = MockApiClient.addMockResponse({
