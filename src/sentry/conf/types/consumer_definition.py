@@ -9,6 +9,7 @@ from typing_extensions import Required
 class ConsumerDefinition(TypedDict, total=False):
     # Which logical topic from settings to use.
     topic: Required[str | Callable[[], str]]
+    default_topic: str
 
     strategy_factory: Required[str]
 
