@@ -352,7 +352,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-
     @extend_schema(
         operation_id="Retrieve a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
