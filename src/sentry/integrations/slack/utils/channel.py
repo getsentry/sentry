@@ -8,8 +8,9 @@ from django.core.exceptions import ValidationError
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.shared_integrations.exceptions import (  # ApiRateLimitedError,
+from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiRateLimitedError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -120,11 +121,6 @@ def get_channel_id_with_timeout(
         "types": "public_channel,private_channel",
     }
 
-    # list_types = LIST_TYPES
-    # LIST_TYPES: List[Tuple[str, str, str]] = [
-    #    ("conversations", "channels", CHANNEL_PREFIX),
-    #    ("users", "members", MEMBER_PREFIX),
-    # ]
     time_to_quit = time.time() + timeout
 
     client = SlackClient(integration_id=integration.id)
@@ -132,16 +128,13 @@ def get_channel_id_with_timeout(
     found_duplicate = False
 
     token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    #   id_data: Optional[Tuple[str, Optional[str], bool]] = None
-    #  found_duplicate = False
+    id_data: Optional[Tuple[str, Optional[str], bool]] = None
+    found_duplicate = False
     prefix = ""
 
     cursor = ""
 
-    # endpoint = f"/{list_type}.list"
-
-    # send message
-    try:
+    try:  # Check for channel
         msg_response = client.post(
             "/chat.scheduleMessage",
             data={
@@ -153,74 +146,64 @@ def get_channel_id_with_timeout(
             json=True,
         )
 
+        client.post(
+            "/chat.deleteScheduledMessage",
+            params=dict(
+                {
+                    "channel": msg_response["channel"],
+                    "scheduled_message_id": msg_response["scheduled_message_id"],
+                }
+            ),
+        )
+
     except ApiError as e:
         if str(e) == "channel_not_found":
-            #  maybe its a user:
-            # Slack limits the response of `<list_type>.list` to 1000 channels
-            items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
-            #            except ApiRateLimitedError as e:
-            #                   logger.info(
-            #                       f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)}
-            #                   )
-            #                   raise e
-            #               except ApiError as e:
-            #                   logger.info(
-            #                       f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)}
-            #                   )
-            #                   return prefix, None, False
+            # Check if user
+            while True:
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                try:
+                    items = client.get(
+                        "/users.list", params=dict(payload, cursor=cursor, limit=1000)
+                    )
+                except ApiRateLimitedError as e:
+                    logger.info("rule.slack.user_list_rate_limited", extra={"error": str(e)})
+                    raise e
+                except ApiError as e:
+                    logger.info("rule.slack.user_list_rate_limited", extra={"error": str(e)})
+                    return prefix, None, False
 
-            #       if not isinstance(items, dict):
-            #           continue
+                if not isinstance(items, dict):
+                    continue
 
-            for c in items["members"]:
-                # The "name" field is unique (this is the username for users)
-                # so we return immediately if we find a match.
-                # convert to lower case since all names in Slack are lowercase
-                if name and c["name"].lower() == name.lower():
-                    return prefix, c["id"], False
-                # If we don't get a match on a unique identifier, we look through
-                # the users' display names, and error if there is a repeat.
-                profile = c.get("profile")
-                if profile and profile.get("display_name") == name:
-                    if id_data:
-                        found_duplicate = True
-                    else:
-                        id_data = (prefix, c["id"], False)
+                for c in items["members"]:
+                    # The "name" field is unique (this is the username for users)
+                    # so we return immediately if we find a match.
+                    # convert to lower case since all names in Slack are lowercase
+                    if name and c["name"].lower() == name.lower():
+                        return prefix, c["id"], False
+                    # If we don't get a match on a unique identifier, we look through
+                    # the users' display names, and error if there is a repeat.
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
 
-            #  cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            if time.time() > time_to_quit:
-                return prefix, None, True
+                cursor = items.get("response_metadata", {}).get("next_cursor", None)
+                if time.time() > time_to_quit:
+                    return prefix, None, True
 
-            #   if not cursor:
-            #       break
-
-            #     print(msg_response)
-            # logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                if not cursor:
+                    break
 
             if found_duplicate:
                 raise DuplicateDisplayNameError(name)
             elif id_data:
                 return id_data
-            # not a channel or user
-            raise ValidationError("Channel not found")
+            # Not a channel or user
+            raise ValidationError("Channel or user not found")
 
         raise e
 
-        # print("here")
-        # print(msg_response)
-
-        # catch channel not found
-        # delete message
-
-    client.post(
-        "/chat.deleteScheduledMessage",
-        params=dict(
-            {
-                "channel": msg_response["channel"],
-                "scheduled_message_id": msg_response["scheduled_message_id"],
-            }
-        ),
-    )
-
-
-#        return prefix, msg_response["channel"], False
+    return prefix, msg_response["channel"], False
