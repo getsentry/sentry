@@ -416,7 +416,10 @@ class PGStringIndexerV2(StringIndexer):
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            strings = table.objects.get_many_from_cache(ids)
+            strings = table.objects.using_replica().filter(
+                id__in=ids, organization_id=org_id, use_case_id=use_case_id
+            )
+
         except table.DoesNotExist:
             return ret_val
 
