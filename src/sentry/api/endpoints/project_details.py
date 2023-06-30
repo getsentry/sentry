@@ -497,13 +497,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("recapServerUrl") is not None:
             if result["recapServerUrl"] == "":
                 project.delete_option(RECAP_SERVER_URL_OPTION)
-            else:
+            elif project.get_option(RECAP_SERVER_URL_OPTION) != result["recapServerUrl"]:
                 project.update_option(RECAP_SERVER_URL_OPTION, result["recapServerUrl"])
                 poll_project_recap_server(project.id)
         if result.get("recapServerToken") is not None:
             if result["recapServerToken"] == "":
                 project.delete_option(RECAP_SERVER_TOKEN_OPTION)
-            else:
+            elif project.get_option(RECAP_SERVER_TOKEN_OPTION) != result["recapServerToken"]:
                 project.update_option(RECAP_SERVER_TOKEN_OPTION, result["recapServerToken"])
                 poll_project_recap_server(project.id)
         if result.get("digestsMinDelay"):
