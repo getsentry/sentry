@@ -1,6 +1,8 @@
 from typing import Optional
 
+from django import get_version
 from django.db import router, transaction
+from django.db.transaction import Atomic
 
 _default_atomic_impl = transaction.atomic
 
@@ -9,7 +11,7 @@ class MismatchedSiloTransactionError(Exception):
     pass
 
 
-def siloed_atomic(using: Optional[str] = None, savepoint: bool = True):
+def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:  # type:ignore
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
@@ -45,6 +47,12 @@ def siloed_atomic(using: Optional[str] = None, savepoint: bool = True):
 
 def patch_silo_aware_atomic():
     global _default_atomic_impl
+
+    current_django_version = get_version()
+    assert current_django_version.startswith("2.2"), (
+        "Newer versions of Django have an additional 'durable' parameter in atomic,"
+        + " verify the signature before updating the version check."
+    )
 
     _default_atomic_impl = transaction.atomic
     transaction.atomic = siloed_atomic
