@@ -5,30 +5,30 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Organization} from 'sentry/types';
 import AlertsContainer from 'sentry/views/alerts';
 import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
-  let projectMock;
+  let projectMock: jest.Mock;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const renderComponent = ({organization} = {}) => {
-    const context = initializeOrg({
-      organization: {
-        features: ['incidents'],
-        ...organization,
-      },
+  interface Props {
+    orgOverride?: Partial<Organization>;
+  }
+
+  const renderComponent = ({orgOverride}: Props = {}) => {
+    const {organization, routerContext, routerProps, router} = initializeOrg({
+      organization: {features: ['incidents'], ...orgOverride},
     });
-    const routerContext = context.routerContext;
-    const org = context.organization;
-    const router = context.router;
+
     return {
       component: render(
         <AlertsContainer>
-          <IncidentsList params={{}} location={{query: {}, search: ''}} router={router} />
+          <IncidentsList {...routerProps} organization={organization} />
         </AlertsContainer>,
-        {context: routerContext, organization: org}
+        {context: routerContext, organization}
       ),
       router,
     };
@@ -199,7 +199,7 @@ describe('IncidentsList', () => {
       access: [],
     };
 
-    renderComponent({organization: noAccessOrg});
+    renderComponent({orgOverride: noAccessOrg});
     expect(await screen.findByLabelText('Create Alert')).toHaveAttribute(
       'aria-disabled',
       'true'

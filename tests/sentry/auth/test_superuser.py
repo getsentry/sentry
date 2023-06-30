@@ -169,13 +169,13 @@ class SuperuserTestCase(TestCase):
         ):
             user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
-            request._body = json.dumps(
+            request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
                 {
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
                     "isSuperuserModal": True,
                 }
-            )
+            ).encode()
 
             superuser = Superuser(request, org_id=None)
             superuser.set_logged_in(request.user)
@@ -242,12 +242,12 @@ class SuperuserTestCase(TestCase):
     def test_su_access_no_request_user_missing_info(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = json.dumps(
+        request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
             {
                 "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Edit organization settings",
             }
-        )
+        ).encode()
         del request.user.id
 
         superuser = Superuser(request, org_id=None)
@@ -262,7 +262,7 @@ class SuperuserTestCase(TestCase):
     ):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = '{"invalid" "json"}'
+        request._body = b'{"invalid" "json"}'  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
 
         superuser = Superuser(request, org_id=None)
         with self.settings(
