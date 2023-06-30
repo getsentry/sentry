@@ -203,7 +203,7 @@ def get_features_for_projects(
     return features_by_project
 
 
-def format_options(attrs: defaultdict(dict)):
+def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
     options = attrs["options"]
     return {
         "sentry:csp_ignored_sources_defaults": bool(
@@ -705,8 +705,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             environments_by_project[project_env["project_id"]].append(
                 project_env["environment__name"]
             )
-
-        # Only fetch the release version key to cut down on response size
+            
+        # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
         deploys_by_project = None
@@ -918,7 +918,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         orgs = {d["id"]: d for d in serialize(list({i.organization for i in item_list}), user)}
 
-        # Only fetch the release version key to cut down on response size
+        # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
         for item in item_list:

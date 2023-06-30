@@ -39,23 +39,23 @@ class ProjectFiltersTest(APITestCase):
         team = self.create_team(organization=org, name="foo", slug="foo")
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
-        project.update_option("filters:health-check", "0")
+        project.update_option("filters:filtered-transaction", "0")
         with Feature("organizations:health-check-filter"):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is False
 
-        project.update_option("filters:health-check", "1")
+        project.update_option("filters:filtered-transaction", "1")
         with Feature("organizations:health-check-filter"):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is not None
         assert health_check["active"] is True
 
     def test_free_plan(self):
         """
-        Tests plans not having "filters:health-check" feature do not return health-check specs
+        Tests plans not having "filters:filtered-transaction" feature do not return health-check specs
         """
         org = self.create_organization(name="baz", slug="1", owner=self.user)
         team = self.create_team(organization=org, name="foo", slug="foo")
@@ -63,8 +63,8 @@ class ProjectFiltersTest(APITestCase):
 
         # we shouldn't return health check information even if the option is set for the project
         # (presumably the user has downgraded from a business plan)
-        project.update_option("filters:health-check", "1")
+        project.update_option("filters:filtered-transaction", "1")
         with Feature({"organizations:health-check-filter": False}):
             response = self.get_success_response(org.slug, project.slug)
-        health_check = self.get_filter_spec(response.data, "health-check")
+        health_check = self.get_filter_spec(response.data, "filtered-transaction")
         assert health_check is None

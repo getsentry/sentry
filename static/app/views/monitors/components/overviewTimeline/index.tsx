@@ -21,7 +21,7 @@ import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
 
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowData} from './utils';
+import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -44,7 +44,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const rollup = Math.floor(
-    (timeWindowData[timeWindow].elapsedMinutes * 60) / timelineWidth
+    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
   );
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(

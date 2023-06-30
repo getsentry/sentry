@@ -352,6 +352,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
+
     @extend_schema(
         operation_id="Retrieve a Project",
         parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
@@ -363,7 +364,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.RETRIEVE_PROJECT,
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Return details on an individual project.
         """
@@ -397,6 +398,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
+
+        # filter for enabled plugins o/w the response body is gigantic and difficult to read
+        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
 
         return Response(data)
 

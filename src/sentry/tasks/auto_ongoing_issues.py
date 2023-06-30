@@ -20,7 +20,7 @@ from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
-TRANSITION_AFTER_DAYS = 3
+TRANSITION_AFTER_DAYS = 7
 
 
 @instrumented_task(

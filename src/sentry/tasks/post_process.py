@@ -1121,13 +1121,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         fire_error_processed,
         sdk_crash_monitoring,
     ],
-    GroupCategory.PERFORMANCE: [
-        process_snoozes,
-        process_inbox_adds,
-        process_rules,
-        # TODO: Uncomment this when we want to send perf issues out via plugins as well
-        # process_plugins,
-    ],
 }
 
 GENERIC_POST_PROCESS_PIPELINE = [

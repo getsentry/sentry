@@ -39,7 +39,10 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
-from sentry.relay.config.metric_extraction import get_metric_conditional_tagging_rules
+from sentry.relay.config.metric_extraction import (
+    get_metric_conditional_tagging_rules,
+    get_metric_extraction_config,
+)
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -215,7 +218,6 @@ class TransactionNameRuleRedaction(TypedDict):
 class TransactionNameRule(TypedDict):
     pattern: str
     expiry: str
-    scope: TransactionNameRuleScope
     redaction: TransactionNameRuleRedaction
 
 
@@ -238,7 +240,6 @@ def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
         expiry=expiry_at,
         # Some more hardcoded fields for future compatibility. These are not
         # currently used.
-        scope={"source": "url"},
         redaction={"method": "replace", "substitution": "*"},
     )
 
@@ -298,8 +299,8 @@ def add_experimental_config(
     """
     try:
         subconfig = function(*args, **kwargs)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    except Exception:
+        logger.error("Exception while building Relay project config field", exc_info=True)
     else:
         if subconfig is not None:
             config[key] = subconfig
@@ -387,6 +388,8 @@ def _get_project_config(
         add_experimental_config(
             config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
         )
+
+        add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
     if features.has("organizations:metrics-extraction", project.organization):
         config["sessionMetrics"] = {

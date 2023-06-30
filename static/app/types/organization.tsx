@@ -17,6 +17,7 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
   links: {
