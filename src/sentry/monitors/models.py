@@ -141,7 +141,7 @@ class MonitorStatus:
     def as_choices(cls):
         return (
             # TODO: It is unlikely a MonitorEnvironment should ever be in the
-            # 'active' state, since for a monitor environmnent to be created
+            # 'active' state, since for a monitor environment to be created
             # some checkins must have been sent.
             (cls.ACTIVE, "active"),
             # The DISABLED state is denormalized off of the parent Monitor.
