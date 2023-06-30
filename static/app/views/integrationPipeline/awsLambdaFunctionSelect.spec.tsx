@@ -6,6 +6,7 @@ describe('AwsLambdaFunctionSelect', () => {
   it('choose lambdas', () => {
     const {container} = render(
       <AwsLambdaFunctionSelect
+        initialStepNumber={0}
         lambdaFunctions={[
           {FunctionName: 'lambdaA', Runtime: 'nodejs12.x'},
           {FunctionName: 'lambdaB', Runtime: 'nodejs10.x'},
