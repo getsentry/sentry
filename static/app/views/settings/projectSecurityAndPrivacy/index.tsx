@@ -29,7 +29,6 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
   const initialData = project;
   const projectSlug = project.slug;
   const endpoint = `/projects/${organization.slug}/${projectSlug}/`;
-  const features = new Set(organization.features);
   const relayPiiConfig = project.relayPiiConfig;
   const apiMethod = 'PUT';
   const title = t('Security & Privacy');
@@ -53,7 +52,6 @@ export default function ProjectSecurityAndPrivacy({organization, project}: Props
       >
         <JsonForm
           additionalFieldProps={{organization}}
-          features={features}
           disabled={!hasAccess}
           forms={projectSecurityAndPrivacyGroups}
         />

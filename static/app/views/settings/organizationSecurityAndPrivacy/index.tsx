@@ -36,7 +36,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
 
   const initialData = organization;
   const endpoint = `/organizations/${organization.slug}/`;
-  const features = new Set(organization.features);
   const relayPiiConfig = organization.relayPiiConfig;
   const title = t('Security & Privacy');
 
@@ -62,7 +61,6 @@ export default function OrganizationSecurityAndPrivacyContent() {
         allowUndo
       >
         <JsonForm
-          features={features}
           forms={organizationSecurityAndPrivacyGroups}
           disabled={!organization.access.includes('org:write')}
         />

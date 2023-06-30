@@ -26,8 +26,6 @@ function ProjectFilters(props: Props) {
     return null;
   }
 
-  const features = new Set(project.features);
-
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
@@ -43,7 +41,7 @@ function ProjectFilters(props: Props) {
       <div>
         <ProjectFiltersChart project={project} organization={organization} />
 
-        {features.has('discard-groups') && (
+        {project.features.includes('discard-groups') && (
           <NavTabs underlined style={{paddingTop: '30px'}}>
             <li className={filterType === 'data-filters' ? 'active' : ''}>
               <Link to={recreateRoute('data-filters/', {...props, stepBack: -1})}>
@@ -61,7 +59,7 @@ function ProjectFilters(props: Props) {
         {filterType === 'discarded-groups' ? (
           <GroupTombstones project={project} />
         ) : (
-          <ProjectFiltersSettings project={project} params={params} features={features} />
+          <ProjectFiltersSettings project={project} params={params} />
         )}
       </div>
     </Fragment>

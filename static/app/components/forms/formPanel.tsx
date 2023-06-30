@@ -24,7 +24,6 @@ type Props = {
    * Disables the entire form
    */
   disabled?: boolean;
-  features?: Record<string, any>;
   /**
    * The name of the field that should be highlighted
    */

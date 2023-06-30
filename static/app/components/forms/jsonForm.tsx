@@ -103,12 +103,7 @@ class JsonForm extends Component<Props, State> {
     fields: FieldObject[];
     formPanelProps: Pick<
       Props,
-      | 'access'
-      | 'disabled'
-      | 'features'
-      | 'additionalFieldProps'
-      | 'renderFooter'
-      | 'renderHeader'
+      'access' | 'disabled' | 'additionalFieldProps' | 'renderFooter' | 'renderHeader'
     > &
       Pick<State, 'highlighted'>;
     title?: React.ReactNode;
@@ -134,7 +129,6 @@ class JsonForm extends Component<Props, State> {
       title,
       forms,
       disabled,
-      features,
       additionalFieldProps,
       renderFooter,
       renderHeader,
@@ -148,7 +142,6 @@ class JsonForm extends Component<Props, State> {
     const formPanelProps = {
       access,
       disabled,
-      features,
       additionalFieldProps,
       renderFooter,
       renderHeader,

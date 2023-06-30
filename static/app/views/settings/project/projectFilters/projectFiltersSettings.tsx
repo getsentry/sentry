@@ -255,7 +255,6 @@ function CustomFilters({project, disabled}: {disabled: boolean; project: Project
 }
 
 type Props = {
-  features: Set<string>;
   params: {
     projectId: string;
   };
@@ -270,7 +269,7 @@ type Filter = {
   name: string;
 };
 
-export function ProjectFiltersSettings({project, params, features}: Props) {
+export function ProjectFiltersSettings({project, params}: Props) {
   const organization = useOrganization();
   const {projectId: projectSlug} = params;
 
@@ -413,7 +412,6 @@ export function ProjectFiltersSettings({project, params, features}: Props) {
             }
           >
             <JsonForm
-              features={features}
               forms={filterGroups}
               disabled={!hasAccess}
               renderFooter={() => (
