@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
-    PROFILE = 3
+    PROFILE = 3  # deprecated, merging with PERFORMANCE
     MONITOR = 4
     REPLAY = 5
 
@@ -99,7 +99,6 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class GroupType:
-
     type_id: int
     slug: str
     description: str
@@ -296,7 +295,7 @@ class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -304,7 +303,7 @@ class ProfileImageDecodeGroupType(GroupType):
     type_id = 2002
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -312,7 +311,7 @@ class ProfileJSONDecodeType(GroupType):
     type_id = 2003
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
