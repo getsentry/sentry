@@ -6,6 +6,8 @@ describe('TeamAlertsTriggered', () => {
   it('should render graph of alerts triggered', () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
+    const project = TestStubs.Project();
+
     const alertsTriggeredApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/alerts-triggered/`,
       body: TestStubs.TeamAlertsTriggered(),
@@ -17,7 +19,12 @@ describe('TeamAlertsTriggered', () => {
     });
 
     render(
-      <TeamAlertsTriggered organization={organization} teamSlug={team.slug} period="8w" />
+      <TeamAlertsTriggered
+        organization={organization}
+        projects={[project]}
+        teamSlug={team.slug}
+        period="8w"
+      />
     );
 
     expect(alertsTriggeredApi).toHaveBeenCalledTimes(1);
