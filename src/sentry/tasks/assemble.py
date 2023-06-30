@@ -18,7 +18,10 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
+    INDEXING_THRESHOLD,
+    NULL_STRING,
     ArtifactBundle,
+    ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -328,6 +331,8 @@ def _bind_or_create_artifact_bundle(
             bundle_id=bundle_id or uuid.uuid4().hex,
             file=archive_file,
             artifact_count=artifact_count,
+            # By default, a bundle doesn't require indexing, only when the indexing threshold is surpassed it will.
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING,
             # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
             # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
             date_added=date_added,
@@ -361,6 +366,58 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
+def _mark_bundles_that_need_indexing(associated_bundles_ids: List[int]):
+    # We want to update the "indexed_state" into a transaction, since we want to modify all values or none.
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(ReleaseArtifactBundle),
+        )
+    ):
+        # We update all bundles that have the "does not need indexing" state to "needs indexing". Since we might have
+        # concurrent tasks that modify the "indexing_state" in the meanwhile, we will issue an update statement that
+        # checks if the "indexing_state" is equal to "does not need indexing" and only in that case we upload it, this
+        # is done in order to implement atomic compare_and_set semantics because we will perform the update when locking
+        # the row.
+        artifact_bundles_to_index = []
+        for associated_bundle_id in associated_bundles_ids:
+            did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
+                artifact_bundle_id=associated_bundle_id,
+                indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
+
+            if did_mark_as_needs_indexing:
+                artifact_bundles_to_index.append(associated_bundle_id)
+
+        # TODO: make async call.
+
+
+def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snapshot: datetime):
+    # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to prevent
+    # the case in which concurrent updates on the database will lead to problems. For example if we have a threshold
+    # of 1, and we have two uploads happening concurrently and the database will contain two associations even when
+    # the assembling of the first upload is running this query, we will have the first upload task see 2 associations
+    # , thus it will trigger the indexing. The same will also happen for the second upload but in reality we just
+    # want the second upload to perform indexing.
+    #
+    # This date implementation might still lead to issues, more specifically in the case in which the
+    # "date_last_modified" is kept is the same but the probability of that happening is so low that it's a negligible
+    # detail for now, as long as the indexing is idempotent.
+    associated_bundles_ids = ArtifactBundle.objects.filter(
+        organization_id=org_id,
+        date_last_modified__lte=date_snapshot,
+        releaseartifactbundle__release_name=version,
+        releaseartifactbundle__dist_name=dist,
+    ).values_list("id", flat=True)
+
+    # In case we didn't surpass the threshold, indexing will not happen.
+    if len(associated_bundles_ids) <= INDEXING_THRESHOLD:
+        return
+
+    # We now want to mark the bundles that need indexing, so that the asynchronous job can actually perform the
+    _mark_bundles_that_need_indexing(associated_bundles_ids)
+
+
 def _create_artifact_bundle(
     version: Optional[str],
     dist: Optional[str],
@@ -382,10 +439,16 @@ def _create_artifact_bundle(
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.
         if len(debug_ids_with_types) > 0 or version:
-            now = timezone.now()
+            # We take a snapshot in time in order to have consistent values in the database.
+            date_snapshot = timezone.now()
+
             # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
             # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
-            new_date_added = {"date_added": now}
+            new_date_added = {"date_added": date_snapshot}
+
+            # Since dist is non-nullable in the db, but we actually use a sentinel value to represent nullability, here
+            # we have to do the conversion in case it is "None".
+            dist = dist or NULL_STRING
 
             # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
             # state after all of these updates.
@@ -400,7 +463,7 @@ def _create_artifact_bundle(
             ):
                 artifact_bundle, created = _bind_or_create_artifact_bundle(
                     bundle_id=bundle_id,
-                    date_added=now,
+                    date_added=date_snapshot,
                     org_id=org_id,
                     archive_file=archive_file,
                     artifact_count=artifact_count,
@@ -413,7 +476,7 @@ def _create_artifact_bundle(
                         release_name=version,
                         # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                         # tables.
-                        dist_name=dist or "",
+                        dist_name=dist,
                         artifact_bundle=artifact_bundle,
                         values=new_date_added,
                         defaults=new_date_added,
