@@ -158,7 +158,7 @@ class Endpoint(APIView):
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
             auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type:
+            if auth_type is not None:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:
