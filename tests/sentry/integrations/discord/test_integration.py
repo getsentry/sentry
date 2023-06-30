@@ -43,7 +43,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            url=(DiscordClient.base_url + (DiscordClient.GET_GUILD_URL % guild_id)),
+            url=DiscordClient.base_url + DiscordClient.get_guild_url.format(guild_id=guild_id),
             json={
                 "id": guild_id,
                 "name": server_name,
@@ -53,7 +53,7 @@ class DiscordIntegrationTest(IntegrationTestCase):
         resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"guild_id": guild_id})))
 
         mock_request = responses.calls[0].request
-        assert mock_request.headers["Authorization"] == "Bot " + self.bot_token
+        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
@@ -90,3 +90,39 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert integrations[0].name == "Uncool server"
         assert integrations[1].external_id == "1234567890"
         assert integrations[1].name == "Cool server"
+
+    @responses.activate
+    def test_get_guild_name(self):
+        provider = self.provider()
+        guild_id = "1234"
+        guild_name = "asdf"
+
+        responses.add(
+            responses.GET,
+            url=DiscordClient.base_url + DiscordClient.get_guild_url.format(guild_id=guild_id),
+            json={
+                "id": guild_id,
+                "name": guild_name,
+            },
+        )
+
+        resp = provider.get_guild_name(guild_id)
+        assert resp == "asdf"
+        mock_request = responses.calls[0].request
+        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
+
+    @responses.activate
+    def test_get_guild_name_failure(self):
+        provider = self.provider()
+        guild_id = "1234"
+
+        responses.add(
+            responses.GET,
+            url=DiscordClient.base_url + DiscordClient.get_guild_url.format(guild_id=guild_id),
+            status=500,
+        )
+
+        resp = provider.get_guild_name(guild_id)
+        assert resp is None
+        mock_request = responses.calls[0].request
+        assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
