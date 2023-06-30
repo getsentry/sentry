@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 
 const traceId = 'abcdef1234567890';
@@ -30,9 +29,8 @@ function renderMeta({isLoading, error, meta}) {
 }
 
 describe('TraceMetaQuery', function () {
-  let api, location;
+  let location;
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},
@@ -50,7 +48,6 @@ describe('TraceMetaQuery', function () {
     });
     render(
       <TraceMetaQuery
-        api={api}
         traceId={traceId}
         location={location}
         orgSlug="test-org"
