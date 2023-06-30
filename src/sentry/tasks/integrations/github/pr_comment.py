@@ -14,6 +14,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
@@ -180,8 +181,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     # TODO(cathy): add check for OrganizationOption for comment bot
-    if not features.has("organizations:pr-comment-bot", organization):
-        logger.error("github.pr_comment.feature_flag_missing", extra={"organization_id": org_id})
+    if not (
+        features.has("organizations:pr-comment-bot", organization)
+        and OrganizationOption.objects.get_value(
+            organization=organization,
+            key="sentry:github_pr_bot",
+            default=True,
+        )
+    ):
+        logger.error("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
     pr_comment = None
