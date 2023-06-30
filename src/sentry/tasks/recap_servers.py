@@ -25,7 +25,7 @@ from sentry.utils.safe import safe_execute
 
 
 RECAP_SERVER_URL_OPTION = "sentry:recap_server_url"
-RECAP_SERVER_TOKEN_OPTION = "sentry:recap_server_auth_token"
+RECAP_SERVER_TOKEN_OPTION = "sentry:recap_server_token"
 RECAP_SERVER_LATEST_ID = "sentry:recap_server_poll_id"
 
 logger = logging.getLogger(__name__)
