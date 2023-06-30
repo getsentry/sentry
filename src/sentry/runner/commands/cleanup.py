@@ -260,7 +260,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         if project:
             click.echo("Bulk NodeStore deletion not available for project selection", err=True)
             project_id = get_project(project)
-            # Metrics span across projects, so skip these models
+            # These models span across projects, so let's skip them
             BULK_QUERY_DELETES.remove((metrics_indexer_models.StringIndexer, "last_seen", None))
             BULK_QUERY_DELETES.remove((metrics_indexer_models.PerfStringIndexer, "last_seen", None))
             DELETES.remove((models.ArtifactBundle, "date_added", "date_added"))
