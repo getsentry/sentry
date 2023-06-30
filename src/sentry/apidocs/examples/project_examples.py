@@ -200,6 +200,7 @@ detailed_project = {
     "resolveAge": 168,
     "dataScrubber": False,
     "dataScrubberDefaults": False,
+    "safeFields": [],
     "storeCrashReports": 5,
     "sensitiveFields": ["sudo"],
     "subjectTemplate": "$shortID - $title",
@@ -414,6 +415,15 @@ detailed_project = {
     "defaultEnvironment": "prod",
     "relayPiiConfig": None,
     "builtinSymbolSources": ["ios", "android", "chromium"],
+    "dynamicSamplingBiases": [
+        {"id": "boostEnvironments", "active": True},
+        {"id": "boostLatestRelease", "active": True},
+        {"id": "ignoreHealthChecks", "active": True},
+        {"id": "boostKeyTransactions", "active": True},
+        {"id": "boostLowVolumeTransactions", "active": True},
+        {"id": "boostReplayId", "active": True},
+        {"id": "recalibrationRule", "active": True},
+    ],
     "eventProcessing": {"symbolicationDegraded": False},
     "symbolSources": "[]",
 }
