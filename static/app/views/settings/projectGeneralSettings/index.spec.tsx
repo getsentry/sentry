@@ -32,6 +32,15 @@ describe('projectGeneralSettings', function () {
   let routerContext;
   let putMock;
 
+  const router = TestStubs.router();
+  const routerProps = {
+    location: TestStubs.location(),
+    routes: router.routes,
+    route: router.routes[0],
+    router,
+    routeParams: router.params,
+  };
+
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
     routerContext = TestStubs.routerContext([
@@ -79,7 +88,9 @@ describe('projectGeneralSettings', function () {
   });
 
   it('renders form fields', function () {
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+    );
 
     expect(getField('textbox', 'Name')).toHaveValue('Project Name');
     expect(getField('textbox', 'Subject Prefix')).toHaveValue('[my-org]');
@@ -99,9 +110,12 @@ describe('projectGeneralSettings', function () {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
-      context: routerContext,
-    });
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      {
+        context: routerContext,
+      }
+    );
 
     expect(getField('checkbox', 'Enable JavaScript source fetching')).toBeDisabled();
     expect(getField('checkbox', 'Enable JavaScript source fetching')).not.toBeChecked();
@@ -113,7 +127,9 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
 
@@ -131,7 +147,9 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
@@ -163,7 +181,9 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
@@ -178,7 +198,7 @@ describe('projectGeneralSettings', function () {
     expect(addErrorMessage).toHaveBeenCalled();
 
     // Check the error message
-    const {container} = render(addErrorMessage.mock.calls[0][0]);
+    const {container} = render((addErrorMessage as jest.Mock).mock.calls[0][0]);
     expect(container).toHaveTextContent(
       'Error transferring project-slug. An organization owner could not be found'
     );
@@ -188,7 +208,7 @@ describe('projectGeneralSettings', function () {
     routerContext.context.organization.access = ['org:read'];
 
     const {container} = render(
-      <ProjectGeneralSettings params={{projectId: project.slug}} />,
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {context: routerContext}
     );
 
@@ -204,10 +224,13 @@ describe('projectGeneralSettings', function () {
     const readOnlyOrg = TestStubs.Organization({access: ['org:read']});
     routerContext.context.organization = readOnlyOrg;
 
-    render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
-      context: routerContext,
-      organization: readOnlyOrg,
-    });
+    render(
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      {
+        context: routerContext,
+        organization: readOnlyOrg,
+      }
+    );
 
     // no textboxes are enabled
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
@@ -231,6 +254,7 @@ describe('projectGeneralSettings', function () {
     render(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
+          {...routerProps}
           routes={[]}
           location={routerContext.context.location}
           params={params}
@@ -264,6 +288,7 @@ describe('projectGeneralSettings', function () {
     render(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
+          {...routerProps}
           routes={[]}
           location={routerContext.context.location}
           params={params}
@@ -305,6 +330,7 @@ describe('projectGeneralSettings', function () {
       render(
         <ProjectContext orgId={org.slug} projectId={project.slug}>
           <ProjectGeneralSettings
+            {...routerProps}
             routes={[]}
             location={routerContext.context.location}
             params={params}
@@ -352,7 +378,7 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      await userEvent.click(screen.queryByRole('button', {name: 'Save'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
       await act(tick);
 
       // API endpoint should have been called
