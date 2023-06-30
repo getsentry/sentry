@@ -171,7 +171,7 @@ class AlertRuleNotification(ProjectNotification):
 
         occurrence = getattr(self.event, "occurrence", None)
         template_name = (
-            occurrence.get("evidence_data", {}).get("template_name") if occurrence else None
+            getattr(occurrence, "evidence_data", {}).get("template_name") if occurrence else None
         )
 
         if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
