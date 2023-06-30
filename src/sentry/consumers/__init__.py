@@ -42,7 +42,7 @@ def multiprocessing_options(
             default=default_max_batch_time_ms,
             callback=convert_max_batch_time,
             type=int,
-            help="Maximum time (in seconds) to wait before flushing a batch.",
+            help="Maximum time (in milliseconds) to wait before flushing a batch.",
         ),
     ]
 
@@ -62,6 +62,23 @@ _METRICS_INDEXER_OPTIONS = [
         default=1,
         type=int,
     ),
+]
+
+_METRICS_LAST_SEEN_UPDATER_OPTIONS = [
+    click.Option(
+        ["--max-batch-size"],
+        default=100,
+        type=int,
+        help="Maximum number of messages to batch before flushing.",
+    ),
+    click.Option(
+        ["--max-batch-time-ms", "max_batch_time"],
+        default=1000,
+        callback=convert_max_batch_time,
+        type=int,
+        help="Maximum time (in milliseconds) to wait before flushing a batch.",
+    ),
+    click.Option(["--indexer-db"], default="postgres"),
 ]
 
 _POST_PROCESS_FORWARDER_OPTIONS = [
@@ -178,6 +195,22 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": _METRICS_INDEXER_OPTIONS,
         "static_args": {
             "ingest_profile": "performance",
+        },
+    },
+    "generic-metrics-last-seen-updater": {
+        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
+        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "performance",
+        },
+    },
+    "metrics-last-seen-updater": {
+        "topic": settings.KAFKA_SNUBA_METRICS,
+        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
+        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
+        "static_args": {
+            "ingest_profile": "release-health",
         },
     },
     "post-process-forwarder-issue-platform": {

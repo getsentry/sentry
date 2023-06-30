@@ -17,7 +17,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -449,7 +449,7 @@ class Factories:
         unadopted: Optional[datetime] = None,
     ):
         if version is None:
-            version = force_text(hexlify(os.urandom(20)))
+            version = force_str(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()
