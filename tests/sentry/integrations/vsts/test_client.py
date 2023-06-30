@@ -182,15 +182,37 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
             responses.GET,
             "https://myvstsaccount.visualstudio.com/_apis/git/repositories/albertos-apples/commits",
             body=b"{}",
-            match=[matchers.query_param_matcher({"commit": "b", "$top": "10"})],
+            match=[
+                matchers.query_param_matcher(
+                    {"commit": "b", "$top": "10"},
+                ),
+                matchers.header_matcher(
+                    {
+                        "Accept": "application/json; api-version=4.1",
+                        "Content-Type": "application/json",
+                        "X-HTTP-Method-Override": "GET",
+                        "X-TFS-FedAuthRedirect": "Suppress",
+                        "Authorization": f"Bearer {self.access_token}",
+                    }
+                ),
+            ],
         )
         responses.add(
             responses.GET,
             "http://controlserver/api/0/internal/integration-proxy/_apis/git/repositories/albertos-apples/commits",
             body=b"{}",
-            match=[matchers.query_param_matcher({"commit": "b", "$top": "10"})],
+            match=[
+                matchers.query_param_matcher({"commit": "b", "$top": "10"}),
+                matchers.header_matcher(
+                    {
+                        "Accept": "application/json; api-version=4.1",
+                        "Content-Type": "application/json",
+                        "X-HTTP-Method-Override": "GET",
+                        "X-TFS-FedAuthRedirect": "Suppress",
+                    }
+                ),
+            ],
         )
-
         self.assert_installation()
 
         integration = Integration.objects.get(provider="vsts")
@@ -211,7 +233,6 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
-
             client = VstsProxyApiTestClient(
                 base_url=installation.instance,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
@@ -233,7 +254,6 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-
             client = VstsProxyApiTestClient(
                 base_url=installation.instance,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
@@ -255,7 +275,6 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
 
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
-
             client = VstsProxyApiTestClient(
                 base_url=installation.instance,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
