@@ -98,7 +98,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS:
+        if (
+            not new_rule_is_slow
+            and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS
+        ):
             return Response(
                 {
                     "conditions": [
