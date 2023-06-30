@@ -354,13 +354,15 @@ class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
     twice, it should only be run in dev or on a small fraction of prod data.
     """
 
-    def __init__(self, topic: str, inner: ProcessingStrategyFactory) -> None:
+    def __init__(self, topic: str, enforce_schema: bool, inner: ProcessingStrategyFactory) -> None:
+        self.topic = topic
+        self.enfoce_schema = enforce_schema
         self.inner = inner
 
     def create_with_partitions(self, commit, partitions) -> ProcessingStrategy:
         rv = self.inner.create_with_partitions(commit, partitions)
 
-        return ValidateSchema(rv)
+        return ValidateSchema(self.topic, self.enforce_schema, rv)
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
