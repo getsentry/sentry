@@ -67,12 +67,10 @@ def get_channel_id(
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
 
-    new_lookup = features.has("slack-use-new-lookup", organization)  # request?
+    new_lookup = features.has("slack-use-new-lookup", organization)
     if new_lookup:
         return get_channel_id_with_timeout_new(integration, channel_name, timeout)
     return get_channel_id_with_timeout(integration, channel_name, timeout)
-
-    # return get_channel_id_with_timeout_new(integration, channel_name, timeout)
 
 
 def validate_channel_id(name: str, integration_id: Optional[int], input_channel_id: str) -> None:
@@ -213,7 +211,6 @@ def get_channel_id_with_timeout_new(
     cursor = ""
     try:  # Check for channel
         channel_id = check_for_channel(client, name)
-
     except ApiError as e:
         if str(e) != "channel_not_found":
             raise e
