@@ -93,6 +93,7 @@ Retrieve a collection of replays.
 | finished_at       | string                        | The **latest** timestamp received.                     |
 | id                | string                        | The ID of the Replay instance.                         |
 | is_archived       | bool                          | Whether the replay was deleted or not.                 |
+| misery_score      | number                        | The quality of the user's experience.                  |
 | os.name           | optional[string]              | -                                                      |
 | os.version        | optional[string]              | -                                                      |
 | platform          | string                        | -                                                      |
@@ -139,6 +140,7 @@ Retrieve a collection of replays.
         "finished_at": "2022-07-07T14:15:33.201019",
         "id": "7e07485f-12f9-416b-8b14-26260799b51f",
         "is_archived": false,
+        "misery_score": 16,
         "os": {
           "name": "iOS",
           "version": "16.2"
@@ -204,6 +206,7 @@ Retrieve a single replay instance.
       "error_ids": ["7e07485f-12f9-416b-8b14-26260799b51f"],
       "finished_at": "2022-07-07T14:15:33.201019",
       "id": "7e07485f-12f9-416b-8b14-26260799b51f",
+      "misery_score": 16,
       "os": {
         "name": "iOS",
         "version": "16.2"
