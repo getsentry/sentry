@@ -206,10 +206,8 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
 def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str]:
     select = _get_query_builder().resolve_column(aggregate, False)
 
-    assert (
-        select.function in _AGGREGATE_TO_METRIC_TYPE
-    ), f"Unsupported aggregate function {select.function}"
-    metric_type = _AGGREGATE_TO_METRIC_TYPE[select.function]
+    metric_type = _AGGREGATE_TO_METRIC_TYPE.get(select.function)
+    assert metric_type, f"Unsupported aggregate function {select.function}"
 
     if metric_type == "c":
         assert not select.parameters, "Count should not have parameters"
@@ -223,7 +221,7 @@ def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str]:
         return _SNUBA_TO_RELAY_FIELDS[name], metric_type
 
 
-def _convert_alert_query_to_condition(query: str) -> Optional[RuleCondition]:
+def _convert_alert_query_to_condition(query: str) -> RuleCondition:
     where, having = _get_query_builder().resolve_conditions(query, False)
 
     assert where, "Query should not use on demand metrics"
@@ -239,10 +237,13 @@ def _convert_alert_query_to_condition(query: str) -> Optional[RuleCondition]:
 
 def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optional[RuleCondition]:
     if isinstance(condition, BooleanCondition):
-        return {
-            "op": condition.op.name.lower(),
-            "inner": [_convert_condition(c) for c in condition.conditions],
-        }
+        return cast(
+            RuleCondition,
+            {
+                "op": condition.op.name.lower(),
+                "inner": [_convert_condition(c) for c in condition.conditions],
+            },
+        )
 
     assert isinstance(condition, Condition), f"Unsupported condition type {type(condition)}"
 
@@ -259,7 +260,7 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optiona
     }
 
 
-def _get_query_hash(name: str, filters: str) -> str:
+def _get_query_hash(name: Optional[str], filters: str) -> str:
     return hashlib.shake_128(bytes(f"{name};{filters}", encoding="ascii")).hexdigest(4)
 
 
