@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Optional
+from typing import Any, Optional
 
 import sentry_kafka_schemas
 import sentry_sdk
@@ -29,8 +29,9 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
         self.__topic = topic
         self.__enforce_schema = enforce_schema
         self.__next_step = next_step
-        self.__last_record_time: Optional[int] = None
+        self.__last_record_time: Optional[float] = None
 
+        self.__codec: Optional[sentry_kafka_schemas.codecs.Codec[Any]]
         try:
             self.__codec = sentry_kafka_schemas.get_codec(topic)
         except sentry_kafka_schemas.SchemaNotFound:
@@ -50,11 +51,12 @@ class ValidateSchema(ProcessingStrategy[KafkaPayload]):
 
                 if self.__codec is None:
                     logger.warning("No validator configured for topic")
-                try:
-                    self.__codec.decode(message.payload.value)
-                except sentry_kafka_schemas.codecs.ValidationError:
-                    logger.warning("Invalid message received")
-                self.__last_record_time = now
+                else:
+                    try:
+                        self.__codec.decode(message.payload.value)
+                    except sentry_kafka_schemas.codecs.ValidationError:
+                        logger.warning("Invalid message received")
+                    self.__last_record_time = now
 
         self.__next_step.submit(message)
 

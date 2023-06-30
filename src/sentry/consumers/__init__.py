@@ -356,7 +356,7 @@ class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
 
     def __init__(self, topic: str, enforce_schema: bool, inner: ProcessingStrategyFactory) -> None:
         self.topic = topic
-        self.enfoce_schema = enforce_schema
+        self.enforce_schema = enforce_schema
         self.inner = inner
 
     def create_with_partitions(self, commit, partitions) -> ProcessingStrategy:
