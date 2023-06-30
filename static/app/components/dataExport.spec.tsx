@@ -1,21 +1,25 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import WrappedDataExport from 'sentry/components/dataExport';
+import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import {Organization} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/indicator');
 
 const mockUnauthorizedOrg = TestStubs.Organization({
   features: [],
 });
+
 const mockAuthorizedOrg = TestStubs.Organization({
   features: ['discover-query'],
 });
+
 const mockPayload = {
-  queryType: 'Issues-by-Tag',
+  queryType: ExportQueryType.ISSUES_BY_TAG,
   queryInfo: {project_id: '1', group_id: '1027', key: 'user'},
 };
-const mockRouterContext = mockOrganization =>
+
+const mockRouterContext = (mockOrganization: Organization) =>
   TestStubs.routerContext([
     {
       organization: mockOrganization,
@@ -109,7 +113,11 @@ describe('DataExport', function () {
       expect(screen.getByRole('button')).toBeDisabled();
     });
 
-    rerender(<WrappedDataExport payload={{...mockPayload, queryType: 'Discover'}} />);
+    rerender(
+      <WrappedDataExport
+        payload={{...mockPayload, queryType: ExportQueryType.DISCOVER}}
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeEnabled();
