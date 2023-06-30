@@ -56,10 +56,15 @@ def format_comment(issues: List[PullRequestIssue]):
     def format_subtitle(subtitle):
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
 
+    def format_url(url):
+        return url + "?referrer=github-pr-bot"
+
     issue_list = "\n".join(
         [
             SINGLE_ISSUE_TEMPLATE.format(
-                title=issue.title, subtitle=format_subtitle(issue.subtitle), url=issue.url
+                title=issue.title,
+                subtitle=format_subtitle(issue.subtitle),
+                url=format_url(issue.url),
             )
             for issue in issues
         ]
