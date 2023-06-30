@@ -17,6 +17,9 @@ describe('ProjectSourceMaps', function () {
     params: {orgId: organization.slug, projectId: project.slug},
     location: routerContext.context.location,
     router,
+    routes: router.routes,
+    route: router.routes[0],
+    routeParams: router.params,
   };
 
   afterEach(() => {
@@ -81,17 +84,17 @@ describe('ProjectSourceMaps', function () {
   });
 
   it('filters archives', async function () {
-    const mockRouter = {push: jest.fn()};
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
     });
 
+    const spy = jest.spyOn(router, 'push');
+
     render(
       <ProjectSourceMaps
         {...props}
-        location={{query: {query: 'abc'}}}
-        router={mockRouter}
+        location={{...router.location, query: {query: 'abc'}}}
       />
     );
 
@@ -106,8 +109,14 @@ describe('ProjectSourceMaps', function () {
     await userEvent.clear(filterInput);
     await userEvent.type(filterInput, 'defg{enter}');
 
-    expect(mockRouter.push).toHaveBeenCalledWith({
+    expect(spy).toHaveBeenCalledWith({
+      action: 'PUSH',
+      hash: '',
+      key: '',
+      pathname: '/mock-pathname/',
       query: {cursor: undefined, query: 'defg'},
+      search: '',
+      state: null,
     });
   });
 });
