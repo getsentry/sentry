@@ -22,7 +22,12 @@ describe('ProjectDetail > ProjectFilters', () => {
       },
     ]);
     render(
-      <ProjectFilters query="" onSearch={onSearch} tagValueLoader={tagValueLoader} />,
+      <ProjectFilters
+        query=""
+        onSearch={onSearch}
+        tagValueLoader={tagValueLoader}
+        relativeDateOptions={{}}
+      />,
       {context: TestStubs.routerContext()}
     );
 
