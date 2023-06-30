@@ -10,7 +10,7 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import escape
 from PIL import Image
 
@@ -58,7 +58,7 @@ COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 
 def hash_user_identifier(identifier: str | int) -> int:
-    identifier = force_text(identifier, errors="replace")
+    identifier = force_str(identifier, errors="replace")
     return sum(map(ord, identifier))
 
 

@@ -81,7 +81,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
         },
-        examples=ProjectExamples.CREATE_CLIENT_KEY,
+        examples=ProjectExamples.BASE_KEY,
     )
     def post(self, request: Request, project) -> Response:
         """

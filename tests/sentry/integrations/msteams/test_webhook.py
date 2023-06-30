@@ -8,7 +8,7 @@ import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import jwt
 
 from .test_helpers import (
@@ -29,7 +29,7 @@ team_id = "19:8d46058cda57449380517cc374727f2a@thread.tacv2"
 kid = "Su-pdZys9LJGhDVgah3UjfPouuc"
 
 
-@control_silo_test(stable=True)
+@region_silo_test(stable=True)
 class MsTeamsWebhookTest(APITestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -223,7 +223,8 @@ class MsTeamsWebhookTest(APITestCase):
     @mock.patch("sentry.utils.jwt.decode")
     @mock.patch("time.time")
     def test_member_removed(self, mock_time, mock_decode):
-        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -234,7 +235,8 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert not Integration.objects.filter(id=integration.id)
+        with exempt_from_silo_limits():
+            assert not Integration.objects.filter(id=integration.id)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -242,7 +244,8 @@ class MsTeamsWebhookTest(APITestCase):
     def test_different_member_removed(self, mock_time, mock_decode):
         different_member_removed = deepcopy(EXAMPLE_TEAM_MEMBER_REMOVED)
         different_member_removed["membersRemoved"][0]["id"] = "28:another-id"
-        integration = Integration.objects.create(external_id=team_id, provider="msteams")
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(external_id=team_id, provider="msteams")
         mock_time.return_value = 1594839999 + 60
         mock_decode.return_value = DECODED_TOKEN
         resp = self.client.post(
@@ -253,7 +256,8 @@ class MsTeamsWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 204
-        assert Integration.objects.filter(id=integration.id)
+        with exempt_from_silo_limits():
+            assert Integration.objects.filter(id=integration.id)
 
     @responses.activate
     @mock.patch("sentry.utils.jwt.decode")
@@ -464,8 +468,11 @@ class MsTeamsWebhookTest(APITestCase):
     def test_link_command_already_linked(self, mock_time, mock_decode):
         other_command = deepcopy(EXAMPLE_UNLINK_COMMAND)
         other_command["text"] = "link"
-        idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
-        Identity.objects.create(external_id=other_command["from"]["id"], idp=idp, user=self.user)
+        with exempt_from_silo_limits():
+            idp = IdentityProvider.objects.create(type="msteams", external_id=team_id, config={})
+            Identity.objects.create(
+                external_id=other_command["from"]["id"], idp=idp, user=self.user
+            )
         access_json = {"expires_in": 86399, "access_token": "my_token"}
         responses.add(
             responses.POST,

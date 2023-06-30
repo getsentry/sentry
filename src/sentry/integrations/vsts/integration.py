@@ -7,7 +7,7 @@ from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.request import Request
 
 from sentry import features, http

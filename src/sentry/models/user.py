@@ -11,9 +11,9 @@ from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
@@ -128,13 +128,12 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_("The date the password was changed last."),
     )
 
-    flags = BitField(
-        flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-        ),
-        default=0,
-        null=True,
-    )
+    class flags(TypedClassBitField):
+        # Do we need to ask this user for newsletter consent?
+        newsletter_consent_prompt: bool
+
+        bitfield_default = 0
+        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
 

@@ -1,7 +1,10 @@
+import * as Sentry from '@sentry/react';
+
 import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
 
 import {
   addEndpointTagToRequestError,
+  initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
 } from './initializeSdk';
@@ -12,9 +15,40 @@ const ERROR_MAP = {
   200: undefined,
 };
 
+describe('initializeSdk', () => {
+  beforeAll(() => {
+    window.__initialData = {
+      ...window.__initialData,
+      customerDomain: null,
+    };
+  });
+
+  // This is a regression test for Sentry incident inc-433
+  // We need to make sure that /^\// is included in the list of tracePropagationTargets
+  // so that we can have frontend to backend tracing.
+  it('enables distributed tracing to sentry api endpoint', () => {
+    initializeSdk({
+      ...window.__initialData,
+      apmSampling: 1,
+      sentryConfig: {
+        allowUrls: [],
+        dsn: '',
+        release: '',
+        tracePropagationTargets: ['other', 'stuff'],
+      },
+    });
+
+    expect(Sentry.init).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tracePropagationTargets: expect.arrayContaining([/^\//]),
+      })
+    );
+  });
+});
+
 describe('isFilteredRequestErrorEvent', () => {
   const methods = ['GET', 'POST', 'PUT', 'DELETE'];
-  const stati = [200, 401, 403, 404, 429];
+  const stati = [200, 400, 401, 403, 404, 429];
 
   describe('matching error type, matching message', () => {
     for (const method of methods) {
