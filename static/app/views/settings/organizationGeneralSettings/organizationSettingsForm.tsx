@@ -60,7 +60,6 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
-      features: new Set(organization.features),
       access,
       location: this.props.location,
       disabled: !access.has('org:write'),

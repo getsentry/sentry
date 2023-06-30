@@ -262,7 +262,6 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       additionalFieldProps: {
         organization,
       },
-      features: new Set(organization.features),
       access,
       disabled: !hasEveryAccess(['project:write'], {organization, project}),
     };

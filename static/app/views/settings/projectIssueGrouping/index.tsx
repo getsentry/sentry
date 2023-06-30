@@ -69,7 +69,6 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
         organization,
         groupingConfigs,
       },
-      features: new Set(organization.features),
       access,
       disabled: !hasAccess,
     };
