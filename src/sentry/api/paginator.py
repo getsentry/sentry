@@ -650,8 +650,6 @@ class CombinedQuerysetPaginator:
         offset = page * cursor_value
         stop = offset + (int(cursor_value) or limit) + 1
 
-        if offset >= 26:
-            raise BadPaginationError("Pagination offset too large")
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
