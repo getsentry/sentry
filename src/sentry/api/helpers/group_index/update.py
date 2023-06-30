@@ -798,7 +798,7 @@ def handle_assigned_to(
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-) -> Actor:
+) -> Actor | None:
     """
     Handle the assignedTo field on a group update.
 

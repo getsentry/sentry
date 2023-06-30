@@ -398,10 +398,10 @@ class TestInvalidationTask:
             schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
         for cache_key in _cache_keys_for_project(default_project):
-            cfg = redis_cache.get(cache_key)
-            assert "dummy-key" not in cfg
-            assert cfg["disabled"] is False
-            assert cfg["projectId"] == default_project.id
+            cfg_from_cache = redis_cache.get(cache_key)
+            assert "dummy-key" not in cfg_from_cache
+            assert cfg_from_cache["disabled"] is False
+            assert cfg_from_cache["projectId"] == default_project.id
 
     def test_invalidate_org(
         self,

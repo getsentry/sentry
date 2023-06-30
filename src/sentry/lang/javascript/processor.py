@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import binascii
 import errno
@@ -244,7 +246,9 @@ def fetch_and_cache_artifact(result_url, fetch_fn, cache_key, cache_key_meta, he
             # We want to avoid performing compression in case we have None cache keys or the size of the compressed body
             # is more than the limit.
             if (cache_key is None and cache_key_meta is None) or (
-                z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE
+                z_body_size
+                and CACHE_MAX_VALUE_SIZE is not None
+                and z_body_size > CACHE_MAX_VALUE_SIZE
             ):
                 return None, fp.read()
             else:
@@ -404,8 +408,8 @@ def fetch_release_file(filename, release, dist=None):
 
 @metrics.wraps("sourcemaps.get_from_archive")
 def try_get_with_normalized_urls(
-    url: str, block: Callable[[str], Tuple[bytes, dict]]
-) -> Tuple[bytes, dict]:
+    url: str, block: Callable[[str], Tuple[IO[bytes], dict]]
+) -> Tuple[IO[bytes], dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
@@ -454,7 +458,7 @@ def get_index_entry(release, dist, url) -> Optional[dict]:
 
 
 @metrics.wraps("sourcemaps.fetch_release_archive")
-def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
+def fetch_release_archive_for_url(release, dist, url) -> Optional[IO[bytes]]:
     """Fetch release archive and cache if possible.
 
     Multiple archives might have been uploaded, so we need the URL
@@ -1161,9 +1165,7 @@ class Fetcher:
                     except KeyError:
                         # The manifest mapped the url to an archive, but the file
                         # is not there.
-                        logger.error(
-                            "Release artifact %r not found in archive %s", url, archive_file.id
-                        )
+                        logger.error("Release artifact %r not found in archive %s", url, cache_key)
                         cache.set(cache_key, -1, 60)
                         metrics.timing(
                             "sourcemaps.release_artifact_from_archive", time.monotonic() - start
