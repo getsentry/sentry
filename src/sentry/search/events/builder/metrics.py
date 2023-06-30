@@ -14,6 +14,7 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
+    Literal,
     Offset,
     Op,
     Or,
@@ -24,6 +25,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.relay.config.metric_extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
@@ -40,6 +42,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -809,6 +812,8 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         **kwargs: Any,
     ):
         self._granularity = granularity
+        self.query = kwargs.get("query", "")
+        self.field = kwargs.get("selected_columns", []).get(0)  # TODO
         super().__init__(*args, **kwargs)
 
     def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
@@ -835,16 +840,51 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                 transform_mqb_query_to_metrics_query,
             )
 
-            snuba_request = self.get_metrics_layer_snql_query()
-            snuba_queries, _ = SnubaQueryBuilder(
-                projects=self.params.projects,
-                metrics_query=transform_mqb_query_to_metrics_query(
-                    snuba_request.query, is_alerts_query=self.is_alerts_query
-                ),
-                use_case_id=UseCaseKey.PERFORMANCE
-                if self.is_performance
-                else UseCaseKey.RELEASE_HEALTH,
-            ).get_snuba_queries()
+            # NB: While ondemand metrics only support alerts, we're defensive here.
+            if self.is_performance and self.is_alerts_query:
+                try:
+                    ondemand_metric = OndemandMetricSpec.parse(self.field, self.query)
+                except Exception:
+                    sentry_sdk.capture_exception()
+                    ondemand_metric = None
+
+            if ondemand_metric:
+                metrics_query = MetricsQuery(
+                    select=[MetricField(ondemand_metric.op, ondemand_metric.mri)],
+                    where=[
+                        Condition(
+                            lhs=Column(QUERY_HASH_KEY),
+                            op=Op.EQ,
+                            rhs=Literal(ondemand_metric.query_hash()),
+                        )
+                    ],
+                    groupby=None,
+                    limit=self.limit,
+                    offset=self.offset,
+                    granularity=self.granularity
+                    if self.granularity is not None
+                    else Granularity(3600),
+                    # TODO: orderby
+                    # TODO: interval
+                    is_alerts_query=self.is_alerts_query,
+                )
+
+                snuba_queries, _ = SnubaQueryBuilder(
+                    projects=self.params.projects,
+                    metrics_query=metrics_query,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                ).get_snuba_queries()
+            else:
+                snuba_request = self.get_metrics_layer_snql_query()
+                snuba_queries, _ = SnubaQueryBuilder(
+                    projects=self.params.projects,
+                    metrics_query=transform_mqb_query_to_metrics_query(
+                        snuba_request.query, is_alerts_query=self.is_alerts_query
+                    ),
+                    use_case_id=UseCaseKey.PERFORMANCE
+                    if self.is_performance
+                    else UseCaseKey.RELEASE_HEALTH,
+                ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
                 # If we have have zero or more than one queries resulting from the supplied query, we want to generate

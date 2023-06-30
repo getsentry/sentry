@@ -2,7 +2,7 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
@@ -19,6 +19,8 @@ from sentry.models import (
 )
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics import MetricOperationType
+from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Name component of MRIs used for custom alert metrics.
 # TODO: Move to a common module.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on-demand"
+QUERY_HASH_KEY = "query_hash"
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
@@ -128,6 +131,20 @@ _SNUBA_TO_RELAY_FIELDS = {
     "measurements[ttfb.requesttime]": "event.measurements.ttfb.requesttime",
 }
 
+_SNUBA_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
+    "count": "sum",
+    "avg": "avg",
+    "quantile(0.50)": "p50",
+    "quantile(0.75)": "p75",
+    "quantile(0.95)": "p95",
+    "quantile(0.99)": "p99",
+    "max": "max",
+    # not supported yet
+    "percentile": None,
+    "failure_rate": None,
+    "apdex": None,
+}
+
 # TODO: support count_if
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
@@ -164,7 +181,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     metrics: List[MetricSpec] = []
     for alert in alerts:
-        if metric := _convert_alert_to_metric(alert):
+        if metric := _convert_alert_to_metric(alert.snuba_query):
             metrics.append(metric)
 
     if not metrics:
@@ -180,59 +197,92 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
-    if not alert.is_custom_metric:
-        return None
-
+def _convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
     try:
-        query = alert.snuba_query.query
-        field, metric_type = _extract_field_info(alert.snuba_query.aggregate)
-
-        condition = _convert_alert_query_to_condition(query)
-        query_hash = _get_query_hash(field, query)
+        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
+        if not spec:
+            return None
 
         return {
             "category": DataCategory.TRANSACTION.api_name(),
-            "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
-            "field": field,
-            "condition": condition,
-            "tags": [{"key": "query_hash", "value": query_hash}],
+            "mri": spec.mri,
+            "field": spec.field,
+            "condition": spec.condition(),
+            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
         }
     except Exception as e:
         logger.error(e, exc_info=True)
         return None
 
 
-def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str]:
+@dataclass(frozen=True)
+class OndemandMetricSpec:
+    _field: str
+    _query: str
+
+    field: Optional[str]
+    metric_type: str
+    mri: str
+    op: MetricOperationType
+
+    @classmethod
+    def check(cls, field: str, query: str) -> bool:
+        """Returns ``True`` if a metrics query requires an on-demand metric."""
+        # TODO?: self.dataset == Dataset.PerformanceMetrics.value and
+        return "transaction.duration" in query
+
+    @classmethod
+    def parse(cls, field: str, query: str) -> Optional["OndemandMetricSpec"]:
+        if cls.check(field, query):
+            return None
+
+        relay_field, metric_type, op = _extract_field_info(field)
+
+        return cls(
+            _field=field,
+            _query=query,
+            field=relay_field,
+            metric_type=metric_type,
+            mri=f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
+            op=op,
+        )
+
+    def query_hash(self) -> str:
+        return hashlib.shake_128(bytes(f"{self.field};{self._query}", encoding="ascii")).hexdigest(
+            4
+        )
+
+    def condition(self) -> RuleCondition:
+        where, having = _get_query_builder().resolve_conditions(self._query, False)
+
+        assert where, "Query should not use on demand metrics"
+        assert not having, "Having conditions are not supported"
+
+        where = [c for c in (_convert_condition(c) for c in where) if c is not None]
+
+        if len(where) == 1:
+            return where[0]
+        else:
+            return {"op": "and", "inner": where}
+
+
+def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str, MetricOperationType]:
     select = _get_query_builder().resolve_column(aggregate, False)
 
     metric_type = _AGGREGATE_TO_METRIC_TYPE.get(select.function)
-    assert metric_type, f"Unsupported aggregate function {select.function}"
+    metric_op = _SNUBA_TO_METRIC_AGGREGATES.get(select.function)
+    assert metric_type and metric_op, f"Unsupported aggregate function {select.function}"
 
     if metric_type == "c":
         assert not select.parameters, "Count should not have parameters"
-        return None, metric_type
+        return None, metric_type, metric_op
     else:
         assert len(select.parameters) == 1, "Only one parameter is supported"
 
         name = select.parameters[0].name
         assert name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {name}"
 
-        return _SNUBA_TO_RELAY_FIELDS[name], metric_type
-
-
-def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-    where, having = _get_query_builder().resolve_conditions(query, False)
-
-    assert where, "Query should not use on demand metrics"
-    assert not having, "Having conditions are not supported"
-
-    where = [c for c in (_convert_condition(c) for c in where) if c is not None]
-
-    if len(where) == 1:
-        return where[0]
-    else:
-        return {"op": "and", "inner": where}
+        return _SNUBA_TO_RELAY_FIELDS[name], metric_type, metric_op
 
 
 def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optional[RuleCondition]:
@@ -258,10 +308,6 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optiona
         "name": _SNUBA_TO_RELAY_FIELDS[condition.lhs.name],
         "value": condition.rhs,
     }
-
-
-def _get_query_hash(name: Optional[str], filters: str) -> str:
-    return hashlib.shake_128(bytes(f"{name};{filters}", encoding="ascii")).hexdigest(4)
 
 
 def _get_query_builder() -> QueryBuilder:

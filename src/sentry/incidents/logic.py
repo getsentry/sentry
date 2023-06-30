@@ -37,6 +37,7 @@ from sentry.incidents.models import (
 )
 from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.relay.config.metric_extraction import OndemandMetricSpec
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
@@ -1505,7 +1506,7 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
     ):
         return
 
-    if alert_rule.is_custom_metric:
+    if OndemandMetricSpec.check(alert_rule.snuba_query.aggregate, alert_rule.snuba_query.query):
         for project in projects:
             schedule_invalidate_project_config(
                 trigger="alerts:create-on-demand-metric", project_id=project.id

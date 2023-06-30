@@ -16,13 +16,13 @@ def create_alert(query: str):
 def test_empty_query():
     alert = create_alert("")
 
-    assert _convert_alert_to_metric(alert) is None
+    assert _convert_alert_to_metric(alert.snuba_query) is None
 
 
 def test_standard_metric_query():
     alert = create_alert("transaction:/my/api/url/")
 
-    assert _convert_alert_to_metric(alert) is None
+    assert _convert_alert_to_metric(alert.snuba_query) is None
 
 
 def test_simple_query_temp():
@@ -31,7 +31,7 @@ def test_simple_query_temp():
     )
     alert = AlertRule(snuba_query=snuba_query)
 
-    metric = _convert_alert_to_metric(alert)
+    metric = _convert_alert_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -46,7 +46,7 @@ def test_simple_query_temp():
 
 def test_simple_query():
     alert = create_alert("transaction.duration:>=1000")
-    metric = _convert_alert_to_metric(alert)
+    metric = _convert_alert_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -61,7 +61,7 @@ def test_simple_query():
 
 def test_or_boolean_condition():
     alert = create_alert("transaction.duration:>=100 OR transaction.duration:<1000")
-    metric = _convert_alert_to_metric(alert)
+    metric = _convert_alert_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -81,7 +81,8 @@ def test_or_boolean_condition():
 
 
 def test_and_boolean_condition():
-    metric = _convert_alert_to_metric(create_alert("release:foo transaction.duration:<10s"))
+    alert = create_alert("release:foo transaction.duration:<10s")
+    metric = _convert_alert_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -102,7 +103,7 @@ def test_and_boolean_condition():
 
 def test_complex_and_condition():
     query = "geo.country_code:=AT http.method:=GET release:=a transaction.op:=b transaction.status:=aborted transaction.duration:>1s"
-    metric = _convert_alert_to_metric(create_alert(query))
+    metric = _convert_alert_to_metric(create_alert(query).snuba_query)
 
     expected = {
         "category": "transaction",
