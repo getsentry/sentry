@@ -113,10 +113,7 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        # Since we access the secondary tables after having already filtered the organization in the "ArtifactBundle"
-        # table, we want to build a composite index that starts with the values that are most likely to be queried
-        # using ANDs.
-        index_together = (("release_name", "dist_name", "artifact_bundle"),)
+        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -133,10 +130,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        # Since we access the secondary tables after having already filtered the organization in the "ArtifactBundle"
-        # table, we want to build a composite index that starts with the values that are most likely to be queried
-        # using ANDs.
-        index_together = (("debug_id", "source_file_type", "artifact_bundle"),)
+        index_together = (("organization_id", "debug_id", "source_file_type", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -151,6 +145,8 @@ class ProjectArtifactBundle(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
+
+        index_together = (("organization_id", "project_id", "artifact_bundle"),)
 
 
 class ArtifactBundleArchive:
