@@ -12,8 +12,12 @@ describe('withConfig HoC', function () {
   }
 
   it('injects experiment assignment', function () {
-    const Container = withExperiment(MyComponent, {experiment: 'orgExperiment'});
-    render(<Container />);
+    const Container = withExperiment(MyComponent, {
+      // @ts-expect-error This is a test experiment that does not exist, it
+      // will evalulate to -1 assignment
+      experiment: 'orgExperiment',
+    });
+    render(<Container organization={TestStubs.Organization()} />);
 
     expect(screen.getByText('-1')).toBeInTheDocument();
   });
