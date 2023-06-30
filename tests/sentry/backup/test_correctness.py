@@ -3,7 +3,7 @@ from __future__ import annotations
 import io
 import os
 from pathlib import Path
-from typing import List, NewType, Protocol
+from typing import NewType, Protocol
 
 from dateutil import parser
 from jsondiff import diff
@@ -89,7 +89,7 @@ def comparator_date_updated(on, expect, actual):
 REPO_PATH = Path(os.path.dirname(os.path.realpath("__file__")))
 FIXTURE_PATH = REPO_PATH / "fixtures/backup"
 EXPORT_INDENTATION = 2
-COMPARATORS: dict[ModelName | None, List[JSONMutatingComparator]] = {
+COMPARATORS: dict[ModelName | None, list[JSONMutatingComparator]] = {
     None: [],
     ModelName("sentry.userrole"): [comparator_date_updated],
     ModelName("sentry.userroleuser"): [comparator_date_updated],
