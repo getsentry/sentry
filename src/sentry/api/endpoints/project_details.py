@@ -400,17 +400,17 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    @extend_schema(
-        operation_id="Update a Project",
-        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-        request=None,
-        responses={
-            200: DetailedProjectSerializer,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-        examples=ProjectExamples.LIST_CLIENT_KEYS,
-    )
+    # @extend_schema(
+    #     operation_id="Update a Project",
+    #     parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+    #     request=None,
+    #     responses={
+    #         200: DetailedProjectSerializer,
+    #         403: RESPONSE_FORBIDDEN,
+    #         404: RESPONSE_NOT_FOUND,
+    #     },
+    #     examples=ProjectExamples.LIST_CLIENT_KEYS,
+    # )
     def put(self, request: Request, project) -> Response:
         """
         Update a Project
