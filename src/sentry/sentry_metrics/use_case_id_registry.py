@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Mapping
+from typing import Mapping, Optional
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 
@@ -40,5 +40,5 @@ USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
 }
 
 
-def get_metric_path_from_usecase(use_case: UseCaseID) -> UseCaseKey:
-    return METRIC_PATH_MAPPING[use_case]
+def get_use_case_key(use_case_id: UseCaseID) -> Optional[UseCaseKey]:
+    return METRIC_PATH_MAPPING.get(use_case_id)
