@@ -12,13 +12,14 @@ describe('TeamIssuesBreakdown', () => {
       body: TestStubs.TeamIssuesBreakdown(),
     });
     const statuses = ['new', 'regressed', 'unignored'];
+
     render(
       <TeamIssuesBreakdown
         organization={organization}
         projects={[project]}
         teamSlug={team.slug}
         period="8w"
-        statuses={statuses}
+        statuses={['new', 'regressed', 'unignored']}
       />
     );
 
