@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -9,12 +10,9 @@ import {
 import ProjectTags from 'sentry/views/settings/projectTags';
 
 describe('ProjectTags', function () {
-  let org, project;
+  const {organization: org, project, routerProps} = initializeOrg();
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -29,7 +27,7 @@ describe('ProjectTags', function () {
 
   it('renders', function () {
     const {container} = render(
-      <ProjectTags organization={org} params={{projectId: project.slug}} />
+      <ProjectTags {...routerProps} organization={org} project={project} />
     );
 
     expect(container).toSnapshot();
@@ -43,12 +41,12 @@ describe('ProjectTags', function () {
       body: [],
     });
 
-    render(<ProjectTags organization={org} params={{projectId: project.slug}} />);
+    render(<ProjectTags {...routerProps} organization={org} project={project} />);
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
   it('disables delete button for users without access', function () {
-    render(<ProjectTags organization={org} params={{projectId: project.slug}} />, {
+    render(<ProjectTags {...routerProps} organization={org} project={project} />, {
       organization: TestStubs.Organization({access: []}),
     });
 
@@ -58,7 +56,7 @@ describe('ProjectTags', function () {
   });
 
   it('deletes tag', async function () {
-    render(<ProjectTags organization={org} params={{projectId: project.slug}} />);
+    render(<ProjectTags {...routerProps} organization={org} project={project} />);
 
     // First tag exists
     const tagCount = screen.getAllByTestId('tag-row').length;

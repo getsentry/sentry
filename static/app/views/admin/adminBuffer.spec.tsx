@@ -12,7 +12,7 @@ describe('AdminBuffer', function () {
         body: [],
       });
 
-      const wrapper = render(<AdminBuffer params={{}} />);
+      const wrapper = render(<AdminBuffer />);
       expect(wrapper.container).toSnapshot();
     });
   });
