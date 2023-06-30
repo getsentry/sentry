@@ -81,6 +81,7 @@ class AlertRuleNotification(ProjectNotification):
             # profile issues use the generic template for now
             if (
                 isinstance(event, GroupEvent)
+                and event.occurrence
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
@@ -174,7 +175,7 @@ class AlertRuleNotification(ProjectNotification):
 
         template_name = (
             self.event.occurrence.evidence_data.get("template_name")
-            if isinstance(self.event, GroupEvent)
+            if isinstance(self.event, GroupEvent) and self.event.occurrence
             else None
         )
 
@@ -194,7 +195,7 @@ class AlertRuleNotification(ProjectNotification):
                 "snooze_alert_url"
             ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
 
-        if isinstance(self.event, GroupEvent):
+        if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
             context["culprit"] = self.event.occurrence.culprit
