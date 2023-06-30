@@ -327,6 +327,32 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
+    def validate_recapServerUrl(self, value):
+        from sentry import features
+
+        project = self.context["project"]
+
+        # Adding recapServerUrl is only allowed if recap server polling is enabled.
+        has_recap_server_enabled = features.has("projects:recap-server", project)
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server url")
+
+        return value
+
+    def validate_recapServerToken(self, value):
+        from sentry import features
+
+        project = self.context["project"]
+
+        # Adding recapServerToken is only allowed if recap server polling is enabled.
+        has_recap_server_enabled = features.has("projects:recap-server", project)
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server token")
+
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
