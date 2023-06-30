@@ -8,10 +8,8 @@ from django.core.exceptions import ValidationError
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.shared_integrations.exceptions import (
+from sentry.shared_integrations.exceptions import (  # ApiRateLimitedError,; DuplicateDisplayNameError,
     ApiError,
-    ApiRateLimitedError,
-    DuplicateDisplayNameError,
     IntegrationError,
 )
 
@@ -114,62 +112,64 @@ def get_channel_id_with_timeout(
         3. timed_out: boolean (whether we hit our self-imposed time limit)
     """
 
-    payload = {
-        "exclude_archived": False,
-        "exclude_members": True,
-        "types": "public_channel,private_channel",
-    }
+    #    payload = {
+    #        "exclude_archived": False,
+    #        "exclude_members": True,
+    #        "types": "public_channel,private_channel",
+    #    }
 
     list_types = LIST_TYPES
-
-    time_to_quit = time.time() + timeout
+    # LIST_TYPES: List[Tuple[str, str, str]] = [
+    #    ("conversations", "channels", CHANNEL_PREFIX),
+    #    ("users", "members", MEMBER_PREFIX),
+    # ]
+    # time_to_quit = time.time() + timeout
 
     client = SlackClient(integration_id=integration.id)
-    id_data: Optional[Tuple[str, Optional[str], bool]] = None
-    found_duplicate = False
+
+    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    #   id_data: Optional[Tuple[str, Optional[str], bool]] = None
+    #  found_duplicate = False
     prefix = ""
+
     for list_type, result_name, prefix in list_types:
-        cursor = ""
-        while True:
-            endpoint = f"/{list_type}.list"
-            try:
-                # Slack limits the response of `<list_type>.list` to 1000 channels
-                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
-            except ApiRateLimitedError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
-                raise e
-            except ApiError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
-                return prefix, None, False
+        # cursor = ""
 
-            if not isinstance(items, dict):
-                continue
+        # endpoint = f"/{list_type}.list"
 
-            for c in items[result_name]:
-                # The "name" field is unique (this is the username for users)
-                # so we return immediately if we find a match.
-                # convert to lower case since all names in Slack are lowercase
-                if name and c["name"].lower() == name.lower():
-                    return prefix, c["id"], False
-                # If we don't get a match on a unique identifier, we look through
-                # the users' display names, and error if there is a repeat.
-                if list_type == "users":
-                    profile = c.get("profile")
-                    if profile and profile.get("display_name") == name:
-                        if id_data:
-                            found_duplicate = True
-                        else:
-                            id_data = (prefix, c["id"], False)
+        # send message
+        try:
+            msg_response = client.post(
+                # "/chat.scheduleMessage",
+                "/chat.scheduleMessage",
+                data={
+                    "token": token,
+                    "channel": name,
+                    "text": "Sentry looking for channel",
+                    "post_at": int(time.time() + 500),
+                },
+                json=True,
+            )
+        except ApiError as e:
+            if str(e) == "channel_not_found":
+                #     print(msg_response)
+                # logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                raise ValidationError("Channel not found")
+            raise e
 
-            cursor = items.get("response_metadata", {}).get("next_cursor", None)
-            if time.time() > time_to_quit:
-                return prefix, None, True
+        # print("here")
+        # print(msg_response)
 
-            if not cursor:
-                break
-        if found_duplicate:
-            raise DuplicateDisplayNameError(name)
-        elif id_data:
-            return id_data
+        # catch channel not found
+        # delete message
+        client.post(
+            "/chat.deleteScheduledMessage",
+            params=dict(
+                {
+                    "channel": msg_response["channel"],
+                    "scheduled_message_id": msg_response["scheduled_message_id"],
+                }
+            ),
+        )
 
-    return prefix, None, False
+        return prefix, msg_response["channel"], False
