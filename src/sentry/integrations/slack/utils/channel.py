@@ -121,6 +121,83 @@ def get_channel_id_with_timeout(
         "types": "public_channel,private_channel",
     }
 
+    list_types = LIST_TYPES
+
+    time_to_quit = time.time() + timeout
+
+    client = SlackClient(integration_id=integration.id)
+    id_data: Optional[Tuple[str, Optional[str], bool]] = None
+    found_duplicate = False
+    prefix = ""
+    for list_type, result_name, prefix in list_types:
+        cursor = ""
+        while True:
+            endpoint = f"/{list_type}.list"
+            try:
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
+            except ApiRateLimitedError as e:
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                raise e
+            except ApiError as e:
+                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                return prefix, None, False
+
+            if not isinstance(items, dict):
+                continue
+
+            for c in items[result_name]:
+                # The "name" field is unique (this is the username for users)
+                # so we return immediately if we find a match.
+                # convert to lower case since all names in Slack are lowercase
+                if name and c["name"].lower() == name.lower():
+                    return prefix, c["id"], False
+                # If we don't get a match on a unique identifier, we look through
+                # the users' display names, and error if there is a repeat.
+                if list_type == "users":
+                    profile = c.get("profile")
+                    if profile and profile.get("display_name") == name:
+                        if id_data:
+                            found_duplicate = True
+                        else:
+                            id_data = (prefix, c["id"], False)
+
+            cursor = items.get("response_metadata", {}).get("next_cursor", None)
+            if time.time() > time_to_quit:
+                return prefix, None, True
+
+            if not cursor:
+                break
+        if found_duplicate:
+            raise DuplicateDisplayNameError(name)
+        elif id_data:
+            return id_data
+
+    return prefix, None, False
+
+
+def get_channel_id_with_timeout_new(
+    integration: Integration | RpcIntegration,
+    name: Optional[str],
+    timeout: int,
+) -> Tuple[str, Optional[str], bool]:
+    """
+    Fetches the internal slack id of a channel.
+    :param integration: The slack integration
+    :param name: The name of the channel
+    :param timeout: Our self-imposed time limit.
+    :return: a tuple of three values
+        1. prefix: string (`"#"` or `"@"`)
+        2. channel_id: string or `None`
+        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    """
+
+    payload = {
+        "exclude_archived": False,
+        "exclude_members": True,
+        "types": "public_channel,private_channel",
+    }
+
     time_to_quit = time.time() + timeout
 
     client = SlackClient(integration_id=integration.id)
