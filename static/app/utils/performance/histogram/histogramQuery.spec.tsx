@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 
@@ -30,9 +29,8 @@ function renderHistogram({isLoading, error, histograms}) {
 }
 
 describe('HistogramQuery', function () {
-  let api, eventView, location;
+  let eventView, location;
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},
@@ -59,7 +57,6 @@ describe('HistogramQuery', function () {
 
     render(
       <HistogramQuery
-        api={api}
         location={location}
         eventView={eventView}
         orgSlug="test-org"
