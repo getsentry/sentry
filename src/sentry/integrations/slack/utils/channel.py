@@ -264,7 +264,10 @@ def get_channel_id_with_timeout_new(
     return prefix, channel_id, False
 
 
-def check_for_channel(client, name):
+def check_for_channel(
+    client: SlackClient,
+    name: str,
+) -> str:
 
     msg_response = client.post(
         "/chat.scheduleMessage",
