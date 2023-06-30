@@ -408,13 +408,11 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         ).send_async([o.email for o in owners])
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models import ApiKey
+        from sentry.models.apikey import is_api_key_auth
 
         actor_id = request.user.id if request.user and request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id
-            if hasattr(request, "auth") and isinstance(request.auth, ApiKey)
-            else None
+            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 
