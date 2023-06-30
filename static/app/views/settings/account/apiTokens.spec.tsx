@@ -1,17 +1,16 @@
 import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
 
 const organization = TestStubs.Organization();
 
 describe('ApiTokens', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders empty result', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: null,
     });
@@ -23,7 +22,7 @@ describe('ApiTokens', function () {
   });
 
   it('renders with result', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
     });
@@ -35,12 +34,12 @@ describe('ApiTokens', function () {
   });
 
   it('can delete token', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: [TestStubs.ApiToken()],
     });
 
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/api-tokens/',
       method: 'DELETE',
     });
