@@ -65,7 +65,9 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
-        other_params["rule_id"] = rule_id
+        other_params["alert_rule_id"] = rule_id
+        # hard code for issue alerts
+        other_params["alert_type"] = "issue"
 
     if event and link_to_event:
         url = group.get_absolute_url(
