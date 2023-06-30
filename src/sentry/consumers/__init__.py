@@ -206,7 +206,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "metrics-last-seen-updater": {
-        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "topic": settings.KAFKA_SNUBA_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
         "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
         "static_args": {
