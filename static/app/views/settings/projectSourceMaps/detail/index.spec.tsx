@@ -18,6 +18,9 @@ describe('ProjectSourceMapsDetail', () => {
     params: {projectId: project.slug, name: archiveName},
     location: routerContext.context.location,
     router,
+    route: router.routes[0],
+    routes: router.routes,
+    routeParams: router.params,
   };
 
   afterEach(() => {
@@ -95,7 +98,7 @@ describe('ProjectSourceMapsDetail', () => {
   });
 
   it('filters artifacts', async () => {
-    const mockRouter = {push: jest.fn()};
+    const spy = jest.spyOn(router, 'push');
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -104,8 +107,7 @@ describe('ProjectSourceMapsDetail', () => {
     render(
       <ProjectSourceMapsDetail
         {...props}
-        location={{query: {query: 'abc'}}}
-        router={mockRouter}
+        location={{...props.location, query: {query: 'abc'}}}
       />
     );
 
@@ -120,9 +122,11 @@ describe('ProjectSourceMapsDetail', () => {
     await userEvent.clear(filterInput);
     await userEvent.type(filterInput, 'defg{enter}');
 
-    expect(mockRouter.push).toHaveBeenCalledWith({
-      query: {cursor: undefined, query: 'defg'},
-    });
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {cursor: undefined, query: 'defg'},
+      })
+    );
   });
 
   it('deletes single artifact', async () => {
