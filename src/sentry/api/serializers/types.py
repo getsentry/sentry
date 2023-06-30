@@ -19,7 +19,8 @@ class _Links(TypedDict):
     regionUrl: str
 
 
-# Move to types to avoid circular import between project and organization serializers
+# Moved from serializers/models/organization.py to avoid a circular import between project and
+# organization serializers
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str
