@@ -5,7 +5,7 @@ from typing import Any
 
 from django import forms
 from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,

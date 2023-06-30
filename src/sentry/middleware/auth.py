@@ -10,7 +10,11 @@ from rest_framework.authentication import get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.api.authentication import (
+    ApiKeyAuthentication,
+    OrgAuthTokenAuthentication,
+    TokenAuthentication,
+)
 from sentry.models import UserIP
 from sentry.services.hybrid_cloud.auth import auth_service, authentication_request_from
 from sentry.silo import SiloMode
@@ -73,28 +77,30 @@ class RequestAuthenticationMiddleware(MiddlewareMixin):
         if user is not None:
             request.user = user
             request.user_from_signed_request = True
-        elif auth and auth[0].lower() == TokenAuthentication.token_name:
-            try:
-                result = TokenAuthentication().authenticate(request=request)
-            except AuthenticationFailed:
-                result = None
-            if result:
-                request.user, request.auth = result
-            else:
-                # default to anonymous user and use IP ratelimit
-                request.user = SimpleLazyObject(lambda: get_user(request))
-        elif auth and auth[0].lower() == ApiKeyAuthentication.token_name:
-            try:
-                result = ApiKeyAuthentication().authenticate(request=request)
-            except AuthenticationFailed:
-                result = None
-            if result:
-                request.user, request.auth = result
-            else:
-                # default to anonymous user and use IP ratelimit
-                request.user = SimpleLazyObject(lambda: get_user(request))
-        else:
-            request.user = SimpleLazyObject(lambda: get_user(request))
+            return
+
+        if auth:
+            for authenticator_class in [
+                TokenAuthentication,
+                OrgAuthTokenAuthentication,
+                ApiKeyAuthentication,
+            ]:
+                authenticator = authenticator_class()
+                if not authenticator.accepts_auth(auth):
+                    continue
+                try:
+                    result = authenticator.authenticate(request)
+                except AuthenticationFailed:
+                    result = None
+                if result:
+                    request.user, request.auth = result
+                else:
+                    # default to anonymous user and use IP ratelimit
+                    request.user = SimpleLazyObject(lambda: get_user(request))
+                return
+
+        # default to anonymous user and use IP ratelimit
+        request.user = SimpleLazyObject(lambda: get_user(request))
 
     def process_exception(self, request: Request, exception):
         if isinstance(exception, AuthUserPasswordExpired):

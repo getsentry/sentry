@@ -18,7 +18,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
 
         """
         results = []
-        for flt in inbound_filters.get_all_filter_specs():
+        for flt in inbound_filters.get_all_filter_specs(project):
             results.append(
                 {
                     "id": flt.id,

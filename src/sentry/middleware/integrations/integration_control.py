@@ -6,7 +6,13 @@ from typing import Mapping, Type
 
 from sentry.silo import SiloMode
 
-from .parsers import GithubRequestParser, GitlabRequestParser, JiraRequestParser, SlackRequestParser
+from .parsers import (
+    GithubRequestParser,
+    GitlabRequestParser,
+    JiraRequestParser,
+    MsTeamsRequestParser,
+    SlackRequestParser,
+)
 from .parsers.base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
@@ -16,6 +22,7 @@ ACTIVE_PARSERS = [
     GitlabRequestParser,
     JiraRequestParser,
     SlackRequestParser,
+    MsTeamsRequestParser,
 ]
 
 

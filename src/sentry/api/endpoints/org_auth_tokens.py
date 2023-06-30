@@ -18,8 +18,7 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.user import User
 from sentry.security.utils import capture_security_activity
-from sentry.utils import hashlib
-from sentry.utils.security.orgauthtoken_token import generate_token
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @control_silo_endpoint
@@ -42,8 +41,8 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         return Response(serialize(token_list, request.user, token=None))
 
     def post(self, request: Request, organization: Organization) -> Response:
-        jwt_token = generate_token(organization.slug, generate_region_url())
-        token_hashed = hashlib.sha256_text(jwt_token).hexdigest()
+        token_str = generate_token(organization.slug, generate_region_url())
+        token_hashed = hash_token(token_str)
 
         name = request.data.get("name")
 
@@ -54,10 +53,9 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
-            # TODO FN: This will eventually be org:ci
-            scope_list=["org:read"],
+            scope_list=["org:ci"],
             created_by_id=request.user.id,
-            token_last_characters=jwt_token[-4:],
+            token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
         )
 
@@ -97,7 +95,7 @@ class OrgAuthTokensEndpoint(OrganizationEndpoint):
         )
 
         # This is THE ONLY TIME that the token is available
-        serialized_token = serialize(token, request.user, token=jwt_token)
+        serialized_token = serialize(token, request.user, token=token_str)
 
         if serialized_token is None:
             return Response({"detail": "Error when serializing token."}, status=400)

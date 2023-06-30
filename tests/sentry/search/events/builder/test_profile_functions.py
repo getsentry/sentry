@@ -9,6 +9,7 @@ from snuba_sdk.function import Function
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
+from sentry.utils.pytest.fixtures import django_db_all
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
@@ -61,7 +62,7 @@ def params():
         ),
     ],
 )
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_where(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
@@ -121,7 +122,7 @@ def test_where(params, search, condition):
         ),
     ],
 )
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_having(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,

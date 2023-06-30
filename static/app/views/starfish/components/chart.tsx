@@ -105,7 +105,7 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[], stacked?: boolean) {
+export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {

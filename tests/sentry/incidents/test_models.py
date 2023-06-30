@@ -554,3 +554,13 @@ class AlertRuleActivityTest(TestCase):
         assert AlertRuleActivity.objects.filter(
             alert_rule=self.alert_rule, type=AlertRuleActivityType.UPDATED.value
         ).exists()
+
+
+class AlertRuleCustomMetricTest(TestCase):
+    def test_simple(self):
+        standard_alert_rule = self.create_alert_rule(query="event.type:error")
+        custom_alert_rule = self.create_alert_rule(query="transaction.duration:>=1000")
+
+        assert not standard_alert_rule.is_custom_metric
+
+        assert custom_alert_rule.is_custom_metric

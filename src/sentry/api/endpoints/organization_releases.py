@@ -33,6 +33,7 @@ from sentry.models import (
     ReleaseStatus,
     SemverFilter,
 )
+from sentry.models.apitoken import is_api_token_auth
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -563,6 +564,7 @@ class OrganizationReleasesEndpoint(
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
+                    auth_type="api_token" if is_api_token_auth(request.auth) else None,
                 )
 
                 scope.set_tag("success_status", status)

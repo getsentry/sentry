@@ -724,6 +724,7 @@ def render_template_context(ctx, user):
         user_projects = ctx.projects.values()
 
     has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
+    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
     has_replay_section = features.has(
         "organizations:session-replay", ctx.organization
     ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
@@ -974,6 +975,9 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
+    def key_replays():
+        return []
+
     def issue_summary():
         all_issue_count = 0
         existing_issue_count = 0
@@ -1007,7 +1011,7 @@ def render_template_context(ctx, user):
         }
 
     return {
-        "has_replay_section": has_replay_section,
+        "has_replay_graph": has_replay_graph,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -1015,7 +1019,7 @@ def render_template_context(ctx, user):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
-        "key_replays": [],
+        "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
     }
 

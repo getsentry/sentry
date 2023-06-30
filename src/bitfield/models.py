@@ -1,3 +1,5 @@
+from typing import Any, Mapping, Optional, Sequence, Type, TypeVar, cast
+
 from django.db.models.fields import BigIntegerField
 
 from bitfield.query import BitQueryExactLookupStub
@@ -5,7 +7,7 @@ from bitfield.types import Bit, BitHandler
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
 # Twice faster than bin(i)[2:] or math.floor(math.log(i))
-MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
+MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)  # type: ignore[attr-defined]  #  typeddjango/django-stubs#1598
 
 
 class BitFieldFlags:
@@ -108,7 +110,8 @@ class BitField(BigIntegerField):
                 new_value |= Bit(flags.index(flag))
             default = new_value
 
-        BigIntegerField.__init__(self, default=default, *args, **kwargs)
+        kwargs["default"] = default
+        BigIntegerField.__init__(self, *args, **kwargs)
         self.flags = flags
         self.labels = labels
 
@@ -148,34 +151,74 @@ class BitField(BigIntegerField):
         return name, path, args, kwargs
 
 
+def flags_from_annotations(annotations: Mapping[str, type]) -> Sequence[str]:
+    flags = []
+    for attr, ty in annotations.items():
+        assert ty in ("bool", bool), f"bitfields can only hold bools, {attr} is {ty!r}"
+        flags.append(attr)
+
+    return flags
+
+
 class TypedBitfieldMeta(type):
     def __new__(cls, name, bases, clsdict):
-        if name == "TypedBitfield":
+        if name == "TypedClassBitField":
             return type.__new__(cls, name, bases, clsdict)
 
-        flags = []
+        flags = {}
         for attr, ty in clsdict["__annotations__"].items():
             if attr.startswith("_"):
                 continue
 
-            if attr in ("bitfield_default", "bitfield_null"):
+            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
                 continue
 
-            assert ty in ("bool", bool), f"bitfields can only hold bools, {attr} is {ty!r}"
-            flags.append(attr)
+            flags[attr] = ty
 
         return BitField(
-            flags=flags,
+            flags=flags_from_annotations(flags),
             default=clsdict.get("bitfield_default"),
-            null=clsdict.get("bitfield_null"),
+            null=clsdict.get("bitfield_null") or False,
+            db_column=clsdict.get("bitfield_db_column"),
         )
 
     def __int__(self) -> int:
         raise NotImplementedError()
 
 
-class TypedBitfield(metaclass=TypedBitfieldMeta):
-    pass
+class TypedClassBitField(metaclass=TypedBitfieldMeta):
+    """
+    A wrapper around BitField that allows you to access its fields as instance
+    attributes in a type-safe way.
+    """
+
+    bitfield_default: Optional[Any]
+    bitfield_null: bool
+
+    _value: int
+
+
+T = TypeVar("T")
+
+
+def typed_dict_bitfield(definition: Type[T], default=None, null=False) -> T:
+    """
+    A wrapper around BitField that allows you to access its fields as
+    dictionary keys attributes in a type-safe way.
+
+    Prefer `TypedClassBitField` over this if you can help it. This function
+    only exists to make it simpler to type bitfields with fields that are not
+    valid Python identifiers, but has limitations for how far it can provide
+    type safety.
+    """
+    assert issubclass(definition, dict)
+
+    return cast(
+        T,
+        BitField(
+            flags=flags_from_annotations(definition.__annotations__), default=default, null=null
+        ),
+    )
 
 
 BitField.register_lookup(BitQueryExactLookupStub)

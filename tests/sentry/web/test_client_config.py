@@ -15,6 +15,7 @@ from sentry.models import AuthIdentity, AuthProvider
 from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.utils.auth import login
+from sentry.utils.pytest.fixtures import django_db_all
 from sentry.web.client_config import get_client_config
 
 RequestFactory = Callable[[], Optional[Tuple[HttpRequest, User]]]
@@ -112,7 +113,7 @@ def clear_env_request():
         make_user_request_from_org_with_auth_identities,
     ],
 )
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_client_config_in_silo_modes(request_factory: RequestFactory):
     request = request_factory()
     if request is not None:
@@ -129,7 +130,7 @@ def test_client_config_in_silo_modes(request_factory: RequestFactory):
         assert get_client_config(request) == base_line
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_client_config_deleted_user():
     request, user = make_user_request_from_org()
     request.user = user

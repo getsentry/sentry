@@ -201,7 +201,7 @@ def get_features_for_projects(
     return features_by_project
 
 
-def format_options(attrs: defaultdict(dict)):
+def format_options(attrs: dict[str, Any]) -> dict[str, Any]:
     options = attrs["options"]
     return {
         "sentry:csp_ignored_sources_defaults": bool(

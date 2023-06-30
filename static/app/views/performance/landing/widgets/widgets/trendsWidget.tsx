@@ -61,6 +61,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
       : TrendChangeType.REGRESSION;
+  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
+    ? TrendChangeType.ANY
+    : trendChangeType;
   const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
@@ -74,7 +77,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   eventView.fields = fields;
   eventView.sorts = [
     {
-      kind: trendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
+      kind: derivedTrendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
       field: 'trend_percentage()',
     },
   ];
@@ -96,7 +99,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           {...provided}
           eventView={provided.eventView}
           location={location}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
           cursor="0:0:1"
@@ -107,7 +110,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       transform: transformTrendsDiscover,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.chartSetting, trendChangeType]
+    [props.chartSetting, derivedTrendChangeType]
   );
 
   const assembleAccordionItems = provided =>
@@ -128,7 +131,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
           transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
           disableXAxis
           disableLegend
@@ -229,7 +232,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-              trendChangeType={trendChangeType}
+              trendChangeType={derivedTrendChangeType}
               trendFunctionField={trendFunctionField}
               disableXAxis
               disableLegend

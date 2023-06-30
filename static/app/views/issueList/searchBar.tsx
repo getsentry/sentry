@@ -101,40 +101,46 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     children: [
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Assignee'),
         desc: t('Filter by team or member.'),
         value: 'assigned_or_suggested:',
       },
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Release'),
         desc: t('Filter by release version.'),
         value: 'release:',
       },
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Level'),
         desc: t('Filter by fatal, error, etc.'),
         value: 'level:',
       },
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Device'),
         desc: t('Filter events by device.'),
         value: 'device.',
       },
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Unhandled'),
         desc: t('Filter by unhandled events.'),
         value: 'error.unhandled:true ',
       },
       {
         type: ItemType.RECOMMENDED,
+        kind: FieldKind.TAG,
         title: t('Custom Tags'),
         desc: t('Filter events by custom tags.'),
-        // TODO(scttcper): handle custom tags
-        value: 'url:',
+        // Shows only tags when clicked
+        applyFilter: item => item.kind === FieldKind.TAG,
       },
     ],
   };

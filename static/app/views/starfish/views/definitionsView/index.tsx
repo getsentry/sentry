@@ -1,14 +1,14 @@
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 
 function DefinitionsView() {
   return (
     <Layout.Page>
-      <PageFiltersContainer>
+      <StarfishPageFilterContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -27,7 +27,7 @@ function DefinitionsView() {
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </PageFiltersContainer>
+      </StarfishPageFilterContainer>
     </Layout.Page>
   );
 }

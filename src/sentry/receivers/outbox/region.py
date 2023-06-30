@@ -118,3 +118,16 @@ def maybe_join_org(org_member: OrganizationMember):
                     organization_id=org_member.organization_id,
                     user_id=org_member.user_id,
                 )
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
+def process_organization_mapping_customer_id_update(
+    object_identifier: int, payload: Any, **kwds: Any
+):
+    if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
+        return
+
+    if payload and "customer_id" in payload:
+        organization_mapping_service.update(
+            organization_id=org.id, update={"customer_id": payload["customer_id"]}
+        )

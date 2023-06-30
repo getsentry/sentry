@@ -29,14 +29,14 @@ export const useSpanMetrics = (
   const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     enabled: Boolean(span),
     referrer,
   });
 
-  return {isLoading, data: data[0] ?? {}};
+  return {...result, data: result?.data[0] ?? {}};
 };
 
 function getEventView(

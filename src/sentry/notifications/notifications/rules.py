@@ -160,6 +160,9 @@ class AlertRuleNotification(ProjectNotification):
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
         if self.group.issue_category == GroupCategory.PERFORMANCE:
+            # TODO: This needs to filter to only "real" perf issues, not re-categorised profile issues
+            # This can't use data from the occurrence at the moment, so we'll keep fetching the event
+            # and gathering span evidence.
             context.update(
                 {
                     "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],

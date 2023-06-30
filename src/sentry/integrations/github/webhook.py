@@ -450,7 +450,7 @@ class GitHubWebhookBase(Endpoint):
 
         return constant_time_compare(expected, signature)
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
@@ -487,7 +487,7 @@ class GitHubWebhookBase(Endpoint):
         if not handler:
             logger.error(
                 "github.webhook.missing-handler",
-                extra={"event": request.META["HTTP_X_GITHUB_EVENT"]},
+                extra={"event_type": request.META["HTTP_X_GITHUB_EVENT"]},
             )
             return HttpResponse(status=204)
 
@@ -523,7 +523,7 @@ class GitHubIntegrationsWebhookEndpoint(GitHubWebhookBase):
         "installation": InstallationEventWebhook,
     }
 
-    @method_decorator(csrf_exempt)  # type: ignore
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)

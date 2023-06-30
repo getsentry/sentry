@@ -7,5 +7,8 @@ export function extractRoute(location: Location) {
   if (location.pathname.match(/^\/starfish\/database\//)) {
     return 'database';
   }
-  return 'endpoint-overview';
+  if (location.pathname.match(/^\/starfish\/endpoint-overview\//)) {
+    return 'endpoint-overview';
+  }
+  return null;
 }

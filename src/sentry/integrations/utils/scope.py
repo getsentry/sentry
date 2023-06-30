@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from sentry_sdk import configure_scope
 
@@ -49,7 +49,9 @@ def get_orgs_from_integration(integration_id: int) -> Sequence[Organization]:
     return orgs
 
 
-def bind_org_context_from_integration(integration_id: int) -> None:
+def bind_org_context_from_integration(
+    integration_id: int, extra: Mapping[str, Any] | None = None
+) -> None:
     """
     Given the id of an Integration or an RpcIntegration, get the associated org(s) and bind that
     data to the scope.
@@ -64,8 +66,9 @@ def bind_org_context_from_integration(integration_id: int) -> None:
     orgs = get_orgs_from_integration(integration_id)
 
     if len(orgs) == 0:
-        logger.exception(
-            f"Can't bind org context - no orgs are associated with integration id={integration_id}."
+        logger.warning(
+            f"Can't bind org context - no orgs are associated with integration id={integration_id}.",
+            extra=extra,
         )
     elif len(orgs) == 1:
         bind_organization_context(orgs[0])

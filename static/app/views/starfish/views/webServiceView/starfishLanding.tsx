@@ -3,10 +3,8 @@ import {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
@@ -15,6 +13,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 
 import {StarfishView} from './starfishView';
 
@@ -31,8 +30,7 @@ type Props = {
 export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
-      <ProjectPageFilter />
-      <DatePageFilter alignDropdown="left" />
+      <StarfishDatePicker />
     </PageFilterBar>
   );
 
@@ -41,7 +39,7 @@ export function StarfishLanding(props: Props) {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('Starfish')}</Layout.Title>
+            <Layout.Title>{t('Web Service')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 

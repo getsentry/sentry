@@ -6,6 +6,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -43,7 +44,7 @@ class SDKCrashDetection:
         # Getting the frames and checking if the event is unhandled might different per platform.
         # We will change this once we implement this for more platforms.
         is_unhandled = (
-            get_path(event.data, "exception", "values", -1, "mechanism", "data", "handled") is False
+            get_path(event.data, "exception", "values", -1, "mechanism", "handled") is False
         )
         if is_unhandled is False:
             return None
@@ -52,11 +53,9 @@ class SDKCrashDetection:
         if not frames:
             return None
 
-        # We still need to pass in the frames to validate it's an unhandled event coming from the Cocoa SDK.
-        # We will do this in a separate PR.
-        if self.cocoa_sdk_crash_detector.is_sdk_crash():
+        if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
             # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
-            sdk_crash_event_data = event.data
+            sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
                 sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}

@@ -1570,7 +1570,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
         assert msg.to == [self.user.email]
 
     def test_user_feedback__enhanced_privacy(self):
-        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))  # type: ignore[attr-defined]
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
         assert self.organization.flags.enhanced_privacy.is_set is True
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
