@@ -5,11 +5,11 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Any, Callable, Iterable, List, Mapping, Optional, Tuple, Type
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
-from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
 from rest_framework import status
@@ -158,7 +158,7 @@ class Endpoint(APIView):
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
             auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type:
+            if auth_type is not None:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:

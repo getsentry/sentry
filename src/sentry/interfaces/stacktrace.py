@@ -3,7 +3,7 @@ __all__ = ("Stacktrace",)
 import math
 from typing import Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import DataPath, Interface

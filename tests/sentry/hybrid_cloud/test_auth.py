@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.models import ApiKey, AuthProvider
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthProvider,
@@ -10,9 +8,10 @@ from sentry.services.hybrid_cloud.auth import (
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @use_real_service(auth_service, None)
 def test_get_org_auth_config():

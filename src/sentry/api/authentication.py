@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from rest_framework.authentication import BasicAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
@@ -97,7 +97,7 @@ class StandardAuthentication(QuietBasicAuthentication):
             msg = "Invalid token header. Token string should not contain spaces."
             raise AuthenticationFailed(msg)
 
-        return self.authenticate_credentials(request, force_text(auth[1]))
+        return self.authenticate_credentials(request, force_str(auth[1]))
 
 
 class RelayAuthentication(BasicAuthentication):
@@ -204,7 +204,7 @@ class TokenAuthentication(StandardAuthentication):
         if len(auth) != 2:
             return True
 
-        token_str = force_text(auth[1])
+        token_str = force_str(auth[1])
         return not token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_credentials(self, request: Request, token_str):
@@ -243,7 +243,7 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
 
-        token_str = force_text(auth[1])
+        token_str = force_str(auth[1])
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_credentials(self, request: Request, token_str):

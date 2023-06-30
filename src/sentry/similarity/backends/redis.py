@@ -1,7 +1,7 @@
 import itertools
 import time
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.utils.iterators import chunked
@@ -56,7 +56,7 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         def decode_search_result(result):
             key, scores = result
             return (
-                force_text(key),
+                force_str(key),
                 [score_replacements.get(float(score), float(score)) for score in scores],
             )
 
