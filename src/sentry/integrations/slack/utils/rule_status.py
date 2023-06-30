@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Union, cast
 from uuid import uuid4
 
 from django.conf import settings
@@ -37,7 +38,7 @@ class RedisRuleStatus:
     def get_value(self) -> JSONData:
         key = self._get_redis_key()
         value = self.client.get(key)
-        return json.loads(value)
+        return json.loads(cast(Union[str, bytes], value))
 
     def _generate_uuid(self) -> str:
         return uuid4().hex
