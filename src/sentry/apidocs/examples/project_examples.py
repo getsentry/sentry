@@ -439,6 +439,15 @@ class ProjectExamples:
         ),
     ]
 
+    DETAILED_PROJECT = [
+        OpenApiExample(
+            "Get detailed view about a Project",
+            value=detailed_project,
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
     CREATE_PROJECT = [
         OpenApiExample(
             "Project successfully created",
@@ -464,15 +473,6 @@ class ProjectExamples:
         OpenApiExample(
             "Retrieve an Existing Client Key",
             value=key_wo_rate_limiting,
-            status_codes=["200"],
-            response_only=True,
-        ),
-    ]
-
-    RETRIEVE_PROJECT = [
-        OpenApiExample(
-            "Get detailed view about a Project",
-            value=detailed_project,
             status_codes=["200"],
             response_only=True,
         ),

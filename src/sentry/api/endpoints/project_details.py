@@ -22,7 +22,7 @@ from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
@@ -338,7 +338,7 @@ class RelaxedProjectPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
-    public = {"GET", "DELETE"}
+    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -361,7 +361,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=ProjectExamples.RETRIEVE_PROJECT,
+        examples=ProjectExamples.DETAILED_PROJECT,
     )
     def get(self, request: Request, project: Project) -> Response:
         """
@@ -403,37 +403,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
-    # @extend_schema(
-    #     operation_id="Update a Project",
-    #     parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
-    #     request=None,
-    #     responses={
-    #         200: DetailedProjectSerializer,
-    #         403: RESPONSE_FORBIDDEN,
-    #         404: RESPONSE_NOT_FOUND,
-    #     },
-    #     examples=ProjectExamples.LIST_CLIENT_KEYS,
-    # )
+    @extend_schema(
+        operation_id="Update a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            GlobalParams.name("The name for the project."),
+            GlobalParams.slug("The slug for the project."),
+            ProjectParams.platform("The platform for the project."),
+            ProjectParams.IS_BOOKMARKED,
+        ],
+        request=ProjectAdminSerializer,
+        responses={
+            200: DetailedProjectSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProjectExamples.DETAILED_PROJECT,
+    )
     def put(self, request: Request, project) -> Response:
         """
-        Update a Project
-        ````````````````
+        Update various attributes and configurable settings for the given project.
 
-        Update various attributes and configurable settings for the given
-        project.  Only supplied values are updated.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to update.
-        :param string name: the new name for the project.
-        :param string slug: the new slug for the project.
-        :param string platform: the new platform for the project.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param int digestsMinDelay:
-        :param int digestsMaxDelay:
-        :auth: required
+        Note that soley having the **`project:read`** scope restricts updatable settings to
+        `isBookmarked` only.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
