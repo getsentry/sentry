@@ -11,7 +11,7 @@ class MismatchedSiloTransactionError(Exception):
     pass
 
 
-def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:  # type:ignore
+def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
@@ -55,4 +55,4 @@ def patch_silo_aware_atomic():
     )
 
     _default_atomic_impl = transaction.atomic
-    transaction.atomic = siloed_atomic
+    transaction.atomic = siloed_atomic  # type:ignore
