@@ -1,5 +1,6 @@
 import * as PropTypes from 'prop-types';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   renderGlobalModal,
@@ -7,15 +8,18 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
-  let org;
-  let project;
-  let deleteMock;
-  let statsMock;
-  let putMock;
-  let projectKeys;
+  const {routerProps} = initializeOrg();
+
+  let org: Organization;
+  let project: Project;
+  let deleteMock: jest.Mock;
+  let statsMock: jest.Mock;
+  let putMock: jest.Mock;
+  let projectKeys: ProjectKey[];
 
   beforeEach(function () {
     org = TestStubs.Organization();
@@ -85,16 +89,17 @@ describe('ProjectKeyDetails', function () {
 
     render(
       <ProjectKeyDetails
-        routes={[]}
+        {...routerProps}
         organization={org}
         project={project}
         params={{
           keyId: projectKeys[0].id,
-          orgId: org.slug,
           projectId: project.slug,
         }}
       />,
-      {context}
+      {
+        context,
+      }
     );
   });
 
