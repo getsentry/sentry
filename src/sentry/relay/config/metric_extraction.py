@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
-import sentry_sdk
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition
 from typing_extensions import NotRequired
 
@@ -23,13 +22,12 @@ from sentry.snuba.dataset import Dataset
 
 logger = logging.getLogger(__name__)
 
-
 # GENERIC METRIC EXTRACTION
 
 
 # Name component of MRIs used for custom alert metrics.
 # TODO: Move to a common module.
-CUSTOM_ALERT_METRIC_NAME = "transactions/alert"
+CUSTOM_ALERT_METRIC_NAME = "transactions/on-demand"
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
@@ -112,7 +110,7 @@ class MetricExtractionConfig(TypedDict):
 
 
 SUPPORTED_QUERY_TERMS = {
-    "browser.name": "event.browser.name",  # TODO is a function
+    # "browser.name": "event.browser.name",  # TODO is a function
     "contexts[geo.country_code]": "event.geo.country_code",
     "http_method": "event.http.method",
     # "http.status_code": "event.http.status_code",  TODO is a function
@@ -123,14 +121,25 @@ SUPPORTED_QUERY_TERMS = {
     "duration": "event.duration",
 }
 
+SUPPORTED_FIELDS = {
+    "transaction.duration": "event.duration",
+    "measurements.cls": "event.measurements.cls",
+    "measurements.fcp": "event.measurements.fcp",
+    "measurements.fid": "event.measurements.fid",
+    "measurements.fp": "event.measurements.fp",
+    "measurements.lcp": "event.measurements.lcp",
+    "measurements.ttfb": "event.measurements.ttfb",
+    "measurements.ttfb.requesttime": "event.measurements.ttfb.requesttime",
+}
+
 AGGREGATE_TO_METRIC_TYPE = {
-    "count": "counter",
-    "avg": "distribution",
-    "p50": "distribution",
-    "p75": "distribution",
-    "p95": "distribution",
-    "p99": "distribution",
-    "p100": "distribution",
+    "count": "c",
+    "avg": "d",
+    "quantile(0.50)": "d",
+    "quantile(0.75)": "d",
+    "quantile(0.95)": "d",
+    "quantile(0.99)": "d",
+    "max": "d",
     # not supported yet
     "percentile": None,
     "failure_rate": None,
@@ -180,38 +189,44 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
 
     try:
         query = alert.snuba_query.query
-        name, metric_type = _extract_field_info(alert.snuba_query.aggregate)
+        field, metric_type = _extract_field_info(alert.snuba_query.aggregate)
 
-        condition = _convert_alert_query_to_condition(query)
-        query_hash = _get_query_hash(name, query)
+        condition = _convert_alert_query_to_condition(alert.snuba_query.aggregate, query)
+        query_hash = _get_query_hash(field, query)
 
         return {
             "category": DataCategory.TRANSACTION,
-            "mri": f"{metric_type[0]}:transactions/on-demand@none",
-            "field": name,
+            "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
+            "field": field,
             "condition": condition,
             "tags": [{"key": "query_hash", "value": query_hash}],
         }
     except Exception as e:
-        sentry_sdk.capture_exception(e)
+        logger.error(e, exc_info=True)
         return None
 
 
-def _extract_field_info(aggregate: str):
+def _extract_field_info(aggregate: str) -> Tuple[str, str]:
+    qb = _get_query_builder()
+
+    select = qb.resolve_column(aggregate, False)
+
     agg_fn, rest = aggregate.split("(")
     name = rest.split(")")[0]
 
-    metric_type = AGGREGATE_TO_METRIC_TYPE.get(agg_fn)
+    assert name in SUPPORTED_FIELDS, f"Unsupported field {name}"
+    assert (
+        select.function in AGGREGATE_TO_METRIC_TYPE
+    ), f"Unsupported aggregate function {select.function}"
 
-    return name, metric_type[0]
+    field = SUPPORTED_FIELDS.get(name)
+    metric_type = AGGREGATE_TO_METRIC_TYPE.get(select.function)
+
+    return field, metric_type
 
 
-def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-
-    qb = QueryBuilder(
-        dataset=Dataset.Transactions,
-        params={"start": datetime.now(), "end": datetime.now()},
-    )
+def _convert_alert_query_to_condition(aggregate: str, query: str) -> Optional[RuleCondition]:
+    qb = _get_query_builder()
 
     where, having = qb.resolve_conditions(query, False)
 
@@ -249,6 +264,13 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> RuleCon
 
 def _get_query_hash(name: str, filters: str) -> str:
     return hashlib.shake_128(bytes(f"{name};{filters}", encoding="ascii")).hexdigest(4)
+
+
+def _get_query_builder() -> QueryBuilder:
+    return QueryBuilder(
+        dataset=Dataset.Transactions,
+        params={"start": datetime.now(), "end": datetime.now()},
+    )
 
 
 # CONDITIONAL TAGGING

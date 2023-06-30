@@ -30,9 +30,9 @@ def test_simple_query():
     expected = {
         "category": 2,
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
-        "field": "measurements.fp",
+        "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "15ff8ff9"}],
+        "tags": [{"key": "query_hash", "value": "b43b49e9"}],
     }
 
     assert metric == expected
@@ -51,9 +51,9 @@ def test_or_boolean_condition():
             ],
             "op": "or",
         },
-        "field": "measurements.fp",
+        "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "3e81e280"}],
+        "tags": [{"key": "query_hash", "value": "07025b58"}],
     }
 
     assert metric == expected
@@ -71,9 +71,9 @@ def test_and_boolean_condition():
             ],
             "op": "and",
         },
-        "field": "measurements.fp",
+        "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "764b0aea"}],
+        "tags": [{"key": "query_hash", "value": "07386122"}],
     }
 
     assert metric == expected
@@ -96,9 +96,9 @@ def test_complex_and_condition():
             ],
             "op": "and",
         },
-        "field": "measurements.fp",
+        "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "625e7094"}],
+        "tags": [{"key": "query_hash", "value": "d4351318"}],
     }
 
     assert metric == expected
