@@ -6,7 +6,7 @@ from typing import Callable, Optional, Tuple
 import pytest
 from django.contrib.auth.models import AnonymousUser, User
 from django.core.cache import cache
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.test import override_settings
 
 from sentry.app import env
@@ -29,7 +29,7 @@ def request_factory(f):
             request, user = result
             if not user.is_anonymous:
                 login(request, user)
-                AuthenticationMiddleware().process_request(request)
+                AuthenticationMiddleware(lambda _: HttpResponse("fake")).process_request(request)
             else:
                 request.user = user
                 request.auth = None

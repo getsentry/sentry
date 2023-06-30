@@ -6,6 +6,7 @@ import logging
 from typing import Any, Mapping, Protocol
 
 from django.http import (
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseNotFound,
@@ -337,7 +338,10 @@ class BaseView(View, OrganizationMixin):
         return self.handle(request, *args, **kwargs)
 
     def test_csrf(self, request: Request) -> HttpResponse:
-        middleware = CsrfViewMiddleware()
+        def _fake_get_response(request: HttpRequest) -> HttpResponse:
+            raise AssertionError("this should be unreachable")
+
+        middleware = CsrfViewMiddleware(_fake_get_response)
         return middleware.process_view(request, self.dispatch, [request], {})
 
     def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
