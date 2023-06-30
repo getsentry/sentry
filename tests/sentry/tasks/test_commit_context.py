@@ -10,6 +10,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import PullRequest, PullRequestComment, Repository
 from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
@@ -494,6 +495,24 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
 
     def test_gh_comment_feature_flag(self, mock_comment_workflow):
         """No comments on org with feature flag disabled"""
+        with self.tasks():
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+            assert not mock_comment_workflow.called
+
+    @with_feature("organizations:pr-comment-bot")
+    def test_gh_comment_org_option(self, mock_comment_workflow):
+        """No comments on org with organization option disabled"""
+        OrganizationOption.objects.set_value(
+            organization=self.project.organization, key="sentry:github_pr_bot", value=False
+        )
+
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(

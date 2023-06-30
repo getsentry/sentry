@@ -8,6 +8,7 @@ from freezegun import freeze_time
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models import Commit, Group, GroupOwner, GroupOwnerType, PullRequest
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequestComment, PullRequestCommit
 from sentry.models.repository import Repository
@@ -516,6 +517,16 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
     def test_comment_workflow_missing_feature_flag(self, mock_issues):
+        github_comment_workflow(self.pr.id, self.project.id)
+
+        assert not mock_issues.called
+
+    @with_feature("organizations:pr-comment-bot")
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    def test_comment_workflow_missing_org_option(self, mock_issues):
+        OrganizationOption.objects.set_value(
+            organization=self.organization, key="sentry:github_pr_bot", value=False
+        )
         github_comment_workflow(self.pr.id, self.project.id)
 
         assert not mock_issues.called
