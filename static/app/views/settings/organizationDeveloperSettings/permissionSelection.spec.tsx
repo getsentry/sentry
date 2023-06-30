@@ -17,9 +17,11 @@ describe('PermissionSelection', () => {
     render(
       <Form model={model}>
         <PermissionSelection
+          appPublished={false}
           permissions={{
             Event: 'no-access',
             Team: 'no-access',
+            Member: 'no-access',
             Project: 'write',
             Release: 'admin',
             Organization: 'admin',
