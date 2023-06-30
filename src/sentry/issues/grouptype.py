@@ -325,7 +325,7 @@ class ProfileCoreDataExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
 
 
-# 2006 was ProfileRegexExperimentalType
+# 2005 was ProfileRegexExperimentalType
 
 
 @dataclass(frozen=True)
