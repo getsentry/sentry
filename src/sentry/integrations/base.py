@@ -44,7 +44,6 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
     from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
-
 FeatureDescription = namedtuple(
     "FeatureDescription",
     [
