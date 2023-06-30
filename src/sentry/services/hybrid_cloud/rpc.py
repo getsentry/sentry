@@ -428,7 +428,10 @@ def dispatch_to_local_service(
 
         return value
 
-    return result_to_dict(result)
+    return {
+        "meta": {},  # reserved for future use
+        "value": result_to_dict(result),
+    }
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -475,11 +478,14 @@ def dispatch_remote_call(
         charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
         metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
         response_body = response.read().decode(charset)
-    if response_body:
-        serial_response = json.loads(response_body)
-        return service.deserialize_rpc_response(method_name, serial_response)
-    else:
-        return None
+
+    serial_response = json.loads(response_body)
+    return_value = serial_response["value"]
+    return (
+        None
+        if return_value is None
+        else service.deserialize_rpc_response(method_name, return_value)
+    )
 
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:

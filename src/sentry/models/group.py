@@ -17,7 +17,7 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
@@ -252,11 +252,14 @@ def get_helpful_event_for_environments(
     conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
     conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
 
+    end = group.last_seen + timedelta(minutes=1)
+    start = end - timedelta(days=14)
+
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
-        start=None,
-        end=None,
+        start=start,
+        end=end,
         conditions=conditions,
         limit=1,
         orderby=EventOrdering.MOST_HELPFUL.value,
@@ -638,10 +641,11 @@ class Group(Model):
     def get_helpful_event_for_environments(
         self, environments: Sequence[str] = ()
     ) -> GroupEvent | None:
-        return get_helpful_event_for_environments(
+        maybe_event = get_helpful_event_for_environments(
             environments,
             self,
         )
+        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release
