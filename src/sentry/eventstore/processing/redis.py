@@ -1,4 +1,4 @@
-from sentry.utils.codecs import BytesCodec, JSONCodec
+from sentry.utils.codecs import JSONCodec
 from sentry.utils.kvstore.encoding import KVStorageCodecWrapper
 from sentry.utils.kvstore.redis import RedisKVStorage
 from sentry.utils.redis import redis_clusters
@@ -13,7 +13,6 @@ def RedisClusterEventProcessingStore(**options) -> EventProcessingStore:
     """
     return EventProcessingStore(
         KVStorageCodecWrapper(
-            RedisKVStorage(redis_clusters.get(options.pop("cluster", "default"))),
-            JSONCodec() | BytesCodec(),  # maintains functional parity with cache backend
+            RedisKVStorage(redis_clusters.get(options.pop("cluster", "default"))), JSONCodec()
         )
     )
