@@ -1,7 +1,10 @@
+import hashlib
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
+from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
 
 from sentry import features
@@ -14,16 +17,17 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 
 logger = logging.getLogger(__name__)
-
 
 # GENERIC METRIC EXTRACTION
 
 
 # Name component of MRIs used for custom alert metrics.
 # TODO: Move to a common module.
-CUSTOM_ALERT_METRIC_NAME = "transactions/alert"
+CUSTOM_ALERT_METRIC_NAME = "transactions/on-demand"
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 1
@@ -105,6 +109,41 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
+_SNUBA_TO_RELAY_FIELDS = {
+    # "browser.name": "event.browser.name",  # TODO is a function
+    "contexts[geo.country_code]": "event.geo.country_code",
+    "http_method": "event.http.method",
+    # "http.status_code": "event.http.status_code",  TODO is a function
+    # "os.name": "event.os.name",  TODO is a function
+    "release": "event.release",
+    "transaction_op": "event.transaction.op",
+    "transaction_status": "event.transaction.status",
+    "duration": "event.duration",
+    "measurements[cls]": "event.measurements.cls",
+    "measurements[fcp]": "event.measurements.fcp",
+    "measurements[fid]": "event.measurements.fid",
+    "measurements[fp]": "event.measurements.fp",
+    "measurements[lcp]": "event.measurements.lcp",
+    "measurements[ttfb]": "event.measurements.ttfb",
+    "measurements[ttfb.requesttime]": "event.measurements.ttfb.requesttime",
+}
+
+# TODO: support count_if
+_AGGREGATE_TO_METRIC_TYPE = {
+    "count": "c",
+    "avg": "d",
+    "quantile(0.50)": "d",
+    "quantile(0.75)": "d",
+    "quantile(0.95)": "d",
+    "quantile(0.99)": "d",
+    "max": "d",
+    # not supported yet
+    "percentile": None,
+    "failure_rate": None,
+    "apdex": None,
+}
+
+
 def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
     """
     Returns generic metric extraction config for the given project.
@@ -145,29 +184,91 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
     if not alert.is_custom_metric:
         return None
 
-    # TODO: Determine these based on the alert.snuba_query.field:
-    metric_type = "c"
-    metric_unit = "none"
-    field = None
+    try:
+        query = alert.snuba_query.query
+        field, metric_type = _extract_field_info(alert.snuba_query.aggregate)
 
-    condition = _convert_alert_query_to_condition(alert.snuba_query.query)
-    query_hash = str(alert.id)  # TODO: Hash field + condition
+        condition = _convert_alert_query_to_condition(query)
+        query_hash = _get_query_hash(field, query)
 
-    return {
-        "category": DataCategory.TRANSACTION.api_name(),
-        "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@{metric_unit}",
-        "field": field,
-        "condition": condition,
-        "tags": [{"key": "query_hash", "value": query_hash}],
-    }
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
+            "field": field,
+            "condition": condition,
+            "tags": [{"key": "query_hash", "value": query_hash}],
+        }
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        return None
+
+
+def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str]:
+    select = _get_query_builder().resolve_column(aggregate, False)
+
+    metric_type = _AGGREGATE_TO_METRIC_TYPE.get(select.function)
+    assert metric_type, f"Unsupported aggregate function {select.function}"
+
+    if metric_type == "c":
+        assert not select.parameters, "Count should not have parameters"
+        return None, metric_type
+    else:
+        assert len(select.parameters) == 1, "Only one parameter is supported"
+
+        name = select.parameters[0].name
+        assert name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {name}"
+
+        return _SNUBA_TO_RELAY_FIELDS[name], metric_type
 
 
 def _convert_alert_query_to_condition(query: str) -> RuleCondition:
-    # TODO: Parse and convert the query using QueryBuilder
+    where, having = _get_query_builder().resolve_conditions(query, False)
+
+    assert where, "Query should not use on demand metrics"
+    assert not having, "Having conditions are not supported"
+
+    where = [c for c in (_convert_condition(c) for c in where) if c is not None]
+
+    if len(where) == 1:
+        return where[0]
+    else:
+        return {"op": "and", "inner": where}
+
+
+def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optional[RuleCondition]:
+    if isinstance(condition, BooleanCondition):
+        return cast(
+            RuleCondition,
+            {
+                "op": condition.op.name.lower(),
+                "inner": [_convert_condition(c) for c in condition.conditions],
+            },
+        )
+
+    assert isinstance(condition, Condition), f"Unsupported condition type {type(condition)}"
+
+    # TODO: Currently we do not support function conditions like count_if
+    if not isinstance(condition.lhs, Column):
+        return None
+
+    assert condition.lhs.name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {condition.lhs.name}"
+
     return {
-        "op": "and",
-        "inner": [],
+        "op": condition.op.name.lower(),
+        "name": _SNUBA_TO_RELAY_FIELDS[condition.lhs.name],
+        "value": condition.rhs,
     }
+
+
+def _get_query_hash(name: Optional[str], filters: str) -> str:
+    return hashlib.shake_128(bytes(f"{name};{filters}", encoding="ascii")).hexdigest(4)
+
+
+def _get_query_builder() -> QueryBuilder:
+    return QueryBuilder(
+        dataset=Dataset.Transactions,
+        params={"start": datetime.now(), "end": datetime.now()},
+    )
 
 
 # CONDITIONAL TAGGING
