@@ -85,7 +85,7 @@ class TestSentryAppIntallationDeletionTask(TestCase):
 
         # The QuerySet will automatically NOT include deleted installs, so we
         # use a raw sql query to ensure it still exists.
-        c = get_connection(router.db_for_write(SentryAppInstallation))
+        c = get_connection(router.db_for_write(SentryAppInstallation)).cursor()
         c.execute(
             "SELECT COUNT(1) "
             "FROM sentry_sentryappinstallation "
