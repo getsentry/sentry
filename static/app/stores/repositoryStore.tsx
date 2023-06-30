@@ -11,6 +11,7 @@ type State = {
 
 interface RepositoryStoreDefinition extends StoreDefinition {
   get(): State;
+  init(): void;
   loadRepositories(orgSlug: string): void;
   loadRepositoriesError(error: Error): void;
   loadRepositoriesSuccess(data: Repository[]): void;
