@@ -86,7 +86,6 @@ class Login extends Component<Props, State> {
   }
 
   render() {
-    const {api} = this.props;
     const {loading, error, activeTab, authConfig} = this.state;
 
     const FormComponent = FORM_COMPONENTS[activeTab];
@@ -139,7 +138,7 @@ class Login extends Component<Props, State> {
                 )}
               </Alert>
             )}
-            <FormComponent {...{api, authConfig}} />
+            <FormComponent {...{authConfig}} />
           </FormWrapper>
         )}
       </Fragment>
