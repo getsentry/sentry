@@ -1190,7 +1190,6 @@ module = [
     "tests.sentry.auth.providers.test_saml2",
     "tests.sentry.auth.test_access",
     "tests.sentry.auth.test_helper",
-    "tests.sentry.auth.test_superuser",
     "tests.sentry.charts.test_chartcuterie",
     "tests.sentry.data_export.endpoints.test_data_export",
     "tests.sentry.db.models.fields.test_jsonfield",
