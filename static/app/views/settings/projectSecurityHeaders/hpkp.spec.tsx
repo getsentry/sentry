@@ -1,11 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectHpkpReports from 'sentry/views/settings/projectSecurityHeaders/hpkp';
 
 describe('ProjectHpkpReports', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const url = `/projects/${org.slug}/${project.slug}/hpkp/`;
+  const {organization: org, project, routerProps} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -23,14 +22,7 @@ describe('ProjectHpkpReports', function () {
 
   it('renders', function () {
     const {container} = render(
-      <ProjectHpkpReports
-        organization={org}
-        project={project}
-        {...TestStubs.routerProps({
-          params: {orgId: org.slug, projectId: project.slug},
-          location: TestStubs.location({pathname: url}),
-        })}
-      />
+      <ProjectHpkpReports {...routerProps} organization={org} />
     );
     expect(container).toSnapshot();
   });
