@@ -81,7 +81,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             for condition in rule.data["conditions"]:
                 if is_condition_slow(condition):
                     slow_rules += 1
-                break
+                    break
 
         if slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
             return Response(
