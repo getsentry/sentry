@@ -190,7 +190,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
-                alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
+
+                # Mark rule for deletion if present and monitor is being deleted
+                monitor = monitor_objects.first()
+                alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
                 if alert_rule_id:
                     rule = (
                         Rule.objects.filter(
