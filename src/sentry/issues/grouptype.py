@@ -18,7 +18,7 @@ class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
     PROFILE = 3
-    MONITOR = 4
+    CRONS = 4
     REPLAY = 5
 
 
@@ -344,7 +344,7 @@ class MonitorCheckInFailure(GroupType):
     type_id = 4001
     slug = "monitor_check_in_failure"
     description = "Monitor Check In Failed"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRONS.value
     released = True
 
 
@@ -353,7 +353,7 @@ class MonitorCheckInTimeout(GroupType):
     type_id = 4002
     slug = "monitor_check_in_timeout"
     description = "Monitor Check In Timeout"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRONS.value
     released = True
 
 
@@ -362,7 +362,7 @@ class MonitorCheckInMissed(GroupType):
     type_id = 4003
     slug = "monitor_check_in_missed"
     description = "Monitor Check In Missed"
-    category = GroupCategory.MONITOR.value
+    category = GroupCategory.CRONS.value
     released = True
 
 
