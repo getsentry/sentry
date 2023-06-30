@@ -306,7 +306,7 @@ export class DeprecatedLine extends Component<Props, State> {
             </SuspectFrameTag>
           ) : null}
           {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
-          {this.renderExpander()}
+          <ExpanderWrapper>{this.renderExpander()}</ExpanderWrapper>
         </DefaultLine>
       </StrictClick>
     );
@@ -527,4 +527,9 @@ const IconWrapper = styled('div')`
 
 const SuspectFrameTag = styled(Tag)`
   margin-right: ${space(1)};
+`;
+
+const ExpanderWrapper = styled('div')`
+  width: ${p => p.theme.iconSizes.sm};
+  margin-left: ${space(1)};
 `;
