@@ -87,7 +87,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
  * Performance type can used to determine a default view or which specific field should be used by default on pages
  * where we don't want to wait for transaction data to return to determine how to display aspects of a page.
  */
-export enum PROJECT_PERFORMANCE_TYPE {
+export enum ProjectPerformanceType {
   ANY = 'any', // Fallback to transaction duration
   FRONTEND = 'frontend',
   BACKEND = 'backend',
@@ -110,7 +110,7 @@ export function platformToPerformanceType(
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
 
   const selectedProjects = projects.filter(p =>
@@ -118,27 +118,27 @@ export function platformToPerformanceType(
   );
 
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
 
-  const projectPerformanceTypes = new Set<PROJECT_PERFORMANCE_TYPE>();
+  const projectPerformanceTypes = new Set<ProjectPerformanceType>();
 
   selectedProjects.forEach(project => {
     if (FRONTEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.FRONTEND);
+      projectPerformanceTypes.add(ProjectPerformanceType.FRONTEND);
     }
     if (BACKEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.BACKEND);
+      projectPerformanceTypes.add(ProjectPerformanceType.BACKEND);
     }
     if (MOBILE_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.MOBILE);
+      projectPerformanceTypes.add(ProjectPerformanceType.MOBILE);
     }
   });
 
   const uniquePerformanceTypeCount = projectPerformanceTypes.size;
 
   if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
   const [platformType] = projectPerformanceTypes;
   return platformType;
@@ -152,11 +152,11 @@ export function platformAndConditionsToPerformanceType(
   eventView: EventView
 ) {
   const performanceType = platformToPerformanceType(projects, eventView.project);
-  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+  if (performanceType === ProjectPerformanceType.FRONTEND) {
     const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
-      return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
+      return ProjectPerformanceType.FRONTEND_OTHER;
     }
   }
 
@@ -169,16 +169,16 @@ export function platformAndConditionsToPerformanceType(
 export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
-    PROJECT_PERFORMANCE_TYPE.FRONTEND
+    ProjectPerformanceType.FRONTEND
   );
 }
 
 export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
+      ProjectPerformanceType.FRONTEND ||
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+      ProjectPerformanceType.FRONTEND_OTHER
   );
 }
 
@@ -235,13 +235,15 @@ export function trendsTargetRoute({
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  if (conditions.hasFilter('tpm()')) {
-    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-  } else {
-    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-  }
-  // Metrics don't support duration filters
+  // Trends on metrics don't need these conditions
   if (!organization.features.includes('performance-new-trends')) {
+    // No need to carry over tpm filters to transaction summary
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+    } else {
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+    }
+
     if (conditions.hasFilter('transaction.duration')) {
       modifiedConditions.setFilterValues(
         'transaction.duration',
@@ -356,17 +358,24 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProjectID(
+export function getProject(
   eventData: EventData,
   projects: Project[]
-): string | undefined {
+): Project | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
     return undefined;
   }
 
-  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug);
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  return getProject(eventData, projects)?.id;
 }
 
 export function transformTransaction(

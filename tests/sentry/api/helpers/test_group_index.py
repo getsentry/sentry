@@ -6,6 +6,7 @@ from django.http import QueryDict
 
 from sentry.api.helpers.group_index import update_groups, validate_search_filter_permissions
 from sentry.api.helpers.group_index.update import (
+    handle_assigned_to,
     handle_has_seen,
     handle_is_bookmarked,
     handle_is_public,
@@ -23,12 +24,14 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    GroupSubStatus,
     add_group_to_inbox,
 )
+from sentry.models.actor import ActorTuple
+from sentry.models.groupassignee import GroupAssignee
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 
 
 class ValidateSearchFilterPermissionsTest(TestCase):
@@ -183,14 +186,14 @@ class UpdateGroupsTest(TestCase):
         for data in [
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved", "substatus": "ongoing"},
                 "expected_substatus": GroupSubStatus.ONGOING,
@@ -376,3 +379,56 @@ class TestHandleIsPublic(TestCase):
             group=self.group, type=ActivityType.SET_PUBLIC.value
         ).exists()
         assert share_id is None
+
+
+class TestHandleAssignedTo(TestCase):
+    def setUp(self) -> None:
+        self.group = self.create_group()
+        self.group_list = [self.group]
+        self.project_lookup = {self.group.project_id: self.group.project}
+
+    @patch("sentry.analytics.record")
+    def test_assigned_to(self, mock_record: Mock) -> None:
+        assigned_to = handle_assigned_to(
+            ActorTuple.from_actor_identifier(self.user.id),
+            None,
+            None,
+            self.group_list,
+            self.project_lookup,
+            self.user,
+        )
+
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+        assert assigned_to == {
+            "email": self.user.email,
+            "id": str(self.user.id),
+            "name": self.user.username,
+            "type": "user",
+        }
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=False,
+        )
+
+    @patch("sentry.analytics.record")
+    def test_unassign(self, mock_record: Mock) -> None:
+        assigned_to = handle_assigned_to(
+            None, None, None, self.group_list, self.project_lookup, self.user
+        )
+
+        assert not GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
+
+        assert assigned_to is None
+        mock_record.assert_called_with(
+            "manual.issue_assignment",
+            group_id=self.group.id,
+            organization_id=self.group.project.organization_id,
+            project_id=self.group.project_id,
+            assigned_by=None,
+            had_to_deassign=True,
+        )

@@ -420,16 +420,21 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const url = `/organizations/${orgSlug}/${route}/`;
   const apiPayload = getPayload<T, P>(props);
 
-  return useQuery<T, QueryError>(
+  const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
     [route, apiPayload],
-    async () => {
-      const [resp] = await doDiscoverQuery<T>(api, url, apiPayload, {
+    () =>
+      doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
-      });
-      return resp;
-    },
+      }),
     options
   );
+
+  return {
+    ...res,
+    data: res.data?.[0] ?? undefined,
+    statusCode: res.data?.[1] ?? undefined,
+    response: res.data?.[2] ?? undefined,
+  };
 }
 
 export default GenericDiscoverQuery;

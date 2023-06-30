@@ -19,7 +19,8 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
-from sentry.models import ApiKey, Organization, Project, ReleaseProject
+from sentry.models import Organization, Project, ReleaseProject
+from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
@@ -170,6 +171,15 @@ class OrganizationAlertRulePermission(OrganizationPermission):
         "POST": ["org:write", "org:admin", "alert_rule:write"],
         "PUT": ["org:write", "org:admin", "alert_rule:write"],
         "DELETE": ["org:write", "org:admin", "alert_rule:write"],
+    }
+
+
+class OrgAuthTokenPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:write", "org:admin"],
     }
 
 
@@ -425,7 +435,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         detail in the parent class's method of the same name.
         """
         has_valid_api_key = False
-        if isinstance(request.auth, ApiKey):
+        if is_api_key_auth(request.auth):
             if request.auth.organization_id != organization.id:
                 return []
             has_valid_api_key = request.auth.has_scope(

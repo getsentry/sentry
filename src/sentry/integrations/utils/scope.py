@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import cast
+from typing import Any, Mapping, Sequence
 
 from sentry_sdk import configure_scope
 
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.sdk import bind_ambiguous_org_context, bind_organization_context
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ def clear_tags_and_context() -> None:
             logger.info("We've reset the context and tags.")
 
 
-def get_orgs_from_integration(integration_id: int) -> list[Organization]:
+def get_orgs_from_integration(integration_id: int) -> Sequence[Organization]:
     """
     Given the id of an `Integration`, return a list of associated `Organization` objects.
 
@@ -47,23 +46,30 @@ def get_orgs_from_integration(integration_id: int) -> list[Organization]:
         [org_integration.organization_id for org_integration in org_integrations]
     )
 
-    return cast("list[Organization]", orgs)
+    return orgs
 
 
-def bind_org_context_from_integration(integration_id: int) -> None:
+def bind_org_context_from_integration(
+    integration_id: int, extra: Mapping[str, Any] | None = None
+) -> None:
     """
-    Given the id of an Integration, get the associated org(s) and bind that data to the scope.
+    Given the id of an Integration or an RpcIntegration, get the associated org(s) and bind that
+    data to the scope.
 
     Note: An `Integration` is an instance of given provider's integration, tied to a single entity
     on the provider's end (for example, an instance of the GitHub integration tied to a particular
     GitHub org, or an instance of the Slack integration tied to a particular Slack workspace), which
-    can be shared by multiple orgs.
+    can be shared by multiple orgs. Also, it doesn't matter whether the passed id comes from an
+    Integration or an RpcIntegration object, because corresponding ones share the same id.
     """
 
     orgs = get_orgs_from_integration(integration_id)
 
     if len(orgs) == 0:
-        raise IntegrationError(f"No orgs are associated with integration id={integration_id}")
+        logger.warning(
+            f"Can't bind org context - no orgs are associated with integration id={integration_id}.",
+            extra=extra,
+        )
     elif len(orgs) == 1:
         bind_organization_context(orgs[0])
     else:

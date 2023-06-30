@@ -1,49 +1,71 @@
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import {space} from 'sentry/styles/space';
-import {CheckIn, CheckInStatus} from 'sentry/views/monitors/types';
+import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
+import {
+  MonitorBucketData,
+  TimeWindow,
+} from 'sentry/views/monitors/components/overviewTimeline/types';
+import {CheckInStatus} from 'sentry/views/monitors/types';
+import {getColorsFromStatus} from 'sentry/views/monitors/utils';
+import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
+import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
 
 interface Props {
-  checkins: CheckIn[];
+  bucketedData: MonitorBucketData;
   end: Date;
   start: Date;
+  timeWindow: TimeWindow;
   width?: number;
 }
 
-function getColorFromStatus(status: CheckInStatus, theme: Theme) {
-  const statusToColor: Record<CheckInStatus, string> = {
-    [CheckInStatus.ERROR]: theme.red200,
-    [CheckInStatus.TIMEOUT]: theme.red200,
-    [CheckInStatus.OK]: theme.green200,
-    [CheckInStatus.MISSED]: theme.yellow200,
-    [CheckInStatus.IN_PROGRESS]: theme.disabled,
-  };
-  return statusToColor[status];
-}
-
-function getCheckInPosition(checkDate: string, timelineStart: Date, msPerPixel: number) {
-  const elapsedSinceStart = new Date(checkDate).getTime() - timelineStart.getTime();
+function getBucketedCheckInsPosition(
+  timestamp: number,
+  timelineStart: Date,
+  msPerPixel: number
+) {
+  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
   return elapsedSinceStart / msPerPixel;
 }
 
 export function CheckInTimeline(props: Props) {
-  const {checkins, start, end} = props;
+  const {bucketedData, start, end, timeWindow} = props;
 
   function renderTimelineWithWidth(width: number) {
-    const timeWindow = end.getTime() - start.getTime();
-    const msPerPixel = timeWindow / width;
+    const elapsedMs = end.getTime() - start.getTime();
+    const msPerPixel = elapsedMs / width;
+
+    const jobTicks = mergeBuckets(bucketedData);
 
     return (
       <TimelineContainer>
-        {checkins.map(({id, dateCreated, status}) => {
-          const left = getCheckInPosition(dateCreated, start, msPerPixel);
-          if (left < 0) {
-            return null;
-          }
+        {jobTicks.map(jobTick => {
+          const {
+            startTs,
+            width: tickWidth,
+            envMapping,
+            roundedLeft,
+            roundedRight,
+          } = jobTick;
+          const timestampMs = startTs * 1000;
+          const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
-          return <JobTick key={id} left={left} status={status} />;
+          return (
+            <JobTickTooltip
+              jobTick={jobTick}
+              timeWindow={timeWindow}
+              skipWrapper
+              key={startTs}
+            >
+              <JobTick
+                style={{left, width: tickWidth}}
+                status={getAggregateStatus(envMapping)}
+                roundedLeft={roundedLeft}
+                roundedRight={roundedRight}
+              />
+            </JobTickTooltip>
+          );
         })}
       </TimelineContainer>
     );
@@ -59,15 +81,28 @@ export function CheckInTimeline(props: Props) {
 const TimelineContainer = styled('div')`
   position: relative;
   height: 14px;
-  margin: ${space(4)} 0;
+  margin: ${space(2)} 0;
 `;
 
-const JobTick = styled('div')<{left: number; status: CheckInStatus}>`
+const JobTick = styled('div')<{
+  roundedLeft: boolean;
+  roundedRight: boolean;
+  status: CheckInStatus;
+}>`
   position: absolute;
+  background: ${p => getColorsFromStatus(p.status, p.theme).tickColor};
   width: 4px;
   height: 14px;
-  border-radius: 6px;
-  left: ${p => p.left}px;
-
-  background: ${p => getColorFromStatus(p.status, p.theme)};
+  ${p =>
+    p.roundedLeft &&
+    `
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+  `}
+  ${p =>
+    p.roundedRight &&
+    `
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+  `}
 `;

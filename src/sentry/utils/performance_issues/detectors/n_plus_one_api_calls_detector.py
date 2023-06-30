@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import random
 from collections import defaultdict
 from datetime import timedelta
 from typing import List, Mapping, Optional, Sequence
@@ -43,10 +42,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
-    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    HOST_DENYLIST = []
+    HOST_DENYLIST: list[str] = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
@@ -88,7 +87,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project=None):

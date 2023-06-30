@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.utils import timezone
-from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -55,9 +55,7 @@ DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
-    return cast(
-        str, get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
-    )
+    return get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -276,7 +274,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(str, CURSOR_LINK_HEADER).format(
+        return CURSOR_LINK_HEADER.format(
             uri=base_url,
             cursor=str(cursor),
             name=name,

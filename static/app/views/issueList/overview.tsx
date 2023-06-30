@@ -26,6 +26,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
+import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
@@ -62,6 +63,7 @@ import GroupListBody from './groupListBody';
 import IssueListHeader from './header';
 import {
   DEFAULT_ISSUE_STREAM_SORT,
+  FOR_REVIEW_QUERIES,
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
@@ -263,6 +265,7 @@ class IssueListOverview extends Component<Props, State> {
 
   componentWillUnmount() {
     this._poller.disable();
+    SelectedGroupStore.reset();
     GroupStore.reset();
     this.props.api.clear();
     this.listener?.();
@@ -302,7 +305,12 @@ class IssueListOverview extends Component<Props, State> {
       return location.query.sort as string;
     }
 
-    return DEFAULT_ISSUE_STREAM_SORT;
+    const hasBetterPrioritySort = this.props.organization.features.includes(
+      'issue-list-better-priority-sort'
+    );
+    return hasBetterPrioritySort
+      ? IssueSortOptions.BETTER_PRIORITY
+      : DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {
@@ -769,8 +777,7 @@ class IssueListOverview extends Component<Props, State> {
         ignoredIds.length > 0 &&
         (query.includes('is:unresolved') || isForReviewQuery(query))
       ) {
-        const hasEscalatingIssues =
-          organization.features.includes('escalating-issues-ui');
+        const hasEscalatingIssues = organization.features.includes('escalating-issues');
         this.onIssueAction(ignoredIds, hasEscalatingIssues ? 'Archived' : 'Ignored');
       }
       // Remove issues that are marked as Reviewed from the For Review tab, but still include the
@@ -844,21 +851,7 @@ class IssueListOverview extends Component<Props, State> {
       organization: this.props.organization,
       sort,
     });
-    if (sort === IssueSortOptions.BETTER_PRIORITY) {
-      this.transitionTo({
-        sort,
-        statsPeriod: '7d',
-        logLevel: 0,
-        hasStacktrace: 0,
-        eventHalflifeHours: 4,
-        issueHalflifeHours: 24 * 7,
-        v2: false,
-        norm: false,
-        relativeVolume: 1,
-      });
-    } else {
-      this.transitionTo({sort});
-    }
+    this.transitionTo({sort});
   };
 
   onCursorChange: CursorHandler = (nextCursor, _path, _query, delta) => {
@@ -929,8 +922,10 @@ class IssueListOverview extends Component<Props, State> {
       path = `/organizations/${organization.slug}/issues/`;
     }
 
-    // Remove inbox tab specific sort
-    if (query.sort === IssueSortOptions.INBOX && query.query !== Query.FOR_REVIEW) {
+    if (
+      query.sort === IssueSortOptions.INBOX &&
+      !FOR_REVIEW_QUERIES.includes(query.query || '')
+    ) {
       delete query.sort;
     }
 

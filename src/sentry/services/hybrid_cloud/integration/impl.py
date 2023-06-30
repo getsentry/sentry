@@ -49,9 +49,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return False
 
-    def close(self) -> None:
-        pass
-
     def page_integration_ids(
         self,
         *,
@@ -154,6 +151,8 @@ class DatabaseBackedIntegrationService(IntegrationService):
         try:
             integration = Integration.objects.get(**integration_kwargs)
         except Integration.DoesNotExist:
+            return None
+        except Integration.MultipleObjectsReturned:
             return None
         return serialize_integration(integration)
 
@@ -395,3 +394,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
             client.send_card(channel, attachment)
         except ApiError:
             logger.info("rule.fail.msteams_post", exc_info=True)
+
+    def delete_integration(self, *, integration_id: int) -> None:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return
+        integration.delete()

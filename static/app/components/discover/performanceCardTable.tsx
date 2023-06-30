@@ -21,7 +21,7 @@ import {
   MOBILE_VITAL_DETAILS,
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
-import {PROJECT_PERFORMANCE_TYPE} from 'sentry/views/performance/utils';
+import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 type PerformanceCardTableProps = {
   allReleasesEventView: EventView;
@@ -612,25 +612,25 @@ function PerformanceCardTable({
   const loader = <StyledLoadingIndicator />;
 
   const platformPerformanceRender = {
-    [PROJECT_PERFORMANCE_TYPE.FRONTEND]: {
+    [ProjectPerformanceType.FRONTEND]: {
       title: t('Frontend Performance'),
       section: renderFrontendPerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.BACKEND]: {
+    [ProjectPerformanceType.BACKEND]: {
       title: t('Backend Performance'),
       section: renderBackendPerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.MOBILE]: {
+    [ProjectPerformanceType.MOBILE]: {
       title: t('Mobile Performance'),
       section: renderMobilePerformance(),
     },
-    [PROJECT_PERFORMANCE_TYPE.ANY]: {
+    [ProjectPerformanceType.ANY]: {
       title: t('[Unknown] Performance'),
       section: renderUnknownPerformance(),
     },
   };
 
-  const isUnknownPlatform = performanceType === PROJECT_PERFORMANCE_TYPE.ANY;
+  const isUnknownPlatform = performanceType === ProjectPerformanceType.ANY;
 
   return (
     <Fragment>

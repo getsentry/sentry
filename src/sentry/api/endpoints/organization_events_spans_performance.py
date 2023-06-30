@@ -24,8 +24,9 @@ from sentry.models import Organization
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset, SnubaTSResult, raw_snql_query
+from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
@@ -701,7 +702,7 @@ def get_span_description(
     span_op: str,
     span_group: str,
 ) -> Optional[str]:
-    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
+    nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
     # the transaction itself is a span as well, so make sure to check it
@@ -724,7 +725,7 @@ def get_example_transaction(
     max_exclusive_time: Optional[float] = None,
 ) -> ExampleTransaction:
     span_group_id = int(span_group, 16)
-    nodestore_event = eventstore.get_event_by_id(event.project_id, event.event_id)
+    nodestore_event = eventstore.backend.get_event_by_id(event.project_id, event.event_id)
     data = nodestore_event.data
 
     # the transaction itself is a span as well but we need to reconstruct

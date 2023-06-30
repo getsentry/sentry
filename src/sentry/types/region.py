@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Collection, Container, Iterable, Set
+from typing import Any, Collection, Container, Iterable, Set
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -10,9 +10,6 @@ from django.conf import settings
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo import SiloMode
 from sentry.utils import json
-
-if TYPE_CHECKING:
-    from sentry.models import Organization
 
 
 class RegionCategory(Enum):
@@ -73,6 +70,7 @@ class Region:
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             and self.category == RegionCategory.MULTI_TENANT
             and region_url_template is not None
+            and self.name != settings.SENTRY_MONOLITH_REGION
         ):
             expected_address = generate_region_url(self.name)
             if self.address != expected_address:
@@ -112,12 +110,31 @@ class GlobalRegionDirectory:
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
 
+    def validate_all(self) -> None:
+        for region in self.regions:
+            region.validate()
 
-def _parse_config(region_config: str) -> Iterable[Region]:
-    config_values = json.loads(region_config)
+
+def _parse_config(region_config: Any) -> Iterable[Region]:
+    if isinstance(region_config, (str, bytes)):
+        config_values = json.loads(region_config)
+    else:
+        config_values = region_config
+
+    if not isinstance(config_values, (list, tuple)):
+        config_values = [config_values]
+
     for config_value in config_values:
-        config_value["category"] = RegionCategory[config_value["category"]]
-        yield Region(**config_value)
+        if isinstance(config_value, Region):
+            yield config_value
+        else:
+            config_value["category"] = RegionCategory[config_value["category"]]
+            yield Region(**config_value)
+
+
+def load_from_config(region_config: Any) -> GlobalRegionDirectory:
+    region_objs = list(_parse_config(region_config))
+    return GlobalRegionDirectory(region_objs)
 
 
 _global_regions: GlobalRegionDirectory | None = None
@@ -133,10 +150,7 @@ def load_global_regions() -> GlobalRegionDirectory:
     # For now, assume that all region configs can be taken in through Django
     # settings. We may investigate other ways of delivering those configs in
     # production.
-    config = settings.SENTRY_REGION_CONFIG
-    if isinstance(config, str):
-        config = list(_parse_config(config))
-    _global_regions = GlobalRegionDirectory(config)
+    _global_regions = load_from_config(settings.SENTRY_REGION_CONFIG)
     return _global_regions
 
 
@@ -153,21 +167,16 @@ def get_region_by_name(name: str) -> Region:
         raise RegionResolutionError(f"No region with name: {name!r}")
 
 
-def get_region_for_organization(organization: Organization) -> Region:
-    """Resolve an organization to the region where its data is stored.
+@control_silo_function
+def get_region_for_organization(organization_slug: str) -> Region:
+    """Resolve an organization to the region where its data is stored."""
+    from sentry.models.organizationmapping import OrganizationMapping
 
-    Raises RegionContextError if this Sentry platform instance is configured to
-    run only in monolith mode.
-    """
-    mapping = load_global_regions()
+    mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
+    if not mapping:
+        raise RegionResolutionError(f"Organization {organization_slug} has no associated mapping.")
 
-    if not mapping.regions:
-        raise RegionContextError("No regions are configured")
-
-    # Backend representation to be determined. If you are working on code
-    # that depends on this method, you can mock it out in unit tests or
-    # temporarily hard-code a placeholder.
-    raise NotImplementedError
+    return get_region_by_name(name=mapping.region_name)
 
 
 def get_local_region() -> Region:

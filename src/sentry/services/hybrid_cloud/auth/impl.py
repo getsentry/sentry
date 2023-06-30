@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping
+from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -15,7 +15,8 @@ from sentry.models import (
     ApiToken,
     AuthIdentity,
     AuthProvider,
-    OrganizationMember,
+    OrganizationMemberMapping,
+    OrgAuthToken,
     SentryAppInstallationToken,
     User,
 )
@@ -40,15 +41,12 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
-from sentry.utils.types import Any
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
-# When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
-# than the OrganizationMember type.
-def query_sso_state(
+def _query_sso_state(
     organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
 ) -> RpcMemberSsoState:
     """
@@ -83,44 +81,37 @@ def query_sso_state(
             )
         except AuthIdentity.DoesNotExist:
             sso_is_valid = False
-            # If an owner is trying to gain access,
-            # allow bypassing SSO if there are no other
-            # owners with SSO enabled.
-            if roles.get_top_dog().id in organization_service.get_all_org_roles(
-                member_id=member.id
-            ):
-
-                def get_user_ids(org_id: int, mem_id: int) -> Any:
-                    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-                        organization_id=org_id
-                    )
-                    return (
-                        OrganizationMember.objects.filter(
-                            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
-                            organization_id=org_id,
-                            user__is_active=True,
-                        )
-                        .exclude(id=mem_id)
-                        .values_list("user_id")
-                    )
-
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    # Giant hack for now until we have control silo org membership table.
-                    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                        SiloMode.MONOLITH
-                    ):
-                        user_ids = get_user_ids(member.organization_id, member.id)
-                else:
-                    user_ids = get_user_ids(member.organization_id, member.id)
-
-                requires_sso = AuthIdentity.objects.filter(
-                    auth_provider=auth_provider,
-                    user__in=user_ids,
-                ).exists()
+            requires_sso = not _can_override_sso_as_owner(auth_provider, member)
         else:
             sso_is_valid = auth_identity.is_valid(member)
 
     return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+
+
+def _can_override_sso_as_owner(
+    auth_provider: AuthProvider, member: RpcOrganizationMemberSummary
+) -> bool:
+    """If an owner is trying to gain access, allow bypassing SSO if there are no
+    other owners with SSO enabled.
+    """
+
+    org_roles = organization_service.get_all_org_roles(member_id=member.id)
+    if roles.get_top_dog().id not in org_roles:
+        return False
+
+    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
+        organization_id=member.organization_id
+    )
+    user_ids = (
+        OrganizationMemberMapping.objects.filter(
+            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
+            organization_id=member.organization_id,
+            user__is_active=True,
+        )
+        .exclude(id=member.id)
+        .values_list("user_id")
+    )
+    return not AuthIdentity.objects.filter(auth_provider=auth_provider, user__in=user_ids).exists()
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -216,7 +207,7 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int | None,
         org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
-        sso_state = query_sso_state(
+        sso_state = _query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
         permissions: List[str] = list()
@@ -229,9 +220,6 @@ class DatabaseBackedAuthService(AuthService):
             sso_state=sso_state,
             permissions=permissions,
         )
-
-    def close(self) -> None:
-        pass
 
     def get_org_ids_with_scim(
         self,
@@ -330,6 +318,7 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
+AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
 
 

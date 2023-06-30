@@ -1,20 +1,23 @@
+from __future__ import annotations
+
 import unittest
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType
-from sentry.utils.performance_issues.detectors import NPlusOneDBSpanDetectorExtended
+from sentry.utils.performance_issues.detectors.n_plus_one_db_span_detector import (
+    NPlusOneDBSpanDetectorExtended,
+)
 from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test
@@ -22,16 +25,16 @@ from sentry.utils.performance_issues.performance_detection import (
 class NPlusOneDbDetectorTest(unittest.TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
     def find_problems(
-        self, event: Event, setting_overides: Dict[str, Any] = None
-    ) -> List[PerformanceProblem]:
+        self, event: dict[str, Any], setting_overides: dict[str, Any] | None = None
+    ) -> list[PerformanceProblem]:
         if setting_overides:
             for option_name, value in setting_overides.items():
-                self.settings[DetectorType.N_PLUS_ONE_DB_QUERIES][option_name] = value
+                self._settings[DetectorType.N_PLUS_ONE_DB_QUERIES][option_name] = value
 
-        detector = NPlusOneDBSpanDetectorExtended(self.settings, event)
+        detector = NPlusOneDBSpanDetectorExtended(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 

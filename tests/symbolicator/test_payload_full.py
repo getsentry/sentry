@@ -96,7 +96,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             yield
 
     def get_event(self, event_id):
-        return eventstore.get_event_by_id(self.project.id, event_id)
+        return eventstore.backend.get_event_by_id(self.project.id, event_id)
 
     def test_real_resolving(self):
         url = reverse(
@@ -397,7 +397,6 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         with override_options(
             {
                 "symbolicator.sourcemaps-processing-sample-rate": 1.0,
-                "symbolicator.sourcemap-lookup-id-rate": 1.0,
             }
         ):
             event = self.post_and_retrieve_event(data)

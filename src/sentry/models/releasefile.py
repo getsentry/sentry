@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import errno
 import logging
 import os
@@ -6,7 +8,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Optional, Tuple
+from typing import IO, ClassVar, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -22,9 +24,9 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.models import clear_cached_files
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
+from sentry.models.files.utils import clear_cached_files
 from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
@@ -83,6 +85,8 @@ class ReleaseFile(Model):
 
     objects = BaseManager()  # The default manager.
     public_objects = PublicReleaseFileManager()
+
+    cache: ClassVar[ReleaseFileCache]
 
     class Meta:
         unique_together = (("release_id", "ident"),)
@@ -207,7 +211,7 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+    def get_file_by_url(self, url: str) -> Tuple[IO[bytes], dict]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.

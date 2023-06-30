@@ -34,15 +34,13 @@ INSUFFICIENT_ROLE_MESSAGE = "You must be a Sentry admin, manager, or owner to li
 
 def is_team_linked_to_channel(organization: Organization, slack_request: SlackDMRequest) -> bool:
     """Check if a Slack channel already has a team linked to it"""
-    # Explicitly typing to satisfy mypy.
-    is_linked: bool = ExternalActor.objects.filter(
+    return ExternalActor.objects.filter(
         organization_id=organization.id,
         integration_id=slack_request.integration.id,
         provider=ExternalProviders.SLACK.value,
         external_name=slack_request.channel_name,
         external_id=slack_request.channel_id,
     ).exists()
-    return is_linked
 
 
 @region_silo_endpoint

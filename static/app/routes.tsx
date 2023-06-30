@@ -940,9 +940,16 @@ function buildRoutes() {
         />
         <Route
           path="new-token/"
-          name={t('Create New Token')}
+          name={t('Create New Auth Token')}
           component={make(
             () => import('sentry/views/settings/organizationAuthTokens/newAuthToken')
+          )}
+        />
+        <Route
+          path=":tokenId/"
+          name={t('Edit Auth Token')}
+          component={make(
+            () => import('sentry/views/settings/organizationAuthTokens/authTokenDetails')
           )}
         />
       </Route>
@@ -1347,7 +1354,7 @@ function buildRoutes() {
 
   const replayChildRoutes = (
     <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
+      <IndexRoute component={make(() => import('sentry/views/replays/list'))} />
       <Route
         path=":replaySlug/"
         component={make(() => import('sentry/views/replays/details'))}
@@ -1359,7 +1366,7 @@ function buildRoutes() {
       {usingCustomerDomain && (
         <Route
           path="/replays/"
-          component={withDomainRequired(make(() => import('sentry/views/replays')))}
+          component={withDomainRequired(make(() => import('sentry/views/replays/index')))}
           key="orgless-replays-route"
         >
           {replayChildRoutes}
@@ -1367,7 +1374,7 @@ function buildRoutes() {
       )}
       <Route
         path="/organizations/:orgId/replays/"
-        component={withDomainRedirect(make(() => import('sentry/views/replays')))}
+        component={withDomainRedirect(make(() => import('sentry/views/replays/index')))}
         key="org-replays"
       >
         {replayChildRoutes}
@@ -1668,32 +1675,46 @@ function buildRoutes() {
           () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
         )}
       />
-      <Route
-        path="endpoint-overview/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
-        )}
-      />
-      <Route
-        path="database/"
-        component={make(() => import('sentry/views/starfish/modules/DBModule'))}
-      />
+      <Route path="endpoint-overview/">
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/starfish/views/webServiceView/endpointOverview')
+          )}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
+      <Route path="database/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/DBModule'))}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
       <Route
         path="definitions/"
         component={make(() => import('sentry/views/starfish/views/definitionsView'))}
       />
-      <Route
-        path="api/"
-        component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
-      />
-      <Route
-        path="spans/"
-        component={make(() => import('sentry/views/starfish/views/spans'))}
-      />
-      <Route
-        path="span/:groupId/"
-        component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
-      />
+      <Route path="api/">
+        <IndexRoute
+          component={make(() => import('sentry/views/starfish/modules/HTTPModule'))}
+        />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
+      <Route path="spans/">
+        <IndexRoute component={make(() => import('sentry/views/starfish/views/spans'))} />
+        <Route
+          path="span/:groupId/"
+          component={make(() => import('sentry/views/starfish/views/spanSummaryPage'))}
+        />
+      </Route>
     </Fragment>
   );
   const starfishRoutes = (

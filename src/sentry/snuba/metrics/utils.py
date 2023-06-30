@@ -205,6 +205,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
     "distribution": EntityKey.MetricsDistributions,
+    "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
 }
@@ -222,6 +223,8 @@ FILTERABLE_TAGS = {
     "tags[os.name]",
     "tags[release]",
     "tags[histogram_outlier]",
+    "tags[geo.country_code]",
+    "tags[http.status_code]",
 }
 
 

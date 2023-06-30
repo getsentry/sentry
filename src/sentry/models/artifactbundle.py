@@ -1,11 +1,12 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Optional, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -50,29 +51,37 @@ class ArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
-    bundle_id = models.UUIDField(default=NULL_UUID)
+    bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
+    # name is the same across entities connected to this bundle named *ArtifactBundle.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
-    # This field represents the date of the upload that we show in the UI.
+    # This field represents the date of upload of this bundle, and it's not mutated afterward.
     date_uploaded = models.DateTimeField(default=timezone.now)
+    # This field represents the date in which this bundle was last modified, where modification means that an
+    # association has been added or any of its fields have been modified.
+    date_last_modified = models.DateTimeField(null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundle"
 
     @classmethod
-    def get_release_dist_pair(
+    def get_release_associations(
         cls, organization_id: int, artifact_bundle: "ArtifactBundle"
-    ) -> Tuple[Optional[str], Optional[str]]:
-        try:
-            release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
-                organization_id=organization_id, artifact_bundle=artifact_bundle
-            )[0]
+    ) -> List[Mapping[str, str]]:
+        release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+            organization_id=organization_id, artifact_bundle=artifact_bundle
+        )
 
-            return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
-        except IndexError:
-            return None, None
+        return [
+            {
+                "release": release_artifact_bundle.release_name,
+                "dist": release_artifact_bundle.dist_name or None,
+            }
+            for release_artifact_bundle in release_artifact_bundles
+        ]
 
     @classmethod
     def get_ident(cls, url, dist=None):
@@ -93,10 +102,10 @@ class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250)
+    release_name = models.CharField(max_length=250, db_index=True)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -213,7 +222,7 @@ class ArtifactBundleArchive:
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Tuple[IO, dict]:
+    ) -> Tuple[IO[bytes], dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 

@@ -1,9 +1,8 @@
 import React, {Component} from 'react';
-import {createPortal} from 'react-dom';
-import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
-import color from 'color';
 
+import {Button} from 'sentry/components/button';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -175,11 +174,20 @@ function makeCellActions({
   ) {
     value = 1;
   }
-  const actions: React.ReactNode[] = [];
+  const actions: MenuItemProps[] = [];
 
-  function addMenuItem(action: Actions, menuItem: React.ReactNode) {
+  function addMenuItem(
+    action: Actions,
+    itemLabel: React.ReactNode,
+    itemTextValue?: string
+  ) {
     if ((Array.isArray(allowActions) && allowActions.includes(action)) || !allowActions) {
-      actions.push(menuItem);
+      actions.push({
+        key: action,
+        label: itemLabel,
+        textValue: itemTextValue,
+        onAction: () => handleCellAction(action, value),
+      });
     }
   }
 
@@ -187,28 +195,10 @@ function makeCellActions({
     !['duration', 'number', 'percentage'].includes(column.type) ||
     (value === null && column.column.kind === 'field')
   ) {
-    addMenuItem(
-      Actions.ADD,
-      <ActionItem
-        key="add-to-filter"
-        data-test-id="add-to-filter"
-        onClick={() => handleCellAction(Actions.ADD, value)}
-      >
-        {t('Add to filter')}
-      </ActionItem>
-    );
+    addMenuItem(Actions.ADD, t('Add to filter'));
 
     if (column.type !== 'date') {
-      addMenuItem(
-        Actions.EXCLUDE,
-        <ActionItem
-          key="exclude-from-filter"
-          data-test-id="exclude-from-filter"
-          onClick={() => handleCellAction(Actions.EXCLUDE, value)}
-        >
-          {t('Exclude from filter')}
-        </ActionItem>
-      );
+      addMenuItem(Actions.EXCLUDE, t('Exclude from filter'));
     }
   }
 
@@ -216,53 +206,17 @@ function makeCellActions({
     ['date', 'duration', 'integer', 'number', 'percentage'].includes(column.type) &&
     value !== null
   ) {
-    addMenuItem(
-      Actions.SHOW_GREATER_THAN,
-      <ActionItem
-        key="show-values-greater-than"
-        data-test-id="show-values-greater-than"
-        onClick={() => handleCellAction(Actions.SHOW_GREATER_THAN, value)}
-      >
-        {t('Show values greater than')}
-      </ActionItem>
-    );
+    addMenuItem(Actions.SHOW_GREATER_THAN, t('Show values greater than'));
 
-    addMenuItem(
-      Actions.SHOW_LESS_THAN,
-      <ActionItem
-        key="show-values-less-than"
-        data-test-id="show-values-less-than"
-        onClick={() => handleCellAction(Actions.SHOW_LESS_THAN, value)}
-      >
-        {t('Show values less than')}
-      </ActionItem>
-    );
+    addMenuItem(Actions.SHOW_LESS_THAN, t('Show values less than'));
   }
 
   if (column.column.kind === 'field' && column.column.field === 'release' && value) {
-    addMenuItem(
-      Actions.RELEASE,
-      <ActionItem
-        key="release"
-        data-test-id="release"
-        onClick={() => handleCellAction(Actions.RELEASE, value)}
-      >
-        {t('Go to release')}
-      </ActionItem>
-    );
+    addMenuItem(Actions.RELEASE, t('Go to release'));
   }
 
   if (column.column.kind === 'function' && column.column.function[0] === 'count_unique') {
-    addMenuItem(
-      Actions.DRILLDOWN,
-      <ActionItem
-        key="drilldown"
-        data-test-id="per-cell-drilldown"
-        onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
-      >
-        {t('View Stacks')}
-      </ActionItem>
-    );
+    addMenuItem(Actions.DRILLDOWN, t('View Stacks'));
   }
 
   if (
@@ -272,15 +226,10 @@ function makeCellActions({
   ) {
     addMenuItem(
       Actions.EDIT_THRESHOLD,
-      <ActionItem
-        key="edit_threshold"
-        data-test-id="edit-threshold"
-        onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
-      >
-        {tct('Edit threshold ([threshold]ms)', {
-          threshold: dataRow.project_threshold_config[1],
-        })}
-      </ActionItem>
+      tct('Edit threshold ([threshold]ms)', {
+        threshold: dataRow.project_threshold_config[1],
+      }),
+      t('Edit threshold')
     );
   }
 
@@ -299,167 +248,41 @@ type State = {
 };
 
 class CellAction extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    let portal = document.getElementById('cell-action-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'cell-action-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-    this.menuEl = null;
-  }
-
-  state: State = {
-    isHovering: false,
-    isOpen: false,
-  };
-
-  componentDidUpdate(_props: Props, prevState: State) {
-    if (this.state.isOpen && prevState.isOpen === false) {
-      document.addEventListener('click', this.handleClickOutside, true);
-    }
-    if (this.state.isOpen === false && prevState.isOpen) {
-      document.removeEventListener('click', this.handleClickOutside, true);
-    }
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('click', this.handleClickOutside, true);
-  }
-
-  private portalEl: Element;
-  private menuEl: Element | null;
-
-  handleClickOutside = (event: MouseEvent) => {
-    if (!this.menuEl) {
-      return;
-    }
-    if (!(event.target instanceof Element)) {
-      return;
-    }
-    if (this.menuEl.contains(event.target)) {
-      return;
-    }
-    this.setState({isOpen: false, isHovering: false});
-  };
-
-  handleMouseEnter = () => {
-    this.setState({isHovering: true});
-  };
-
-  handleMouseLeave = () => {
-    this.setState(state => {
-      // Don't hide the button if the menu is open.
-      if (state.isOpen) {
-        return state;
-      }
-      return {...state, isHovering: false};
-    });
-  };
-
-  handleMenuToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    this.setState({isOpen: !this.state.isOpen});
-  };
-
-  renderMenu() {
-    const {isOpen} = this.state;
-
-    const actions = makeCellActions(this.props);
-
-    if (actions === null) {
-      // do not render the menu if there are no per cell actions
-      return null;
-    }
-
-    const modifiers = [
-      {
-        name: 'hide',
-        enabled: false,
-      },
-      {
-        name: 'preventOverflow',
-        enabled: true,
-        options: {
-          padding: 10,
-          altAxis: true,
-        },
-      },
-      {
-        name: 'offset',
-        options: {
-          offset: [0, ARROW_SIZE / 2],
-        },
-      },
-      {
-        name: 'computeStyles',
-        options: {
-          // Using the `transform` attribute causes our borders to get blurry
-          // in chrome. See [0]. This just causes it to use `top` / `left`
-          // positions, which should be fine.
-          //
-          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
-          gpuAcceleration: false,
-        },
-      },
-    ];
-
-    const menu = !isOpen
-      ? null
-      : createPortal(
-          <Popper placement="top" modifiers={modifiers}>
-            {({ref: popperRef, style, placement, arrowProps}) => (
-              <Menu
-                ref={ref => {
-                  (popperRef as Function)(ref);
-                  this.menuEl = ref;
-                }}
-                style={style}
-              >
-                <MenuArrow
-                  ref={arrowProps.ref}
-                  data-placement={placement}
-                  style={arrowProps.style}
-                />
-                <MenuButtons onClick={event => event.stopPropagation()}>
-                  {actions}
-                </MenuButtons>
-              </Menu>
-            )}
-          </Popper>,
-          this.portalEl
-        );
-
-    return (
-      <MenuRoot>
-        <Manager>
-          <Reference>
-            {({ref}) => (
-              <MenuButton ref={ref} onClick={this.handleMenuToggle}>
-                <IconEllipsis size="sm" data-test-id="cell-action" color="linkColor" />
-              </MenuButton>
-            )}
-          </Reference>
-          {menu}
-        </Manager>
-      </MenuRoot>
-    );
-  }
-
   render() {
     const {children} = this.props;
-    const {isHovering} = this.state;
+    const cellActions = makeCellActions(this.props);
 
     return (
-      <Container
-        onMouseEnter={this.handleMouseEnter}
-        onMouseLeave={this.handleMouseLeave}
-        data-test-id="cell-action-container"
-      >
+      <Container data-test-id="cell-action-container">
         {children}
-        {isHovering && this.renderMenu()}
+        {cellActions?.length && (
+          <DropdownMenu
+            items={cellActions}
+            usePortal
+            size="sm"
+            offset={4}
+            position="bottom"
+            preventOverflowOptions={{padding: 4}}
+            flipOptions={{
+              fallbackPlacements: [
+                'top',
+                'right-start',
+                'right-end',
+                'left-start',
+                'left-end',
+              ],
+            }}
+            trigger={triggerProps => (
+              <ActionMenuTrigger
+                {...triggerProps}
+                translucentBorder
+                aria-label={t('Actions')}
+                icon={<IconEllipsis size="xs" />}
+                size="zero"
+              />
+            )}
+          />
+        )}
       </Container>
     );
   }
@@ -476,121 +299,21 @@ const Container = styled('div')`
   justify-content: center;
 `;
 
-const MenuRoot = styled('div')`
+const ActionMenuTrigger = styled(Button)`
   position: absolute;
-  top: 0;
-  right: 0;
-`;
+  top: 50%;
+  right: -1px;
+  transform: translateY(-50%);
+  padding: ${space(0.5)};
 
-const Menu = styled('div')`
-  z-index: ${p => p.theme.zIndex.tooltip};
-`;
-
-const MenuButtons = styled('div')`
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowHeavy};
-  overflow: hidden;
-`;
-
-const ARROW_SIZE = 12;
-
-const MenuArrow = styled('span')`
-  pointer-events: none;
-  position: absolute;
-  width: ${ARROW_SIZE}px;
-  height: ${ARROW_SIZE}px;
-
-  &::before,
-  &::after {
-    content: '';
-    display: block;
-    position: absolute;
-    height: ${ARROW_SIZE}px;
-    width: ${ARROW_SIZE}px;
-    border: solid 6px transparent;
-  }
-
-  &[data-placement|='bottom'] {
-    top: -${ARROW_SIZE}px;
-    &::before {
-      bottom: 1px;
-      border-bottom-color: ${p => p.theme.translucentBorder};
-    }
-    &::after {
-      border-bottom-color: ${p => p.theme.backgroundElevated};
-    }
-  }
-
-  &[data-placement|='top'] {
-    bottom: -${ARROW_SIZE}px;
-    &::before {
-      top: 1px;
-      border-top-color: ${p => p.theme.translucentBorder};
-    }
-    &::after {
-      border-top-color: ${p => p.theme.backgroundElevated};
-    }
-  }
-
-  &[data-placement|='right'] {
-    left: -${ARROW_SIZE}px;
-    &::before {
-      right: 1px;
-      border-right-color: ${p => p.theme.translucentBorder};
-    }
-    &::after {
-      border-right-color: ${p => p.theme.backgroundElevated};
-    }
-  }
-
-  &[data-placement|='left'] {
-    right: -${ARROW_SIZE}px;
-    &::before {
-      left: 1px;
-      border-left-color: ${p => p.theme.translucentBorder};
-    }
-    &::after {
-      border-left-color: ${p => p.theme.backgroundElevated};
-    }
-  }
-`;
-
-const ActionItem = styled('button')`
-  display: block;
-  width: 100%;
-  padding: ${space(1)} ${space(2)};
-  background: transparent;
-
-  outline: none;
-  border: 0;
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  font-size: ${p => p.theme.fontSizeMedium};
-  text-align: left;
-  line-height: 1.2;
-
-  &:hover {
-    background: ${p => p.theme.backgroundSecondary};
-  }
-
-  &:last-child {
-    border-bottom: 0;
-  }
-`;
-
-const MenuButton = styled('button')`
   display: flex;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  justify-content: center;
   align-items: center;
 
-  background: ${p => color(p.theme.background).alpha(0.85).string()};
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  cursor: pointer;
-  outline: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  &.focus-visible,
+  &[aria-expanded='true'],
+  ${Container}:hover & {
+    opacity: 1;
+  }
 `;

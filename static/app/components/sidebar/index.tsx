@@ -120,16 +120,16 @@ function Sidebar({location, organization}: Props) {
     action();
   };
 
-  const bcl = document.body.classList;
-
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
 
   // Add classname to body
   useEffect(() => {
+    const bcl = document.body.classList;
+
     bcl.add('body-sidebar');
     return () => bcl.remove('body-sidebar');
-  }, [bcl]);
+  }, []);
 
   useEffect(() => {
     Object.values(SidebarPanelKey).forEach(key => {
@@ -141,6 +141,8 @@ function Sidebar({location, organization}: Props) {
 
   // Add sidebar collapse classname to body
   useEffect(() => {
+    const bcl = document.body.classList;
+
     if (collapsed) {
       bcl.add('collapsed');
     } else {
@@ -148,7 +150,7 @@ function Sidebar({location, organization}: Props) {
     }
 
     return () => bcl.remove('collapsed');
-  }, [collapsed, bcl]);
+  }, [collapsed]);
 
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;

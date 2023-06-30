@@ -1,11 +1,11 @@
 import logging
-from typing import Any, Mapping
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.types import Message
 
 from sentry.ingest.ingest_consumer import (
+    IngestMessage,
     process_attachment_chunk,
     process_event,
     process_individual_attachment,
@@ -15,8 +15,6 @@ from sentry.models import Project
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-DecodedMessage = Mapping[str, Any]
 
 
 def process_ingest_message(raw_message: Message[KafkaPayload]) -> None:
@@ -38,7 +36,7 @@ def process_ingest_message(raw_message: Message[KafkaPayload]) -> None:
     """
 
     raw_payload = raw_message.payload.value
-    message: DecodedMessage = msgpack.unpackb(raw_payload, use_list=False)
+    message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
     message_type = message["type"]
     project_id = message["project_id"]

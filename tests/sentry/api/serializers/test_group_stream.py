@@ -3,6 +3,7 @@ from unittest import mock
 
 from freezegun import freeze_time
 
+from sentry import tsdb
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
@@ -26,11 +27,7 @@ class StreamGroupSerializerTestCase(
 
         environment = Environment.get_or_create(group.project, "production")
 
-        from sentry.api.serializers.models.group_stream import tsdb
-
-        with mock.patch(
-            "sentry.api.serializers.models.group_stream.tsdb.get_range", side_effect=tsdb.get_range
-        ) as get_range:
+        with mock.patch("sentry.tsdb.get_range", side_effect=tsdb.get_range) as get_range:
             serialize(
                 [group],
                 serializer=StreamGroupSerializer(
@@ -45,7 +42,7 @@ class StreamGroupSerializerTestCase(
             raise Environment.DoesNotExist()
 
         with mock.patch(
-            "sentry.api.serializers.models.group_stream.tsdb.make_series",
+            "sentry.tsdb.make_series",
             side_effect=tsdb.make_series,
         ) as make_series:
             serialize(

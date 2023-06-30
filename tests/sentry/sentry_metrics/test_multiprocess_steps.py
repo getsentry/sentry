@@ -557,8 +557,6 @@ def test_process_messages_cardinality_limited(
 
         compare_message_batches_ignoring_metadata(new_batch, [])
 
-        assert "dropped_message" in caplog.text
-
 
 def test_valid_metric_name() -> None:
     assert valid_metric_name("") is True

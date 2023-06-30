@@ -25,8 +25,9 @@ class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
-        data = serialize(alert_rule, request.user, AlertRuleSerializer())
-        return Response(data)
+        serialized_alert_rule = serialize(alert_rule, request.user, AlertRuleSerializer())
+
+        return Response(serialized_alert_rule)
 
     def put(self, request: Request, project, alert_rule) -> Response:
         data = request.data

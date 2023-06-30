@@ -1,5 +1,5 @@
 import sentry_sdk
-from django.db import transaction
+from django.db import router, transaction
 from requests import RequestException
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,7 +28,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         user = extract_lazy_object(request.user)
         if isinstance(user, RpcUser):
             user = User.objects.get(id=user.id)
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(SentryAppInstallation)):
             try:
                 InstallationNotifier.run(install=installation, user=user, action="deleted")
             # if the error is from a request exception, log the error and continue

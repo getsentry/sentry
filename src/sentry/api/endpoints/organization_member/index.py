@@ -19,6 +19,7 @@ from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team,
 from sentry.models.authenticator import available_authenticators
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
 from sentry.utils import metrics
 
@@ -55,8 +56,14 @@ class OrganizationMemberSerializer(serializers.Serializer):
     regenerate = serializers.BooleanField(required=False)
 
     def validate_email(self, email):
+        users = user_service.get_many_by_email(
+            emails=[email],
+            is_active=True,
+            organization_id=self.context["organization"].id,
+            is_verified=False,
+        )
         queryset = OrganizationMember.objects.filter(
-            Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
+            Q(email=email) | Q(user_id__in=[u.id for u in users]),
             organization=self.context["organization"],
         )
 
@@ -116,32 +123,29 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization) -> Response:
-        queryset = (
-            OrganizationMember.objects.filter(
-                Q(user__is_active=True) | Q(user__isnull=True),
-                organization=organization,
-                invite_status=InviteStatus.APPROVED.value,
-            )
-            # TODO(hybridcloud) Cross silo joins here.
-            .select_related("user").order_by("email", "user__email")
-        )
+        queryset = OrganizationMember.objects.filter(
+            Q(user_is_active=True, user_id__isnull=False) | Q(user_id__isnull=True),
+            organization=organization,
+            invite_status=InviteStatus.APPROVED.value,
+        ).order_by("id")
 
         query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "email":
+                    email_user_ids = user_service.get_many_by_email(
+                        emails=value, organization_id=organization.id, is_verified=False
+                    )
                     queryset = queryset.filter(
-                        Q(email__in=value)
-                        | Q(user__email__in=value)
-                        | Q(user__emails__email__in=value)
+                        Q(email__in=value) | Q(user_id__in=[u.id for u in email_user_ids])
                     )
 
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
 
                 elif key == "user.id":
-                    queryset = queryset.filter(user__id__in=value)
+                    queryset = queryset.filter(user_id__in=value)
 
                 elif key == "scope":
                     queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
@@ -154,7 +158,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
 
                 elif key == "isInvited":
                     isInvited = "true" in value
-                    queryset = queryset.filter(user__isnull=isInvited)
+                    queryset = queryset.filter(user_id__isnull=isInvited)
 
                 elif key == "ssoLinked":
                     ssoFlag = OrganizationMember.flags["sso:linked"]
@@ -165,15 +169,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.filter(flags=F("flags").bitand(~ssoFlag))
 
                 elif key == "has2fa":
-                    # TODO(hybridcloud) Cross silo joins here.
                     has2fa = "true" in value
                     if has2fa:
                         types = [a.type for a in available_authenticators(ignore_backup=True)]
-                        queryset = queryset.filter(
-                            user__authenticator__isnull=False, user__authenticator__type__in=types
-                        ).distinct()
+                        has2fa_user_ids = user_service.get_many_ids(
+                            filter=dict(organization_id=organization.id, authenticator_types=types)
+                        )
+                        queryset = queryset.filter(user_id__in=has2fa_user_ids).distinct()
                     else:
-                        queryset = queryset.filter(user__authenticator__isnull=True)
+                        has2fa_user_ids = user_service.get_many_ids(
+                            filter=dict(organization_id=organization.id, authenticator_types=None)
+                        )
+                        queryset = queryset.filter(user_id__in=has2fa_user_ids).distinct()
                 elif key == "hasExternalUsers":
                     externalactor_user_ids = ExternalActor.objects.filter(
                         organization=organization,
@@ -186,11 +193,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         queryset = queryset.exclude(user_id__in=externalactor_user_ids)
                 elif key == "query":
                     value = " ".join(value)
-                    # TODO(hybridcloud) Cross silo joins.
+                    query_user_ids = user_service.get_many_ids(
+                        filter=dict(query=value, organization_id=organization.id)
+                    )
                     queryset = queryset.filter(
-                        Q(email__icontains=value)
-                        | Q(user__email__icontains=value)
-                        | Q(user__name__icontains=value)
+                        Q(user_id__in=query_user_ids) | Q(email__icontains=value)
                     )
                 else:
                     queryset = queryset.none()
@@ -281,7 +288,6 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             if settings.SENTRY_ENABLE_INVITES:
                 om.token = om.generate_token()
             om.save()
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:

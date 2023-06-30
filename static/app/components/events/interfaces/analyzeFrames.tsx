@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
 import {
@@ -7,7 +8,7 @@ import {
 import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {EntryException, EntryType, Event, Frame, Thread} from 'sentry/types';
+import {EntryException, EntryType, Event, Frame, Lock, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type SuspectFrame = {
@@ -180,12 +181,9 @@ function satisfiesFunctionCondition(frame: Frame, suspect: SuspectFrame) {
 
 function satisfiesOffendingThreadCondition(
   threadState: string | undefined | null,
-  suspect: SuspectFrame
+  offendingThreadStates?: ThreadStates[]
 ) {
-  if (
-    isNil(suspect.offendingThreadStates) ||
-    suspect.offendingThreadStates.length === 0
-  ) {
+  if (isNil(offendingThreadStates) || offendingThreadStates.length === 0) {
     return true;
   }
   const mappedState = getMappedThreadState(threadState);
@@ -193,11 +191,11 @@ function satisfiesOffendingThreadCondition(
   if (isNil(mappedState)) {
     return false;
   }
-  return suspect.offendingThreadStates.includes(mappedState);
+  return offendingThreadStates.includes(mappedState);
 }
 
 export function analyzeFramesForRootCause(event: Event): {
-  culprit: string;
+  culprit: string | Lock;
   resources: React.ReactNode;
 } | null {
   const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION) as
@@ -216,7 +214,7 @@ export function analyzeFramesForRootCause(event: Event): {
   const currentThread = getCurrentThread(event);
 
   // iterating the frames in reverse order, because the topmost frames most like the root cause
-  for (let index = exceptionFrames.length - 1; index > 0; index--) {
+  for (let index = exceptionFrames.length - 1; index >= 0; index--) {
     const frame = exceptionFrames[index];
     const rootCause = analyzeFrameForRootCause(frame, currentThread);
     if (defined(rootCause)) {
@@ -227,18 +225,61 @@ export function analyzeFramesForRootCause(event: Event): {
   return null;
 }
 
+function lockRootCauseCulprit(lock: Lock): {
+  culprit: string | Lock;
+  resources: React.ReactNode;
+} {
+  const address = lock.address;
+  const obj = `${lock.package_name}.${lock.class_name}`;
+  const tid = lock.thread_id;
+  return {
+    culprit: lock,
+    resources: tct(
+      'The main thread is blocked/waiting, trying to acquire lock [address] ([obj]) [heldByThread]',
+      {
+        address: <Bold>{address}</Bold>,
+        obj: <Bold>{obj}</Bold>,
+        heldByThread: tid ? 'held by the suspect frame of this thread.' : '.',
+      }
+    ),
+  };
+}
+
 export function analyzeFrameForRootCause(
   frame: Frame,
-  currentThread: Thread | undefined
+  currentThread?: Thread,
+  lockAddress?: string
 ): {
-  culprit: string;
+  culprit: string | Lock;
   resources: React.ReactNode;
 } | null {
+  if (defined(lockAddress) && frame.lock?.address === lockAddress) {
+    // if we are provided with a lockAddress, we just have to analyze if the frame's lock
+    // address is equal to the one provided to mark the frame as suspect
+    return lockRootCauseCulprit(frame.lock);
+  }
+  if (
+    defined(frame.lock) &&
+    currentThread?.current &&
+    satisfiesOffendingThreadCondition(currentThread?.state, [
+      ThreadStates.WAITING,
+      ThreadStates.TIMED_WAITING,
+      ThreadStates.BLOCKED,
+    ])
+  ) {
+    // if the current (main) thread contains a lock and not in a RUNNABLE state, we return early
+    // with the lock being the culprit
+    return lockRootCauseCulprit(frame.lock);
+  }
+  // otherwise, we analyze for common patterns
   for (const possibleCulprit of CULPRIT_FRAMES) {
     if (
       satisfiesModuleCondition(frame, possibleCulprit) &&
       satisfiesFunctionCondition(frame, possibleCulprit) &&
-      satisfiesOffendingThreadCondition(currentThread?.state, possibleCulprit)
+      satisfiesOffendingThreadCondition(
+        currentThread?.state,
+        possibleCulprit.offendingThreadStates
+      )
     ) {
       return {
         culprit:
@@ -251,3 +292,7 @@ export function analyzeFrameForRootCause(
   }
   return null;
 }
+
+const Bold = styled('span')`
+  font-weight: bold;
+`;

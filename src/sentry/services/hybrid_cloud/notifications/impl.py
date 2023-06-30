@@ -159,6 +159,3 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self, *, user_id: int, provider: ExternalProviders
     ) -> None:
         self.remove_notification_settings(team_id=None, user_id=user_id, provider=provider)
-
-    def close(self) -> None:
-        pass

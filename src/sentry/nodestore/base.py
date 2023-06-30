@@ -20,7 +20,7 @@ json_dumps = json.JSONEncoder(
     default=None,
 ).encode
 
-json_loads = json._default_decoder.decode
+json_loads = json.loads
 
 
 class NodeStorage(local, Service):
@@ -185,7 +185,7 @@ class NodeStorage(local, Service):
             }
             if subkey is None:
                 self._set_cache_items(items)
-                items.update(cache_items)  # pyright: ignore
+                items.update(cache_items)
 
             span.set_tag("result", "from_service")
             span.set_tag("found", len(items))
@@ -237,7 +237,8 @@ class NodeStorage(local, Service):
         >>> nodestore.get('key1', subkey='reprocessing')
         {'foo': 'bam'}
         """
-        with sentry_sdk.start_span(op="nodestore.set_subkeys") as span:
+        with sentry_sdk.start_span(op="nodestore", description="set_subkeys") as span:
+            sentry_sdk.set_tag("nodestore.set_subkeys", True)
             span.set_tag("node_id", id)
             span.set_data("subkeys_count", len(data))
             cache_item = data.get(None)

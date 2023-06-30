@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.conf.urls import url
 from django.urls import reverse
@@ -35,13 +37,13 @@ class IssueGroupActionEndpoint(PluginGroupEndpoint):
 
 
 class IssueTrackingPlugin2(Plugin):
-    auth_provider = None
+    auth_provider: str | None = None
 
     allowed_actions = ("create", "link", "unlink")
 
     # we default this to None to support legacy integrations, but newer style
     # should explicitly call out what is stored
-    issue_fields = None
+    issue_fields: frozenset[str] | None = None
     # issue_fields = frozenset(['id', 'title', 'url'])
 
     def configure(self, project, request):

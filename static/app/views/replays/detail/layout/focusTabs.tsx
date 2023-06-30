@@ -12,11 +12,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
-  const hasReplayNetworkDetails = organization.features.includes(
-    'session-replay-network-details'
-  );
+  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
-  const networkLabel = hasReplayNetworkDetails ? (
+  const networkLabel = !hasErrorTab ? (
     <Fragment>
       {t('Network')} <FeatureBadge type="new" />
     </Fragment>
@@ -24,11 +22,20 @@ function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
     t('Network')
   );
 
+  const errorLabel = hasErrorTab ? (
+    <Fragment>
+      {t('Errors')} <FeatureBadge type="new" />
+    </Fragment>
+  ) : (
+    t('Errors')
+  );
+
   return {
     [TabKey.CONSOLE]: t('Console'),
     [TabKey.NETWORK]: networkLabel,
     [TabKey.DOM]: t('DOM Events'),
-    [TabKey.ISSUES]: t('Issues'),
+    [TabKey.ERRORS]: hasErrorTab ? errorLabel : null,
+    [TabKey.ISSUES]: hasErrorTab ? null : t('Issues'),
     [TabKey.MEMORY]: t('Memory'),
     [TabKey.TRACE]: t('Trace'),
   };
@@ -46,24 +53,26 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={className} underlined>
-      {Object.entries(getReplayTabs(organization)).map(([tab, label]) => (
-        <ListLink
-          key={tab}
-          isActive={() => tab === activeTab}
-          to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
-          onClick={e => {
-            e.preventDefault();
-            setActiveTab(tab);
+      {Object.entries(getReplayTabs(organization)).map(([tab, label]) =>
+        label ? (
+          <ListLink
+            key={tab}
+            isActive={() => tab === activeTab}
+            to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+            onClick={e => {
+              e.preventDefault();
+              setActiveTab(tab);
 
-            trackAnalytics('replay.details-tab-changed', {
-              tab,
-              organization,
-            });
-          }}
-        >
-          {label}
-        </ListLink>
-      ))}
+              trackAnalytics('replay.details-tab-changed', {
+                tab,
+                organization,
+              });
+            }}
+          >
+            {label}
+          </ListLink>
+        ) : null
+      )}
     </ScrollableTabs>
   );
 }

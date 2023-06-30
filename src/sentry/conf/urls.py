@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.conf.urls import url
+from django.urls import URLPattern, URLResolver
 
 from sentry.web.frontend.csrf_failure import CsrfFailureView
 from sentry.web.frontend.error_404 import Error404View
@@ -9,7 +12,7 @@ from sentry.web.urls import urlpatterns as web_urlpatterns
 handler404 = Error404View.as_view()
 handler500 = Error500View.as_view()
 
-urlpatterns = [
+urlpatterns: list[URLResolver | URLPattern] = [
     url(
         r"^500/",
         handler500,

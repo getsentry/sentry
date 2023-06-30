@@ -79,7 +79,7 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
 
     def validate_owner(self, owner):
         if not OrganizationMember.objects.filter(
-            organization=self.context["organization"], user=owner
+            organization=self.context["organization"], user_id=owner.id
         ).exists():
             raise serializers.ValidationError("User does not have access to this organization")
         return owner

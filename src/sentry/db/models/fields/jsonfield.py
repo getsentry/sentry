@@ -25,36 +25,13 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-import datetime
-from decimal import Decimal
-
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models.lookups import Contains, Exact, IContains, IExact, In
-from django.utils.translation import ugettext_lazy as _
+from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-
-
-def default(o):
-    if hasattr(o, "to_json"):
-        return o.to_json()
-    if isinstance(o, Decimal):
-        return str(o)
-    if isinstance(o, datetime.datetime):
-        if o.tzinfo:
-            return o.strftime("%Y-%m-%dT%H:%M:%S%z")
-        return o.strftime("%Y-%m-%dT%H:%M:%S")
-    if isinstance(o, datetime.date):
-        return o.strftime("%Y-%m-%d")
-    if isinstance(o, datetime.time):
-        if o.tzinfo:
-            return o.strftime("%H:%M:%S%z")
-        return o.strftime("%H:%M:%S")
-
-    raise TypeError(repr(o) + " is not JSON serializable")
 
 
 class JSONField(models.TextField):
@@ -73,16 +50,14 @@ class JSONField(models.TextField):
     surpresses this behavior.
     """
 
-    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
+    # https://github.com/typeddjango/django-stubs/pull/1538
+    default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}  # type: ignore[dict-item]
     description = "JSON object"
     no_creator_hook = False
 
     def __init__(self, *args, **kwargs):
         if not kwargs.get("null", False):
             kwargs["default"] = kwargs.get("default", dict)
-        self.encoder_kwargs = {
-            "indent": kwargs.pop("indent", getattr(settings, "JSONFIELD_INDENT", None))
-        }
         super().__init__(*args, **kwargs)
         self.validate(self.get_default(), None)
 
@@ -142,13 +117,13 @@ class JSONField(models.TextField):
             if not self.null and self.blank:
                 return ""
             return None
-        return json.dumps(value, default=default, **self.encoder_kwargs)
+        return json.dumps(value)
 
     def value_to_string(self, obj):
         return self.value_from_object(obj)
 
 
-class NoPrepareMixin:
+class NoPrepareMixin(Lookup):
     def get_prep_lookup(self):
         return self.rhs
 
@@ -171,7 +146,7 @@ class JSONFieldInLookup(NoPrepareMixin, In):
         ]
 
 
-class ContainsLookupMixin:
+class ContainsLookupMixin(Lookup):
     def get_prep_lookup(self):
         if isinstance(self.rhs, (list, tuple)):
             raise TypeError(

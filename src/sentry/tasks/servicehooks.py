@@ -4,6 +4,7 @@ from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
 from sentry.models import ServiceHook
 from sentry.tasks.base import instrumented_task, retry
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
 
@@ -41,7 +42,7 @@ def process_service_hook(servicehook_id, event, **kwargs):
 
     from sentry import tsdb
 
-    tsdb.incr(tsdb.models.servicehook_fired, servicehook.id)
+    tsdb.incr(TSDBModel.servicehook_fired, servicehook.id)
 
     headers = {
         "Content-Type": "application/json",

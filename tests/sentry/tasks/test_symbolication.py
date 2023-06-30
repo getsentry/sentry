@@ -13,6 +13,7 @@ from sentry.tasks.symbolication import (
 )
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
+from sentry.utils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -93,7 +94,7 @@ def mock_submit_symbolicate():
         yield m
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_move_to_symbolicate_event(
     default_project, mock_process_event, mock_save_event, mock_symbolicate_event, register_plugin
 ):
@@ -113,7 +114,7 @@ def test_move_to_symbolicate_event(
     assert mock_save_event.delay.call_count == 0
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_move_to_symbolicate_event_low_priority(
     default_project,
     mock_process_event,
@@ -140,7 +141,7 @@ def test_move_to_symbolicate_event_low_priority(
         assert mock_save_event.delay.call_count == 0
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_symbolicate_event_doesnt_call_process_inline(
     default_project,
     mock_event_processing_store,
@@ -173,7 +174,7 @@ def test_symbolicate_event_doesnt_call_process_inline(
 
     assert mock_save_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
-    mock_do_process_event.assert_not_called()
+    assert mock_do_process_event.call_count == 0
 
 
 @pytest.fixture(params=["org", "project"])
@@ -186,24 +187,24 @@ def options_model(request, default_organization, default_project):
         raise ValueError(request.param)
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_should_demote_symbolication_empty(default_project):
     assert not should_demote_symbolication(default_project.id)
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_should_demote_symbolication_always(default_project):
     with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
         assert should_demote_symbolication(default_project.id)
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_should_demote_symbolication_never(default_project):
     with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
         assert not should_demote_symbolication(default_project.id)
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_should_demote_symbolication_always_and_never(default_project):
     with override_options(
         {
@@ -214,7 +215,7 @@ def test_should_demote_symbolication_always_and_never(default_project):
         assert not should_demote_symbolication(default_project.id)
 
 
-@pytest.mark.django_db
+@django_db_all
 @patch("sentry.event_manager.EventManager.save", return_value=None)
 def test_submit_symbolicate_queue_switch(
     self,

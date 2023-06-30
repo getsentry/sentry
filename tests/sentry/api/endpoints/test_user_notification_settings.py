@@ -103,14 +103,6 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         assert other_project.id not in response.data["workflow"]["project"]
 
 
-class UserNotificationSettingsTestBase(APITestCase):
-    endpoint = "sentry-api-0-user-notification-settings"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
-
-
 @control_silo_test
 class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
     def get_v2_response(self, qs_params=None, **kwargs):

@@ -362,7 +362,7 @@ export class Client {
       const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
-        fullUrl = fullUrl + (fullUrl.indexOf('?') !== -1 ? '&' : '?') + queryString;
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;
       }
     }
 

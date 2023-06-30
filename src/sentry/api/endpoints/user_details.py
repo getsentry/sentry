@@ -4,8 +4,8 @@ from datetime import datetime
 import pytz
 from django.conf import settings
 from django.contrib.auth import logout
-from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.db import router, transaction
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -194,7 +194,7 @@ class UserDetailsEndpoint(UserEndpoint):
                     user=user, key=key_map.get(key, key), value=options_result.get(key)
                 )
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
 
             if any(k in request.data for k in ("isStaff", "isSuperuser", "isActive")):
@@ -229,7 +229,7 @@ class UserDetailsEndpoint(UserEndpoint):
         # from `frontend/remove_account.py`
         org_list = Organization.objects.filter(
             member_set__role__in=[x.id for x in roles.with_scope("org:admin")],
-            member_set__user=user,
+            member_set__user_id=user.id,
             status=OrganizationStatus.ACTIVE,
         )
 

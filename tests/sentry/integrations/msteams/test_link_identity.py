@@ -23,6 +23,8 @@ class MsTeamsIntegrationLinkIdentityTest(TestCase):
         self.user1 = self.create_user(is_superuser=False)
         self.user2 = self.create_user(is_superuser=False)
         self.org = self.create_organization(owner=None)
+        self.create_member(user=self.user1, organization=self.org)
+        self.create_member(user=self.user2, organization=self.org)
         self.team = self.create_team(organization=self.org, members=[self.user1, self.user2])
 
         self.login_as(self.user1)

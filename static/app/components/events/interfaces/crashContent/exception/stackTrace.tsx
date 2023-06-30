@@ -5,7 +5,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ExceptionValue, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
 
@@ -25,7 +25,8 @@ type Props = {
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: Record<any, any>;
   newestFirst?: boolean;
-  stackView?: STACK_VIEW;
+  stackView?: StackView;
+  threadId?: number;
 };
 
 function StackTrace({
@@ -41,13 +42,14 @@ function StackTrace({
   expandFirstFrame,
   event,
   meta,
+  threadId,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
   }
 
   if (
-    stackView === STACK_VIEW.APP &&
+    stackView === StackView.APP &&
     (stacktrace.frames ?? []).filter(frame => frame.inApp).length === 0 &&
     !chainedException
   ) {
@@ -70,7 +72,7 @@ function StackTrace({
   }
 
   const includeSystemFrames =
-    stackView === STACK_VIEW.FULL ||
+    stackView === StackView.FULL ||
     (chainedException && data.frames?.every(frame => !frame.inApp));
 
   /**
@@ -123,6 +125,7 @@ function StackTrace({
       event={event}
       meta={meta}
       debugFrames={debugFrames}
+      threadId={threadId}
     />
   );
 }

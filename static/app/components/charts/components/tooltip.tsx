@@ -29,7 +29,7 @@ export function defaultFormatAxisLabel(
   const formatOptions = {local: !utc};
 
   const timeFormat = showTimeInTooltip
-    ? getTimeFormat({displaySeconds: addSecondsToTimeFormat})
+    ? getTimeFormat({seconds: addSecondsToTimeFormat})
     : '';
 
   if (!bucketSize) {

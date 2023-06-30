@@ -13,7 +13,7 @@ import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getPeriod} from 'sentry/utils/getPeriod';
-import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
+import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
@@ -115,7 +115,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
   get cardHelp() {
     const {organization} = this.props;
-    const baseHelp = getTermHelp(organization, PERFORMANCE_TERM.APDEX);
+    const baseHelp = getTermHelp(organization, PerformanceTerm.APDEX);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');

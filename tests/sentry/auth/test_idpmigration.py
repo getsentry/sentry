@@ -23,7 +23,7 @@ class IDPMigrationTests(TestCase):
 
     def test_send_one_time_account_confirm_link(self):
         with exempt_from_silo_limits():
-            om = OrganizationMember.objects.create(organization=self.org, user=self.user)
+            om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user, self.org, self.provider, self.email, self.IDENTITY_ID
         )

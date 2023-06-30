@@ -17,7 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
-import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
+import {platformToPerformanceType, ProjectPerformanceType} from '../utils';
 
 import {
   NormalizedTrendsTransaction,
@@ -115,6 +115,12 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  // TODO remove this once backend starts sending
+  // TrendChangeType.IMPROVED as change type
+  improvement: {
+    lighter: theme.green200,
+    default: theme.green300,
+  },
 };
 
 export const trendSelectedQueryKeys = {
@@ -177,17 +183,17 @@ export function getCurrentTrendParameter(
 }
 
 export function performanceTypeToTrendParameterLabel(
-  performanceType: PROJECT_PERFORMANCE_TYPE
+  performanceType: ProjectPerformanceType
 ): TrendParameter {
   switch (performanceType) {
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND:
+    case ProjectPerformanceType.FRONTEND:
       return {
         label: TrendParameterLabel.LCP,
         column: TrendParameterColumn.LCP,
       };
-    case PROJECT_PERFORMANCE_TYPE.ANY:
-    case PROJECT_PERFORMANCE_TYPE.BACKEND:
-    case PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER:
+    case ProjectPerformanceType.ANY:
+    case ProjectPerformanceType.BACKEND:
+    case ProjectPerformanceType.FRONTEND_OTHER:
     default:
       return {
         label: TrendParameterLabel.DURATION,
@@ -236,14 +242,12 @@ export function modifyTrendView(
   location: Location,
   trendsType: TrendChangeType,
   projects: Project[],
-  organization: OrganizationSummary,
-  isProjectOnly?: boolean
+  organization: OrganizationSummary
 ) {
   const trendFunction = getCurrentTrendFunction(location);
   const trendParameter = getCurrentTrendParameter(location, projects, trendView.project);
 
-  const transactionField = isProjectOnly ? [] : ['transaction'];
-  const fields = [...transactionField, 'project'].map(field => ({
+  const fields = ['transaction', 'project'].map(field => ({
     field,
   })) as Field[];
 
@@ -271,6 +275,10 @@ export function modifyTrendView(
     // remove metrics-incompatible filters
     if (query.hasFilter('transaction.duration')) {
       query.removeFilter('transaction.duration');
+    }
+
+    if (trendParameter.column && query.hasFilter(trendParameter.column)) {
+      query.removeFilter(trendParameter.column);
     }
     trendView.query = query.formatString();
   }
@@ -434,6 +442,6 @@ export function transformEventStatsSmoothed(data?: Series[], seriesName?: string
 
 export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   const query = new MutableSearch(trendView.query);
-  query.setFilterValues('tpm()', ['>0.01']);
+  query.setFilterValues('tpm()', ['>0.1']);
   trendView.query = query.formatString();
 }

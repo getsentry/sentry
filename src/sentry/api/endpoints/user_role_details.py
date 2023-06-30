@@ -1,6 +1,6 @@
 import logging
 
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -41,7 +41,7 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserRoleUser)):
             _, created = UserRoleUser.objects.get_or_create(user=user, role=role)
             if not created:
                 # Already exists.
@@ -68,7 +68,7 @@ class UserUserRoleDetailsEndpoint(UserEndpoint):
         except UserRole.DoesNotExist:
             return self.respond({"detail": f"'{role_name}' is not a known role."}, status=404)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserRoleUser)):
             role.users.remove(user)
             audit_logger.info(
                 "user.remove-role",

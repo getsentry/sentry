@@ -1,5 +1,3 @@
-from typing import cast
-
 from django.db import models
 from django.db.models.query import QuerySet
 from django.utils import timezone
@@ -23,10 +21,7 @@ class ParanoidManager(BaseManager):
     """
 
     def get_queryset(self) -> ParanoidQuerySet:
-        return cast(
-            ParanoidQuerySet,
-            ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True),
-        )
+        return ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True)
 
 
 class ParanoidModel(Model):

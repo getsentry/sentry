@@ -1,22 +1,22 @@
-from collections.abc import Iterable
+from rest_framework.request import Request
 
-from sentry.mediators import Mediator, Param
-from sentry.mediators.param import if_param
-from sentry.models import Actor
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param, if_param
+from sentry.models import Actor, Project, Rule
 
 
 class Updater(Mediator):
-    rule = Param("sentry.models.Rule")
-    name = Param((str,), required=False)
-    owner = Param("sentry.models.Actor", required=False)
+    rule = Param(Rule)
+    name = Param(str, required=False)
+    owner = Param(Actor, required=False)
     environment = Param(int, required=False)
-    project = Param("sentry.models.Project")
-    action_match = Param((str,), required=False)
-    filter_match = Param((str,), required=False)
-    actions = Param(Iterable, required=False)
-    conditions = Param(Iterable, required=False)
+    project = Param(Project)
+    action_match = Param(str, required=False)
+    filter_match = Param(str, required=False)
+    actions = Param(list, required=False)
+    conditions = Param(list, required=False)
     frequency = Param(int, required=False)
-    request = Param("rest_framework.request.Request", required=False)
+    request = Param(Request, required=False)
 
     def call(self):
         self._update_name()

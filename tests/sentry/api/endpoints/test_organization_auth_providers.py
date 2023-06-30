@@ -1,5 +1,7 @@
 from django.urls import reverse
 
+from sentry import auth
+from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.testutils import APITestCase, PermissionTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -28,8 +30,11 @@ class OrganizationAuthProviders(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
+        auth.register("Fly IO", FlyOAuth2Provider)
+        self.addCleanup(auth.unregister, "Fly IO", FlyOAuth2Provider)
 
     def test_get_list_of_auth_providers(self):
         with self.feature("organizations:sso-basic"):
             response = self.get_success_response(self.organization.slug)
         assert any(d["key"] == "dummy" for d in response.data)
+        assert any(d["key"] == "Fly IO" for d in response.data) is False

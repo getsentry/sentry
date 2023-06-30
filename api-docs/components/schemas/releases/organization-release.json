@@ -21,6 +21,9 @@
       "url"
     ],
     "properties": {
+      "id": {
+        "type": "integer"
+      },
       "authors": {
         "type": "array",
         "items": {

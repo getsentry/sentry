@@ -4,8 +4,9 @@ from typing import Dict, List, TypedDict
 
 from sentry_sdk.crons.decorator import monitor
 
+from sentry.constants import ObjectStatus
 from sentry.issues.forecasts import generate_and_save_forecasts
-from sentry.models import Group, GroupStatus, ObjectStatus, Project
+from sentry.models import Group, GroupStatus, Project
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.iterators import chunked

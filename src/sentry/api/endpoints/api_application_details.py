@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -83,7 +83,7 @@ class ApiApplicationDetailsEndpoint(Endpoint):
         except ApiApplication.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(ApiApplication)):
             updated = ApiApplication.objects.filter(id=instance.id).update(
                 status=ApiApplicationStatus.pending_deletion
             )

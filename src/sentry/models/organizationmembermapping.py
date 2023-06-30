@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.db import models, transaction
+from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
@@ -46,17 +45,11 @@ class OrganizationMemberMapping(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationmembermapping"
-        unique_together = (
+        unique_together = (("organization_id", "organizationmember_id"),)
+
+        index_together = (
             ("organization_id", "user"),
             ("organization_id", "email"),
-            ("organization_id", "organizationmember_id"),
         )
-
-    def save(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
-            if self.user and self.id is None:
-                for outbox in self.user.outboxes_for_update():
-                    outbox.save()
-            super().save(*args, **kwds)
 
     __repr__ = sane_repr("organization_id", "organizationmember_id", "user_id", "role")

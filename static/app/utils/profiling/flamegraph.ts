@@ -96,10 +96,8 @@ export class Flamegraph {
       inverted = false,
       sort = 'call order',
       configSpace,
-      filterFn,
     }: {
       configSpace?: Rect;
-      filterFn?: (node: CallTreeNode) => boolean;
       inverted?: boolean;
       sort?: 'left heavy' | 'alphabetical' | 'call order';
     } = {}
@@ -114,20 +112,20 @@ export class Flamegraph {
     // If a custom config space is provided, use it and draw the chart in it
     switch (this.sort) {
       case 'left heavy': {
-        this.frames = this.buildSortedChart(profile, leftHeavyTreeSort, filterFn);
+        this.frames = this.buildSortedChart(profile, leftHeavyTreeSort);
         break;
       }
       case 'alphabetical':
         if (this.profile.type === 'flamechart') {
           throw new TypeError('Flamechart does not support alphabetical sorting');
         }
-        this.frames = this.buildSortedChart(profile, alphabeticTreeSort, filterFn);
+        this.frames = this.buildSortedChart(profile, alphabeticTreeSort);
         break;
       case 'call order':
         if (this.profile.type === 'flamegraph') {
           throw new TypeError('Flamegraph does not support call order sorting');
         }
-        this.frames = this.buildCallOrderChart(profile, filterFn);
+        this.frames = this.buildCallOrderChart(profile);
         break;
       default:
         throw new TypeError(`Unknown flamechart sort type: ${this.sort}`);
@@ -135,30 +133,6 @@ export class Flamegraph {
 
     this.formatter = makeFormatter(profile.unit);
     this.timelineFormatter = makeTimelineFormatter(profile.unit);
-
-    if (this.profile.duration > 0) {
-      this.configSpace = new Rect(
-        0,
-        0,
-        configSpace ? configSpace.width : this.profile.duration,
-        this.depth
-      );
-    } else {
-      // If the profile duration is 0, set the flamegraph duration
-      // to 1 second so we can render a placeholder grid
-      this.configSpace = new Rect(
-        0,
-        0,
-        this.profile.unit === 'nanoseconds'
-          ? 1e9
-          : this.profile.unit === 'microseconds'
-          ? 1e6
-          : this.profile.unit === 'milliseconds'
-          ? 1e3
-          : 1,
-        this.depth
-      );
-    }
 
     const weight = this.root.children.reduce(
       (acc, frame) => acc + frame.node.totalWeight,
@@ -168,12 +142,30 @@ export class Flamegraph {
     this.root.node.totalWeight += weight;
     this.root.end = this.root.start + weight;
     this.root.frame.totalWeight += weight;
+
+    let width = 0;
+
+    if (this.profile.type === 'flamegraph' && weight > 0) {
+      width = weight;
+    } else if (this.profile.duration > 0) {
+      width = configSpace ? configSpace.width : this.profile.duration;
+    } else {
+      // If the profile duration is 0, set the flamegraph duration
+      // to 1 second so we can render a placeholder grid
+      width =
+        this.profile.unit === 'nanoseconds'
+          ? 1e9
+          : this.profile.unit === 'microseconds'
+          ? 1e6
+          : this.profile.unit === 'milliseconds'
+          ? 1e3
+          : 1;
+    }
+
+    this.configSpace = new Rect(0, 0, width, this.depth);
   }
 
-  buildCallOrderChart(
-    profile: Profile,
-    filterFn?: (node: CallTreeNode) => boolean
-  ): FlamegraphFrame[] {
+  buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
     let idx = 0;
@@ -221,14 +213,13 @@ export class Flamegraph {
       this.depth = Math.max(stackTop.depth, this.depth);
     };
 
-    profile.forEach(openFrame, closeFrame, filterFn);
+    profile.forEach(openFrame, closeFrame);
     return frames;
   }
 
   buildSortedChart(
     profile: Profile,
-    sortFn: (tree: CallTreeNode) => void,
-    filterFn?: (node: CallTreeNode) => boolean
+    sortFn: (tree: CallTreeNode) => void
   ): FlamegraphFrame[] {
     const frames: FlamegraphFrame[] = [];
     const stack: FlamegraphFrame[] = [];
@@ -292,16 +283,6 @@ export class Flamegraph {
     };
 
     function visit(node: CallTreeNode, start: number) {
-      // If the node should not be shown, skip it and just descend into its children
-      if (filterFn && !filterFn(node)) {
-        let childTime = 0;
-        node.children.forEach(child => {
-          visit(child, start + childTime);
-          childTime += child.totalWeight;
-        });
-        return;
-      }
-
       if (!node.frame.isRoot) {
         openFrame(node, start);
       }

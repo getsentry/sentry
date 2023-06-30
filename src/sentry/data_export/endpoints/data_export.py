@@ -13,8 +13,9 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
 from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
-from sentry.utils.snuba import MAX_FIELDS, Dataset
+from sentry.utils.snuba import MAX_FIELDS
 
 from ..base import ExportQueryType
 from ..models import ExportedData

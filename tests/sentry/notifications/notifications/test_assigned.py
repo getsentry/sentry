@@ -1,5 +1,6 @@
 import responses
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 
 from sentry.models import (
     Identity,
@@ -51,9 +52,11 @@ class AssignedNotificationAPITest(APITestCase):
         assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         # check the txt version
         assert f"assigned {self.group.qualified_short_id} to themselves" in msg.body
         # check the html version
+        assert isinstance(msg.alternatives[0][0], str)
         assert f"{self.group.qualified_short_id}</a> to themselves</p>" in msg.alternatives[0][0]
 
         attachment, text = get_attachment()

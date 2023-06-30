@@ -1,183 +1,119 @@
-import {useEffect, useState} from 'react';
-import {Link} from 'react-router';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
+import cloneDeep from 'lodash/cloneDeep';
 
-import Checkbox from 'sentry/components/checkbox';
-import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
-import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {
+  DataDisplayType,
+  DataRow,
+} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
+  dataDisplayType: DataDisplayType;
+  isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
+  isTimeseriesLoading: boolean;
+  options: SelectOption<DataDisplayType>[];
+  setDataDisplayType: any;
   tableData: DataRow[];
   topSeriesData: Series[];
   totalCumulativeTime: number;
+  errored?: boolean;
   transaction?: string;
 };
 
 export function SpanGroupBreakdown({
-  tableData: transformedData,
-  totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
+  isTimeseriesLoading,
+  errored,
+  options,
+  dataDisplayType,
+  setDataDisplayType,
 }: Props) {
-  const {selection} = usePageFilters();
-  const theme = useTheme();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
-
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
+  const organization = useOrganization();
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
+  );
 
   const visibleSeries: Series[] = [];
 
   for (let index = 0; index < data.length; index++) {
     const series = data[index];
-    if (showSeriesArray[index]) {
-      visibleSeries.push(series);
-    }
+    visibleSeries.push(series);
   }
-  const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
+
+  const dataAsPercentages = cloneDeep(visibleSeries);
+  const numDataPoints = data[0]?.data?.length ?? 0;
+  for (let i = 0; i < numDataPoints; i++) {
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    dataAsPercentages.forEach(segment => {
+      const clone = {...segment.data[i]};
+      clone.value = clone.value / totalTimeAtIndex;
+      segment.data[i] = clone;
+    });
+  }
+
+  const handleChange = (option: SelectOption<DataDisplayType>) =>
+    setDataDisplayType(option.value);
 
   return (
     <FlexRowContainer>
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {transaction
-              ? t('Endpoint Time Breakdown (P95)')
-              : t('App Time Breakdown (P95)')}
+            {transaction ? t('Endpoint Breakdown') : t('Service Breakdown')}
           </ChartLabel>
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
         <Chart
           statsPeriod="24h"
-          height={210}
-          data={visibleSeries}
+          height={340}
+          showLegend
+          data={
+            dataDisplayType === DataDisplayType.PERCENTAGE
+              ? dataAsPercentages
+              : visibleSeries
+          }
+          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""
           end=""
-          loading={false}
+          errored={errored}
+          loading={isTimeseriesLoading}
           utc={false}
           grid={{
             left: '0',
             right: '0',
-            top: '8px',
+            top: '20px',
             bottom: '0',
           }}
           definedAxisTicks={6}
           stacked
-          aggregateOutputFormat="duration"
+          aggregateOutputFormat={
+            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+          }
           tooltipFormatterOptions={{
             valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+              tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
           }}
         />
       </ChartPadding>
-      <ListContainer>
-        {transformedData.map((row, index) => {
-          const checkedValue = showSeriesArray[index];
-          const group = row.group;
-          const {start, end, utc, period} = selection.datetime;
-          const spansLinkQueryParams =
-            start && end
-              ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-              : {statsPeriod: period};
-          if (['db', 'http'].includes(group['span.category'])) {
-            spansLinkQueryParams['span.module'] = group['span.category'];
-          } else {
-            spansLinkQueryParams['span.category'] = group['span.category'];
-          }
-
-          const spansLink =
-            group['span.category'] === 'Other'
-              ? `/starfish/spans/`
-              : `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
-          return (
-            <StyledLineItem key={`${group['span.category']}`}>
-              <ListItemContainer>
-                <Checkbox
-                  size="sm"
-                  checkboxColor={colorPalette[index]}
-                  inputCss={{backgroundColor: 'red'}}
-                  checked={checkedValue}
-                  onChange={() => {
-                    const updatedSeries = [...showSeriesArray];
-                    updatedSeries[index] = !checkedValue;
-                    setShowSeriesArray(updatedSeries);
-                  }}
-                />
-                <TextAlignLeft>
-                  {defined(transaction) ? (
-                    <TextOverflow>{group['span.category']}</TextOverflow>
-                  ) : (
-                    <Link to={spansLink}>
-                      <TextOverflow>{group['span.category']}</TextOverflow>
-                    </Link>
-                  )}
-                </TextAlignLeft>
-                <RightAlignedCell>
-                  <Tooltip
-                    title={t(
-                      '%s time spent on %s',
-                      formatPercentage(row.cumulativeTime / totalValues, 1),
-                      group['span.category']
-                    )}
-                    containerDisplayMode="block"
-                    position="top"
-                  >
-                    <NumberContainer
-                      style={{textDecoration: 'underline', textDecorationStyle: 'dotted'}}
-                    >
-                      {formatPercentage(row.cumulativeTime / totalValues, 1)}
-                    </NumberContainer>
-                  </Tooltip>
-                </RightAlignedCell>
-              </ListItemContainer>
-            </StyledLineItem>
-          );
-        })}
-      </ListContainer>
     </FlexRowContainer>
   );
 }
-
-const StyledLineItem = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const ListItemContainer = styled('div')`
-  display: flex;
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const ListContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
-  margin: 0;
-  border-left: 1px solid ${p => p.theme.border};
-  list-style-type: none;
-`;
-
-const TextAlignLeft = styled('span')`
-  text-align: left;
-  width: 100%;
-  padding: 0 ${space(1.5)};
-`;
 
 const ChartPadding = styled('div')`
   padding: 0 ${space(2)};
@@ -195,6 +131,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
 const FlexRowContainer = styled('div')`

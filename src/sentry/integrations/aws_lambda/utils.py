@@ -3,7 +3,7 @@ from functools import wraps
 
 from django.conf import settings
 from django.core.cache import cache
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import options
 from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service

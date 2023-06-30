@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -73,8 +73,10 @@ class GroupAssigneeManager(BaseManager):
             affected = True
 
         if affected:
-            issue_assigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            transaction.on_commit(
+                lambda: issue_assigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                )
             )
             data = {
                 "assignee": str(assigned_to.id),
@@ -104,6 +106,7 @@ class GroupAssigneeManager(BaseManager):
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity
+        from sentry.models.projectownership import ProjectOwnership
 
         affected = self.filter(group=group)[:1].count()
         self.filter(group=group).delete()
@@ -112,7 +115,17 @@ class GroupAssigneeManager(BaseManager):
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
 
-            GroupOwner.invalidate_assignee_exists_cache(group.project.id)
+            # Clear ownership cache for the deassigned group
+            ownership = ProjectOwnership.get_ownership_cached(group.project.id)
+            if not ownership:
+                ownership = ProjectOwnership(project_id=group.project.id)
+            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+            if autoassignment_types:
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    group.project.id, autoassignment_types, group.id
+                )
+            GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
+            GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues

@@ -55,7 +55,11 @@
           {{ field|as_crispy_field }}
           {% if forloop.last %}
             <fieldset class="form-actions">
-              <button class="btn btn-primary" name="op" value="settings">Save Settings</button>
+                {% if disabled %}
+                  <button disabled class="btn btn-primary" name="op" value="settings">Save Settings</button>
+                {% else %}
+                  <button class="btn btn-primary" name="op" value="settings">Save Settings</button>
+                {% endif %}
             </fieldset>
           {% endif %}
         {% endfor %}
@@ -90,7 +94,11 @@
         </p>
 
         <fieldset class="form-actions">
-          <button class="btn btn-danger" name="op" value="disable">Disable {{ provider_name }} Auth</button>
+          {% if disabled %}
+            <button disabled class="btn btn-danger" name="op" value="disable">Disable {{ provider_name }} Auth</button>
+          {% else %}
+            <button class="btn btn-danger" name="op" value="disable">Disable {{ provider_name }} Auth</button>
+          {% endif %}
         </fieldset>
       </div>
     </div>

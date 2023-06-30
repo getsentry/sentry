@@ -528,26 +528,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "epm",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("transaction.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            Function("divide", [args["interval"], 60]),
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_epm,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
@@ -596,26 +577,7 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "eps",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("transaction.duration"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                            args["interval"],
-                        ],
-                        alias,
-                    ),
+                    snql_distribution=self._resolve_eps,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
                     default_result_type="number",
                 ),
@@ -695,10 +657,73 @@ class MetricsDatasetConfig(DatasetConfig):
                     snql_distribution=self._resolve_http_error_count,
                     default_result_type="integer",
                 ),
+                fields.MetricsFunction(
+                    "percentile_range",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["transaction.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                        fields.ConditionArg("condition"),
+                        fields.SnQLDateArg("middle"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
+                        args=args,
+                        alias=alias,
+                        fixed_percentile=args["percentile"],
+                        extra_conditions=[
+                            Function(
+                                args["condition"],
+                                [
+                                    Function("toDateTime", [args["middle"]]),
+                                    self.builder.column("timestamp"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "percentile_percent_change",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=["transaction.duration"],
+                            allow_custom_measurements=False,
+                        ),
+                        fields.NumberRange("percentile", 0, 1),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_percentile_percent_change,
+                    default_result_type="percent_change",
+                ),
+                fields.MetricsFunction(
+                    "http_error_count_percent_change",
+                    snql_distribution=self._resolve_http_error_count_percent_change,
+                    default_result_type="percent_change",
+                ),
+                fields.MetricsFunction(
+                    "epm_percent_change",
+                    snql_distribution=self._resolve_epm_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percent_change",
+                ),
+                fields.MetricsFunction(
+                    "eps_percent_change",
+                    snql_distribution=self._resolve_eps_percent_change,
+                    optional_args=[fields.IntervalDefault("interval", 1, None)],
+                    default_result_type="percent_change",
+                ),
             ]
         }
 
-        for alias, name in constants.FUNCTION_ALIASES.items():
+        for alias, name in [
+            *constants.FUNCTION_ALIASES.items(),
+            *constants.METRICS_FUNCTION_ALIASES.items(),
+        ]:
             if name in function_converter:
                 function_converter[alias] = function_converter[name].alias_as(alias)
 
@@ -1022,10 +1047,29 @@ class MetricsDatasetConfig(DatasetConfig):
         self,
         _: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
     ) -> SelectType:
         statuses = [
             self.builder.resolve_tag_value(status) for status in constants.HTTP_SERVER_ERROR_STATUS
         ]
+        base_condition = Function(
+            "in",
+            [
+                self.builder.column("http.status_code"),
+                list(status for status in statuses if status is not None),
+            ],
+        )
+        if extra_condition:
+            condition = Function(
+                "and",
+                [
+                    base_condition,
+                    extra_condition,
+                ],
+            )
+        else:
+            condition = base_condition
+
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1034,13 +1078,7 @@ class MetricsDatasetConfig(DatasetConfig):
                     self.resolve_metric("transaction.duration"),
                 ],
             ),
-            Function(
-                "in",
-                [
-                    self.builder.column("http.status_code"),
-                    list(status for status in statuses if status is not None),
-                ],
-            ),
+            condition,
             alias,
         )
 
@@ -1165,6 +1203,130 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 total_time,
+            ],
+            alias,
+        )
+
+    def _resolve_epm(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(60, args, alias, extra_condition)
+
+    def _resolve_eps(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        return self._resolve_rate(None, args, alias, extra_condition)
+
+    def _resolve_rate(
+        self,
+        interval: Optional[int],
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+        extra_condition: Optional[Function] = None,
+    ) -> SelectType:
+        base_condition = Function(
+            "equals",
+            [
+                Column("metric_id"),
+                self.resolve_metric("transaction.duration"),
+            ],
+        )
+        if extra_condition:
+            condition = Function("and", [base_condition, extra_condition])
+        else:
+            condition = base_condition
+
+        return Function(
+            "divide",
+            [
+                Function(
+                    "countIf",
+                    [
+                        Column("value"),
+                        condition,
+                    ],
+                ),
+                args["interval"]
+                if interval is None
+                else Function("divide", [args["interval"], interval]),
+            ],
+            alias,
+        )
+
+    def _resolve_http_error_count_percent_change(
+        self,
+        _: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_http_error_count({}, None, self.builder.first_half_condition())
+        second_half = self._resolve_http_error_count({}, None, self.builder.second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_percentile_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.first_half_condition()],
+        )
+        second_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.second_half_condition()],
+        )
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_epm_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_epm(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_epm(args, None, self.builder.second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_eps_percent_change(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        first_half = self._resolve_eps(args, None, self.builder.first_half_condition())
+        second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
+        return self._resolve_percent_change_function(first_half, second_half, alias)
+
+    def _resolve_percent_change_function(self, first_half, second_half, alias):
+        return Function(
+            "if",
+            [
+                Function(
+                    "greater",
+                    [
+                        first_half,
+                        0,
+                    ],
+                ),
+                Function(
+                    "divide",
+                    [
+                        Function(
+                            "minus",
+                            [second_half, first_half],
+                        ),
+                        first_half,
+                    ],
+                ),
+                None,
             ],
             alias,
         )

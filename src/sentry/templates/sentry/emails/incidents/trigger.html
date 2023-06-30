@@ -71,6 +71,14 @@
           <td>{{ alert_date_added }}</td>
         </tr>
       </table>
+
+      <p class="info-box">
+        {% if snooze_alert %}
+           <a class='mute' href="{{ snooze_alert_url }}">Mute this alert</a>
+        {% endif %}
+        This email was triggered by
+            <a href="{{ rule_link }}">{{ incident_name }}</a>
+    </p>
     </div>
   {% endif %}
 {% endblock %}

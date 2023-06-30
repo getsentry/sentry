@@ -23,7 +23,8 @@ type Props = {
   }) => void;
   projectSlug: string;
   ruleActionCategory: RuleActionsCategories;
-  ruleId: string;
+  type: 'issue' | 'metric';
+  ruleId?: string;
 };
 
 function SnoozeAlert({
@@ -33,6 +34,7 @@ function SnoozeAlert({
   ruleId,
   ruleActionCategory,
   hasAccess,
+  type,
 }: Props) {
   const organization = useOrganization();
   const api = useApi();
@@ -40,12 +42,14 @@ function SnoozeAlert({
 
   const [disabled, setDisabled] = useState(false);
 
+  const alertPath = type === 'issue' ? 'rules' : 'alert-rules';
+
   const handleMute = useCallback(
     async (target: 'me' | 'everyone', autoMute = false) => {
       setDisabled(true);
       try {
         await api.requestPromise(
-          `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
+          `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
           {
             method: 'POST',
             data: {
@@ -87,6 +91,7 @@ function SnoozeAlert({
       organization.slug,
       projectSlug,
       ruleId,
+      alertPath,
     ]
   );
 
@@ -95,7 +100,7 @@ function SnoozeAlert({
 
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/rules/${ruleId}/snooze/`,
+        `/projects/${organization.slug}/${projectSlug}/${alertPath}/${ruleId}/snooze/`,
         {
           method: 'DELETE',
         }

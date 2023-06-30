@@ -7,12 +7,12 @@ from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.models import (
     Activity,
     Group,
     GroupHistoryStatus,
     GroupStatus,
-    ObjectStatus,
     Organization,
     OrganizationStatus,
     Project,

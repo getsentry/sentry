@@ -1,10 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from sentry.lang.javascript.utils import (
-    do_sourcemaps_processing_ab_test,
-    should_use_symbolicator_for_sourcemaps,
-)
+from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import EventError, Project
@@ -50,9 +47,14 @@ def _merge_frame(new_frame, symbolicated):
         new_frame["context_line"] = symbolicated["context_line"]
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
-    if data_sourcemap := get_path(symbolicated, "data", "sourcemap"):
+    if data := symbolicated.get("data"):
         frame_meta = new_frame.setdefault("data", {})
-        frame_meta["sourcemap"] = data_sourcemap
+        if data_sourcemap := data.get("sourcemap"):
+            frame_meta["sourcemap"] = data_sourcemap
+        if data_resolved_with := data.get("resolved_with"):
+            frame_meta["resolved_with"] = data_resolved_with
+        if data.get("symbolicated") is not None:
+            frame_meta["symbolicated"] = data["symbolicated"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
     if symbolicated.get("in_app") is not None:
@@ -235,11 +237,8 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return data
 
-    should_do_ab_test = do_sourcemaps_processing_ab_test()
-    symbolicator_stacktraces = []
-
     processing_errors = response.get("errors", [])
-    if len(processing_errors) > 0 and not should_do_ab_test:
+    if len(processing_errors) > 0:
         data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
@@ -266,20 +265,12 @@ def process_js_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             merged_frame = _merge_frame(merged_context_frame, complete_frame)
             new_frames.append(merged_frame)
 
-        # NOTE: we do *not* write the symbolicated frames into `data` (via the `sinfo` indirection)
-        # but we rather write that to a different event property that we will use for A/B testing.
-        if should_do_ab_test:
-            symbolicator_stacktraces.append(new_frames)
-        else:
-            sinfo.stacktrace["frames"] = new_frames
+        sinfo.stacktrace["frames"] = new_frames
 
-            if sinfo.container is not None:
-                sinfo.container["raw_stacktrace"] = {
-                    "frames": new_raw_frames,
-                }
-
-    if should_do_ab_test:
-        data["symbolicator_stacktraces"] = symbolicator_stacktraces
+        if sinfo.container is not None:
+            sinfo.container["raw_stacktrace"] = {
+                "frames": new_raw_frames,
+            }
 
     return data
 

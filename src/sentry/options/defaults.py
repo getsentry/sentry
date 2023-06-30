@@ -373,8 +373,6 @@ register(
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
 
-register("cloudflare.secret-key", default="", flags=FLAG_CREDENTIAL)
-
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -441,6 +439,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+
+# Discord Integration
+register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -563,10 +566,6 @@ register(
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
-register("symbolicator.sourcemaps-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Gradually migrate from file_id to download_id
-register("symbolicator.sourcemap-lookup-id-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
@@ -1043,6 +1042,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1211,6 +1215,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1251,48 +1260,34 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
 
-# Dynamic Sampling system wide options
-# Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
-register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# System-wide options that observes latest releases on transactions and caches these values to be used later in
-# project config computation. This is temporary option to monitor the performance of this feature.
-register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "dynamic-sampling.prioritise_projects.sample_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
+# Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# controls how many orgs will be queried by the prioritise by transaction task
-# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
-register(
-    "dynamic-sampling.prioritise_transactions.load_rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# the number of large transactions to retrieve from Snuba for transaction re-balancing
+# Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_large_transactions",
     30,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# the number of large transactions to retrieve from Snuba for transaction re-balancing
+# Number of large transactions to retrieve from Snuba for transaction re-balancing.
 register(
     "dynamic-sampling.prioritise_transactions.num_explicit_small_transactions",
     0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
+# Controls the intensity of dynamic sampling transaction rebalancing. 0.0 = explict rebalancing
 # not performed, 1.0= full rebalancing (tries to bring everything to mean). Note that even at 0.0
 # there will still be some rebalancing between the explicit and implicit transactions ( so setting rebalancing
 # to 0.0 is not the same as no rebalancing. To effectively disable rebalancing set the number of explicit
-# transactions to be rebalance (both small and large) to 0
+# transactions to be rebalance (both small and large) to 0.
 register(
     "dynamic-sampling.prioritise_transactions.rebalance_intensity",
     default=0.8,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# controls whether we allow people to upload artifact bundles instead of release bundles
+# Controls whether we allow people to upload artifact bundles instead of release bundles.
 register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1300,15 +1295,55 @@ register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Enables queue monitoring for backpressure management.
-register("backpressure.monitor_queues.enable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# === Backpressure related runtime options ===
+
+# Enables monitoring of services for backpressure management.
+register("backpressure.monitoring.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# How often the monitor will check service health.
+register("backpressure.monitoring.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Enables checking consumer health for backpressure management.
+register("backpressure.checking.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# How often a consumer will check for its health in a debounced fassion.
+register("backpressure.checking.interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+
+# How long a status is persisted, which means that updates to health status can be paused for that long before consumers will assume things are unhealthy
+register("backpressure.status_ttl", default=60, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# The high-watermark levels per-service which will mark a service as unhealthy.
+# This should mirror the `SENTRY_PROCESSING_SERVICES` setting.
 register(
-    "backpressure.monitor_queues.unhealthy_threshold", default=1000, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "backpressure.high_watermarks.celery",
+    default=0.5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# How often we check queue health.
-register("backpressure.monitor_queues.check_interval", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# How many times in a row a queue must be unhealthy before it is
-# recorded in Redis. 12 * 5sec = unhealthy for 1 minute.
 register(
-    "backpressure.monitor_queues.strike_threshold", default=12, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "backpressure.high_watermarks.attachments-store",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-store",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.processing-locks",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "backpressure.high_watermarks.post-process-locks",
+    default=0.8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

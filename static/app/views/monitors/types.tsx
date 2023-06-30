@@ -92,6 +92,7 @@ export interface Monitor {
       targetIdentifier: number;
       targetType: 'Member' | 'Team';
     }>;
+    environment?: string;
   };
 }
 

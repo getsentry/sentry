@@ -1,129 +1,90 @@
 import {Location} from 'history';
-import moment, {Moment} from 'moment';
+import omit from 'lodash/omit';
 
+import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
-const SPAN_FILTER_KEY_TO_LOCAL_FIELD = {
-  'span.op': 'span_operation',
-  'span.domain': 'domain',
-  'span.action': 'action',
-};
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+const SPAN_FILTER_KEYS = [
+  'span.op',
+  'span.domain',
+  'span.action',
+  '!span.module',
+  '!span.category',
+];
 
 export type SpanMetrics = {
-  'p95(span.duration)': number;
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
   'span.op': string;
-  'spm()': number;
-  'sum(span.duration)': number;
+  'sps()': number;
+  'sps_percent_change()': number;
+  'sum(span.self_time)': number;
   'time_spent_percentage()': number;
 };
 
 export const useSpanList = (
   moduleName: ModuleName,
   transaction?: string,
-  orderBy?: string,
+  method?: string,
+  spanCategory?: string,
+  sorts?: Sort[],
   limit?: number,
-  _referrer = 'span-metrics'
+  referrer = 'use-span-list',
+  cursor?: string
 ) => {
   const location = useLocation();
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
 
-  const query = getQuery(
+  const eventView = getEventView(
     moduleName,
     location,
-    startTime,
-    endTime,
-    dateFilters,
     transaction,
-    orderBy,
-    limit
+    method,
+    spanCategory,
+    sorts
   );
-  const eventView = getEventView(moduleName, location, transaction, orderBy);
 
-  // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const {isLoading, data, meta, pageLinks} = useWrappedDiscoverQuery<SpanMetrics[]>({
     eventView,
-    queryString: query,
     initialData: [],
-    enabled: Boolean(query),
     limit,
+    referrer,
+    cursor,
   });
 
-  return {isLoading, data};
+  return {isLoading, data, meta, pageLinks};
 };
-
-function getQuery(
-  moduleName: ModuleName,
-  location: Location,
-  startTime: Moment,
-  endTime: Moment,
-  dateFilters: string,
-  transaction?: string,
-  orderBy?: string,
-  limit?: number
-) {
-  const conditions = buildQueryConditions(moduleName, location).filter(Boolean);
-
-  return `SELECT
-    group_id as "span.group",
-    span_operation as "span.operation",
-    description as "span.description",
-    domain as "span.domain",
-    sum(exclusive_time) as "sum(span.duration)"
-    quantile(0.95)(exclusive_time) as "p95(span.duration)",
-    divide(count(), ${
-      moment(endTime ?? undefined).unix() - moment(startTime).unix()
-    }) as "spm()"
-    FROM spans_experimental_starfish
-    WHERE 1 = 1
-    ${conditions.length > 0 ? 'AND' : ''}
-    ${conditions.join(' AND ')}
-    ${transaction ? `AND transaction = '${transaction}'` : ''}
-    ${dateFilters}
-    GROUP BY group_id, span_operation, domain, description
-    ORDER BY ${orderBy ?? 'count'} desc
-    ${limit ? `LIMIT ${limit}` : ''}`;
-}
-
-function buildQueryConditions(moduleName: ModuleName, location: Location) {
-  const {query} = location;
-  const result = Object.keys(query)
-    .filter(key => SPAN_FILTER_KEYS.includes(key))
-    .filter(key => Boolean(query[key]))
-    .map(key => {
-      return `${SPAN_FILTER_KEY_TO_LOCAL_FIELD[key]} = '${query[key]}'`;
-    });
-
-  if (moduleName !== ModuleName.ALL) {
-    result.push(`module = '${moduleName}'`);
-  }
-
-  return result;
-}
 
 function getEventView(
   moduleName: ModuleName,
   location: Location,
   transaction?: string,
-  orderBy?: string
+  method?: string,
+  spanCategory?: string,
+  sorts?: Sort[]
 ) {
-  const query = buildEventViewQuery(moduleName, location, transaction)
+  const query = buildEventViewQuery(
+    moduleName,
+    location,
+    transaction,
+    method,
+    spanCategory
+  )
     .filter(Boolean)
     .join(' ');
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query,
@@ -132,39 +93,78 @@ function getEventView(
         'span.group',
         'span.description',
         'span.domain',
-        'spm()',
-        'sum(span.duration)',
-        'p95(span.duration)',
+        'sps()',
+        'sps_percent_change()',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
         'time_spent_percentage()',
+        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
-      orderby: orderBy,
       dataset: DiscoverDatasets.SPANS_METRICS,
       projects: [1],
       version: 2,
     },
-    location
+    omit(location, 'span.category', 'http.method')
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }
 
 function buildEventViewQuery(
   moduleName: ModuleName,
   location: Location,
-  transaction?: string
+  transaction?: string,
+  method?: string,
+  spanCategory?: string
 ) {
   const {query} = location;
   const result = Object.keys(query)
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(query[key]))
     .map(key => {
-      return `${key}:${query[key]}`;
+      const value = query[key];
+      const isArray = Array.isArray(value);
+
+      if (key === '!span.category' && isArray && value.includes('db')) {
+        // When omitting database spans, explicitly allow `db.redis` spans, because
+        // we're not including those spans in the database category
+        const categoriesAsideFromDatabase = value.filter(v => v !== 'db');
+        return `(!span.category:db OR span.op:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
+          ','
+        )}]`;
+      }
+
+      return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
   }
 
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
+  }
+
+  if (defined(spanCategory)) {
+    if (spanCategory === NULL_SPAN_CATEGORY) {
+      result.push(`!has:span.category`);
+    } else if (spanCategory !== 'Other') {
+      result.push(`span.category:${spanCategory}`);
+    }
+  }
+
   if (transaction) {
     result.push(`transaction:${transaction}`);
+  }
+
+  if (method) {
+    result.push(`transaction.method:${method}`);
   }
 
   return result;

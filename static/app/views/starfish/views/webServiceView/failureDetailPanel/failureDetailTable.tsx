@@ -1,23 +1,27 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import * as qs from 'query-string';
 
 import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
 import {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/endpointDetails';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {FailureSpike} from 'sentry/views/starfish/views/webServiceView/types';
 
 type Props = {
   eventView: EventView;
   isLoading: boolean;
   location: Location;
   organization: Organization;
+  spike: FailureSpike;
   tableData: TableData | null;
   pageLinks?: string | null | undefined;
 };
@@ -25,18 +29,18 @@ type Props = {
 const COLUMN_ORDER = [
   {
     key: 'transaction',
-    name: 'endpoint',
-    width: 350,
+    name: t('Endpoint'),
+    width: 450,
   },
   {
-    key: 'count_if(http.status_code,greaterOrEquals,500)',
-    name: 'Errors',
-    width: 50,
+    key: 'http_error_count()',
+    name: t('5XX Responses'),
+    width: 150,
   },
   {
-    key: 'equation|count_if(http.status_code,greaterOrEquals,500)/(count_if(http.status_code,equals,200)+count_if(http.status_code,greaterOrEquals,500))',
-    name: 'Error Rate',
-    width: 50,
+    key: 'http_error_count_percent_change()',
+    name: t('Change'),
+    width: 80,
   },
 ];
 
@@ -47,15 +51,18 @@ export default function FailureDetailTable({
   isLoading,
   tableData,
   pageLinks,
+  spike,
 }: Props) {
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    return <StyledNonLink align="left">{column.name}</StyledNonLink>;
+    if (column.key === 'transaction') {
+      return <StyledNonLink align="left">{column.name}</StyledNonLink>;
+    }
+    return <StyledNonLink align="right">{column.name}</StyledNonLink>;
   }
 
   function renderBodyCell(
     column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow,
-    _onSelect?: (row: EndpointDataRow) => void
+    dataRow: TableDataRow
   ): React.ReactNode {
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -64,21 +71,23 @@ export default function FailureDetailTable({
     const fieldRenderer = getFieldRenderer(field, tableData.meta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
-    if (column.key === 'transaction') {
+    if (field === 'transaction') {
       const prefix = dataRow['http.method'] ? `${dataRow['http.method']} ` : '';
+      const queryParams = {
+        start: spike ? new Date(spike.startTimestamp) : undefined,
+        end: spike ? new Date(spike.endTimestamp) : undefined,
+        method: dataRow['http.method'],
+        endpoint: dataRow.transaction,
+      };
       return (
-        <Link
-          to={{
-            pathname: `/starfish/failure-detail/${
-              dataRow['http.method']
-            }:${encodeURIComponent(dataRow.transaction)}`,
-            query: {start: location.query.start, end: location.query.end},
-          }}
-        >
-          {prefix}
-          {dataRow.transaction}
+        <Link to={`/starfish/endpoint-overview/?${qs.stringify(queryParams)}`}>
+          {prefix}&nbsp;{dataRow.transaction}
         </Link>
       );
+    }
+
+    if (field === 'http_error_count_percent_change()') {
+      return <PercentChangeCell deltaValue={dataRow[field] as number} />;
     }
 
     return rendered;

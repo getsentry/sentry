@@ -309,7 +309,7 @@ describe('IssueList', function () {
         <IssueListWithStores
           {...routerProps}
           {...defaultProps}
-          organization={{...organization, features: ['escalating-issues-ui']}}
+          organization={{...organization, features: ['escalating-issues']}}
         />,
         {
           context: routerContext,

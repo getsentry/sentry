@@ -12,7 +12,9 @@ from sentry import tsdb
 from sentry.debug.utils.packages import get_all_package_versions
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.locks import locks
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
 
 BEACON_URL = "https://sentry.io/remote/beacon/"
@@ -41,6 +43,9 @@ def should_skip_beacon(install_id):
         logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
         return True
 
+    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+        return True
+
     return False
 
 
@@ -61,7 +66,7 @@ def send_beacon():
 
     end = timezone.now()
     events_24h = tsdb.get_sums(
-        model=tsdb.models.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
+        model=TSDBModel.internal, keys=["events.total"], start=end - timedelta(hours=24), end=end
     )["events.total"]
 
     # we need this to be explicitly configured and it defaults to None,

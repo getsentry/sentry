@@ -5,7 +5,7 @@ from django.http import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.features import OrganizationFeature
+from sentry.features.base import OrganizationFeature
 from sentry.features.helpers import any_organization_has_feature, requires_feature
 from sentry.testutils import TestCase
 

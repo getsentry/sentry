@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -155,7 +155,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
         if len(emails) != len(emails_to_check):
             return Response({"detail": INVALID_EMAIL_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(UserOption)):
             for id, value in data.items():
                 user_option, CREATED = UserOption.objects.get_or_create(
                     user=user,
@@ -168,7 +168,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
 
     @staticmethod
     def _handle_put_notification_settings(user, notification_type: FineTuningAPIKey, parents, data):
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(NotificationSetting)):
             for parent in parents:
                 # We fetched every available parent but only care about the ones in `request.data`.
                 if str(parent.id) not in data:

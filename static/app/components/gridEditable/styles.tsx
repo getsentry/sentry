@@ -51,7 +51,7 @@ export const Body = styled(({children, ...props}) => (
     <PanelBody>{children}</PanelBody>
   </Panel>
 ))`
-  overflow: hidden;
+  overflow-x: auto;
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -79,8 +79,12 @@ export const Grid = styled('table')<{height?: string | number; scrollable?: bool
   margin: 0;
 
   z-index: ${Z_INDEX_GRID};
-  overflow-x: auto;
-  overflow-y: ${p => (p.scrollable ? 'scroll' : 'hidden')};
+  ${p =>
+    p.scrollable &&
+    `
+    overflow-x: auto;
+    overflow-y: scroll;
+    `}
   ${p =>
     p.height
       ? `

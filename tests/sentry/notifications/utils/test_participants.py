@@ -250,7 +250,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
                         [
                             Owner("user", user.email)
                             for user in User.objects.filter(
-                                id__in=self.project.member_set.values_list("user", flat=True)
+                                id__in=self.project.member_set.values_list("user_id", flat=True)
                             )
                         ],
                     ),

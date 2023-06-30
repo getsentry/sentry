@@ -13,9 +13,6 @@ class ConcurrentLimiterTest(TestCase):
     def setUp(self):
         self.backend = ConcurrentRateLimiter()
 
-    def validate(self):
-        assert self.backend.validate()
-
     def test_add_and_remove(self):
         """Test the basic adding and removal of requests to the concurrent
         rate limiter, no concurrency testing done here"""
@@ -54,7 +51,7 @@ class ConcurrentLimiterTest(TestCase):
         failed_request = limiter.start_request("key", 100, "some_uid")
         assert failed_request.current_executions == -1
         assert failed_request.limit_exceeded is False
-        assert limiter.finish_request("key", "some_uid") is None
+        limiter.finish_request("key", "some_uid")
 
     def test_cleanup_stale(self):
         limit = 10

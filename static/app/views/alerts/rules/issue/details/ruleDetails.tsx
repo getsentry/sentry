@@ -40,6 +40,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {findIncompatibleRules} from 'sentry/views/alerts/rules/issue';
 import {ALERT_DEFAULT_CHART_PERIOD} from 'sentry/views/alerts/rules/metric/details/constants';
+import {getRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 
 import {IssueAlertDetailsChart} from './alertChart';
 import AlertRuleIssuesList from './issuesList';
@@ -68,23 +69,6 @@ const getIssueAlertDetailsQueryKey = ({
   `/projects/${orgSlug}/${projectSlug}/rules/${ruleId}/`,
   {query: {expand: 'lastTriggered'}},
 ];
-
-function getRuleActionCategory(rule: IssueAlertRule) {
-  const numDefaultActions = rule.actions.filter(
-    action => action.id === 'sentry.mail.actions.NotifyEmailAction'
-  ).length;
-
-  switch (numDefaultActions) {
-    // Are all actions default actions?
-    case rule.actions.length:
-      return RuleActionsCategories.ALL_DEFAULT;
-    // Are none of the actions default actions?
-    case 0:
-      return RuleActionsCategories.NO_DEFAULT;
-    default:
-      return RuleActionsCategories.SOME_DEFAULT;
-  }
-}
 
 function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
   const queryClient = useQueryClient();
@@ -230,7 +214,6 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
     );
   }
 
-  const hasSnoozeFeature = organization.features.includes('mute-alerts');
   const isSnoozed = rule.snooze;
 
   const ruleActionCategory = getRuleActionCategory(rule);
@@ -306,20 +289,19 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
-            {hasSnoozeFeature && (
-              <Access access={['alerts:write']}>
-                {({hasAccess}) => (
-                  <SnoozeAlert
-                    isSnoozed={isSnoozed}
-                    onSnooze={onSnooze}
-                    ruleId={rule.id}
-                    projectSlug={projectSlug}
-                    ruleActionCategory={ruleActionCategory}
-                    hasAccess={hasAccess}
-                  />
-                )}
-              </Access>
-            )}
+            <Access access={['alerts:write']}>
+              {({hasAccess}) => (
+                <SnoozeAlert
+                  isSnoozed={isSnoozed}
+                  onSnooze={onSnooze}
+                  ruleId={rule.id}
+                  projectSlug={projectSlug}
+                  ruleActionCategory={ruleActionCategory}
+                  hasAccess={hasAccess}
+                  type="issue"
+                />
+              )}
+            </Access>
             <Button size="sm" icon={<IconCopy />} to={duplicateLink}>
               {t('Duplicate')}
             </Button>
@@ -342,7 +324,7 @@ function AlertRuleDetails({params, location, router}: AlertRuleDetailsProps) {
       <Layout.Body>
         <Layout.Main>
           {renderIncompatibleAlert()}
-          {hasSnoozeFeature && isSnoozed && (
+          {isSnoozed && (
             <Alert showIcon>
               {ruleActionCategory === RuleActionsCategories.NO_DEFAULT
                 ? tct(

@@ -2,7 +2,7 @@ import logging
 from typing import Mapping
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,7 +13,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
-from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
+from sentry.apidocs.parameters import GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -154,59 +155,25 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
-            GLOBAL_PARAMS.END,
-            GLOBAL_PARAMS.ENVIRONMENT,
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT,
-            GLOBAL_PARAMS.START,
-            GLOBAL_PARAMS.STATS_PERIOD,
-            VISIBILITY_PARAMS.FIELD,
-            VISIBILITY_PARAMS.PER_PAGE,
-            VISIBILITY_PARAMS.QUERY,
-            VISIBILITY_PARAMS.SORT,
+            GlobalParams.END,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT,
+            GlobalParams.START,
+            GlobalParams.STATS_PERIOD,
+            VisibilityParams.FIELD,
+            VisibilityParams.PER_PAGE,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationEventsResponseDict", discover.EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
-            404: api_constants.RESPONSE_NOTFOUND,
+            404: api_constants.RESPONSE_NOT_FOUND,
         },
-        examples=[
-            OpenApiExample(
-                "Success",
-                value={
-                    "data": [
-                        {
-                            "count_if(transaction.duration,greater,300)": 5,
-                            "count()": 10,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 50,
-                            "transaction": "foo",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 3,
-                            "count()": 20,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 15,
-                            "transaction": "bar",
-                        },
-                        {
-                            "count_if(transaction.duration,greater,300)": 8,
-                            "count()": 40,
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 20,
-                            "transaction": "baz",
-                        },
-                    ],
-                    "meta": {
-                        "fields": {
-                            "count_if(transaction.duration,greater,300)": "integer",
-                            "count()": "integer",
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
-                            "transaction": "string",
-                        },
-                    },
-                },
-            )
-        ],
+        examples=DiscoverAndPerformanceExamples.QUERY_DISCOVER_EVENTS,
     )
     def get(self, request: Request, organization) -> Response:
         """

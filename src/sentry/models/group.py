@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -17,7 +17,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from snuba_sdk import Column, Condition, Op
 
 from sentry import eventstore, eventtypes, tagstore
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
@@ -46,7 +47,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team
+    from sentry.models import Environment, Organization, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -57,7 +58,7 @@ _short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
-def parse_short_id(short_id):
+def parse_short_id(short_id: str) -> ShortId:
     match = _short_id_re.match(short_id.strip())
     if match is None:
         return None
@@ -197,6 +198,13 @@ STATUS_UPDATE_CHOICES = {
 class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
+    MOST_HELPFUL = [
+        "-replayId",
+        "-profile.id",
+        "num_processing_errors",
+        "-trace.sampled",
+        "-timestamp",
+    ]
 
 
 def get_oldest_or_latest_event_for_environments(
@@ -215,12 +223,54 @@ def get_oldest_or_latest_event_for_environments(
     _filter = eventstore.Filter(
         conditions=conditions, project_ids=[group.project_id], group_ids=[group.id]
     )
-
-    events = eventstore.get_events(
+    events = eventstore.backend.get_events(
         filter=_filter,
         limit=1,
         orderby=ordering.value,
         referrer="Group.get_latest",
+        dataset=dataset,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+
+    if events:
+        return events[0].for_group(group)
+
+    return None
+
+
+def get_helpful_event_for_environments(
+    environments: Sequence[Environment],
+    group: Group,
+    conditions: Optional[Sequence[Condition]] = None,
+) -> GroupEvent | None:
+    if group.issue_category == GroupCategory.ERROR:
+        dataset = Dataset.Events
+    else:
+        dataset = Dataset.IssuePlatform
+
+    all_conditions = []
+    if len(environments) > 0:
+        all_conditions.append(
+            Condition(Column("environment"), Op.IN, [e.name for e in environments])
+        )
+    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
+    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+
+    if conditions:
+        all_conditions.extend(conditions)
+
+    end = group.last_seen + timedelta(minutes=1)
+    start = end - timedelta(days=14)
+
+    events = eventstore.get_events_snql(
+        organization_id=group.project.organization_id,
+        group_id=group.id,
+        start=start,
+        end=end,
+        conditions=all_conditions,
+        limit=1,
+        orderby=EventOrdering.MOST_HELPFUL.value,
+        referrer="Group.get_helpful",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
     )
@@ -287,7 +337,7 @@ class GroupManager(BaseManager):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
 
         if event:
             group_id = event.group_id
@@ -301,7 +351,7 @@ class GroupManager(BaseManager):
         return self.get(id=group_id)
 
     def filter_by_event_id(self, project_ids, event_id, tenant_ids=None):
-        events = eventstore.get_events(
+        events = eventstore.backend.get_events(
             filter=eventstore.Filter(
                 event_ids=[event_id],
                 project_ids=project_ids,
@@ -594,6 +644,18 @@ class Group(Model):
             environments,
             self,
         )
+
+    def get_helpful_event_for_environments(
+        self,
+        environments: Sequence[Environment] = (),
+        conditions: Optional[Sequence[Condition]] = None,
+    ) -> GroupEvent | None:
+        maybe_event = get_helpful_event_for_environments(
+            environments,
+            self,
+            conditions,
+        )
+        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release

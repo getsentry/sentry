@@ -9,6 +9,7 @@ from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
@@ -17,10 +18,10 @@ from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
     InvalidFunctionArgument,
-    InvalidSearchQuery,
     NumberRange,
     NumericColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
@@ -83,6 +84,15 @@ COLUMNS = [
 ]
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
+
+AGG_STATE_COLUMNS = [
+    "count",
+    "percentiles",
+    "avg",
+    "sum",
+    "min",
+    "max",
+]
 
 
 class ProfileFunctionColumnArg(ColumnArg):
@@ -314,6 +324,25 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "slope",
+                    required_args=[SnQLStringArg("column", allowed_strings=AGG_STATE_COLUMNS)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "tupleElement",
+                        [
+                            Function(
+                                "simpleLinearRegression",
+                                [
+                                    Function("toUInt32", [SnQLColumn("timestamp")]),
+                                    Function("finalizeAggregation", [SnQLColumn(args["column"])]),
+                                ],
+                            ),
+                            1,
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
                 ),
             ]
         }

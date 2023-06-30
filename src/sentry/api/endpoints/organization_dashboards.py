@@ -152,7 +152,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic():
                 dashboard = serializer.save()
-                return Response(serialize(dashboard, request.user), status=201)
+            return Response(serialize(dashboard, request.user), status=201)
         except IntegrityError:
             pass
 

@@ -40,7 +40,7 @@ def backfill_snubaquery_environment(apps, schema_editor):
             organization_id=alert_rule.organization_id, name=snuba_env.name
         ).distinct()
 
-        mapped_env: Environment = None
+        mapped_env = None
         for candidate_env in envs_by_org:
             if (
                 candidate_env.organization_id != snuba_env.organization_id

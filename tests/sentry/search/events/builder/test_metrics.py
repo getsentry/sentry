@@ -19,8 +19,8 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
-from sentry.utils.snuba import Dataset
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -42,7 +42,7 @@ def _metric_percentile_definition(
                         [
                             Column("metric_id"),
                             indexer.resolve(
-                                UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[field]
+                                UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[field]
                             ),
                         ],
                     ),
@@ -60,7 +60,7 @@ def _metric_conditions(org_id, metrics) -> List[Condition]:
             Column("metric_id"),
             Op.IN,
             sorted(
-                indexer.resolve(UseCaseKey.PERFORMANCE, org_id, constants.METRICS_MAP[metric])
+                indexer.resolve(UseCaseID.TRANSACTIONS, org_id, constants.METRICS_MAP[metric])
                 for metric in metrics
             ),
         )
@@ -493,6 +493,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 28, 1, 57, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour, long period"
+
+        # Hour to hour should only happen at the precise hour
+        start = datetime.datetime(2015, 5, 18, 10, 0, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 0, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "precisely hour to hour"
+
+        # Even a few seconds means we need to switch back to minutes since the latter bucket may not be filled
+        start = datetime.datetime(2015, 5, 18, 10, 0, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 0, 1, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 60, "hour to hour but with seconds"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity
@@ -1470,16 +1480,16 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
-        expected = [mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "transaction")]
+        expected = [mock.call(UseCaseID.TRANSACTIONS, self.organization.id, "transaction")]
 
         expected.extend(
             [
                 mock.call(
-                    UseCaseKey.PERFORMANCE,
+                    UseCaseID.TRANSACTIONS,
                     self.organization.id,
                     constants.METRICS_MAP["measurements.lcp"],
                 ),
-                mock.call(UseCaseKey.PERFORMANCE, self.organization.id, "measurement_rating"),
+                mock.call(UseCaseID.TRANSACTIONS, self.organization.id, "measurement_rating"),
             ]
         )
 
@@ -1621,7 +1631,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
-        assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
+        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
         assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
 
         # If we're on the start of the hour we should use the hour granularity

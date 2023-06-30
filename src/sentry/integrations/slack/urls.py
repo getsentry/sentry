@@ -12,6 +12,7 @@ urlpatterns = [
     url(
         r"^action/$",
         SlackActionEndpoint.as_view(),
+        name="sentry-integration-slack-action",
     ),
     url(
         r"^commands/$",
@@ -21,6 +22,7 @@ urlpatterns = [
     url(
         r"^event/$",
         SlackEventEndpoint.as_view(),
+        name="sentry-integration-slack-event",
     ),
     url(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",

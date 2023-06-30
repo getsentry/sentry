@@ -44,7 +44,7 @@ def get_num_sampled_elements(
 ) -> float:
     num_transactions = 0.0
     for transaction in transactions:
-        transaction_rate = trans_dict.get(transaction.id)
+        transaction_rate = trans_dict.get(str(transaction.id))
         if transaction_rate:
             num_transactions += transaction_rate * transaction.count
         else:

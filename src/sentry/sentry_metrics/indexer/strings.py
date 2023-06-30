@@ -150,9 +150,15 @@ SHARED_TAG_STRINGS = {
 
 # 400-499
 SPAN_METRICS_NAMES = {
+    # Deprecated -- transactions namespace
     "s:transactions/span.user@none": PREFIX + 400,
     "d:transactions/span.duration@millisecond": PREFIX + 401,
     "d:transactions/span.exclusive_time@millisecond": PREFIX + 402,
+    # Spans namespace
+    "s:spans/user@none": PREFIX + 403,
+    "d:spans/duration@millisecond": PREFIX + 404,
+    "d:spans/exclusive_time@millisecond": PREFIX + 405,
+    "d:spans/exclusive_time_light@millisecond": PREFIX + 406,
 }
 
 SHARED_STRINGS = {

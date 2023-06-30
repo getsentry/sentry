@@ -1,5 +1,5 @@
 ---
-created: '2022-03-28T12:03:04.745358Z'
+created: '2023-06-19T11:19:37.050282Z'
 creator: sentry
 source: tests/symbolicator/test_unreal_full.py
 ---
@@ -135,24 +135,28 @@ exception:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c8033d'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -284,6 +288,7 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -302,60 +307,70 @@ threads:
         instruction_addr: '0x108b7092b'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff31f4375d'
         package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff31f496fa'
         package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff31f4a95b'
         package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff33c8d348'
         package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff33c8d5cb'
         package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff33c8d895'
         package: /System/Library/Frameworks/Carbon.framework/Versions/A/Frameworks/HIToolbox.framework/Versions/A/HIToolbox
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f3ce4'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f45ad'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f505e'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -370,12 +385,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -390,12 +407,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -405,12 +424,14 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -425,12 +446,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -442,48 +465,56 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c8033d'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff31f53581'
         package: /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f3ce4'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f45ad'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff349f505e'
         package: /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -493,18 +524,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -547,6 +581,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -556,18 +591,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -610,6 +648,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -619,18 +658,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -673,6 +715,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -682,18 +725,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -736,6 +782,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -745,18 +792,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -799,6 +849,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -808,18 +859,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -862,6 +916,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -871,18 +926,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -925,6 +983,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -934,18 +993,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -988,6 +1050,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -997,18 +1060,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1051,6 +1117,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1060,18 +1127,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1120,6 +1190,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1129,18 +1200,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1171,6 +1245,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1180,18 +1255,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1222,6 +1300,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1231,18 +1310,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1273,6 +1355,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1282,18 +1365,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1324,6 +1410,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1333,18 +1420,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1375,6 +1465,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1389,12 +1480,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1409,12 +1502,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1429,12 +1524,14 @@ threads:
         in_app: false
         instruction_addr: '0x70001989cba0'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1449,12 +1546,14 @@ threads:
         in_app: false
         instruction_addr: '0x54485244'
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f415'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1464,18 +1563,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1500,12 +1602,14 @@ threads:
         instruction_addr: '0x1096b1e4d'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61b55724'
         package: /usr/lib/system/libsystem_c.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1515,18 +1619,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1557,6 +1664,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1566,18 +1674,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1608,6 +1719,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1617,18 +1729,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1659,6 +1774,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1668,18 +1784,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1710,6 +1829,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1719,18 +1839,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1761,6 +1884,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1770,18 +1894,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1812,6 +1939,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1821,18 +1949,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1881,6 +2012,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1890,18 +2022,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -1992,6 +2127,7 @@ threads:
         instruction_addr: '0x109266ff1'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2001,18 +2137,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2043,12 +2182,14 @@ threads:
         instruction_addr: '0x109481b6e'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61b55724'
         package: /usr/lib/system/libsystem_c.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2058,18 +2199,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2100,6 +2244,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2109,18 +2254,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2151,6 +2299,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2160,18 +2309,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2202,6 +2354,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2211,18 +2364,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2253,6 +2409,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2262,18 +2419,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2304,6 +2464,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2313,18 +2474,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2355,6 +2519,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2364,18 +2529,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2406,6 +2574,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2415,18 +2584,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2457,6 +2629,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2466,18 +2639,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2508,6 +2684,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2517,18 +2694,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2559,6 +2739,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2568,18 +2749,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2610,6 +2794,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2619,18 +2804,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2661,6 +2849,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2670,18 +2859,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2712,6 +2904,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2721,18 +2914,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2763,6 +2959,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2772,18 +2969,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2814,6 +3014,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2823,18 +3024,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2865,6 +3069,7 @@ threads:
         instruction_addr: '0x109482d68'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2874,36 +3079,42 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c8033d'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61a4db5a'
         package: /usr/lib/system/libdispatch.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61a40b19'
         package: /usr/lib/system/libdispatch.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2913,54 +3124,63 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c8033d'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff344410d6'
         package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff344415ee'
         package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff34441b84'
         package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff3444580d'
         package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff3444589a'
         package: /System/Library/Frameworks/CoreAudio.framework/Versions/A/CoreAudio
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -2970,18 +3190,21 @@ threads:
     stacktrace:
       frames:
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c7f425'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
         instruction_addr: '0x7fff61c832a7'
         package: /usr/lib/system/libsystem_pthread.dylib
       - data:
+          category: threadbase
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false
@@ -3030,6 +3253,7 @@ threads:
         instruction_addr: '0x109482f6f'
         package: /Users/bruno/Documents/Unreal Projects/YetAnotherMac/MacNoEditor/YetAnotherMac.app/Contents/MacOS/YetAnotherMac
       - data:
+          category: internals
           orig_in_app: -1
           symbolicator_status: missing
         in_app: false

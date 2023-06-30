@@ -78,6 +78,7 @@ class SubscribeTest(TestCase):
         user = self.create_user(email="bar@example.com")
         team = self.create_team(organization=org)
         self.create_member(user=user, organization=org, role="owner", teams=[team])
+        self.create_member(email="test@email.com", organization=org, role="owner", teams=[team])
 
         GroupSubscription.objects.subscribe_actor(group=group, actor=team)
 

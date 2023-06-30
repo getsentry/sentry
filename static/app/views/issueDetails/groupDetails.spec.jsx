@@ -269,7 +269,7 @@ describe('groupDetails', () => {
     });
     createWrapper({
       ...defaultInit,
-      organization: {...defaultInit.organization, features: ['escalating-issues-ui']},
+      organization: {...defaultInit.organization, features: ['escalating-issues']},
     });
     expect(await screen.findByText('Ongoing')).toBeInTheDocument();
   });
@@ -302,5 +302,23 @@ describe('groupDetails', () => {
     expect(
       await screen.findByText('The project other-project-slug does not exist')
     ).toBeInTheDocument();
+  });
+
+  it('uses /helpful endpoint when feature flag is on and no event is provided', async function () {
+    const helpfulMock = MockApiClient.addMockResponse({
+      url: `/issues/${group.id}/events/helpful/`,
+      statusCode: 200,
+      body: event,
+    });
+
+    createWrapper({
+      ...defaultInit,
+      organization: {
+        ...defaultInit.organization,
+        features: ['issue-details-most-helpful-event'],
+      },
+    });
+
+    await waitFor(() => expect(helpfulMock).toHaveBeenCalledTimes(1));
   });
 });

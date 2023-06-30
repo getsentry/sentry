@@ -1,12 +1,15 @@
-from sentry.mediators import Mediator, Param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param
 from sentry.models import Repository
+from sentry.models.integrations.integration import Integration
 from sentry.plugins.base import plugins
+from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.utils.cache import memoize
 
 
 class Migrator(Mediator):
-    integration = Param("sentry.models.integrations.integration.Integration")
-    organization = Param("sentry.models.organization.Organization")
+    integration = Param(Integration)
+    organization = Param(RpcOrganization)
 
     def call(self):
         for project in self.projects:
@@ -40,7 +43,7 @@ class Migrator(Mediator):
 
     @memoize
     def projects(self):
-        return list(self.organization.project_set.all())
+        return list(self.organization.projects)
 
     @property
     def plugins(self):

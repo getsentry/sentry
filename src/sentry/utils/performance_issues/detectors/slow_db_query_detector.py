@@ -28,7 +28,7 @@ class SlowDBQueryDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.SLOW_DB_QUERY
+    type = DetectorType.SLOW_DB_QUERY
     settings_key = DetectorType.SLOW_DB_QUERY
 
     def init(self):
@@ -95,7 +95,7 @@ class SlowDBQueryDetector(PerformanceDetector):
         return features.has("organizations:performance-slow-db-issue", organization, actor=None)
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True
+        return self.settings[0]["detection_enabled"]
 
     @classmethod
     def is_span_eligible(cls, span: Span) -> bool:

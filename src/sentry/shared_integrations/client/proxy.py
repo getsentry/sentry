@@ -7,7 +7,9 @@ from typing import Any, Mapping
 from django.conf import settings
 from requests import PreparedRequest
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -22,6 +24,33 @@ from sentry.silo.util import (
 logger = logging.getLogger(__name__)
 
 
+def infer_org_integration(
+    integration_id: int, ctx_logger: logging.Logger | None = None
+) -> int | None:
+    """
+    Given an integration_id, return the first associated org_integration_id.
+    The IntegrationProxyClient requires org_integration context to proxy requests properly
+    but sometimes clients don't have context on the specific organization issuing a request.
+    In those situations, we just grab the first organization and log this assumption.
+    """
+    org_integration_id = None
+    with in_test_hide_transaction_boundary():
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id
+        )
+    if len(org_integrations) > 0:
+        org_integration_id = org_integrations[0].id
+        if ctx_logger:
+            ctx_logger.info(
+                "infer_organization_from_integration",
+                extra={
+                    "integration_id": integration_id,
+                    "org_integration_id": org_integration_id,
+                },
+            )
+    return org_integration_id
+
+
 class IntegrationProxyClient(ApiClient):
     """
     Universal Client to access third-party resources safely in Hybrid Cloud.
@@ -29,7 +58,7 @@ class IntegrationProxyClient(ApiClient):
     add sensitive credentials at that stage.
 
     When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
-    is set to True.
+    is set to True. Enable to test proxying locally.
     """
 
     _should_proxy_to_control = False
@@ -54,6 +83,7 @@ class IntegrationProxyClient(ApiClient):
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
         if is_test_environment and not self._use_proxy_url_for_tests:
+            logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
     @control_silo_function

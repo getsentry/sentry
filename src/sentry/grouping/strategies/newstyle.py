@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import re
 from typing import Any, Dict, Generator, List, Optional
@@ -14,7 +16,6 @@ from sentry.grouping.strategies.base import (
 )
 from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
-from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.grouping.utils import hash_from_values
 from sentry.interfaces.exception import Exception as ChainedException
@@ -22,7 +23,6 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.utils.iterators import shingle
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
 _basename_re = re.compile(r"[/\\]")
@@ -89,7 +89,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursion_v1(frame1: Frame, frame2: Frame) -> bool:
+def is_recursion_v1(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
@@ -116,7 +116,8 @@ def get_package_component(package: str, platform: Optional[str]) -> GroupingComp
 
     package = get_basename(package).lower()
     package_component = GroupingComponent(
-        id="package", values=[package], similarity_encoder=ident_encoder
+        id="package",
+        values=[package],
     )
     return package_component
 
@@ -137,7 +138,8 @@ def get_filename_component(
     # lowercase it
     filename = _basename_re.split(filename)[-1].lower()
     filename_component = GroupingComponent(
-        id="filename", values=[filename], similarity_encoder=ident_encoder
+        id="filename",
+        values=[filename],
     )
 
     if has_url_origin(abs_path, allow_file_origin=allow_file_origin):
@@ -173,7 +175,8 @@ def get_module_component(
         return GroupingComponent(id="module")
 
     module_component = GroupingComponent(
-        id="module", values=[module], similarity_encoder=ident_encoder
+        id="module",
+        values=[module],
     )
 
     if platform == "javascript" and "/" in module and abs_path and abs_path.endswith(module):
@@ -258,7 +261,8 @@ def get_function_component(
         return GroupingComponent(id="function")
 
     function_component = GroupingComponent(
-        id="function", values=[func], similarity_encoder=ident_encoder
+        id="function",
+        values=[func],
     )
 
     if platform == "ruby":
@@ -314,7 +318,6 @@ def get_function_component(
         if sourcemap_used and context_line_available:
             function_component.update(
                 contributes=False,
-                contributes_to_similarity=True,
                 hint="ignored because sourcemap used and context line available",
             )
 
@@ -345,9 +348,7 @@ def frame(
     # take precedence over the filename if it contributes
     module_component = get_module_component(frame.abs_path, frame.module, platform, context)
     if module_component.contributes and filename_component.contributes:
-        filename_component.update(
-            contributes=False, contributes_to_similarity=True, hint="module takes precedence"
-        )
+        filename_component.update(contributes=False, hint="module takes precedence")
 
     context_line_component = None
 
@@ -476,7 +477,6 @@ def get_contextline_component(
     component = GroupingComponent(
         id="context-line",
         values=[line],
-        similarity_encoder=ident_encoder,
     )
     if line:
         if len(frame.context_line) > 120:
@@ -552,7 +552,6 @@ def _single_stacktrace_variant(
         frames_for_filtering,
         event.platform,
         exception_data=context["exception_data"],
-        similarity_self_encoder=_stacktrace_encoder,
     )
 
     if inverted_hierarchy is None:
@@ -580,36 +579,6 @@ def stacktrace_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-def _stacktrace_encoder(id: str, stacktrace: Stacktrace) -> StacktraceEncoderReturnValue:
-    encoded_frames = []
-
-    for frame in stacktrace.values:
-        encoded = {}
-        for (component_id, shingle_label), features in frame.encode_for_similarity():
-            assert (
-                shingle_label == "ident-shingle"
-            ), "Frames cannot use anything other than ident shingles for now"
-
-            if not features:
-                continue
-
-            assert (
-                len(features) == 1 and component_id not in encoded
-            ), "Frames cannot use anything other than ident shingles for now"
-            encoded[component_id] = features[0]
-
-        if encoded:
-            # add frozen dict
-            encoded_frames.append(tuple(sorted(encoded.items())))
-
-    if len(encoded_frames) < 2:
-        if encoded_frames:
-            yield (id, "frames-ident"), encoded_frames
-        return
-
-    yield (id, "frames-pairs"), shingle(2, encoded_frames)
-
-
 @strategy(
     ids=["single-exception:v1"],
     interface=SingleException,
@@ -620,7 +589,6 @@ def single_exception(
     type_component = GroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
-        similarity_encoder=ident_encoder,
     )
     system_type_component = type_component.shallow_copy()
 
@@ -671,7 +639,7 @@ def single_exception(
 
         if context["with_exception_value_fallback"]:
             value_component = GroupingComponent(
-                id="value", similarity_encoder=text_shingle_encoder(5)
+                id="value",
             )
 
             value_in = interface.value
@@ -684,7 +652,6 @@ def single_exception(
             if stacktrace_component.contributes and value_component.contributes:
                 value_component.update(
                     contributes=False,
-                    contributes_to_similarity=True,
                     hint="ignored because stacktrace takes precedence",
                 )
 
@@ -695,7 +662,6 @@ def single_exception(
             ):
                 value_component.update(
                     contributes=False,
-                    contributes_to_similarity=True,
                     hint="ignored because ns-error info takes precedence",
                 )
 

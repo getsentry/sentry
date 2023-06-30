@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueBasicMixin
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import ExternalIssue, Group, User
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -23,21 +22,6 @@ class GitHubIssueBasic(IssueBasicMixin):
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
-    def get_performance_issue_body(self, event: Event) -> str:
-        (
-            transaction_name,
-            parent_span,
-            num_repeating_spans,
-            repeating_spans,
-        ) = self.get_performance_issue_description_data(event)
-
-        body = "|  |  |\n"
-        body += "| ------------- | --------------- |\n"
-        body += f"| **Transaction Name** | {truncatechars(transaction_name, MAX_CHAR)} |\n"
-        body += f"| **Parent Span** | {truncatechars(parent_span, MAX_CHAR)} |\n"
-        body += f"| **Repeating Spans ({num_repeating_spans})** | {truncatechars(repeating_spans, MAX_CHAR)} |"
-        return body
-
     def get_generic_issue_body(self, event: GroupEvent) -> str:
         body = "|  |  |\n"
         body += "| ------------- | --------------- |\n"
@@ -51,10 +35,7 @@ class GitHubIssueBasic(IssueBasicMixin):
     def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
         output = self.get_group_link(group, **kwargs)
 
-        if group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.get_performance_issue_body(event)
-            output.extend([body])
-        elif isinstance(event, GroupEvent) and event.occurrence is not None:
+        if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = self.get_generic_issue_body(event)
             output.extend([body])
         else:
@@ -98,7 +79,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -156,7 +137,7 @@ class GitHubIssueBasic(IssueBasicMixin):
 
         org = group.organization
         autocomplete_url = reverse(
-            "sentry-extensions-github-search", args=[org.slug, self.model.id]
+            "sentry-integration-github-search", args=[org.slug, self.model.id]
         )
 
         return [
@@ -225,7 +206,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         try:
             response = client.get_assignees(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
@@ -236,7 +217,7 @@ class GitHubIssueBasic(IssueBasicMixin):
         try:
             response = client.get_issues(repo)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issues = tuple((i["number"], "#{} {}".format(i["number"], i["title"])) for i in response)
 

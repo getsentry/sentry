@@ -23,7 +23,7 @@ from ..types import Span
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
-    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
+    type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
@@ -59,7 +59,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span):
         if not self.fcp:

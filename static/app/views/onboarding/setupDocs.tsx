@@ -6,18 +6,19 @@ import {Location} from 'history';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import {Alert} from 'sentry/components/alert';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
+import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import {OnboardingPlatformDoc} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -31,42 +32,6 @@ import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
-/**
- * The documentation will include the following string should it be missing the
- * verification example, which currently a lot of docs are.
- */
-const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
-
-type PlatformDoc = {html: string; link: string};
-
-function MissingExampleWarning({
-  platformDocs,
-  platform,
-}: {
-  platform: PlatformKey | null;
-  platformDocs: PlatformDoc | null;
-}) {
-  const missingExample = platformDocs?.html.includes(INCOMPLETE_DOC_FLAG);
-
-  if (!missingExample) {
-    return null;
-  }
-
-  return (
-    <Alert type="warning" showIcon>
-      {tct(
-        `Looks like this getting started example is still undergoing some
-         work and doesn't include an example for triggering an event quite
-         yet. If you have trouble sending your first event be sure to consult
-         the [docsLink:full documentation] for [platform].`,
-        {
-          docsLink: <ExternalLink href={platformDocs?.link} />,
-          platform: platforms.find(p => p.id === platform)?.name,
-        }
-      )}
-    </Alert>
-  );
-}
 
 export function DocWithProductSelection({
   organization,
@@ -93,7 +58,7 @@ export function DocWithProductSelection({
       : `${currentPlatform}-with-error-monitoring`;
   }, [location.query.product, currentPlatform]);
 
-  const {data, isLoading, isError, refetch} = useApiQuery<PlatformDoc>(
+  const {data, isLoading, isError, refetch} = useApiQuery<OnboardingPlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
@@ -153,7 +118,7 @@ function ProjectDocs(props: {
   onRetry: () => void;
   organization: Organization;
   platform: PlatformKey | null;
-  platformDocs: PlatformDoc | null;
+  platformDocs: OnboardingPlatformDoc | null;
   project: Project;
 }) {
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
@@ -216,7 +181,7 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
 
   // SDK instrumentation
   const [hasError, setHasError] = useState(false);
-  const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
+  const [platformDocs, setPlatformDocs] = useState<OnboardingPlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';

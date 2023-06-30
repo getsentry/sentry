@@ -57,7 +57,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         checksum = data.get("checksum", None)
         chunks = data.get("chunks", [])
 
-        state, detail = get_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum)
+        state, detail = get_assemble_status(AssembleTask.RELEASE_BUNDLE, organization.id, checksum)
         if state == ChunkFileState.OK:
             return Response({"state": state, "detail": None, "missingChunks": []}, status=200)
         elif state is not None:
@@ -70,7 +70,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
             return Response({"state": ChunkFileState.NOT_FOUND, "missingChunks": []}, status=200)
 
         set_assemble_status(
-            AssembleTask.ARTIFACTS, organization.id, checksum, ChunkFileState.CREATED
+            AssembleTask.RELEASE_BUNDLE, organization.id, checksum, ChunkFileState.CREATED
         )
 
         from sentry.tasks.assemble import assemble_artifacts

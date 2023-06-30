@@ -1,23 +1,28 @@
+from __future__ import annotations
+
 import logging
 import time
 from typing import Callable, Mapping
 
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
-from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Rule
+from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.models import ApiKey, Group, Rule
 from sentry.models.activity import ActivityIntegration
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 
-from ...services.hybrid_cloud.integration import integration_service
 from .card_builder import AdaptiveCard
 from .card_builder.help import (
     build_help_command_card,
@@ -129,18 +134,42 @@ def verify_signature(request):
     return True
 
 
-@control_silo_endpoint
-class MsTeamsWebhookEndpoint(Endpoint):
+class MsTeamsWebhookMixin:
+    provider = "msteams"
+
+    def get_integration_from_channel_data(self, request: HttpRequest) -> RpcIntegration | None:
+        try:
+            data = request.data
+            channel_data = data["channelData"]
+            team_id = channel_data["team"]["id"]
+            return integration_service.get_integration(provider=self.provider, external_id=team_id)
+        except Exception:
+            pass
+        return None
+
+    def get_integration_from_payload(self, request: HttpRequest) -> RpcIntegration | None:
+        try:
+            data = request.data
+            payload = data["value"]["payload"]
+            integration_id = payload["integrationId"]
+            return integration_service.get_integration(integration_id=integration_id)
+        except Exception:
+            pass
+        return None
+
+
+@region_silo_endpoint
+class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     @transaction_start("MsTeamsWebhookEndpoint")
-    def post(self, request: Request) -> Response:
+    def post(self, request: HttpRequest) -> HttpResponse:
         # verify_signature will raise the exception corresponding to the error
         verify_signature(request)
 
@@ -173,7 +202,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def handle_personal_member_add(self, request: Request):
+    def handle_personal_member_add(self, request: HttpRequest):
         data = request.data
         data["conversation_id"] = data["conversation"]["id"]
         tenant_id = data["conversation"]["tenantId"]
@@ -186,7 +215,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.handle_member_add(data, params, build_personal_installation_message)
 
-    def handle_team_member_added(self, request: Request):
+    def handle_team_member_added(self, request: HttpRequest):
         data = request.data
         team = data["channelData"]["team"]
         data["conversation_id"] = team["id"]
@@ -204,7 +233,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         data: Mapping[str, str],
         params: Mapping[str, str],
         build_installation_card: Callable[[str], AdaptiveCard],
-    ) -> Response:
+    ) -> HttpResponse:
         # only care if our bot is the new member added
         matches = list(filter(lambda x: x["id"] == data["recipient"]["id"], data["membersAdded"]))
         if not matches:
@@ -231,7 +260,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.respond(status=201)
 
-    def handle_team_member_removed(self, request: Request):
+    def handle_team_member_removed(self, request: HttpRequest):
         data = request.data
         channel_data = data["channelData"]
         # only care if our bot is the new member removed
@@ -241,9 +270,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         team_id = channel_data["team"]["id"]
 
-        try:
-            integration = Integration.objects.get(provider=self.provider, external_id=team_id)
-        except Integration.DoesNotExist:
+        integration = self.get_integration_from_channel_data(request)
+        if integration is None:
             logger.info(
                 "msteams.uninstall.missing-integration",
                 extra={"team_id": team_id},
@@ -256,23 +284,25 @@ class MsTeamsWebhookEndpoint(Endpoint):
         # this is different than Vercel, for example, which can have multiple installations
         # for the same team in Vercel with different auth tokens
 
-        for org_id in integration.organizationintegration_set.values_list(
-            "organization_id", flat=True
-        ):
-            create_audit_entry(
-                request=request,
-                organization_id=org_id,
-                target_object=integration.id,
-                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
-                actor_label="Teams User",
-                data={
-                    "provider": integration.provider,
-                    "name": integration.name,
-                    "team_id": team_id,
-                },
-            )
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration.id
+        )
+        if len(org_integrations) > 0:
+            for org_integration in org_integrations:
+                create_audit_entry(
+                    request=request,
+                    organization_id=org_integration.organization_id,
+                    target_object=integration.id,
+                    event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                    actor_label="Teams User",
+                    data={
+                        "provider": integration.provider,
+                        "name": integration.name,
+                        "team_id": team_id,
+                    },
+                )
 
-        integration.delete()
+        integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
     def make_action_data(self, data, user_id):
@@ -307,7 +337,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
             action_data = {"assignedTo": ""}
         return action_data
 
-    def issue_state_change(self, group, identity, data):
+    def issue_state_change(self, group: Group, identity: RpcIdentity, data):
         event_write_key = ApiKey(
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
@@ -334,11 +364,11 @@ class MsTeamsWebhookEndpoint(Endpoint):
             path=f"/projects/{group.project.organization.slug}/{group.project.slug}/issues/",
             params={"id": group.id},
             data=action_data,
-            user=identity.user,
+            user=user_service.get_user(user_id=identity.user_id),
             auth=event_write_key,
         )
 
-    def handle_action_submitted(self, request: Request):
+    def handle_action_submitted(self, request: HttpRequest):
         # pull out parameters
         data = request.data
         channel_data = data["channelData"]
@@ -354,9 +384,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        try:
-            integration = Integration.objects.get(id=integration_id)
-        except Integration.DoesNotExist:
+        integration = self.get_integration_from_payload(request)
+        if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
             )
@@ -380,9 +409,8 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        try:
-            idp = IdentityProvider.objects.get(type="msteams", external_id=team_id)
-        except IdentityProvider.DoesNotExist:
+        idp = identity_service.get_provider(provider_type="msteams", provider_ext_id=team_id)
+        if idp is None:
             logger.info(
                 "msteams.action.invalid-team-id",
                 extra={
@@ -393,9 +421,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
             )
             return self.respond(status=404)
 
-        try:
-            identity = Identity.objects.get(idp=idp, external_id=user_id)
-        except Identity.DoesNotExist:
+        identity = identity_service.get_identity(
+            filter={"provider_id": idp.id, "identity_ext_id": user_id}
+        )
+        if identity is None:
             associate_url = build_linking_url(
                 integration, group.organization, user_id, team_id, tenant_id
             )
@@ -412,7 +441,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         rules = Rule.objects.filter(id__in=payload["rules"])
 
         # pull the event based off our payload
-        event = eventstore.get_event_by_id(group.project_id, payload["eventId"])
+        event = eventstore.backend.get_event_by_id(group.project_id, payload["eventId"])
         if event is None:
             logger.info(
                 "msteams.action.event-missing",
@@ -433,7 +462,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return issue_change_response
 
-    def handle_channel_message(self, request: Request):
+    def handle_channel_message(self, request: HttpRequest):
         data = request.data
 
         # check to see if we are mentioned
@@ -459,7 +488,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def handle_personal_message(self, request: Request):
+    def handle_personal_message(self, request: HttpRequest):
         data = request.data
         command_text = data.get("text", "").strip()
         lowercase_command = command_text.lower()
@@ -473,7 +502,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         elif "help" in lowercase_command:
             card = build_help_command_card()
         elif "link" == lowercase_command:  # don't to match other types of link commands
-            has_linked_identity = Identity.objects.filter(external_id=teams_user_id).exists()
+            has_linked_identity = (
+                identity_service.get_identity(filter={"identity_ext_id": teams_user_id}) is not None
+            )
             if has_linked_identity:
                 card = build_already_linked_identity_command_card()
             else:

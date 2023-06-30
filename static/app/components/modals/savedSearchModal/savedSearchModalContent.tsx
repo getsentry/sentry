@@ -11,14 +11,6 @@ type SavedSearchModalContentProps = {
   organization: Organization;
 };
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
 const SELECT_FIELD_VISIBILITY_OPTIONS = [
   {value: SavedSearchVisibility.OWNER, label: t('Only me')},
   {value: SavedSearchVisibility.ORGANIZATION, label: t('Users in my organization')},
@@ -26,14 +18,18 @@ const SELECT_FIELD_VISIBILITY_OPTIONS = [
 
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
-
   const hasBetterPrioritySort = organization.features.includes(
     'issue-list-better-priority-sort'
   );
-  const sortOptions = [...DEFAULT_SORT_OPTIONS];
-  if (hasBetterPrioritySort) {
-    sortOptions.push(IssueSortOptions.BETTER_PRIORITY);
-  }
+
+  const sortOptions = [
+    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
 
   const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,

@@ -4,6 +4,7 @@ import useActiveReplayTab, {TabKey} from 'sentry/utils/replays/hooks/useActiveRe
 import useOrganization from 'sentry/utils/useOrganization';
 import Console from 'sentry/views/replays/detail/console';
 import DomMutations from 'sentry/views/replays/detail/domMutations';
+import ErrorList from 'sentry/views/replays/detail/errorList/index';
 import IssueList from 'sentry/views/replays/detail/issueList';
 import MemoryChart from 'sentry/views/replays/detail/memoryChart';
 import NetworkList from 'sentry/views/replays/detail/network';
@@ -39,6 +40,13 @@ function FocusArea({}: Props) {
           projectId={replay.getReplay()?.project_id}
         />
       );
+    case TabKey.ERRORS:
+      return (
+        <ErrorList
+          errorCrumbs={replay?.getIssueCrumbs()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+        />
+      );
     case TabKey.DOM:
       return (
         <DomMutations
@@ -51,20 +59,35 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
+          memoryFrames={replay?.getMemoryFrames()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
         />
       );
     case TabKey.CONSOLE:
-    default:
+    default: {
+      const hasErrorTab = organization.features.includes('session-replay-errors-tab');
+
+      if (hasErrorTab) {
+        return (
+          <Console
+            breadcrumbs={replay?.getConsoleCrumbs()}
+            startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
+          />
+        );
+      }
+
+      const breadcrumbs = replay
+        ? [...replay.getConsoleCrumbs(), ...replay.getIssueCrumbs()]
+        : undefined;
       return (
         <Console
-          breadcrumbs={replay?.getConsoleCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          breadcrumbs={breadcrumbs}
+          startTimestampMs={replay?.getReplay().started_at.getTime() || 0}
         />
       );
+    }
   }
 }
 

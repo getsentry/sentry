@@ -16,8 +16,9 @@ from sentry.models import Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.constants import TRACE_PARENT_SPAN_CONTEXT
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils.snuba import Dataset, parse_snuba_datetime, raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 
 class EmptyTransactionDatasetException(Exception):

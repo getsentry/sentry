@@ -287,7 +287,7 @@ class AcceptOrganizationInviteTest(APITestCase):
     def create_existing_om(self):
         with exempt_from_silo_limits(), outbox_runner():
             OrganizationMember.objects.create(
-                user=self.user, role="member", organization=self.organization
+                user_id=self.user.id, role="member", organization=self.organization
             )
 
     def get_om_and_init_invite(self):
@@ -353,7 +353,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         with exempt_from_silo_limits():
             om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
     @mock.patch("sentry.auth.authenticators.U2fInterface.try_enroll", return_value=True)
@@ -450,7 +450,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         with exempt_from_silo_limits():
             om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
         assert log.error.call_count == 1
@@ -470,7 +470,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         with exempt_from_silo_limits():
             om = OrganizationMember.objects.get(id=om.id)
-        assert om.user is None
+        assert om.user_id is None
         assert om.email == "newuser@example.com"
 
     @mock.patch("sentry.api.endpoints.user_authenticator_enroll.logger")

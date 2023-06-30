@@ -42,7 +42,7 @@ class GroupMergedView extends Component<Props, State> {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (
       nextProps.params.groupId !== this.props.params.groupId ||
       nextProps.location.search !== this.props.location.search

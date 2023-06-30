@@ -15,16 +15,17 @@ from sentry.models import (
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationMember,
-    RpcProject,
     RpcTeam,
     RpcTeamMember,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_member, unescape_flag_name
+from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.testutils import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
 from sentry.testutils.silo import all_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
@@ -193,22 +194,44 @@ def assert_get_organization_by_id_works(user_context: Optional[User], orm_org: O
         )
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs
 @use_real_service(organization_service, None)
-def test_get_organization_id(org_factory: Callable[[], Organization]):
+def test_get_organization_id(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
 
     for user_context in itertools.chain([None], orm_users):
         assert_get_organization_by_id_works(user_context, orm_org)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
+@all_silo_test
+@parameterize_with_orgs
+@use_real_service(organization_service, None)
+def test_idempotency(org_factory: Callable[[], Tuple[Organization, List[User]]]):
+    orm_org, orm_users = org_factory()
+    new_user = Factories.create_user()
+
+    for i in range(2):
+        member = organization_service.add_organization_member(
+            organization_id=orm_org.id, default_org_role=orm_org.default_role, user_id=new_user.id
+        )
+        assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+
+        member = organization_service.add_organization_member(
+            organization_id=orm_org.id,
+            default_org_role=orm_org.default_role,
+            email="me@thing.com",
+        )
+        assert_organization_member_equals(OrganizationMember.objects.get(id=member.id), member)
+
+
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
 @use_real_service(organization_service, None)
-def test_get_all_org_roles(org_factory: Callable[[], Organization]):
+def test_get_all_org_roles(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     _, orm_users = org_factory()
     member = OrganizationMember.objects.get(user_id=orm_users[1].id)
 
@@ -219,11 +242,11 @@ def test_get_all_org_roles(org_factory: Callable[[], Organization]):
     assert set(all_org_roles) == set(service_org_roles)
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 @all_silo_test
 @parameterize_with_orgs_with_owner_team
 @use_real_service(organization_service, None)
-def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
+def test_get_top_dog_team_member_ids(org_factory: Callable[[], Tuple[Organization, List[User]]]):
     orm_org, orm_users = org_factory()
     members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
 
