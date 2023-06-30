@@ -705,7 +705,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             environments_by_project[project_env["project_id"]].append(
                 project_env["environment__name"]
             )
-            
+
         # Only fetch the latest release version key for each project to cut down on response size
         latest_release_versions = _get_project_to_release_version_mapping(item_list)
 
