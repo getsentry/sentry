@@ -94,6 +94,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "strategy_factory": "sentry.monitors.consumers.monitor_consumer.StoreMonitorCheckInStrategyFactory",
     },
     "billing-metrics-consumer": {
+        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
         "strategy_factory": "sentry.ingest.billing_metrics_consumer.BillingMetricsConsumerStrategyFactory",
     },
     # Known differences to 'sentry run occurrences-ingest-consumer':
