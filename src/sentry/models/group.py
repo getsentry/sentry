@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -47,7 +47,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team
+    from sentry.models import Environment, Organization, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -239,18 +239,25 @@ def get_oldest_or_latest_event_for_environments(
 
 
 def get_helpful_event_for_environments(
-    environments: Sequence[str], group: Group
+    environments: Sequence[Environment],
+    group: Group,
+    conditions: Optional[Sequence[Condition]] = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    conditions = []
+    all_conditions = []
     if len(environments) > 0:
-        conditions.append(Condition(Column("environment"), Op.IN, environments))
-    conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
-    conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+        all_conditions.append(
+            Condition(Column("environment"), Op.IN, [e.name for e in environments])
+        )
+    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
+    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+
+    if conditions:
+        all_conditions.extend(conditions)
 
     end = group.last_seen + timedelta(minutes=1)
     start = end - timedelta(days=14)
@@ -260,7 +267,7 @@ def get_helpful_event_for_environments(
         group_id=group.id,
         start=start,
         end=end,
-        conditions=conditions,
+        conditions=all_conditions,
         limit=1,
         orderby=EventOrdering.MOST_HELPFUL.value,
         referrer="Group.get_helpful",
@@ -639,11 +646,14 @@ class Group(Model):
         )
 
     def get_helpful_event_for_environments(
-        self, environments: Sequence[str] = ()
+        self,
+        environments: Sequence[Environment] = (),
+        conditions: Optional[Sequence[Condition]] = None,
     ) -> GroupEvent | None:
         maybe_event = get_helpful_event_for_environments(
             environments,
             self,
+            conditions,
         )
         return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
 
