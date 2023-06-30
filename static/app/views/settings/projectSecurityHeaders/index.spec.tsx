@@ -1,11 +1,10 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSecurityHeaders from 'sentry/views/settings/projectSecurityHeaders';
 
 describe('ProjectSecurityHeaders', function () {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-  const url = `/projects/${org.slug}/${project.slug}/`;
+  const {organization: org, project, routerProps} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -18,14 +17,7 @@ describe('ProjectSecurityHeaders', function () {
 
   it('renders', function () {
     const wrapper = render(
-      <ProjectSecurityHeaders
-        organization={org}
-        project={project}
-        {...TestStubs.routerProps({
-          params: {projectId: project.slug},
-          location: TestStubs.location({pathname: url}),
-        })}
-      />
+      <ProjectSecurityHeaders {...routerProps} organization={org} />
     );
     expect(wrapper.container).toSnapshot();
   });
