@@ -1,11 +1,15 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import AcceptProjectTransfer from 'sentry/views/acceptProjectTransfer';
 
 describe('AcceptProjectTransfer', function () {
-  let getMock;
-  let postMock;
+  const {routerProps} = initializeOrg();
+
+  let getMock: jest.Mock;
+  let postMock: jest.Mock;
   const endpoint = '/accept-transfer/';
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
 
@@ -26,27 +30,13 @@ describe('AcceptProjectTransfer', function () {
   });
 
   it('renders', function () {
-    render(
-      <AcceptProjectTransfer
-        location={{
-          pathname: 'endpoint',
-          query: {data: 'XYZ'},
-        }}
-      />
-    );
+    render(<AcceptProjectTransfer {...routerProps} />);
 
     expect(getMock).toHaveBeenCalled();
   });
 
   it('submits', async function () {
-    render(
-      <AcceptProjectTransfer
-        location={{
-          pathname: 'endpoint',
-          query: {data: 'XYZ'},
-        }}
-      />
-    );
+    render(<AcceptProjectTransfer {...routerProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
