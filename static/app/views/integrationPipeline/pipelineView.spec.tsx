@@ -25,10 +25,7 @@ describe('PipelineView', () => {
   });
 
   it('errros on invalid pipelineName', () => {
-    jest.spyOn(console, 'error');
-
-    // eslint-disable-next-line no-console
-    console.error.mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     expect(() => render(<PipelineView pipelineName="other" />)).toThrow(
       'Invalid pipeline name other'
