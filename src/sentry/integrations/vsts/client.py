@@ -80,7 +80,6 @@ class VstsApiPath:
 
 
 def prepare_headers(
-    access_token: str,
     api_version: str,
     method: str,
     api_version_preview: str,
@@ -91,6 +90,14 @@ def prepare_headers(
         "Content-Type": "application/json-patch+json" if method == "PATCH" else "application/json",
         "X-HTTP-Method-Override": method,
         "X-TFS-FedAuthRedirect": "Suppress",
+    }
+    return headers
+
+
+def prepare_auth_header(
+    access_token: str,
+):
+    headers = {
         "Authorization": f"Bearer {access_token}",
     }
     return headers
@@ -130,11 +137,11 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         self, method, path, data=None, params=None, api_preview: bool = False
     ) -> BaseApiResponseX:
         headers = prepare_headers(
-            access_token=self.access_token,
             api_version=self.api_version,
             method=method,
             api_version_preview=self.api_version_preview if api_preview else "",
         )
+        headers.update(prepare_auth_header(access_token=self.access_token))
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
@@ -161,20 +168,27 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
         self._identity = Identity.objects.filter(id=self.identity_id).first()
         return self._identity
 
+    def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+        api_preview = kwargs.pop("api_preview", False)
+        headers = kwargs.pop("headers", {})
+        new_headers = prepare_headers(
+            api_version=self.api_version,
+            method=method,
+            api_version_preview=self.api_version_preview if api_preview else "",
+        )
+        headers.update(new_headers)
+
+        return self._request(method, *args, headers=headers, **kwargs)
+
     @control_silo_function
     def authorize_request(
         self,
         prepared_request: PreparedRequest,
-        api_preview: bool = False,
     ) -> PreparedRequest:
         self.check_auth(redirect_url=self.oauth_redirect_url)
-        method = prepared_request.method
         access_token = self.identity.data["access_token"]
-        headers = prepare_headers(
+        headers = prepare_auth_header(
             access_token=access_token,
-            api_version=self.api_version,
-            method=method,
-            api_version_preview=self.api_version_preview if api_preview else "",
         )
         prepared_request.headers.update(headers)
         return prepared_request

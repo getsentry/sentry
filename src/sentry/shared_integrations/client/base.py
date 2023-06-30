@@ -69,7 +69,7 @@ class BaseApiClient(TrackResponseMixin):
             return f"{self.base_url}{path}"
         return path
 
-    def finalize_request(self, prepared_request: PreparedRequest, **kwargs: Any) -> PreparedRequest:
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         """
         Allows subclasses to add hooks before sending requests out
         """
@@ -90,7 +90,6 @@ class BaseApiClient(TrackResponseMixin):
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         raw_response: bool = False,
-        **kwargs: Any,
     ) -> BaseApiResponseX:
         if allow_text is None:
             allow_text = self.allow_text
@@ -165,7 +164,7 @@ class BaseApiClient(TrackResponseMixin):
 
             try:
                 with build_session() as session:
-                    finalized_request = self.finalize_request(_prepared_request, **kwargs)
+                    finalized_request = self.finalize_request(_prepared_request)
                     resp: Response = session.send(
                         finalized_request,
                         allow_redirects=allow_redirects,
