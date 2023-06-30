@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from typing import Optional
 
-from redis import Redis
+from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.utils.kvstore.abstract import KVStorage
 
@@ -12,7 +14,7 @@ class RedisKVStorage(KVStorage[str, bytes]):
     or cluster.)
     """
 
-    def __init__(self, client: "Redis[bytes]") -> None:
+    def __init__(self, client: StrictRedis | RedisCluster) -> None:
         self.client = client
 
     def get(self, key: str) -> Optional[bytes]:
