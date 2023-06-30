@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
-  const {routerContext, router, organization} = initializeOrg();
+  const {routerProps, routerContext, router, organization} = initializeOrg();
   const group = TestStubs.Group();
   let tagsMock;
   beforeEach(function () {
@@ -17,9 +17,9 @@ describe('GroupTags', function () {
   it('navigates to issue details events tab with correct query params', async function () {
     render(
       <GroupTags
+        {...routerProps}
         group={group}
         environments={['dev']}
-        location={{}}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
       {context: routerContext, organization}
