@@ -3547,3 +3547,8 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
+
+
+# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
+# to the buffer service.
+SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
