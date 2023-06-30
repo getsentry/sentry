@@ -44,6 +44,17 @@ class SourceFileType(Enum):
         return None
 
 
+class BundleIndexingState(Enum):
+    DOES_NOT_NEED_INDEXING = 0
+    NEEDS_INDEXING = 1
+    IS_BEING_INDEXED = 2
+    WAS_INDEXED = 3
+
+    @classmethod
+    def choices(cls) -> List[Tuple[int, str]]:
+        return [(key.value, key.name) for key in cls]
+
+
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
@@ -54,6 +65,9 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    indexing_state = models.IntegerField(
+        default=None, null=True, choices=BundleIndexingState.choices()
+    )
     # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
     # name is the same across entities connected to this bundle named *ArtifactBundle.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -95,6 +109,28 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+
+@region_silo_only_model
+class ArtifactBundleIndex(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=250, db_index=True)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
+    url = models.TextField(db_index=True)
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    date_last_modified = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_artifactbundleindex"
+
+        index_together = (
+            ("organization_id", "release_name", "dist_name", "url", "artifact_bundle"),
+        )
 
 
 @region_silo_only_model
