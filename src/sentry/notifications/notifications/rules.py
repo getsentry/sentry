@@ -8,6 +8,7 @@ import pytz
 
 from sentry import features
 from sentry.db.models import Model
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
@@ -77,9 +78,11 @@ class AlertRuleNotification(ProjectNotification):
         self.rules = notification.rules
 
         if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
-            occurrence = getattr(event, "occurrence", None)
             # profile issues use the generic template for now
-            if occurrence and occurrence.evidence_data.get("template_name") == "profile":
+            if (
+                isinstance(event, GroupEvent)
+                and event.occurrence.evidence_data.get("template_name") == "profile"
+            ):
                 email_template_name = GENERIC_TEMPLATE_NAME
             else:
                 email_template_name = event.group.issue_category.name.lower()
@@ -169,9 +172,10 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
-        occurrence = getattr(self.event, "occurrence", None)
         template_name = (
-            getattr(occurrence, "evidence_data", {}).get("template_name") if occurrence else None
+            self.event.occurrence.evidence_data.get("template_name")
+            if isinstance(self.event, GroupEvent)
+            else None
         )
 
         if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
@@ -190,7 +194,7 @@ class AlertRuleNotification(ProjectNotification):
                 "snooze_alert_url"
             ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
 
-        if getattr(self.event, "occurrence", None):
+        if isinstance(self.event, GroupEvent):
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
             context["culprit"] = self.event.occurrence.culprit
