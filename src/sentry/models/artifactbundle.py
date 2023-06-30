@@ -1,10 +1,8 @@
 import zipfile
-from datetime import datetime
 from enum import Enum
 from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
 
 from django.db import models
-from django.db.models import Count
 from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
@@ -154,20 +152,6 @@ class ReleaseArtifactBundle(Model):
         db_table = "sentry_releaseartifactbundle"
 
         unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
-
-    @classmethod
-    def count_associated_bundles(
-        cls, organization_id: int, release_name: str, dist_name: str, max_date: datetime
-    ) -> int:
-        result = ReleaseArtifactBundle.objects.filter(
-            organization_id=organization_id,
-            release_name=release_name,
-            dist_name=dist_name,
-            # We are doing a join to satisfy this constraint, we might need to check if there is a way to avoid this.
-            artifact_bundle__date_last_modified__lte=max_date,
-        ).aggregate(associated_bundles=Count("artifact_bundle"))
-
-        return result["associated_bundles"]
 
 
 @region_silo_only_model
