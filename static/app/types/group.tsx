@@ -51,6 +51,7 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  CRON = 'cron',
   PROFILE = 'profile',
 }
 

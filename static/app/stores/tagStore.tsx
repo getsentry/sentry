@@ -86,6 +86,7 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
           ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
+          ...(org.features.includes('crons-issue-platform') ? [IssueCategory.CRON] : []),
         ],
         predefined: true,
       },
