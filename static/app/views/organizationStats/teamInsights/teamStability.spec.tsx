@@ -19,7 +19,7 @@ describe('TeamStability', () => {
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
     expect(await screen.findAllByText('90%')).toHaveLength(2);
-    expect(await screen.findByText('0%')).toBeInTheDocument(2);
+    expect(await screen.findByText('0%')).toBeInTheDocument();
     expect(sessionsApi).toHaveBeenCalledTimes(2);
   });
 
