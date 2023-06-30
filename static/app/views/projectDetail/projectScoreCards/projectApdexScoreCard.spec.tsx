@@ -3,14 +3,17 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ProjectApdexScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectApdexScoreCard';
 
 describe('ProjectDetail > ProjectApdex', function () {
-  let endpointMock;
+  let endpointMock: jest.Mock;
   const organization = TestStubs.Organization();
 
   const selection = {
     projects: [1],
     environments: [],
     datetime: {
+      start: null,
+      end: null,
       period: '14d',
+      utc: null,
     },
   };
 
