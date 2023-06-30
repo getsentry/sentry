@@ -237,6 +237,7 @@ ways which then cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
 accurate information, and while they may report valid issues, the context to understand them is
 incorrect or missing.
+- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 """,
     )
 
