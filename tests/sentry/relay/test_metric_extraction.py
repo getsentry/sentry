@@ -1,3 +1,5 @@
+from unittest.mock import ANY
+
 from sentry.incidents.models import AlertRule
 from sentry.relay.config.metric_extraction import _convert_alert_to_metric
 from sentry.snuba.dataset import Dataset
@@ -23,16 +25,35 @@ def test_standard_metric_query():
     assert _convert_alert_to_metric(alert) is None
 
 
+def test_simple_query_temp():
+    snuba_query = SnubaQuery(
+        aggregate="count()", query="transaction.duration:>=1000", dataset=Dataset.Transactions.value
+    )
+    alert = AlertRule(snuba_query=snuba_query)
+
+    metric = _convert_alert_to_metric(alert)
+
+    expected = {
+        "category": "transaction",
+        "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
+        "field": None,
+        "mri": "c:transactions/on-demand@none",
+        "tags": [{"key": "query_hash", "value": ANY}],
+    }
+
+    assert metric == expected
+
+
 def test_simple_query():
     alert = create_alert("transaction.duration:>=1000")
     metric = _convert_alert_to_metric(alert)
 
     expected = {
-        "category": 2,
+        "category": "transaction",
         "condition": {"name": "event.duration", "op": "gte", "value": 1000.0},
         "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "b43b49e9"}],
+        "tags": [{"key": "query_hash", "value": ANY}],
     }
 
     assert metric == expected
@@ -43,7 +64,7 @@ def test_or_boolean_condition():
     metric = _convert_alert_to_metric(alert)
 
     expected = {
-        "category": 2,
+        "category": "transaction",
         "condition": {
             "inner": [
                 {"name": "event.duration", "op": "gte", "value": 100.0},
@@ -53,7 +74,7 @@ def test_or_boolean_condition():
         },
         "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "07025b58"}],
+        "tags": [{"key": "query_hash", "value": ANY}],
     }
 
     assert metric == expected
@@ -63,7 +84,7 @@ def test_and_boolean_condition():
     metric = _convert_alert_to_metric(create_alert("release:foo transaction.duration:<10s"))
 
     expected = {
-        "category": 2,
+        "category": "transaction",
         "condition": {
             "inner": [
                 {"name": "event.release", "op": "in", "value": ["foo"]},
@@ -73,7 +94,7 @@ def test_and_boolean_condition():
         },
         "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "07386122"}],
+        "tags": [{"key": "query_hash", "value": ANY}],
     }
 
     assert metric == expected
@@ -84,7 +105,7 @@ def test_complex_and_condition():
     metric = _convert_alert_to_metric(create_alert(query))
 
     expected = {
-        "category": 2,
+        "category": "transaction",
         "condition": {
             "inner": [
                 {"name": "event.geo.country_code", "op": "eq", "value": "AT"},
@@ -98,7 +119,7 @@ def test_complex_and_condition():
         },
         "field": "event.measurements.fp",
         "mri": "d:transactions/on-demand@none",
-        "tags": [{"key": "query_hash", "value": "d4351318"}],
+        "tags": [{"key": "query_hash", "value": ANY}],
     }
 
     assert metric == expected

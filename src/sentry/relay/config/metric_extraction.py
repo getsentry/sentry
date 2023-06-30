@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
-from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition
+from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
 
 from sentry import features
@@ -109,7 +109,7 @@ class MetricExtractionConfig(TypedDict):
     metrics: List[MetricSpec]
 
 
-SUPPORTED_QUERY_TERMS = {
+_SNUBA_TO_RELAY_FIELDS = {
     # "browser.name": "event.browser.name",  # TODO is a function
     "contexts[geo.country_code]": "event.geo.country_code",
     "http_method": "event.http.method",
@@ -119,20 +119,17 @@ SUPPORTED_QUERY_TERMS = {
     "transaction_op": "event.transaction.op",
     "transaction_status": "event.transaction.status",
     "duration": "event.duration",
+    "measurements[cls]": "event.measurements.cls",
+    "measurements[fcp]": "event.measurements.fcp",
+    "measurements[fid]": "event.measurements.fid",
+    "measurements[fp]": "event.measurements.fp",
+    "measurements[lcp]": "event.measurements.lcp",
+    "measurements[ttfb]": "event.measurements.ttfb",
+    "measurements[ttfb.requesttime]": "event.measurements.ttfb.requesttime",
 }
 
-SUPPORTED_FIELDS = {
-    "transaction.duration": "event.duration",
-    "measurements.cls": "event.measurements.cls",
-    "measurements.fcp": "event.measurements.fcp",
-    "measurements.fid": "event.measurements.fid",
-    "measurements.fp": "event.measurements.fp",
-    "measurements.lcp": "event.measurements.lcp",
-    "measurements.ttfb": "event.measurements.ttfb",
-    "measurements.ttfb.requesttime": "event.measurements.ttfb.requesttime",
-}
-
-AGGREGATE_TO_METRIC_TYPE = {
+# TODO: support count_if
+_AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
     "avg": "d",
     "quantile(0.50)": "d",
@@ -191,11 +188,11 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
         query = alert.snuba_query.query
         field, metric_type = _extract_field_info(alert.snuba_query.aggregate)
 
-        condition = _convert_alert_query_to_condition(alert.snuba_query.aggregate, query)
+        condition = _convert_alert_query_to_condition(query)
         query_hash = _get_query_hash(field, query)
 
         return {
-            "category": DataCategory.TRANSACTION,
+            "category": DataCategory.TRANSACTION.api_name(),
             "mri": f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
             "field": field,
             "condition": condition,
@@ -206,58 +203,58 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
         return None
 
 
-def _extract_field_info(aggregate: str) -> Tuple[str, str]:
-    qb = _get_query_builder()
+def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str]:
+    select = _get_query_builder().resolve_column(aggregate, False)
 
-    select = qb.resolve_column(aggregate, False)
-
-    agg_fn, rest = aggregate.split("(")
-    name = rest.split(")")[0]
-
-    assert name in SUPPORTED_FIELDS, f"Unsupported field {name}"
     assert (
-        select.function in AGGREGATE_TO_METRIC_TYPE
+        select.function in _AGGREGATE_TO_METRIC_TYPE
     ), f"Unsupported aggregate function {select.function}"
+    metric_type = _AGGREGATE_TO_METRIC_TYPE[select.function]
 
-    field = SUPPORTED_FIELDS.get(name)
-    metric_type = AGGREGATE_TO_METRIC_TYPE.get(select.function)
-
-    return field, metric_type
-
-
-def _convert_alert_query_to_condition(aggregate: str, query: str) -> Optional[RuleCondition]:
-    qb = _get_query_builder()
-
-    where, having = qb.resolve_conditions(query, False)
-
-    if len(having) > 0:
-        raise NotImplementedError("Having conditions are not supported")
-
-    # empty query
-    if len(where) == 0:
-        return {}
-    # single top-level condition
-    elif len(where) == 1:
-        return _convert_condition(where[0])
-    # multiple top-level conditions are ANDed together
+    if metric_type == "c":
+        assert not select.parameters, "Count should not have parameters"
+        return None, metric_type
     else:
-        return _convert_condition(BooleanCondition(BooleanOp.AND, conditions=where))
+        assert len(select.parameters) == 1, "Only one parameter is supported"
+
+        name = select.parameters[0].name
+        assert name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {name}"
+
+        return _SNUBA_TO_RELAY_FIELDS[name], metric_type
 
 
-def _convert_condition(condition: Union[Condition, BooleanCondition]) -> RuleCondition:
+def _convert_alert_query_to_condition(query: str) -> Optional[RuleCondition]:
+    where, having = _get_query_builder().resolve_conditions(query, False)
+
+    assert where, "Query should not use on demand metrics"
+    assert not having, "Having conditions are not supported"
+
+    where = [c for c in (_convert_condition(c) for c in where) if c is not None]
+
+    if len(where) == 1:
+        return where[0]
+    else:
+        return {"op": "and", "inner": where}
+
+
+def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optional[RuleCondition]:
     if isinstance(condition, BooleanCondition):
         return {
             "op": condition.op.name.lower(),
             "inner": [_convert_condition(c) for c in condition.conditions],
         }
 
-    assert isinstance(condition, Condition)
-    assert isinstance(condition.lhs, Column)
-    assert condition.lhs.name in SUPPORTED_QUERY_TERMS
+    assert isinstance(condition, Condition), f"Unsupported condition type {type(condition)}"
+
+    # TODO: Currently we do not support function conditions like count_if
+    if not isinstance(condition.lhs, Column):
+        return None
+
+    assert condition.lhs.name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {condition.lhs.name}"
 
     return {
         "op": condition.op.name.lower(),
-        "name": SUPPORTED_QUERY_TERMS[condition.lhs.name],
+        "name": _SNUBA_TO_RELAY_FIELDS[condition.lhs.name],
         "value": condition.rhs,
     }
 
