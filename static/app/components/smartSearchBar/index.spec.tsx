@@ -375,7 +375,7 @@ describe('SmartSearchBar', function () {
       />
     );
 
-    const textbox = screen.getByRole('textbox');
+    const textbox = screen.getByRole<HTMLTextAreaElement>('textbox');
 
     // Set cursor to beginning of "is" tag
     await userEvent.click(textbox);
@@ -491,7 +491,7 @@ describe('SmartSearchBar', function () {
         new Promise(resolve => {
           setTimeout(() => {
             resolve(['value']);
-          }, [300]);
+          }, 300);
         })
     );
 
@@ -820,7 +820,7 @@ describe('SmartSearchBar', function () {
     it('displays date picker dropdown when appropriate', async () => {
       render(<SmartSearchBar {...defaultProps} query="" />);
 
-      const textbox = screen.getByRole('textbox');
+      const textbox = screen.getByRole<HTMLTextAreaElement>('textbox');
       await userEvent.click(textbox);
       expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
 
@@ -905,7 +905,7 @@ describe('SmartSearchBar', function () {
     it('can change an existing datetime', async () => {
       render(<SmartSearchBar {...defaultProps} query="" />);
 
-      const textbox = screen.getByRole('textbox');
+      const textbox = screen.getByRole<HTMLTextAreaElement>('textbox');
       fireEvent.change(textbox, {
         target: {value: 'lastSeen:2022-01-02 firstSeen:2022-01-01'},
       });
