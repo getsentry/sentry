@@ -1,5 +1,5 @@
 from time import sleep
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from sentry import eventstore, eventstream
 from sentry.issues.escalating import get_group_hourly_count, query_groups_past_counts
@@ -252,7 +252,8 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(group=child)
 
     @with_feature("organizations:escalating-issues-v2")
-    def test_merge_groups_event_counts(self):
+    @patch("sentry.tasks.merge.regenerate_primary_group_forecast.apply_async")
+    def test_merge_groups_event_counts(self, mock_regenerate_primary_group_forecast: Mock):
         """
         Test that event counts are merged and that child events are added to the primary group
         after merge
@@ -297,8 +298,13 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
-            merge_groups.delay([child.id], primary.id, handle_forecasts_ids=[primary.id, child.id])
-            eventstream.backend.end_merge(eventstream_state)
+            merge_groups.delay(
+                [child.id],
+                primary.id,
+                eventstream_state=eventstream_state,
+                handle_forecasts_ids=[primary.id, child.id],
+                merge_forecasts=True,
+            )
 
         # Check that the queried primary group count includes the child event
         sleep(1)  # Sleep for one second to allow snuba to update
@@ -306,6 +312,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         after_merge_count = query_groups_past_counts([primary])
         assert after_merge_hour_count == 51
         assert after_merge_count[0]["count()"] == 51
+        assert mock_regenerate_primary_group_forecast.call_count == 1
 
         # Add another event after the merge for child group
         self.store_event(
@@ -324,6 +331,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         target_past_count = query_groups_past_counts([primary])
         assert target_past_count[0]["count()"] == 52
 
+    @with_feature("organizations:escalating-issues-v2")
     def test_regenerate_primary_group_forecast(self):
         """
         Test that calling regenerate_primary_group_forecast recalculates the forecast based on the
@@ -364,9 +372,13 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [child.id], primary.id)
-            merge_groups.delay([child.id], primary.id, handle_forecasts_ids=[primary.id, child.id])
-            eventstream.backend.end_merge(eventstream_state)
-
+            merge_groups.delay(
+                [child.id],
+                primary.id,
+                eventstream_state=eventstream_state,
+                handle_forecasts_ids=[primary.id, child.id],
+                merge_forecasts=True,
+            )
         regenerate_primary_group_forecast(primary.id)
         after_merge_forecast = EscalatingGroupForecast.fetch(
             primary.project.id, primary.id

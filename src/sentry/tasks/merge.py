@@ -216,7 +216,6 @@ def merge_groups(
     elif eventstream_state:
         # All `from_object_ids` have been merged!
         eventstream.backend.end_merge(eventstream_state)
-
         # Delay the forecast generation by one minute so snuba event counts can update
         if merge_forecasts:
             regenerate_primary_group_forecast.apply_async(
