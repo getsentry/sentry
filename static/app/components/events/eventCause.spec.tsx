@@ -1,6 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {EventCause} from 'sentry/components/events/eventCause';
 
 import {CommitRow} from '../commitRow';
@@ -49,11 +48,11 @@ describe('EventCause', function () {
   ];
 
   afterEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   beforeEach(function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
@@ -99,8 +98,8 @@ describe('EventCause', function () {
 
   it('renders correct heading for single commit', async () => {
     // For this one test, undo the `beforeEach` so that we can respond with just a single commit
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
@@ -163,7 +162,7 @@ describe('EventCause', function () {
   });
 
   it('shows unassociated email warning', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
