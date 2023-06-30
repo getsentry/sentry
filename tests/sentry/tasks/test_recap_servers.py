@@ -12,6 +12,7 @@ from sentry.tasks.recap_servers import (
     poll_recap_servers,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.helpers import Feature
 from sentry.utils import json
 
 crash_payload = {
@@ -46,20 +47,12 @@ crash_payload = {
 }
 
 
-class RecapServersTest(TestCase):
+@pytest.mark.django_db
+@patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+class PollRecapServersTest(TestCase):
     def setUp(self):
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org, name="foo")
-        self.project_dos = self.create_project(organization=self.org, name="bar")
-        self.project_tres = self.create_project(organization=self.org, name="baz")
 
-    def get_crash_payload(self, id):
-        crash = dict(crash_payload)
-        crash["id"] = id
-        return crash
-
-    @patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    @pytest.mark.django_db
     def test_poll_recap_servers_no_matches(
         self,
         poll_project_recap_server,
@@ -67,43 +60,61 @@ class RecapServersTest(TestCase):
         poll_recap_servers()
         assert poll_project_recap_server.call_count == 0
 
-    @patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    @pytest.mark.django_db
     def test_poll_recap_servers_single_project(
         self,
         poll_project_recap_server,
     ):
-        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        project = self.create_project(organization=self.org, name="foo")
+        project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
 
         poll_recap_servers()
 
         assert poll_project_recap_server.call_count == 1
-        poll_project_recap_server.assert_has_calls([call(self.project.id)], any_order=True)
+        poll_project_recap_server.assert_has_calls([call(project.id)], any_order=True)
 
-    @patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
-    @pytest.mark.django_db
     def test_poll_recap_servers_multiple_projects(self, poll_project_recap_server):
-        self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
-        self.project_dos.update_option(RECAP_SERVER_URL_OPTION, "http://example-dos.com")
-        self.project_tres.update_option(RECAP_SERVER_URL_OPTION, "http://example-tres.com")
+        project = self.create_project(organization=self.org, name="foo")
+        project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+        project_dos = self.create_project(organization=self.org, name="bar")
+        project_dos.update_option(RECAP_SERVER_URL_OPTION, "http://example-dos.com")
+        project_tres = self.create_project(organization=self.org, name="baz")
+        project_tres.update_option(RECAP_SERVER_URL_OPTION, "http://example-tres.com")
 
         poll_recap_servers()
 
         assert poll_project_recap_server.call_count == 3
         poll_project_recap_server.assert_has_calls(
-            [call(self.project.id), call(self.project_dos.id), call(self.project_tres.id)],
-            any_order=True,
+            [call(project.id), call(project_dos.id), call(project_tres.id)], any_order=True
         )
 
-    @pytest.mark.django_db
+
+@pytest.mark.django_db
+class PollProjectRecapServerTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def initialize(self):
+        with Feature({"projects:recap-server": True}):
+            yield  # Run test case
+
+    def setUp(self):
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def get_crash_payload(self, id):
+        crash = dict(crash_payload)
+        crash["id"] = id
+        return crash
+
     def test_poll_project_recap_server_incorrect_project(self):
         poll_project_recap_server(1337)  # should not error
 
-    @pytest.mark.django_db
     def test_poll_project_recap_server_missing_recap_url(self):
         poll_project_recap_server(self.project.id)  # should not error
 
-    @pytest.mark.django_db
+    def test_poll_project_recap_server_disabled_feature(self):
+        with Feature({"projects:recap-server": False}):
+            self.project.update_option(RECAP_SERVER_URL_OPTION, "http://example.com")
+            poll_project_recap_server(self.project.id)  # should not error
+
     @patch("sentry.tasks.recap_servers.store_crash")
     @responses.activate
     def test_poll_project_recap_server_initial_request(self, store_crash):
@@ -132,7 +143,6 @@ class RecapServersTest(TestCase):
         assert store_crash.call_count == 3
         assert self.project.get_option(RECAP_SERVER_LATEST_ID) == 1337
 
-    @pytest.mark.django_db
     @patch("sentry.tasks.recap_servers.store_crash")
     @responses.activate
     def test_poll_project_recap_server_following_request(self, store_crash):
@@ -160,7 +170,6 @@ class RecapServersTest(TestCase):
         assert store_crash.call_count == 2
         assert self.project.get_option(RECAP_SERVER_LATEST_ID) == 1337
 
-    @pytest.mark.django_db
     @patch("sentry.tasks.recap_servers.store_crash")
     @responses.activate
     def test_poll_project_recap_server_auth_token_header(self, store_crash):
@@ -178,7 +187,6 @@ class RecapServersTest(TestCase):
 
         assert outgoing_recap_request.call_count == 1
 
-    @pytest.mark.django_db
     @responses.activate
     def test_poll_recap_servers_store_crash(self):
         payload = {

@@ -3,7 +3,7 @@ import urllib.parse
 import uuid
 from typing import Any, Dict
 
-from sentry import http, options
+from sentry import features, http, options
 from sentry.datascrubbing import scrub_data
 from sentry.event_manager import EventManager
 from sentry.models import Project, ProjectOption
@@ -56,6 +56,13 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
         logger.warning("Polled project do not exist", extra={"project_id": project_id})
+        return
+
+    if not features.has("projects:recap-server", project):
+        logger.info(
+            "Recap server polling feature is not enabled for a given project",
+            extra={"project_id": project_id},
+        )
         return
 
     recap_server_url = project.get_option(RECAP_SERVER_URL_OPTION)

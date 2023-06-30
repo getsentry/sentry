@@ -297,6 +297,8 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       },
     };
 
+    const hasRecapServerFeature = project.features.includes('recap-server');
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -310,8 +312,14 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             fields={[
               fields.name,
               fields.platform,
-              fields.recapServerUrl,
-              fields.recapServerToken,
+              {
+                ...fields.recapServerUrl,
+                visible: hasRecapServerFeature,
+              },
+              {
+                ...fields.recapServerToken,
+                visible: hasRecapServerFeature,
+              },
             ]}
           />
 
