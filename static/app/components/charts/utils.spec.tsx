@@ -6,6 +6,7 @@ import {
   lightenHexToRgb,
   processTableResults,
 } from 'sentry/components/charts/utils';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 describe('Chart Utils', function () {
   describe('getInterval()', function () {
@@ -136,8 +137,8 @@ describe('Chart Utils', function () {
     });
 
     it('returns value of `includePrevious` if no period', function () {
-      expect(canIncludePreviousPeriod(true)).toBe(true);
-      expect(canIncludePreviousPeriod(false)).toBe(false);
+      expect(canIncludePreviousPeriod(true, null)).toBe(true);
+      expect(canIncludePreviousPeriod(false, null)).toBe(false);
     });
   });
 
@@ -152,16 +153,18 @@ describe('Chart Utils', function () {
 
   describe('processTableResults', function () {
     it('transforms TableDataWithTitle array to chartable data', function () {
-      const tableData = [
+      const tableData: TableDataWithTitle[] = [
         {
           data: [
             {
               'geo.country_code': 'PE',
               count: 9215,
+              id: 'a',
             },
             {
               'geo.country_code': 'VI',
               count: 1,
+              id: 'b',
             },
           ],
           meta: {
