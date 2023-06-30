@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import io
 import os
 from pathlib import Path
-from typing import Dict, List, NewType, Optional, Protocol, Tuple
+from typing import List, NewType, Protocol
 
 from dateutil import parser
-from django.db import IntegrityError
 from jsondiff import diff
 from pydantic import FilePath, PositiveInt
 
@@ -20,9 +21,6 @@ ModelName = NewType("ModelName", str)
 
 class InstanceID:
     """Every entry in the generated backup JSON file should have a unique model+pk combination, which serves as its identifier."""
-
-    model: ModelName
-    pk: PositiveInt
 
     def __init__(self, model: ModelName, pk: PositiveInt):
         self.model = model
@@ -46,11 +44,7 @@ class InstanceID:
 class ComparatorFinding:
     """Store all information about a single failed matching between expected and actual output."""
 
-    name: ComparatorName
-    on: InstanceID
-    reason: str
-
-    def __init__(self, name: ComparatorName, on: InstanceID, reason: Optional[str] = ""):
+    def __init__(self, name: ComparatorName, on: InstanceID, reason: str | None = ""):
         self.name = name
         self.on = on
         self.reason = reason
@@ -61,24 +55,24 @@ class ComparatorFinding:
         )
 
 
-class ComparatorFindings(List[ComparatorFinding]):
+class ComparatorFindings:
     """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
 
-    def __str__(self):
-        out = ""
-        for finding in self:
-            out += "\n" + str(finding)
-        return out
+    def __init__(self, findings: list[ComparatorFinding]):
+        self.findings = findings
 
-    def maybe_assert(self):
-        if len(self) > 0:
+    def __str__(self):
+        "\n".join(self.findings)
+
+    def check_for_findings(self):
+        if len(self.findings) > 0:
             assert False, str(self)
 
 
 class JSONMutatingComparator(Protocol):
     """A callback protocol specifying the function signature for custom JSON comparators."""
 
-    def __call__(self, on: InstanceID, expect: JSONData, actual: JSONData) -> Optional[str]:
+    def __call__(self, on: InstanceID, expect: JSONData, actual: JSONData) -> str | None:
         ...
 
 
@@ -93,9 +87,9 @@ def comparator_date_updated(on, expect, actual):
 
 
 REPO_PATH = Path(os.path.dirname(os.path.realpath("__file__")))
-SNAPSHOT_PATH = REPO_PATH / "tests/sentry/backup/snapshots"
+FIXTURE_PATH = REPO_PATH / "fixtures/backup"
 EXPORT_INDENTATION = 2
-COMPARATORS: Dict[Optional[ModelName], List[JSONMutatingComparator]] = {
+COMPARATORS: dict[ModelName | None, List[JSONMutatingComparator]] = {
     None: [],
     ModelName("sentry.userrole"): [comparator_date_updated],
     ModelName("sentry.userroleuser"): [comparator_date_updated],
@@ -105,9 +99,9 @@ COMPARATORS: Dict[Optional[ModelName], List[JSONMutatingComparator]] = {
 def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
     """Ensures that originally imported data correctly matches actual outputted data, and produces a list of reasons why not when it doesn't"""
 
-    findings: ComparatorFindings = ComparatorFindings()
-    exp_models: Dict[InstanceID, JSONData] = {}
-    act_models: Dict[InstanceID, JSONData] = {}
+    findings = ComparatorFindings([])
+    exp_models = {}
+    act_models = {}
     for model in expect:
         id = InstanceID(ModelName(model["model"]), PositiveInt(model["pk"]))
         exp_models[id] = model
@@ -155,13 +149,13 @@ def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
                 ComparatorFinding(ComparatorName("json_diff"), id, json.dumps(json_diff))
             )
 
-    findings.maybe_assert()
+    findings.check_for_findings()
     return findings
 
 
 def import_then_export(
     backup_json_file_path: FilePath, silent: bool = True
-) -> Tuple[JSONData, JSONData, ComparatorFindings]:
+) -> tuple[JSONData, JSONData, ComparatorFindings]:
     """Test helper that originally imported data correctly matches actual outputted data, and
     produces a list of reasons why not when it doesn't"""
 
@@ -170,11 +164,8 @@ def import_then_export(
         instream = io.StringIO(contents)
         input = json.load(instream)
         with in_test_psql_role_override("postgres"):
-            try:
-                instream.seek(0)
-                importer(instream)
-            except IntegrityError as e:
-                assert False, f"Raised an exception {e}"
+            instream.seek(0)
+            importer(instream)
 
     outstream = io.StringIO()
     exporter(outstream, silent, indent=EXPORT_INDENTATION, exclude=None)
@@ -185,4 +176,4 @@ def import_then_export(
 
 @django_db_all
 def test_fresh_install():
-    import_then_export(SNAPSHOT_PATH / "fresh_install.json")
+    import_then_export(FIXTURE_PATH / "fresh-install.json")

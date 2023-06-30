@@ -7,9 +7,10 @@ input `.json` that we imported, and the final output `.json` that we exported.
 
 ## Comparators
 
-A number of fields in the export JSON format are not so easily compared via the import/export
-method. In such cases, we need to write custom, model-specific comparators that takes into account
-more general validations beyond the simple character-for-character matching that default diffing
+A number of fields in the export JSON format are not so easily compared before and after running
+through an import/export cycle. We introduce "comparators" to account for such cases. Comparators
+are custom, model-specific ways of comparing portions of two json files that take into account more
+nuanced validations beyond the simple character-for-character matching that the default diffing
 algorithm provides for us.
 
 For example, `date_updated` fields that change due to the very act of importing the JSON, or hashes
