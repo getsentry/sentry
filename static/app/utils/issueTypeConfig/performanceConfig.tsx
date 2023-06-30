@@ -216,6 +216,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
+  [IssueType.PROFILE_REGEX_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Evaluating matches between strings and regular expressions (regex) can be long-running operations that may impact app responsiveness. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Regex on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/regex-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
 };
 
 export default performanceConfig;

@@ -290,6 +290,9 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     category = GroupCategory.PERFORMANCE.value
 
 
+# 2000 was ProfileBlockingFunctionMainThreadType
+
+
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
@@ -322,12 +325,7 @@ class ProfileCoreDataExperimentalType(GroupType):
     category = GroupCategory.PERFORMANCE.value
 
 
-@dataclass(frozen=True)
-class ProfileRegexExperimentalType(GroupType):
-    type_id = 2005
-    slug = "profile_regex_main_thread_experimental"
-    description = "Regex on Main Thread"
-    category = GroupCategory.PERFORMANCE.value
+# 2005 was ProfileRegexExperimentalType
 
 
 @dataclass(frozen=True)
@@ -336,6 +334,15 @@ class ProfileViewIsSlowExperimentalType(GroupType):
     slug = "profile_view_is_slow_experimental"
     description = "View Render/Layout/Update is slow"
     category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileRegexType(GroupType):
+    type_id = 2007
+    slug = "profile_regex_main_thread"
+    description = "Regex on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+    release = True
 
 
 @dataclass(frozen=True)
