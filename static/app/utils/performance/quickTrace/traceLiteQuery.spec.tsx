@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TraceLiteQuery from 'sentry/utils/performance/quickTrace/traceLiteQuery';
 
 const traceId = 'abcdef1234567890';
@@ -28,9 +27,8 @@ function renderTraceLite({isLoading, error, trace, type}) {
 }
 
 describe('TraceLiteQuery', function () {
-  let api, location;
+  let location;
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},
@@ -45,7 +43,6 @@ describe('TraceLiteQuery', function () {
     });
     render(
       <TraceLiteQuery
-        api={api}
         traceId={traceId}
         eventId={eventId}
         location={location}
