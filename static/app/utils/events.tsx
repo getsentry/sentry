@@ -501,3 +501,18 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     group_num_user_feedback: group?.userReportCount ?? 0,
   };
 }
+
+export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneHelper) {
+  if (isTombstone(event) || isGroup(event)) {
+    return false;
+  }
+  if (event.issueCategory === IssueCategory.PROFILE) {
+    return true;
+  }
+  const evidenceData = event.occurrence?.evidenceData ?? {};
+  return evidenceData.templateName === 'profile';
+}
+
+function isGroup(event: BaseGroup | Event): event is BaseGroup {
+  return (event as BaseGroup).status !== undefined;
+}

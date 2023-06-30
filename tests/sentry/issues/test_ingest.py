@@ -9,8 +9,8 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
+    MonitorCheckInFailure,
     NoiseConfig,
-    PerformanceNPlusOneGroupType,
 )
 from sentry.issues.ingest import (
     _create_issue_kwargs,
@@ -178,7 +178,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType.type_id
+            fingerprint=occurrence.fingerprint, type=MonitorCheckInFailure.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None

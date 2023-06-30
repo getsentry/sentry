@@ -79,7 +79,7 @@ class StreamGroupSerializerTestCase(
             serializer=StreamGroupSerializerSnuba(stats_period="24h", organization_id=1),
         )
         assert serialized["count"] == "1"
-        assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()
+        assert serialized["issueCategory"] == str(GroupCategory.PERFORMANCE.name).lower()
         assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1
