@@ -1,8 +1,10 @@
+import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, List, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
+import sentry_sdk
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition
 from typing_extensions import NotRequired
 
@@ -18,7 +20,6 @@ from sentry.models import (
 )
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ class MetricExtractionConfig(TypedDict):
 
 
 SUPPORTED_QUERY_TERMS = {
-    # "browser.name": "event.browser.name", TODO is a function
+    "browser.name": "event.browser.name",  # TODO is a function
     "contexts[geo.country_code]": "event.geo.country_code",
     "http_method": "event.http.method",
     # "http.status_code": "event.http.status_code",  TODO is a function
@@ -125,13 +126,13 @@ SUPPORTED_QUERY_TERMS = {
 AGGREGATE_TO_METRIC_TYPE = {
     "count": "counter",
     "avg": "distribution",
-    "percentile": "distribution",
     "p50": "distribution",
     "p75": "distribution",
     "p95": "distribution",
     "p99": "distribution",
     "p100": "distribution",
     # not supported yet
+    "percentile": None,
     "failure_rate": None,
     "apdex": None,
 }
@@ -177,37 +178,38 @@ def _convert_alert_to_metric(alert: AlertRule) -> Optional[MetricSpec]:
     if not alert.is_custom_metric:
         return None
 
-    query = alert.snuba_query.query
-    field_info = _extract_field_info(alert.snuba_query.aggregate)
+    try:
+        query = alert.snuba_query.query
+        name, metric_type = _extract_field_info(alert.snuba_query.aggregate)
 
-    condition = _convert_alert_query_to_condition(query)
-    query_hash = _get_query_hash(field_info.name, query)
+        condition = _convert_alert_query_to_condition(query)
+        query_hash = _get_query_hash(name, query)
 
-    return {
-        "category": DataCategory.TRANSACTION,
-        "mri": field_info.mri_string,
-        "field": field_info.name,
-        "condition": condition,
-        "tags": [{"key": "query_hash", "value": query_hash}],
-    }
+        return {
+            "category": DataCategory.TRANSACTION,
+            "mri": f"{metric_type[0]}:transactions/on-demand@none",
+            "field": name,
+            "condition": condition,
+            "tags": [{"key": "query_hash", "value": query_hash}],
+        }
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return None
 
 
 def _extract_field_info(aggregate: str):
     agg_fn, rest = aggregate.split("(")
-    field = rest.split(")")[0]
+    name = rest.split(")")[0]
 
     metric_type = AGGREGATE_TO_METRIC_TYPE.get(agg_fn)
 
-    mri = f"{metric_type[0]}:transactions/{field}@none"
-
-    return parse_mri(mri)
+    return name, metric_type[0]
 
 
 def _convert_alert_query_to_condition(query: str) -> RuleCondition:
 
     qb = QueryBuilder(
         dataset=Dataset.Transactions,
-        query=query,
         params={"start": datetime.now(), "end": datetime.now()},
     )
 
@@ -218,7 +220,7 @@ def _convert_alert_query_to_condition(query: str) -> RuleCondition:
 
     # empty query
     if len(where) == 0:
-        return {"op": "and", "inner": []}
+        return {}
     # single top-level condition
     elif len(where) == 1:
         return _convert_condition(where[0])
@@ -236,9 +238,7 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> RuleCon
 
     assert isinstance(condition, Condition)
     assert isinstance(condition.lhs, Column)
-
-    if condition.lhs.name not in SUPPORTED_QUERY_TERMS:
-        raise NotImplementedError(f"Unsupported query term: {condition.lhs.name}")
+    assert condition.lhs.name in SUPPORTED_QUERY_TERMS
 
     return {
         "op": condition.op.name.lower(),
@@ -248,7 +248,7 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> RuleCon
 
 
 def _get_query_hash(name: str, filters: str) -> str:
-    return name + ";" + filters
+    return hashlib.shake_128(bytes(f"{name};{filters}", encoding="ascii")).hexdigest(4)
 
 
 # CONDITIONAL TAGGING
