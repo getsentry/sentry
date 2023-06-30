@@ -757,6 +757,7 @@ def dev_consumer(consumer_names):
             synchronize_commit_group=None,
             synchronize_commit_log_topic=None,
             healthcheck_file_path=None,
+            validate_schema=True,
         )
         for consumer_name in consumer_names
     ]
