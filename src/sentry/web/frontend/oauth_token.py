@@ -46,65 +46,82 @@ class OAuthTokenView(View):
         grant_type = request.POST.get("grant_type")
 
         if grant_type == GrantTypes.AUTHORIZATION:
-            client_id = request.POST.get("client_id")
-            redirect_uri = request.POST.get("redirect_uri")
-            code = request.POST.get("code")
-
-            if not client_id:
-                return self.error(request, "invalid_client", "missing client_id")
-
-            try:
-                application = ApiApplication.objects.get(
-                    client_id=client_id, status=ApiApplicationStatus.active
-                )
-            except ApiApplication.DoesNotExist:
-                return self.error(request, "invalid_client", "invalid client_id")
-
-            try:
-                grant = ApiGrant.objects.get(application=application, code=code)
-            except ApiGrant.DoesNotExist:
-                return self.error(request, "invalid_grant", "invalid grant")
-
-            if grant.is_expired():
-                return self.error(request, "invalid_grant", "grant expired")
-
-            if not redirect_uri:
-                redirect_uri = application.get_default_redirect_uri()
-            elif grant.redirect_uri != redirect_uri:
-                return self.error(request, "invalid_grant", "invalid redirect_uri")
-
-            token = ApiToken.from_grant(grant)
+            token_or_error_details = self._get_access_token(request)
         elif grant_type == "refresh_token":
-            refresh_token = request.POST.get("refresh_token")
-            scope = request.POST.get("scope")
-            client_id = request.POST.get("client_id")
-
-            if not refresh_token:
-                return self.error(request, "invalid_request")
-
-            # TODO(dcramer): support scope
-            if scope:
-                return self.error(request, "invalid_request")
-
-            if not client_id:
-                return self.error(request, "invalid_client", "missing client_id")
-
-            try:
-                application = ApiApplication.objects.get(
-                    client_id=client_id, status=ApiApplicationStatus.active
-                )
-            except ApiApplication.DoesNotExist:
-                return self.error(request, "invalid_client", "invalid client_id")
-
-            try:
-                token = ApiToken.objects.get(application=application, refresh_token=refresh_token)
-            except ApiToken.DoesNotExist:
-                return self.error(request, "invalid_grant", "invalid token")
-
-            token.refresh()
+            token_or_error_details = self._get_refresh_token(request)
         else:
             return self.error(request, "unsupported_grant_type")
 
+        if type(token_or_error_details) != ApiToken:
+            return token_or_error_details
+
+        return self._process_token_details(token_or_error_details)
+
+    def _get_access_token(self, request):
+        client_id = request.POST.get("client_id")
+        redirect_uri = request.POST.get("redirect_uri")
+        code = request.POST.get("code")
+
+        if not client_id:
+            return self.error(request, "invalid_client", "missing client_id")
+
+        try:
+            application = ApiApplication.objects.get(
+                client_id=client_id, status=ApiApplicationStatus.active
+            )
+        except ApiApplication.DoesNotExist:
+            return self.error(request, "invalid_client", "invalid client_id")
+
+        try:
+            grant = ApiGrant.objects.get(application=application, code=code)
+        except ApiGrant.DoesNotExist:
+            return self.error(request, "invalid_grant", "invalid grant")
+
+        if grant.is_expired():
+            return self.error(request, "invalid_grant", "grant expired")
+
+        if not redirect_uri:
+            redirect_uri = application.get_default_redirect_uri()
+        elif grant.redirect_uri != redirect_uri:
+            return self.error(request, "invalid_grant", "invalid redirect_uri")
+
+        return ApiToken.from_grant(grant)
+
+        # if grant.has_scope("openid"):
+        #     id_token = self._get_open_id_token()
+
+    def _get_refresh_token(self, request):
+        refresh_token = request.POST.get("refresh_token")
+        scope = request.POST.get("scope")
+        client_id = request.POST.get("client_id")
+
+        if not refresh_token:
+            return self.error(request, "invalid_request")
+
+        # TODO(dcramer): support scope
+        if scope:
+            return self.error(request, "invalid_request")
+
+        if not client_id:
+            return self.error(request, "invalid_client", "missing client_id")
+
+        try:
+            application = ApiApplication.objects.get(
+                client_id=client_id, status=ApiApplicationStatus.active
+            )
+        except ApiApplication.DoesNotExist:
+            return self.error(request, "invalid_client", "invalid client_id")
+
+        try:
+            token = ApiToken.objects.get(application=application, refresh_token=refresh_token)
+        except ApiToken.DoesNotExist:
+            return self.error(request, "invalid_grant", "invalid token")
+
+        token.refresh()
+
+        return token
+
+    def _process_token_details(self, token):
         return HttpResponse(
             json.dumps(
                 {
@@ -126,3 +143,6 @@ class OAuthTokenView(View):
             ),
             content_type="application/json",
         )
+
+    def _get_open_id_token(self):
+        pass
