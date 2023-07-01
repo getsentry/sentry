@@ -87,9 +87,6 @@ class OAuthTokenView(View):
 
         return ApiToken.from_grant(grant)
 
-        # if grant.has_scope("openid"):
-        #     id_token = self._get_open_id_token()
-
     def _get_refresh_token(self, request):
         refresh_token = request.POST.get("refresh_token")
         scope = request.POST.get("scope")
@@ -143,6 +140,3 @@ class OAuthTokenView(View):
             ),
             content_type="application/json",
         )
-
-    def _get_open_id_token(self):
-        pass
