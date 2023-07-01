@@ -7,7 +7,11 @@ from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
-from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.grouphistory import (
+    GroupHistoryStatus,
+    bulk_record_group_history,
+    record_group_history,
+)
 from sentry.types.activity import ActivityType
 
 INBOX_REASON_DETAILS = {
@@ -100,6 +104,32 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
+    except GroupInbox.DoesNotExist:
+        pass
+
+
+def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None):
+    try:
+        group_inbox = GroupInbox.objects.filter(group__in=groups)
+        group_inbox.delete()
+
+        if action is GroupInboxRemoveAction.MARK_REVIEWED and user is not None:
+            Activity.objects.bulk_create(
+                [
+                    Activity(
+                        project_id=group.project_id,
+                        group_id=group.id,
+                        type=ActivityType.MARK_REVIEWED.value,
+                        user_id=user.id,
+                    )
+                    for group in groups
+                    if not features.has(
+                        "organizations:remove-mark-reviewed", group.project.organization
+                    )
+                ]
+            )
+
+            bulk_record_group_history(groups, GroupHistoryStatus.REVIEWED, actor=user)
     except GroupInbox.DoesNotExist:
         pass
 

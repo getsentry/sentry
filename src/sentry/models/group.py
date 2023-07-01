@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -398,18 +398,27 @@ class GroupManager(BaseManager):
         status: GroupStatus,
         substatus: GroupSubStatus | None,
         activity_type: ActivityType,
+        activity_data: Optional[Mapping[str, Any]] = None,
+        send_activity_notification: bool = True,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        updated_count = (
-            self.filter(id__in=[g.id for g in groups])
-            .exclude(status=status)
-            .update(status=status, substatus=substatus)
+        updated_count = self.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
         )
+
+        self.bulk_update(updated_count, ["status", "substatus"])
         if updated_count:
             for group in groups:
-                Activity.objects.create_group_activity(group, activity_type)
+                group.status = status
+                group.substatus = substatus
+                Activity.objects.create_group_activity(
+                    group,
+                    activity_type,
+                    data=activity_data,
+                    send_notification=send_activity_notification,
+                )
                 record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
