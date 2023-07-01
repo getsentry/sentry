@@ -100,6 +100,7 @@ class WebHooksPlugin(notify.NotificationPlugin):
         data = {
             "id": str(group.id),
             "project": group.project.slug,
+            "project_id": group.project.id,
             "project_name": group.project.name,
             "project_slug": group.project.slug,
             "logger": event.get_tag("logger"),
