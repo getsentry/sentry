@@ -32,7 +32,7 @@ class OpenIDToken(Model):
 
     def get_encrypted_id_token(self):
         headers = {
-            "alg": "RS256",
+            "alg": "HS256",
             "typ": "JWT",
         }
         claims = {
