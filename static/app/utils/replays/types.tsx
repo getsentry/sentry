@@ -29,6 +29,9 @@ type ExtraBreadcrumbTypes = {
   type: string; // For compatibility reasons
 };
 
+// TODO: slowClick breadcrumbs should have is_rage and is_dead added by the backend
+// https://github.com/getsentry/sentry/pull/53140/files
+
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
@@ -76,7 +79,8 @@ export function isErrorFrame(frame: ReplayFrame | undefined): frame is ErrorFram
 }
 
 export function getFrameOpOrCategory(frame: ReplayFrame) {
-  const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
+  const val =
+    (frame && 'op' in frame && frame.op) || ('category' in frame && frame.category);
   invariant(val, 'Frame has no category or op');
   return val;
 }
