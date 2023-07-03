@@ -22,7 +22,6 @@ from sentry.models import (
     Rule,
     UserOption,
 )
-from sentry.models.actor import Actor
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -430,23 +429,23 @@ class ActivityNotificationTest(APITestCase):
                     "actions": [action_data],
                 },
             )
-        min_ago = iso_format(before_now(minutes=1))
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "timestamp": min_ago,
-            },
-            project_id=self.project.id,
-        )
-        cache_key = write_event_to_cache(event)
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                group_id=event.group_id,
-                cache_key=cache_key,
+            min_ago = iso_format(before_now(minutes=1))
+            event = self.store_event(
+                data={
+                    "message": "Hello world",
+                    "timestamp": min_ago,
+                },
+                project_id=self.project.id,
             )
+            cache_key = write_event_to_cache(event)
+            with self.tasks():
+                post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    group_id=event.group_id,
+                    cache_key=cache_key,
+                )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -467,7 +466,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )
@@ -475,7 +473,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )
