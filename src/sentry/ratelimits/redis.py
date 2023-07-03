@@ -65,7 +65,7 @@ class RedisRateLimiter(RateLimiter):
     def validate(self) -> None:
         try:
             self.client.ping()
-            self.client.connection_pool.disconnect()
+            self.client.connection_pool.disconnect()  # type: ignore[union-attr]
         except Exception as e:
             raise InvalidConfiguration(str(e))
 

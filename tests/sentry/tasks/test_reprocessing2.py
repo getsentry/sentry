@@ -74,7 +74,7 @@ def process_and_save(default_project, task_runner):
         mgr.normalize()
         data = mgr.get_data()
         event_id = data["event_id"]
-        cache_key = event_processing_store.store(data)
+        cache_key = event_processing_store.store(dict(data))
 
         with task_runner():
             # factories.store_event would almost be suitable for this, but let's
