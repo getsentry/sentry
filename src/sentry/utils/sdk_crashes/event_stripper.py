@@ -162,16 +162,15 @@ def _strip_frames(
 
         return False
 
-    stripped_frames = [
-        frame
-        for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
-    ]
-
-    for frame in stripped_frames:
+    def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
         else:
             frame["in_app"] = False
+        return frame
 
-    return stripped_frames
+    return [
+        strip_frame(frame)
+        for frame in frames
+        if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
+    ]
