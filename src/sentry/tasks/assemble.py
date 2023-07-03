@@ -13,7 +13,7 @@ from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -23,7 +23,6 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
-    IndexableArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
@@ -367,25 +366,28 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _mark_bundles_that_need_indexing(indexable_bundles: List[IndexableArtifactBundle]):
+def _mark_bundles_that_need_indexing(
+    associated_bundles: List[ArtifactBundle], release: str, dist: str
+):
     # We update all bundles that have the "does not need indexing" state to "needs indexing". Since we might have
     # concurrent tasks that modify the "indexing_state" concurrently, we will issue an update statement that checks
     # if the "indexing_state" is equal to "does not need indexing" and only in that case we update it. This is done
     # in order to implement atomic compare_and_set semantics because we will perform the update when locking the row.
     bundles_to_index = []
-    for indexable_bundle in indexable_bundles:
+    for associated_bundle in associated_bundles:
         did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
-            artifact_bundle_id=indexable_bundle.id,
+            artifact_bundle_id=associated_bundle.id,
             indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
         ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
 
         if did_mark_as_needs_indexing:
-            bundles_to_index.append(indexable_bundle)
+            bundles_to_index.append(associated_bundle)
 
     # TODO: make async call.
+    # index_bundles.delay(bundles_to_index, release, dist)
 
 
-def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snapshot: datetime):
+def _perform_indexing_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
     # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to prevent
     # the case in which concurrent updates on the database will lead to problems. For example if we have a threshold
     # of 1, and we have two uploads happening concurrently and the database will contain two associations even when
@@ -394,16 +396,16 @@ def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snaps
     # want the second upload to perform indexing.
     #
     # This date implementation might still lead to issues, more specifically in the case in which the
-    # "date_last_modified" is kept is the same but the probability of that happening is so low that it's a negligible
+    # "date_last_modified" is the same but the probability of that happening is so low that it's a negligible
     # detail for now, as long as the indexing is idempotent.
     associated_bundles = list(
         ArtifactBundle.objects.filter(
             organization_id=org_id,
-            # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this async
-            # job, we want to use the `<=` condition for time, effectively saying give me all the bundles that were created
-            # now or in the past.
+            # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this
+            # async job, we want to use the `<=` condition for time, effectively saying give me all the bundles that
+            # were created now or in the past.
             date_last_modified__lte=date_snapshot,
-            releaseartifactbundle__release_name=version,
+            releaseartifactbundle__release_name=release,
             releaseartifactbundle__dist_name=dist,
         )
     )
@@ -412,19 +414,12 @@ def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snaps
     if len(associated_bundles) <= INDEXING_THRESHOLD:
         return
 
-    # We mutate the bundles to a list of `IndexableArtifactBundle` with the minimum amount of metadata required for
-    # indexing. The main reason is that propagating a list of `ArtifactBundle` objects which are out of date with
-    # respect to their persisted state might be a big confusing.
-    indexable_bundles = [
-        associated_bundle.to_indexable() for associated_bundle in associated_bundles
-    ]
-
     # We now want to mark the bundles that need indexing, in order to feed them to the asynchronous job.
-    _mark_bundles_that_need_indexing(indexable_bundles)
+    _mark_bundles_that_need_indexing(associated_bundles, release, dist)
 
 
 def _create_artifact_bundle(
-    version: Optional[str],
+    release: Optional[str],
     dist: Optional[str],
     org_id: int,
     project_ids: Optional[List[int]],
@@ -443,7 +438,7 @@ def _create_artifact_bundle(
 
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.
-        if len(debug_ids_with_types) > 0 or version:
+        if len(debug_ids_with_types) > 0 or release:
             # We take a snapshot in time in order to have consistent values in the database.
             date_snapshot = timezone.now()
 
@@ -475,10 +470,10 @@ def _create_artifact_bundle(
                 )
 
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
-                if version:
+                if release:
                     ReleaseArtifactBundle.objects.create_or_update(
                         organization_id=org_id,
-                        release_name=version,
+                        release_name=release,
                         # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                         # tables.
                         dist_name=dist,
@@ -506,10 +501,16 @@ def _create_artifact_bundle(
                         defaults=new_date_added,
                     )
 
-            # After we committed the transaction we want to try and run indexing.
-            _perform_indexing_if_needed(
-                org_id=org_id, version=version, dist=dist, date_snapshot=date_snapshot
-            )
+            try:
+                organization = Organization.objects.get_from_cache(id=org_id)
+            except Organization.DoesNotExist:
+                organization = None
+
+            if features.has("organizations:sourcemaps-bundle-indexing", organization, actor=None):
+                # After we committed the transaction we want to try and run indexing.
+                _perform_indexing_if_needed(
+                    org_id=org_id, release=release, dist=dist, date_snapshot=date_snapshot
+                )
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
@@ -557,8 +558,14 @@ def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, 
     # contents.
     version = version or archive.manifest.get("release")
     dist = dist or archive.manifest.get("dist")
+
     _create_artifact_bundle(
-        version, dist, organization.id, project_ids, bundle, archive.artifact_count
+        release=version,
+        dist=dist,
+        org_id=organization.id,
+        project_ids=project_ids,
+        archive_file=bundle,
+        artifact_count=archive.artifact_count,
     )
 
 

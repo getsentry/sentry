@@ -1,6 +1,4 @@
 import zipfile
-from dataclasses import dataclass
-from datetime import datetime
 from enum import Enum
 from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
 
@@ -17,7 +15,6 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
-from sentry.models import File
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
 
@@ -57,13 +54,6 @@ class ArtifactBundleIndexingState(Enum):
     @classmethod
     def choices(cls) -> List[Tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
-
-
-@dataclass
-class IndexableArtifactBundle:
-    id: int
-    date_last_modified: datetime
-    file: File
 
 
 @region_silo_only_model
@@ -113,11 +103,6 @@ class ArtifactBundle(Model):
         if dist is not None:
             return sha1_text(url + "\x00\x00" + dist).hexdigest()
         return sha1_text(url).hexdigest()
-
-    def to_indexable(self) -> IndexableArtifactBundle:
-        return IndexableArtifactBundle(
-            id=self.id, date_last_modified=self.date_last_modified, file=self.file
-        )
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):

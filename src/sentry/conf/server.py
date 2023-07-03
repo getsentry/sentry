@@ -1649,6 +1649,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable specifying inbound filter for health check calls.
     "organizations:health-check-filter": False,
+    # Enable indexing of artifact bundles for sourcemaps.
+    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
