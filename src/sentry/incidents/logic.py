@@ -37,7 +37,6 @@ from sentry.incidents.models import (
 )
 from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
-from sentry.relay.config.metric_extraction import OndemandMetricSpec
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
@@ -50,6 +49,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
+from sentry.snuba.metrics.metric_extraction import OndemandMetricSpec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -429,7 +429,6 @@ class AlertRuleNameAlreadyUsedError(Exception):
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
-
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.

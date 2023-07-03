@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from snuba_sdk import (
@@ -24,7 +24,6 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.relay.config.metric_extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
@@ -41,6 +40,7 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
@@ -854,7 +854,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                         Condition(
                             lhs=Column(QUERY_HASH_KEY),
                             op=Op.EQ,
-                            rhs=Literal(ondemand_metric.query_hash()),
+                            rhs=ondemand_metric.query_hash(),
                         )
                     ],
                     groupby=None,
