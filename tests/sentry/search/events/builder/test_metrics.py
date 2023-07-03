@@ -10,6 +10,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
+    AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
@@ -2045,3 +2046,32 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             (300.0, 400.0, 17),
             (400.0, 500.0, 10),
         ]
+
+
+class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
+    def test_get_snql_query(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=True,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )

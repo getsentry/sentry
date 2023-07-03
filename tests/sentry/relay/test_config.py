@@ -717,7 +717,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
             "metrics": [
                 {
                     "category": "transaction",
-                    "mri": "c:transactions/on-demand@none",
+                    "mri": "c:transactions/on_demand@none",
                     "field": None,
                     "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
                     "tags": [{"key": "query_hash", "value": ANY}],

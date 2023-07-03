@@ -1,12 +1,14 @@
 import hashlib
 import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Dict, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.query import MetricOperationType
 from sentry.snuba.models import SnubaQuery
 
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Name component of MRIs used for custom alert metrics.
 # TODO: Move to a common module.
-CUSTOM_ALERT_METRIC_NAME = "transactions/on-demand"
+CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
 # Base type for conditions to evaluate on payloads.
@@ -185,12 +187,10 @@ class OndemandMetricSpec:
         )
 
     def query_hash(self) -> str:
-        return hashlib.shake_128(bytes(f"{self.field};{self._query}", encoding="ascii")).hexdigest(
-            4
-        )
+        str_to_hash = f"{self.field};{self._query}"
+        return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def condition(self) -> RuleCondition:
-
         where, having = _get_query_builder().resolve_conditions(self._query, False)
 
         assert where, "Query should not use on demand metrics"
@@ -249,10 +249,7 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optiona
 
 
 def _get_query_builder():
-    from datetime import datetime
-
     from sentry.search.events.builder import QueryBuilder
-    from sentry.snuba.dataset import Dataset
 
     return QueryBuilder(
         dataset=Dataset.Transactions,

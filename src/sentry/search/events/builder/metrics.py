@@ -812,7 +812,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
     ):
         self._granularity = granularity
         self.query = kwargs.get("query", "")
-        self.field = kwargs.get("selected_columns", []).get(0)  # TODO
+        self.field = kwargs.get("selected_columns", [])[0]  # TODO
         super().__init__(*args, **kwargs)
 
     def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
@@ -843,13 +843,17 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             if self.is_performance and self.is_alerts_query:
                 try:
                     ondemand_metric = OndemandMetricSpec.parse(self.field, self.query)
-                except Exception:
-                    sentry_sdk.capture_exception()
+                except Exception as e:
+                    sentry_sdk.capture_exception(e)
                     ondemand_metric = None
 
             if ondemand_metric:
                 metrics_query = MetricsQuery(
-                    select=[MetricField(ondemand_metric.op, ondemand_metric.mri)],
+                    select=[
+                        MetricField(
+                            ondemand_metric.op, ondemand_metric.mri, alias=ondemand_metric.mri
+                        )
+                    ],
                     where=[
                         Condition(
                             lhs=Column(QUERY_HASH_KEY),
@@ -860,12 +864,12 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
                     groupby=None,
                     limit=self.limit,
                     offset=self.offset,
-                    granularity=self.granularity
-                    if self.granularity is not None
-                    else Granularity(3600),
+                    granularity=self.resolve_granularity(),
                     # TODO: orderby
                     # TODO: interval
                     is_alerts_query=self.is_alerts_query,
+                    org_id=self.params.organization.id,
+                    project_ids=[p.id for p in self.params.projects],
                 )
 
                 snuba_queries, _ = SnubaQueryBuilder(
