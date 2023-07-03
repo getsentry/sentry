@@ -38,7 +38,9 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.SIMPLE_TYPE,
+                    "filename": Allow.NEVER.with_explanation(
+                        "The filename path could contain the app name."
+                    ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,
                     "module": Allow.SIMPLE_TYPE,
@@ -151,8 +153,9 @@ def _strip_frames(
     We need to adapt this logic once we support other platforms.
     """
 
+    fields_containing_paths = {"package", "module", "abs_path"}
+
     def is_system_library(frame: Mapping[str, Any]) -> bool:
-        fields_containing_paths = {"package", "module", "abs_path"}
         system_library_paths = {"/System/Library/", "/usr/lib/system/"}
 
         for field in fields_containing_paths:
@@ -165,8 +168,14 @@ def _strip_frames(
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
+
+            # The path field usually contains the name of the application, which we can't keep.
+            for field in fields_containing_paths:
+                if frame.get(field) is not None:
+                    frame[field] = "Sentry.framework"
         else:
             frame["in_app"] = False
+
         return frame
 
     return [
