@@ -368,29 +368,21 @@ def _bind_or_create_artifact_bundle(
 
 
 def _mark_bundles_that_need_indexing(indexable_bundles: List[IndexableArtifactBundle]):
-    # We want to update the "indexed_state" into a transaction, since we want to modify all values or none.
-    with atomic_transaction(
-        using=(
-            router.db_for_write(ArtifactBundle),
-            router.db_for_write(ReleaseArtifactBundle),
-        )
-    ):
-        # We update all bundles that have the "does not need indexing" state to "needs indexing". Since we might have
-        # concurrent tasks that modify the "indexing_state" in the meanwhile, we will issue an update statement that
-        # checks if the "indexing_state" is equal to "does not need indexing" and only in that case we upload it, this
-        # is done in order to implement atomic compare_and_set semantics because we will perform the update when locking
-        # the row.
-        bundles_to_index = []
-        for indexable_bundle in indexable_bundles:
-            did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
-                artifact_bundle_id=indexable_bundle.id,
-                indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
-            ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
+    # We update all bundles that have the "does not need indexing" state to "needs indexing". Since we might have
+    # concurrent tasks that modify the "indexing_state" concurrently, we will issue an update statement that checks
+    # if the "indexing_state" is equal to "does not need indexing" and only in that case we update it. This is done
+    # in order to implement atomic compare_and_set semantics because we will perform the update when locking the row.
+    bundles_to_index = []
+    for indexable_bundle in indexable_bundles:
+        did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
+            artifact_bundle_id=indexable_bundle.id,
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+        ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
 
-            if did_mark_as_needs_indexing:
-                bundles_to_index.append(indexable_bundle)
+        if did_mark_as_needs_indexing:
+            bundles_to_index.append(indexable_bundle)
 
-        # TODO: make async call.
+    # TODO: make async call.
 
 
 def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snapshot: datetime):
@@ -404,14 +396,16 @@ def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snaps
     # This date implementation might still lead to issues, more specifically in the case in which the
     # "date_last_modified" is kept is the same but the probability of that happening is so low that it's a negligible
     # detail for now, as long as the indexing is idempotent.
-    associated_bundles = ArtifactBundle.objects.filter(
-        organization_id=org_id,
-        # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this async
-        # job, we want to use the `<=` condition for time, effectively saying give me all the bundles that were created
-        # now or in the past.
-        date_last_modified__lte=date_snapshot,
-        releaseartifactbundle__release_name=version,
-        releaseartifactbundle__dist_name=dist,
+    associated_bundles = list(
+        ArtifactBundle.objects.filter(
+            organization_id=org_id,
+            # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this async
+            # job, we want to use the `<=` condition for time, effectively saying give me all the bundles that were created
+            # now or in the past.
+            date_last_modified__lte=date_snapshot,
+            releaseartifactbundle__release_name=version,
+            releaseartifactbundle__dist_name=dist,
+        )
     )
 
     # In case we didn't surpass the threshold, indexing will not happen.
@@ -425,7 +419,7 @@ def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snaps
         associated_bundle.to_indexable() for associated_bundle in associated_bundles
     ]
 
-    # We now want to mark the bundles that need indexing, so that the asynchronous job can actually perform the
+    # We now want to mark the bundles that need indexing, in order to feed them to the asynchronous job.
     _mark_bundles_that_need_indexing(indexable_bundles)
 
 
