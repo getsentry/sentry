@@ -172,7 +172,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
                 }
             ]
 
-            event_data = get_crash_event_with_frames(system_frame_in_app + frames)
+            event_data = get_crash_event_with_frames(system_frame_in_app + list(frames))
 
             event = self.create_event(
                 data=event_data,

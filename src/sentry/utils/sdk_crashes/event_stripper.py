@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -98,7 +98,7 @@ def strip_event_data(
     if (new_event_data is None) or (new_event_data == {}):
         return {}
 
-    stripped_frames: Sequence[Mapping[str, Any]] = []
+    stripped_frames: Sequence[MutableMapping[str, Any]] = []
     frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
 
     if frames is not None:
@@ -151,8 +151,8 @@ def _strip_event_data_with_allowlist(
 
 
 def _strip_frames(
-    frames: Sequence[Mapping[str, Any]], sdk_crash_detector: SDKCrashDetector
-) -> Sequence[Mapping[str, Any]]:
+    frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
+) -> Sequence[MutableMapping[str, Any]]:
     """
     Only keep SDK frames or non in app frames.
     """
