@@ -50,8 +50,8 @@ def index_artifact_bundles_for_release(
         else:
             # a different job is already taking care of this bundle
             metrics.incr("artifact_bundle_indexing.conflict")
-    artifact_bundles = started_artifact_bundles
 
+    artifact_bundles = started_artifact_bundles
     if not artifact_bundles:
         return
 

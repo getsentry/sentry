@@ -391,7 +391,10 @@ def _mark_bundles_that_need_indexing(
     )
 
 
-def _perform_indexing_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
+def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
+    # We collect how many times we tried to perform indexing.
+    metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
+
     # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to prevent
     # the case in which concurrent updates on the database will lead to problems. For example if we have a threshold
     # of 1, and we have two uploads happening concurrently and the database will contain two associations even when
@@ -418,8 +421,16 @@ def _perform_indexing_if_needed(org_id: int, release: str, dist: str, date_snaps
     if len(associated_bundles) <= INDEXING_THRESHOLD:
         return
 
-    # We now want to mark the bundles that need indexing, in order to feed them to the asynchronous job.
-    _mark_bundles_that_need_indexing(associated_bundles, release, dist)
+    # We collect how many times we run indexing.
+    metrics.incr("tasks.assemble.artifact_bundle.start_indexing")
+
+    # We collect how many bundles we are going to index.
+    metrics.incr("tasks.assemble.artifact_bundle.bundles_to_index", amount=len(associated_bundles))
+
+    # We want to measure how much time it takes to perform indexing.
+    with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
+        # We now want to mark the bundles that need indexing, in order to feed them to the asynchronous job.
+        _mark_bundles_that_need_indexing(associated_bundles, release, dist)
 
 
 def _create_artifact_bundle(
@@ -431,7 +442,9 @@ def _create_artifact_bundle(
     artifact_count: int,
 ) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+        # We want to measure how much time it takes to extract debug ids from manifest.
+        with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
+            bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
         analytics.record(
             "artifactbundle.manifest_extracted",
@@ -510,9 +523,17 @@ def _create_artifact_bundle(
             except Organization.DoesNotExist:
                 organization = None
 
-            if features.has("organizations:sourcemaps-bundle-indexing", organization, actor=None):
+            # If we don't have a release set, we don't want to run indexing, since we need at least the release for
+            # fast indexing performance.
+            if (
+                organization is not None
+                and release
+                and features.has(
+                    "organizations:sourcemaps-bundle-indexing", organization, actor=None
+                )
+            ):
                 # After we committed the transaction we want to try and run indexing.
-                _perform_indexing_if_needed(
+                _index_bundle_if_needed(
                     org_id=org_id, release=release, dist=dist, date_snapshot=date_snapshot
                 )
         else:
@@ -631,13 +652,14 @@ def assemble_artifacts(
 
         with archive:
             if upload_as_artifact_bundle:
-                handle_assemble_for_artifact_bundle(
-                    bundle, archive, organization, version, dist, project_ids
-                )
+                with metrics.timer("tasks.assemble.artifact_bundle"):
+                    handle_assemble_for_artifact_bundle(
+                        bundle, archive, organization, version, dist, project_ids
+                    )
             else:
-                handle_assemble_for_release_file(bundle, archive, organization, version)
+                with metrics.timer("tasks.assemble.release_bundle"):
+                    handle_assemble_for_release_file(bundle, archive, organization, version)
 
-            # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=archive.artifact_count)
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
