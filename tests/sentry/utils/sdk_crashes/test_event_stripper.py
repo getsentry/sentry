@@ -190,7 +190,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         cocoa_sdk_frame = stripped_frames[-1]
         assert cocoa_sdk_frame == {
             "function": "SentryCrashMonitor_CPPException.cpp",
-            "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+            "package": "Sentry.framework",
             "in_app": True,
             "image_addr": "0x100304000",
         }
@@ -208,7 +208,6 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         )
 
         assert first_frame == {
-            "filename": "EventStripperTestFrame.swift",
             "function": "function",
             "raw_function": "raw_function",
             "module": "module",
@@ -262,7 +261,38 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         cocoa_sdk_frame = stripped_frames[-1]
         assert cocoa_sdk_frame == {
             "function": "SentryCrashMonitor_CPPException.cpp",
-            "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
+            "package": "Sentry.framework",
+            "in_app": True,
+            "image_addr": "0x100304000",
+        }
+
+    def test_strip_frames_sdk_frames(self):
+        frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
+        # When statically linked the package or module is usually set to the app name
+        sentry_sdk_frame = frames[-1]
+        sentry_sdk_frame["package"] = "SomeApp"
+        sentry_sdk_frame["module"] = "SomeModule"
+        sentry_sdk_frame["abs_path"] = "SomeApp/SentryDispatchQueueWrapper.m"
+
+        event_data = get_crash_event_with_frames(frames)
+
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        stripped_frames = get_path(
+            stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+
+        cocoa_sdk_frame = stripped_frames[-1]
+        assert cocoa_sdk_frame == {
+            "function": "SentryCrashMonitor_CPPException.cpp",
+            "package": "Sentry.framework",
+            "abs_path": "Sentry.framework",
+            "module": "Sentry.framework",
             "in_app": True,
             "image_addr": "0x100304000",
         }
