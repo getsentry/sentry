@@ -233,7 +233,7 @@ class OndemandMetricSpec:
 
     @classmethod
     def parse(cls, field: str, query: str) -> Optional["OndemandMetricSpec"]:
-        if cls.check(field, query):
+        if not cls.check(field, query):
             return None
 
         relay_field, metric_type, op = _extract_field_info(field)

@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Mapping, Optional, Set, Tuple, Union
 
 import sentry_sdk
 from snuba_sdk import (
@@ -14,7 +14,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Literal,
     Offset,
     Op,
     Or,
