@@ -129,7 +129,7 @@ class ProjectFiltersChart extends Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
+        <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
 
         <PanelBody withPadding>
           {isLoading && <Placeholder height="100px" />}
