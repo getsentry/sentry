@@ -110,20 +110,6 @@ def devserver(
     bind: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
-    if ingest:
-        # Ingest requires kakfa+zookeeper to be running.
-        # They're too heavyweight to startup on-demand with devserver.
-        with get_docker_client() as docker:
-            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
-            raise SystemExit(
-                """
-Kafka + Zookeeper don't seem to be running.
-Make sure you have settings.SENTRY_USE_RELAY = True,
-and run `sentry devservices up kafka zookeeper`.
-"""
-            )
-
     if bind is None:
         bind = "127.0.0.1:8000"
 
@@ -190,8 +176,7 @@ and run `sentry devservices up kafka zookeeper`.
         uwsgi_overrides["py-autoreload"] = 1
 
     daemons: MutableSequence[tuple[str, Sequence[str]]] = []
-    kafka_consumers = set(settings.DEVSERVER_START_KAFKA_CONSUMERS)
-    needs_kafka = False
+    kafka_consumers: set[str] = set()
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -245,7 +230,13 @@ and run `sentry devservices up kafka zookeeper`.
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
 
+    if ingest and not workers:
+        click.echo("--ingest was provided, implicitly enabling --workers")
+        workers = True
+
     if workers:
+        kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
+
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
@@ -263,37 +254,26 @@ and run `sentry devservices up kafka zookeeper`.
         daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
-                raise click.ClickException(
-                    "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
-                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
-                )
             kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
         if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
-            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
-                # The metrics indexer produces directly to kafka, so it makes
-                # no sense to run it with SnubaEventStream.
-                raise click.ClickException(
-                    "`SENTRY_USE_METRICS_DEV` can only be used when "
-                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
-                )
             kafka_consumers.add("ingest-metrics")
             kafka_consumers.add("ingest-generic-metrics")
             kafka_consumers.add("billing-metrics-consumer")
-            needs_kafka = True
 
-    if settings.SENTRY_USE_RELAY:
-        kafka_consumers.add("ingest-events")
-        kafka_consumers.add("ingest-attachments")
-        kafka_consumers.add("ingest-transactions")
-        kafka_consumers.add("ingest-monitors")
+        if settings.SENTRY_USE_RELAY:
+            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
 
-        if settings.SENTRY_USE_PROFILING:
-            kafka_consumers.add("ingest-profiles")
+            kafka_consumers.add("ingest-events")
+            kafka_consumers.add("ingest-attachments")
+            kafka_consumers.add("ingest-transactions")
+            kafka_consumers.add("ingest-monitors")
 
-    if occurrence_ingest:
-        kafka_consumers.add("ingest-occurrences")
+            if settings.SENTRY_USE_PROFILING:
+                kafka_consumers.add("ingest-profiles")
+
+        if occurrence_ingest:
+            kafka_consumers.add("ingest-occurrences")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
@@ -314,18 +294,37 @@ and run `sentry devservices up kafka zookeeper`.
         ]
 
     # Create all topics if the Kafka eventstream is selected
-    if (
-        settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream"
-        or kafka_consumers
-        or needs_kafka
-    ):
+    if kafka_consumers:
+        with get_docker_client() as docker:
+            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+            raise click.ClickException(
+                f"""
+Devserver is configured to start some kafka consumers, but Kafka + Zookeeper
+don't seem to be running.
+
+The following consumers were intended to be started: {kafka_consumers}
+
+Make sure you have:
+
+    SENTRY_USE_RELAY = True
+
+or:
+
+    SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
+
+and run `sentry devservices up kafka zookeeper`.
+
+Alternatively, run without --workers.
+"""
+            )
+
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
                 create_topics(topic_data["cluster"], [topic_name], force=True)
 
-    if kafka_consumers:
         if dev_consumer:
             daemons.append(
                 ("dev-consumer", ["sentry", "run", "dev-consumer"] + list(kafka_consumers))
@@ -346,12 +345,6 @@ and run `sentry devservices up kafka zookeeper`.
                         ],
                     )
                 )
-
-    from sentry.runner.commands.devservices import _prepare_containers
-
-    for name, container_options in _prepare_containers("sentry", silent=True).items():
-        if container_options.get("with_devserver", False):
-            daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
 
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.

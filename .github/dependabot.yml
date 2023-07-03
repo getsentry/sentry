@@ -10,9 +10,7 @@ updates:
       time: '15:30'
     reviewers:
       - '@getsentry/owners-js-deps'
-    labels:
-      - 'dependencies'
-      - 'Scope: Frontend'
+    labels: []
     ignore:
       # For all packages, ignore all patch updates
       - dependency-name: '*'

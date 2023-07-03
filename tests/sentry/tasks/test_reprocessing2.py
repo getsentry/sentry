@@ -29,6 +29,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 def _create_event_attachment(evt, type):
@@ -100,7 +101,7 @@ def register_event_preprocessor(register_plugin):
     return inner
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("change_groups", (True, False), ids=("new_group", "same_group"))
 def test_basic(
@@ -209,7 +210,7 @@ def test_basic(
         assert not tombstone_calls
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_concurrent_events_go_into_new_group(
     default_project,
@@ -273,7 +274,7 @@ def test_concurrent_events_go_into_new_group(
     assert activity.ident == str(original_issue_id)
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["delete", "keep"])
 @pytest.mark.parametrize("max_events", [2, None])
@@ -350,7 +351,7 @@ def test_max_events(
     assert is_group_finished(group_id)
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_attachments_and_userfeedback(
     default_project,
@@ -417,7 +418,7 @@ def test_attachments_and_userfeedback(
     assert is_group_finished(event.group_id)
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @pytest.mark.parametrize("remaining_events", ["keep", "delete"])
 def test_nodestore_missing(
@@ -463,7 +464,7 @@ def test_nodestore_missing(
     assert logs == ["reprocessing2.unprocessed_event.not_found"]
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_apply_new_fingerprinting_rules(
     default_project,
@@ -521,7 +522,7 @@ def test_apply_new_fingerprinting_rules(
     assert event2.group.message == "hello world 2"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_apply_new_stack_trace_rules(
     default_project,
@@ -613,7 +614,7 @@ def test_apply_new_stack_trace_rules(
     assert event1.data["grouping_config"] != original_grouping_config
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_finish_reprocessing(default_project):
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)

@@ -1,5 +1,6 @@
 --index-url https://pypi.devinfra.sentry.io/simple
 
+covdefaults>=2.3.0
 docker>=3.7.0,<3.8.0
 freezegun>=1.1.0
 honcho>=1.1.0
@@ -32,7 +33,7 @@ django-stubs
 djangorestframework-stubs
 lxml-stubs
 msgpack-types>=0.2.0
-mypy>=1.3.0
+mypy>=1.4.1
 types-beautifulsoup4
 types-cachetools
 types-croniter

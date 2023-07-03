@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models.notificationsetting import NotificationSetting
@@ -46,9 +46,9 @@ class NotificationSettingsSerializer(Serializer):
             user_ids=list(user_map.keys()),
         )
 
-        results: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
-            lambda: defaultdict(set)
-        )
+        result: MutableMapping[
+            Union["Team", "User"], MutableMapping[str, Iterable[Any]]
+        ] = defaultdict(lambda: defaultdict(set))
 
         for notifications_setting in notifications_settings:
             target = None
@@ -57,13 +57,13 @@ class NotificationSettingsSerializer(Serializer):
             if notifications_setting.team_id:
                 target = team_map[notifications_setting.team_id]
             if target:
-                results[target]["settings"].add(notifications_setting)
+                result[target]["settings"].add(notifications_setting)
             else:
                 raise ValueError(
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
                 )
 
-        return results
+        return result
 
     def serialize(
         self,

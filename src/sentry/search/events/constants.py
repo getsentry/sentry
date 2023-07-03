@@ -237,7 +237,6 @@ SPAN_FUNCTION_ALIASES = {
     "sps_percent_change": "eps_percent_change",
     "spm_percent_change": "epm_percent_change",
 }
-SPAN_PERCENTILE_INDEXES = [0.5, 0.75, 0.9, 0.95, 0.99]
 
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
@@ -274,6 +273,7 @@ SPAN_METRICS_MAP = {
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
 }
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 

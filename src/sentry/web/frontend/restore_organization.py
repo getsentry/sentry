@@ -3,7 +3,7 @@ import logging
 from django.contrib import messages
 from django.http import HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     unmark_organization_as_pending_deletion_with_outbox_message,
 )
-from sentry.web.frontend.base import OrganizationView
+from sentry.web.frontend.base import ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
 ERR_MESSAGES = {
@@ -28,7 +28,7 @@ delete_logger = logging.getLogger("sentry.deletions.ui")
 from rest_framework.request import Request
 
 
-class RestoreOrganizationView(OrganizationView):
+class RestoreOrganizationView(ControlSiloOrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 

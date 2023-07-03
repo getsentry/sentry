@@ -12,6 +12,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 class AuthIdentity(Model):
     __include_in_export__ = True
 
+    # NOTE: not a fk to sentry user
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey("sentry.AuthProvider")
     ident = models.CharField(max_length=128)

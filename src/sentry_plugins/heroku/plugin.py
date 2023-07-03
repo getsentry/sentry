@@ -59,7 +59,9 @@ class HerokuReleaseHook(ReleaseHook):
         email = data.get("user", {}).get("email") or data.get("actor", {}).get("email")
 
         users = user_service.get_many_by_email(
-            emails=[email], organization_id=self.project.organization_id
+            emails=[email],
+            organization_id=self.project.organization_id,
+            is_verified=False,
         )
         user = users[0] if users else None
         if user is None:

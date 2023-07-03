@@ -17,10 +17,12 @@ import {useTheme} from '@emotion/react';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -63,7 +65,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()']}
+        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -77,17 +79,46 @@ export function StarfishView(props: BasePerformanceViewProps) {
           };
 
           const errorsData: Series = {
-            seriesName: t('5xx Responses'),
+            seriesName: t('5XX Responses'),
             color: CHART_PALETTE[5][3],
             data: results[1].data,
           };
 
+          const percentileData: Series = {
+            seriesName: t('Requests'),
+            data: results[2].data,
+          };
+
           return (
             <Fragment>
+              <MiniChartPanel title={DataTitles.p95}>
+                <Chart
+                  statsPeriod={eventView.statsPeriod}
+                  height={71}
+                  data={[percentileData]}
+                  start={eventView.start as string}
+                  end={eventView.end as string}
+                  loading={loading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  definedAxisTicks={2}
+                  isLineChart
+                  chartColors={[P95_COLOR]}
+                  tooltipFormatterOptions={{
+                    valueFormatter: value =>
+                      tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                  }}
+                />
+              </MiniChartPanel>
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[throughputData]}
                   start=""
                   end=""
@@ -103,7 +134,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   definedAxisTicks={2}
                   stacked
                   isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
+                  chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
                   }}
@@ -113,7 +144,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[errorsData]}
                   start={eventView.start as string}
                   end={eventView.end as string}
@@ -141,7 +172,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <StyledRow minSize={200}>
+      <StyledRow minSize={300}>
         <ChartsContainer>
           <ChartsContainerItem>
             <SpanGroupBreakdownContainer />

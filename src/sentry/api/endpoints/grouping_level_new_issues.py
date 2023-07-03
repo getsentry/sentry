@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 
 from django.core.cache import cache
@@ -97,7 +99,7 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
     # No idea if the query is slow, caching just because I can.
     cache_key = f"group-parent-level-hash:{group.id}:{id}"
 
-    return_hash: str = cache.get(cache_key)
+    return_hash = cache.get(cache_key)
 
     if return_hash is None:
         query = (
@@ -210,7 +212,7 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
         for row in query_res
     }
 
-    node_data = nodestore.get_multi(list(event_ids.values()))
+    node_data = nodestore.backend.get_multi(list(event_ids.values()))
 
     response = []
 
@@ -232,7 +234,7 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
 
             # Rough approximation of what happens with Group title
             event_type = get_event_type(event.data)
-            metadata = dict(event.get_event_metadata())
+            metadata: dict[str, str | bool] = dict(event.get_event_metadata())
             metadata["current_tree_label"] = tree_label
             # Force rendering of grouping tree labels irrespective of platform
             metadata["display_title_with_tree_label"] = True

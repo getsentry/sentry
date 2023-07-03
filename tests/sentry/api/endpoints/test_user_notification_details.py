@@ -1,6 +1,5 @@
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -39,7 +38,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -48,7 +47,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -69,7 +68,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.get_success_response("me")
@@ -97,7 +96,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         assert value == NotificationSettingOptionValues.ALWAYS
 
@@ -108,7 +107,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.APPROVAL,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         assert value == NotificationSettingOptionValues.ALWAYS
 
@@ -117,7 +116,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             organization=self.organization,
         )
 
@@ -127,13 +126,13 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         value1 = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             organization=self.organization,
         )
         value2 = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
 
         assert value1 == NotificationSettingOptionValues.NEVER

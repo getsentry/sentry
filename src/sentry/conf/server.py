@@ -17,7 +17,6 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -391,6 +390,7 @@ INSTALLED_APPS = (
     "sudo",
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
+    "sentry.auth.providers.fly.apps.Config",
     "django.contrib.staticfiles",
     "sentry.issues.apps.Config",
 )
@@ -1093,15 +1093,19 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
+    "github_comment_reactions": {
+        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
-if SILO_MODE == SiloMode.CONTROL.value:
+if SILO_MODE == "CONTROL":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-control")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_CONTROL
     CELERY_QUEUES = CELERY_QUEUES_CONTROL + CELERY_QUEUES_ALL
 
-elif SILO_MODE == SiloMode.REGION.value:
+elif SILO_MODE == "REGION":
     CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat-region")
     CELERYBEAT_SCHEDULE = CELERYBEAT_SCHEDULE_REGION
     CELERY_QUEUES = CELERY_QUEUES_REGION + CELERY_QUEUES_ALL
@@ -1553,6 +1557,8 @@ SENTRY_FEATURES = {
     "organizations:starfish-view": False,
     # Enable starfish endpoint that's used for regressing testing purposes
     "organizations:starfish-test-endpoint": False,
+    # Enable starfish dropdown on the webservice view for switching chart visualization
+    "organizations:starfish-wsv-chart-dropdown": False,
     # Replace the footer Sentry logo with a Sentry pride logo
     "organizations:sentry-pride-logo-footer": False,
     # Enable Session Stats down to a minute resolution
@@ -1641,6 +1647,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable specifying inbound filter for health check calls.
+    "organizations:health-check-filter": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1702,7 +1710,7 @@ SENTRY_ORGANIZATION = None
 SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
-SENTRY_FRONTEND_DSN = None
+SENTRY_FRONTEND_DSN: str | None = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
@@ -2041,7 +2049,7 @@ SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
 # silently fail to cache the compressed result anyway.  Defaults to None which
 # disables the check and allows different backends for unlimited payload.
 # e.g. memcached defaults to 1MB  = 1024 * 1024
-SENTRY_CACHE_MAX_VALUE_SIZE = None
+SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -2056,6 +2064,7 @@ SENTRY_SCOPES = {
     "org:write",
     "org:admin",
     "org:integrations",
+    "org:ci",
     "member:read",
     "member:write",
     "member:admin",
@@ -2722,7 +2731,7 @@ SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user of outdated SDKs.
-SENTRY_RELEASE_REGISTRY_BASEURL = None
+SENTRY_RELEASE_REGISTRY_BASEURL: str | None = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release
 # registry.
@@ -3181,19 +3190,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# The grouping strategy to use for driving similarity-v2. You can add multiple
-# strategies here to index them all. This is useful for transitioning a
-# similarity dataset to newer grouping configurations.
-#
-# The dictionary value represents the redis prefix to use.
-#
-# Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "similarity:2020-07-23": "a",
-}
+# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
@@ -3403,7 +3402,9 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-if USE_SILOS:
+# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
+# Split databases are also required for the USE_SILOS devserver flow.
+if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
@@ -3412,6 +3413,9 @@ if USE_SILOS:
     # silo database is the 'default' elsewhere in application logic.
     DATABASES["default"]["NAME"] = "region"
 
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
     SENTRY_REGION_CONFIG = [
@@ -3419,7 +3423,7 @@ if USE_SILOS:
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://localhost:8000",
+            "address": "http://us.localhost:8000",
             "api_token": "dev-region-silo-token",
         }
     ]
@@ -3431,7 +3435,6 @@ if USE_SILOS:
             "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
 # How long we should wait for a gateway proxy request to return before giving up
@@ -3502,8 +3505,6 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-SENTRY_FILE_COPY_ROLLOUT_RATE = 0.5
-
 # The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
@@ -3546,3 +3547,8 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
+
+
+# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
+# to the buffer service.
+SENTRY_BUFFER_INCR_AS_CELERY_TASK = False

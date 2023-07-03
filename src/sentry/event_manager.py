@@ -32,7 +32,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from pytz import UTC
 
 from sentry import (
@@ -773,7 +773,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
         transaction_name = data.get("transaction")
         if transaction_name:
-            transaction_name = force_text(transaction_name)
+            transaction_name = force_str(transaction_name)
         job["transaction"] = transaction_name
 
         key_id = None if data is None else data.get("key_id")
@@ -1442,7 +1442,7 @@ def materialize_metadata(
 def get_culprit(data: Mapping[str, Any]) -> str:
     """Helper to calculate the default culprit"""
     return str(
-        force_text(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
+        force_str(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
     )
 
 

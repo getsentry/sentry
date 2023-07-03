@@ -349,6 +349,7 @@ class Referrer(Enum):
     API_TRACE_VIEW_GET_META = "api.trace-view.get-meta"
     API_TRACE_VIEW_HOVER_CARD = "api.trace-view.hover-card"
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
+    API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -605,6 +606,7 @@ class Referrer(Enum):
     TSDB_MODELID_608 = "tsdb-modelid:608"
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
+    TSDB_MODELID_611 = "tsdb-modelid:611"
     TSDB_MODELID_700 = "tsdb-modelid:700"
     TSDB_MODELID_800 = "tsdb-modelid:800"
     TSDB_MODELID_801 = "tsdb-modelid:801"

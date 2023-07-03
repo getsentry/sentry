@@ -5,7 +5,8 @@ from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
 from django.db import models
 from django.db.models.signals import post_delete
 from django.utils import timezone
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -221,7 +222,7 @@ class ArtifactBundleArchive:
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Tuple[IO, dict]:
+    ) -> Tuple[IO[bytes], dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 

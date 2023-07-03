@@ -1,4 +1,5 @@
-import {CSSProperties, Fragment, useMemo, useState} from 'react';
+import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,6 +8,7 @@ import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import ScoreBar from 'sentry/components/scoreBar';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -18,7 +20,9 @@ import {space} from 'sentry/styles/space';
 import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -34,13 +38,34 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
+const CURSOR_NAME = 'slowFnCursor';
 
 interface SlowestFunctionsWidgetProps {
+  header?: ReactNode;
   userQuery?: string;
+  widgetHeight?: string;
 }
 
-export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps) {
+export function SlowestFunctionsWidget({
+  header,
+  userQuery,
+  widgetHeight,
+}: SlowestFunctionsWidgetProps) {
+  const location = useLocation();
+
   const [expandedIndex, setExpandedIndex] = useState(0);
+
+  const slowFnCursor = useMemo(
+    () => decodeScalar(location.query[CURSOR_NAME]),
+    [location.query]
+  );
+
+  const handleCursor = useCallback((cursor, pathname, query) => {
+    browserHistory.push({
+      pathname,
+      query: {...query, [CURSOR_NAME]: cursor},
+    });
+  }, []);
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,
@@ -51,6 +76,7 @@ export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps)
     },
     query: userQuery,
     limit: MAX_FUNCTIONS,
+    cursor: slowFnCursor,
   });
 
   const hasFunctions = (functionsQuery.data?.data?.length || 0) > 0;
@@ -79,10 +105,15 @@ export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps)
   const isError = functionsQuery.isError || totalsQuery.isError;
 
   return (
-    <WidgetContainer>
+    <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>
+        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
+        <StyledPagination
+          pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
+          size="xs"
+          onCursor={handleCursor}
+        />
       </HeaderContainer>
       <ContentContainer>
         {isLoading && (
@@ -289,6 +320,10 @@ const functionTransactionsFields = [
 ] as const;
 
 type FunctionTransactionField = (typeof functionTransactionsFields)[number];
+
+const StyledPagination = styled(Pagination)`
+  margin: 0;
+`;
 
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;

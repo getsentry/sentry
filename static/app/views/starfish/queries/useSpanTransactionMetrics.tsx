@@ -1,6 +1,7 @@
 import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,12 +25,14 @@ export type SpanTransactionMetrics = {
 
 export const useSpanTransactionMetrics = (
   span: Pick<IndexedSpan, 'group'>,
-  transactions?: string[],
+  options: {sorts?: Sort[]; transactions?: string[]},
   _referrer = 'span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const eventView = getEventView(span, location, transactions ?? []);
+  const {transactions, sorts} = options;
+
+  const eventView = getEventView(span, location, transactions ?? [], sorts);
 
   return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
@@ -38,7 +41,12 @@ export const useSpanTransactionMetrics = (
   });
 };
 
-function getEventView(span: {group: string}, location: Location, transactions: string[]) {
+function getEventView(
+  span: {group: string},
+  location: Location,
+  transactions: string[],
+  sorts?: Sort[]
+) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   const search = new MutableSearch('');
@@ -49,7 +57,7 @@ function getEventView(span: {group: string}, location: Location, transactions: s
     search.addFilterValues('transaction', transactions);
   }
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query: search.formatString(),
@@ -71,4 +79,10 @@ function getEventView(span: {group: string}, location: Location, transactions: s
     },
     location
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }

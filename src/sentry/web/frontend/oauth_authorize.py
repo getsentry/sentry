@@ -156,7 +156,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if not force_prompt:
             try:
                 existing_auth = ApiAuthorization.objects.get(
-                    user=request.user, application=application
+                    user_id=request.user.id, application=application
                 )
             except ApiAuthorization.DoesNotExist:
                 pass
@@ -275,11 +275,13 @@ class OAuthAuthorizeView(AuthLoginView):
         try:
             with transaction.atomic():
                 ApiAuthorization.objects.create(
-                    application=application, user=request.user, scope_list=params["scopes"]
+                    application=application, user_id=request.user.id, scope_list=params["scopes"]
                 )
         except IntegrityError:
             if params["scopes"]:
-                auth = ApiAuthorization.objects.get(application=application, user=request.user)
+                auth = ApiAuthorization.objects.get(
+                    application=application, user_id=request.user.id
+                )
                 for scope in params["scopes"]:
                     if scope not in auth.scope_list:
                         auth.scope_list.append(scope)
@@ -287,7 +289,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if params["response_type"] == "code":
             grant = ApiGrant.objects.create(
-                user=request.user,
+                user_id=request.user.id,
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
@@ -300,7 +302,7 @@ class OAuthAuthorizeView(AuthLoginView):
         elif params["response_type"] == "token":
             token = ApiToken.objects.create(
                 application=application,
-                user=request.user,
+                user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
             )

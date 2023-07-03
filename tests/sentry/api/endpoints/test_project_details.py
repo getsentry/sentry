@@ -29,7 +29,6 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -169,6 +168,29 @@ class ProjectDetailsTest(APITestCase):
             project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
         )
         assert not response.data["hasAlertIntegrationInstalled"]
+
+    def test_filters_disabled_plugins(self):
+        from sentry.plugins.base import plugins
+
+        project = self.create_project()
+        self.create_group(project=project)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert response.data["plugins"] == []
+
+        asana_plugin = plugins.get("asana")
+        asana_plugin.enable(project)
+
+        response = self.get_success_response(
+            project.organization.slug,
+            project.slug,
+        )
+        assert len(response.data["plugins"]) == 1
+        assert response.data["plugins"][0]["slug"] == asana_plugin.slug
 
     def test_project_renamed_302(self):
         project = self.create_project()
@@ -603,7 +625,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -612,7 +634,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER

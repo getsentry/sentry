@@ -3,8 +3,16 @@ from unittest.mock import patch
 from django.core import mail
 
 from sentry import roles
+from sentry.api.endpoints.accept_organization_invite import get_invite_state
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
-from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.api.invite_helper import ApiInviteHelper
+from sentry.models import (
+    Authenticator,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    UserEmail,
+)
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -53,12 +61,30 @@ class OrganizationMemberSerializerTest(TestCase):
         assert serializer.validated_data["teams"][0] == self.team
 
     def test_invalid_email(self):
-        context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}
-        data = {"email": self.user.email, "orgRole": "member", "teamRoles": []}
+        org = self.create_organization()
+        user = self.create_user()
+        member = self.create_member(organization=org, email=user.email)
+
+        context = {"organization": org, "allowed_roles": [roles.get("member")]}
+        data = {"email": user.email, "orgRole": "member", "teamRoles": []}
 
         serializer = OrganizationMemberSerializer(context=context, data=data)
         assert not serializer.is_valid()
-        assert serializer.errors == {"email": [f"The user {self.user.email} is already a member"]}
+        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
+
+        request = self.make_request(user=user)
+
+        with exempt_from_silo_limits():
+            UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+
+            invite_state = get_invite_state(member.id, org.slug, user.id)
+            assert invite_state, "Expected invite state, logic bug?"
+            invite_helper = ApiInviteHelper(request=request, invite_context=invite_state, token=None)  # type: ignore
+            invite_helper.accept_invite(user)
+
+        serializer = OrganizationMemberSerializer(context=context, data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors == {"email": [f"The user {user.email} is already a member"]}
 
     def test_invalid_team_invites(self):
         context = {"organization": self.organization, "allowed_roles": [roles.get("member")]}

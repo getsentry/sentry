@@ -5,7 +5,7 @@ from typing import Callable, Mapping, Optional, Union
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -101,7 +101,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                 "equals",
                                 [
                                     Column("metric_id"),
-                                    self.resolve_metric("span.duration"),
+                                    self.resolve_metric("span.self_time"),
                                 ],
                             ),
                         ],
@@ -113,7 +113,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "sum",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -136,7 +136,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "percentile",
                     required_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column", allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS
                             ),
@@ -152,7 +152,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "p50",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -170,7 +170,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "p75",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -188,7 +188,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "p95",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -216,7 +216,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "p99",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -234,7 +234,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "p100",
                     optional_args=[
                         fields.with_default(
-                            "span.duration",
+                            "span.self_time",
                             fields.MetricArg(
                                 "column",
                                 allowed_columns=constants.SPAN_METRIC_DURATION_COLUMNS,
@@ -262,7 +262,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             Column("metric_id"),
-                                            self.resolve_metric("span.duration"),
+                                            self.resolve_metric("span.self_time"),
                                         ],
                                     ),
                                 ],
@@ -381,7 +381,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
-            selected_columns=["sum(span.duration)"],
+            selected_columns=["sum(span.self_time)"],
         )
 
         total_query.columns += self.builder.resolve_groupby()
@@ -397,7 +397,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if len(results["data"]) != 1:
             self.total_span_duration = 0
             return Function("toFloat64", [0], alias)
-        self.total_span_duration = results["data"][0]["sum_span_duration"]
+        self.total_span_duration = results["data"][0]["sum_span_self_time"]
         return Function("toFloat64", [self.total_span_duration], alias)
 
     def _resolve_time_spent_percentage(
@@ -406,7 +406,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         total_time = self._resolve_total_span_duration(
             constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"]
         )
-        metric_id = self.resolve_metric("span.duration")
+        metric_id = self.resolve_metric("span.self_time")
 
         return Function(
             "divide",
@@ -455,7 +455,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 "equals",
                 [
                     Column("metric_id"),
-                    self.resolve_metric("span.duration"),
+                    self.resolve_metric("span.self_time"),
                 ],
             ),
             condition,
@@ -489,7 +489,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             "equals",
             [
                 Column("metric_id"),
-                self.resolve_metric("span.duration"),
+                self.resolve_metric("span.self_time"),
             ],
         )
         if extra_condition:
@@ -528,53 +528,19 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: Optional[str] = None,
     ) -> SelectType:
-        percentile = args["percentile"]
-        if percentile not in constants.SPAN_PERCENTILE_INDEXES:
-            raise InvalidSearchQuery(f"percentile_percent_change doesn't support {percentile}")
-        finalized_aggregation = Function(
-            "arrayElement",
-            [
-                Function("finalizeAggregation", [Column("percentiles")]),
-                constants.SPAN_PERCENTILE_INDEXES.index(args["percentile"]) + 1,
-            ],
-            f"{alias}_finalized_aggregation",
+        first_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.first_half_condition()],
         )
-        linear_regression = Function(
-            "simpleLinearRegression",
-            [
-                Function("toUnixTimestamp", [self.builder.column("timestamp")]),
-                finalized_aggregation,
-            ],
-            f"{alias}_linear_regression",
+        second_half = function_aliases.resolve_metrics_percentile(
+            args=args,
+            alias=None,
+            fixed_percentile=args["percentile"],
+            extra_conditions=[self.builder.second_half_condition()],
         )
-        coefficient_of_determination = Function(
-            "pow",
-            [
-                Function(
-                    "corr",
-                    [
-                        Function("toUnixTimestamp", [self.builder.column("timestamp")]),
-                        finalized_aggregation,
-                    ],
-                ),
-                2,
-            ],
-        )
-        first_half = self.builder.get_regression_value(
-            self.builder.start, linear_regression, f"{alias}_first_half"
-        )
-        second_half = self.builder.get_regression_value(
-            self.builder.end, linear_regression, f"{alias}_second_half"
-        )
-        return Function(
-            "if",
-            [
-                Function("greater", [coefficient_of_determination, 0.2]),
-                self._resolve_percent_change_function(first_half, second_half),
-                0,
-            ],
-            alias,
-        )
+        return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_epm_percent_change(
         self,
@@ -594,7 +560,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         second_half = self._resolve_eps(args, None, self.builder.second_half_condition())
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
-    def _resolve_percent_change_function(self, first_half, second_half, alias=None):
+    def _resolve_percent_change_function(self, first_half, second_half, alias):
         return Function(
             "if",
             [
@@ -612,7 +578,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "minus",
                             [second_half, first_half],
                         ),
-                        Function("abs", [first_half]),
+                        first_half,
                     ],
                 ),
                 None,

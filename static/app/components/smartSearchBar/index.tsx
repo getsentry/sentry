@@ -1562,12 +1562,14 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param recentSearchItems List of recent search items, same format as searchItem
    * @param tagName The current tag name in scope
    * @param type Defines the type/state of the dropdown menu items
+   * @param skipDefaultGroup Force hide the default group even without a query
    */
   updateAutoCompleteState(
     searchItems: SearchItem[],
     recentSearchItems: SearchItem[],
     tagName: string,
-    type: ItemType
+    type: ItemType,
+    skipDefaultGroup = false
   ) {
     const {
       fieldDefinitionGetter,
@@ -1589,7 +1591,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
-      defaultSearchGroup,
+      skipDefaultGroup ? undefined : defaultSearchGroup,
       fieldDefinitionGetter
     );
 
@@ -1769,7 +1771,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
       trackAnalytics('search.key_autocompleted', {
         organization: this.props.organization,
         search_operator: replaceText,
@@ -1779,6 +1785,18 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         item_type: item.type,
         search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
       });
+    }
+
+    if (item.applyFilter) {
+      const [tagKeys, tagType] = this.getTagKeys('');
+      this.updateAutoCompleteState(
+        tagKeys.filter(item.applyFilter),
+        [],
+        '',
+        tagType,
+        true
+      );
+      return;
     }
 
     this.onAutoCompleteFromAst(replaceText, item);

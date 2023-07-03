@@ -75,6 +75,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_INTEGRATION_UPDATE = 12
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
     SEND_SIGNAL = 14
+    ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
 
     @classmethod
     def as_choices(cls):
@@ -95,6 +96,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITHUB = 1
     JIRA = 2
     GITLAB = 3
+    MSTEAMS = 4
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -480,5 +482,5 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
             _outbox_context.flushing_enabled = original
 
 
-process_region_outbox = Signal(providing_args=["payload", "object_identifier"])
-process_control_outbox = Signal(providing_args=["payload", "region_name", "object_identifier"])
+process_region_outbox = Signal()  # ["payload", "object_identifier"]
+process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]

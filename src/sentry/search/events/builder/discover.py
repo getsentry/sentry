@@ -101,22 +101,6 @@ class BaseQueryBuilder:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
 
-    def get_regression_value(self, x: datetime, linearRegression: Function, alias: str):
-        return Function(
-            "plus",
-            [
-                Function(
-                    "multiply",
-                    [
-                        Function("toUnixTimestamp", [x]),
-                        Function("tupleElement", [linearRegression, 1]),
-                    ],
-                ),
-                Function("tupleElement", [linearRegression, 2]),
-            ],
-            alias,
-        )
-
     def first_half_condition(self):
         """Create the first half condition for percent_change functions"""
         return Function(

@@ -1,4 +1,4 @@
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.testutils import TestCase
@@ -65,9 +65,9 @@ class CursorWrapperTestCase(TestCase):
 
         bad_str = "Hello\ud83dWorld🇦🇹!"
         cursor.execute("SELECT %s", [bad_str])
-        bad_str_from_db = force_text(cursor.fetchone()[0])
+        bad_str_from_db = force_str(cursor.fetchone()[0])
         assert bad_str_from_db == "HelloWorld🇦🇹!"
 
         cursor.execute("SELECT %(bad_str)s", {"bad_str": bad_str})
-        bad_str_from_db = force_text(cursor.fetchone()[0])
+        bad_str_from_db = force_str(cursor.fetchone()[0])
         assert bad_str_from_db == "HelloWorld🇦🇹!"
