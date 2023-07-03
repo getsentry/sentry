@@ -263,7 +263,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
         assert cocoa_sdk_frame == {
             "function": "SentryCrashMonitor_CPPException.cpp",
             "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
-            "in_app": False,
+            "in_app": True,
             "image_addr": "0x100304000",
         }
 

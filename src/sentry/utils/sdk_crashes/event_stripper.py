@@ -98,17 +98,10 @@ def strip_event_data(
     if (new_event_data is None) or (new_event_data == {}):
         return {}
 
-    stripped_frames: Sequence[MutableMapping[str, Any]] = []
     frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
 
     if frames is not None:
         stripped_frames = _strip_frames(frames, sdk_crash_detector)
-
-        for frame in stripped_frames:
-            if sdk_crash_detector.is_sdk_frame(frame):
-                frame["in_app"] = True
-            else:
-                frame["in_app"] = False
 
         new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
@@ -152,7 +145,7 @@ def _strip_event_data_with_allowlist(
 
 def _strip_frames(
     frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
-) -> Sequence[MutableMapping[str, Any]]:
+) -> Sequence[Mapping[str, Any]]:
     """
     Only keep SDK frames or Apple system libraries.
     We need to adapt this logic once we support other platforms.
@@ -169,8 +162,16 @@ def _strip_frames(
 
         return False
 
-    return [
+    stripped_frames = [
         frame
         for frame in frames
         if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
     ]
+
+    for frame in stripped_frames:
+        if sdk_crash_detector.is_sdk_frame(frame):
+            frame["in_app"] = True
+        else:
+            frame["in_app"] = False
+
+    return stripped_frames
