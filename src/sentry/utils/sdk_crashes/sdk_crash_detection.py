@@ -57,7 +57,14 @@ class SDKCrashDetection:
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
-                sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
+                sdk_crash_event_data,
+                "contexts",
+                "sdk_crash_detection",
+                value={
+                    "detected": True,
+                    "original_project_id": event.project.id,
+                    "original_event_id": event.event_id,
+                },
             )
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)

@@ -37,7 +37,11 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             assert mock_sdk_crash_reporter.report.call_count == 1
 
             reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
-            assert reported_event_data["contexts"]["sdk_crash_detection"]["detected"] is True
+            assert reported_event_data["contexts"]["sdk_crash_detection"] == {
+                "detected": True,
+                "original_project_id": event.project_id,
+                "original_event_id": event.event_id,
+            }
         else:
             assert mock_sdk_crash_reporter.report.call_count == 0
 
