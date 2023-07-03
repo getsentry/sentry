@@ -20,7 +20,7 @@ RAW_SOCKET_HACK_PATH = os.path.expanduser(
     "~/Library/Containers/com.docker.docker/Data/docker.raw.sock"
 )
 if os.path.exists(RAW_SOCKET_HACK_PATH):
-    os.environ["DOCKER_HOST"] = "unix://" + RAW_SOCKET_HACK_PATH
+    os.environ.setdefault("DOCKER_HOST", "unix://" + RAW_SOCKET_HACK_PATH)
 
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
