@@ -23,7 +23,6 @@ from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
-    get_provider_enum,
     get_provider_enum_from_string,
     get_provider_name,
 )
@@ -593,18 +592,11 @@ def get_values_by_provider(
 
 
 def get_providers_for_recipient(
-    raw_recipient: RpcActor | User | Team,
+    recipient: User,
 ) -> Iterable[ExternalProviders]:
-    from sentry.models import ExternalActor, Identity
+    from sentry.models import Identity
 
-    recipient = RpcActor.from_object(raw_recipient)
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
-    if recipient.actor_type == ActorType.TEAM:
-        team_providers = ExternalActor.objects.filter(
-            actor_id=recipient.actor_id, provider__in=possible_providers
-        ).values_list("provider", flat=True)
-        return [get_provider_enum(provider) for provider in team_providers]
-
     provider_names = [get_provider_name(provider) for provider in possible_providers]
     idp_types = Identity.objects.filter(
         user__id=recipient.id, idp__type__in=provider_names

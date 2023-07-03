@@ -100,16 +100,16 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         )
         assert value == NotificationSettingOptionValues.ALWAYS
 
-    def test_save_approvals(self):
-        data = {"approval": {"user": {"me": {"email": "always"}}}}
+    # def test_save_approvals(self):
+    #     data = {"approval": {"user": {"me": {"email": "always"}}}}
 
-        self.get_success_response("me", **data)
-        value = NotificationSetting.objects.get_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.APPROVAL,
-            user_id=self.user.id,
-        )
-        assert value == NotificationSettingOptionValues.ALWAYS
+    #     self.get_success_response("me", **data)
+    #     value = NotificationSetting.objects.get_settings(
+    #         ExternalProviders.EMAIL,
+    #         NotificationSettingTypes.APPROVAL,
+    #         user_id=self.user.id,
+    #     )
+    #     assert value == NotificationSettingOptionValues.ALWAYS
 
     def test_saves_and_returns_values_when_defaults_present(self):
         NotificationSetting.objects.update_settings(

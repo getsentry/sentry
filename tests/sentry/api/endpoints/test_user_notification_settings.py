@@ -58,13 +58,24 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
 
         response = self.get_success_response("me")
 
-        # Spot check.
-        assert response.data["alerts"]["user"][self.user.id]["email"] == "always"
-        assert response.data["deploy"]["organization"][self.organization.id]["email"] == "default"
-        assert response.data["deploy"]["organization"][self.organization.id]["slack"] == "default"
-        assert response.data["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
+        # Defaults are handled on the FE
+        assert response.data["preferences"] == {}
 
     def test_type_querystring(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user_id=self.user.id,
+            project=self.project,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user_id=self.user.id,
+            project=self.project,
+        )
         response = self.get_success_response("me", qs_params={"type": "workflow"})
 
         assert "alerts" not in response.data
@@ -82,32 +93,6 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         other_user = self.create_user("bizbaz@example.com")
 
         self.get_error_response(other_user.id, status_code=status.HTTP_403_FORBIDDEN)
-
-    def test_invalid_notification_setting(self):
-        other_organization = self.create_organization(name="Rowdy Tiger", owner=None)
-        other_project = self.create_project(
-            organization=other_organization, teams=[], name="Bengal"
-        )
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user_id=self.user.id,
-            project=other_project,
-        )
-
-        response = self.get_success_response("me")
-
-        assert other_project.id not in response.data["workflow"]["project"]
-
-
-class UserNotificationSettingsTestBase(APITestCase):
-    endpoint = "sentry-api-0-user-notification-settings"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
 
 
 @control_silo_test(stable=True)
@@ -168,14 +153,24 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
 
         response = self.get_v2_response()
 
-        # Spot check.
-        preferences = response.data["preferences"]
-        assert preferences["alerts"]["user"][self.user.id]["email"] == "always"
-        assert preferences["deploy"]["organization"][self.organization.id]["email"] == "default"
-        assert preferences["deploy"]["organization"][self.organization.id]["slack"] == "default"
-        assert preferences["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
+        # Defaults are handled on the FE
+        assert response.data["preferences"] == {}
 
     def test_type_querystring(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user_id=self.user.id,
+            project=self.project,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            user_id=self.user.id,
+            project=self.project,
+        )
         response = self.get_v2_response(qs_params={"type": "workflow"})
 
         assert "alerts" not in response.data["preferences"]
@@ -193,24 +188,6 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
         other_user = self.create_user("bizbaz@example.com")
 
         self.get_error_response(other_user.id, status_code=status.HTTP_403_FORBIDDEN)
-
-    def test_invalid_notification_setting(self):
-        other_organization = self.create_organization(name="Rowdy Tiger", owner=None)
-        other_project = self.create_project(
-            organization=other_organization, teams=[], name="Bengal"
-        )
-
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.WORKFLOW,
-            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user_id=self.user.id,
-            project=other_project,
-        )
-
-        response = self.get_v2_response()
-
-        assert other_project.id not in response.data["preferences"]["workflow"]["project"]
 
 
 @control_silo_test(stable=True)

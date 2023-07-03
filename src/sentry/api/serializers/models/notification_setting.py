@@ -49,6 +49,10 @@ class NotificationSettingsSerializer(Serializer):
         result: MutableMapping[
             Union["Team", "User"], MutableMapping[str, Iterable[Any]]
         ] = defaultdict(lambda: defaultdict(set))
+        for _, team in team_map.items():
+            result[team]["settings"] = set()
+        for _, user in user_map.items():
+            result[user]["settings"] = set()
 
         for notifications_setting in notifications_settings:
             target = None
@@ -105,10 +109,6 @@ class NotificationSettingsSerializer(Serializer):
 
         # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
-            # Filter out invalid notification settings.
-            if n.scope_str not in ["project", "organization"]:
-                continue
-
             # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
         return data
