@@ -116,11 +116,11 @@ class ArtifactBundleIndex(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250, db_index=True)
+    release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
-    url = models.TextField(db_index=True)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    url = models.TextField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
     date_last_modified = models.DateTimeField(default=timezone.now)
