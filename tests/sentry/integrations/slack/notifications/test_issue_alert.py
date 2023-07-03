@@ -481,7 +481,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
 
         event = self.store_event(

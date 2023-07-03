@@ -126,8 +126,10 @@ class RpcServiceEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         response_body = response.json()
+        setting = NotificationSetting.objects.filter(user_id=self.user.id).get()
         assert response_body["value"] == [
             {
+                "id": setting.id,
                 "scope_type": NotificationScopeType.USER.value,
                 "scope_identifier": self.user.id,
                 "target_id": response_body["value"][0]["target_id"],
