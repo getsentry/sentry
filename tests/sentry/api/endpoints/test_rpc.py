@@ -110,7 +110,7 @@ class RpcServiceEndpointTest(APITestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         response = self.client.post(
             path,

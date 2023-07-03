@@ -82,7 +82,7 @@ class NotificationsService(RpcService):
             NotificationSettingTypes, NotificationSettingOptionValues
         ],
         external_provider: ExternalProviders,
-        actor: RpcActor,
+        user_id: int,
     ) -> None:
         pass
 

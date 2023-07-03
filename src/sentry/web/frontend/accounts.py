@@ -243,7 +243,7 @@ def email_unsubscribe_project(request, project_id):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=request.user,
+                user_id=request.user.id,
                 project=project,
             )
         return HttpResponseRedirect(auth.get_login_url())

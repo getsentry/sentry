@@ -2,7 +2,6 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -66,7 +65,7 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
-                actor=RpcActor.from_orm_team(self.team),
+                team=self.team,
                 project=self.project,
             )
             == NotificationSettingOptionValues.DEFAULT
@@ -83,7 +82,7 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
-                team=RpcActor.from_orm_team(self.team),
+                team=self.team,
                 project=self.project,
             )
             == NotificationSettingOptionValues.ALWAYS

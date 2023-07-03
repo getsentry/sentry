@@ -207,7 +207,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user2,
+            user_id=user2.id,
         )
         # update the team's notification settings
         ExternalActor.objects.create(
@@ -356,7 +356,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         # add a second user to the team so we can be sure it's only
         # sent once (to the team, and not to each individual user)
@@ -374,7 +374,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user2,
+            user_id=user2.id,
         )
         # update the team's notification settings
         ExternalActor.objects.create(
@@ -466,7 +466,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user2,
+            user_id=user2.id,
         )
         # update the team's notification settings
         ExternalActor.objects.create(
@@ -542,7 +542,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user2,
+            user_id=user2.id,
         )
         # update the team's notification settings
         ExternalActor.objects.create(
@@ -665,7 +665,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user2,
+            user_id=user2.id,
         )
 
         event = self.store_event(
