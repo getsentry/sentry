@@ -118,9 +118,10 @@ class ActivityNotificationTest(APITestCase):
 
         # leave a comment
         url = f"/api/0/issues/{self.group.id}/comments/"
-        with self.tasks():
-            response = self.client.post(url, format="json", data={"text": "blah blah"})
-        assert response.status_code == 201, response.content
+        with exempt_from_silo_limits():
+            with self.tasks():
+                response = self.client.post(url, format="json", data={"text": "blah blah"})
+            assert response.status_code == 201, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -187,9 +188,10 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(url, format="json", data={"status": "resolved"})
-        assert response.status_code == 200, response.content
+        with exempt_from_silo_limits():
+            with self.tasks():
+                response = self.client.put(url, format="json", data={"status": "resolved"})
+            assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -214,7 +216,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -222,7 +223,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -355,14 +355,15 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved by a release.
         """
         release = self.create_release()
-        url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(
-                url,
-                format="json",
-                data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
-            )
-        assert response.status_code == 200, response.content
+        with exempt_from_silo_limits():
+            url = f"/api/0/issues/{self.group.id}/"
+            with self.tasks():
+                response = self.client.put(
+                    url,
+                    format="json",
+                    data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
+                )
+            assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -388,7 +389,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -396,7 +396,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
