@@ -122,6 +122,7 @@ class ArtifactBundleIndex(Model):
     dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
     url = models.TextField(db_index=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    date_added = models.DateTimeField(default=timezone.now)
     date_last_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
