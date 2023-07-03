@@ -143,39 +143,53 @@ def store_crash(crash, project: Project, url: str) -> None:
 
 
 def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
-    # processed_stacktrace = []
-    # for frame in payload["detailedStackTrace"]:
-    #     processed_frame = {
-    #         "filename": frame["sourceFile"],
-    #         "lineno": frame["sourceLine"],
-    #         "instruction_addr": frame["absoluteAddress"],
-    #         "module": frame["moduleName"],
-    #         "function": frame["resolvedSymbol"],
-    #         "raw_function": frame["displayValue"],
-    #     }
-    #     processed_stacktrace.append(processed_frame)
-
-    # detailed_st = {}
-    # for count, value in enumerate(payload["detailedStackTrace"]):
-    #     detailed_st["frame" + str(count)] = value
-
-    return {
+    event = {
+        "timestamp": crash["uploadDate"],
         "event_id": uuid.uuid4().hex,
         "project": project.id,
+        "platform": "c",
         "exception": {
             "values": [
                 {
                     "type": crash["stopReason"],
-                    "value": "Unknown exception (id#{})".format(crash["id"]),
-                    # "stacktrace": {
-                    #     "frames": processed_stacktrace,
-                    # },
+                    "value": crash["stopLocation"],  # or alternatively we can use `returnLocation`
                 }
             ]
         },
-        "contexts": {
-            "_links": crash["_links"],
-            # "detailedStackTrace": detailed_st,
+        "tags": {
+            "id": crash["id"],
+            "titleId": crash["titleId"],
         },
-        "tags": {"url": url, "crash_id": crash["id"]},
+        "contexts": {
+            "request": {"url": crash["_links"]["self"]},
+            "runtime": {"name": crash["platform"], "version": crash["sysVersion"]},
+            "app": {"app_version": crash["appVersion"]},
+            "device": {"name": crash["platform"], "model_id": crash["hardwareId"]},
+        },
     }
+
+    if "detailedStackTrace" in crash:
+        frames = []
+        for frame in crash["detailedStackTrace"]:
+            processed_frame = {
+                "filename": frame["sourceFile"],
+                "lineno": frame["sourceLine"],
+                "instruction_addr": frame["absoluteAddress"],
+                "module": frame["moduleName"],
+                "function": frame["resolvedSymbol"],
+                "raw_function": frame["displayValue"],
+                "in_app": True,
+            }
+            frames.append(processed_frame)
+        event["exception"]["values"][0]["stacktrace"] = {"frames": frames}
+    elif "stackTrace" in crash:
+        frames = []
+        for frame in crash["stackTrace"]:
+            processed_frame = {"function": frame, "in_app": True}
+            frames.append(processed_frame)
+        event["exception"]["values"][0]["stacktrace"] = {"frames": frames}
+
+    if crash["userData"] is not None:
+        event["contexts"]["userData"] = crash["userData"]
+
+    return event
