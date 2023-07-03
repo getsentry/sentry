@@ -31,8 +31,7 @@ from sentry.api.utils import InvalidParams
 from sentry.models import Project
 from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_use_case_key
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
@@ -196,11 +195,11 @@ def _get_entity_of_metric_mri(
         raise InvalidParams
 
     entity_keys_set: frozenset[EntityKey]
-    if get_use_case_key(use_case_id) is UseCaseKey.PERFORMANCE:
+    if use_case_id is UseCaseID.TRANSACTIONS:
         entity_keys_set = frozenset(
             {EntityKey.GenericMetricsSets, EntityKey.GenericMetricsDistributions}
         )
-    elif get_use_case_key(use_case_id) is UseCaseKey.RELEASE_HEALTH:
+    elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
         )
@@ -411,7 +410,7 @@ class RawOp(MetricOperation):
         org_id: int,
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
-        if get_use_case_key(use_case_id) is UseCaseKey.PERFORMANCE:
+        if use_case_id is UseCaseID.TRANSACTIONS:
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]

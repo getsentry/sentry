@@ -11,8 +11,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.models import Project
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_use_case_key
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
@@ -377,9 +376,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def validate_interval(self) -> None:
         if self.interval is not None:
-            if get_use_case_key(self.use_case_id) is UseCaseKey.RELEASE_HEALTH or (
-                get_use_case_key(self.use_case_id) is UseCaseKey.PERFORMANCE
-                and not self.include_series
+            if self.use_case_id is UseCaseID.SESSIONS or (
+                self.use_case_id is UseCaseID.TRANSACTIONS and not self.include_series
             ):
                 raise InvalidParams("Interval is only supported for timeseries performance queries")
 
@@ -400,7 +398,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             object.__setattr__(self, "limit", Limit(self.get_default_limit()))
 
         if (
-            get_use_case_key(self.use_case_id) is UseCaseKey.PERFORMANCE
+            self.use_case_id is UseCaseID.TRANSACTIONS
             and self.include_series
             and self.interval is None
         ):

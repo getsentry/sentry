@@ -37,8 +37,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
 from sentry.search.events.types import WhereType
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID, get_use_case_key
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -952,7 +951,7 @@ class SnubaQueryBuilder:
         if self._metrics_query.include_series:
             series_limit = limit.limit * intervals_len
 
-            if get_use_case_key(self._use_case_id) is UseCaseKey.PERFORMANCE:
+            if self._use_case_id is UseCaseID.TRANSACTIONS:
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
