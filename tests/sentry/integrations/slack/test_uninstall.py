@@ -75,7 +75,7 @@ class SlackUninstallTest(APITestCase):
         self, provider: ExternalProviders, value: NotificationSettingOptionValues
     ) -> None:
         type = NotificationSettingTypes.ISSUE_ALERTS
-        NotificationSetting.objects.update_settings(provider, type, value, user=self.user)
+        NotificationSetting.objects.update_settings(provider, type, value, user_id=self.user.id)
         NotificationSetting.objects.update_settings(
             provider, type, value, user_id=self.user.id, project=self.project
         )

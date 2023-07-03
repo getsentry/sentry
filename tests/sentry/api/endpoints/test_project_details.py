@@ -625,7 +625,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -634,7 +634,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER

@@ -222,7 +222,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -293,7 +293,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
 
         OrganizationIntegration.objects.filter(integration=self.integration).update(
@@ -389,7 +389,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
 
         rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
@@ -557,7 +557,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
         # add a new project
         project2 = self.create_project(
@@ -619,7 +619,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
         # remove the project from the team
         self.project.remove_team(self.team)

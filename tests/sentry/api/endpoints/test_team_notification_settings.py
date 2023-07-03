@@ -65,7 +65,7 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
-                team=self.team,
+                team_id=self.team.id,
                 project=self.project,
             )
             == NotificationSettingOptionValues.DEFAULT
@@ -82,7 +82,7 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.ISSUE_ALERTS,
-                team=self.team,
+                team_id=self.team.id,
                 project=self.project,
             )
             == NotificationSettingOptionValues.ALWAYS
