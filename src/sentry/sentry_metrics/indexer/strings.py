@@ -77,6 +77,14 @@ TRANSACTION_METRICS_NAMES = {
     "c:transactions/count_per_root_project@none": PREFIX + 125,
     "d:transactions/measurements.time_to_initial_display@millisecond": PREFIX + 126,
     "d:transactions/measurements.time_to_full_display@millisecond": PREFIX + 127,
+    "c:transactions/on-demand@none": PREFIX + 128,
+    "d:transactions/on-demand@none": PREFIX + 129,
+    "s:transactions/on-demand@none": PREFIX + 130,
+    "g:transactions/on-demand@none": PREFIX + 131,
+    "c:transactions/alert@none": PREFIX + 132,
+    "d:transactions/alert@none": PREFIX + 133,
+    "s:transactions/alert@none": PREFIX + 134,
+    "g:transactions/alert@none": PREFIX + 135,
 }
 
 # 200 - 399
@@ -144,6 +152,7 @@ SHARED_TAG_STRINGS = {
     "span.category": PREFIX + 254,
     # More Transactions
     "has_profile": PREFIX + 260,
+    "query_hash": PREFIX + 261,
     # GENERAL/MISC (don't have a category)
     "": PREFIX + 1000,
 }
