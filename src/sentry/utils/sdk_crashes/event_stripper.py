@@ -171,7 +171,7 @@ def _strip_frames(
 
             # The path field usually contains the name of the application, which we can't keep.
             for field in fields_containing_paths:
-                if frame.get(field) is not None:
+                if frame.get(field):
                     frame[field] = "Sentry.framework"
         else:
             frame["in_app"] = False
