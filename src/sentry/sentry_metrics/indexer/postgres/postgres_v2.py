@@ -416,6 +416,11 @@ class PGStringIndexerV2(StringIndexer):
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
+            # TODO: raduw Check with SnS if this is ok -> ids is unbounded
+            #
+            # should I use a raw query here and do an
+            # INNER JOIN (VALUES (id1),(id2),... )
+            # or is there a better way to do it ?
             strings = table.objects.filter(id__in=ids, organization_id=org_id)
 
         except table.DoesNotExist:
