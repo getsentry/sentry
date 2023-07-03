@@ -122,6 +122,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
+        user: User | None = None,
         user_id: int | None = None,
         team_id: int | None = None,
         project: Project | int | None = None,
@@ -134,6 +135,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
           * Updating a user's per-project preferences
           * Updating a user's per-organization preferences
         """
+        if user:
+            user_id = user.id
 
         if user_id is not None:
             actor_type = ActorType.USER
