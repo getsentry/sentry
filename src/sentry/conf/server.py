@@ -1871,7 +1871,9 @@ SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
 SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
-SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
+SENTRY_EVENT_PROCESSING_STORE = (
+    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+)
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
@@ -2334,6 +2336,13 @@ SENTRY_RELAY_PORT = 7899
 # it as a worker, and devservices will run Kafka.
 SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
 
+SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
+
+# To use RabbitMQ as a Celery tasks broker
+# BROKER_URL = "amqp://guest:guest@localhost:5672/sentry"
+# more info https://develop.sentry.dev/services/queue/
+SENTRY_DEV_USE_RABBITMQ = bool(os.getenv("SENTRY_DEV_USE_RABBITMQ", False))
+
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -2414,6 +2423,23 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "64mb",
             ],
             "volumes": {"redis": {"bind": "/data"}},
+        }
+    ),
+    "redis-cluster": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
+            "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
+            "volumes": {"redis-cluster": {"bind": "/redis-data"}},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
+        }
+    ),
+    "rabbitmq": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
+            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
         }
     ),
     "postgres": lambda settings, options: (
