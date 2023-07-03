@@ -99,11 +99,6 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         """Save a NotificationSettings row."""
 
         defaults = {"value": value.value}
-        if user_id is not None:
-            defaults.update(user_id=user_id)
-        elif team_id is not None:
-            defaults.update(team_id=team_id)
-
         with configure_scope() as scope:
             with transaction.atomic():
                 setting, created = self.get_or_create(
@@ -111,6 +106,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     type=type.value,
                     scope_type=scope_type.value,
                     scope_identifier=scope_identifier,
+                    user_id=user_id,
+                    team_id=team_id,
                     defaults=defaults,
                 )
                 if not created and setting.value != value.value:
