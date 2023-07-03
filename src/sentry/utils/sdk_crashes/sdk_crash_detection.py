@@ -54,7 +54,6 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(

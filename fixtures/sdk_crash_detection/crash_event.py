@@ -18,7 +18,7 @@ IN_APP_FRAME = {
 def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
     return {
         "function": function,
-        "package": "Sentry",
+        "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
         "in_app": in_app,
         "image_addr": "0x100304000",
     }
