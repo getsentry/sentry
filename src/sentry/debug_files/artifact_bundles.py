@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import DefaultDict, Mapping, Sequence, Set
+from typing import DefaultDict, Dict, List, Set
 
 from django.db import IntegrityError, router
 from django.db.models import Q
@@ -16,7 +16,7 @@ from sentry.utils.db import atomic_transaction
 
 
 def index_artifact_bundles_for_release(
-    artifact_bundles: Sequence[ArtifactBundle], release: str = "", dist: str = ""
+    artifact_bundles: List[ArtifactBundle], release: str, dist: str
 ):
     """
     This indexes the contents of `artifact_bundles` into the database, using
@@ -56,7 +56,7 @@ def index_artifact_bundles_for_release(
         return
 
     # Then: Merge the bundles into an in-memory index
-    files_to_index: Mapping[str, ArtifactBundle] = {}
+    files_to_index: Dict[str, ArtifactBundle] = {}
 
     for artifact_bundle in artifact_bundles:
         archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
@@ -131,7 +131,7 @@ def index_artifact_bundles_for_release(
                     except IntegrityError:
                         pass
 
-            ArtifactBundle.filter(id=artifact_bundle.id).update(
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
                 indexing_state=ArtifactBundleIndexingState.WAS_INDEXED
             )
 

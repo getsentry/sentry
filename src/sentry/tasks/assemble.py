@@ -16,6 +16,7 @@ from symbolic.exceptions import SymbolicError
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
@@ -376,15 +377,18 @@ def _mark_bundles_that_need_indexing(
     bundles_to_index = []
     for associated_bundle in associated_bundles:
         did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
-            artifact_bundle_id=associated_bundle.id,
+            id=associated_bundle.id,
             indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
         ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
 
         if did_mark_as_needs_indexing:
             bundles_to_index.append(associated_bundle)
 
-    # TODO: make async call.
-    # index_bundles.delay(bundles_to_index, release, dist)
+    # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
+    # async if we see a performance degradation of assembling.
+    index_artifact_bundles_for_release(
+        artifact_bundles=bundles_to_index, release=release, dist=dist
+    )
 
 
 def _perform_indexing_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
