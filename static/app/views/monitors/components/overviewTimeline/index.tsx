@@ -11,7 +11,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/checkInTimeline';
+import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
