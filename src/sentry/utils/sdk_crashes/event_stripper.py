@@ -103,6 +103,13 @@ def strip_event_data(
 
     if frames is not None:
         stripped_frames = _strip_frames(frames, sdk_crash_detector)
+
+        for frame in stripped_frames:
+            if sdk_crash_detector.is_sdk_frame(frame):
+                frame["in_app"] = True
+            else:
+                frame["in_app"] = False
+
         new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
     return new_event_data
