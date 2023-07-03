@@ -23,6 +23,7 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
+    IndexableArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     SourceFileType,
@@ -366,7 +367,7 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _mark_bundles_that_need_indexing(associated_bundles_ids: List[int]):
+def _mark_bundles_that_need_indexing(indexable_bundles: List[IndexableArtifactBundle]):
     # We want to update the "indexed_state" into a transaction, since we want to modify all values or none.
     with atomic_transaction(
         using=(
@@ -379,15 +380,15 @@ def _mark_bundles_that_need_indexing(associated_bundles_ids: List[int]):
         # checks if the "indexing_state" is equal to "does not need indexing" and only in that case we upload it, this
         # is done in order to implement atomic compare_and_set semantics because we will perform the update when locking
         # the row.
-        artifact_bundles_to_index = []
-        for associated_bundle_id in associated_bundles_ids:
+        bundles_to_index = []
+        for indexable_bundle in indexable_bundles:
             did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
-                artifact_bundle_id=associated_bundle_id,
+                artifact_bundle_id=indexable_bundle.id,
                 indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
             ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
 
             if did_mark_as_needs_indexing:
-                artifact_bundles_to_index.append(associated_bundle_id)
+                bundles_to_index.append(indexable_bundle)
 
         # TODO: make async call.
 
@@ -403,19 +404,29 @@ def _perform_indexing_if_needed(org_id: int, version: str, dist: str, date_snaps
     # This date implementation might still lead to issues, more specifically in the case in which the
     # "date_last_modified" is kept is the same but the probability of that happening is so low that it's a negligible
     # detail for now, as long as the indexing is idempotent.
-    associated_bundles_ids = ArtifactBundle.objects.filter(
+    associated_bundles = ArtifactBundle.objects.filter(
         organization_id=org_id,
+        # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this async
+        # job, we want to use the `<=` condition for time, effectively saying give me all the bundles that were created
+        # now or in the past.
         date_last_modified__lte=date_snapshot,
         releaseartifactbundle__release_name=version,
         releaseartifactbundle__dist_name=dist,
-    ).values_list("id", flat=True)
+    )
 
     # In case we didn't surpass the threshold, indexing will not happen.
-    if len(associated_bundles_ids) <= INDEXING_THRESHOLD:
+    if len(associated_bundles) <= INDEXING_THRESHOLD:
         return
 
+    # We mutate the bundles to a list of `IndexableArtifactBundle` with the minimum amount of metadata required for
+    # indexing. The main reason is that propagating a list of `ArtifactBundle` objects which are out of date with
+    # respect to their persisted state might be a big confusing.
+    indexable_bundles = [
+        associated_bundle.to_indexable() for associated_bundle in associated_bundles
+    ]
+
     # We now want to mark the bundles that need indexing, so that the asynchronous job can actually perform the
-    _mark_bundles_that_need_indexing(associated_bundles_ids)
+    _mark_bundles_that_need_indexing(indexable_bundles)
 
 
 def _create_artifact_bundle(
@@ -500,6 +511,11 @@ def _create_artifact_bundle(
                         values=new_date_added,
                         defaults=new_date_added,
                     )
+
+            # After we committed the transaction we want to try and run indexing.
+            _perform_indexing_if_needed(
+                org_id=org_id, version=version, dist=dist, date_snapshot=date_snapshot
+            )
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
