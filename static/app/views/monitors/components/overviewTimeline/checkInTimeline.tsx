@@ -2,15 +2,13 @@ import styled from '@emotion/styled';
 
 import {Resizeable} from 'sentry/components/replays/resizeable';
 import {space} from 'sentry/styles/space';
-import {JobTickTooltip} from 'sentry/views/monitors/components/overviewTimeline/jobTickTooltip';
-import {
-  MonitorBucketData,
-  TimeWindow,
-} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus} from 'sentry/views/monitors/utils';
 import {getAggregateStatus} from 'sentry/views/monitors/utils/getAggregateStatus';
 import {mergeBuckets} from 'sentry/views/monitors/utils/mergeBuckets';
+
+import {JobTickTooltip} from './jobTickTooltip';
+import {MonitorBucketData, TimeWindow} from './types';
 
 interface Props {
   bucketedData: MonitorBucketData;
