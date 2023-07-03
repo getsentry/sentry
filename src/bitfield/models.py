@@ -7,7 +7,7 @@ from bitfield.types import Bit, BitHandler
 
 # Count binary capacity. Truncate "0b" prefix from binary form.
 # Twice faster than bin(i)[2:] or math.floor(math.log(i))
-MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
+MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)  # type: ignore[attr-defined]  #  typeddjango/django-stubs#1598
 
 
 class BitFieldFlags:
@@ -110,7 +110,8 @@ class BitField(BigIntegerField):
                 new_value |= Bit(flags.index(flag))
             default = new_value
 
-        BigIntegerField.__init__(self, default=default, *args, **kwargs)
+        kwargs["default"] = default
+        BigIntegerField.__init__(self, *args, **kwargs)
         self.flags = flags
         self.labels = labels
 
@@ -169,7 +170,7 @@ class TypedBitfieldMeta(type):
             if attr.startswith("_"):
                 continue
 
-            if attr in ("bitfield_default", "bitfield_null"):
+            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
                 continue
 
             flags[attr] = ty
@@ -178,6 +179,7 @@ class TypedBitfieldMeta(type):
             flags=flags_from_annotations(flags),
             default=clsdict.get("bitfield_default"),
             null=clsdict.get("bitfield_null") or False,
+            db_column=clsdict.get("bitfield_db_column"),
         )
 
     def __int__(self) -> int:
@@ -192,6 +194,8 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
 
     bitfield_default: Optional[Any]
     bitfield_null: bool
+
+    _value: int
 
 
 T = TypeVar("T")

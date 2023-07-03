@@ -218,7 +218,6 @@ class TransactionNameRuleRedaction(TypedDict):
 class TransactionNameRule(TypedDict):
     pattern: str
     expiry: str
-    scope: TransactionNameRuleScope
     redaction: TransactionNameRuleRedaction
 
 
@@ -241,7 +240,6 @@ def _get_tx_name_rule(pattern: str, seen_last: int) -> TransactionNameRule:
         expiry=expiry_at,
         # Some more hardcoded fields for future compatibility. These are not
         # currently used.
-        scope={"source": "url"},
         redaction={"method": "replace", "substitution": "*"},
     )
 
@@ -301,8 +299,8 @@ def add_experimental_config(
     """
     try:
         subconfig = function(*args, **kwargs)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    except Exception:
+        logger.error("Exception while building Relay project config field", exc_info=True)
     else:
         if subconfig is not None:
             config[key] = subconfig

@@ -17,7 +17,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 from rest_framework.request import Request
 
@@ -973,7 +973,7 @@ class AuthHelper(Pipeline):
 
 
 @transaction.atomic
-def EnablePartnerSSO(provider_key, org_member, sentry_org, provider_config):
+def EnablePartnerSSO(provider_key, sentry_org, provider_config):
     """
     Simplified abstraction from AuthHelper for enabling an SSO AuthProvider for a Sentry organization.
     Fires appropriate Audit Log and signal emitter for SSO Enabled
@@ -982,15 +982,17 @@ def EnablePartnerSSO(provider_key, org_member, sentry_org, provider_config):
         organization_id=sentry_org.id, provider=provider_key, config=provider_config
     )
 
-    sso_enabled.send_robust(
-        organization=sentry_org,
-        provider=provider_key,
-        sender="EnablePartnerSSO",
-    )
+    # TODO: Analytics requires a user id
+    # At provisioning time, no user is available so we cannot provide any user
+    # sso_enabled.send_robust(
+    #     organization=sentry_org,
+    #     provider=provider_key,
+    #     sender="EnablePartnerSSO",
+    # )
 
     AuditLogEntry.objects.create(
         organization_id=sentry_org.id,
-        actor=org_member,
+        actor_label=f"partner_provisioning_api:{provider_key}",
         target_object=provider_model.id,
         event=audit_log.get_event_id("SSO_ENABLE"),
         data=provider_model.get_audit_log_data(),

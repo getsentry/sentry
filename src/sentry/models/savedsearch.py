@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey

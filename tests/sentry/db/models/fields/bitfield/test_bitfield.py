@@ -7,7 +7,7 @@ from django.db import connection, models
 from django.db.models import F
 from django.test import TestCase
 
-from bitfield import Bit, BitField, BitHandler
+from bitfield import Bit, BitField, BitHandler, TypedClassBitField
 from bitfield.compat import bitand, bitor
 
 
@@ -15,22 +15,34 @@ class BitFieldTestModel(models.Model):
     class Meta:
         app_label = "fixtures"
 
-    flags = BitField(
-        flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
-    )
+    class flags(TypedClassBitField):
+        FLAG_0: bool
+        FLAG_1: bool
+        FLAG_2: bool
+        FLAG_3: bool
+
+        bitfield_default = 3
+        bitfield_db_column = "another_name"
 
 
 class BitFieldTestModelForm(forms.ModelForm):
     class Meta:
         model = BitFieldTestModel
-        exclude = tuple()
+        exclude = ()
 
 
 class BitFieldTestModelWithDefaultsAsKeyNames(models.Model):
     class Meta:
         app_label = "fixtures"
 
-    flags = BitField(flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2"))
+    class flags(TypedClassBitField):
+        FLAG_0: bool
+        FLAG_1: bool
+        FLAG_2: bool
+        FLAG_3: bool
+
+        bitfield_default = ("FLAG_1", "FLAG_2")
+        bitfield_db_column = "another_name"
 
 
 class BitHandlerTest(unittest.TestCase):
@@ -178,7 +190,8 @@ class BitFieldTest(TestCase):
 
         cursor = connection.cursor()
         flags_field = BitFieldTestModel._meta.get_field("flags")
-        flags_db_column = flags_field.db_column or flags_field.name
+        assert isinstance(flags_field, BitField)
+        flags_db_column = flags_field.db_column
         cursor.execute(
             f"INSERT INTO {BitFieldTestModel._meta.db_table} ({flags_db_column}) VALUES (-1)"
         )
@@ -304,7 +317,7 @@ class BitFieldTest(TestCase):
         from django.db.models.fields import BigIntegerField
 
         # Local maximum value, slow canonical algorithm
-        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))
+        MAX_COUNT = int(math.floor(math.log(BigIntegerField.MAX_BIGINT, 2)))  # type: ignore[attr-defined]
 
         # Big flags list
         flags = ["f" + str(i) for i in range(100)]
@@ -339,6 +352,7 @@ class BitFieldTest(TestCase):
 
     def test_defaults_as_key_names(self):
         field = BitFieldTestModelWithDefaultsAsKeyNames._meta.get_field("flags")
+        assert isinstance(field, BitField)
         self.assertEqual(
             field.default,
             BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_1
@@ -356,8 +370,8 @@ class BitFieldTest(TestCase):
 class BitFieldSerializationTest(unittest.TestCase):
     def test_can_unserialize_bithandler(self):
         bf = BitFieldTestModel()
-        bf.flags.FLAG_0 = 1
-        bf.flags.FLAG_1 = 0
+        bf.flags.FLAG_0 = True
+        bf.flags.FLAG_1 = False
         data = pickle.dumps(bf)
         inst = pickle.loads(data)
         self.assertTrue(inst.flags.FLAG_0)
@@ -365,9 +379,9 @@ class BitFieldSerializationTest(unittest.TestCase):
 
     def test_added_field(self):
         bf = BitFieldTestModel()
-        bf.flags.FLAG_0 = 1
-        bf.flags.FLAG_1 = 0
-        bf.flags.FLAG_3 = 0
+        bf.flags.FLAG_0 = True
+        bf.flags.FLAG_1 = False
+        bf.flags.FLAG_3 = False
         data = pickle.dumps(bf)
         inst = pickle.loads(data)
         self.assertTrue("FLAG_3" in inst.flags.keys())

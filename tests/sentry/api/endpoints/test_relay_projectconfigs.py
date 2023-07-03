@@ -358,7 +358,7 @@ def test_health_check_filters(call_endpoint, add_org_key, relay, default_project
     """
     relay.save()
 
-    default_project.update_option("filters:health-check", "1")
+    default_project.update_option("filters:filtered-transaction", "1")
     with Feature({"organizations:health-check-filter": is_business}):
         result, status_code = call_endpoint(full_config=True)
 

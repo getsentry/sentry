@@ -1,10 +1,4 @@
-function parseUrl(url: string) {
-  try {
-    return new URL(url);
-  } catch {
-    return undefined;
-  }
-}
+import parseUrl from 'sentry/utils/url/parseUrl';
 
 /**
  * Accept a url like:

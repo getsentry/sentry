@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 
 from django import forms
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry.identity.gitlab import get_oauth_data, get_user_info

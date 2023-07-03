@@ -234,15 +234,3 @@ register_strategy_config(
         "with_exception_value_fallback": True,
     },
 )
-
-
-# Grouping strategy for similarity
-register_strategy_config(
-    id="similarity:2020-07-23",
-    base="newstyle:2019-10-29",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Initial version
-    """,
-    hidden=True,
-)
