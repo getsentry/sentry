@@ -154,10 +154,23 @@ def _strip_frames(
     frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
 ) -> Sequence[MutableMapping[str, Any]]:
     """
-    Only keep SDK frames or non in app frames.
+    Only keep SDK frames or Apple system libraries.
+    We need to adapt this logic once we support other platforms.
     """
+
+    def is_system_library(frame: Mapping[str, Any]) -> bool:
+        fields_containing_paths = {"package", "module", "abs_path"}
+        system_library_paths = {"/System/Library/", "/usr/lib/system/"}
+
+        for field in fields_containing_paths:
+            for path in system_library_paths:
+                if frame.get(field, "").startswith(path):
+                    return True
+
+        return False
+
     return [
         frame
         for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", None) is False
+        if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
     ]
