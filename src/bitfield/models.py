@@ -170,7 +170,7 @@ class TypedBitfieldMeta(type):
             if attr.startswith("_"):
                 continue
 
-            if attr in ("bitfield_default", "bitfield_null"):
+            if attr in ("bitfield_default", "bitfield_null", "bitfield_db_column"):
                 continue
 
             flags[attr] = ty
@@ -179,6 +179,7 @@ class TypedBitfieldMeta(type):
             flags=flags_from_annotations(flags),
             default=clsdict.get("bitfield_default"),
             null=clsdict.get("bitfield_null") or False,
+            db_column=clsdict.get("bitfield_db_column"),
         )
 
     def __int__(self) -> int:
@@ -193,6 +194,8 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
 
     bitfield_default: Optional[Any]
     bitfield_null: bool
+
+    _value: int
 
 
 T = TypeVar("T")
