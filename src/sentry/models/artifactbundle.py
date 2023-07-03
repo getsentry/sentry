@@ -18,8 +18,11 @@ from sentry.db.models import (
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
 
+# Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
+# always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
+# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
 INDEXING_THRESHOLD = 1
 
 
