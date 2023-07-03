@@ -137,6 +137,9 @@ class MetricSpec(TypedDict):
 
 
 def convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+    if snuba_query.dataset != Dataset.PerformanceMetrics.value:
+        return None
+
     try:
         spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
         if not spec:

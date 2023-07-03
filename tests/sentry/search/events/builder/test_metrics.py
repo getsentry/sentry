@@ -24,6 +24,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
+from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY
 
 
 def _metric_percentile_definition(
@@ -2063,15 +2064,39 @@ class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
         assert snql_request.dataset == "generic_metrics"
         snql_query = snql_request.query
         self.assertCountEqual(
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            UseCaseID.TRANSACTIONS,
+                                            None,
+                                            "d:transactions/on_demand@none",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "d:transactions/on_demand@none",
+                )
+            ],
             snql_query.select,
-            [
-                _metric_percentile_definition(self.organization.id, "90"),
-            ],
         )
-        self.assertCountEqual(
-            query.where,
-            [
-                *self.default_conditions,
-                *_metric_conditions(self.organization.id, ["transaction.duration"]),
-            ],
+
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+
+        query_hash_clause = Condition(
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
         )
+
+        assert query_hash_clause in snql_query.where
