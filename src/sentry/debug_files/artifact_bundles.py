@@ -115,7 +115,7 @@ def index_artifact_bundles_for_release(
                 # Ideally, we would want a single atomic query for this upsert.
                 # This would be possible with postgres using:
                 # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
-                # However, writing raw SQL would be too error prone.
+                # However, writing raw SQL would be too error-prone.
                 # The builtin `update_or_create` functionality is also not up for the task,
                 # as it does not support an additional update condition,
                 # and would do even more queries, so we split this up into two separate queries:

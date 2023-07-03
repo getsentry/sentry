@@ -10,6 +10,7 @@ from freezegun import freeze_time
 from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -541,7 +542,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
 
-    def test_bundle_indexing_with_single_bundle(self):
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_bundle_indexing_started_when_over_threshold(self, index_artifact_bundles_for_release):
         release = "1.0"
         dist = "android"
 
@@ -564,12 +566,23 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 upload_as_artifact_bundle=True,
             )
 
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        # We expect the system to mark the bundle as not needing indexing since it's below the threshold.
+        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id_1)
+        assert len(artifact_bundles) == 1
+        assert (
+            artifact_bundles[0].indexing_state
+            == ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value
+        )
+
         bundle_file_2 = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle", project=self.project.id
         )
         blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
         total_checksum_2 = sha1(bundle_file_2).hexdigest()
-        # bundle_id_2 = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+        bundle_id_2 = "cb7ae504-9a0c-4e88-a910-f2beed210738"
 
         with self.feature("organizations:sourcemaps-bundle-indexing"):
             # We try to upload the first bundle.
@@ -583,14 +596,15 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 upload_as_artifact_bundle=True,
             )
 
-        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id_1)
+        # We now expect the system to perform indexing.
+        index_artifact_bundles_for_release.assert_called_once()
+
+        # Since we function is mocked, we just check that the state was modified as needs indexing.
+        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id_2)
         assert len(artifact_bundles) == 1
-
-        files = File.objects.filter()
-        assert len(files) == 1
-
-        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
-        assert len(project_artifact_bundle) == 1
+        assert (
+            artifact_bundles[0].indexing_state == ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        )
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
