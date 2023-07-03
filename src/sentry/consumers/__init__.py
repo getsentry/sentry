@@ -7,10 +7,11 @@ import click
 from arroyo.backends.abstract import Consumer
 from arroyo.processing.processor import StreamProcessor
 from arroyo.processing.strategies import Healthcheck
-from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from django.conf import settings
 
 from sentry.conf.types.consumer_definition import ConsumerDefinition
+from sentry.consumers.validate_schema import ValidateSchema
 from sentry.utils.imports import import_string
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
@@ -92,6 +93,10 @@ _POST_PROCESS_FORWARDER_OPTIONS = [
 
 
 # consumer name -> consumer definition
+# XXX: default_topic is needed to lookup the schema even if the actual topic name has been
+# overridden. This is because the current topic override mechanism means the default topic name
+# is no longer available anywhere in code. We should probably fix this later so we don't need both
+#  "topic" and "default_topic" here though.
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "ingest-profiles": {
         "topic": settings.KAFKA_PROFILES,
@@ -135,6 +140,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     },
     "generic-metrics-subscription-results": {
         "topic": settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
+        "default_topic": "generic-metrics-subscription-results",
         "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
         "click_options": multiprocessing_options(default_max_batch_size=100),
         "static_args": {
@@ -206,7 +212,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         },
     },
     "metrics-last-seen-updater": {
-        "topic": settings.KAFKA_SNUBA_GENERIC_METRICS,
+        "topic": settings.KAFKA_SNUBA_METRICS,
         "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
         "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
         "static_args": {
@@ -260,6 +266,7 @@ def get_stream_processor(
     synchronize_commit_log_topic: Optional[str],
     synchronize_commit_group: Optional[str],
     healthcheck_file_path: Optional[str],
+    validate_schema: bool = False,
 ) -> StreamProcessor:
     try:
         consumer_definition = KAFKA_CONSUMERS[consumer_name]
@@ -352,6 +359,13 @@ def get_stream_processor(
             "--synchronize_commit_group and --synchronize_commit_log_topic are required arguments for this consumer"
         )
 
+    # Validate schema if "default_topic" is set
+    default_topic = consumer_definition.get("default_topic")
+    if default_topic:
+        strategy_factory = ValidateSchemaStrategyFactoryWrapper(
+            default_topic, validate_schema, strategy_factory
+        )
+
     if healthcheck_file_path is not None:
         strategy_factory = HealthcheckStrategyFactoryWrapper(
             healthcheck_file_path, strategy_factory
@@ -364,6 +378,24 @@ def get_stream_processor(
         commit_policy=ONCE_PER_SECOND,
         join_timeout=join_timeout,
     )
+
+
+class ValidateSchemaStrategyFactoryWrapper(ProcessingStrategyFactory):
+    """
+    This wrapper is used to validate the schema of the event before
+    passing to the rest of the pipeline. Since the message is currently decoded
+    twice, it should only be run in dev or on a small fraction of prod data.
+    """
+
+    def __init__(self, topic: str, enforce_schema: bool, inner: ProcessingStrategyFactory) -> None:
+        self.topic = topic
+        self.enforce_schema = enforce_schema
+        self.inner = inner
+
+    def create_with_partitions(self, commit, partitions) -> ProcessingStrategy:
+        rv = self.inner.create_with_partitions(commit, partitions)
+
+        return ValidateSchema(self.topic, self.enforce_schema, rv)
 
 
 class HealthcheckStrategyFactoryWrapper(ProcessingStrategyFactory):
