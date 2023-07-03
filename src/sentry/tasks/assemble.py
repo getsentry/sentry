@@ -466,6 +466,7 @@ def _create_artifact_bundle(
             # Since dist is non-nullable in the db, but we actually use a sentinel value to represent nullability, here
             # we have to do the conversion in case it is "None".
             dist = dist or NULL_STRING
+            release = release or NULL_STRING
 
             # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
             # state after all of these updates.
