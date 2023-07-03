@@ -1,5 +1,4 @@
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -33,18 +32,16 @@ class ProjectFilterDetailsTest(APITestCase):
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
         project.update_option("filters:filtered-transaction", "0")
-        with Feature("organizations:health-check-filter"):
-            self.get_success_response(
-                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
-            )
+        self.get_success_response(
+            org.slug, project.slug, "filtered-transaction", active=True, status_code=204
+        )
         # option was changed by the request
         assert project.get_option("filters:filtered-transaction") == "1"
 
         project.update_option("filters:filtered-transaction", "1")
-        with Feature("organizations:health-check-filter"):
-            self.get_success_response(
-                org.slug, project.slug, "filtered-transaction", active=False, status_code=204
-            )
+        self.get_success_response(
+            org.slug, project.slug, "filtered-transaction", active=False, status_code=204
+        )
         # option was changed by the request
         assert project.get_option("filters:filtered-transaction") == "0"
 
@@ -58,10 +55,9 @@ class ProjectFilterDetailsTest(APITestCase):
         project = self.create_project(name="Bar", slug="bar", teams=[team])
 
         project.update_option("filters:filtered-transaction", "0")
-        with Feature({"organizations:health-check-filter": False}):
-            resp = self.get_response(
-                org.slug, project.slug, "filtered-transaction", active=True, status_code=204
-            )
+        resp = self.get_response(
+            org.slug, project.slug, "filtered-transaction", active=True, status_code=204
+        )
         # check we return error
         assert resp.status_code == 404
         # check we did not touch the option (the request did not change anything)

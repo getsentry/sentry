@@ -662,8 +662,7 @@ def test_healthcheck_filter(default_project, has_health_check, health_check_set)
     """
 
     default_project.update_option("filters:filtered-transaction", "1" if health_check_set else "0")
-    with Feature({"organizations:health-check-filter": has_health_check}):
-        config = get_project_config(default_project).to_dict()["config"]
+    config = get_project_config(default_project).to_dict()["config"]
 
     _validate_project_config(config)
     filter_settings = get_path(config, "filterSettings")
