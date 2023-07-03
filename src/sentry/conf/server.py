@@ -1710,7 +1710,7 @@ SENTRY_ORGANIZATION = None
 SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
-SENTRY_FRONTEND_DSN = None
+SENTRY_FRONTEND_DSN: str | None = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
@@ -2049,7 +2049,7 @@ SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
 # silently fail to cache the compressed result anyway.  Defaults to None which
 # disables the check and allows different backends for unlimited payload.
 # e.g. memcached defaults to 1MB  = 1024 * 1024
-SENTRY_CACHE_MAX_VALUE_SIZE = None
+SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -2731,7 +2731,7 @@ SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user of outdated SDKs.
-SENTRY_RELEASE_REGISTRY_BASEURL = None
+SENTRY_RELEASE_REGISTRY_BASEURL: str | None = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release
 # registry.
@@ -3547,3 +3547,8 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
+
+
+# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
+# to the buffer service.
+SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
