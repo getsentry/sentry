@@ -2425,7 +2425,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     ),
     "redis-cluster": lambda settings, options: (
         {
-            "image": "ghcr.io/getsentry/image-mirror-library-grokzen-redis-cluster:7.0.10",
+            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
             "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
             "volumes": {"redis-cluster": {"bind": "/redis-data"}},
             "environment": {"IP": "0.0.0.0"},
