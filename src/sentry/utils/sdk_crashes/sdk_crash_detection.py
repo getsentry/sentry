@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Any, Mapping, Optional
 
 from sentry.eventstore.models import Event
@@ -28,7 +29,9 @@ class SDKCrashDetection:
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
-    def detect_sdk_crash(self, event: Event, event_project_id: int) -> Optional[Event]:
+    def detect_sdk_crash(
+        self, event: Event, event_project_id: int, sample_rate: float
+    ) -> Optional[Event]:
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
@@ -54,6 +57,9 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
+            if not self._is_sampled(sample_rate):
+                return None
+
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
@@ -63,6 +69,11 @@ class SDKCrashDetection:
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 
         return None
+
+    def _is_sampled(self, sample_rate: float) -> bool:
+        if sample_rate == 0.0:
+            return False
+        return random.random() <= sample_rate
 
 
 _crash_reporter = SDKCrashReporter()
