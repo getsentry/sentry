@@ -54,6 +54,11 @@ class ApiGrant(Model):
                 "member:read": bool,
                 "member:write": bool,
                 "member:admin": bool,
+                "openid": bool,
+                "profile": bool,
+                "email": bool,
+                "address": bool,
+                "phone": bool,
             },
         )
     )
