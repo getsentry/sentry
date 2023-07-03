@@ -333,7 +333,7 @@ def _bind_or_create_artifact_bundle(
             file=archive_file,
             artifact_count=artifact_count,
             # By default, a bundle doesn't require indexing, only when the indexing threshold is surpassed it will.
-            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING,
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
             # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
             # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
             date_added=date_added,
@@ -524,7 +524,9 @@ def _create_artifact_bundle(
                 organization = None
 
             # If we don't have a release set, we don't want to run indexing, since we need at least the release for
-            # fast indexing performance.
+            # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
+            # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
+            # not support them, some files were not injected...).
             if (
                 organization is not None
                 and release

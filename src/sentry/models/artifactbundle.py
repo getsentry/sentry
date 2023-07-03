@@ -253,6 +253,9 @@ class ArtifactBundleArchive:
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
 
+    def get_files(self) -> Dict[str, dict]:
+        return self.manifest.get("files", {})
+
     def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
         file_path, info = self._entries_by_url[url]
         return self._zip_file.open(file_path), info.get("headers", {})

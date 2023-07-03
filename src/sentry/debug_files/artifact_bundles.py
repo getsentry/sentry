@@ -17,7 +17,7 @@ from sentry.utils.db import atomic_transaction
 
 def index_artifact_bundles_for_release(
     artifact_bundles: List[ArtifactBundle], release: str, dist: str
-):
+) -> None:
     """
     This indexes the contents of `artifact_bundles` into the database, using
     the given `release` and `dist` pair.
@@ -40,18 +40,18 @@ def index_artifact_bundles_for_release(
 
     # First: Mark the bundles as `is_being_indexed` using a compare-and-swap like update,
     # which atomically guarantees that only bundles in that state will be indexed.
-    started_artifact_bundles = []
+    bundles_to_index = []
     for artifact_bundle in artifact_bundles:
         is_being_indexed = ArtifactBundle.objects.filter(
-            id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING
-        ).update(indexing_state=ArtifactBundleIndexingState.IS_BEING_INDEXED)
+            id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        ).update(indexing_state=ArtifactBundleIndexingState.IS_BEING_INDEXED.value)
         if is_being_indexed:
-            started_artifact_bundles.append(artifact_bundle)
+            bundles_to_index.append(artifact_bundle)
         else:
             # a different job is already taking care of this bundle
             metrics.incr("artifact_bundle_indexing.conflict")
 
-    artifact_bundles = started_artifact_bundles
+    artifact_bundles = bundles_to_index
     if not artifact_bundles:
         return
 
@@ -61,16 +61,17 @@ def index_artifact_bundles_for_release(
     for artifact_bundle in artifact_bundles:
         archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
         try:
-            for info in archive.manifest.get("files", {}).values():
+            for info in archive.get_files().values():
                 url = info.get("url")
-                if not url:
+                if url is None:
                     continue
 
                 indexed = files_to_index.get(url)
+                # In order to obtain a deterministic total order of bundles, we want to first compare their date and
+                # then their id, just to discriminate in case of equal date.
                 bundle_ordering = (artifact_bundle.date_last_modified, artifact_bundle.id)
                 if not indexed or (indexed.date_last_modified, indexed.id) < bundle_ordering:
                     files_to_index[url] = artifact_bundle
-
         finally:
             archive.close()
 
@@ -87,14 +88,16 @@ def index_artifact_bundles_for_release(
     date_added = datetime.now()
 
     for artifact_bundle, urls in urls_by_bundle.items():
+        # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the bundle
+        # level, and we also have to retry only the failed bundle in the future and not all the bundles.
         with atomic_transaction(
             using=(router.db_for_write(ArtifactBundleIndex), router.db_for_write(ArtifactBundle))
         ):
             for url in urls:
                 key = {
                     "organization_id": artifact_bundle.organization_id,
-                    "release": release,
-                    "dist": dist,
+                    "release_name": release,
+                    "dist_name": dist,
                     "url": url,
                 }
                 value = {
@@ -102,6 +105,7 @@ def index_artifact_bundles_for_release(
                     "date_added": date_added,
                     "artifact_bundle_id": artifact_bundle.id,
                 }
+                # Also here we want to perform the comparison by falling back to id in case of equal dates.
                 condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
                     date_last_modified=artifact_bundle.date_last_modified,
                     artifact_bundle_id__lt=artifact_bundle.id,
@@ -132,7 +136,7 @@ def index_artifact_bundles_for_release(
                         pass
 
             ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
             )
 
         metrics.incr("artifact_bundle_indexing.bundles_indexed")

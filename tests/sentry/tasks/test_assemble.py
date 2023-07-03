@@ -541,6 +541,57 @@ class AssembleArtifactsTest(BaseAssembleTest):
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
 
+    def test_bundle_indexing_with_single_bundle(self):
+        release = "1.0"
+        dist = "android"
+
+        bundle_file_1 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
+        total_checksum_1 = sha1(bundle_file_1).hexdigest()
+        bundle_id_1 = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+
+        with self.feature("organizations:sourcemaps-bundle-indexing"):
+            # We try to upload the first bundle.
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version=release,
+                dist=dist,
+                checksum=total_checksum_1,
+                chunks=[blob1_1.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        bundle_file_2 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle", project=self.project.id
+        )
+        blob1_2 = FileBlob.from_file(ContentFile(bundle_file_2))
+        total_checksum_2 = sha1(bundle_file_2).hexdigest()
+        # bundle_id_2 = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+
+        with self.feature("organizations:sourcemaps-bundle-indexing"):
+            # We try to upload the first bundle.
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version=release,
+                dist=dist,
+                checksum=total_checksum_2,
+                chunks=[blob1_2.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id_1)
+        assert len(artifact_bundles) == 1
+
+        files = File.objects.filter()
+        assert len(files) == 1
+
+        project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(project_artifact_bundle) == 1
+
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
