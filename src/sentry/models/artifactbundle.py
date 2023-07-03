@@ -44,7 +44,7 @@ class SourceFileType(Enum):
         return None
 
 
-class BundleIndexingState(Enum):
+class ArtifactBundleIndexingState(Enum):
     DOES_NOT_NEED_INDEXING = 0
     NEEDS_INDEXING = 1
     IS_BEING_INDEXED = 2
@@ -66,7 +66,7 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     indexing_state = models.IntegerField(
-        default=None, null=True, choices=BundleIndexingState.choices()
+        default=None, null=True, choices=ArtifactBundleIndexingState.choices()
     )
     # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
     # name is the same across entities connected to this bundle named *ArtifactBundle.
