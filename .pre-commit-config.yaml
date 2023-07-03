@@ -76,3 +76,4 @@ repos:
     - id: debug-statements
     - id: name-tests-test
       args: [--pytest-test-first]
+    - id: no-commit-to-branch
