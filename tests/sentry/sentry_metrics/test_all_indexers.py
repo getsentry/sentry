@@ -469,18 +469,17 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
     assert len(rate_limited_strings - rate_limited_strings2) == 2
 
 
-def test_bulk_reverse_resolve(indexer):
+def test_bulk_reverse_resolve(indexer, use_case_id):
     """
     Tests reverse resolve properly returns the corresponding strings
     in the proper order when given a combination of shared and non-shared ids.
     """
     org_id = 7
-    use_case_id = UseCaseID.SESSIONS  # any use case would do
     static_indexer = StaticStringIndexer(indexer)
 
-    a = indexer.record(use_case_id, org_id, "aaa")
-    b = indexer.record(use_case_id, org_id, "bbb")
-    c = indexer.record(use_case_id, org_id, "ccc")
+    a = static_indexer.record(use_case_id, org_id, "aaa")
+    b = static_indexer.record(use_case_id, org_id, "bbb")
+    c = static_indexer.record(use_case_id, org_id, "ccc")
     production = SHARED_STRINGS["production"]
     release = SHARED_STRINGS["release"]
     environment = SHARED_STRINGS["environment"]
