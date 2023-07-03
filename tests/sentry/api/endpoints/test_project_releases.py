@@ -18,8 +18,10 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Repository,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @region_silo_test(stable=True)
@@ -485,6 +487,76 @@ class ProjectReleaseCreateTest(APITestCase):
         assert len(rc_list) == 2
         for rc in rc_list:
             assert rc.organization_id
+
+    def test_org_auth_token(self):
+        org = self.create_organization()
+        org2 = self.create_organization()
+
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        release1 = Release.objects.create(
+            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        release1.add_project(project1)
+
+        url = reverse(
+            "sentry-api-0-project-releases",
+            kwargs={"organization_slug": org.slug, "project_slug": project1.slug},
+        )
+
+        # test right org, wrong permissions level
+        with exempt_from_silo_limits():
+            bad_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(bad_token_str),
+                token_last_characters="ABCD",
+                scope_list=[],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1"},
+            HTTP_AUTHORIZATION=f"Bearer {bad_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test wrong org, right permissions level
+        with exempt_from_silo_limits():
+            wrong_org_token_str = generate_token(org2.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org2.id,
+                name="token 1",
+                token_hashed=hash_token(wrong_org_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1"},
+            HTTP_AUTHORIZATION=f"Bearer {wrong_org_token_str}",
+        )
+        assert response.status_code == 403
+
+        # test right org, right permissions level
+        with exempt_from_silo_limits():
+            good_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1"},
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+        assert response.status_code == 201, response.content
 
 
 @region_silo_test(stable=True)

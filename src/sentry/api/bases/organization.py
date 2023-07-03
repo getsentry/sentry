@@ -22,6 +22,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, Obje
 from sentry.models import Organization, Project, ReleaseProject
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.release import Release
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.utils import auth
@@ -95,9 +96,9 @@ class OrganizationEventPermission(OrganizationPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
-        "PUT": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
+        "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
     }
 
@@ -442,6 +443,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                 "project:releases"
             ) or request.auth.has_scope("project:write")
 
+        if is_org_auth_token_auth(request.auth):
+            if request.auth.organization_id != organization.id:
+                return []
+            has_valid_api_key = request.auth.has_scope("org:ci")
+
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
@@ -475,8 +481,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
-        if getattr(request, "auth", None) and request.auth.id:
+        if getattr(request, "auth", None) and getattr(request.auth, "id", None):
             actor_id = "apikey:%s" % request.auth.id
+        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
+            actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:
