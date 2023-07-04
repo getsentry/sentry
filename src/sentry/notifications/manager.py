@@ -185,8 +185,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user_id: User | None = None,
-        team_id: Team | None = None,
+        user: User | None = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
         project: Project | int | None = None,
         organization: Organization | int | None = None,
     ) -> None:
@@ -195,6 +196,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for tests. This can also be called by `update_settings` when attempting
         to set a notification preference to DEFAULT.
         """
+        if user:
+            user_id = user.id
+
         self.find_settings(
             provider,
             type,
