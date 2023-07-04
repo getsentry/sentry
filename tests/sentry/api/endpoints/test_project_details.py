@@ -1001,7 +1001,7 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server")
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
         with Feature({"projects:recap-server": True}):
@@ -1019,7 +1019,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:recap_server_token") == "wat"
             assert poll_project_recap_server.called
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server")
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_feature(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
         with Feature({"projects:recap-server": False}):
@@ -1035,7 +1035,7 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 400
             assert project.get_option("sentry:recap_server_token") is None
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server")
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_no_modification(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
@@ -1055,7 +1055,7 @@ class ProjectUpdateTest(APITestCase):
             assert project.get_option("sentry:recap_server_token") == "wat"
             assert not poll_project_recap_server.called
 
-    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server")
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
     def test_recap_server_deletion(self, poll_project_recap_server):
         project = Project.objects.get(id=self.project.id)
         project.update_option("sentry:recap_server_url", "http://example.com")
