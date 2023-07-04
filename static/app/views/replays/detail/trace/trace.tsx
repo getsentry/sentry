@@ -28,7 +28,7 @@ function TracesNotFound({
   const project = projects.find(p => p.id === projectId);
   const hasPerformance = project?.firstTransactionEvent === true;
 
-  // it only send trace_status if performance is available
+  // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
   useRouteAnalyticsParams(
     hasPerformanceView && hasPerformance ? {trace_status: 'trace missing'} : {}
   );
