@@ -1,9 +1,8 @@
-from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union, cast
+from typing import Optional, Sequence, Union
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 #: Special integer used to represent a string missing from the indexer
 STRING_NOT_FOUND = -1
@@ -28,48 +27,6 @@ def reverse_resolve_tag_value(
             return reverse_resolve(use_case_id, org_id, index)
 
 
-def bulk_reverse_resolve_tag_value(
-    use_case_id: UseCaseID, org_id: int, values: Collection[Union[int, str, None]]
-) -> Mapping[Union[int, str], str]:
-    """
-    Reverse resolves a mixture of indexes and strings in bulk
-
-    if the element is already a string it maps it to itself
-    if the element is None it ignores it
-    if the element is a positive integer it tries to resolve it
-    if the element is 0 or a negative number it ignores it
-
-    The result is a dictionary that is a mixture of strings and ints mapped to the resolved string,
-    which is either itself (in case of string keys) or the reverse_resolved string (in case of positive integers)
-
-    Example:
-        bulk_reverse_resolve_tag_value( UseCaseKey:PERFORMANCE, 1, [ -1, 0, 1, "some-string", "abc", 7, 33333])
-    would return something like this ( presuming that no string was found for 33333 )
-    {
-        1: "tag-a",
-        "some-string": "some-string",
-        "abc": "abc",
-        7: "tag-b",
-    }
-
-    """
-    ret_val: Dict[Union[int, str], str] = {}
-
-    indexes_to_resolve: Set[int] = set()
-    for value in values:
-        if isinstance(value, str):
-            ret_val[value] = value  # we already have a string no need to reverse resolve it
-        elif isinstance(value, int) and value > 0:  # resolve valid int, do nothing for None
-            indexes_to_resolve.add(value)
-
-    resolved_indexes = cast(
-        Mapping[Union[int, str], str],
-        indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve),
-    )
-
-    return {**ret_val, **resolved_indexes}
-
-
 def reverse_resolve(use_case_id: UseCaseKey, org_id: int, index: int) -> str:
     assert index > 0
     resolved = indexer.reverse_resolve(use_case_id, org_id, index)
@@ -78,19 +35,6 @@ def reverse_resolve(use_case_id: UseCaseKey, org_id: int, index: int) -> str:
         raise MetricIndexNotFound()
 
     return resolved
-
-
-def bulk_reverse_resolve(
-    use_case_id: UseCaseID, org_id: int, indexes: Collection[int]
-) -> Mapping[int, str]:
-
-    # de duplicate indexes
-    indexes_to_resolve = set()
-    for idx in indexes:
-        if idx > 0:
-            indexes_to_resolve.add(idx)
-
-    return indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve)
 
 
 def reverse_resolve_weak(use_case_id: UseCaseKey, org_id: int, index: int) -> Optional[str]:
