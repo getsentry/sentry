@@ -1,9 +1,7 @@
 from datetime import timedelta
 
-from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model
 from sentry.utils import jwt as jwt_utils
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -13,22 +11,27 @@ def default_expiration():
     return timezone.now() + DEFAULT_EXPIRATION
 
 
-@control_silo_only_model
-class OpenIDToken(Model):
+class OpenIDToken:
     """
     ID Token for a specific user issued as a result of user authentication.
     Compliant with the OpenID Connect Core 1.0 spec
     """
 
-    __include_in_export__ = False
-
-    user = FlexibleForeignKey("sentry.User")
-
-    iss = models.CharField(max_length=64, default="https://sentry.io")
-    aud = models.CharField(max_length=64)
-    exp = models.DateTimeField(db_index=True, default=default_expiration)
-    iat = models.DateTimeField(default=timezone.now)
-    nonce = models.CharField(max_length=64, null=True)
+    def __init__(
+        self,
+        aud,
+        sub,
+        iss="https://sentry.io",
+        exp=None,
+        iat=None,
+        nonce=None,
+    ):
+        self.aud = aud
+        self.sub = sub
+        self.iss = iss
+        self.nonce = nonce
+        self.exp = exp if exp else default_expiration()
+        self.iat = iat if iat else timezone.now()
 
     def get_encrypted_id_token(self):
         headers = {
@@ -37,7 +40,7 @@ class OpenIDToken(Model):
         }
         claims = {
             "iss": self.iss,
-            "sub": self.user.id,
+            "sub": self.sub,
             "aud": self.aud,
             "exp": self.exp,
             "iat": self.iat,
