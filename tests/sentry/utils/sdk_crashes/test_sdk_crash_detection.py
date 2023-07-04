@@ -38,7 +38,6 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
 
             reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
             assert reported_event_data["contexts"]["sdk_crash_detection"] == {
-                "detected": True,
                 "original_project_id": event.project_id,
                 "original_event_id": event.event_id,
             }
@@ -84,7 +83,15 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_sdk_crash_detected_event_is_not_reported(self, mock_sdk_crash_reporter):
         event = get_crash_event()
 
-        set_path(event, "contexts", "sdk_crash_detection", value={"detected": True})
+        set_path(
+            event,
+            "contexts",
+            "sdk_crash_detection",
+            value={
+                "original_project_id": 1234,
+                "original_event_id": 1234,
+            },
+        )
 
         self.execute_test(event, False, mock_sdk_crash_reporter)
 
