@@ -352,7 +352,6 @@ describe('projectGeneralSettings', function () {
 
       // Click cancel
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-      await act(tick);
 
       // Cancel row should disappear
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
