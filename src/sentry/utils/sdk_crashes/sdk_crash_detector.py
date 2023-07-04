@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Set
 
 
 class SDKCrashDetector(ABC):
+    @property
+    def fields_containing_paths(self) -> Set[str]:
+        return {"package", "module", "abs_path"}
+
     @abstractmethod
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
@@ -14,4 +18,8 @@ class SDKCrashDetector(ABC):
 
     @abstractmethod
     def is_sdk_frame(self, frame: Mapping[str, Any]) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
         raise NotImplementedError

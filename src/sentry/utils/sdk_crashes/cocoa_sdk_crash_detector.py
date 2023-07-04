@@ -12,6 +12,11 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         # The frames are ordered from caller to callee, or oldest to youngest.
         # The last frame is the one creating the exception.
         # Therefore, we must iterate in reverse order.
+        # In a first iteration of this algorithm, we checked for in_app frames, but
+        # customers can change the in_app configuration, so we can't rely on that.
+        # Furthermore, if they use static linking for including Sentry Cocoa, Cocoa SDK
+        # frames can be marked as in_app. Therefore, the algorithm only checks if frames
+        # are SDK frames or from system libraries.
         for frame in reversed(frames):
             # [SentrySDK crash] is a testing function causing a crash.
             # Therefore, we don't want to mark it a as a SDK crash.
@@ -22,7 +27,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             if self.is_sdk_frame(frame):
                 return True
 
-            if frame.get("in_app") is True:
+            if not self.is_system_library_frame(frame):
                 return False
 
         return False
@@ -31,7 +36,12 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
 
         function = frame.get("function")
         if function:
-            function_matchers = ["*sentrycrash*", "**[[]Sentry*"]
+            function_matchers = [
+                "*sentrycrash*",
+                "**[[]Sentry*",
+                "*(Sentry*)*",  # Objective-C class extension categories
+                "SentryMX*",  # MetricKit Swift classes
+            ]
             for matcher in function_matchers:
                 if glob_match(function, matcher, ignorecase=True):
                     return True
@@ -41,6 +51,17 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             filenameMatchers = ["Sentry**"]
             for matcher in filenameMatchers:
                 if glob_match(filename, matcher, ignorecase=True):
+                    return True
+
+        return False
+
+    def is_system_library_frame(self, frame: Mapping[str, Any]) -> bool:
+        system_library_paths = {"/System/Library/", "/usr/lib/"}
+
+        for field in self.fields_containing_paths:
+            for system_library_path in system_library_paths:
+                field_with_path = frame.get(field)
+                if field_with_path and field_with_path.startswith(system_library_path):
                     return True
 
         return False
