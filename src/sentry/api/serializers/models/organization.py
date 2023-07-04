@@ -561,7 +561,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
         context["isDynamicallySampled"] = (
-            features.has("organizations:dynamic-sampling", obj, actor=None)
+            features.has("organizations:dynamic-sampling", obj)
             and sample_rate is not None
             and sample_rate < 1.0
         )
