@@ -130,20 +130,22 @@ function Controls({
       <DashboardEditFeature>
         {hasFeature => (
           <Fragment>
-            <Button
-              data-test-id="dashboard-edit"
-              onClick={e => {
-                e.preventDefault();
-                exportDashboard(dashboards);
-              }}
-              icon={<IconDownload />}
-              disabled={!hasFeature || hasUnsavedFilters}
-              title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
-              priority="default"
-              size="sm"
-            >
-              {t('Export Dashboard')}
-            </Button>
+            <Feature features={['dashboards-import']}>
+              <Button
+                data-test-id="dashboard-export"
+                onClick={e => {
+                  e.preventDefault();
+                  exportDashboard();
+                }}
+                icon={<IconDownload />}
+                disabled={!hasFeature || hasUnsavedFilters}
+                title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
+                priority="default"
+                size="sm"
+              >
+                {t('Export Dashboard')}
+              </Button>
+            </Feature>
             <Button
               data-test-id="dashboard-edit"
               onClick={e => {
