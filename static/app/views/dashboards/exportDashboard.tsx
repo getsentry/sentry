@@ -1,11 +1,13 @@
-// const delete_properties = ['createdBy', 'dateCreated', 'id', 'dashboardId', 'widgetId'];
+const delete_properties = ['createdBy', 'dateCreated', 'id', 'dashboardId', 'widgetId'];
 
 async function exportDashboard() {
   const params = getAPIParams();
   const api_url = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
   const response = await fetch(api_url);
   const jsonData = await response.json();
-  downloadObjectAsJson(jsonData, 'dashboard');
+  const normalized = normalize_data(jsonData);
+  normalized.projects = [];
+  downloadObjectAsJson(normalized, 'dashboard');
 }
 
 function getAPIParams() {
@@ -27,11 +29,11 @@ function getAPIParams() {
   return response;
 }
 
-/* function normalize_data(source) {
+function normalize_data(source) {
   const payload = {};
   type Nullable<T> = T | null;
 
-  let last_data_attr: Nullable<number> = null;
+  let last_data_attr: Nullable<string> = null;
   for (let data in source) {
     if (Array.isArray(source[data]) && source[data].length !== 0) {
       for (const attr in source[data]) {
@@ -44,7 +46,7 @@ function getAPIParams() {
 
         if (typeof source[data][attr] !== 'string') {
           if (last_data_attr === null) {
-            last_data_attr = Number(data);
+            last_data_attr = data;
           }
 
           if (last_data_attr !== null) {
@@ -68,7 +70,7 @@ function getAPIParams() {
   }
 
   return payload;
-} */
+}
 
 function downloadObjectAsJson(exportObj, exportName) {
   const dataStr =
