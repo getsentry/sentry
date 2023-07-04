@@ -12,6 +12,14 @@ describe('UserFeedback', function () {
 
   const project = TestStubs.Project({isMember: true});
 
+  const routeProps = {
+    routes: router.routes,
+    route: {},
+    router,
+    location: router.location,
+    routeParams: router.params,
+  };
+
   beforeEach(function () {
     ProjectsStore.loadInitialData([project]);
 
@@ -34,10 +42,10 @@ describe('UserFeedback', function () {
   it('renders', function () {
     const params = {
       organization: TestStubs.Organization(),
-      location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
       },
+      ...routeProps,
     };
 
     MockApiClient.addMockResponse({
@@ -56,10 +64,10 @@ describe('UserFeedback', function () {
 
     const params = {
       organization: TestStubs.Organization(),
-      location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
       },
+      ...routeProps,
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
@@ -78,10 +86,10 @@ describe('UserFeedback', function () {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: {query: {}, search: ''},
       params: {
         orgId: organization.slug,
       },
+      ...routeProps,
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
@@ -95,10 +103,16 @@ describe('UserFeedback', function () {
     });
 
     const params = {
+      ...routeProps,
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: {pathname: 'sentry', query: {project: '112'}, search: ''},
+      location: {
+        ...routeProps.location,
+        pathname: 'sentry',
+        query: {project: '112'},
+        search: '',
+      },
       params: {
         orgId: organization.slug,
       },
@@ -113,11 +127,10 @@ describe('UserFeedback', function () {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: router.location,
       params: {
         orgId: organization.slug,
       },
-      router,
+      ...routeProps,
     };
     render(<UserFeedback {...params} />, {context: routerContext});
 
@@ -144,10 +157,16 @@ describe('UserFeedback', function () {
     });
 
     const params = {
+      ...routeProps,
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
       }),
-      location: {pathname: 'sentry', query: {project: ['112', '113']}, search: ''},
+      location: {
+        ...routeProps.location,
+        pathname: 'sentry',
+        query: {project: ['112', '113']},
+        search: '',
+      },
       params: {
         orgId: organization.slug,
       },
