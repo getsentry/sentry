@@ -311,10 +311,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
-        if query_builder._on_demand_spec:
-            # TODO(ogi): Skip validation for on demand queries
-            return
-
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(
             [
