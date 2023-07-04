@@ -256,15 +256,23 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 9
+        assert len(stripped_frames) == 10
 
-        cocoa_sdk_frame = stripped_frames[-1]
-        assert cocoa_sdk_frame == {
-            "function": "SentryCrashMonitor_CPPException.cpp",
-            "package": "Sentry.framework",
-            "in_app": True,
-            "image_addr": "0x100304000",
-        }
+        cocoa_sdk_frames = stripped_frames[-2:]
+        assert cocoa_sdk_frames == [
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "Sentry.framework",
+                "in_app": True,
+                "image_addr": "0x100304000",
+            },
+            {
+                "function": "SentryCrashMonitor_CPPException.cpp",
+                "package": "Sentry.framework",
+                "in_app": True,
+                "image_addr": "0x100304000",
+            },
+        ]
 
     def test_strip_frames_sdk_frames(self):
         frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)

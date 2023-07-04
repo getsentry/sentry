@@ -37,6 +37,9 @@ def get_frames(
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
         },
+        get_sentry_frame(
+            "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2", False
+        ),
         IN_APP_FRAME,
         {
             "function": "-[UIViewController _setViewAppearState:isAnimating:]",

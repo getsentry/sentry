@@ -13,6 +13,12 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         # The last frame is the one creating the exception.
         # Therefore, we must iterate in reverse order.
         for frame in reversed(frames):
+            # [SentrySDK crash] is a testing function causing a crash.
+            # Therefore, we don't want to mark it a as a SDK crash.
+            function = frame.get("function")
+            if function and "SentrySDK crash" in function:
+                return False
+
             if self.is_sdk_frame(frame):
                 return True
 
@@ -25,11 +31,6 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
 
         function = frame.get("function")
         if function:
-            # [SentrySDK crash] is a testing function causing a crash.
-            # Therefore, we don't want to mark it a as a SDK crash.
-            if "SentrySDK crash" in function:
-                return False
-
             function_matchers = ["*sentrycrash*", "**[[]Sentry*"]
             for matcher in function_matchers:
                 if glob_match(function, matcher, ignorecase=True):
