@@ -322,12 +322,12 @@ class SamplingTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
 
         # not sampled
         sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.09)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.1)
 
         # sampled
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.1)
         sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.11)
 
-        assert mock_sdk_crash_reporter.report.call_count == 2
+        assert mock_sdk_crash_reporter.report.call_count == 1
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):

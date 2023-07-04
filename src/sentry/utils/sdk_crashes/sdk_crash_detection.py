@@ -57,7 +57,7 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            if not self._is_sampled(sample_rate):
+            if random.random() >= sample_rate:
                 return None
 
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
@@ -69,9 +69,6 @@ class SDKCrashDetection:
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 
         return None
-
-    def _is_sampled(self, sample_rate: float) -> bool:
-        return random.random() < sample_rate
 
 
 _crash_reporter = SDKCrashReporter()
