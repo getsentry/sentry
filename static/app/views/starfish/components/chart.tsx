@@ -422,6 +422,7 @@ function Chart({
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
               />
             );
           }
@@ -436,6 +437,7 @@ function Chart({
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              onClick={onClick}
               {...areaChartProps}
             />
           );
