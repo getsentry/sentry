@@ -416,10 +416,13 @@ class PGStringIndexerV2(StringIndexer):
         metric_path_key = METRIC_PATH_MAPPING[use_case_id]
         table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            strings = table.objects.filter(id__in=ids, organization_id=org_id)
+            strings = table.objects.get_many_from_cache(ids)
 
         except table.DoesNotExist:
             return ret_val
+
+        for obj in strings:
+            assert obj.organization_id == org_id
 
         return {obj.id: obj.string for obj in strings if (obj and obj.string is not None)}
 
