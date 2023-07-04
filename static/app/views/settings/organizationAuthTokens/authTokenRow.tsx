@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
@@ -112,7 +113,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 
       <LastUsedDate>
         {isProjectLoading ? (
-          <LoadingIndicator mini />
+          <Placeholder height="1.25em" />
         ) : (
           <LastUsed
             dateLastUsed={token.dateLastUsed}
