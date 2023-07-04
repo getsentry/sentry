@@ -34,6 +34,9 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     referrer,
     options: {
       enabled,
+      refetchOnWindowFocus: false,
+      retry: false,
+      staleTime: Infinity,
     },
   });
   const data = (response.data?.data ?? []) as unknown as Transaction[];
