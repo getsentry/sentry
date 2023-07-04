@@ -5,6 +5,7 @@ import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
@@ -53,8 +54,13 @@ export function SpanGroupBreakdown({
     });
   }
 
-  const handleChange = (option: SelectOption<DataDisplayType>) =>
+  const handleChange = (option: SelectOption<DataDisplayType>) => {
     setDataDisplayType(option.value);
+    trackAnalytics('starfish.web_service_view.breakdown.display_change', {
+      organization,
+      display: option.value,
+    });
+  };
 
   return (
     <FlexRowContainer>
@@ -97,6 +103,13 @@ export function SpanGroupBreakdown({
           tooltipFormatterOptions={{
             valueFormatter: value =>
               tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+          }}
+          onLegendSelectChanged={event => {
+            trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
+              organization,
+              selected: Object.keys(event.selected).filter(key => event.selected[key]),
+              toggled: event.name,
+            });
           }}
         />
       </ChartPadding>
