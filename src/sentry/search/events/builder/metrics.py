@@ -61,6 +61,8 @@ class MetricsQueryBuilder(QueryBuilder):
         granularity: Optional[int] = None,
         **kwargs: Any,
     ):
+        self._query = kwargs.get("query", "")
+        self._field = kwargs.get("selected_columns", [])[0]  # TODO
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
@@ -91,7 +93,10 @@ class MetricsQueryBuilder(QueryBuilder):
     def _is_on_demand(self) -> bool:
         return OndemandMetricSpec.check(self._field, self._query)
 
-    def _get_on_demand_metrics_query(self) -> MetricsQuery:
+    def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
+        if not self.is_performance or not self.is_alerts_query:
+            return None
+
         try:
             ondemand_metric = OndemandMetricSpec.parse(self._field, self._query)
 
@@ -855,8 +860,6 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         **kwargs: Any,
     ):
         self._granularity = granularity
-        self._query = kwargs.get("query", "")
-        self._field = kwargs.get("selected_columns", [])[0]  # TODO
         super().__init__(*args, **kwargs)
 
     def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:

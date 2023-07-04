@@ -29,7 +29,7 @@ def test_simple_query_count():
     snuba_query = SnubaQuery(
         aggregate="count()",
         query="transaction.duration:>=1000",
-        dataset=Dataset.PerformanceMetricss.value,
+        dataset=Dataset.PerformanceMetrics.value,
     )
     alert = AlertRule(snuba_query=snuba_query)
 
