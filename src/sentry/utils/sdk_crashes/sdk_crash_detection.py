@@ -38,7 +38,7 @@ class SDKCrashDetection:
             return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
-        if context is not None and context.get("detected", False):
+        if context is not None:
             return None
 
         # Getting the frames and checking if the event is unhandled might different per platform.
@@ -61,7 +61,6 @@ class SDKCrashDetection:
                 "contexts",
                 "sdk_crash_detection",
                 value={
-                    "detected": True,
                     "original_project_id": event.project.id,
                     "original_event_id": event.event_id,
                 },
