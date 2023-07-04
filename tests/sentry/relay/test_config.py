@@ -701,7 +701,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
         default_project.organization,
         [default_project],
         query="event.type:transaction transaction.duration:<10m",
-        dataset=Dataset.Transactions,
+        dataset=Dataset.PerformanceMetrics,
     )
 
     features = {
