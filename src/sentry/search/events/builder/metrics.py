@@ -61,8 +61,6 @@ class MetricsQueryBuilder(QueryBuilder):
         granularity: Optional[int] = None,
         **kwargs: Any,
     ):
-        self._query = kwargs.get("query", "")
-        self._field = kwargs.get("selected_columns", [])[0]  # TODO
         self.distributions: List[CurriedFunction] = []
         self.sets: List[CurriedFunction] = []
         self.counters: List[CurriedFunction] = []
@@ -90,43 +88,51 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-    def _is_on_demand(self) -> bool:
-        return OndemandMetricSpec.check(self._field, self._query)
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            kwargs.get("selected_columns", []), kwargs.get("query", "")
+        )
+
+    def _resolve_on_demand_spec(
+        self, field: Optional[str], query: str
+    ) -> Optional[OndemandMetricSpec]:
+        if not self.is_performance or not self.is_alerts_query or not field:
+            return None
+
+        try:
+            if OndemandMetricSpec.check(field, query):
+                return OndemandMetricSpec.parse(field, query)
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
         if not self.is_performance or not self.is_alerts_query:
             return None
 
-        try:
-            ondemand_metric = OndemandMetricSpec.parse(self._field, self._query)
+        spec = self._on_demand_spec
 
-            return MetricsQuery(
-                select=[
-                    MetricField(ondemand_metric.op, ondemand_metric.mri, alias=ondemand_metric.mri)
-                ],
-                where=[
-                    Condition(
-                        lhs=Column(QUERY_HASH_KEY),
-                        op=Op.EQ,
-                        rhs=ondemand_metric.query_hash(),
-                    ),
-                ],
-                # TODO(ogi): groupby and orderby
-                limit=self.limit,
-                offset=self.offset,
-                granularity=self.resolve_granularity(),
-                is_alerts_query=self.is_alerts_query,
-                org_id=self.params.organization.id,
-                project_ids=[p.id for p in self.params.projects],
-                # We do not need the series here, as later, we only extract the totals and assign it to the
-                # request.query
-                include_series=False,
-                start=self.params.start,
-                end=self.params.end,
-            )
-
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+        return MetricsQuery(
+            select=[MetricField(spec.op, spec.mri, alias=spec.mri)],
+            where=[
+                Condition(
+                    lhs=Column(QUERY_HASH_KEY),
+                    op=Op.EQ,
+                    rhs=spec.query_hash(),
+                ),
+            ],
+            # TODO(ogi): groupby and orderby
+            limit=self.limit,
+            offset=self.offset,
+            granularity=self.resolve_granularity(),
+            is_alerts_query=self.is_alerts_query,
+            org_id=self.params.organization.id,
+            project_ids=[p.id for p in self.params.projects],
+            # We do not need the series here, as later, we only extract the totals and assign it to the
+            # request.query
+            include_series=False,
+            start=self.params.start,
+            end=self.params.end,
+        )
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -687,7 +693,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    if self._is_on_demand():
+                    if self._on_demand_spec:
                         metric_query = self._get_on_demand_metrics_query()
                     else:
                         metric_query = transform_mqb_query_to_metrics_query(
@@ -883,7 +889,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
 
             snuba_request = self.get_metrics_layer_snql_query()
 
-            if self._is_on_demand():
+            if self._on_demand_spec:
                 metrics_query = self._get_on_demand_metrics_query()
 
                 snuba_queries, _ = SnubaQueryBuilder(
