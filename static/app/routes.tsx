@@ -532,11 +532,7 @@ function buildRoutes() {
             component={make(() => import('sentry/views/settings/projectSourceMaps'))}
           />
         </Route>
-        <Route
-          path=":name/"
-          name={t('Archive')}
-          component={make(() => import('sentry/views/settings/projectSourceMaps/detail'))}
-        />
+        <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
       <Route
         path="processing-issues/"
