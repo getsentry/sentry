@@ -1,6 +1,6 @@
 import io
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from unittest.mock import patch
 
@@ -21,6 +21,7 @@ from sentry.models.releasefile import read_artifact_index
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
+    _index_bundle_if_needed,
     assemble_artifacts,
     assemble_dif,
     assemble_file,
@@ -739,3 +740,177 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
+
+
+@freeze_time("2023-05-31T10:00:00")
+class ArtifactBundleIndexingTest(TestCase):
+    def _create_bundle_and_bind_to_release(self, release, dist, bundle_id, indexing_state, date):
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=File.objects.create(name="bundle.zip", type="artifact_bundle"),
+            artifact_count=10,
+            indexing_state=indexing_state,
+            date_uploaded=date,
+            date_added=date,
+            date_last_modified=date,
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=release,
+            dist_name=dist,
+            artifact_bundle=artifact_bundle,
+            date_added=date,
+        )
+
+        return artifact_bundle
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_no_bundles(self, index_artifact_bundles_for_release):
+        release = "1.0"
+        dist = "android"
+
+        _index_bundle_if_needed(
+            org_id=self.organization.id, release=release, dist=dist, date_snapshot=datetime.now()
+        )
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_lower_bundles_than_threshold(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        _index_bundle_if_needed(
+            org_id=self.organization.id, release=release, dist=dist, date_snapshot=datetime.now()
+        )
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_higher_bundles_than_threshold(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            date=datetime.now() - timedelta(hours=2),
+        )
+
+        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        _index_bundle_if_needed(
+            org_id=self.organization.id, release=release, dist=dist, date_snapshot=datetime.now()
+        )
+
+        index_artifact_bundles_for_release.assert_called_once()
+        assert (
+            ArtifactBundle.objects.get(id=artifact_bundle_1.id).indexing_state
+            == ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        )
+        assert (
+            ArtifactBundle.objects.get(id=artifact_bundle_2.id).indexing_state
+            == ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        )
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
+        release = "1.0"
+        dist = "android"
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            # We also test the "NEEDS_INDEXING" case, since we will consider only bundles that are marked as
+            # "DOES_NOT_NEED_INDEXING" for indexing.
+            indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value,
+            date=datetime.now() - timedelta(hours=2),
+        )
+
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        _index_bundle_if_needed(
+            org_id=self.organization.id, release=release, dist=dist, date_snapshot=datetime.now()
+        )
+
+        index_artifact_bundles_for_release.assert_not_called()
+
+    @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
+    def test_index_if_needed_with_newer_bundle_already_stored(
+        self, index_artifact_bundles_for_release
+    ):
+        release = "1.0"
+        dist = "android"
+
+        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            date=datetime.now() - timedelta(hours=1),
+        )
+
+        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            date=datetime.now() - timedelta(hours=2),
+        )
+
+        artifact_bundle_3 = self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
+            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            # We simulate that this bundle is into the database but was created after the assembling of bundle 1 started
+            # its progress but did not finish.
+            date=datetime.now() + timedelta(hours=1),
+        )
+
+        _index_bundle_if_needed(
+            org_id=self.organization.id, release=release, dist=dist, date_snapshot=datetime.now()
+        )
+
+        index_artifact_bundles_for_release.assert_called_once()
+        assert (
+            ArtifactBundle.objects.get(id=artifact_bundle_1.id).indexing_state
+            == ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        )
+        assert (
+            ArtifactBundle.objects.get(id=artifact_bundle_2.id).indexing_state
+            == ArtifactBundleIndexingState.NEEDS_INDEXING.value
+        )
+        assert (
+            ArtifactBundle.objects.get(id=artifact_bundle_3.id).indexing_state
+            == ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value
+        )
