@@ -71,9 +71,7 @@ class SDKCrashDetection:
         return None
 
     def _is_sampled(self, sample_rate: float) -> bool:
-        if sample_rate == 0.0:
-            return False
-        return random.random() <= sample_rate
+        return random.random() < sample_rate
 
 
 _crash_reporter = SDKCrashReporter()
