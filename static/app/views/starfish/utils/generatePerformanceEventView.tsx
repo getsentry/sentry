@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {NewQuery, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -94,7 +94,6 @@ function generateGenericPerformanceEventView(
 
 export function generatePerformanceEventView(
   location: Location,
-  _: Project[],
   {isTrends = false, withStaticFilters = false} = {},
   organization: Organization
 ) {
@@ -112,7 +111,6 @@ export function generatePerformanceEventView(
 
 export function generateWebServiceEventView(
   location: Location,
-  _: Project[],
   {withStaticFilters = false} = {},
   organization: Organization
 ) {
