@@ -456,7 +456,7 @@ class EventView {
       fields,
       query: queryStringFromSavedQuery(saved),
       team: saved.teams ?? [],
-      project: saved.projects,
+      project: saved.projects ?? [],
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
