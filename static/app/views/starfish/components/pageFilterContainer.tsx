@@ -20,7 +20,12 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
     datetime.end = null;
     router.replace({
       pathname: location.pathname,
-      query: {...location.query, statsPeriod: DEFAULT_STATS_PERIOD},
+      query: {
+        ...location.query,
+        statsPeriod: DEFAULT_STATS_PERIOD,
+        start: null,
+        end: null,
+      },
     });
   }
 
