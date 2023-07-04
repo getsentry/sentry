@@ -413,8 +413,8 @@ def metric_path_key_compatible_resolve(
     def wrapper(
         self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
     ) -> Optional[int]:
-        use_case_id2 = to_use_case_id(use_case_id)
-        return resolve_func(self, use_case_id2, org_id, string)
+        use_case_id = to_use_case_id(use_case_id)
+        return resolve_func(self, use_case_id, org_id, string)
 
     return wrapper
 
@@ -426,8 +426,8 @@ def metric_path_key_compatible_rev_resolve(
     def wrapper(
         self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
     ) -> Optional[str]:
-        use_case_id2 = to_use_case_id(use_case_id)
-        return rev_resolve_func(self, use_case_id2, org_id, id)
+        use_case_id = to_use_case_id(use_case_id)
+        return rev_resolve_func(self, use_case_id, org_id, id)
 
     return wrapper
 
