@@ -5,6 +5,7 @@ import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -54,8 +55,13 @@ export function SpanGroupBreakdown({
     });
   }
 
-  const handleChange = (option: SelectOption<DataDisplayType>) =>
+  const handleChange = (option: SelectOption<DataDisplayType>) => {
     setDataDisplayType(option.value);
+    trackAnalytics('starfish.web_service_view.breakdown.display_change', {
+      organization,
+      display: option.value,
+    });
+  };
 
   const isEndpointBreakdownView = Boolean(transaction);
 
@@ -82,13 +88,9 @@ export function SpanGroupBreakdown({
             statsPeriod="24h"
             height={340}
             showLegend
-            data={
-              dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data
-            }
+            data={dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data}
             dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
-            durationUnit={
-              dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
-            }
+            durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
             start=""
             end=""
             errored={errored}
@@ -108,6 +110,13 @@ export function SpanGroupBreakdown({
             tooltipFormatterOptions={{
               valueFormatter: value =>
                 tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+            }}
+            onLegendSelectChanged={event => {
+              trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
+                organization,
+                selected: Object.keys(event.selected).filter(key => event.selected[key]),
+                toggled: event.name,
+              });
             }}
           />
         </VisuallyCompleteWithData>
