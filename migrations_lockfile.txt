@@ -1,0 +1,10 @@
+Django migrations lock file. This helps us avoid migration conflicts on master.
+If you have a conflict in this file, it means that someone has committed a migration
+ahead of you.
+
+To resolve this, rebase against latest master and regenerate your migration. This file
+will then be regenerated, and you should be able to merge without conflicts.
+
+nodestore: 0002_nodestore_no_dictfield
+sentry: 0502_savedsearch_update_me_myteams
+social_auth: 0001_initial
