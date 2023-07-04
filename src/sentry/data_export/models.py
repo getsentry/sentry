@@ -4,7 +4,7 @@ from django.conf import settings
 from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -66,7 +66,7 @@ class ExportedData(Model):
     @staticmethod
     def format_date(date):
         # Example: 12:21 PM on July 21, 2020 (UTC)
-        return None if date is None else force_text(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
+        return None if date is None else force_str(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
 
     def delete_file(self):
         file = self._get_file()

@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from freezegun import freeze_time
 
 from sentry import options
@@ -142,7 +142,7 @@ class TestRedisBuffer:
         self.buf.incr(model, columns, filters, extra={"foo": "bar", "datetime": now})
         result = client.hgetall(key)
         # Force keys to strings
-        result = {force_text(k): v for k, v in result.items()}
+        result = {force_str(k): v for k, v in result.items()}
 
         f = result.pop("f")
         if self.buf.is_redis_cluster:
@@ -172,7 +172,7 @@ class TestRedisBuffer:
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = client.hgetall(key)
         # Force keys to strings
-        result = {force_text(k): v for k, v in result.items()}
+        result = {force_str(k): v for k, v in result.items()}
         f = result.pop("f")
         assert load_values(f) == {"pk": 1, "datetime": now}
         assert load_value(result.pop("e+datetime")) == now

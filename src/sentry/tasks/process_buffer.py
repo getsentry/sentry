@@ -2,6 +2,7 @@ import logging
 
 import sentry_sdk
 from django.apps import apps
+from django.conf import settings
 
 from sentry.tasks.base import instrumented_task
 from sentry.utils.locking import UnableToAcquireLock
@@ -51,7 +52,7 @@ def buffer_incr(model, *args, **kwargs):
 
     `model_name` must be in form `app_label.model_name` e.g. `sentry.group`.
     """
-    buffer_incr_task.delay(
+    (buffer_incr_task.delay if settings.SENTRY_BUFFER_INCR_AS_CELERY_TASK else buffer_incr_task)(
         app_label=model._meta.app_label, model_name=model._meta.model_name, args=args, kwargs=kwargs
     )
 

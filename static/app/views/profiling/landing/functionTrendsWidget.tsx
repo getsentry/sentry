@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, ReactNode, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -45,13 +45,17 @@ const CURSOR_NAME = 'fnTrendCursor';
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
+  header?: ReactNode;
   userQuery?: string;
+  widgetHeight?: string;
 }
 
 export function FunctionTrendsWidget({
-  userQuery,
+  header,
   trendFunction,
   trendType,
+  widgetHeight,
+  userQuery,
 }: FunctionTrendsWidgetProps) {
   const location = useLocation();
 
@@ -86,8 +90,9 @@ export function FunctionTrendsWidget({
   const isError = trendsQuery.isError;
 
   return (
-    <WidgetContainer>
+    <WidgetContainer height={widgetHeight}>
       <FunctionTrendsWidgetHeader
+        header={header}
         handleCursor={handleCursor}
         pageLinks={trendsQuery.getResponseHeader?.('Link') ?? null}
         trendType={trendType}
@@ -130,12 +135,14 @@ export function FunctionTrendsWidget({
 
 interface FunctionTrendsWidgetHeaderProps {
   handleCursor: CursorHandler;
+  header: ReactNode;
   pageLinks: string | null;
   trendType: TrendType;
 }
 
 function FunctionTrendsWidgetHeader({
   handleCursor,
+  header,
   pageLinks,
   trendType,
 }: FunctionTrendsWidgetHeaderProps) {
@@ -143,7 +150,9 @@ function FunctionTrendsWidgetHeader({
     case 'regression':
       return (
         <HeaderContainer>
-          <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
+          {header ?? (
+            <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
+          )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
           <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>
@@ -151,7 +160,9 @@ function FunctionTrendsWidgetHeader({
     case 'improvement':
       return (
         <HeaderContainer>
-          <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
+          {header ?? (
+            <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
+          )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
           <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>

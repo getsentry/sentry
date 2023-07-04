@@ -43,26 +43,15 @@ export function SpanGroupBreakdown({
     'starfish-wsv-chart-dropdown'
   );
 
-  const visibleSeries: Series[] = [];
-
-  for (let index = 0; index < data.length; index++) {
-    const series = data[index];
-    visibleSeries.push(series);
-  }
-
-  // Skip these calculations if the feature flag is not enabled
-  let dataAsPercentages;
-  if (hasDropdownFeatureFlag) {
-    dataAsPercentages = cloneDeep(visibleSeries);
-    const numDataPoints = data[0]?.data?.length ?? 0;
-    for (let i = 0; i < numDataPoints; i++) {
-      const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
-      dataAsPercentages.forEach(segment => {
-        const clone = {...segment.data[i]};
-        clone.value = clone.value / totalTimeAtIndex;
-        segment.data[i] = clone;
-      });
-    }
+  const dataAsPercentages = cloneDeep(data);
+  const numDataPoints = data[0]?.data?.length ?? 0;
+  for (let i = 0; i < numDataPoints; i++) {
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    dataAsPercentages.forEach(segment => {
+      const clone = {...segment.data[i]};
+      clone.value = clone.value / totalTimeAtIndex;
+      segment.data[i] = clone;
+    });
   }
 
   const handleChange = (option: SelectOption<DataDisplayType>) => {
@@ -92,11 +81,7 @@ export function SpanGroupBreakdown({
           statsPeriod="24h"
           height={340}
           showLegend
-          data={
-            dataDisplayType === DataDisplayType.PERCENTAGE
-              ? dataAsPercentages
-              : visibleSeries
-          }
+          data={dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data}
           dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
           durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""

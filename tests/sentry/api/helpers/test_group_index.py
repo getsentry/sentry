@@ -186,14 +186,14 @@ class UpdateGroupsTest(TestCase):
         for data in [
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.ONGOING,
             },
             {
                 "group": self.create_group(
-                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=4)
+                    status=GroupStatus.IGNORED, first_seen=datetime.now() - timedelta(days=8)
                 ),
                 "request_data": {"status": "unresolved", "substatus": "ongoing"},
                 "expected_substatus": GroupSubStatus.ONGOING,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 import re
 from typing import Any, Dict, Generator, List, Optional
@@ -87,7 +89,7 @@ RECURSION_COMPARISON_FIELDS = [
 StacktraceEncoderReturnValue = Any
 
 
-def is_recursion_v1(frame1: Frame, frame2: Frame) -> bool:
+def is_recursion_v1(frame1: Frame, frame2: Frame | None) -> bool:
     """
     Returns a boolean indicating whether frames are recursive calls.
     """
