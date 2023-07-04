@@ -384,15 +384,7 @@ def _mark_bundles_that_need_indexing(
         if did_mark_as_needs_indexing:
             bundles_to_index.append(associated_bundle)
 
-    # In case we don't have any bundles to index, it doesn't make sense to try and perform indexing.
-    if len(bundles_to_index) == 0:
-        return
-
-    # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
-    # async if we see a performance degradation of assembling.
-    index_artifact_bundles_for_release(
-        artifact_bundles=bundles_to_index, release=release, dist=dist
-    )
+    return bundles_to_index
 
 
 def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
@@ -433,8 +425,15 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
 
     # We want to measure how much time it takes to perform indexing.
     with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
-        # We now want to mark the bundles that need indexing, in order to feed them to the asynchronous job.
-        _mark_bundles_that_need_indexing(associated_bundles, release, dist)
+        # We now want to mark the bundles that need indexing.
+        bundles_to_index = _mark_bundles_that_need_indexing(associated_bundles, release, dist)
+        # Only if we have bundles to index we want to run the indexing.
+        if len(bundles_to_index) > 0:
+            # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
+            # async if we see a performance degradation of assembling.
+            index_artifact_bundles_for_release(
+                artifact_bundles=bundles_to_index, release=release, dist=dist
+            )
 
 
 def _create_artifact_bundle(
