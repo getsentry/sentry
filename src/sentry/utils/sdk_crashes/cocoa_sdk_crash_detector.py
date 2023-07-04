@@ -37,10 +37,10 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         function = frame.get("function")
         if function:
             function_matchers = [
-                "*sentrycrash*",
-                "**[[]Sentry*",
-                "*(Sentry*)*",  # Objective-C class extension categories
-                "SentryMX*",  # MetricKit Swift classes
+                r"*sentrycrash*",
+                r"*\[Sentry*",
+                r"*(Sentry*)*",  # Objective-C class extension categories
+                r"SentryMX*",  # MetricKit Swift classes
             ]
             for matcher in function_matchers:
                 if glob_match(function, matcher, ignorecase=True):
