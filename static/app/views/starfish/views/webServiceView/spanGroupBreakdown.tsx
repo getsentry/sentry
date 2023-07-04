@@ -42,14 +42,7 @@ export function SpanGroupBreakdown({
     'starfish-wsv-chart-dropdown'
   );
 
-  const visibleSeries: Series[] = [];
-
-  for (let index = 0; index < data.length; index++) {
-    const series = data[index];
-    visibleSeries.push(series);
-  }
-
-  const dataAsPercentages = cloneDeep(visibleSeries);
+  const dataAsPercentages = cloneDeep(data);
   const numDataPoints = data[0]?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
     const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
@@ -82,11 +75,7 @@ export function SpanGroupBreakdown({
           statsPeriod="24h"
           height={340}
           showLegend
-          data={
-            dataDisplayType === DataDisplayType.PERCENTAGE
-              ? dataAsPercentages
-              : visibleSeries
-          }
+          data={dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data}
           dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
           durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
           start=""
