@@ -31,7 +31,7 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             project_id=self.project.id,
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
 
         if should_be_reported:
             assert mock_sdk_crash_reporter.report.call_count == 1
@@ -58,7 +58,7 @@ class PerformanceEventTestMixin(
             fingerprint=[fingerprint],
         )
 
-        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
 
         assert mock_sdk_crash_reporter.report.call_count == 0
 
@@ -311,6 +311,36 @@ class CococaSDKFramesTestMixin(BaseSDKCrashDetectionMixin):
         )
 
 
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+class SamplingTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
+    @patch("random.random", return_value=0.0)
+    def test_sample_is_rate_zero(self, mock_random, mock_sdk_crash_reporter):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.0)
+
+        assert mock_sdk_crash_reporter.report.call_count == 0
+
+    @patch("random.random", return_value=0.1)
+    def test_sampling_rate(self, mock_random, mock_sdk_crash_reporter):
+        event = self.create_event(
+            data=get_crash_event(),
+            project_id=self.project.id,
+        )
+
+        # not sampled
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.09)
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.1)
+
+        # sampled
+        sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=0.11)
+
+        assert mock_sdk_crash_reporter.report.call_count == 1
+
+
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
     @django_db_all
     def test_sdk_crash_event_stored_to_sdk_crash_project(self):
@@ -328,7 +358,7 @@ class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
         )
 
         sdk_crash_event = sdk_crash_detection.detect_sdk_crash(
-            event=event, event_project_id=cocoa_sdk_crashes_project.id
+            event=event, event_project_id=cocoa_sdk_crashes_project.id, sample_rate=1.0
         )
 
         assert sdk_crash_event is not None
@@ -351,6 +381,7 @@ class SDKCrashDetectionTest(
     CococaSDKFramesTestMixin,
     PerformanceEventTestMixin,
     SDKCrashReportTestMixin,
+    SamplingTestMixin,
 ):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)

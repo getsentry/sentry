@@ -1080,7 +1080,9 @@ def sdk_crash_monitoring(job: PostProcessJob):
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
-                event=event, event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID
+                event=event,
+                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
+                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
             )
 
 
