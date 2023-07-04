@@ -1,8 +1,8 @@
 from unittest.mock import ANY
 
 from sentry.incidents.models import AlertRule
-from sentry.relay.config.metric_extraction import convert_alert_to_metric
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.metric_extraction import convert_alert_to_metric
 from sentry.snuba.models import SnubaQuery
 
 

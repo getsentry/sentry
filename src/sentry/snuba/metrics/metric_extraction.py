@@ -9,13 +9,10 @@ from typing_extensions import NotRequired
 
 from sentry.constants import DataCategory
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.query import MetricOperationType
+from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger(__name__)
-
-# GENERIC METRIC EXTRACTION
-
 
 # Name component of MRIs used for custom alert metrics.
 # TODO: Move to a common module.
