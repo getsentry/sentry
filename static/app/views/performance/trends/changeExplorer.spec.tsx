@@ -5,12 +5,12 @@ import {initializeData} from 'sentry-test/performance/initializePerformanceData'
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import {
   COLUMNS,
   MetricsChart,
-  PerformanceChangeExplorer,
   renderBodyCell,
-} from 'sentry/views/performance/trends/changeExplorer';
+} from 'sentry/views/performance/trends/changeExplorerUtils/metricsChart';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
