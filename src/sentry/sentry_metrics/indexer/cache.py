@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Mapping, MutableMapping, Optional, Sequence, Set
+from typing import Collection, Mapping, MutableMapping, Optional, Sequence, Set
 
 from django.conf import settings
 from django.core.cache import caches
@@ -176,6 +176,11 @@ class CachingIndexer(StringIndexer):
     @metric_path_key_compatible_rev_resolve
     def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        return self.indexer.bulk_reverse_resolve(use_case_id, org_id, ids)
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         raise NotImplementedError(

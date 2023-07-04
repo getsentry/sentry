@@ -1,4 +1,4 @@
-from typing import Mapping, Optional, Set
+from typing import Collection, Dict, Mapping, Optional, Set
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -232,6 +232,24 @@ class StaticStringIndexer(StringIndexer):
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self.indexer.reverse_resolve(use_case_id, org_id, id)
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        shared_strings: Dict[int, str] = {}
+        unresolved_ids = []
+        for ident in ids:
+            if ident in REVERSE_SHARED_STRINGS:
+                # resolved the shared string
+                shared_strings[ident] = REVERSE_SHARED_STRINGS[ident]
+            else:
+                # remember the position of the strings we need to resolve
+                unresolved_ids.append(ident)
+
+        # insert the strings resolved by the base indexer in the global result
+        org_strings = self.indexer.bulk_reverse_resolve(use_case_id, org_id, unresolved_ids)
+
+        return {**org_strings, **shared_strings}
 
     def resolve_shared_org(self, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
