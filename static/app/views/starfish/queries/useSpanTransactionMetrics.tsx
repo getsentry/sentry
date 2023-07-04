@@ -74,7 +74,6 @@ function getEventView(
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

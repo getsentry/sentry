@@ -81,7 +81,6 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
       orderby: '-count',
       query: queryConditions.join(' '),
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location
