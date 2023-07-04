@@ -93,8 +93,9 @@ class MetricsQueryBuilder(QueryBuilder):
         )
 
     def _resolve_on_demand_spec(
-        self, field: Optional[str], query: str
+        self, selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
+        field = selected_cols[0] if len(selected_cols) else None
         if not self.is_performance or not self.is_alerts_query or not field:
             return None
 

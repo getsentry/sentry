@@ -138,7 +138,8 @@ OP_TO_SNUBA_FUNCTION = {
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
-        "p50": "quantilesIf(0.50)",  # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
+        "p50": "quantilesIf(0.50)",
+        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
         "p75": "quantilesIf(0.75)",
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
@@ -158,6 +159,7 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
     "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
     "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
+    "generic_metrics_gauges": {},
 }
 
 # This set contains all the operations that require the "rhs" condition to be resolved

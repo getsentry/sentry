@@ -253,6 +253,6 @@ def _get_query_builder():
     from sentry.search.events.builder import QueryBuilder
 
     return QueryBuilder(
-        dataset=Dataset.PerformanceMetrics,
+        dataset=Dataset.Transactions,
         params={"start": datetime.now(), "end": datetime.now()},
     )
