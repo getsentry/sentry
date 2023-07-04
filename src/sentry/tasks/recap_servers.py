@@ -115,11 +115,12 @@ def poll_project_recap_server(project_id: int, **kwargs) -> None:
     if crashes.get("results") is None or crashes.get("results") == 0:
         return
 
-    for crash in crashes["_embedded"]["crash"]:
-        latest_id = max(latest_id, crash["id"])
-        store_crash(crash, project, url)
-
-    project.update_option(RECAP_SERVER_LATEST_ID, latest_id)
+    try:
+        for crash in crashes["_embedded"]["crash"]:
+            store_crash(crash, project, url)
+            latest_id = max(latest_id, crash["id"])
+    finally:
+        project.update_option(RECAP_SERVER_LATEST_ID, latest_id)
 
 
 def store_crash(crash, project: Project, url: str) -> None:
@@ -144,7 +145,6 @@ def store_crash(crash, project: Project, url: str) -> None:
 
 def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any]:
     event = {
-        "timestamp": crash["uploadDate"],
         "event_id": uuid.uuid4().hex,
         "project": project.id,
         "platform": "c",
@@ -152,21 +152,24 @@ def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any
             "values": [
                 {
                     "type": crash["stopReason"],
-                    "value": crash["stopLocation"],  # or alternatively we can use `returnLocation`
                 }
             ]
         },
         "tags": {
             "id": crash["id"],
-            "titleId": crash["titleId"],
         },
         "contexts": {
             "request": {"url": crash["_links"]["self"]},
-            "runtime": {"name": crash["platform"], "version": crash["sysVersion"]},
-            "app": {"app_version": crash["appVersion"]},
-            "device": {"name": crash["platform"], "model_id": crash["hardwareId"]},
         },
     }
+
+    if "uploadDate" in crash:
+        event["timestamp"] = crash["uploadDate"]
+
+    if "stopLocation" in crash:
+        event["exception"]["values"][0]["value"] = crash["stopLocation"]
+    elif "returnLocation" in crash:
+        event["exception"]["values"][0]["value"] = crash["returnLocation"]
 
     if "detailedStackTrace" in crash:
         frames = []
@@ -189,7 +192,26 @@ def translate_crash_to_event(crash, project: Project, url: str) -> Dict[str, Any
             frames.append(processed_frame)
         event["exception"]["values"][0]["stacktrace"] = {"frames": frames}
 
-    if crash["userData"] is not None:
+    if "titleId" in crash:
+        event["tags"]["titleId"] = crash["titleId"]
+
+    if "platform" in crash:
+        if "sysVersion" in crash:
+            event["contexts"]["runtime"] = {
+                "name": crash["platform"],
+                "version": crash["sysVersion"],
+            }
+
+        if "hardwareId" in crash:
+            event["contexts"]["device"] = {
+                "name": crash["platform"],
+                "model_id": crash["hardwareId"],
+            }
+
+    if "appVersion" in crash:
+        event["contexts"]["app"] = {"app_version": crash["appVersion"]}
+
+    if "userData" in crash:
         event["contexts"]["userData"] = crash["userData"]
 
     return event

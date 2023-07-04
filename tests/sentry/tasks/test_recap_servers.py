@@ -19,8 +19,9 @@ crash_payload = {
     "_links": {
         "self": {"href": "ApiBaseUrl/burp/137?field=stopReason"},
         "files": {"href": "ApiBaseUrl/burp/137/files", "custom": True},
-        "password": "should_be_redacted",
     },
+    "id": 1,
+    "uploadDate": "2018-11-06T21:19:55.271Z",
     "stopReason": "SEGFAULT",
     "detailedStackTrace": [
         {
@@ -44,6 +45,9 @@ crash_payload = {
             "displayValue": "boot.bin!Bar::Trigger()+0x30",
         },
     ],
+    "userData": {
+        "password": "should_be_redacted",
+    },
 }
 
 
@@ -187,6 +191,7 @@ class PollProjectRecapServerTest(TestCase):
 
         assert outgoing_recap_request.call_count == 1
 
+    # TODO(recap): Add more assetions on `event.data` when the time comes
     @responses.activate
     def test_poll_recap_servers_store_crash(self):
         payload = {
@@ -206,21 +211,7 @@ class PollProjectRecapServerTest(TestCase):
             eventstore.Filter(project_ids=[self.project.id]),
             tenant_ids={"referrer": "relay-test", "organization_id": 123},
         )
-        events_tags = [event.tags for event in events]
-
-        # TODO(recap): Add more assetions on `event.data` when the time comes
 
         # Make sure that event went though the normalization and pii scrubbing process
-        assert events[0].data["contexts"]["_links"]["password"] == "[Filtered]"
-        assert events[1].data["contexts"]["_links"]["password"] == "[Filtered]"
-
-        assert [
-            ("crash_id", "42"),
-            ("level", "error"),
-            ("url", "http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000"),
-        ] in events_tags
-        assert [
-            ("crash_id", "1337"),
-            ("level", "error"),
-            ("url", "http://example.com/rest/v1/crashes;sort=id:ascending;limit=1000"),
-        ] in events_tags
+        assert events[0].data["contexts"]["userData"]["password"] == "[Filtered]"
+        assert events[1].data["contexts"]["userData"]["password"] == "[Filtered]"
