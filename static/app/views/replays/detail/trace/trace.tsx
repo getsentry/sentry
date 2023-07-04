@@ -4,8 +4,10 @@ import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
 import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
@@ -14,6 +16,31 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+function TracesNotFound({
+  hasPerformanceView,
+  projectId,
+}: {
+  hasPerformanceView: boolean;
+  projectId: string;
+}) {
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === projectId);
+  const hasPerformance = project?.firstTransactionEvent === true;
+
+  // it only send trace_status if performance is available
+  useRouteAnalyticsParams(
+    hasPerformanceView && hasPerformance ? {trace_status: 'trace missing'} : {}
+  );
+
+  return (
+    <BorderedSection>
+      <EmptyState>
+        <p>{t('No traces found')}</p>
+      </EmptyState>
+    </BorderedSection>
+  );
+}
 
 type Props = {
   replayRecord: undefined | ReplayRecord;
@@ -52,11 +79,10 @@ function Trace({replayRecord}: Props) {
 
   if (!traces?.length) {
     return (
-      <BorderedSection>
-        <EmptyState>
-          <p>{t('No traces found')}</p>
-        </EmptyState>
-      </BorderedSection>
+      <TracesNotFound
+        hasPerformanceView={organization.features.includes('performance-view')}
+        projectId={replayRecord.project_id}
+      />
     );
   }
 
