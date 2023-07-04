@@ -24,11 +24,8 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 _SNUBA_TO_RELAY_FIELDS = {
-    # "browser.name": "event.browser.name",  # TODO is a function
     "contexts[geo.country_code]": "event.geo.country_code",
     "http_method": "event.http.method",
-    # "http.status_code": "event.http.status_code",  TODO is a function
-    # "os.name": "event.os.name",  TODO is a function
     "release": "event.release",
     "transaction_op": "event.transaction.op",
     "transaction_status": "event.transaction.status",
@@ -40,6 +37,10 @@ _SNUBA_TO_RELAY_FIELDS = {
     "measurements[lcp]": "event.measurements.lcp",
     "measurements[ttfb]": "event.measurements.ttfb",
     "measurements[ttfb.requesttime]": "event.measurements.ttfb.requesttime",
+    # TODO(ogi): Support fields whose resolution returns a function
+    # "browser.name": "event.browser.name",
+    # "http.status_code": "event.http.status_code",
+    # "os.name": "event.os.name",
 }
 
 _SNUBA_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
@@ -56,7 +57,7 @@ _SNUBA_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
     "apdex": None,
 }
 
-# TODO: support count_if
+# TODO(ogi): support count_if
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
     "avg": "d",
@@ -252,6 +253,6 @@ def _get_query_builder():
     from sentry.search.events.builder import QueryBuilder
 
     return QueryBuilder(
-        dataset=Dataset.Transactions,
+        dataset=Dataset.PerformanceMetrics,
         params={"start": datetime.now(), "end": datetime.now()},
     )

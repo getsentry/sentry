@@ -111,21 +111,18 @@ class MetricsQueryBuilder(QueryBuilder):
                         rhs=ondemand_metric.query_hash(),
                     ),
                 ],
-                # TODO groupby
-                groupby=None,
+                # TODO(ogi): groupby and orderby
                 limit=self.limit,
                 offset=self.offset,
                 granularity=self.resolve_granularity(),
-                # TODO: orderby
-                # TODO: interval
                 is_alerts_query=self.is_alerts_query,
                 org_id=self.params.organization.id,
                 project_ids=[p.id for p in self.params.projects],
                 # We do not need the series here, as later, we only extract the totals and assign it to the
                 # request.query
+                include_series=False,
                 start=self.params.start,
                 end=self.params.end,
-                include_series=False,
             )
 
         except Exception as e:
@@ -691,9 +688,7 @@ class MetricsQueryBuilder(QueryBuilder):
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
                     if self._is_on_demand():
-
                         metric_query = self._get_on_demand_metrics_query()
-
                     else:
                         metric_query = transform_mqb_query_to_metrics_query(
                             self.get_metrics_layer_snql_query().query, self.is_alerts_query
@@ -885,14 +880,6 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
             )
-
-            # ondemand_metric = None
-            # # NB: While ondemand metrics only support alerts, we're defensive here.
-            # if self.is_performance and self.is_alerts_query:
-            #     try:
-            #         ondemand_metric = OndemandMetricSpec.parse(self._field, self._query)
-            #     except Exception as e:
-            #         sentry_sdk.capture_exception(e)
 
             snuba_request = self.get_metrics_layer_snql_query()
 
