@@ -103,6 +103,32 @@ class ArtifactLookupTest(TestCase):
             {
                 "path/in/zip/foo": {
                     "url": "~/path/to/app.js",
+                    "content": b"app_idx1",
+                },
+                "path/in/zip/bar": {
+                    "url": "~/path/to/other1.js",
+                    "content": b"other1_idx1",
+                },
+            }
+        )
+        upload_bundle(bundle, self.project, "1.0.0")
+
+        # uploading the same bundle a second time which internally still creates two artifact bundles, which both cover the same set of files.
+
+        bundles = get_artifact_bundles(self.project, "1.0.0")
+        assert len(bundles) == 2
+        indexed = ArtifactBundleIndex.objects.filter().order_by("url")
+        assert len(indexed) == 2
+
+        assert indexed[0].url == "~/path/to/app.js"
+        assert indexed[0].artifact_bundle == bundles[1]
+        assert indexed[1].url == "~/path/to/other1.js"
+        assert indexed[1].artifact_bundle == bundles[1]
+
+        bundle = make_compressed_zip_file(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
                     "content": b"app_idx2",
                 },
                 "path/in/zip/bar": {
@@ -115,15 +141,15 @@ class ArtifactLookupTest(TestCase):
 
         # the second upload will backfill everything that needs indexing
         bundles = get_artifact_bundles(self.project, "1.0.0")
-        assert len(bundles) == 2
+        assert len(bundles) == 3
         indexed = ArtifactBundleIndex.objects.filter().order_by("url")
         assert len(indexed) == 3
 
         # here, we use the more recent bundle for the shared file,
         # all other files are disjoint in this example
         assert indexed[0].url == "~/path/to/app.js"
-        assert indexed[0].artifact_bundle == bundles[1]
+        assert indexed[0].artifact_bundle == bundles[2]
         assert indexed[1].url == "~/path/to/other1.js"
-        assert indexed[1].artifact_bundle == bundles[0]
+        assert indexed[1].artifact_bundle == bundles[1]
         assert indexed[2].url == "~/path/to/other2.js"
-        assert indexed[2].artifact_bundle == bundles[1]
+        assert indexed[2].artifact_bundle == bundles[2]
