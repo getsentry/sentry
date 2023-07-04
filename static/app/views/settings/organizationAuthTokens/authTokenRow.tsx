@@ -80,10 +80,12 @@ export function OrganizationAuthTokensAuthTokenRow({
   token,
   revokeToken,
   projectLastUsed,
+  isProjectLoading,
 }: {
   isRevoking: boolean;
   organization: Organization;
   token: OrgAuthToken;
+  isProjectLoading?: boolean;
   projectLastUsed?: Project;
   revokeToken?: (token: OrgAuthToken) => void;
 }) {
@@ -109,11 +111,15 @@ export function OrganizationAuthTokensAuthTokenRow({
       </div>
 
       <LastUsedDate>
-        <LastUsed
-          dateLastUsed={token.dateLastUsed}
-          projectLastUsed={projectLastUsed}
-          organization={organization}
-        />
+        {isProjectLoading ? (
+          <LoadingIndicator mini />
+        ) : (
+          <LastUsed
+            dateLastUsed={token.dateLastUsed}
+            projectLastUsed={projectLastUsed}
+            organization={organization}
+          />
+        )}
       </LastUsedDate>
 
       <Actions>
@@ -161,6 +167,7 @@ const Actions = styled('div')`
 const LastUsedDate = styled('div')`
   display: flex;
   align-items: center;
+  gap: 0.25em;
 `;
 
 const NeverUsed = styled('div')`
