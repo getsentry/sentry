@@ -579,17 +579,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
-      const getDataset = () => {
-        if (
-          dataset === Dataset.TRANSACTIONS &&
-          model.getTransformedData().query.includes('transaction.duration')
-        ) {
-          return Dataset.GENERIC_METRICS;
-        }
-
-        return dataset;
-      };
-
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -608,7 +597,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
           // Remove eventTypes as it is no longer requred for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset: getDataset(),
+          dataset,
         },
         {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
