@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any, Collection, Mapping, Optional, Sequence, Set
+from typing import Any, Collection, Dict, Mapping, Optional, Sequence, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -408,6 +408,23 @@ class PGStringIndexerV2(StringIndexer):
         assert obj.organization_id == org_id
         string: str = obj.string
         return string
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        ret_val: Dict[int, str] = {}
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
+        try:
+            strings = table.objects.get_many_from_cache(ids)
+
+        except table.DoesNotExist:
+            return ret_val
+
+        for obj in strings:
+            assert obj.organization_id == org_id
+
+        return {obj.id: obj.string for obj in strings if (obj and obj.string is not None)}
 
     def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
         metrics_paths = {METRIC_PATH_MAPPING[use_case_id] for use_case_id in use_case_ids}
