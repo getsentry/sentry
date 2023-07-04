@@ -115,7 +115,7 @@ def get_span_intervals_from_nodestore(
     span_group: str,
     transaction_ids: List[str],
 ) -> List[Dict[str, Any]]:
-    span_data = []
+    spans_interval = []
     for id in transaction_ids:
         nodestore_event = eventstore.backend.get_event_by_id(project_id, id)
         data = nodestore_event.data
@@ -133,8 +133,8 @@ def get_span_intervals_from_nodestore(
                 interval["start_ns"] = str(start_ns)
                 interval["end_ns"] = str(end_ns)
 
-                span_data.append(interval)
-    return span_data
+                spans_interval.append(interval)
+    return spans_interval
 
 
 def get_profile_ids_with_spans(
