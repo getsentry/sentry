@@ -332,8 +332,8 @@ def _bind_or_create_artifact_bundle(
             bundle_id=bundle_id or uuid.uuid4().hex,
             file=archive_file,
             artifact_count=artifact_count,
-            # By default, a bundle doesn't require indexing, only when the indexing threshold is surpassed it will.
-            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
+            # By default, a bundle is not indexed.
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
             # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
             # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
             date_added=date_added,
@@ -367,21 +367,18 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _mark_bundles_that_need_indexing(
-    associated_bundles: List[ArtifactBundle], release: str, dist: str
-):
-    # We update all bundles that have the "does not need indexing" state to "needs indexing". Since we might have
-    # concurrent tasks that modify the "indexing_state" concurrently, we will issue an update statement that checks
-    # if the "indexing_state" is equal to "does not need indexing" and only in that case we update it. This is done
-    # in order to implement atomic compare_and_set semantics because we will perform the update when locking the row.
+def _get_bundles_that_need_indexing(associated_bundles: List[ArtifactBundle]):
+    # We get all the bundles that are not indexed. This implementation is not safe for concurrency, since the values
+    # might change afterward, however, we do use a Redis cache to prevent duplicate work. That cache is also not 100%
+    # concurrency safe, but it will help for most cases.
     bundles_to_index = []
     for associated_bundle in associated_bundles:
-        did_mark_as_needs_indexing = ArtifactBundle.objects.filter(
+        requires_indexing = ArtifactBundle.objects.filter(
             id=associated_bundle.id,
-            indexing_state=ArtifactBundleIndexingState.DOES_NOT_NEED_INDEXING.value,
-        ).update(indexing_state=ArtifactBundleIndexingState.NEEDS_INDEXING.value)
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).exists()
 
-        if did_mark_as_needs_indexing:
+        if requires_indexing:
             bundles_to_index.append(associated_bundle)
 
     return bundles_to_index
@@ -426,13 +423,16 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
     # We want to measure how much time it takes to perform indexing.
     with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
         # We now want to mark the bundles that need indexing.
-        bundles_to_index = _mark_bundles_that_need_indexing(associated_bundles, release, dist)
+        bundles_to_index = _get_bundles_that_need_indexing(associated_bundles=associated_bundles)
         # Only if we have bundles to index we want to run the indexing.
         if len(bundles_to_index) > 0:
             # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
             # async if we see a performance degradation of assembling.
             index_artifact_bundles_for_release(
-                artifact_bundles=bundles_to_index, release=release, dist=dist
+                organization_id=org_id,
+                artifact_bundles=bundles_to_index,
+                release=release,
+                dist=dist,
             )
 
 
