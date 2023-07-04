@@ -88,9 +88,13 @@ export function SpanGroupBreakdown({
             statsPeriod="24h"
             height={340}
             showLegend
-            data={dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data}
+            data={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data
+            }
             dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
-            durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
+            durationUnit={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
+            }
             start=""
             end=""
             errored={errored}
