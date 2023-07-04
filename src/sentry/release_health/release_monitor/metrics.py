@@ -21,6 +21,7 @@ from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
@@ -170,7 +171,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                         indexes.add(row[env_key])
                         indexes.add(row[release_key])
                     resolved_strings = indexer.bulk_reverse_resolve(
-                        UseCaseKey.RELEASE_HEALTH, org_id, indexes
+                        UseCaseID.SESSIONS, org_id, indexes
                     )
 
                     for row in data:
