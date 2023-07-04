@@ -381,6 +381,7 @@ def _fetch_tags_or_values_for_mri(
         raise InvalidParams(error_str)
 
     tag_or_value_id_lists = tag_or_value_ids_per_metric_id.values()
+    tag_or_value_ids: Set[Union[int, str, None]]
     if metric_mris:
         # If there are metric_ids that map to the metric_names provided as an arg that were not
         # found in the dataset, then we raise an instance of InvalidParams exception
@@ -403,13 +404,9 @@ def _fetch_tags_or_values_for_mri(
         )
 
         # Only return tags/tag values that occur in all metrics
-        tag_or_value_ids: Set[Union[int, str, None]] = set.intersection(
-            *map(set, tag_or_value_id_lists)
-        )
+        tag_or_value_ids = set.intersection(*map(set, tag_or_value_id_lists))
     else:
-        tag_or_value_ids: Set[Union[int, str, None]] = {
-            tag_id for ids in tag_or_value_id_lists for tag_id in ids
-        }
+        tag_or_value_ids = {tag_id for ids in tag_or_value_id_lists for tag_id in ids}
 
     if column.startswith(("tags[", "tags_raw[")):
         tag_id = column.split("[")[1].split("]")[0]

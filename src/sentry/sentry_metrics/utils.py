@@ -1,4 +1,4 @@
-from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union
+from typing import Collection, Dict, Mapping, Optional, Sequence, Set, Union, cast
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -62,7 +62,10 @@ def bulk_reverse_resolve_tag_value(
         elif isinstance(index, int) and index > 0:  # resolve valid int, do nothing for None
             indexes_to_resolve.add(index)
 
-    resolved_indexes = indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve)
+    resolved_indexes = cast(
+        Mapping[Union[int, str], str],
+        indexer.bulk_reverse_resolve(use_case_id, org_id, indexes_to_resolve),
+    )
 
     return {**ret_val, **resolved_indexes}
 
