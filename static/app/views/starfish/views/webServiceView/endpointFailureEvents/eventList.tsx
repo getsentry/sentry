@@ -85,7 +85,6 @@ export default function EventList({
   const hasStartAndEnd = query.start && query.end;
   const newQuery: NewQuery = {
     name: t('Failure Sample'),
-    projects: [],
     start: decodeScalar(query.start),
     end: decodeScalar(query.end),
     range: !hasStartAndEnd

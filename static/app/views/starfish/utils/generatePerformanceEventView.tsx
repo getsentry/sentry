@@ -61,7 +61,6 @@ function generateGenericPerformanceEventView(
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method',
-    projects: [],
     fields,
     version: 2,
   };
@@ -138,7 +137,6 @@ export function generateWebServiceEventView(
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method transaction.op:http.server',
-    projects: [],
     fields,
     version: 2,
     dataset: DiscoverDatasets.METRICS,
