@@ -16,7 +16,10 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
 
   const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
 
-  if (props.organization.features.includes('performance-new-trends')) {
+  if (
+    props.organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);

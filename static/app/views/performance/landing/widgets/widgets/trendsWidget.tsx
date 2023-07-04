@@ -57,21 +57,20 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     withStaticFilters,
     InteractiveTitle,
   } = props;
-  const trendChangeType =
-    props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
-      ? TrendChangeType.IMPROVED
-      : TrendChangeType.REGRESSION;
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
-    ? TrendChangeType.ANY
-    : trendChangeType;
-  const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
-
-  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 
   const withBreakpoint =
     organization.features.includes('performance-new-trends') &&
     !isCardinalityCheckLoading &&
     !outcome?.forceTransactionsOnly;
+
+  const trendChangeType =
+    props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
+      ? TrendChangeType.IMPROVED
+      : TrendChangeType.REGRESSION;
+  const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
+  const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
+
+  const [selectedListIndex, setSelectListIndex] = useState<number>(0);
 
   const eventView = _eventView.clone();
   eventView.fields = fields;
@@ -82,7 +81,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     },
   ];
   const rest = {...props, eventView};
-  if (!organization.features.includes('performance-new-trends')) {
+  if (!withBreakpoint) {
     eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
     eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
     eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);

@@ -1,3 +1,4 @@
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
@@ -38,7 +39,10 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
-  if (organization.features.includes('performance-new-trends')) {
+  if (
+    organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
     doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleRowAllowedCharts.push(

@@ -45,7 +45,10 @@ export function BackendView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_DB_OPS,
   ];
 
-  if (props.organization.features.includes('performance-new-trends')) {
+  if (
+    props.organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleChartRowCharts.push(
