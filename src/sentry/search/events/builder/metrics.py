@@ -45,11 +45,6 @@ from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
-# from sentry.snuba.entity_subscription import (
-#     ENTITY_TIME_COLUMNS,
-#     EntityKey
-# )
-
 
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True

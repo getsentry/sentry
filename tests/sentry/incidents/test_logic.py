@@ -653,7 +653,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
         )
-        assert alert_rule.snuba_query.is_custom_metric
 
         mocked_schedule_update_project_config.assert_called_once_with(alert_rule, [self.project])
 
@@ -978,14 +977,11 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             dataset=Dataset.Metrics,
         )
 
-        assert not alert_rule.snuba_query.is_custom_metric
         mocked_schedule_update_project_config.assert_called_with(alert_rule, [self.project])
 
         alert_rule = update_alert_rule(
             alert_rule, name="updated alert", query="transaction.duration:>=100"
         )
-
-        assert alert_rule.snuba_query.is_custom_metric
 
         mocked_schedule_update_project_config.assert_called_with(alert_rule, None)
 

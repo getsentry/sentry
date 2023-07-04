@@ -135,7 +135,7 @@ class MetricsQueryValidationRunner:
                 method()
 
 
-@dataclass(frozen=False)
+@dataclass(frozen=True)
 class MetricsQuery(MetricsQueryValidationRunner):
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
 

@@ -8,7 +8,7 @@ from sentry.snuba.models import SnubaQuery
 
 def create_alert(query: str):
     snuba_query = SnubaQuery(
-        aggregate="p75(measurements.fp)", query=query, dataset=Dataset.Transactions.value
+        aggregate="p75(measurements.fp)", query=query, dataset=Dataset.PerformanceMetrics.value
     )
     return AlertRule(snuba_query=snuba_query)
 
@@ -25,9 +25,11 @@ def test_standard_metric_query():
     assert convert_alert_to_metric(alert.snuba_query) is None
 
 
-def test_simple_query_temp():
+def test_simple_query_count():
     snuba_query = SnubaQuery(
-        aggregate="count()", query="transaction.duration:>=1000", dataset=Dataset.Transactions.value
+        aggregate="count()",
+        query="transaction.duration:>=1000",
+        dataset=Dataset.PerformanceMetricss.value,
     )
     alert = AlertRule(snuba_query=snuba_query)
 
