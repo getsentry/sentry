@@ -1665,12 +1665,6 @@ function buildRoutes() {
       <IndexRoute
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
       />
-      <Route
-        path="failure-detail/:slug/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
-        )}
-      />
       <Route path="endpoint-overview/">
         <IndexRoute
           component={make(
