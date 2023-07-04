@@ -246,7 +246,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
+        description="Toggle the browser-extensions, localhost, web-crawlers, or filtered-transaction  filter on or off.",
     )
 
     BROWSER_SDK_VERSION = OpenApiParameter(
