@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry.sentry_metrics.indexer.base import to_use_case_id
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 
 """
@@ -305,7 +306,7 @@ def _fetch_tags_or_values_for_mri(
     metric_mris: Optional[Sequence[str]],
     referrer: str,
     column: str,
-    use_case_id: UseCaseKey,
+    use_case_key: UseCaseKey,
 ) -> Tuple[Union[Sequence[Tag], Sequence[TagValue]], Optional[str]]:
     """
     Function that takes as input projects, metric_mris, and a column, and based on the column
@@ -315,6 +316,7 @@ def _fetch_tags_or_values_for_mri(
     metric_names, then the type (i.e. mapping to the entity) is also returned
     """
     org_id = projects[0].organization_id
+    use_case_id = to_use_case_id(use_case_key)
 
     if metric_mris is not None:
         private_derived_metrics = set(get_derived_metrics(exclude_private=False).keys()) - set(
@@ -325,7 +327,7 @@ def _fetch_tags_or_values_for_mri(
 
     try:
         metric_ids = _get_metrics_filter_ids(
-            projects=projects, metric_mris=metric_mris, use_case_id=use_case_id
+            projects=projects, metric_mris=metric_mris, use_case_id=use_case_key
         )
     except MetricDoesNotExistInIndexer:
         raise InvalidParams(
@@ -343,7 +345,7 @@ def _fetch_tags_or_values_for_mri(
     release_health_metric_types = ("counter", "set", "distribution")
     performance_metric_types = ("generic_counter", "generic_set", "generic_distribution")
 
-    if use_case_id == UseCaseKey.RELEASE_HEALTH:
+    if use_case_key == UseCaseKey.RELEASE_HEALTH:
         metric_types = release_health_metric_types
     else:
         metric_types = performance_metric_types
@@ -400,7 +402,7 @@ def _fetch_tags_or_values_for_mri(
             projects,
             metric_mris=metric_mris,
             supported_metric_ids_in_entities=supported_metric_ids_in_entities,
-            use_case_id=use_case_id,
+            use_case_id=use_case_key,
         )
 
         # Only return tags/tag values that occur in all metrics
@@ -487,7 +489,7 @@ def get_tags(
                 metric_mris=metrics,
                 column="tags.key",
                 referrer="snuba.metrics.meta.get_tags",
-                use_case_id=use_case_id,
+                use_case_key=use_case_id,
             )
         else:
             tags, _ = _fetch_tags_or_values_for_metrics(
