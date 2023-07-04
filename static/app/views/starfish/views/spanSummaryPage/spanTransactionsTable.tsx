@@ -15,6 +15,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
@@ -112,17 +113,22 @@ export function SpanTransactionsTable({
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={spanTransactionsWithMetrics}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: col => renderHeadCell({column: col, sort, location}),
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <VisuallyCompleteWithData
+        id="SpanSummary.EndpointTable"
+        hasData={spanTransactionMetrics.length > 0}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={spanTransactionsWithMetrics}
+          columnOrder={COLUMN_ORDER}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderBodyCell,
+          }}
+          location={location}
+        />
+      </VisuallyCompleteWithData>
       <Footer>
         {endpoint && (
           <Button
