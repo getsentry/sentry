@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Any, Dict, Mapping, Optional, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.db.models import NodeData
 from sentry.utils.safe import get_path
@@ -38,7 +38,9 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.SIMPLE_TYPE,
+                    "filename": Allow.NEVER.with_explanation(
+                        "The filename path could contain the app name."
+                    ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,
                     "module": Allow.SIMPLE_TYPE,
@@ -98,11 +100,11 @@ def strip_event_data(
     if (new_event_data is None) or (new_event_data == {}):
         return {}
 
-    stripped_frames: Sequence[Mapping[str, Any]] = []
     frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
 
     if frames is not None:
         stripped_frames = _strip_frames(frames, sdk_crash_detector)
+
         new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
     return new_event_data
@@ -144,13 +146,29 @@ def _strip_event_data_with_allowlist(
 
 
 def _strip_frames(
-    frames: Sequence[Mapping[str, Any]], sdk_crash_detector: SDKCrashDetector
+    frames: Sequence[MutableMapping[str, Any]], sdk_crash_detector: SDKCrashDetector
 ) -> Sequence[Mapping[str, Any]]:
     """
-    Only keep SDK frames or non in app frames.
+    Only keep SDK frames or Apple system libraries.
+    We need to adapt this logic once we support other platforms.
     """
+
+    def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+        if sdk_crash_detector.is_sdk_frame(frame):
+            frame["in_app"] = True
+
+            # The path field usually contains the name of the application, which we can't keep.
+            for field in sdk_crash_detector.fields_containing_paths:
+                if frame.get(field):
+                    frame[field] = "Sentry.framework"
+        else:
+            frame["in_app"] = False
+
+        return frame
+
     return [
-        frame
+        strip_frame(frame)
         for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or frame.get("in_app", None) is False
+        if sdk_crash_detector.is_sdk_frame(frame)
+        or sdk_crash_detector.is_system_library_frame(frame)
     ]

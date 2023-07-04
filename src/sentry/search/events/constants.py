@@ -273,6 +273,7 @@ SPAN_METRICS_MAP = {
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
 }
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 

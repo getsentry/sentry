@@ -45,6 +45,11 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import has_alert_integration
 from sentry.notifications.utils.legacy_mappings import get_option_value_from_boolean
+from sentry.tasks.recap_servers import (
+    RECAP_SERVER_TOKEN_OPTION,
+    RECAP_SERVER_URL_OPTION,
+    poll_project_recap_server,
+)
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -127,6 +132,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    recapServerUrl = serializers.URLField(required=False, allow_blank=True, allow_null=True)
+    recapServerToken = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         max_delay = (
@@ -320,6 +327,32 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
+    def validate_recapServerUrl(self, value):
+        from sentry import features
+
+        project = self.context["project"]
+
+        # Adding recapServerUrl is only allowed if recap server polling is enabled.
+        has_recap_server_enabled = features.has("projects:recap-server", project)
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server url")
+
+        return value
+
+    def validate_recapServerToken(self, value):
+        from sentry import features
+
+        project = self.context["project"]
+
+        # Adding recapServerToken is only allowed if recap server polling is enabled.
+        has_recap_server_enabled = features.has("projects:recap-server", project)
+
+        if not has_recap_server_enabled:
+            raise serializers.ValidationError("Project is not allowed to set recap server token")
+
+        return value
+
 
 class RelaxedProjectPermission(ProjectPermission):
     scope_map = {
@@ -346,7 +379,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         Retrieve a Project
         ``````````````````
@@ -388,6 +421,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
+
+        # filter for enabled plugins o/w the response body is gigantic and difficult to read
+        data["plugins"] = [plugin for plugin in data["plugins"] if plugin.get("enabled")]
 
         return Response(data)
 
@@ -484,6 +520,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         elif result.get("isBookmarked") is False:
             ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
+        if result.get("recapServerUrl") is not None:
+            if result["recapServerUrl"] == "":
+                project.delete_option(RECAP_SERVER_URL_OPTION)
+            elif project.get_option(RECAP_SERVER_URL_OPTION) != result["recapServerUrl"]:
+                project.update_option(RECAP_SERVER_URL_OPTION, result["recapServerUrl"])
+                poll_project_recap_server.delay(project.id)
+        if result.get("recapServerToken") is not None:
+            if result["recapServerToken"] == "":
+                project.delete_option(RECAP_SERVER_TOKEN_OPTION)
+            elif project.get_option(RECAP_SERVER_TOKEN_OPTION) != result["recapServerToken"]:
+                project.update_option(RECAP_SERVER_TOKEN_OPTION, result["recapServerToken"])
+                poll_project_recap_server.delay(project.id)
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
         if result.get("digestsMaxDelay"):

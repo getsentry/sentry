@@ -31,6 +31,7 @@ import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
+  EChartEventHandler,
   EChartHighlightHandler,
   EChartMouseOutHandler,
   EChartMouseOverHandler,
@@ -88,6 +89,11 @@ type Props = {
   log?: boolean;
   onClick?: EChartClickHandler;
   onHighlight?: EChartHighlightHandler;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
@@ -170,6 +176,7 @@ function Chart({
   chartGroup,
   tooltipFormatterOptions = {},
   errored,
+  onLegendSelectChanged,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -364,6 +371,17 @@ function Chart({
       );
     }
 
+    // Trims off the last data point because it's incomplete
+    const trimmedSeries =
+      statsPeriod && !start && !end
+        ? series.map(serie => {
+            return {
+              ...serie,
+              data: serie.data.slice(0, -1),
+            };
+          })
+        : series;
+
     return (
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
@@ -386,7 +404,7 @@ function Chart({
                 onMouseOver={onMouseOver}
                 onHighlight={onHighlight}
                 series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -414,7 +432,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={series}
+                series={trimmedSeries}
                 xAxis={xAxis}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
@@ -432,13 +450,14 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={series}
+              series={trimmedSeries}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
               onClick={onClick}
               {...areaChartProps}
+              onLegendSelectChanged={onLegendSelectChanged}
             />
           );
         }}

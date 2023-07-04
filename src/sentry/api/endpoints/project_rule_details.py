@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -48,10 +50,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = SentryAppComponent(**action.get("_sentry_app_component"))
                 component = prepare_ui_component(
                     installation,
-                    component,
+                    SentryAppComponent(**action.get("_sentry_app_component")),
                     project.slug,
                     action.get("settings"),
                 )

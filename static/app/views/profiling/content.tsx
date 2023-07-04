@@ -35,16 +35,15 @@ import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
-import {FunctionTrendsWidget} from './landing/functionTrendsWidget';
+import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import {ProfileCharts} from './landing/profileCharts';
+import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
-import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
 
 interface ProfilingContentProps {
@@ -151,12 +150,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
   }, [location, query, selection.projects]);
 
   const isProfilingGA = organization.features.includes('profiling-ga');
-
-  const functionQuery = useMemo(() => {
-    const conditions = new MutableSearch('');
-    conditions.setFilterValues('is_application', ['1']);
-    return conditions.formatString();
-  }, []);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
@@ -269,30 +262,42 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )
               ) : (
                 <Fragment>
-                  <PanelsGrid>
-                    {organization.features.includes(
-                      'profiling-global-suspect-functions'
-                    ) ? (
-                      <Fragment>
-                        <SlowestFunctionsWidget userQuery={functionQuery} />
-                        <FunctionTrendsWidget
-                          trendFunction="p95()"
-                          trendType="regression"
-                          userQuery={functionQuery}
-                        />
-                      </Fragment>
-                    ) : (
-                      <Fragment>
-                        <ProfilingSlowestTransactionsPanel />
-                        <ProfileCharts
-                          referrer="api.profiling.landing-chart"
+                  {organization.features.includes(
+                    'profiling-global-suspect-functions'
+                  ) ? (
+                    <Fragment>
+                      <ProfilesChartWidget
+                        chartHeight={100}
+                        referrer="api.profiling.landing-chart"
+                        userQuery={query}
+                        selection={selection}
+                      />
+                      <WidgetsContainer>
+                        <LandingWidgetSelector
+                          widgetHeight="340px"
+                          defaultWidget="slowest functions"
                           query={query}
-                          selection={selection}
-                          hideCount
+                          storageKey="profiling-landing-widget-0"
                         />
-                      </Fragment>
-                    )}
-                  </PanelsGrid>
+                        <LandingWidgetSelector
+                          widgetHeight="340px"
+                          defaultWidget="regressed functions"
+                          query={query}
+                          storageKey="profiling-landing-widget-1"
+                        />
+                      </WidgetsContainer>
+                    </Fragment>
+                  ) : (
+                    <PanelsGrid>
+                      <ProfilingSlowestTransactionsPanel />
+                      <ProfileCharts
+                        referrer="api.profiling.landing-chart"
+                        query={query}
+                        selection={selection}
+                        hideCount
+                      />
+                    </PanelsGrid>
+                  )}
                   <ProfileEventsTable
                     columns={fields.slice()}
                     data={transactions.status === 'success' ? transactions.data : null}
@@ -351,6 +356,15 @@ const PanelsGrid = styled('div')`
   gap: ${space(2)};
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+const WidgetsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr;
   }
 `;
 
