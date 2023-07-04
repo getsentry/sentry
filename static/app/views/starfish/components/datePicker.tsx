@@ -1,8 +1,11 @@
 import DatePageFilter from 'sentry/components/datePageFilter';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MAXIMUM_DATE_RANGE} from 'sentry/views/starfish/components/pageFilterContainer';
 
 function StarfishDatePicker() {
+  const organization = useOrganization();
   return (
     <DatePageFilter
       maxDateRange={MAXIMUM_DATE_RANGE}
@@ -16,6 +19,14 @@ function StarfishDatePicker() {
       }}
       defaultPeriod="24h"
       alignDropdown="left"
+      onChange={({start, end, relative}) => {
+        trackAnalytics('starfish.page_filter.data_change', {
+          organization,
+          start,
+          end,
+          relative,
+        });
+      }}
     />
   );
 }
