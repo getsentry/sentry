@@ -38,7 +38,7 @@ class SDKCrashDetection:
             return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
-        if context is not None and context.get("detected", False):
+        if context is not None:
             return None
 
         # Getting the frames and checking if the event is unhandled might different per platform.
@@ -54,11 +54,16 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
-                sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
+                sdk_crash_event_data,
+                "contexts",
+                "sdk_crash_detection",
+                value={
+                    "original_project_id": event.project.id,
+                    "original_event_id": event.event_id,
+                },
             )
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
