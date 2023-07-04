@@ -122,11 +122,11 @@ def get_span_intervals_from_nodestore(
         for span in data.get("spans", []):
             if span["hash"] == span_group:
 
-                start_sec, start_ms = map(int, str(span["start_timestamp"]).split("."))
-                end_sec, end_ms = map(int, str(span["timestamp"]).split("."))
+                start_sec, start_us = map(int, str(span["start_timestamp"]).split("."))
+                end_sec, end_us = map(int, str(span["timestamp"]).split("."))
 
-                start_ns = (start_sec * 10**9) + (start_ms * 10**3)
-                end_ns = (end_sec * 10**9) + (end_ms * 10**3)
+                start_ns = (start_sec * 10**9) + (start_us * 10**3)
+                end_ns = (end_sec * 10**9) + (end_us * 10**3)
 
                 interval = {}
                 interval["transaction_id"] = id
