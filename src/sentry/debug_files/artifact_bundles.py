@@ -87,7 +87,10 @@ def index_artifact_bundles_for_release(
     # and is used for partitioning the index table and auto-expiration.
     date_added = datetime.now()
 
-    for artifact_bundle, urls in urls_by_bundle.items():
+    # We have to loop over all bundles, since we have to mark all the ones we inspected as `was_indexed`, irrespectively
+    # if we have urls to add for that bundle.
+    for artifact_bundle in artifact_bundles:
+        urls = urls_by_bundle.get(artifact_bundle, set())
         # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the bundle
         # level, and we also have to retry only the failed bundle in the future and not all the bundles.
         with atomic_transaction(
