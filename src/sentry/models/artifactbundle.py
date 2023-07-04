@@ -45,10 +45,8 @@ class SourceFileType(Enum):
 
 
 class ArtifactBundleIndexingState(Enum):
-    DOES_NOT_NEED_INDEXING = 0
-    NEEDS_INDEXING = 1
-    IS_BEING_INDEXED = 2
-    WAS_INDEXED = 3
+    NOT_INDEXED = 0
+    WAS_INDEXED = 1
 
     @classmethod
     def choices(cls) -> List[Tuple[int, str]]:
