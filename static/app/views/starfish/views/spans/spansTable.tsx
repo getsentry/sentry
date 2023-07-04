@@ -97,12 +97,15 @@ export default function SpansTable({
     });
   };
 
+  const isEndpointOverview = Boolean(endpoint);
+
   return (
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
         hasData={data.length > 0}
         isLoading={isLoading}
+        disabled={isEndpointOverview}
       >
         <GridEditable
           isLoading={isLoading}
