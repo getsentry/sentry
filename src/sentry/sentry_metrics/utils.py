@@ -29,7 +29,7 @@ def reverse_resolve_tag_value(
 
 
 def bulk_reverse_resolve_tag_value(
-    use_case_id: UseCaseID, org_id: int, indexes: Collection[Union[int, str, None]]
+    use_case_id: UseCaseID, org_id: int, values: Collection[Union[int, str, None]]
 ) -> Mapping[Union[int, str], str]:
     """
     Reverse resolves a mixture of indexes and strings in bulk
@@ -56,11 +56,11 @@ def bulk_reverse_resolve_tag_value(
     ret_val: Dict[Union[int, str], str] = {}
 
     indexes_to_resolve: Set[int] = set()
-    for index in indexes:
-        if isinstance(index, str):
-            ret_val[index] = index  # we already have a string no need to reverse resolve it
-        elif isinstance(index, int) and index > 0:  # resolve valid int, do nothing for None
-            indexes_to_resolve.add(index)
+    for value in values:
+        if isinstance(value, str):
+            ret_val[value] = value  # we already have a string no need to reverse resolve it
+        elif isinstance(value, int) and value > 0:  # resolve valid int, do nothing for None
+            indexes_to_resolve.add(value)
 
     resolved_indexes = cast(
         Mapping[Union[int, str], str],
