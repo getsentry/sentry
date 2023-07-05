@@ -13,7 +13,7 @@ from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.services.hybrid_cloud.project.model import RpcProject
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
@@ -39,6 +39,13 @@ class _DefaultEnumHelpers:
         return OrganizationStatus.ACTIVE.value
 
 
+class RpcTeamMembership(RpcModel):
+    user_id: int
+    user_email: str
+    member_id: int
+    team_ids: List[int]
+
+
 class RpcTeam(RpcModel):
     id: int = -1
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_team_status_value)
@@ -46,9 +53,19 @@ class RpcTeam(RpcModel):
     slug: str = ""
     actor_id: Optional[int] = None
     org_role: Optional[str] = None
+    name: str = ""
 
     def class_name(self) -> str:
         return "Team"
+
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
 
 class RpcTeamMember(RpcModel):

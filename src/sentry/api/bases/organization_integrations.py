@@ -5,7 +5,7 @@ from typing import Any, Dict, Tuple
 from django.http import Http404
 from rest_framework.request import Request
 
-from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.api.bases.integration import IntegrationEndpoint, RegionIntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.models import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -62,7 +62,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             raise Http404
 
 
-class RegionOrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
+class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     """
     OrganizationIntegrationBaseEndpoints expect both Integration and
     OrganizationIntegration DB entries to exist for a given organization and

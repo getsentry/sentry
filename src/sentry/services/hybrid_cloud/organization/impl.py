@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Union, cast
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.dispatch import Signal
 
 from sentry import roles
@@ -38,6 +38,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
+    RpcTeam,
+    RpcTeamMembership,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -45,10 +47,14 @@ from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
+    serialize_rpc_team,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
+from sentry.signals import team_created
 from sentry.types.region import find_regions_for_orgs
+from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -493,6 +499,54 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def get_team_memberships(
+        self, *, organization_id: int, team_ids: List[int]
+    ) -> List[RpcTeamMembership]:
+        members: Dict[int, RpcTeamMembership] = {}
+        for omt in RangeQuerySetWrapper(
+            OrganizationMemberTeam.objects.filter(team_id__in=team_ids).prefetch_related(
+                "organizationmember"
+            )
+        ):
+            if omt.organizationmember_id not in members:
+                members[omt.organizationmember_id] = RpcTeamMembership(
+                    user_id=omt.organizationmember.user_id,
+                    user_email=omt.organizationmember.get_email(),
+                    member_id=omt.organizationmember_id,
+                    team_ids=[],
+                )
+            members[omt.organizationmember_id].team_ids.append(omt.team_id)
+
+        return list(members.values())
+
+    def create_team(
+        self,
+        *,
+        organization_id: int,
+        slug: str,
+        name: Optional[str] = None,
+        idp_provisioned: bool = False,
+        creator_user_id: Optional[int] = None,
+    ) -> Optional[RpcTeam]:
+        try:
+            with transaction.atomic(router.db_for_write(Team)):
+                team = Team.objects.create(
+                    name=name or slug,
+                    slug=slug,
+                    idp_provisioned=idp_provisioned,
+                    organization_id=organization_id,
+                )
+
+            team_created.send_robust(
+                organization_id=organization_id,
+                user_id=creator_user_id,
+                team_id=team.id,
+                sender=None,
+            )
+            return serialize_rpc_team(team)
+        except (IntegrityError, MaxSnowflakeRetryError):
+            return None
 
     def send_signal(
         self,

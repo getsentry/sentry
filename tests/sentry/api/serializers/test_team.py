@@ -5,14 +5,15 @@ from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProje
 from sentry.app import env
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, region_silo_test
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -320,7 +321,7 @@ class TeamSerializerTest(TestCase):
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamWithProjectsSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -351,7 +352,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         }
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self):
         user = self.create_user(username="foo")
@@ -361,7 +362,7 @@ class TeamSCIMSerializerTest(TestCase):
         self.create_team(organization=organization, members=[user, user2])
         # create a 2nd team to confirm we aren't duping data
 
-        result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
+        result = serialize(serialize_rpc_team(team), user, TeamSCIMSerializer(expand=["members"]))
         assert result == {
             "displayName": team.name,
             "id": str(team.id),
@@ -377,7 +378,7 @@ class TeamSCIMSerializerTest(TestCase):
         user = self.create_user(username="foo")
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization, members=[user])
-        result = serialize(team, user, TeamSCIMSerializer())
+        result = serialize(serialize_rpc_team(team), user, TeamSCIMSerializer())
         assert result == {
             "displayName": team.name,
             "id": str(team.id),

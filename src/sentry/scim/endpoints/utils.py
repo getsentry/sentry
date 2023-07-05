@@ -8,9 +8,10 @@ from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
 from typing_extensions import TypedDict
 
-from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
-from sentry.models import AuthProvider
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.models import Organization
 
+from ...services.hybrid_cloud.auth import auth_service
 from .constants import SCIM_400_INVALID_FILTER, SCIM_API_ERROR, SCIM_API_LIST
 
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
@@ -108,21 +109,13 @@ class SCIMQueryParamSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    def has_object_permission(self, request: Request, view, organization_context):
-        result = super().has_object_permission(request, view, organization_context)
+    def has_object_permission(self, request: Request, view, organization: Organization):
+        result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
         if not result:
             return result
-        try:
-            auth_provider = AuthProvider.objects.get(
-                organization_id=organization_context.organization.id
-            )
-        except AuthProvider.DoesNotExist:
-            return False
-        if not auth_provider.flags.scim_enabled:
-            return False
-
-        return True
+        providers = auth_service.get_auth_providers(organization_id=organization.id)
+        return any(p.flags.scim_enabled for p in providers)
 
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
@@ -145,7 +138,7 @@ class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
 
 
 @extend_schema(tags=["SCIM"])
-class SCIMEndpoint(ControlSiloOrganizationEndpoint):
+class SCIMEndpoint(OrganizationEndpoint):
     content_negotiation_class = SCIMClientNegotiation
     cursor_name = "startIndex"
 

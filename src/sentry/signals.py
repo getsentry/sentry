@@ -191,7 +191,9 @@ comment_updated = BetterSignal(providing_args=["project", "user", "group", "acti
 comment_deleted = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
 
 terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
-team_created = BetterSignal(providing_args=["organization", "user", "team"])
+team_created = BetterSignal(
+    providing_args=["organization_id", "user_id", "team_id", "organization", "user", "team"]
+)
 integration_added = BetterSignal(providing_args=["integration_id", "organization_id", "user_id"])
 integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
 integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])

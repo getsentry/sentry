@@ -467,6 +467,8 @@ class OrganizationMember(Model):
 
     def get_email(self):
         if self.user_id:
+            if self.user_email:
+                return self.user_email
             user = user_service.get_user(user_id=self.user_id)
             if user and user.email:
                 return user.email

@@ -195,6 +195,10 @@ class OrgAuthTokenPermission(OrganizationPermission):
 
 
 class ControlSiloOrganizationEndpoint(Endpoint):
+    """
+    A base class for endpoints that use an organization scoping but lives in the control silo
+    """
+
     permission_classes = (OrganizationPermission,)
 
     def convert_args(

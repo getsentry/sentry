@@ -21,7 +21,7 @@ from django.db.models import Count
 from typing_extensions import TypedDict
 
 from sentry import roles
-from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers import Serializer, instance_map, register, serialize
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
 from sentry.auth.access import (
@@ -44,6 +44,11 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
+from sentry.services.hybrid_cloud.organization import (
+    RpcTeam,
+    RpcTeamMembership,
+    organization_service,
+)
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
@@ -382,20 +387,31 @@ class TeamSCIMSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(
-        self, item_list: Sequence[Team], user: Any, **kwargs: Any
-    ) -> Mapping[Team, MutableMapping[str, Any]]:
+        self, item_list: Sequence[RpcTeam], user: Any, **kwargs: Any
+    ) -> Mapping[RpcTeam, MutableMapping[str, Any]]:
 
-        result: MutableMapping[Team, MutableMapping[str, Any]] = {team: {} for team in item_list}
+        result: MutableMapping[int, MutableMapping[str, Any]] = {
+            team.id: ({"members": []} if "members" in self.expand else {}) for team in item_list
+        }
+        teams_by_id: Mapping[int, RpcTeam] = {t.id: t for t in item_list}
 
-        if "members" in self.expand:
-            member_map = get_scim_teams_members(item_list)
-            for team in item_list:
-                # if there are no members in the team, set to empty list
-                result[team]["members"] = member_map.get(team, [])
-        return result
+        if teams_by_id and "members" in self.expand:
+            org_id: int = next(iter(teams_by_id.values())).organization_id
+            team_ids: List[int] = [t.id for t in item_list]
+            team_memberships: List[RpcTeamMembership] = organization_service.get_team_memberships(
+                organization_id=org_id, team_ids=team_ids
+            )
+
+            for team_member in team_memberships:
+                for team_id in team_member.team_ids:
+                    result[team_id]["members"].append(
+                        dict(value=str(team_member.member_id), display=team_member.user_email)
+                    )
+
+        return instance_map((teams_by_id[team_id], attrs) for team_id, attrs in result.items())
 
     def serialize(
-        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+        self, obj: RpcTeam, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationTeamSCIMSerializerResponse:
         result: OrganizationTeamSCIMSerializerResponse = {
             "schemas": [SCIM_SCHEMA_GROUP],

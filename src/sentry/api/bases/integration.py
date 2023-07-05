@@ -39,6 +39,10 @@ def _handle_exception(
 
 
 class IntegrationEndpoint(ControlSiloOrganizationEndpoint):
+    """
+    Baseclass for integration endpoints in control silo that need integration exception handling
+    """
+
     def handle_exception(
         self,
         request: Request,
@@ -50,6 +54,10 @@ class IntegrationEndpoint(ControlSiloOrganizationEndpoint):
 
 
 class RegionIntegrationEndpoint(OrganizationEndpoint):
+    """
+    Baseclass for integration endpoints in region silo that need integration exception handling
+    """
+
     def handle_exception(
         self,
         request: Request,
