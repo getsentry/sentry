@@ -188,6 +188,7 @@ class OndemandMetricSpec:
         )
 
     def query_hash(self) -> str:
+        # TODO: Figure out how to support multiple fields and different but equivalent queries
         str_to_hash = f"{self.field};{self._query}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
@@ -250,9 +251,11 @@ def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optiona
 
 
 def _get_query_builder():
+    # TODO: Find a way to perform resolve_column and resolve_conditions without instantiating a QueryBuilder
     from sentry.search.events.builder import QueryBuilder
 
     return QueryBuilder(
         dataset=Dataset.Transactions,
+        # start and end parameters are required, but not used
         params={"start": datetime.now(), "end": datetime.now()},
     )
