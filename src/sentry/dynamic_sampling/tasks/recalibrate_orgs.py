@@ -31,6 +31,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
 )
 from sentry.dynamic_sampling.tasks.logging import (
     log_action_if,
+    log_query_timeout,
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
@@ -212,6 +213,8 @@ def get_active_orgs(
 
         if not more_results:
             return
+    else:
+        log_query_timeout(query="get_active_orgs", offset=offset)
 
 
 def fetch_org_volumes(

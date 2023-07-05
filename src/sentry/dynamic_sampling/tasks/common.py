@@ -110,6 +110,8 @@ def get_active_orgs_with_projects_counts(
             break
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
+    else:
+        log_query_timeout(query="get_active_orgs_with_projects_counts", offset=offset)
 
 
 def fetch_orgs_with_total_root_transactions_count(
