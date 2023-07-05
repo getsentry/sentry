@@ -79,6 +79,8 @@ class JSONMutatingComparator(Protocol):
     def __call__(self, on: InstanceID, expect: JSONData, actual: JSONData) -> str | None:
         ...
 
+    __name__: str
+
 
 def comparator_date_updated(on, expect, actual):
     exp_date_updated = parser.parse(expect["fields"]["date_updated"])
