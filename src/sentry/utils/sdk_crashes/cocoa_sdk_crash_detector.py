@@ -9,6 +9,16 @@ from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
 class CocoaSDKCrashDetector(SDKCrashDetector):
+    @property
+    def min_sdk_version(self) -> str:
+        """
+        Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
+        released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
+        the frames contain the full paths required for detecting system frames in is_system_library_frame.
+        Therefore, we require at least sentry-cocoa 8.2.0.
+        """
+        return "8.2.0"
+
     def should_detect_sdk_crash(self, event_data: NodeData) -> bool:
         sdk_name = get_path(event_data, "sdk", "name")
         if sdk_name and sdk_name != "sentry.cocoa":
@@ -19,11 +29,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
             return False
 
         try:
-            # Since changing the debug image type to macho (https://github.com/getsentry/sentry-cocoa/pull/2701)
-            # released in sentry-cocoa 8.2.0 (https://github.com/getsentry/sentry-cocoa/blob/main/CHANGELOG.md#820),
-            # the frames contain the full paths required for detecting system frames in is_system_library_frame.
-            # Therefore, we require at least sentry-cocoa 8.2.0.
-            minimum_cocoa_sdk_version = Version("8.2.0")
+            minimum_cocoa_sdk_version = Version(self.min_sdk_version)
             cocoa_sdk_version = Version(sdk_version)
 
             if cocoa_sdk_version < minimum_cocoa_sdk_version:
