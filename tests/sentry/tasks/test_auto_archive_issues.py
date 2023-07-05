@@ -12,10 +12,9 @@ from sentry.types.group import GroupSubStatus
 
 
 class ScheduleAutoOngoingToArchivedIssuesTest(TestCase):
-    @patch("sentry.monitoring.queues.backend")
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
     @with_feature("organizations:escalating-issues-v2")
     def test_simple(self, mock_backend):
-        breakpoint()
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
