@@ -97,6 +97,44 @@ describe('OrganizationAuthTokensIndex', function () {
     );
   });
 
+  it('shows unused tokens', async function () {
+    const tokens: OrgAuthToken[] = [
+      {
+        id: '1',
+        name: 'My Token 1',
+        tokenLastCharacters: '1234',
+        dateCreated: new Date('2023-01-01T00:00:00.000Z'),
+        scopes: ['org:read'],
+      },
+      {
+        id: '2',
+        name: 'My Token 2',
+        tokenLastCharacters: 'ABCD',
+        dateCreated: new Date('2023-01-01T00:00:00.000Z'),
+        scopes: ['org:read'],
+      },
+    ];
+
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'GET',
+      body: tokens,
+    });
+
+    render(<OrganizationAuthTokensIndex {...defaultProps} />);
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    // Then list
+    expect(screen.getByText('My Token 1')).toBeInTheDocument();
+    expect(screen.getByText('My Token 2')).toBeInTheDocument();
+    expect(screen.getAllByText('never used')).toHaveLength(2);
+
+    expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
+  });
+
   it('handle error when loading tokens', async function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
