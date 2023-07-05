@@ -241,6 +241,7 @@ function useEventApiQuery({
   eventId?: string;
 }) {
   const organization = useOrganization();
+  const location = useLocation<{query?: string}>();
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
@@ -248,7 +249,12 @@ function useEventApiQuery({
 
   const queryKey: ApiQueryKey = [
     `/issues/${groupId}/events/${eventIdUrl}/`,
-    {query: getGroupEventDetailsQueryData({environments})},
+    {
+      query: getGroupEventDetailsQueryData({
+        environments,
+        query: hasMostHelpfulEventFeature ? location.query.query : undefined,
+      }),
+    },
   ];
 
   const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';

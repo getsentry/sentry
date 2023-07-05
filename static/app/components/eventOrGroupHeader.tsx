@@ -86,6 +86,7 @@ function EventOrGroupHeader({
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             grouping={grouping}
+            query={query}
           />
         </ErrorBoundary>
       </Fragment>

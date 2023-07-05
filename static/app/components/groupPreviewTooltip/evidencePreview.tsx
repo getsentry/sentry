@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 type SpanEvidencePreviewProps = {
   children: ReactChild;
   groupId: string;
+  query?: string;
 };
 
 type SpanEvidencePreviewBodyProps = {
@@ -21,6 +22,7 @@ type SpanEvidencePreviewBodyProps = {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
+  query?: string;
 };
 
 function SpanEvidencePreviewBody({
@@ -28,8 +30,9 @@ function SpanEvidencePreviewBody({
   onRequestEnd,
   onUnmount,
   groupId,
+  query,
 }: SpanEvidencePreviewBodyProps) {
-  const {data, isLoading, isError} = usePreviewEvent({groupId});
+  const {data, isLoading, isError} = usePreviewEvent({groupId, query});
 
   useEffect(() => {
     if (isLoading) {
@@ -75,7 +78,7 @@ function SpanEvidencePreviewBody({
   );
 }
 
-export function EvidencePreview({children, groupId}: SpanEvidencePreviewProps) {
+export function EvidencePreview({children, groupId, query}: SpanEvidencePreviewProps) {
   const {shouldShowLoadingState, onRequestBegin, onRequestEnd, reset} =
     useDelayedLoadingState();
 
@@ -88,6 +91,7 @@ export function EvidencePreview({children, groupId}: SpanEvidencePreviewProps) {
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
           groupId={groupId}
+          query={query}
         />
       }
     >

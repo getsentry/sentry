@@ -12,6 +12,7 @@ type GroupPreviewTooltipProps = {
   groupingCurrentLevel?: number;
   issueCategory?: IssueCategory;
   projectId?: string;
+  query?: string;
 };
 
 function GroupPreviewTooltip({
@@ -19,6 +20,7 @@ function GroupPreviewTooltip({
   groupId,
   groupingCurrentLevel,
   issueCategory,
+  query,
 }: GroupPreviewTooltipProps) {
   if (!issueCategory) {
     return null;
@@ -27,14 +29,26 @@ function GroupPreviewTooltip({
   switch (issueCategory) {
     case IssueCategory.ERROR:
       return (
-        <StackTracePreview groupId={groupId} groupingCurrentLevel={groupingCurrentLevel}>
+        <StackTracePreview
+          groupId={groupId}
+          groupingCurrentLevel={groupingCurrentLevel}
+          query={query}
+        >
           {children}
         </StackTracePreview>
       );
     case IssueCategory.PERFORMANCE:
-      return <SpanEvidencePreview groupId={groupId}>{children}</SpanEvidencePreview>;
+      return (
+        <SpanEvidencePreview groupId={groupId} query={query}>
+          {children}
+        </SpanEvidencePreview>
+      );
     default:
-      return <EvidencePreview groupId={groupId}>{children}</EvidencePreview>;
+      return (
+        <EvidencePreview groupId={groupId} query={query}>
+          {children}
+        </EvidencePreview>
+      );
   }
 }
 

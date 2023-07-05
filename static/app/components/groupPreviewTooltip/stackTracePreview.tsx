@@ -105,12 +105,13 @@ type StackTracePreviewProps = {
   eventId?: string;
   groupingCurrentLevel?: number;
   projectSlug?: string;
+  query?: string;
 };
 
 interface StackTracePreviewBodyProps
   extends Pick<
     StackTracePreviewProps,
-    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug'
+    'groupId' | 'eventId' | 'groupingCurrentLevel' | 'projectSlug' | 'query'
   > {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
@@ -123,10 +124,11 @@ function StackTracePreviewBody({
   onRequestBegin,
   onRequestEnd,
   onUnmount,
+  query,
 }: StackTracePreviewBodyProps) {
   const organization = useOrganization();
 
-  const {data, isLoading, isError} = usePreviewEvent({groupId});
+  const {data, isLoading, isError} = usePreviewEvent({groupId, query});
 
   useEffect(() => {
     if (isLoading) {
