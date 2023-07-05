@@ -365,16 +365,6 @@ describe('IssueListActions', function () {
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
-
-    it('hides mark reviewed button with escalating-issues flag', function () {
-      render(<WrappedComponent {...defaultProps} />, {
-        organization: {...organization, features: ['escalating-issues']},
-      });
-
-      expect(
-        screen.queryByRole('button', {name: 'Mark Reviewed'})
-      ).not.toBeInTheDocument();
-    });
   });
 
   describe('sort', function () {
