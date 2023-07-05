@@ -6,7 +6,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 
-const ALLOWED_PLATFORMS = new Set(['python']);
+const ALLOWED_PROJECT_IDS = new Set(['1', '4504120414765056']);
 
 export function StarfishProjectSelector() {
   const {projects} = useProjects();
@@ -14,7 +14,7 @@ export function StarfishProjectSelector() {
   const router = useRouter();
 
   const projectOptions = projects
-    .filter(project => ALLOWED_PLATFORMS.has(project.platform ?? '') && project.isMember)
+    .filter(project => ALLOWED_PROJECT_IDS.has(project.id))
     .map(project => ({
       label: <ProjectOptionLabel project={project} />,
       value: project.id,
@@ -29,6 +29,7 @@ export function StarfishProjectSelector() {
 
   return (
     <CompactSelect
+      menuWidth={250}
       options={projectOptions}
       defaultValue={selectedOption?.value}
       onChange={handleProjectChange}
@@ -37,7 +38,5 @@ export function StarfishProjectSelector() {
 }
 
 function ProjectOptionLabel({project}: {project: Project}) {
-  return (
-    <ProjectBadge project={project} avatarSize={20} hideOverflow={false} disableLink />
-  );
+  return <ProjectBadge project={project} avatarSize={20} disableLink />;
 }
