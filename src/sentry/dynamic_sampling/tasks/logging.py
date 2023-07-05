@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ def log_recalibrate_org_state(
     )
 
 
-def log_action_if(name: str, extra: Dict[str, str], block: Callable[[], bool]):
+def log_action_if(name: str, extra: Dict[str, Any], block: Callable[[], bool]):
     if block():
         logger.info(
             f"dynamic_sampling.{name}",
