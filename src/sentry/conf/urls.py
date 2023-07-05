@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls import url
 from django.urls import URLPattern, URLResolver
 
-from sentry.web.frontend.csrf_failure import CsrfFailureView
+from sentry.web.frontend import csrf_failure
 from sentry.web.frontend.error_404 import Error404View
 from sentry.web.frontend.error_500 import Error500View
 from sentry.web.urls import urlpatterns as web_urlpatterns
@@ -25,7 +25,7 @@ urlpatterns: list[URLResolver | URLPattern] = [
     ),
     url(
         r"^403-csrf-failure/",
-        CsrfFailureView.as_view(),
+        csrf_failure.view,
         name="error-403-csrf-failure",
     ),
 ]

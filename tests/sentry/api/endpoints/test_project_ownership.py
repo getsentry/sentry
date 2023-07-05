@@ -372,6 +372,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
 
+    def test_update_by_member_denied(self):
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"fallthrough": False})
+        assert resp.status_code == 403
+
     def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
         ProjectOwnership.objects.create(
             project=self.project, raw="*.js member@localhost #tiger-team"
