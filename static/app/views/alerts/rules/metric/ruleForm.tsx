@@ -117,6 +117,26 @@ type State = {
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
+const determineAlertDataset = (
+  org: Organization,
+  selectedDataset: Dataset,
+  query: string
+) => {
+  if (!org.features.includes('on-demand-metrics-extraction')) {
+    return selectedDataset;
+  }
+
+  if (
+    selectedDataset !== Dataset.TRANSACTIONS ||
+    !query.includes('transaction.duration')
+  ) {
+    return selectedDataset;
+  }
+
+  // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
+  return Dataset.GENERIC_METRICS;
+};
+
 class RuleFormContainer extends AsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
@@ -542,7 +562,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {
       project,
       aggregate,
-      dataset,
       resolveThreshold,
       triggers,
       thresholdType,
@@ -579,6 +598,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
+      const dataset = determineAlertDataset(
+        organization,
+        rule.dataset,
+        model.getTransformedData().query
+      );
+
       this.setState({loading: true});
       const [data, , resp] = await addOrUpdateRule(
         this.api,
@@ -595,7 +620,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           timeWindow,
           aggregate,
           ...(hasMetricDataset ? {queryType: DatasetMEPAlertQueryTypes[dataset]} : {}),
-          // Remove eventTypes as it is no longer requred for crash free
+          // Remove eventTypes as it is no longer required for crash free
           eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
           dataset,
         },
