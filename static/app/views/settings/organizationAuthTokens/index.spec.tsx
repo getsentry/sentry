@@ -75,14 +75,15 @@ describe('OrganizationAuthTokensIndex', function () {
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     // Then list
-    expect(screen.getByText('My Token 1')).toBeInTheDocument();
-    expect(screen.getByText('My Token 2')).toBeInTheDocument();
-    expect(screen.getByText('never used')).toBeInTheDocument();
     expect(
       await screen.findByText(
         textWithMarkupMatcher('a few seconds ago in project Project Name')
       )
     ).toBeInTheDocument();
+    expect(screen.getByText('My Token 1')).toBeInTheDocument();
+    expect(screen.getByText('My Token 2')).toBeInTheDocument();
+    expect(screen.getByText('never used')).toBeInTheDocument();
+
     expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();

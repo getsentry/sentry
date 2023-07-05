@@ -5,10 +5,12 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, OrgAuthToken, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
@@ -80,10 +82,12 @@ export function OrganizationAuthTokensAuthTokenRow({
   token,
   revokeToken,
   projectLastUsed,
+  isProjectLoading,
 }: {
   isRevoking: boolean;
   organization: Organization;
   token: OrgAuthToken;
+  isProjectLoading?: boolean;
   projectLastUsed?: Project;
   revokeToken?: (token: OrgAuthToken) => void;
 }) {
@@ -109,11 +113,15 @@ export function OrganizationAuthTokensAuthTokenRow({
       </div>
 
       <LastUsedDate>
-        <LastUsed
-          dateLastUsed={token.dateLastUsed}
-          projectLastUsed={projectLastUsed}
-          organization={organization}
-        />
+        {isProjectLoading ? (
+          <Placeholder height="1.25em" />
+        ) : (
+          <LastUsed
+            dateLastUsed={token.dateLastUsed}
+            projectLastUsed={projectLastUsed}
+            organization={organization}
+          />
+        )}
       </LastUsedDate>
 
       <Actions>
@@ -161,6 +169,7 @@ const Actions = styled('div')`
 const LastUsedDate = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
 `;
 
 const NeverUsed = styled('div')`
