@@ -1195,7 +1195,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       display: 'releases',
     });
 
-    expect(eventView.getEventsAPIPayload({})).toEqual({
+    expect(eventView.getEventsAPIPayload(TestStubs.location())).toEqual({
       field: ['id'],
       per_page: 50,
       sort: '-id',
