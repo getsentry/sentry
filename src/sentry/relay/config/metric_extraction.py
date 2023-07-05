@@ -59,7 +59,7 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
 
     metrics: List[MetricSpec] = []
     for alert in alerts:
-        if metric := convert_alert_to_metric(alert.snuba_query):
+        if metric := convert_query_to_metric(alert.snuba_query):
             metrics.append(metric)
 
     if not metrics:
@@ -75,7 +75,12 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
     }
 
 
-def convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+    """
+    If the passed snuba_query is a valid query for on-demand metric extraction,
+    returns a MetricSpec for the query. Otherwise, returns None.
+    """
+
     try:
         spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
         if not spec:

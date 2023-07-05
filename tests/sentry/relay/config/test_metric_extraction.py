@@ -1,7 +1,7 @@
 from unittest.mock import ANY
 
 from sentry.incidents.models import AlertRule
-from sentry.relay.config.metric_extraction import convert_alert_to_metric
+from sentry.relay.config.metric_extraction import convert_query_to_metric
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 
@@ -16,13 +16,13 @@ def create_alert(query: str):
 def test_empty_query():
     alert = create_alert("")
 
-    assert convert_alert_to_metric(alert.snuba_query) is None
+    assert convert_query_to_metric(alert.snuba_query) is None
 
 
 def test_standard_metric_query():
     alert = create_alert("transaction:/my/api/url/")
 
-    assert convert_alert_to_metric(alert.snuba_query) is None
+    assert convert_query_to_metric(alert.snuba_query) is None
 
 
 def test_simple_query_count():
@@ -33,7 +33,7 @@ def test_simple_query_count():
     )
     alert = AlertRule(snuba_query=snuba_query)
 
-    metric = convert_alert_to_metric(alert.snuba_query)
+    metric = convert_query_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -48,7 +48,7 @@ def test_simple_query_count():
 
 def test_simple_query():
     alert = create_alert("transaction.duration:>=1000")
-    metric = convert_alert_to_metric(alert.snuba_query)
+    metric = convert_query_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -63,7 +63,7 @@ def test_simple_query():
 
 def test_or_boolean_condition():
     alert = create_alert("transaction.duration:>=100 OR transaction.duration:<1000")
-    metric = convert_alert_to_metric(alert.snuba_query)
+    metric = convert_query_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -84,7 +84,7 @@ def test_or_boolean_condition():
 
 def test_and_boolean_condition():
     alert = create_alert("release:foo transaction.duration:<10s")
-    metric = convert_alert_to_metric(alert.snuba_query)
+    metric = convert_query_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
@@ -105,7 +105,7 @@ def test_and_boolean_condition():
 
 def test_complex_and_condition():
     query = "geo.country_code:=AT http.method:=GET release:=a transaction.op:=b transaction.status:=aborted transaction.duration:>1s"
-    metric = convert_alert_to_metric(create_alert(query).snuba_query)
+    metric = convert_query_to_metric(create_alert(query).snuba_query)
 
     expected = {
         "category": "transaction",
