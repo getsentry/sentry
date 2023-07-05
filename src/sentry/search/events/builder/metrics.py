@@ -256,6 +256,11 @@ class MetricsQueryBuilder(QueryBuilder):
             granularity = 60
         return Granularity(granularity)
 
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Granularity]:
+        """This only is applicable to table queries, we can use multiple granularities across the time period, which
+        should improve performance"""
+        return [], self.granularity  # Not implemeted here yet, only in the spans queries for now
+
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -734,6 +739,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     where = self.where
                     offset = self.offset
                     referrer_suffix = "primary"
+
+                granularity_condition, new_granularity = self.resolve_split_granularity()
+                self.granularity = new_granularity
+                self.where += granularity_condition
 
                 query = Query(
                     match=query_details.entity,

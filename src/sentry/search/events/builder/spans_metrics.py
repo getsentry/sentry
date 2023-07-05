@@ -1,7 +1,17 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Op, Or
+from snuba_sdk import (
+    AliasedExpression,
+    And,
+    Column,
+    Condition,
+    CurriedFunction,
+    Granularity,
+    Op,
+    Or,
+)
 
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
@@ -9,6 +19,22 @@ from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
+
+
+def remove_minutes(timestamp, floor=True):
+    if floor:
+        return datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour)
+    else:
+        return datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour) + timedelta(
+            hours=1
+        )
+
+
+def remove_hours(timestamp, floor=True):
+    if floor:
+        return datetime(timestamp.year, timestamp.month, timestamp.day)
+    else:
+        return datetime(timestamp.year, timestamp.month, timestamp.day) + timedelta(days=1)
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
@@ -42,9 +68,64 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
         return super().resolve_metric_index(value)
 
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        if self.end is None or self.start is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
+
+        # Only split granularity when granularity is 1h or 1m
+        # This is cause if its 1d we're already as efficient as possible, but we could add 1d in the future if there are
+        # accuracy issues
+        if self.granularity.granularity == 86400:
+            return [], self.granularity
+        granularity = self.granularity.granularity
+        self.granularity = None
+
+        if granularity == 60:
+            rounding_function = remove_minutes
+            base_granularity = 1
+        elif granularity == 3600:
+            rounding_function = remove_hours
+            base_granularity = 2
+
+        if rounding_function(self.start, False) > rounding_function(self.end):
+            return [], Granularity(granularity)
+        timestamp = self.column("timestamp")
+        granularity = Column("granularity")
+        return [
+            Or(
+                [
+                    And(
+                        [
+                            Or(
+                                [
+                                    Condition(timestamp, Op.GTE, rounding_function(self.end)),
+                                    Condition(
+                                        timestamp, Op.LT, rounding_function(self.start, False)
+                                    ),
+                                ]
+                            ),
+                            Condition(granularity, Op.EQ, base_granularity),
+                        ]
+                    ),
+                    And(
+                        [
+                            Condition(timestamp, Op.GTE, rounding_function(self.start, False)),
+                            # This op is LT not LTE, here's an example why; a query is from 11:45 to 15:45
+                            # if an event happened at 15:02, its caught by the above condition in the 1min bucket at
+                            # 15:02, but its also caught at the 1hr bucket at 15:00
+                            Condition(timestamp, Op.LT, rounding_function(self.end)),
+                            Condition(granularity, Op.EQ, base_granularity + 1),
+                        ]
+                    ),
+                ]
+            )
+        ], None
+
 
 class TimeseriesSpansMetricsQueryBuilder(SpansMetricsQueryBuilder, TimeseriesMetricQueryBuilder):
-    pass
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for timeseries"""
+        return [], self.granularity
 
 
 class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
