@@ -168,7 +168,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             self.check_domain_name(self.default_identity)
 
         if self.org_integration is None:
-            raise Exception("self.self.org_integration is not defined")
+            raise Exception("self.org_integration is not defined")
         if self.org_integration.default_auth_id is None:
             raise Exception("self.org_integration.default_auth_id is not defined")
         return VstsApiClient(
