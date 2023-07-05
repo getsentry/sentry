@@ -5,7 +5,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GetScopeTestCase(TestCase):
     def setUp(self) -> None:
         self.user = self.create_user()
