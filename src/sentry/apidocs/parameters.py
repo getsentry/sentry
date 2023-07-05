@@ -376,5 +376,7 @@ class TeamParams:
         location="query",
         required=False,
         type=str,
-        description='Specify "0" to return team details that do not include projects.',
+        description="""
+Specify `"0"` to return team details that do not include projects.
+""",
     )
