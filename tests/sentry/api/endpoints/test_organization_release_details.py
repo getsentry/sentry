@@ -20,9 +20,11 @@ from sentry.models import (
     ReleaseStatus,
     Repository,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 @region_silo_test(stable=True)
@@ -1028,6 +1030,69 @@ class UpdateReleaseDetailsTest(APITestCase):
             type=ActivityType.RELEASE.value, project=project, ident=release.version[:64]
         )
         assert activity.exists()
+
+    def test_org_auth_token(self):
+        org = self.organization
+
+        with exempt_from_silo_limits():
+            good_token_str = generate_token(org.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=org.id,
+                name="token 1",
+                token_hashed=hash_token(good_token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        repo = Repository.objects.create(
+            organization_id=org.id, name="example/example", provider="dummy"
+        )
+
+        team1 = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team1], organization=org)
+
+        base_release = Release.objects.create(organization_id=org.id, version="000000000")
+        base_release.add_project(project)
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": base_release.version},
+        )
+        self.client.put(
+            url,
+            data={
+                "ref": "master",
+                "headCommits": [
+                    {"currentId": "0" * 40, "repository": repo.name},
+                ],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.put(
+            url,
+            data={
+                "ref": "master",
+                "refs": [
+                    {"commit": "a" * 40, "repository": repo.name},
+                ],
+            },
+            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["version"] == release.version
+
+        release = Release.objects.get(id=release.id)
+        assert release.ref == "master"
 
 
 @region_silo_test(stable=True)

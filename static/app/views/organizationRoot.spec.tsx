@@ -9,7 +9,7 @@ jest.mock('sentry/actionCreators/projects', () => ({
 
 describe('OrganizationRoot', function () {
   it('sets active project as null when mounted', function () {
-    render(<OrganizationRoot location={{}}>{null}</OrganizationRoot>);
+    render(<OrganizationRoot>{null}</OrganizationRoot>);
 
     expect(setActiveProject).toHaveBeenCalledWith(null);
   });
