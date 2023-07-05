@@ -1334,6 +1334,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
