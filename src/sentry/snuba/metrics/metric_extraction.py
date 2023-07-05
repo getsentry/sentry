@@ -133,9 +133,19 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+def is_on_demand_metric(snuba_query: SnubaQuery) -> bool:
+    return (
+        snuba_query.dataset == Dataset.PerformanceMetrics.value
+        and "transaction.duration" in snuba_query.query
+    )
+
+
 @dataclass(frozen=True)
 class OndemandMetricSpec:
-    _field: str
+    """
+    Contains the information required to query or extract an on-demand metric.
+    """
+
     _query: str
 
     field: Optional[str]
@@ -150,13 +160,23 @@ class OndemandMetricSpec:
 
     @classmethod
     def parse(cls, field: str, query: str) -> Optional["OndemandMetricSpec"]:
+        """
+        Parses a selected column and query into an on demand metric spec containing the MRI, field and op.
+        Currents supports only one selected column.
+
+        Has two main uses:
+        1. Querying on-demand metrics.
+        2. Generation of rules for on-demand metric extraction.
+
+        Returns ``None`` if passed params do not require an on-demand metric.
+        """
+
         if not cls.check(field, query):
             return None
 
         relay_field, metric_type, op = _extract_field_info(field)
 
         return cls(
-            _field=field,
             _query=query,
             field=relay_field,
             metric_type=metric_type,
@@ -165,11 +185,15 @@ class OndemandMetricSpec:
         )
 
     def query_hash(self) -> str:
+        """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
+
         # TODO: Figure out how to support multiple fields and different but equivalent queries
         str_to_hash = f"{self.field};{self._query}"
         return hashlib.shake_128(bytes(str_to_hash, encoding="ascii")).hexdigest(4)
 
     def condition(self) -> RuleCondition:
+        """Returns a condition that should be fulfilled for the on-demand metric to be extracted."""
+
         where, having = _get_query_builder().resolve_conditions(self._query, False)
 
         assert where, "Query should not use on demand metrics"
@@ -235,11 +259,4 @@ def _get_query_builder():
         dataset=Dataset.Transactions,
         # start and end parameters are required, but not used
         params={"start": datetime.now(), "end": datetime.now()},
-    )
-
-
-def is_on_demand_metric(snuba_query: SnubaQuery) -> bool:
-    return (
-        snuba_query.dataset == Dataset.PerformanceMetrics.value
-        and "transaction.duration" in snuba_query.query
     )
