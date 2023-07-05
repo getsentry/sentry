@@ -178,7 +178,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.WORLD_MAP,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: ['count()'],
               aggregates: ['count()'],
               columns: [],
@@ -213,7 +213,7 @@ describe('Dashboards > WidgetCard', function () {
           ...multipleQueryWidget,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: [
                 'equation|(count() + failure_count()) / count_if(transaction.duration,equals,300)',
               ],
@@ -253,7 +253,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.TOP_N,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               fields: ['transaction', 'count()'],
               columns: ['transaction'],
               aggregates: ['count()'],
@@ -289,7 +289,7 @@ describe('Dashboards > WidgetCard', function () {
           displayType: DisplayType.LINE,
           queries: [
             {
-              ...multipleQueryWidget.queries[0],
+              ...multipleQueryWidget.queries[0]!,
               conditions: '',
               fields: [],
               columns: [],

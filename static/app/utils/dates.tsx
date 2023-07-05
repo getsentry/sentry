@@ -71,9 +71,9 @@ export function setDateToTime(
   const date = new Date(+dateObj);
 
   if (local) {
-    date.setHours(hours, minutes);
+    date.setHours(hours!, minutes);
   } else {
-    date.setUTCHours(hours, minutes);
+    date.setUTCHours(hours!, minutes);
   }
 
   if (typeof seconds !== 'undefined') {
@@ -178,7 +178,7 @@ export function intervalToMilliseconds(interval: string): number {
     h: 60 * 60,
     m: 60,
   };
-  return parseInt(value, 10) * multipliers[unit]! * 1000;
+  return parseInt(value!, 10) * multipliers[unit!]! * 1000;
 }
 
 /**
@@ -194,7 +194,7 @@ export function parsePeriodToHours(str: string): number {
 
   const {period, periodLength} = result;
 
-  const periodNumber = parseInt(period, 10);
+  const periodNumber = parseInt(period!, 10);
 
   switch (periodLength) {
     case 's':

@@ -29,7 +29,7 @@ const ACTION_1_DEBUG = {
         value: 0,
       },
     }),
-  ])[0],
+  ])[0]!,
   html: '<div class="css-vruter e1weinmj3">HTTP 400 (invalid_grant): The provided authorization grant is invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.</div>',
   timestamp: 1663691559961,
 };
@@ -42,7 +42,7 @@ const ACTION_2_CLICK = {
         nodeId: 424,
       },
     }),
-  ])[0],
+  ])[0]!,
   html: '<span aria-describedby="tooltip-nxf8deymg3" class="css-507rzt e1lk5gpt0">Ignored <span type="default" class="css-2uol17 e1gotaso0"><span><!-- 1 descendents --></span></span></span>',
   timestamp: 1663691570812,
 };
@@ -55,7 +55,7 @@ const ACTION_3_CLICK = {
         nodeId: 9304,
       },
     }),
-  ])[0],
+  ])[0]!,
   html: '<div class="loadmore" style="display: block;">Load more..</div>',
   timestamp: 1663691634529,
 };

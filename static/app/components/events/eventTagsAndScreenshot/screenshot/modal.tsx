@@ -136,11 +136,11 @@ function Modal({
       previousDisabled: currentAttachmentIndex === 0,
       nextDisabled: currentAttachmentIndex === memoizedAttachments.length - 1,
       onPrevious: () => {
-        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]);
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex - 1]!);
         setCurrentAttachmentIndex(currentAttachmentIndex - 1);
       },
       onNext: () => {
-        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]);
+        setCurrentAttachment(memoizedAttachments[currentAttachmentIndex + 1]!);
         setCurrentAttachmentIndex(currentAttachmentIndex + 1);
       },
       headerText: tct('[currentScreenshotIndex] of [totalScreenshotCount]', {

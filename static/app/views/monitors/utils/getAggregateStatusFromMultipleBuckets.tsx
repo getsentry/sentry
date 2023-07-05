@@ -18,6 +18,6 @@ export function getAggregateStatusFromMultipleBuckets(
         CHECKIN_STATUS_PRECEDENT.indexOf(aggregateStatus)
           ? currentStatus
           : aggregateStatus,
-      CHECKIN_STATUS_PRECEDENT[0]
+      CHECKIN_STATUS_PRECEDENT[0]!
     );
 }

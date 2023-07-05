@@ -9,7 +9,10 @@ const formatMinutes = (value: number | '') => {
   return tn('%s minute', '%s minutes', value);
 };
 
-export const fields: {[key: string]: Field} = {
+export const fields: Record<
+  'subjectTemplate' | 'digestsMinDelay' | 'digestsMaxDelay',
+  Field
+> = {
   subjectTemplate: {
     name: 'subjectTemplate',
     type: 'string',

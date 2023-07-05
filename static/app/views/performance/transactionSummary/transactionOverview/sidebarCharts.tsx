@@ -99,7 +99,7 @@ function SidebarCharts({
           data-test-id="apdex-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals['apdex()'], 4) : null}
+          value={totals ? formatFloat(totals['apdex()']!, 4) : null}
         />
       </ChartLabel>
 
@@ -116,7 +116,7 @@ function SidebarCharts({
           data-test-id="failure-rate-summary-value"
           isLoading={isLoading}
           error={error}
-          value={totals ? formatPercentage(totals['failure_rate()']) : null}
+          value={totals ? formatPercentage(totals['failure_rate()']!) : null}
         />
       </ChartLabel>
 

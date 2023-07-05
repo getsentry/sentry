@@ -155,7 +155,7 @@ function TagFacetsDistributionMeter({
               {value.isOther ? (
                 <OtherSegment
                   aria-label={t('Other segment')}
-                  color={colors[colors.length - 1]}
+                  color={colors[colors.length - 1]!}
                 />
               ) : (
                 <Segment
@@ -205,7 +205,7 @@ function TagFacetsDistributionMeter({
                     onMouseLeave={() => setHoveredValue(null)}
                   >
                     <LegendDot
-                      color={colors[segment.isOther ? colors.length - 1 : index]}
+                      color={colors[segment.isOther ? colors.length - 1 : index]!}
                       focus={focus}
                     />
                     <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>

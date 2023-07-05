@@ -282,7 +282,7 @@ function RenderBlockingAssetSpanEvidence({
   orgSlug,
   projectSlug,
 }: SpanEvidenceKeyValueListProps) {
-  const offendingSpan = offendingSpans[0]; // For render-blocking assets, there is only one offender
+  const offendingSpan = offendingSpans[0]!; // For render-blocking assets, there is only one offender
 
   return (
     <PresortedKeyValueList
@@ -507,7 +507,7 @@ function formatChangingQueryParameters(spans: Span[], baseURL?: string): string[
 
   const pairs: string[] = [];
   for (const key in allQueryParameters) {
-    const values = allQueryParameters[key];
+    const values = allQueryParameters[key]!;
 
     // By definition, if the parameter only has one value that means it's not
     // changing between calls, so omit it!
@@ -545,7 +545,7 @@ export const extractSpanURLString = (span: Span, baseURL?: string): URL | null =
   URLString = _url;
 
   try {
-    return new URL(_url, baseURL);
+    return new URL(_url!, baseURL);
   } catch (e) {
     // Ignore error
   }

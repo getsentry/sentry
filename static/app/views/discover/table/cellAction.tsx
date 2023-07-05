@@ -163,7 +163,7 @@ function makeCellActions({
     return null;
   }
 
-  let value = dataRow[column.name];
+  let value = dataRow[column.name]!;
 
   // error.handled is a strange field where null = true.
   if (

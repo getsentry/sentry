@@ -36,8 +36,8 @@ class Container extends Component<Props> {
   getChartParameters() {
     const {location, organization} = this.props;
     const options = getAxisOptions(organization);
-    const left = options.find(opt => opt.value === location.query.left) || options[0];
-    const right = options.find(opt => opt.value === location.query.right) || options[1];
+    const left = options.find(opt => opt.value === location.query.left) || options[0]!;
+    const right = options.find(opt => opt.value === location.query.right) || options[1]!;
 
     return [left, right];
   }

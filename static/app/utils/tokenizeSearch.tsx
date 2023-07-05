@@ -137,7 +137,7 @@ export class MutableSearch {
 
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
-    this.addFilterValues(key, [value], shouldEscape);
+    this.addFilterValues(key!, [value!], shouldEscape);
     return this;
   }
 
@@ -193,7 +193,7 @@ export class MutableSearch {
         }
 
         for (let i = 0; i < this.tokens.length; i++) {
-          const token = this.tokens[i];
+          const token = this.tokens[i]!;
           const prev = this.tokens[i - 1];
           const next = this.tokens[i + 1];
           if (isOp(token) && isBooleanOp(token.value)) {
@@ -335,8 +335,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteEnclosed = false;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
-    const char = queryChars[idx];
-    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1] : null;
+    const char = queryChars[idx]!;
+    const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {

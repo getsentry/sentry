@@ -59,7 +59,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
   const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0]! ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
 
   if (endpointMethod && queryFilter) {
@@ -97,7 +97,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   const spanMetricsThroughputSeries = {
     seriesName: span?.['span.op']?.startsWith('db') ? 'Queries' : 'Requests',
-    data: spanMetricsSeriesData?.['sps()'].data,
+    data: spanMetricsSeriesData?.['sps()']!.data,
   };
 
   const title = getDescriptionLabel(location, span, true);
@@ -216,7 +216,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <Chart
                         statsPeriod="24h"
                         height={140}
-                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]}
+                        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]!]}
                         start=""
                         end=""
                         loading={areSpanMetricsSeriesLoading}

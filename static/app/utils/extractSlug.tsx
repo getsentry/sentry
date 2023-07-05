@@ -13,7 +13,7 @@ const KNOWN_DOMAINS = /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\
  * If the host is not a known development host null is returned.
  */
 export function extractSlug(hostname: string): ExtractedSlug | null {
-  const match = hostname.match(KNOWN_DOMAINS);
+  const match = hostname.match(KNOWN_DOMAINS) as null | [string, string];
   if (!match) {
     return null;
   }
@@ -26,5 +26,5 @@ export function extractSlug(hostname: string): ExtractedSlug | null {
   const [slug, ...domainParts] = hostname.replace(matchedExpression, '').split('.');
   const domain = domainParts.concat(matchedDomain).join('.');
 
-  return {slug, domain};
+  return {slug: slug!, domain};
 }

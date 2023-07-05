@@ -66,7 +66,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const {ContainerActions, organization, InteractiveTitle} = props;
   const pageError = usePageError();
 
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   if (props.fields.length !== 1) {
     throw new Error(

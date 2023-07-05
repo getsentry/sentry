@@ -33,8 +33,8 @@ function stacksWithWeights(
   return profile.samples.map((stack, index) => {
     return {
       stack: frameFilter ? stack.filter(frameFilter) : stack,
-      weight: profile.weights[index],
-      profileIds: profileIds[index],
+      weight: profile.weights[index]!,
+      profileIds: profileIds[index]!,
     };
   });
 }
@@ -132,15 +132,16 @@ export class SampledProfile extends Profile {
         // and when that happens, we do not want to enter this case as the GC will already
         // be placed at the top of the previous stack and the new stack length will be > 2
         stack.length <= 2 &&
-        frameIndex[stack[stack.length - 1]]?.name === '(garbage collector) [native code]';
+        frameIndex[stack[stack.length - 1]!]?.name ===
+          '(garbage collector) [native code]';
 
       if (isGCStack) {
         // The next stack we will process will be the previous stack + our new gc frame.
         // We write the GC frame on top of the previous stack and set the size to the new stack length.
         frame = resolveFrame(stack[stack.length - 1]);
         if (frame) {
-          resolvedStack[samples[i - 1].stack.length] =
-            frameIndex[stack[stack.length - 1]];
+          resolvedStack[samples[i - 1]!.stack.length] =
+            frameIndex[stack[stack.length - 1]!]!;
           size += 1; // size of previous stack + new gc frame
 
           // Now collect all weights of all the consecutive gc frames and skip the samples
@@ -151,11 +152,11 @@ export class SampledProfile extends Profile {
             // There is a good chance that this logic will at some point live on the backend
             // and when that happens, we do not want to enter this case as the GC will already
             // be placed at the top of the previous stack and the new stack length will be > 2
-            samples[i + 1].stack.length <= 2 &&
-            frameIndex[samples[i + 1].stack[samples[i + 1].stack.length - 1]]?.name ===
+            samples[i + 1]!.stack.length <= 2 &&
+            frameIndex[samples[i + 1]!.stack[samples[i + 1]!.stack.length - 1]!]?.name ===
               '(garbage collector) [native code]'
           ) {
-            weight += samples[++i].weight;
+            weight += samples[++i]!.weight;
           }
         }
       } else {
@@ -223,7 +224,7 @@ export class SampledProfile extends Profile {
     const framesInStack: CallTreeNode[] = [];
 
     for (let i = 0; i < end; i++) {
-      const frame = stack[i];
+      const frame = stack[i]!;
       const last = node.children[node.children.length - 1];
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {

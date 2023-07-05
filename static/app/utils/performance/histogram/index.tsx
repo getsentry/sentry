@@ -43,7 +43,7 @@ class Histogram extends Component<Props> {
     const dataFilter = location.query.dataFilter
       ? decodeScalar(location.query.dataFilter)
       : FILTER_OPTIONS[0]!.value;
-    return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0];
+    return FILTER_OPTIONS.find(item => item.value === dataFilter) || FILTER_OPTIONS[0]!;
   }
 
   handleFilterChange = (value: string) => {

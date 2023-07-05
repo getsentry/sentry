@@ -60,7 +60,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = (breadcrumbs || [])[index];
+    const item = (breadcrumbs || [])[index]!;
 
     return (
       <CellMeasurer

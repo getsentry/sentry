@@ -226,7 +226,7 @@ function ActionSet({
       {selectedProjectSlug ? (
         <Projects orgId={organization.slug} slugs={[selectedProjectSlug]}>
           {({projects, initiallyLoaded, fetchError}) => {
-            const selectedProject = projects[0];
+            const selectedProject = projects[0]!;
             return (
               <ResolveActions
                 onShouldConfirm={onShouldConfirm}

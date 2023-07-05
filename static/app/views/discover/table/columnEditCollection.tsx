@@ -316,7 +316,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isFixedIssueColumn = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const issueFieldColumnCount = columns.filter(
       col => col.kind === 'field' && col.field === FieldKey.ISSUE
     ).length;
@@ -330,7 +330,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
   isRemainingReleaseHealthAggregate = (columnIndex: number) => {
     const {source, columns} = this.props;
-    const column = columns[columnIndex];
+    const column = columns[columnIndex]!;
     const aggregateCount = columns.filter(
       col => col.kind === FieldValueKind.FUNCTION
     ).length;
@@ -390,7 +390,7 @@ class ColumnEditCollection extends Component<Props, State> {
 
     const top = Number(this.state.top) - dragOffsetY;
     const left = Number(this.state.left) - dragOffsetX;
-    const col = this.props.columns[index];
+    const col = this.props.columns[index]!;
 
     const style = {
       top: `${top}px`,

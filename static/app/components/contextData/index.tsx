@@ -139,7 +139,7 @@ function walk({
   keys.sort(naturalCaseInsensitiveSort);
 
   for (i = 0; i < keys.length; i++) {
-    const key = keys[i];
+    const key = keys[i]!;
 
     children.push(
       <span className="val-dict-pair" key={key}>

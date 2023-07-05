@@ -116,7 +116,7 @@ describe('SearchBarAction', () => {
   });
 
   it('With Option Type only', async () => {
-    const typeOptions = options[0];
+    const typeOptions = options[0]!;
     render(
       <SearchBarAction
         filterOptions={[typeOptions]}
@@ -152,7 +152,7 @@ describe('SearchBarAction', () => {
   });
 
   it('With Option Level only', async () => {
-    const levelOptions = options[1];
+    const levelOptions = options[1]!;
     render(
       <SearchBarAction
         filterOptions={[levelOptions]}

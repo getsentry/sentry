@@ -28,7 +28,7 @@ describe('projectPerformance', function () {
     router,
     location: TestStubs.location(),
     routes: router.routes,
-    route: router.routes[0],
+    route: router.routes[0]!,
     routeParams: router.params,
   };
 
@@ -247,7 +247,7 @@ describe('projectPerformance', function () {
       ).toBeInTheDocument();
       expect(screen.getByText(title)).toBeInTheDocument();
 
-      const slider = screen.getAllByRole('slider')[sliderIndex];
+      const slider = screen.getAllByRole('slider')[sliderIndex]!;
       const indexOfValue = allowedValues.indexOf(defaultValue);
 
       // The value of the slider should be equal to the index

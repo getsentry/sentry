@@ -154,7 +154,7 @@ function MonitorStats({monitor, monitorEnvs, orgId}: Props) {
             useShortDate
             series={[duration]}
             height={height}
-            colors={[theme.charts.colors[0]!]}
+            colors={[theme.charts.colors![0]!]}
             yAxis={getYAxisOptions('duration')}
             grid={{
               top: 6,

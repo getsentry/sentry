@@ -253,7 +253,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         transaction={
           profileTransaction.type === 'resolved' ? profileTransaction.data : null
         }
-        projectId={params.projectId}
+        projectId={params.projectId!}
         profileGroup={props.profileGroup}
       />
 

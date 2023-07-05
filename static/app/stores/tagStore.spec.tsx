@@ -66,7 +66,7 @@ describe('TagStore', function () {
 
       const tags = TagStore.getIssueAttributes(TestStubs.Organization());
       expect(tags.is).toBeTruthy();
-      expect(tags.is.key).toBe('is');
+      expect(tags.is!.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
     });
 
@@ -81,8 +81,8 @@ describe('TagStore', function () {
       const tags = TagStore.getIssueAttributes(
         TestStubs.Organization({features: ['escalating-issues']})
       );
-      expect(tags.is.values).toContain('archived');
-      expect(tags.is.values).not.toContain('ignored');
+      expect(tags.is!.values).toContain('archived');
+      expect(tags.is!.values).not.toContain('ignored');
     });
   });
 
@@ -99,15 +99,15 @@ describe('TagStore', function () {
 
       // state
       expect(tags.mytag).toBeTruthy();
-      expect(tags.mytag.key).toBe('mytag');
+      expect(tags.mytag!.key).toBe('mytag');
 
       // attribute
       expect(tags.has).toBeTruthy();
-      expect(tags.has.key).toBe('has');
+      expect(tags.has!.key).toBe('has');
 
       // built in
       expect(tags['device.family']).toBeTruthy();
-      expect(tags['device.family'].key).toBe('device.family');
+      expect(tags['device.family']!.key).toBe('device.family');
     });
   });
 });

@@ -178,7 +178,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[i] = {
-      ...nextColumnOrder[i],
+      ...nextColumnOrder[i]!,
       width: COL_WIDTH_UNDEFINED,
     };
     this.setGridTemplateColumns(nextColumnOrder);
@@ -186,7 +186,7 @@ class GridEditable<
     const onResizeColumn = this.props.grid!.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
-        ...nextColumnOrder[i],
+        ...nextColumnOrder[i]!,
         width: COL_WIDTH_UNDEFINED,
       });
     }
@@ -229,7 +229,7 @@ class GridEditable<
       const widthChange = e.clientX - metadata.cursorX;
 
       onResizeColumn(metadata.columnIndex, {
-        ...columnOrder[metadata.columnIndex],
+        ...columnOrder[metadata.columnIndex]!,
         width: metadata.columnWidth + widthChange,
       });
     }
@@ -257,7 +257,7 @@ class GridEditable<
 
     const nextColumnOrder = [...this.props.columnOrder];
     nextColumnOrder[metadata.columnIndex] = {
-      ...nextColumnOrder[metadata.columnIndex],
+      ...nextColumnOrder[metadata.columnIndex]!,
       width: Math.max(metadata.columnWidth + widthChange, 0),
     };
 

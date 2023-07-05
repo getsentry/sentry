@@ -155,7 +155,7 @@ function DurationChart({
         onClick={handleChartClick}
         onHighlight={handleChartHighlight}
         aggregateOutputFormat="duration"
-        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`], baselineP95Series]}
+        data={[spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]!, baselineP95Series]}
         start=""
         end=""
         loading={isLoading}

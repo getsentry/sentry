@@ -358,12 +358,12 @@ class UsageStatsOrganization<
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)'];
+          count.total += group.totals['sum(quantity)']!;
         }
 
-        count[outcome]! += group.totals['sum(quantity)'];
+        count[outcome!]! += group.totals['sum(quantity)'];
 
-        group.series['sum(quantity)'].forEach((stat, i) => {
+        group.series['sum(quantity)']!.forEach((stat, i) => {
           switch (outcome) {
             case Outcome.ACCEPTED:
             case Outcome.FILTERED:

@@ -106,7 +106,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const dataByGroup = {[label]: data};
 
   const throughputTimeSeries = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
+    const groupData = dataByGroup[groupName]!;
 
     return {
       seriesName: label ?? 'Throughput',
@@ -158,7 +158,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const dataByGroup = {[label]: data};
 
   const p95Series = Object.keys(dataByGroup).map(groupName => {
-    const groupData = dataByGroup[groupName];
+    const groupData = dataByGroup[groupName]!;
 
     return {
       seriesName: label,

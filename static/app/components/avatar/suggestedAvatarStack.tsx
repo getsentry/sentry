@@ -28,7 +28,7 @@ function SuggestedAvatarStack({
     <AvatarStack reverse={reverse} data-test-id="suggested-avatar-stack">
       {suggestedOwners.slice(0, numAvatars - 1).map((owner, i) => (
         <Avatar
-          round={firstSuggestion.type === 'user'}
+          round={firstSuggestion!.type === 'user'}
           actor={owner}
           hasTooltip={false}
           {...props}
@@ -39,7 +39,7 @@ function SuggestedAvatarStack({
         />
       ))}
       <Avatar
-        actor={firstSuggestion}
+        actor={firstSuggestion!}
         tooltip={tooltip}
         tooltipOptions={{...tooltipOptions, skipWrapper: true}}
         {...props}

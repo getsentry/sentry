@@ -78,23 +78,23 @@ const transformAnomalyData = (
 
   data.push({
     seriesName: 'tpm()',
-    data: resultData.y.data!.map(([name, [{count}]]) => ({
-      name,
-      value: count,
+    data: resultData.y.data!.map(datum => ({
+      name: datum[0],
+      value: datum[1][0]!.count,
     })),
   });
   data.push({
     seriesName: 'tpm() lower bound',
-    data: resultData.yhat_lower.data!.map(([name, [{count}]]) => ({
-      name,
-      value: count,
+    data: resultData.yhat_lower.data!.map(datum => ({
+      name: datum[0],
+      value: datum[1][0]!.count,
     })),
   });
   data.push({
     seriesName: 'tpm() upper bound',
-    data: resultData.yhat_upper.data!.map(([name, [{count}]]) => ({
-      name,
-      value: count,
+    data: resultData.yhat_upper.data!.map(datum => ({
+      name: datum[0],
+      value: datum[1][0]!.count,
     })),
   });
 
@@ -191,7 +191,7 @@ type DataType = {
 
 function Anomalies(props: AnomaliesSectionProps) {
   const height = 250;
-  const chartColor = theme.charts.colors[0]!;
+  const chartColor = theme.charts.colors![0]!;
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
     return {

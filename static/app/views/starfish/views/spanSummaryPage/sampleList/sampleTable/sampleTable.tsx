@@ -99,7 +99,7 @@ function SampleTable({
             return {
               ...sample,
               op: spanMetrics['span.op'],
-              transaction: transactionsById[sample['transaction.id']],
+              transaction: transactionsById[sample['transaction.id']]!,
             };
           })}
           isLoading={isLoading}

@@ -377,7 +377,7 @@ class AsyncComponent<
     const urlOrDefault = url || (firstEndpoint && firstEndpoint[1]);
     return (
       <AsyncComponentSearchInput
-        url={urlOrDefault}
+        url={urlOrDefault!}
         {...props}
         api={this.api}
         onSuccess={(data, resp) => {

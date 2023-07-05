@@ -104,7 +104,7 @@ class SpanTree {
     const MISSING_INSTRUMENTATION_THRESHOLD_S = 0.1;
 
     for (let i = 0; i < spansSortedByStartTime.length; i++) {
-      const span = spansSortedByStartTime[i];
+      const span = spansSortedByStartTime[i]!;
       let parent = this.root;
 
       while (parent.contains(span)) {
@@ -130,7 +130,7 @@ class SpanTree {
         if (
           parent.children.length > 0 &&
           span.start_timestamp -
-            parent.children[parent.children.length - 1].span.timestamp >
+            parent.children[parent.children.length - 1]!.span.timestamp >
             MISSING_INSTRUMENTATION_THRESHOLD_S
         ) {
           parent.children.push(
@@ -139,7 +139,7 @@ class SpanTree {
                 description: t('Missing span instrumentation'),
                 op: 'missing span instrumentation',
                 start_timestamp:
-                  parent.children[parent.children.length - 1].span.timestamp,
+                  parent.children[parent.children.length - 1]!.span.timestamp,
                 timestamp: span.start_timestamp,
                 span_id: uuid4(),
                 data: {},

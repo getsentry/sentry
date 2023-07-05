@@ -86,7 +86,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   const patternLength = pattern.length;
 
   for (let index = 0; index < textLength; index++) {
-    let char = text[index];
+    let char = text[index]!;
     // This is considerably faster than blindly applying strings.ToLower to the whole string
     if (!caseSensitive) {
       const cc = char.charCodeAt(0);
@@ -115,7 +115,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   pidx--;
 
   for (let index = eidx - 1; index >= sidx; index--) {
-    let char = text[index];
+    let char = text[index]!;
     // This is considerably faster than blindly applying strings.ToLower to the whole string
     if (!caseSensitive) {
       const cc = char.charCodeAt(0);
@@ -243,7 +243,7 @@ function calculateScore(
   // iterate over all positions and check for overlaps from current and end of last
   // range. Positions are already sorted by match index, we can just check the last range.
   for (let i = 1; i < pos.length; i++) {
-    const lastrange = matches[matches.length - 1];
+    const lastrange = matches[matches.length - 1]!;
     // if last range ends where new range stars, we can extend it
     if (lastrange[1] === pos[i]!) {
       lastrange[1] = pos[i]! + 1;

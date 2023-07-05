@@ -149,7 +149,7 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
               {activeId ? (
                 <Ghost>
                   <QueryField
-                    value={columns[Number(activeId)]}
+                    value={columns[Number(activeId)]!}
                     fieldOptions={{
                       ...filteredFieldOptions,
                       ...columnsAsFieldOptions[Number(activeId)],

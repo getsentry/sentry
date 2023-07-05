@@ -110,7 +110,7 @@ function getFetchDataRequestErrorType(status?: number | null): Error {
 }
 
 function getCurrentTab({router}: {router: RouteProps['router']}) {
-  const currentRoute = router.routes[router.routes.length - 1];
+  const currentRoute = router.routes[router.routes.length - 1]!;
 
   // If we're in the tag details page ("/tags/:tagKey/")
   if (router.params.tagKey) {

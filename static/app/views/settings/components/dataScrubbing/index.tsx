@@ -80,7 +80,7 @@ export function DataScrubbing({
       modalProps => (
         <Edit
           {...modalProps}
-          rule={rules[params.scrubbingId]!}
+          rule={rules[params.scrubbingId!]!}
           projectId={project?.id}
           savedRules={rules}
           api={api}

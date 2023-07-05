@@ -275,7 +275,7 @@ function WidgetViewerModal(props: Props) {
 
   // Create Table widget
   const tableWidget = {
-    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
+    ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]!]}),
     displayType: DisplayType.TABLE,
   };
   const {aggregates, columns} = tableWidget.queries[0]!;

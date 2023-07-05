@@ -26,7 +26,7 @@ function TeamDetails({children}: Props) {
   const params = useParams();
   const orgSlug = useOrganization().slug;
   const [requesting, setRequesting] = useState(false);
-  const {teams, initiallyLoaded} = useTeams({slugs: [params.teamId]});
+  const {teams, initiallyLoaded} = useTeams({slugs: [params.teamId!]});
   const team = teams.find(({slug}) => slug === params.teamId);
 
   function handleRequestAccess(teamSlug: string) {

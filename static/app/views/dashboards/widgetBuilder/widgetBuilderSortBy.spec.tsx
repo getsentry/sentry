@@ -867,7 +867,7 @@ describe('WidgetBuilder', function () {
     });
 
     const projectElements = screen.getAllByText('project');
-    await selectEvent.select(projectElements[projectElements.length - 1], 'count()');
+    await selectEvent.select(projectElements[projectElements.length - 1]!, 'count()');
 
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledWith(

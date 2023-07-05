@@ -355,26 +355,26 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         const {outcome, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
-        if (!projectSet.has(projectId.toString())) {
+        if (!projectSet.has(projectId!.toString())) {
           return;
         }
 
-        if (!stats[projectId]!) {
-          stats[projectId] = {...baseStat};
+        if (!stats[projectId!]!) {
+          stats[projectId!] = {...baseStat};
         }
 
         if (outcome !== Outcome.CLIENT_DISCARD) {
-          stats[projectId]!.total += group.totals['sum(quantity)'];
+          stats[projectId!]!.total += group.totals['sum(quantity)'];
         }
 
         if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-          stats[projectId]![outcome] += group.totals['sum(quantity)'];
+          stats[projectId!]![outcome] += group.totals['sum(quantity)'];
         } else if (
           outcome === Outcome.RATE_LIMITED ||
           outcome === Outcome.INVALID ||
           outcome === Outcome.DROPPED
         ) {
-          stats[projectId]![SortBy.DROPPED] += group.totals['sum(quantity)'];
+          stats[projectId!]![SortBy.DROPPED] += group.totals['sum(quantity)'];
         }
       });
 

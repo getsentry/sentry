@@ -31,7 +31,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
 ) {
   // Use object keyed to chart setting so switching between charts of a similar type doesn't retain data with query components still having inflight requests.
   const [allWidgetData, setWidgetData] = useState<{[chartSetting: string]: T}>({});
-  const widgetData = allWidgetData[props.chartSetting] ?? {};
+  const widgetData = allWidgetData[props.chartSetting]! ?? {};
   const widgetDataRef = useRef(widgetData);
 
   const setWidgetDataForKey = useCallback(
@@ -48,7 +48,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
     (dataKey: string) => {
       const _widgetData = widgetDataRef.current;
       const newWidgetData = {..._widgetData};
-      delete newWidgetData[dataKey]!;
+      delete newWidgetData[dataKey];
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },

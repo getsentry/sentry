@@ -104,7 +104,7 @@ function ContextSummary({event}: Props) {
       data,
       unknownTitle,
       omitUnknownVersion,
-      meta: event._meta?.contexts?.[key] ?? {},
+      meta: event._meta?.contexts?.[key!] ?? {},
     };
 
     return <Component key={key} {...props} />;

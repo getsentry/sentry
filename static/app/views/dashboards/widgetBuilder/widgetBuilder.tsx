@@ -275,7 +275,7 @@ function WidgetBuilder({
     }
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum]!;
 
       let queries;
       let newDisplayType = widgetFromDashboard.displayType;

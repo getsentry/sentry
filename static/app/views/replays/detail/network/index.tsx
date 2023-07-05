@@ -109,7 +109,7 @@ function NetworkList({
         setDetailRow(String(dataIndex));
         setScrollToRow(rowIndex);
 
-        const item = items[dataIndex];
+        const item = items[dataIndex]!;
         trackAnalytics('replay.details-network-panel-opened', {
           is_sdk_setup: isNetworkDetailsSetup,
           organization,
@@ -123,7 +123,7 @@ function NetworkList({
   );
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
-    const network = items[rowIndex - 1];
+    const network = items[rowIndex - 1]!;
 
     return (
       <CellMeasurer

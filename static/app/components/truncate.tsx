@@ -82,7 +82,7 @@ class Truncate extends Component<Props, State> {
       } else if (trimRegex && !leftTrim) {
         const matches = slicedValue.match(trimRegex);
         let lastIndex = matches
-          ? slicedValue.lastIndexOf(matches[matches.length - 1]) + 1
+          ? slicedValue.lastIndexOf(matches[matches.length - 1]!) + 1
           : slicedValue.length;
         if (lastIndex <= minLength) {
           lastIndex = slicedValue.length;

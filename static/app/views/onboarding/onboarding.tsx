@@ -197,7 +197,7 @@ function Onboarding(props: Props) {
   const goNextStep = useCallback(
     (step: StepDescriptor, platform?: OnboardingSelectedSDK) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-      const nextStep = onboardingSteps[currentStepIndex + 1];
+      const nextStep = onboardingSteps[currentStepIndex + 1]!;
 
       if (nextStep.id === 'setup-docs' && !platform) {
         return;

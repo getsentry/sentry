@@ -85,7 +85,7 @@ function ExternalIssueActions({configurations, group, onChange}: Props) {
     <Fragment>
       {linked.map(config => {
         const {provider, externalIssues} = config;
-        const issue = externalIssues[0];
+        const issue = externalIssues[0]!;
         return (
           <IssueSyncListElement
             key={issue.id}

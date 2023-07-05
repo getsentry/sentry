@@ -180,7 +180,7 @@ export const getCurrentDefault = (
 ): string => {
   const providersList = getCurrentProviders(notificationType, notificationSettings);
   return providersList.length
-    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]!]
+    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]!]!
     : 'never';
 };
 
@@ -259,7 +259,7 @@ export const getParentData = (
   notificationSettings: NotificationSettingsObject,
   parents: OrganizationSummary[] | Project[]
 ): NotificationSettingsByProviderObject => {
-  const provider = getCurrentProviders(notificationType, notificationSettings)[0];
+  const provider = getCurrentProviders(notificationType, notificationSettings)[0]!;
 
   return Object.fromEntries(
     parents.map(parent => [
@@ -339,7 +339,7 @@ export const getStateToPutForDefault = (
   changedData: NotificationSettingsByProviderObject,
   parentIds: string[]
 ): NotificationSettingsObject => {
-  const newValue = Object.values(changedData)[0];
+  const newValue = Object.values(changedData)[0]!;
   let providerList = getCurrentProviders(notificationType, notificationSettings);
   if (!providerList.length) {
     providerList = ['email'];

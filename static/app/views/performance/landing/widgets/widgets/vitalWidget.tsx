@@ -79,7 +79,7 @@ export function transformFieldsWithStops(props: {
 
   if (!defined(poorStop) || !defined(mehStop)) {
     return {
-      sortField: fields[0],
+      sortField: fields[0]!,
       fieldsList: fields,
     };
   }
@@ -104,7 +104,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, InteractiveTitle} = props;
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const field = props.fields[0];
+  const field = props.fields[0]!;
   const pageError = usePageError();
 
   const {fieldsList, vitalFields, sortField} = transformFieldsWithStops({
@@ -250,7 +250,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           const initialConditions = new MutableSearch(_eventView.query);
           initialConditions.addFilterValues('transaction', [transaction]);
 
-          const vital = settingToVital[props.chartSetting];
+          const vital = settingToVital[props.chartSetting]!;
 
           _eventView.query = initialConditions.formatString();
 
@@ -368,7 +368,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           return <Subtitle />;
         }
 
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
 
         const data = {
           [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
@@ -393,7 +393,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       }}
       EmptyComponent={WidgetEmptyStateWarning}
       HeaderActions={provided => {
-        const vital = settingToVital[props.chartSetting];
+        const vital = settingToVital[props.chartSetting]!;
         const target = vitalDetailRouteWithQuery({
           orgSlug: organization.slug,
           query: eventView.generateQueryStringObject(),

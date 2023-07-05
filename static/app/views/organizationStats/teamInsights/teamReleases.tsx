@@ -105,7 +105,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
       dataset === 'week' ? weekReleases?.last_week_totals : periodReleases?.project_avgs;
 
     const count = releasesPeriod?.[projectId]
-      ? Math.ceil(releasesPeriod?.[projectId])
+      ? Math.ceil(releasesPeriod?.[projectId]!)
       : 0;
 
     return count;

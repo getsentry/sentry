@@ -25,7 +25,7 @@ const getSupportedTags = (supportedTags: TagCollection) =>
     Object.keys(supportedTags).map(key => [
       key,
       {
-        ...supportedTags[key],
+        ...supportedTags[key]!,
         kind:
           getFieldDefinition(key)?.kind ??
           (supportedTags[key]!.predefined ? FieldKind.FIELD : FieldKind.TAG),

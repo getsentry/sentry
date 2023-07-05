@@ -346,11 +346,11 @@ class SpanTreeModel {
     };
 
     if (descendantsSource?.length >= MIN_SIBLING_GROUP_SIZE) {
-      let prevSpanModel = descendantsSource[0];
+      let prevSpanModel = descendantsSource[0]!;
       let currentGroup = [prevSpanModel];
 
       for (let i = 1; i < descendantsSource.length; i++) {
-        const currSpanModel = descendantsSource[i];
+        const currSpanModel = descendantsSource[i]!;
 
         // We want to group siblings only if they share the same op and description, and if they have no children
         if (
@@ -508,7 +508,7 @@ class SpanTreeModel {
 
         const bounds = generateBounds({
           startTimestamp: group[0]!.span.start_timestamp,
-          endTimestamp: group[group.length - 1].span.timestamp,
+          endTimestamp: group[group.length - 1]!.span.timestamp,
         });
 
         if (!bounds.isSpanVisibleInView) {
@@ -560,7 +560,7 @@ class SpanTreeModel {
         };
 
         acc.previousSiblingEndTimestamp =
-          wrappedSiblings[wrappedSiblings.length - 1].span.timestamp;
+          wrappedSiblings[wrappedSiblings.length - 1]!.span.timestamp;
 
         acc.descendants.push(groupedSiblingsSpan);
         return acc;

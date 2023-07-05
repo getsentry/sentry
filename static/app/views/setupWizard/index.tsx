@@ -34,7 +34,7 @@ function SetupWizard({hash = false, organizations}: Props) {
   // if we have exactly one organization, we can use it for analytics
   // otherwise we don't know which org the user is in
   const organization = useMemo(
-    () => (organizations?.length === 1 ? organizations[0] : null),
+    () => (organizations?.length === 1 ? organizations[0]! : null),
     [organizations]
   );
   const urlParams = new URLSearchParams(location.search);

@@ -34,7 +34,7 @@ function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
   return `${filters
     .slice(0, -1)
     .map(value => filterNameMap[value]!)
-    .join(', ')} and ${filterNameMap[filters[filters.length - 1]]} filters`;
+    .join(', ')} and ${filterNameMap[filters[filters.length - 1]!]} filters`;
 }
 
 export default function DesyncedFilterAlert({

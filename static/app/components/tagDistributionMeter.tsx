@@ -140,7 +140,7 @@ function TagDistributionMeter({
                 {value.isOther ? (
                   <OtherSegment
                     aria-label={t('Other')}
-                    color={colors[colors.length - 1]}
+                    color={colors[colors.length - 1]!}
                   />
                 ) : (
                   <Segment

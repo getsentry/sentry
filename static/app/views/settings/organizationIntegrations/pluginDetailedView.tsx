@@ -41,7 +41,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get plugin() {
-    return this.state.plugins[0];
+    return this.state.plugins[0]!;
   }
 
   get description() {
@@ -97,7 +97,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
     // update item in array
     projectList[index] = {
-      ...projectList[index],
+      ...projectList[index]!,
       enabled: enable,
     };
 

@@ -181,7 +181,7 @@ describe('TeamKeyTransactionField', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const teamOneOption = screen.getAllByRole('option')[0];
+    const teamOneOption = screen.getAllByRole('option')[0]!;
     expect(teamOneOption).toHaveAttribute('aria-selected', 'false');
 
     await userEvent.click(teamOneOption);
@@ -235,7 +235,7 @@ describe('TeamKeyTransactionField', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle star for team'}));
 
-    const teamOneOption = screen.getAllByRole('option')[0];
+    const teamOneOption = screen.getAllByRole('option')[0]!;
     expect(teamOneOption).toHaveAttribute('aria-selected', 'true');
 
     await userEvent.click(teamOneOption);

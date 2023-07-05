@@ -4,6 +4,7 @@ import type {Location} from 'history';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {ErrorFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useErrorFilters, {
   ErrorSelectOption,
@@ -50,7 +51,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
         'project.name': 'javascript',
       }),
     ]
-  );
+  ) as [ErrorFrame, ErrorFrame, ErrorFrame];
 
 describe('useErrorFilters', () => {
   beforeEach(() => {

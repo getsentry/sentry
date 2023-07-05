@@ -16,7 +16,7 @@ function MyComponent(props: MyComponentProps) {
       {'mechanism: ' + props.tags?.mechanism?.values?.join(', ')}
       {'bookmarks: ' + props.tags?.bookmarks?.values?.join(', ')}
       {'assigned: ' + props.tags?.assigned?.values?.join(', ')}
-      {'stack filename: ' + props.tags?.['stack.filename'].name}
+      {'stack filename: ' + props.tags?.['stack.filename']!.name}
     </div>
   );
 }

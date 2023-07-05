@@ -496,7 +496,7 @@ describe('Grouping Store', function () {
     describe('onToggleUnmerge (checkbox state for hashes)', function () {
       // Attempt to check first item but its "locked" so should not be able to do anything
       it('can not check locked item', function () {
-        GroupingStore.onToggleUnmerge('1');
+        GroupingStore.onToggleUnmerge(['1', '']);
 
         expect(GroupingStore.getState().unmergeList).toEqual(unmergeList);
         expect(GroupingStore.getState().unmergeState).toEqual(unmergeState);

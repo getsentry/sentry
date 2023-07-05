@@ -192,7 +192,7 @@ describe('Dashboards > IssueWidgetCard', function () {
           ...widget,
           queries: [
             {
-              ...widget.queries[0],
+              ...widget.queries[0]!,
               fields: ['issue', 'assignee', 'title', 'lifetimeEvents', 'lifetimeUsers'],
             },
           ],

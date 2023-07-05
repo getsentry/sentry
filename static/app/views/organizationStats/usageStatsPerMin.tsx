@@ -76,7 +76,7 @@ class UsageStatsPerMin extends AsyncComponent<Props, State> {
         return count;
       }
 
-      count += group.series['sum(quantity)'][lastMin];
+      count += group.series['sum(quantity)']![lastMin]!;
       return count;
     }, 0);
 

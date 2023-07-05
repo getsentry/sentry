@@ -162,7 +162,7 @@ interface GroupingStoreDefinition
   onToggleCollapseFingerprint(fingerprint: string): void;
   onToggleCollapseFingerprints(): void;
   onToggleMerge(id: string): void;
-  onToggleUnmerge(props: [string, string] | string): void;
+  onToggleUnmerge(props: [string, string]): void;
   onUnmerge(props: {
     groupId: Group['id'];
     errorMessage?: string;
@@ -306,7 +306,7 @@ const storeConfig: GroupingStoreDefinition = {
             newItems.push(newItem);
           }
 
-          const newItem = newItemsMap[item.id];
+          const newItem = newItemsMap[item.id]!;
           const {childId, childLabel, eventCount, lastSeen, latestEvent} = item;
 
           if (eventCount) {
@@ -339,10 +339,10 @@ const storeConfig: GroupingStoreDefinition = {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':');
 
-            if (!acc[interfaceName]!) {
-              acc[interfaceName] = [];
+            if (!acc[interfaceName!]!) {
+              acc[interfaceName!] = [];
             }
-            acc[interfaceName]!.push([scoreKey, score]);
+            acc[interfaceName!]!.push([scoreKey, score]);
 
             return acc;
           }, {});
@@ -425,7 +425,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   // Toggle unmerge check box
-  onToggleUnmerge([fingerprint, eventId]) {
+  onToggleUnmerge([fingerprint, eventId]: [string, string]) {
     let checked = false;
 
     // Uncheck an item to unmerge

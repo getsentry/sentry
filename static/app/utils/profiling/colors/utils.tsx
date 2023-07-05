@@ -41,7 +41,7 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
   const set: Array<T> = [];
 
   for (let i = 0; i < arr.length; i++) {
-    const item = arr[i];
+    const item = arr[i]!;
     const key = item === null || item === undefined ? item : cb(item);
 
     if (key === undefined || key === null || seen.has(key)) {

@@ -48,7 +48,7 @@ export function createSentrySampleProfileFrameIndex(
 
   const frameIndex: FrameIndex = {};
   for (let i = 0; i < indices.length; i++) {
-    frameIndex[i] = framesList[indices[i]!];
+    frameIndex[i] = framesList[indices[i]!]!;
   }
   return frameIndex;
 }
@@ -261,6 +261,6 @@ export function resolveFlamegraphSamplesProfileIds(
   profileIds: Readonly<string[]>
 ): string[][] {
   return samplesProfiles.map(profileIdIndices => {
-    return profileIdIndices.map(i => profileIds[i]);
+    return profileIdIndices.map(i => profileIds[i]!);
   });
 }

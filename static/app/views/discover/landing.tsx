@@ -72,7 +72,7 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     const {location} = this.props;
 
     const urlSort = decodeScalar(location.query.sort, 'myqueries');
-    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
+    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0]!;
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

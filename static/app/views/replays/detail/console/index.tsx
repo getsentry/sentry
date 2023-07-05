@@ -54,7 +54,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const item = items[index];
+    const item = items[index]!;
 
     return (
       <CellMeasurer

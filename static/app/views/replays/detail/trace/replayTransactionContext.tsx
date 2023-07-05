@@ -197,7 +197,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         })();
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
-        cursor = parseLinkHeader(pageLinks)?.next;
+        cursor = parseLinkHeader(pageLinks)?.next!;
         const indexComplete = !cursor.results;
         setState(prev => ({...prev, indexComplete} as InternalState));
       } catch (indexError) {

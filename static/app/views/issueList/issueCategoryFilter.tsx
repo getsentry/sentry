@@ -72,7 +72,7 @@ function IssueCategoryFilter({
       );
 
       if (!queryOption) {
-        return options[0];
+        return options[0]!;
       }
 
       if (queryOption.value !== prevOption.value) {

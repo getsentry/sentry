@@ -32,7 +32,7 @@ function SettingsLayout(props: Props) {
   const headerRef = useRef<HTMLDivElement>(null);
 
   function toggleNav(visible: boolean) {
-    const bodyElement = document.getElementsByTagName('body')[0];
+    const bodyElement = document.getElementsByTagName('body')[0]!;
 
     window.scrollTo?.(0, 0);
     bodyElement.classList[visible ? 'add' : 'remove']('scroll-lock');

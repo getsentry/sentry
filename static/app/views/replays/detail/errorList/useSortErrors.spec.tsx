@@ -3,6 +3,7 @@ import {act} from 'react-test-renderer';
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
+import {ErrorFrame} from 'sentry/utils/replays/types';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 jest.mock('react-router');
@@ -53,7 +54,7 @@ const [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED] =
         'project.name': 'javascript',
       }),
     ]
-  );
+  ) as [ErrorFrame, ErrorFrame, ErrorFrame];
 
 describe('useSortErrors', () => {
   const items = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED, ERROR_2_NEXTJS_TYPEERROR];

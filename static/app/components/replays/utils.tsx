@@ -176,7 +176,7 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
     };
   });
 
-  const flattened = [first];
+  const flattened = [first!];
 
   for (const span of rest) {
     let overlap = false;

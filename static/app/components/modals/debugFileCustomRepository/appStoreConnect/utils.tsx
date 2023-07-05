@@ -71,7 +71,7 @@ export function getAppStoreErrorMessage(
   return (Object.keys(errorResponse) as AppStoreConnectField[]).reduce(
     (acc, serverSideField) => {
       const fieldErrorMessage = fieldErrorMessageMapping[serverSideField] ?? {};
-      const field = Object.keys(fieldErrorMessage)[0];
+      const field = Object.keys(fieldErrorMessage)[0]!;
 
       const errorMessages: string[] = errorResponse[serverSideField]!.map(
         errorMessage => {

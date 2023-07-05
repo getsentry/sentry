@@ -37,7 +37,7 @@ function getColor(identifier: string | undefined): Color {
   }
 
   const id = hashIdentifier(identifier);
-  return COLORS[id % COLORS.length];
+  return COLORS[id % COLORS.length]!;
 }
 
 function getInitials(displayName: string | undefined) {
@@ -48,7 +48,7 @@ function getInitials(displayName: string | undefined) {
   // results in only getting half of any 4+ byte character.
   let initials = Array.from(names[0]!)[0]!;
   if (names.length > 1) {
-    initials += Array.from(names[names.length - 1])[0]!;
+    initials += Array.from(names[names.length - 1]!)[0]!;
   }
   return initials.toUpperCase();
 }

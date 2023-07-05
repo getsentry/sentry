@@ -65,7 +65,7 @@ export function generateIconName(
   }
 
   const formattedName = name
-    .split(/\d/)[0]
+    .split(/\d/)[0]!
     .toLowerCase()
     .replace(/[^a-z0-9\-]+/g, '-')
     .replace(/\-+$/, '')

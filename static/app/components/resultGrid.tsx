@@ -198,7 +198,7 @@ class ResultGrid extends Component<Props, State> {
     this.setState(
       {
         query: queryParams.query ?? '',
-        sortBy: queryParams.sortBy ?? this.props.defaultSort,
+        sortBy: queryParams.sortBy ?? this.props.defaultSort!,
         filters: {...queryParams},
         pageLinks: null,
         loading: true,

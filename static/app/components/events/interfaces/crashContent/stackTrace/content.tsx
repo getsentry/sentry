@@ -76,8 +76,8 @@ class Content extends Component<Props, State> {
       return false;
     }
 
-    const lastFrame = frames[frames.length - 1];
-    const penultimateFrame = frames[frames.length - 2];
+    const lastFrame = frames[frames.length - 1]!;
+    const penultimateFrame = frames[frames.length - 2]!;
 
     return penultimateFrame.inApp && !lastFrame.inApp;
   }
@@ -208,7 +208,7 @@ class Content extends Component<Props, State> {
 
     (data.frames ?? []).forEach((frame, frameIdx) => {
       const prevFrame = (data.frames ?? [])[frameIdx - 1];
-      const nextFrame = (data.frames ?? [])[frameIdx + 1];
+      const nextFrame = (data.frames ?? [])[frameIdx + 1]!;
       const repeatedFrame =
         nextFrame &&
         frame.lineNo === nextFrame.lineNo &&

@@ -5,6 +5,8 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 
+type NumberTuple = [number, number];
+
 type Opts = {
   breadcrumbs: undefined | Crumb[];
   ref: RefObject<ReactVirtualizedList>;
@@ -16,7 +18,7 @@ function useScrollToCurrentItem({breadcrumbs, ref, startTimestampMs}: Opts) {
     () =>
       breadcrumbs &&
       breadcrumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
     [breadcrumbs]
   );

@@ -101,7 +101,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   get projectId() {
-    return this.props.eventSlug.split(':')[0];
+    return this.props.eventSlug.split(':')[0]!;
   }
 
   generateTagUrl = (tag: EventTag) => {

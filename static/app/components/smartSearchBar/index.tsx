@@ -550,7 +550,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
-          offset = filterTokens[tokenIndex + 1].location.end.offset;
+          offset = filterTokens[tokenIndex + 1]!.location.end.offset;
         }
       }
 
@@ -1060,7 +1060,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const innerStart = cursorPosition - cursorToken.location.start.offset;
 
     let tokenStart = innerStart;
-    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1])) {
+    while (tokenStart > 0 && !LIMITER_CHARS.includes(cursorToken.text[tokenStart - 1]!)) {
       tokenStart--;
     }
     let tokenEnd = innerStart;

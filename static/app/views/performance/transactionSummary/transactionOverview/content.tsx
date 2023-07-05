@@ -227,7 +227,7 @@ function SummaryContent({
   );
 
   const query = decodeScalar(location.query.query, '');
-  const totalCount = totalValues === null ? null : totalValues['count()'];
+  const totalCount = totalValues === null ? null : totalValues['count()']!;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.

@@ -39,7 +39,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
   }
-  const field = props.fields[0];
+  const field = props.fields[0]!;
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({

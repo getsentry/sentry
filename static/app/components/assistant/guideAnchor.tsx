@@ -149,7 +149,7 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     const totalStepCount = currentGuide.steps.length;
     const currentStepCount = step + 1;
-    const currentStep = currentGuide.steps[step];
+    const currentStep = currentGuide.steps[step]!;
     const lastStep = currentStepCount === totalStepCount;
     const hasManySteps = totalStepCount > 1;
 

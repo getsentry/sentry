@@ -60,7 +60,7 @@ function InnerDropdown() {
   const options = getOptions(mepSetting);
 
   const currentOption =
-    options.find(({value}) => value === mepSetting.metricSettingState) || options[0];
+    options.find(({value}) => value === mepSetting.metricSettingState) || options[0]!;
 
   return (
     <CompactSelect

@@ -80,7 +80,7 @@ export class EventedProfile extends Profile {
       const weights: number[] = [];
 
       for (let i = 0; i < built.samples.length; i++) {
-        const sample = built.samples[i];
+        const sample = built.samples[i]!;
 
         if (visited.has(sample)) {
           continue;

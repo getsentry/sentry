@@ -31,7 +31,7 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
     const overflow = detectOverflow(state, options);
     const {x, y} = state.modifiersData.preventOverflow ?? {x: 0, y: 0};
     const {width, height} = state.rects.popper;
-    const [basePlacement] = state.placement.split('-');
+    const basePlacement = state.placement.split('-')[0]!;
 
     const widthSide = basePlacement === 'left' ? 'left' : 'right';
     const heightSide = basePlacement === 'top' ? 'top' : 'bottom';

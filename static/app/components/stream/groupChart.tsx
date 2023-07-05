@@ -25,12 +25,12 @@ function GroupChart({
 }: Props) {
   const stats: TimeseriesValue[] = statsPeriod
     ? data.filtered
-      ? data.filtered.stats[statsPeriod]
-      : data.stats[statsPeriod]
+      ? data.filtered.stats[statsPeriod]!
+      : data.stats[statsPeriod]!
     : [];
 
   const secondaryStats: TimeseriesValue[] | null =
-    statsPeriod && data.filtered ? data.stats[statsPeriod] : null;
+    statsPeriod && data.filtered ? data.stats[statsPeriod]! : null;
 
   if (!stats || !stats.length) {
     return null;

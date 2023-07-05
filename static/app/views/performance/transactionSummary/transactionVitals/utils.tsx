@@ -54,7 +54,7 @@ export function findNearestBucketIndex(
 ): number | null {
   const width = getBucketWidth(chartData);
   // it's possible that the data is not available yet or the x axis is out of range
-  if (!chartData.length || xAxis >= chartData[chartData.length - 1].bin + width) {
+  if (!chartData.length || xAxis >= chartData[chartData.length - 1]!.bin + width) {
     return null;
   }
   if (xAxis < chartData[0]!.bin) {
@@ -78,7 +78,7 @@ export function getRefRect(chartData: HistogramData): Rectangle | null {
   }
 
   for (let i = 0; i < chartData.length; i++) {
-    const data1 = chartData[i];
+    const data1 = chartData[i]!;
     for (let j = i + 1; j < chartData.length; j++) {
       const data2 = chartData[j]!;
 

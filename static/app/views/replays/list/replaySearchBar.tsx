@@ -60,7 +60,7 @@ function getSupportedTags(supportedTags: TagCollection) {
       Object.keys(supportedTags).map(key => [
         key,
         {
-          ...supportedTags[key],
+          ...supportedTags[key]!,
           kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
         },
       ])

@@ -599,12 +599,12 @@ export function getTranslationMatrixFromPhysicalSpace(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -637,12 +637,12 @@ export function getConfigViewTranslationBetweenVectors(
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,
@@ -674,12 +674,12 @@ export function getConfigSpaceTranslationBetweenVectors(
   );
   const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
   const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-    m00,
-    m01,
-    m02,
-    m10,
-    m11,
-    m12,
+    m00!,
+    m01!,
+    m02!,
+    m10!,
+    m11!,
+    m12!,
     0,
     0,
     0,

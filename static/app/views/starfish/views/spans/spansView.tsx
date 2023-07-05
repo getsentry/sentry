@@ -45,7 +45,7 @@ export default function SpansView(props: Props) {
   ]);
 
   const sort =
-    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0]! ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
 
   return (

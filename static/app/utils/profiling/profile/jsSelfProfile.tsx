@@ -86,11 +86,11 @@ export class JSSelfProfile extends Profile {
           resolveJSSelfProfilingStack(
             profile,
             // use the previous sample
-            samples[i - 1].stackId,
+            samples[i - 1]!.stackId,
             frameIndex,
             samples[i]!.marker
           ),
-          samples[i]!.timestamp - samples[i - 1].timestamp
+          samples[i]!.timestamp - samples[i - 1]!.timestamp
         );
       } else {
         jsSelfProfile.appendSample(
@@ -100,7 +100,7 @@ export class JSSelfProfile extends Profile {
             frameIndex,
             samples[i]!.marker
           ),
-          samples[i]!.timestamp - samples[i - 1].timestamp
+          samples[i]!.timestamp - samples[i - 1]!.timestamp
         );
       }
     }

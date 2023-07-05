@@ -181,7 +181,7 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     eventView.yAxis &&
     (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
   const firstYAxis =
-    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+    typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0]!;
   if (result.data) {
     const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
       result,

@@ -103,24 +103,24 @@ type Props = {
 type State = {
   errored: boolean;
   loading: boolean;
-  statusCountByProjectInPeriod: SessionApiResponse | null;
-  statusCountByReleaseInPeriod: SessionApiResponse | null;
-  totalCountByProjectIn24h: SessionApiResponse | null;
-  totalCountByProjectInPeriod: SessionApiResponse | null;
-  totalCountByReleaseIn24h: SessionApiResponse | null;
-  totalCountByReleaseInPeriod: SessionApiResponse | null;
+  statusCountByProjectInPeriod: SessionApiResponse | undefined;
+  statusCountByReleaseInPeriod: SessionApiResponse | undefined;
+  totalCountByProjectIn24h: SessionApiResponse | undefined;
+  totalCountByProjectInPeriod: SessionApiResponse | undefined;
+  totalCountByReleaseIn24h: SessionApiResponse | undefined;
+  totalCountByReleaseInPeriod: SessionApiResponse | undefined;
 };
 
 class ReleasesRequest extends Component<Props, State> {
   state: State = {
     loading: false,
     errored: false,
-    statusCountByReleaseInPeriod: null,
-    totalCountByReleaseIn24h: null,
-    totalCountByProjectIn24h: null,
-    statusCountByProjectInPeriod: null,
-    totalCountByReleaseInPeriod: null,
-    totalCountByProjectInPeriod: null,
+    statusCountByReleaseInPeriod: undefined,
+    totalCountByReleaseIn24h: undefined,
+    totalCountByProjectIn24h: undefined,
+    statusCountByProjectInPeriod: undefined,
+    totalCountByReleaseInPeriod: undefined,
+    totalCountByProjectInPeriod: undefined,
   };
 
   componentDidMount() {
@@ -176,9 +176,9 @@ class ReleasesRequest extends Component<Props, State> {
     this.setState({
       loading: true,
       errored: false,
-      statusCountByReleaseInPeriod: null,
-      totalCountByReleaseIn24h: null,
-      totalCountByProjectIn24h: null,
+      statusCountByReleaseInPeriod: undefined,
+      totalCountByReleaseIn24h: undefined,
+      totalCountByProjectIn24h: undefined,
     });
 
     const promises = [

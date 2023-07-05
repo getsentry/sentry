@@ -47,7 +47,20 @@ const StyledPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
 
-export const fields: Record<string, Field> = {
+export const fields: Record<
+  | 'name'
+  | 'platform'
+  | 'recapServerUrl'
+  | 'recapServerToken'
+  | 'subjectPrefix'
+  | 'resolveAge'
+  | 'allowedDomains'
+  | 'scrapeJavaScript'
+  | 'securityToken'
+  | 'securityTokenHeader'
+  | 'verifySSL',
+  Field
+> = {
   name: {
     name: 'name',
     type: 'string',

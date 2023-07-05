@@ -34,7 +34,7 @@ export function getCountAtIndex(
   field: SessionFieldWithOperation,
   index: number
 ) {
-  return groups.reduce((acc, group) => acc + group.series[field]![index], 0);
+  return groups.reduce((acc, group) => acc + group.series[field]![index]!, 0);
 }
 
 export function getCrashFreeRate(
@@ -65,7 +65,7 @@ export function getSeriesSum(
   intervals: SessionApiResponse['intervals'] = []
 ) {
   const dataPointsSums: number[] = Array(intervals.length).fill(0);
-  const groupSeries = groups.map(group => group.series[field]);
+  const groupSeries = groups.map(group => group.series[field]!);
 
   groupSeries.forEach(series => {
     series.forEach((dataPoint, idx) => (dataPointsSums[idx]! += dataPoint));
@@ -133,7 +133,7 @@ export function getSessionStatusRateSeries(
   return compact(
     intervals.map((interval, i) => {
       const intervalTotalSessions = groups.reduce(
-        (acc, group) => acc + group.series[field]![i],
+        (acc, group) => acc + group.series[field]![i]!,
         0
       );
 
@@ -213,9 +213,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ERRORED]: {
       seriesName: sessionTerm.errored,
       data: [],
-      color: colors[12],
+      color: colors[12]!,
       areaStyle: {
-        color: colors[12],
+        color: colors[12]!,
         opacity: 1,
       },
       lineStyle: {
@@ -226,9 +226,9 @@ export function initSessionsChart(theme: Theme) {
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],
-      color: colors[15],
+      color: colors[15]!,
       areaStyle: {
-        color: colors[15],
+        color: colors[15]!,
         opacity: 1,
       },
       lineStyle: {
@@ -354,8 +354,8 @@ export function filterSessionsInTimeWindow(
   });
 
   return {
-    start: intervals[0],
-    end: intervals[intervals.length - 1],
+    start: intervals[0]!,
+    end: intervals[intervals.length - 1]!,
     query: sessions.query,
     intervals,
     groups,

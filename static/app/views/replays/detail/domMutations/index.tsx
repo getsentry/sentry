@@ -57,7 +57,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
-    const mutation = items[index];
+    const mutation = items[index]!;
 
     return (
       <CellMeasurer

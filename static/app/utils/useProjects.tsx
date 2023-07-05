@@ -131,8 +131,9 @@ async function fetchProjects(
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {
     const paginationObject = parseLinkHeader(pageLinks);
-    hasMore = paginationObject?.next?.results || paginationObject?.previous?.results;
-    nextCursor = paginationObject?.next?.cursor;
+    hasMore =
+      (paginationObject?.next?.results || paginationObject?.previous?.results) ?? null;
+    nextCursor = paginationObject?.next?.cursor ?? null;
   }
 
   return {results: data, hasMore, nextCursor};
@@ -273,7 +274,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       loadProjectsBySlug();
       return;
     }
-  }, [slugsRef.current]);
+  }, [slugsRef.current]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update initiallyLoaded when we finish loading within the projectStore
   useEffect(() => {
@@ -288,7 +289,7 @@ function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
     }
 
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
-  }, [store.loading]);
+  }, [store.loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {initiallyLoaded, fetching, fetchError, hasMore} = state;
 

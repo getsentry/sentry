@@ -362,7 +362,7 @@ function BaseChartUnwrapped({
     colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
   const color =
     resolveColors ||
-    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
+    (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors!);
   const previousPeriodColors =
     previousPeriod && previousPeriod.length > 1 ? lightenHexToRgb(color) : undefined;
 

@@ -65,7 +65,7 @@ export function EventTagsAndScreenshot({
   }
 
   const showScreenshot = !isShare && !!screenshots.length;
-  const screenshot = screenshots[screenshotInFocus];
+  const screenshot = screenshots[screenshotInFocus]!;
   // Check for context bailout condition. No context is rendered if only user is provided
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;

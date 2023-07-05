@@ -971,7 +971,7 @@ export function getFieldRenderer(
   }
 
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName]!;
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {

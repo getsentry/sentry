@@ -106,7 +106,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     // TODO: add support for when there are no spaces
 
     const matches = [...query.substring(0, currentPosition).matchAll(/\s|^/g)];
-    const match = matches[matches.length - 1];
+    const match = matches[matches.length - 1]!;
     const startOfTerm = match[0] === '' ? 0 : (match.index || 0) + 1;
 
     const cursorOffset = query.slice(currentPosition).search(/\s|$/);

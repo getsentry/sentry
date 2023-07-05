@@ -229,14 +229,14 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
         <SearchItemTitleWrapper hasSingleField={hasSingleField}>
           {!isFirstWordHidden && (
             <FirstWordWrapper>
-              {firstWord.slice(0, idx)}
-              <strong>{firstWord.slice(idx, idx + searchSubstring.length)}</strong>
-              {firstWord.slice(idx + searchSubstring.length)}
+              {firstWord!.slice(0, idx)}
+              <strong>{firstWord!.slice(idx, idx + searchSubstring.length)}</strong>
+              {firstWord!.slice(idx + searchSubstring.length)}
             </FirstWordWrapper>
           )}
           {combinedRestWords && (
             <HighlightedRestOfWords
-              firstWord={firstWord}
+              firstWord={firstWord!}
               isFirstWordHidden={isFirstWordHidden}
               searchSubstring={searchSubstring}
               combinedRestWords={combinedRestWords}

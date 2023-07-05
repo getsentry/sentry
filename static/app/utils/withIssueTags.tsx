@@ -86,7 +86,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
                 values: allAssigned,
               },
             },
-          };
+          } as WrappedComponentState;
         });
       },
       [props.organization]

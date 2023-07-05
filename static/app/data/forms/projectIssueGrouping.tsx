@@ -47,7 +47,15 @@ const groupingConfigField: Field = {
   visible: ({features}) => features.has('set-grouping-config'),
 };
 
-export const fields: Record<string, Field> = {
+export const fields: Record<
+  | 'fingerprintingRules'
+  | 'groupingEnhancements'
+  | 'groupingConfig'
+  | 'secondaryGroupingConfig'
+  | 'secondaryGroupingExpiry'
+  | 'groupingAutoUpdate',
+  Field
+> = {
   fingerprintingRules: {
     name: 'fingerprintingRules',
     type: 'string',

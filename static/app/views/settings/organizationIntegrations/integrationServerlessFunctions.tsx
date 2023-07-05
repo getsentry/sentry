@@ -59,7 +59,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
   ) => {
     const serverlessFunctions = [...this.serverlessFunctions];
     const serverlessFunction = {
-      ...serverlessFunctions[index],
+      ...serverlessFunctions[index]!,
       ...serverlessFunctionUpdate,
     };
     serverlessFunctions[index] = serverlessFunction;

@@ -802,7 +802,7 @@ function SpanRow(props: SpanRowProps) {
   } = props;
 
   const rowRef = useRef<HTMLDivElement>(null);
-  const spanNode = spanTree[index];
+  const spanNode = spanTree[index]!;
 
   useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since

@@ -169,8 +169,8 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 0},
         ],
       },
-      series[1],
-      series[0],
+      series[1]!,
+      series[0]!,
       series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: 0});
@@ -186,8 +186,8 @@ describe('findRangeOfMultiSeries()', () => {
           {name: 3, value: 10},
         ],
       },
-      series[1],
-      series[0],
+      series[1]!,
+      series[0]!,
       series[2]!,
     ];
     expect(findRangeOfMultiSeries(mixedSeries)).toStrictEqual({max: 2300, min: -10});

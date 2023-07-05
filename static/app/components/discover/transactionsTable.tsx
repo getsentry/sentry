@@ -140,7 +140,7 @@ class TransactionsTable extends PureComponent<Props> {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
       const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
-      const fieldType = tableMeta[fieldName];
+      const fieldType = tableMeta[fieldName]!;
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
@@ -150,7 +150,7 @@ class TransactionsTable extends PureComponent<Props> {
       if (target && !objectIsEmpty(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
-            <ViewReplayLink replayId={row.replayId} to={target}>
+            <ViewReplayLink replayId={row.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           );

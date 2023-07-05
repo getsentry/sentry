@@ -56,7 +56,7 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   keys.forEach(key => {
     const query = collectedQueries[key]!;
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
-    mergeMap[mergeKey(query)].push(query);
+    mergeMap[mergeKey(query)]!.push(query);
     delete collectedQueries[key];
   });
 
@@ -83,7 +83,7 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
     const mergeList = mergeMap[k]!;
 
     if (mergeList.length === 1) {
-      const [queryDefinition] = mergeList;
+      const queryDefinition = mergeList[0]!;
       queriesSent++;
       _handleUnmergeableQuery(queryDefinition);
     }
@@ -101,7 +101,7 @@ function _handleMergeableQueries(mergeMap: MergeMap) {
       return;
     }
 
-    const [exampleDefinition] = mergeList;
+    const exampleDefinition = mergeList[0]!;
     const batchProperty = exampleDefinition.batchProperty;
     const query = {...exampleDefinition.requestQueryObject.query};
     const requestQueryObject = {...exampleDefinition.requestQueryObject, query};

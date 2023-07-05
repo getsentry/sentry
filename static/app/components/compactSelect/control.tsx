@@ -469,7 +469,7 @@ export function Control({
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
-            maxHeight={overlayProps.style.maxHeight}
+            maxHeight={overlayProps.style?.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}

@@ -88,7 +88,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     const {location} = this.props;
 
     const urlSort = decodeScalar(location.query.sort, 'mydashboards');
-    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
+    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0]!;
   }
 
   onDashboardsChange() {

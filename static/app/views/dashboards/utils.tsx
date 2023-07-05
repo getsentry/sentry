@@ -253,7 +253,7 @@ export function getWidgetDiscoverUrl(
       // Last field is used as the yAxis
       const aggregates = widget.queries[0]!.aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
-      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
+      if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1]!)) {
         discoverLocation.query.field = aggregates.slice(0, -1);
       }
       break;

@@ -83,7 +83,7 @@ describe('ArithmeticInput', function () {
         expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]!));
         return;
       }
-      expect(option).toHaveTextContent(operators[i - numericColumns.length]);
+      expect(option).toHaveTextContent(operators[i - numericColumns.length]!);
     });
   });
 

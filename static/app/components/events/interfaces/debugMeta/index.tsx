@@ -178,7 +178,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       const needle = parseAddress(searchTerm);
       if (needle > 0 && image.image_addr !== '0x0') {
         const [startAddress, endAddress] = getImageRange(image as any); // TODO(PRISCILA): remove any
-        return needle >= startAddress && needle < endAddress;
+        return needle >= startAddress! && needle < endAddress!;
       }
     }
 

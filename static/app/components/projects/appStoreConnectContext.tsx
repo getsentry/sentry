@@ -66,7 +66,7 @@ function Provider({children, project, organization}: ProviderProps) {
     return () => {
       unmounted = true;
     };
-  }, [project, organization, api]);
+  }, [project, organization, api]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!projectDetails) {
@@ -114,7 +114,7 @@ function Provider({children, project, organization}: ProviderProps) {
       value={
         appStoreConnectStatusData && project
           ? Object.keys(appStoreConnectStatusData).reduce((acc, key) => {
-              const appStoreConnect = appStoreConnectStatusData[key];
+              const appStoreConnect = appStoreConnectStatusData[key]!;
               return {
                 ...acc,
                 [key]: {

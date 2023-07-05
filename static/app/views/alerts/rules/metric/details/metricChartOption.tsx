@@ -194,7 +194,7 @@ export function getMetricAlertChartOption({
       )
     : 0;
   const firstPoint = new Date(dataArr[0]!?.name).getTime();
-  const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
+  const lastPoint = new Date(dataArr[dataArr.length - 1]!?.name).getTime();
   const totalDuration = lastPoint - firstPoint;
   let criticalDuration = 0;
   let warningDuration = 0;
@@ -278,7 +278,7 @@ export function getMetricAlertChartOption({
           const statusAreaEnd = Math.min(
             idx === statusChanges.length - 1
               ? new Date(incidentEnd).getTime()
-              : new Date(statusChanges[idx + 1].dateCreated).getTime() - timeWindowMs,
+              : new Date(statusChanges[idx + 1]!.dateCreated).getTime() - timeWindowMs,
             lastPoint
           );
           const statusAreaColor =

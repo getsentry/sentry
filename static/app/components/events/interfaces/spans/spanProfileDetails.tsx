@@ -222,7 +222,7 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
   const callTree: CallTreeNode = new CallTreeNode(ProfilingFrame.Root, null);
 
   for (let i = 0; i < profile.samples.length; i++) {
-    const sample = profile.samples[i];
+    const sample = profile.samples[i]!;
     // TODO: should this take self times into consideration?
     const inRange = startTimestamp <= duration && duration < stopTimestamp;
 

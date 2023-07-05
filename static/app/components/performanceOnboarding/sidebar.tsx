@@ -61,7 +61,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
 
     if (selection.projects.length) {
       const projectSelection = selection.projects.map(
-        projectId => projectMap[String(projectId)]
+        projectId => projectMap[String(projectId)]!
       );
 
       // Among the project selection, find a project that has performance onboarding docs support, and has not sent

@@ -6,7 +6,7 @@ import {Experiments, ExperimentType} from 'sentry/types/experiments';
  * This likely indicates they should see nothing, or the original version of
  * what's being tested.
  */
-export const unassignedValue = -1;
+export const unassignedValue = -1 as const;
 
 /**
  * Frontend experiment configuration object

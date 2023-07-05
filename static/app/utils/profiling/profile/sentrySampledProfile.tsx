@@ -16,7 +16,7 @@ function sortSentrySampledProfileSamples(
   frameFilter?: (i: number) => boolean
 ) {
   const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
-    const frameA = frames[a];
+    const frameA = frames[a]!;
     const frameB = frames[b]!;
 
     if (defined(frameA.function) && defined(frameB.function)) {
@@ -72,8 +72,8 @@ function sortSentrySampledProfileSamples(
 
     for (let i = 0; i < minDepth; i++) {
       // we iterate from the end of each stack because that's where the main function is
-      const frameIdA = stackA[stackA.length - i - 1];
-      const frameIdB = stackB[stackB.length - i - 1];
+      const frameIdA = stackA[stackA.length - i - 1]!;
+      const frameIdB = stackB[stackB.length - i - 1]!;
 
       // same frame id, so check the next frame in the stack
       if (frameIdA === frameIdB) {
@@ -138,7 +138,7 @@ export class SentrySampledProfile extends Profile {
         : weightedSamples;
 
     const startedAt = samples[0]!.elapsed_since_start_ns;
-    const endedAt = samples[samples.length - 1].elapsed_since_start_ns;
+    const endedAt = samples[samples.length - 1]!.elapsed_since_start_ns;
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
       throw TypeError('startedAt or endedAt is NaN');
     }
@@ -183,7 +183,7 @@ export class SentrySampledProfile extends Profile {
 
     // frames are ordered outermost -> innermost so we have to iterate backward
     for (let i = stack.length - 1; i >= 0; i--) {
-      const frame = stack[i];
+      const frame = stack[i]!;
       const last = lastOfArray(node.children);
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {

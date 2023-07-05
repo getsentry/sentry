@@ -247,14 +247,15 @@ class ProjectSessionsChartRequest extends Component<
             const totalIntervalSessions = responseData.groups.reduce(
               (acc, group) =>
                 acc +
-                group.series[field]!.slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i],
+                group.series[field]!.slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i]!,
               0
             );
 
             const intervalCrashedSessions =
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
-                ?.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i] ?? 0;
+                ?.series[field]!.slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i]! ??
+              0;
 
             const crashedSessionsPercent = percent(
               intervalCrashedSessions,
@@ -279,14 +280,14 @@ class ProjectSessionsChartRequest extends Component<
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const totalIntervalSessions = responseData.groups.reduce(
-              (acc, group) => acc + group.series[field]!.slice(0, dataMiddleIndex)[i],
+              (acc, group) => acc + group.series[field]!.slice(0, dataMiddleIndex)[i]!,
               0
             );
 
             const intervalCrashedSessions =
               responseData.groups
                 .find(group => group.by['session.status'] === 'crashed')
-                ?.series[field].slice(0, dataMiddleIndex)[i] ?? 0;
+                ?.series[field]!.slice(0, dataMiddleIndex)[i]! ?? 0;
 
             const crashedSessionsPercent = percent(
               intervalCrashedSessions,

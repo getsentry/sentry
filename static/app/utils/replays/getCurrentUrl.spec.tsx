@@ -1,6 +1,7 @@
 import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 import {replayInitBreadcrumb} from 'sentry/utils/replays/hydrateBreadcrumbs';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
+import {SpanFrame} from 'sentry/utils/replays/types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE = new Date('2022-06-15T00:46:00.333Z');
@@ -26,7 +27,7 @@ const [NAV_FRAME, NEW_DOMAIN_FRAME] = hydrateSpans(replayRecord, [
     startTimestamp: NEW_DOMAIN_DATE,
     endTimestamp: NEW_DOMAIN_DATE,
   }),
-]);
+]) as [SpanFrame, SpanFrame];
 
 describe('getCurrentUrl', () => {
   it('should return the origin of the first url from the url array if the offset is early', () => {

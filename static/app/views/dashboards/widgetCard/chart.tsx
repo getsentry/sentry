@@ -206,7 +206,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const tableMeta = {...result.meta};
       const fields = Object.keys(tableMeta);
 
-      const field = fields[0];
+      const field = fields[0]!;
 
       // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
       const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
@@ -218,7 +218,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
         return <BigNumber key={`big_number:${result.title}`}>{'\u2014'}</BigNumber>;
       }
 
-      const dataRow = result.data[0];
+      const dataRow = result.data[0]!;
       const fieldRenderer = getFieldFormatter(field, tableMeta, false);
 
       const unit = tableMeta.units?.[field];
@@ -385,7 +385,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     // Check to see if all series output types are the same. If not, then default to number.
     const outputType =
       timeseriesResultsTypes && new Set(Object.values(timeseriesResultsTypes)).size === 1
-        ? timeseriesResultsTypes[axisLabel]
+        ? timeseriesResultsTypes[axisLabel]!
         : 'number';
     const isDurationChart = outputType === 'duration';
     const durationUnit = isDurationChart

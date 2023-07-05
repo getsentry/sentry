@@ -92,7 +92,7 @@ class ReleasesAdoptionChart extends Component<Props> {
       response?.groups.map(group => group.by.release as string) ?? [];
     if (response?.groups && response.groups.length > 50) {
       releases = response!.groups
-        .sort((a, b) => b.totals['sum(session)'] - a.totals['sum(session)'])
+        .sort((a, b) => b.totals['sum(session)']! - a.totals['sum(session)']!)
         .slice(0, 50)
         .map(group => group.by.release as string);
     }
@@ -177,7 +177,7 @@ class ReleasesAdoptionChart extends Component<Props> {
           const xAxisData = releasesSeries[0]!.data.map(point => point.name);
           const hideLastPoint =
             releasesSeries.findIndex(
-              series => series.data[numDataPoints - 1].value > 0
+              series => series.data[numDataPoints - 1]!.value > 0
             ) === -1;
 
           return (

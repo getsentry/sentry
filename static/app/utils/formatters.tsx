@@ -238,7 +238,7 @@ export function formatSecondsToClock(
 
 export function parseClockToSeconds(clock: string) {
   const [rest, milliseconds] = clock.split('.');
-  const parts = rest.split(':');
+  const parts = rest!.split(':');
 
   let seconds = 0;
   const progression = [MONTH, WEEK, DAY, HOUR, MINUTE, SECOND].slice(parts.length * -1);

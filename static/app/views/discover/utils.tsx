@@ -437,7 +437,7 @@ function generateExpandedConditions(
 
   // Add additional conditions provided and generated.
   for (const key in conditions) {
-    const value = conditions[key];
+    const value = conditions[key]!;
 
     if (Array.isArray(value)) {
       parsedQuery.setFilterValues(key, value);

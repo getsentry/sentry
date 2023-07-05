@@ -895,7 +895,7 @@ class EventView {
     updatedColumn: Column,
     tableMeta: MetaType | undefined
   ): EventView {
-    const columnToBeUpdated = this.fields[columnIndex];
+    const columnToBeUpdated = this.fields[columnIndex]!;
     const fieldAsString = generateFieldAsString(updatedColumn);
 
     const updateField = columnToBeUpdated.field !== fieldAsString;
@@ -925,7 +925,7 @@ class EventView {
     );
 
     if (needleSortIndex >= 0) {
-      const needleSort = this.sorts[needleSortIndex];
+      const needleSort = this.sorts[needleSortIndex]!;
 
       const numOfColumns = this.fields.reduce((sum, currentField) => {
         if (isSortEqualToField(needleSort, currentField, tableMeta)) {
@@ -1014,7 +1014,7 @@ class EventView {
     );
 
     if (needleSortIndex >= 0) {
-      const needleSort = this.sorts[needleSortIndex];
+      const needleSort = this.sorts[needleSortIndex]!;
 
       const numOfColumns = this.fields.reduce((sum, field) => {
         if (isSortEqualToField(needleSort, field, tableMeta)) {
@@ -1284,7 +1284,7 @@ class EventView {
     if (needleIndex >= 0) {
       const newEventView = this.clone();
 
-      const currentSort = this.sorts[needleIndex];
+      const currentSort = this.sorts[needleIndex]!;
 
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind

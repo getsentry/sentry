@@ -126,7 +126,7 @@ function SimilarStackTrace({params, location, project}: Props) {
     GroupingStore.onMerge({
       params,
       query: location.query,
-      projectId: firstIssue.issue.project!.slug,
+      projectId: firstIssue!.issue.project!.slug,
     });
   }, [params, location.query, items]);
 

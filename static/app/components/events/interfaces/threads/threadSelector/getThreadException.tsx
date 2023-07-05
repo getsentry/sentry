@@ -11,7 +11,7 @@ function getException(
       ...exceptionData,
       values: [
         {
-          ...exceptionDataValues[0],
+          ...exceptionDataValues[0]!,
           stacktrace: thread.stacktrace,
           rawStacktrace: thread.rawStacktrace,
         },

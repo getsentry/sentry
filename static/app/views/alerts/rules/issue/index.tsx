@@ -1264,8 +1264,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('conditions') && (
                               <StyledAlert type="error">
-                                {detailedError?.conditions[0]!}
-                                {(detailedError?.conditions[0]! || '').startsWith(
+                                {detailedError?.conditions![0]!}
+                                {(detailedError?.conditions![0]! || '').startsWith(
                                   'You may not exceed'
                                 ) && (
                                   <Fragment>
@@ -1349,7 +1349,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('filters') && (
                               <StyledAlert type="error">
-                                {detailedError?.filters[0]!}
+                                {detailedError?.filters![0]!}
                               </StyledAlert>
                             )
                           }
@@ -1395,7 +1395,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">
-                                {detailedError?.actions[0]!}
+                                {detailedError?.actions![0]!}
                               </StyledAlert>
                             )
                           }

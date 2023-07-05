@@ -167,7 +167,7 @@ function satisfiesFunctionCondition(frame: Frame, suspect: SuspectFrame) {
     return false;
   }
   for (let index = 0; index < suspect.functions.length; index++) {
-    const matchFuction = suspect.functions[index];
+    const matchFuction = suspect.functions[index]!;
     const match =
       typeof matchFuction === 'string'
         ? frame.function === matchFuction

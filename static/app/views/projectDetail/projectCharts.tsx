@@ -114,7 +114,7 @@ class ProjectCharts extends Component<Props, State> {
       .map(urlKey => {
         return decodeScalar(
           location.query[urlKey]!,
-          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]
+          this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]!
         );
       });
   }
@@ -122,10 +122,10 @@ class ProjectCharts extends Component<Props, State> {
   get displayMode() {
     const {location, chartId, chartIndex} = this.props;
     const displayMode =
-      decodeScalar(location.query[chartId]) || this.defaultDisplayModes[chartIndex];
+      decodeScalar(location.query[chartId]) || this.defaultDisplayModes[chartIndex]!;
 
     if (!Object.values(DisplayModes).includes(displayMode as DisplayModes)) {
-      return this.defaultDisplayModes[chartIndex];
+      return this.defaultDisplayModes[chartIndex]!;
     }
 
     return displayMode;

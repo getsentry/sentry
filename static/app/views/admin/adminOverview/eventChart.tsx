@@ -20,7 +20,7 @@ type State = {
   error: boolean;
   loading: boolean;
   rawData: Record<string, TimeseriesValue[]>;
-  stats: Record<string, SeriesDataUnit[]>;
+  stats: Record<'accepted' | 'rejected', SeriesDataUnit[]>;
 };
 
 const initialState: State = {
@@ -30,7 +30,7 @@ const initialState: State = {
     'events.total': [],
     'events.dropped': [],
   },
-  stats: {received: [], rejected: []},
+  stats: {accepted: [], rejected: []},
 };
 
 class EventChart extends Component<Props, State> {
@@ -90,9 +90,9 @@ class EventChart extends Component<Props, State> {
     const sRejected: Record<string, number> = {};
     const aReceived = [0!, 0]; // received, points
 
-    rawData['events.total'].forEach((point, idx) => {
+    rawData['events.total']!.forEach((point, idx) => {
       const dReceived = point[1]!;
-      const dRejected = rawData['events.dropped'][idx]?.[1]!;
+      const dRejected = rawData['events.dropped']![idx]?.[1]!;
       const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;

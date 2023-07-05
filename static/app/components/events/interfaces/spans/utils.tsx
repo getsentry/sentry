@@ -563,7 +563,7 @@ export function getMeasurements(
   const measurements = Object.keys(event.measurements)
     .filter(name => allowedVitals.has(`measurements.${name}`))
     .map(name => {
-      const associatedMeasurement = event.measurements![name];
+      const associatedMeasurement = event.measurements![name]!;
       return {
         name,
         // Time timestamp is in seconds, but the measurement value is given in ms so convert it here

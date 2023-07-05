@@ -92,8 +92,8 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
-    await userEvent.click(frameTitles[frameTitles.length - 2]);
-    await userEvent.click(frameTitles[frameTitles.length - 1]);
+    await userEvent.click(frameTitles[frameTitles.length - 2]!);
+    await userEvent.click(frameTitles[frameTitles.length - 1]!);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
@@ -123,8 +123,8 @@ describe('StackTrace', function () {
     const collapsedToggleButtons = screen.getAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
-    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
-    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]!);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]!);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
@@ -143,11 +143,11 @@ describe('StackTrace', function () {
     it('displays crashed from only', function () {
       const dataFrames = [...data.frames];
 
-      const newData = {
+      const newData: StacktraceType = {
         ...data,
         hasSystemFrames: true,
         frames: [
-          {...dataFrames[0], inApp: true},
+          {...dataFrames[0]!, inApp: true},
           ...dataFrames.splice(1, dataFrames.length),
         ],
       };
@@ -173,13 +173,13 @@ describe('StackTrace', function () {
     it('displays called from only', function () {
       const dataFrames = [...data.frames];
 
-      const newData = {
+      const newData: StacktraceType = {
         ...data,
         hasSystemFrames: true,
         registers: {},
         frames: [
           ...dataFrames.splice(0, dataFrames.length - 1),
-          {...dataFrames[dataFrames.length - 1], inApp: true},
+          {...dataFrames[dataFrames.length - 1]!, inApp: true},
         ],
       };
 
@@ -206,12 +206,12 @@ describe('StackTrace', function () {
     it('displays crashed from and called from', function () {
       const dataFrames = [...data.frames];
 
-      const newData = {
+      const newData: StacktraceType = {
         ...data,
         hasSystemFrames: true,
         frames: [
           ...dataFrames.slice(0, 1),
-          {...dataFrames[1], inApp: true},
+          {...dataFrames[1]!, inApp: true},
           ...dataFrames.slice(2, dataFrames.length),
         ],
       };
@@ -240,11 +240,11 @@ describe('StackTrace', function () {
     it('displays "occurred in" when event is not an error', function () {
       const dataFrames = [...data.frames];
 
-      const newData = {
+      const newData: StacktraceType = {
         ...data,
         hasSystemFrames: true,
         frames: [
-          {...dataFrames[0], inApp: true},
+          {...dataFrames[0]!, inApp: true},
           ...dataFrames.splice(1, dataFrames.length),
         ],
       };
@@ -274,11 +274,11 @@ describe('StackTrace', function () {
     it('displays "occurred in" when event is an ANR error', function () {
       const dataFrames = [...data.frames];
 
-      const newData = {
+      const newData: StacktraceType = {
         ...data,
         hasSystemFrames: true,
         frames: [
-          {...dataFrames[0], inApp: true},
+          {...dataFrames[0]!, inApp: true},
           ...dataFrames.splice(1, dataFrames.length),
         ],
       };

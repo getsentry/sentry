@@ -251,7 +251,7 @@ class WidgetCard extends Component<Props, State> {
         ...query,
         // Use the last aggregate because that's where the y-axis is stored
         aggregates: query.aggregates.length
-          ? [query.aggregates[query.aggregates.length - 1]]
+          ? [query.aggregates[query.aggregates.length - 1]!]
           : [],
       }));
       widget.queries = queries;

@@ -103,7 +103,7 @@ class SourceField extends Component<Props, State> {
   }
 
   getNewSuggestions(fieldValues: Array<SourceSuggestion | Array<SourceSuggestion>>) {
-    const lastFieldValue = fieldValues[fieldValues.length - 1];
+    const lastFieldValue = fieldValues[fieldValues.length - 1]!;
     const penultimateFieldValue = fieldValues[fieldValues.length - 2];
 
     if (Array.isArray(lastFieldValue)) {
@@ -171,7 +171,7 @@ class SourceField extends Component<Props, State> {
     const splittedValue = newValue.split(' ');
 
     for (const splittedValueIndex in splittedValue) {
-      const value = splittedValue[splittedValueIndex];
+      const value = splittedValue[splittedValueIndex]!;
       const lastFieldValue = fieldValues[fieldValues.length - 1];
 
       if (
@@ -239,7 +239,7 @@ class SourceField extends Component<Props, State> {
     const newValue: Array<string> = [];
 
     for (const index in fieldValues) {
-      const fieldValue = fieldValues[index];
+      const fieldValue = fieldValues[index]!;
       if (Array.isArray(fieldValue)) {
         if (fieldValue[0]?.value || fieldValue[1]?.value) {
           newValue.push(`${fieldValue[0]?.value ?? ''}${fieldValue[1]?.value ?? ''}`);

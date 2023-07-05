@@ -151,7 +151,7 @@ function AddToDashboardModal({
     if (!(DisplayType.AREA && widget.queries[0]!.columns.length)) {
       orderby = ''; // Clear orderby if its not a top n visualization.
     }
-    const query = widget.queries[0];
+    const query = widget.queries[0]!;
 
     const newWidget = {
       ...widget,

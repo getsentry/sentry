@@ -194,7 +194,7 @@ class EventsTable extends Component<Props, State> {
           allowActions={allowActions}
         >
           {target ? (
-            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+            <ViewReplayLink replayId={dataRow.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           ) : (
@@ -454,7 +454,7 @@ class EventsTable extends Component<Props, State> {
                   tableData ??= {data: []};
                   const pageEventsCount = tableData?.data?.length ?? 0;
                   const parsedPageLinks = parseLinkHeader(pageLinks);
-                  const cursor = parsedPageLinks?.next?.cursor;
+                  const cursor = parsedPageLinks?.next?.cursor!;
                   const shouldFetchAttachments: boolean =
                     organization.features.includes('event-attachments') &&
                     !!this.props.issueId &&
@@ -472,7 +472,7 @@ class EventsTable extends Component<Props, State> {
                     fetchAttachments(tableData, cursor);
                   }
                   joinCustomData(tableData);
-                  const replayIds = tableData.data.map(row => row.replayId);
+                  const replayIds = tableData.data.map(row => row.replayId!);
                   return (
                     <ReplayIdCountProvider
                       organization={organization}

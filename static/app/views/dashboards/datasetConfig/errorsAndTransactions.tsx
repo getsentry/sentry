@@ -383,7 +383,7 @@ function getSeriesResultType(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Record<string, AggregationOutputType> {
-  const field = widgetQuery.aggregates[0];
+  const field = widgetQuery.aggregates[0]!;
   const resultTypes = {};
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
@@ -529,7 +529,7 @@ function getEventsSeriesRequest(
   referrer?: string,
   mepSetting?: MEPState | null
 ) {
-  const widgetQuery = widget.queries[queryIndex];
+  const widgetQuery = widget.queries[queryIndex]!;
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;

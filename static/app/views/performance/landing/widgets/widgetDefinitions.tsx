@@ -61,7 +61,7 @@ export enum PerformanceWidgetSetting {
   TIME_TO_FULL_DISPLAY = 'time_to_full_display',
 }
 
-const WIDGET_PALETTE = CHART_PALETTE[5];
+const WIDGET_PALETTE = CHART_PALETTE[5]!;
 export const WIDGET_DEFINITIONS: ({
   organization,
 }: {

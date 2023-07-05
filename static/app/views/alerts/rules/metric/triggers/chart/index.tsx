@@ -196,7 +196,7 @@ class TriggersChart extends PureComponent<Props, State> {
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
     const period = statsPeriodOptions.includes(statsPeriod)
       ? statsPeriod
-      : statsPeriodOptions[statsPeriodOptions.length - 1];
+      : statsPeriodOptions[statsPeriodOptions.length - 1]!;
     return period;
   };
 

@@ -193,7 +193,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            config.transformSeries!(prevState.rawResults![index], query, organization)
+            config.transformSeries!(prevState.rawResults![index]!, query, organization)
           );
         }, []);
 

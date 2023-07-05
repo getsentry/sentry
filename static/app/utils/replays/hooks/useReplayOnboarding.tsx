@@ -5,6 +5,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -23,7 +24,7 @@ function getSelectedProjectList(
     acc[project.id] = project;
     return acc;
   }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+  return selectedProjects.map(id => projectsByProjectId[id]).filter(defined);
 }
 
 export function useHasOrganizationSentAnyReplayEvents() {

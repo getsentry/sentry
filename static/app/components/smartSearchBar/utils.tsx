@@ -596,7 +596,10 @@ export const getDateTagAutocompleteGroups = (tagName: string): AutocompleteGroup
 export const getSearchConfigFromCustomPerformanceMetrics = (
   customPerformanceMetrics?: CustomMeasurementCollection
 ): Partial<SearchConfig> => {
-  const searchConfigMap: Record<string, string[]> = {
+  const searchConfigMap: Record<
+    'sizeKeys' | 'durationKeys' | 'percentageKeys' | 'numericKeys',
+    string[]
+  > = {
     sizeKeys: [],
     durationKeys: [],
     percentageKeys: [],

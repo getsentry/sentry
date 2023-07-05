@@ -131,7 +131,7 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[index],
+      ...actions[index]!,
       [key]: value,
     };
 
@@ -232,7 +232,7 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[index],
+      ...actions[index]!,
       targetType: value.value,
       targetIdentifier: '',
     };
@@ -253,7 +253,7 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex]!;
     const newAction = {
-      ...actions[actionIndex],
+      ...actions[actionIndex]!,
       ...formData,
     };
 

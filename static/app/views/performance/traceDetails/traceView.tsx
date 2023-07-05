@@ -247,7 +247,7 @@ export default function TraceView({
       const isLastTransaction = index === traces.length - 1;
       const hasChildren = trace.children.length > 0;
       const isNextChildOrphaned =
-        !isLastTransaction && traces[index + 1].parent_span_id !== null;
+        !isLastTransaction && traces[index + 1]!.parent_span_id !== null;
 
       const result = renderTransaction(trace, {
         ...acc,

@@ -7,7 +7,9 @@ import {
 const START_TIMESTAMP_SEC = 1651693622.951;
 const CURRENT_TIME_MS = 15000;
 
-function createCrumbs(): Crumb[] {
+type NumberTuple = [number, number];
+
+function createCrumbs(): [Crumb, Crumb, Crumb, Crumb, Crumb] {
   return [
     {
       color: 'gray300',
@@ -142,7 +144,7 @@ describe('getPrevReplayEvent', () => {
     const crumbs = createCrumbs();
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
@@ -156,7 +158,7 @@ describe('getPrevReplayEvent', () => {
     const items = [one, four, five, three, two];
     const results = getPrevReplayEvent({
       itemLookup: items
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
@@ -169,7 +171,7 @@ describe('getPrevReplayEvent', () => {
     const crumbs = [];
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
@@ -182,7 +184,7 @@ describe('getPrevReplayEvent', () => {
     const crumbs = createCrumbs();
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 - CURRENT_TIME_MS,
@@ -195,7 +197,7 @@ describe('getPrevReplayEvent', () => {
     const crumbs = createCrumbs();
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: 1652308892002 + 10,
@@ -208,7 +210,7 @@ describe('getPrevReplayEvent', () => {
     const crumbs = createCrumbs();
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: 1652308892002,
@@ -222,7 +224,7 @@ describe('getPrevReplayEvent', () => {
     const exactCrumbTime = 8135;
     const results = getPrevReplayEvent({
       itemLookup: crumbs
-        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .map(({timestamp}, i): NumberTuple => [+new Date(timestamp || ''), i])
         .sort(([a], [b]) => a - b),
       items: crumbs,
       targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,

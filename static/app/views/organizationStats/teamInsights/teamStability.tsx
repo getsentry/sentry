@@ -148,7 +148,7 @@ function TeamStability({
     sumSessions.forEach((s, idx) => (sumSessionsWeeklyTotals[Math.floor(idx / 7)] += s));
 
     const data = countSeriesWeeklyTotals.map((value, idx) => ({
-      name: countSeries[idx * 7].name,
+      name: countSeries[idx * 7]!.name,
       value: sumSessionsWeeklyTotals[idx]!
         ? formatFloat((value / sumSessionsWeeklyTotals[idx]!) * 100, 2)
         : 0,

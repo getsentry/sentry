@@ -6,7 +6,7 @@ import {Profile} from 'sentry/utils/profiling/profile/profile';
 export const f = (name: string, key: number, in_app: boolean = true) =>
   new Frame({name, key, is_application: in_app});
 export const c = (fr: Frame) => new CallTreeNode(fr, null);
-export const firstCallee = (node: CallTreeNode) => node.children[0];
+export const firstCallee = (node: CallTreeNode) => node.children[0]!;
 export const nthCallee = (node: CallTreeNode, n: number) => {
   const child = node.children[n];
   if (!child) {

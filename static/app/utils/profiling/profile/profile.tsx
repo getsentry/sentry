@@ -127,7 +127,7 @@ export class Profile {
         prevStack.push(toOpen[i]!);
       }
 
-      value += this.weights[sampleIndex++];
+      value += this.weights[sampleIndex++]!;
     }
 
     // Close any remaining frames

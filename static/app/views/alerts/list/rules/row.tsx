@@ -166,7 +166,7 @@ function RuleListRow({
     );
   }
 
-  const slug = rule.projects[0];
+  const slug = rule.projects[0]!;
   const editLink = `/organizations/${orgId}/alerts/${
     isIssueAlert(rule) ? 'rules' : 'metric-rules'
   }/${slug}/${rule.id}/`;
@@ -268,7 +268,7 @@ function RuleListRow({
     }))
     .concat(unassignedOption);
 
-  const teamId = assignee?.split(':')[1];
+  const teamId = assignee?.split(':')[1]!;
   const teamName = filteredProjectTeams?.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
