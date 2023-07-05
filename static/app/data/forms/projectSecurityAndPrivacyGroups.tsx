@@ -35,7 +35,7 @@ export default [
               ),
             }
           ),
-        visible: ({features}) => features.has('event-attachments'),
+        visible: ({organization}) => organization.features.includes('event-attachments'),
         placeholder: ({organization, value}) => {
           // empty value means that this project should inherit organization settings
           if (value === '') {
