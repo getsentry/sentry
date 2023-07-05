@@ -96,6 +96,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
       <PerformanceChangeExplorer
         collapsed={false}
         transaction={transaction}
+        selectedTransaction={transaction.transaction}
         onClose={() => {}}
         trendChangeType={TrendChangeType.REGRESSION}
         trendFunction={TrendFunctionField.P50}

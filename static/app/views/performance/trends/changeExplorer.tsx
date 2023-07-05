@@ -1,17 +1,15 @@
-import React, {useEffect, useRef} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import moment from 'moment';
 
-import {Button} from 'sentry/components/button';
+import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
-import useKeyPress from 'sentry/utils/useKeyPress';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import {MetricsChart} from 'sentry/views/performance/trends/changeExplorerUtils/metricsChart';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {
@@ -21,7 +19,7 @@ import {
   TrendsStats,
   TrendView,
 } from 'sentry/views/performance/trends/types';
-import SlideOverPanel from 'sentry/views/starfish/components/slideOverPanel';
+import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
   collapsed: boolean;
@@ -30,6 +28,7 @@ type PerformanceChangeExplorerProps = {
   onClose: () => void;
   organization: Organization;
   projects: Project[];
+  selectedTransaction: string;
   statsData: TrendsStats;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
@@ -59,6 +58,7 @@ type HeaderProps = {
 export function PerformanceChangeExplorer({
   collapsed,
   transaction,
+  selectedTransaction,
   onClose,
   trendChangeType,
   trendFunction,
@@ -70,50 +70,25 @@ export function PerformanceChangeExplorer({
   trendParameter,
   location,
 }: PerformanceChangeExplorerProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  useOnClickOutside(panelRef, () => {
-    if (!collapsed) {
-      onClose();
-    }
-  });
-
-  const escapeKeyPressed = useKeyPress('Escape');
-
-  useEffect(() => {
-    if (escapeKeyPressed) {
-      if (!collapsed) {
-        onClose();
-      }
-    }
-  }, [escapeKeyPressed, collapsed, onClose]);
-
   return (
-    <SlideOverPanel collapsed={collapsed} ref={panelRef}>
-      <CloseButtonWrapper>
-        <CloseButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Close Details')}
-          icon={<IconClose size="sm" />}
-          onClick={onClose}
-        />
-      </CloseButtonWrapper>
-      <PanelBodyWrapper>
-        <ExplorerBody
-          transaction={transaction}
-          trendChangeType={trendChangeType}
-          trendFunction={trendFunction}
-          trendView={trendView}
-          statsData={statsData}
-          isLoading={isLoading}
-          organization={organization}
-          projects={projects}
-          trendParameter={trendParameter}
-          location={location}
-        />
-      </PanelBodyWrapper>
-    </SlideOverPanel>
+    <DetailPanel detailKey={selectedTransaction} onClose={onClose}>
+      {!collapsed && (
+        <PanelBodyWrapper>
+          <ExplorerBody
+            transaction={transaction}
+            trendChangeType={trendChangeType}
+            trendFunction={trendFunction}
+            trendView={trendView}
+            statsData={statsData}
+            isLoading={isLoading}
+            organization={organization}
+            projects={projects}
+            trendParameter={trendParameter}
+            location={location}
+          />
+        </PanelBodyWrapper>
+      )}
+    </DetailPanel>
   );
 }
 
@@ -129,7 +104,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
     organization,
   } = props;
   const breakpointDate = transaction.breakpoint
-    ? new Date(transaction.breakpoint * 1000).toUTCString().replace('GMT', 'UTC')
+    ? moment(transaction.breakpoint * 1000).format('ddd, DD MMM YYYY HH:mm:ss z')
     : '';
   return (
     <React.Fragment>
@@ -137,8 +112,6 @@ function ExplorerBody(props: ExplorerBodyProps) {
       <ExplorerContainer>
         <ExplorerContainer flex>
           <InfoItem
-            float
-            margin
             label={
               trendChangeType === TrendChangeType.REGRESSION
                 ? t('Regression Metric')
@@ -154,7 +127,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
         <ExplorerText color={theme.gray300} margin={'-' + space(3)}>
           {trendView.statsPeriod
             ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod] ||
-              getTimeString(trendView.statsPeriod)
+              getArbitraryRelativePeriod(trendView.statsPeriod)[trendView.statsPeriod]
             : trendView.start + ' - ' + trendView.end}
         </ExplorerText>
         <Chart
@@ -182,38 +155,9 @@ function ExplorerBody(props: ExplorerBodyProps) {
   );
 }
 
-function getTimeString(time: string) {
-  const timeMeasurements = {
-    m: 'minutes',
-    h: 'hours',
-    d: 'days',
-    w: 'weeks',
-  };
-
-  const suffix = time.charAt(time.length - 1);
-  const number = time.slice(0, time.length - 1);
-  const measurement =
-    number === '1'
-      ? timeMeasurements[suffix].slice(0, timeMeasurements[suffix].length - 1)
-      : timeMeasurements[suffix];
-
-  const timestring = number === '1' ? measurement : number + ' ' + measurement;
-  return tct('Last [timestring]', {timestring});
-}
-
-function InfoItem({
-  label,
-  value,
-  margin,
-  float,
-}: {
-  label: string;
-  value: string;
-  float?: boolean;
-  margin?: boolean;
-}) {
+function InfoItem({label, value}: {label: string; value: string}) {
   return (
-    <ExplorerContainer margin={margin} float={float}>
+    <ExplorerContainer style={{marginRight: space(4), float: 'left'}}>
       <Strong>{label}</Strong>
       <LargeText>{value}</LargeText>
     </ExplorerContainer>
@@ -227,7 +171,9 @@ function Header(props: HeaderProps) {
 
   return (
     <HeaderWrapper data-test-id="pce-header">
-      <FireIcon regression={regression} />
+      <FireIcon regression={regression}>
+        <IconFire color="white" />
+      </FireIcon>
       <HeaderTextWrapper>
         <ChangeType regression={regression}>
           {regression ? t('Ongoing Regression') : t('Ongoing Improvement')}
@@ -238,29 +184,8 @@ function Header(props: HeaderProps) {
   );
 }
 
-function FireIcon({regression}: {regression: boolean}) {
-  return (
-    <IconWrapper regression={regression}>
-      <IconFire color="white" />
-    </IconWrapper>
-  );
-}
-
-const CloseButton = styled(Button)`
-  color: ${p => p.theme.gray300};
-  &:hover {
-    color: ${p => p.theme.gray400};
-  }
-`;
-
-const CloseButtonWrapper = styled('div')`
-  justify-content: flex-end;
-  display: flex;
-  padding: ${space(2)};
-`;
-
 const PanelBodyWrapper = styled('div')`
-  padding: 0 ${space(4)};
+  padding: 0 ${space(2)};
   margin-top: ${space(4)};
 `;
 
@@ -279,7 +204,7 @@ const ChangeType = styled('p')<ChangeTypeProps>`
   margin-bottom: ${space(0)};
 `;
 
-const IconWrapper = styled('div')<ChangeTypeProps>`
+const FireIcon = styled('div')<ChangeTypeProps>`
   padding: ${space(1.5)};
   background-color: ${p => (p.regression ? p.theme.danger : p.theme.success)};
   border-radius: ${space(0.5)};
@@ -299,7 +224,7 @@ const LargeText = styled('h3')`
   font-weight: normal;
 `;
 const GraphPanel = styled('div')`
-  border: 1px ${p => 'solid ' + p.theme.border};
+  border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.panelBorderRadius};
   margin-bottom: ${space(2)};
   padding: ${space(3)};
@@ -308,15 +233,12 @@ const GraphPanel = styled('div')`
 
 type DivProps = {
   flex?: boolean;
-  float?: boolean;
-  margin?: boolean;
 };
 
 const ExplorerContainer = styled('div')<DivProps>`
   display: ${p => (p.flex ? 'flex' : 'block')};
-  float: ${p => (p.float ? 'left' : 'none')};
-  margin-right: ${p => (p.margin ? space(4) : space(0))};
 `;
+
 type TextProps = {
   align?: string;
   color?: string;

@@ -83,6 +83,7 @@ type TrendsCursorQuery = {
 
 type TrendsSlideoutState = {
   collapsed: boolean;
+  transaction: string;
 };
 
 const makeTrendsCursorHandler =
@@ -394,7 +395,10 @@ function TrendsListItem(props: TrendsListItemProps) {
   } = props;
   const color = trendToColor[trendChangeType].default;
 
-  const [state, setState] = useState<TrendsSlideoutState>({collapsed: true});
+  const [state, setState] = useState<TrendsSlideoutState>({
+    collapsed: true,
+    transaction: '',
+  });
 
   const selectedTransaction = getSelectedTransaction(
     location,
@@ -475,7 +479,7 @@ function TrendsListItem(props: TrendsListItemProps) {
             </RadioLineItem>
           )}
         </ItemRadioContainer>
-        <TransactionSummaryLink {...props} setState={setState} />
+        <TransactionSummaryLink {...props} onItemClicked={setState} />
         <ItemTransactionPercentage>
           <Tooltip title={percentChangeExplanation}>
             <Fragment>
@@ -548,22 +552,21 @@ function TrendsListItem(props: TrendsListItemProps) {
         </ItemTransactionStatus>
       </ListItemContainer>
       <Feature features={['performance-change-explorer']}>
-        {!state.collapsed && (
-          <PerformanceChangeExplorer
-            collapsed={state.collapsed}
-            onClose={() => setState({collapsed: true})}
-            transaction={transaction}
-            trendChangeType={trendChangeType}
-            trendFunction={currentTrendFunction}
-            trendView={trendView}
-            statsData={statsData}
-            isLoading={isLoading}
-            organization={organization}
-            projects={projects}
-            trendParameter={trendParameter}
-            location={location}
-          />
-        )}
+        <PerformanceChangeExplorer
+          collapsed={state.collapsed}
+          onClose={() => setState({collapsed: true, transaction: ''})}
+          transaction={transaction}
+          selectedTransaction={state.transaction}
+          trendChangeType={trendChangeType}
+          trendFunction={currentTrendFunction}
+          trendView={trendView}
+          statsData={statsData}
+          isLoading={isLoading}
+          organization={organization}
+          projects={projects}
+          trendParameter={trendParameter}
+          location={location}
+        />
       </Feature>
     </React.Fragment>
   );
@@ -602,7 +605,7 @@ function ValueDelta({transaction, trendChangeType}: TrendsListItemProps) {
 }
 
 type TransactionSummaryLinkProps = TrendsListItemProps & {
-  setState: React.Dispatch<React.SetStateAction<TrendsSlideoutState>>;
+  onItemClicked: React.Dispatch<React.SetStateAction<TrendsSlideoutState>>;
 };
 
 function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
@@ -613,7 +616,7 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projects,
     location,
     currentTrendFunction,
-    setState,
+    onItemClicked: setState,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -630,8 +633,8 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   });
 
   const handleClick = useCallback(() => {
-    setState({collapsed: false});
-  }, [setState]);
+    setState({collapsed: false, transaction: transaction.transaction});
+  }, [setState, transaction.transaction]);
 
   if (organization.features.includes('performance-change-explorer')) {
     return (
