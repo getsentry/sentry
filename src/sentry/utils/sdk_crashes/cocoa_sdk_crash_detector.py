@@ -34,7 +34,7 @@ class CocoaSDKCrashDetector(SDKCrashDetector):
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
-        if is_unhandled is False:
+        if not is_unhandled:
             return False
 
         return True
