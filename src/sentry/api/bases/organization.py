@@ -494,9 +494,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                 return []
             has_valid_api_key = request.auth.has_scope(  # type: ignore
                 "project:releases"
-            ) or request.auth.has_scope(
+            ) or request.auth.has_scope(  # type: ignore
                 "project:write"
-            )  # type: ignore
+            )
 
         if is_org_auth_token_auth(request.auth):
             if request.auth.organization_id != organization.id:  # type: ignore
