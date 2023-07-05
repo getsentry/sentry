@@ -21,9 +21,9 @@ from sentry.pipeline import PipelineView
 DESCRIPTION = """
 Trigger alerts in Opsgenie from Sentry.
 
-Opsgenie is a cloud-based service for dev & ops teams, providing reliable
-alerts, on-call schedule management and escalations. Opsgenie integrates with
-monitoring tools & services, ensures the right people are notified.
+OpsGenie is a cloud-based service for dev & ops teams, providing reliable alerts, on-call schedule management and escalations.
+OpsGenie integrates with monitoring tools & services and ensures that the right people are notified via email, SMS, phone calls,
+and iOS & Android push notifications.
 """
 
 
@@ -64,7 +64,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # limited release
+    # requires_feature_flag = True  # limited release
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return super().get_pipeline_views()
