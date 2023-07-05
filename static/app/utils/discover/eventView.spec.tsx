@@ -1,5 +1,5 @@
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
-import {SavedQuery} from 'sentry/types';
+import {NewQuery, SavedQuery} from 'sentry/types';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
@@ -480,7 +480,7 @@ describe('EventView.fromSavedQuery()', function () {
 });
 
 describe('EventView.fromNewQueryWithLocation()', function () {
-  const prebuiltQuery = {
+  const prebuiltQuery: NewQuery = {
     id: undefined,
     name: 'All Events',
     query: '',
@@ -562,7 +562,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       },
     });
 
-    const prebuiltQuery2 = {
+    const prebuiltQuery2: NewQuery = {
       ...prebuiltQuery,
       range: '42d',
       projects: [987],
@@ -602,7 +602,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       },
     });
 
-    const prebuiltQuery3 = {
+    const prebuiltQuery3: NewQuery = {
       ...prebuiltQuery,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
