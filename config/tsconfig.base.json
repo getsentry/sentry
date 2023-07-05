@@ -38,6 +38,7 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
+    "noUncheckedIndexedAccess": false, // TODO: Run ./bin/fix-noUncheckedIndexedAccess.ts to fix this.
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strict": true,
@@ -51,7 +52,6 @@
     // exactOptionalPropertyTypes
     // noImplicitOverride
     // noPropertyAccessFromIndexSignature
-    // noUncheckedIndexedAccess
     // strictFunctionTypes
     // strictNullChecks
     // strictPropertyInitialization
