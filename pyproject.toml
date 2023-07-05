@@ -31,8 +31,6 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
-    "ignore::django.utils.deprecation.RemovedInDjango30Warning",
-
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is
     # released: https://github.com/googleapis/python-bigtable/pull/246
@@ -826,7 +824,6 @@ module = [
     "sentry.runner.commands.upgrade",
     "sentry.runner.importer",
     "sentry.runner.initializer",
-    "sentry.runner.settings",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
@@ -999,7 +996,6 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.csrf_failure",
     "sentry.web.frontend.debug.debug_assigned_email",
     "sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email",
     "sentry.web.frontend.debug.debug_incident_activity_email",
@@ -1138,7 +1134,6 @@ module = [
     "tests.sentry.api.endpoints.test_shared_group_details",
     "tests.sentry.api.endpoints.test_team_alerts_triggered",
     "tests.sentry.api.endpoints.test_team_details",
-    "tests.sentry.api.endpoints.test_team_notification_settings",
     "tests.sentry.api.endpoints.test_user_authenticator_details",
     "tests.sentry.api.endpoints.test_user_details",
     "tests.sentry.api.endpoints.test_user_notification_fine_tuning",

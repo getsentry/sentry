@@ -2,7 +2,6 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SentryAppExternalIssueForm from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 
@@ -39,7 +38,7 @@ describe('SentryAppExternalIssueForm', () => {
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
-          api={new Client()}
+          api={new MockApiClient()}
         />
       );
 
@@ -89,7 +88,7 @@ describe('SentryAppExternalIssueForm', () => {
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
-          api={new Client()}
+          api={new MockApiClient()}
         />
       );
       expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(`${group.title}`);
@@ -112,7 +111,7 @@ describe('SentryAppExternalIssueForm', () => {
           appName={sentryApp.name}
           config={component.schema.link}
           action="link"
-          api={new Client()}
+          api={new MockApiClient()}
         />
       );
 
@@ -173,7 +172,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
-        api={new Client()}
+        api={new MockApiClient()}
       />
     );
 
@@ -238,7 +237,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
-        api={new Client()}
+        api={new MockApiClient()}
       />
     );
 

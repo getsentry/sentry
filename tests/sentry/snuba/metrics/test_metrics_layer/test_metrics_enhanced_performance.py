@@ -21,6 +21,7 @@ from sentry.models import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
     MetricConditionField,
@@ -2063,7 +2064,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
             start=self.day_ago,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
         assert result == [
             {
@@ -2116,7 +2117,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
             project_ids=[self.project.id],
             organization_id=self.organization.id,
             start=self.day_ago,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
         )
 
         assert result == [

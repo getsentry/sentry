@@ -2,7 +2,7 @@ from http.client import HTTPException
 from urllib.parse import urljoin
 
 import phabricator
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -145,7 +145,7 @@ class PhabricatorPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

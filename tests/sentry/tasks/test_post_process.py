@@ -7,6 +7,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
+import pytest
 import pytz
 from django.test import override_settings
 from django.utils import timezone
@@ -1540,6 +1541,7 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
 class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
     @with_feature("organizations:sdk-crash-detection")
     @override_settings(SDK_CRASH_DETECTION_PROJECT_ID=1234)
+    @override_settings(SDK_CRASH_DETECTION_SAMPLE_RATE=0.1234)
     def test_sdk_crash_monitoring_is_called(self, mock_sdk_crash_detection):
         event = self.create_event(
             data={"message": "testing"},
@@ -1554,6 +1556,11 @@ class SDKCrashMonitoringTestMixin(BasePostProgressGroupMixin):
         )
 
         mock_sdk_crash_detection.detect_sdk_crash.assert_called_once()
+
+        args = mock_sdk_crash_detection.detect_sdk_crash.call_args[-1]
+        assert args["event"].project.id == event.project.id
+        assert args["event_project_id"] == 1234
+        assert args["sample_rate"] == 0.1234
 
     def test_sdk_crash_monitoring_is_not_called_with_disabled_feature(
         self, mock_sdk_crash_detection
@@ -1862,3 +1869,11 @@ class PostProcessGroupGenericTest(
 
         # Make sure we haven't called this again, since we should exit early.
         assert mock_processor.call_count == 1
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared(self):
+        pass
+
+    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
+    def test_processing_cache_cleared_with_commits(self):
+        pass

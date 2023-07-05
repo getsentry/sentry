@@ -1,6 +1,6 @@
 import logging
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
@@ -13,9 +13,6 @@ from sentry.utils import json
 logger = logging.getLogger("sentry.api")
 
 
-from rest_framework.request import Request
-
-
 class OAuthTokenView(View):
     @csrf_exempt
     @never_cache
@@ -23,7 +20,7 @@ class OAuthTokenView(View):
         return super().dispatch(request, *args, **kwargs)
 
     # Note: the reason parameter is for internal use only
-    def error(self, request: Request, name, reason=None, status=400):
+    def error(self, request: HttpRequest, name, reason=None, status=400):
         client_id = request.POST.get("client_id")
         redirect_uri = request.POST.get("redirect_uri")
 
@@ -42,7 +39,7 @@ class OAuthTokenView(View):
         )
 
     @never_cache
-    def post(self, request: Request) -> HttpResponse:
+    def post(self, request: HttpRequest) -> HttpResponse:
         grant_type = request.POST.get("grant_type")
 
         if grant_type == GrantTypes.AUTHORIZATION:
