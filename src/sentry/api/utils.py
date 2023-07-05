@@ -300,7 +300,7 @@ def method_dispatch(**dispatch_mapping):
     """
     Dispatches a incoming request to a different handler based on the HTTP method
 
-    >>> url('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
+    >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
 
     def invalid_method(request, *args, **kwargs):

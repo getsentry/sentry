@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from sentry.plugins.base.project_api_urls import load_plugin_urls
 from sentry.plugins.base.v2 import Plugin2
@@ -26,7 +26,7 @@ def test_load_plugin_project_urls():
             # for fear of breakage.
             from django.views.generic.list import BaseListView
 
-            return [url("", BaseListView.as_view())]
+            return [re_path("", BaseListView.as_view())]
 
     patterns = load_plugin_urls((BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA()))
 
