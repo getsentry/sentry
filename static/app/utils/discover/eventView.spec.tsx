@@ -2880,6 +2880,7 @@ describe('EventView.isEqualTo()', function () {
 describe('EventView.getResultsViewUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -2890,6 +2891,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
@@ -2934,6 +2936,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 describe('EventView.getResultsViewShortUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -2944,6 +2947,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
@@ -2995,6 +2999,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -3005,6 +3010,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
