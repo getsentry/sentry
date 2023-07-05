@@ -8,7 +8,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import * as LineChart from 'sentry/components/charts/lineChart';
 import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import {MINUTE, SECOND} from 'sentry/utils/formatters';
@@ -71,7 +70,7 @@ describe('Dashboards > WidgetCard', function () {
     },
   };
 
-  const api = new Client();
+  const api = new MockApiClient();
   let eventsMock;
 
   beforeEach(function () {

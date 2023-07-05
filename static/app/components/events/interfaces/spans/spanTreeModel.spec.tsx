@@ -1,6 +1,5 @@
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SpanTreeModel from 'sentry/components/events/interfaces/spans/spanTreeModel';
 import {EnhancedProcessedSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {
@@ -13,7 +12,7 @@ import {assert} from 'sentry/types/utils';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 
 describe('SpanTreeModel', () => {
-  const api: Client = new Client();
+  const api = new MockApiClient();
 
   const event = {
     id: '2b658a829a21496b87fd1f14a61abf65',

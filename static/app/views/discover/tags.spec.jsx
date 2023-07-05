@@ -6,7 +6,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
 import {Tags} from 'sentry/views/discover/tags';
 
@@ -17,7 +16,7 @@ describe('Tags', function () {
 
   const org = TestStubs.Organization();
   beforeEach(function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
         {
@@ -46,12 +45,10 @@ describe('Tags', function () {
   });
 
   afterEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -61,7 +58,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -81,8 +78,6 @@ describe('Tags', function () {
   });
 
   it('creates URLs with generateUrl', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -99,7 +94,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         organization={org}
         totalValues={30}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -126,8 +121,6 @@ describe('Tags', function () {
   });
 
   it('renders tag keys', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -137,7 +130,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -157,8 +150,6 @@ describe('Tags', function () {
   });
 
   it('excludes top tag values on current page query', async function () {
-    const api = new Client();
-
     const initialData = initializeOrg({
       organization: org,
       router: {
@@ -175,7 +166,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -203,13 +194,13 @@ describe('Tags', function () {
   });
 
   it('has a Show More button when there are more tags', async () => {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       match: [MockApiClient.matchQuery({cursor: undefined})],
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
-          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
       body: [
         {
@@ -219,18 +210,16 @@ describe('Tags', function () {
       ],
     });
 
-    const mockRequest = Client.addMockResponse({
+    const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
       body: [],
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:10:1",' +
-          '<http://localhost/api/0/organizations/org-slug/events-facets/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:10:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
       },
     });
-
-    const api = new Client();
 
     const view = new EventView({
       fields: [],
@@ -241,7 +230,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}

@@ -5,18 +5,17 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 
 const ENDPOINT = '/users/me/user-identities/';
 
 describe('AccountIdentities', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders empty', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: [],
@@ -27,7 +26,7 @@ describe('AccountIdentities', function () {
   });
 
   it('renders list', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: [
@@ -49,7 +48,7 @@ describe('AccountIdentities', function () {
   });
 
   it('disconnects identity', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
       body: [
@@ -73,7 +72,7 @@ describe('AccountIdentities', function () {
       method: 'DELETE',
     };
 
-    const mock = Client.addMockResponse(disconnectRequest);
+    const mock = MockApiClient.addMockResponse(disconnectRequest);
 
     expect(mock).not.toHaveBeenCalled();
 

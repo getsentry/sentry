@@ -5,7 +5,6 @@ import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -27,29 +26,29 @@ describe('TeamMembers', function () {
   });
 
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: [member],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
       body: members,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/`,
       method: 'GET',
       body: team,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${managerTeam.slug}/`,
       method: 'GET',
       body: managerTeam,
     });
 
-    createMock = Client.addMockResponse({
+    createMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/${member.id}/teams/${team.slug}/`,
       method: 'POST',
     });
@@ -255,7 +254,7 @@ describe('TeamMembers', function () {
   });
 
   it('can remove member from team', async function () {
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/${members[0].id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
@@ -280,13 +279,13 @@ describe('TeamMembers', function () {
       id: '123',
       email: 'foo@example.com',
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
       body: [...members, me],
     });
 
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/${me.id}/teams/${team.slug}/`,
       method: 'DELETE',
     });
@@ -320,7 +319,7 @@ describe('TeamMembers', function () {
       email: 'foo@example.com',
       role: 'owner',
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
       body: [...members, me],
@@ -346,7 +345,7 @@ describe('TeamMembers', function () {
       email: 'foo@example.com',
       orgRole: 'manager',
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/members/`,
       method: 'GET',
       body: [...members, manager],
@@ -368,7 +367,7 @@ describe('TeamMembers', function () {
   });
 
   it('adding member to manager team makes them team admin', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${managerTeam.slug}/members/`,
       method: 'GET',
       body: [],
@@ -409,18 +408,18 @@ describe('TeamMembers', function () {
       },
     });
 
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: [...members, me],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/members/`,
       method: 'GET',
       body: members,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/`,
       method: 'GET',
       body: team2,
@@ -449,18 +448,18 @@ describe('TeamMembers', function () {
       role: 'member',
     });
 
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/`,
       method: 'GET',
       body: [...members, me],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/members/`,
       method: 'GET',
       body: members,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team2.slug}/`,
       method: 'GET',
       body: team2,

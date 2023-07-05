@@ -1,14 +1,7 @@
 import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
-import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 
 describe('group', () => {
-  let api: Client;
-
-  beforeEach(function () {
-    api = new MockApiClient();
-  });
-
   describe('paramsToQueryArgs()', function () {
     it('should convert itemIds properties to id array', function () {
       expect(
@@ -92,7 +85,7 @@ describe('group', () => {
       });
 
       bulkUpdate(
-        api,
+        new MockApiClient(),
         {
           orgId: '1337',
           projectId: '1337',
@@ -117,7 +110,7 @@ describe('group', () => {
       });
 
       bulkUpdate(
-        api,
+        new MockApiClient(),
         {
           orgId: '1337',
           projectId: '1337',
@@ -142,7 +135,7 @@ describe('group', () => {
       });
 
       bulkUpdate(
-        api,
+        new MockApiClient(),
         {
           orgId: '1337',
           project: [99],
@@ -174,7 +167,7 @@ describe('group', () => {
       });
 
       mergeGroups(
-        api,
+        new MockApiClient(),
         {
           orgId: '1337',
           projectId: '1337',
@@ -198,7 +191,7 @@ describe('group', () => {
       });
 
       mergeGroups(
-        api,
+        new MockApiClient(),
         {
           orgId: '1337',
           projectId: '1337',

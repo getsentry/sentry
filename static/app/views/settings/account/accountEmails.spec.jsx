@@ -1,6 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AccountEmails from 'sentry/views/settings/account/accountEmails';
 
 jest.mock('scroll-to-element', () => {});
@@ -9,8 +8,8 @@ const ENDPOINT = '/users/me/emails/';
 
 describe('AccountEmails', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.AccountEmails(),
     });
@@ -23,7 +22,7 @@ describe('AccountEmails', function () {
   });
 
   it('can remove an email', async function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
       statusCode: 200,
@@ -46,7 +45,7 @@ describe('AccountEmails', function () {
   });
 
   it('can change a secondary email to primary an email', async function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
       statusCode: 200,
@@ -69,7 +68,7 @@ describe('AccountEmails', function () {
   });
 
   it('can resend verification email', async function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}confirm/`,
       method: 'POST',
       statusCode: 200,
@@ -94,7 +93,7 @@ describe('AccountEmails', function () {
   });
 
   it('can add a secondary email', async function () {
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
       statusCode: 200,

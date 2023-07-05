@@ -2,7 +2,6 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function () {
@@ -15,7 +14,7 @@ describe('Sentry Application Details', function () {
   const maskedValue = '*'.repeat(64);
 
   beforeEach(() => {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
 
     org = TestStubs.Organization({features: ['sentry-app-logo-upload']});
   });
@@ -29,7 +28,7 @@ describe('Sentry Application Details', function () {
     }
 
     beforeEach(() => {
-      createAppRequest = Client.addMockResponse({
+      createAppRequest = MockApiClient.addMockResponse({
         url: '/sentry-apps/',
         method: 'POST',
         body: [],
@@ -163,12 +162,12 @@ describe('Sentry Application Details', function () {
       sentryApp = TestStubs.SentryApp();
       sentryApp.events = ['issue'];
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });
@@ -220,12 +219,12 @@ describe('Sentry Application Details', function () {
       token = TestStubs.SentryAppToken();
       sentryApp.events = ['issue'];
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
@@ -282,12 +281,12 @@ describe('Sentry Application Details', function () {
       token = TestStubs.SentryAppToken({token: maskedValue, refreshToken: maskedValue});
       sentryApp.events = ['issue'];
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
@@ -321,19 +320,19 @@ describe('Sentry Application Details', function () {
       token = TestStubs.SentryAppToken();
       sentryApp.events = ['issue'];
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [token],
       });
     });
 
     it('adding token to list', async function () {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         method: 'POST',
         body: [
@@ -353,7 +352,7 @@ describe('Sentry Application Details', function () {
     });
 
     it('removing token from list', async function () {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/${token.token}/`,
         method: 'DELETE',
         body: {},
@@ -385,18 +384,18 @@ describe('Sentry Application Details', function () {
       sentryApp.events = ['issue'];
       sentryApp.scopes = ['project:read', 'event:read'];
 
-      editAppRequest = Client.addMockResponse({
+      editAppRequest = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         method: 'PUT',
         body: [],
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });
@@ -467,7 +466,7 @@ describe('Sentry Application Details', function () {
     beforeEach(() => {
       sentryApp = TestStubs.SentryApp();
 
-      editAppRequest = Client.addMockResponse({
+      editAppRequest = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         method: 'PUT',
         statusCode: 400,
@@ -479,12 +478,12 @@ describe('Sentry Application Details', function () {
         },
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         body: sentryApp,
       });
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
         body: [],
       });

@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -39,8 +38,6 @@ function initialize(projects, query, additionalFeatures = []) {
   ProjectsStore.loadInitialData(initialData.organization.projects);
   const eventView = EventView.fromLocation(initialData.router.location);
 
-  const api = new Client();
-
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
 
@@ -50,7 +47,7 @@ function initialize(projects, query, additionalFeatures = []) {
     transactionName,
     location: initialData.router.location,
     eventView,
-    api,
+    api: MockApiClient,
   };
 }
 

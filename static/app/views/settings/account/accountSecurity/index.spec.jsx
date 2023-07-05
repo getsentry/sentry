@@ -6,7 +6,6 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import ModalStore from 'sentry/stores/modalStore';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -20,12 +19,12 @@ describe('AccountSecurity', function () {
   beforeEach(function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations(),
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: TestStubs.AccountEmails(),
     });
@@ -45,7 +44,7 @@ describe('AccountSecurity', function () {
   }
 
   it('renders empty', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [],
     });
@@ -56,7 +55,7 @@ describe('AccountSecurity', function () {
   });
 
   it('renders a primary interface that is enrolled', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
     });
@@ -73,7 +72,7 @@ describe('AccountSecurity', function () {
   });
 
   it('can delete enrolled authenticator', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Totp({
@@ -83,7 +82,7 @@ describe('AccountSecurity', function () {
       ],
     });
 
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
@@ -97,7 +96,7 @@ describe('AccountSecurity', function () {
     ).toBeInTheDocument();
 
     // next authenticators request should have totp disabled
-    const authenticatorsMock = Client.addMockResponse({
+    const authenticatorsMock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Totp({
@@ -123,7 +122,7 @@ describe('AccountSecurity', function () {
   });
 
   it('can remove one of multiple 2fa methods when org requires 2fa', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Totp({
@@ -133,11 +132,11 @@ describe('AccountSecurity', function () {
         TestStubs.Authenticators().U2f(),
       ],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
@@ -159,7 +158,7 @@ describe('AccountSecurity', function () {
   });
 
   it('can not remove last 2fa method when org requires 2fa', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Totp({
@@ -168,11 +167,11 @@ describe('AccountSecurity', function () {
         }),
       ],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
       body: TestStubs.Organizations({require2FA: true}),
     });
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}15/`,
       method: 'DELETE',
     });
@@ -196,11 +195,11 @@ describe('AccountSecurity', function () {
   });
 
   it('cannot enroll without verified email', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: [
         {
@@ -225,7 +224,7 @@ describe('AccountSecurity', function () {
   });
 
   it('renders a backup interface that is not enrolled', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
@@ -240,7 +239,7 @@ describe('AccountSecurity', function () {
   });
 
   it('renders a primary interface that is not enrolled', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
     });
@@ -255,7 +254,7 @@ describe('AccountSecurity', function () {
   });
 
   it('does not render primary interface that disallows new enrollments', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Totp({disallowNewEnrollment: false}),
@@ -272,7 +271,7 @@ describe('AccountSecurity', function () {
   });
 
   it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         TestStubs.Authenticators().Sms({isEnrolled: true, disallowNewEnrollment: true}),
@@ -286,7 +285,7 @@ describe('AccountSecurity', function () {
   });
 
   it('renders a backup interface that is enrolled', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],
     });
@@ -298,13 +297,13 @@ describe('AccountSecurity', function () {
   });
 
   it('can change password', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
 
     const url = '/users/me/password/';
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });
@@ -340,12 +339,12 @@ describe('AccountSecurity', function () {
   });
 
   it('requires current password to be entered', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
     const url = '/users/me/password/';
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
     });
@@ -367,11 +366,11 @@ describe('AccountSecurity', function () {
   });
 
   it('can expire all sessions', async function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
-    const mock = Client.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: AUTH_ENDPOINT,
       body: {all: true},
       method: 'DELETE',

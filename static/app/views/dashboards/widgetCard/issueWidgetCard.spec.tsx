@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -42,7 +41,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     },
   };
 
-  const api = new Client();
+  const api = new MockApiClient();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({

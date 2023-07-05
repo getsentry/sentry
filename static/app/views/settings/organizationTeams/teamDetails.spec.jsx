@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TeamStore from 'sentry/stores/teamStore';
 import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 
@@ -15,14 +14,14 @@ describe('TeamMembers', () => {
   beforeEach(() => {
     TeamStore.init();
     TeamStore.loadInitialData([team, teamHasAccess]);
-    joinMock = Client.addMockResponse({
+    joinMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/members/me/teams/${team.slug}/`,
       method: 'POST',
     });
   });
 
   afterEach(() => {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
     TeamStore.reset();
   });
 

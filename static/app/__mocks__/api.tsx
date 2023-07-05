@@ -32,7 +32,7 @@ interface MatchCallable {
 }
 
 type AsyncDelay = undefined | number;
-type ResponseType = ApiNamespace.ResponseMeta & {
+interface ResponseType extends ApiNamespace.ResponseMeta {
   body: any;
   callCount: 0;
   headers: Record<string, string>;
@@ -49,7 +49,7 @@ type ResponseType = ApiNamespace.ResponseMeta & {
    * This will override `MockApiClient.asyncDelay` for this request.
    */
   asyncDelay?: AsyncDelay;
-};
+}
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
@@ -171,7 +171,9 @@ class Client implements ApiNamespace.Client {
    * In the real client, this clears in-flight responses. It's NOT
    * clearMockResponses. You probably don't want to call this from a test.
    */
-  clear() {}
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
+  }
 
   wrapCallback<T extends any[]>(
     _id: string,

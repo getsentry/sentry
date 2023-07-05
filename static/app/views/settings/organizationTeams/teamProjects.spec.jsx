@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {TeamProjects as OrganizationTeamProjects} from 'sentry/views/settings/organizationTeams/teamProjects';
 
 describe('OrganizationTeamProjects', function () {
@@ -30,25 +29,25 @@ describe('OrganizationTeamProjects', function () {
   beforeEach(function () {
     team = TestStubs.Team({slug: 'team-slug'});
 
-    getMock = Client.addMockResponse({
+    getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project, project2],
     });
 
-    putMock = Client.addMockResponse({
+    putMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/',
       body: project,
     });
 
-    postMock = Client.addMockResponse({
+    postMock = MockApiClient.addMockResponse({
       method: 'POST',
       url: `/projects/org-slug/${project2.slug}/teams/${team.slug}/`,
       body: {...project2, teams: [team]},
       status: 201,
     });
 
-    deleteMock = Client.addMockResponse({
+    deleteMock = MockApiClient.addMockResponse({
       method: 'DELETE',
       url: `/projects/org-slug/${project2.slug}/teams/${team.slug}/`,
       body: {...project2, teams: []},
@@ -57,7 +56,7 @@ describe('OrganizationTeamProjects', function () {
   });
 
   afterEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('fetches linked and unlinked projects', function () {

@@ -1,16 +1,15 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import IntegrationListDirectory from 'sentry/views/settings/organizationIntegrations/integrationListDirectory';
 
 const mockResponse = mocks => {
-  mocks.forEach(([url, body]) => Client.addMockResponse({url, body}));
+  mocks.forEach(([url, body]) => MockApiClient.addMockResponse({url, body}));
 };
 
 describe('IntegrationListDirectory', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   const {organization: org, routerContext} = initializeOrg();

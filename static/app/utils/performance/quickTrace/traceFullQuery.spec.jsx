@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {
   TraceFullDetailedQuery,
   TraceFullQuery,
@@ -28,9 +27,8 @@ function renderTraceFull({isLoading, error, type}) {
 }
 
 describe('TraceFullQuery', function () {
-  let api, location;
+  let location;
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},
@@ -44,7 +42,7 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullQuery
-        api={api}
+        api={new MockApiClient()}
         traceId={traceId}
         eventId={eventId}
         location={location}
@@ -67,7 +65,7 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullDetailedQuery
-        api={api}
+        api={new MockApiClient()}
         traceId={traceId}
         eventId={eventId}
         location={location}
