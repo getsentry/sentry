@@ -104,7 +104,7 @@ COMPARATORS: dict[ModelName | None, list[JSONMutatingComparator]] = {
 }
 
 
-def json_lines(obj: JSONData) -> str:
+def json_lines(obj: JSONData) -> list[str]:
     """Take a JSONData object and pretty-print it as JSON."""
 
     return JSON_PRETTY_PRINTER.encode(obj).splitlines()
