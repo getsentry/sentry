@@ -9,7 +9,6 @@ from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
-from sentry.signals import inbox_in, inbox_out
 from sentry.types.activity import ActivityType
 
 INBOX_REASON_DETAILS = {
@@ -86,15 +85,6 @@ def add_group_to_inbox(group, reason, reason_details=None):
         },
     )
 
-    if reason is not GroupInboxReason.NEW:
-        # Ignore new issues, too many events
-        inbox_in.send_robust(
-            project=group.project,
-            user=None,
-            group=group,
-            sender="add_group_to_inbox",
-            reason=reason.name.lower(),
-        )
     return group_inbox
 
 
@@ -117,17 +107,6 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
-
-        if action:
-            inbox_out.send_robust(
-                group=group_inbox.group,
-                project=group_inbox.group.project,
-                user=user,
-                sender="remove_group_from_inbox",
-                action=action.value,
-                inbox_date_added=group_inbox.date_added,
-                referrer=referrer,
-            )
     except GroupInbox.DoesNotExist:
         pass
 

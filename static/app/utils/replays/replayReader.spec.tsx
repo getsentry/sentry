@@ -1,7 +1,6 @@
 import {EventType} from '@sentry-internal/rrweb';
 
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import {spansFactory} from 'sentry/utils/replays/replayDataUtils';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 describe('ReplayReader', () => {
@@ -65,7 +64,13 @@ describe('ReplayReader', () => {
   });
 
   describe('attachment splitting', () => {
-    const timestamp = new Date();
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const optionsFrame = TestStubs.Replay.OptionFrame({});
+    const optionsEvent = TestStubs.Replay.OptionFrameEvent({
+      timestamp,
+      data: {payload: optionsFrame},
+    });
     const firstDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
     const secondDiv = TestStubs.Replay.RRWebFullSnapshotFrameEvent({timestamp});
     const clickEvent = TestStubs.Replay.ClickEvent({timestamp});
@@ -78,107 +83,95 @@ describe('ReplayReader', () => {
       endTimestamp: timestamp,
     });
     const navigationEvent = TestStubs.Replay.NavigateEvent({
-      startTimestamp: timestamp,
-      endTimestamp: timestamp,
+      startTimestamp: new Date('2023-12-25T00:03:00'),
+      endTimestamp: new Date('2023-12-25T00:03:30'),
     });
     const consoleEvent = TestStubs.Replay.ConsoleEvent({timestamp});
-    const replayEnd = {
-      type: EventType.Custom,
-      timestamp: expect.any(Number), // will be set to the endTimestamp of the last crumb in the test
+    const customEvent = TestStubs.Replay.BreadcrumbFrameEvent({
+      timestamp: new Date('2023-12-25T00:02:30'),
       data: {
-        tag: 'replay-end',
+        payload: {
+          category: 'redux.action',
+          data: {
+            action: 'save.click',
+          },
+          message: '',
+          timestamp: new Date('2023-12-25T00:02:30').getTime() / 1000,
+          type: BreadcrumbType.DEFAULT,
+        },
       },
-    };
+    });
     const attachments = [
       clickEvent,
       consoleEvent,
       firstDiv,
       firstMemory,
       navigationEvent,
+      optionsEvent,
       secondDiv,
       secondMemory,
+      customEvent,
     ];
-
-    const {
-      startTimestamp,
-      endTimestamp: _2,
-      op: _1,
-      ...payload
-    } = navigationEvent.data.payload;
-    const expectedNav = {
-      ...payload,
-      action: 'navigate',
-      category: 'default',
-      color: 'green300',
-      description: 'Navigation',
-      id: 2,
-      level: 'info',
-      message: '',
-      type: 'navigation',
-      data: {
-        ...payload.data,
-        label: 'Page load',
-        to: '',
-      },
-      timestamp: new Date(startTimestamp * 1000).toISOString(),
-    };
-
-    function patchEvents(events) {
-      return transformCrumbs(
-        events.map(event => ({
-          ...event.data.payload,
-          id: expect.any(Number),
-          timestamp: new Date(event.data.payload.timestamp * 1000).toISOString(),
-        }))
-      );
-    }
-    function patchSpanEvents(events) {
-      return spansFactory(
-        events.map(event => ({
-          ...event.data.payload,
-          id: expect.any(String),
-          endTimestamp: event.data.payload.endTimestamp,
-          startTimestamp: event.data.payload.startTimestamp,
-        }))
-      );
-    }
 
     it.each([
       {
-        method: 'getRRWebEvents',
-        expected: [firstDiv, secondDiv, replayEnd],
+        method: 'getRRWebFrames',
+        expected: [
+          {
+            type: EventType.Custom,
+            timestamp: expect.any(Number),
+            data: {tag: 'replay.start', payload: {}},
+          },
+          firstDiv,
+          secondDiv,
+          {
+            type: EventType.Custom,
+            timestamp: expect.any(Number),
+            data: {tag: 'replay.end', payload: {}},
+          },
+        ],
       },
       {
-        method: 'getCrumbsWithRRWebNodes',
-        expected: patchEvents([clickEvent]),
+        method: 'getConsoleFrames',
+        expected: [expect.objectContaining({category: 'console'})],
       },
       {
-        method: 'getUserActionCrumbs',
-        expected: [...patchEvents([clickEvent]), expectedNav],
+        method: 'getNetworkFrames',
+        expected: [expect.objectContaining({op: 'navigation.navigate'})],
       },
       {
-        method: 'getConsoleCrumbs',
-        // Need a non-console event in here so the `id` ends up correct,
-        // slice() removes the extra item later
-        expected: patchEvents([clickEvent, consoleEvent]).slice(1),
+        method: 'getDOMFrames',
+        expected: [expect.objectContaining({category: 'ui.click'})],
       },
       {
-        method: 'getNonConsoleCrumbs',
-        expected: [...patchEvents([clickEvent]), expectedNav],
+        method: 'getMemoryFrames',
+        expected: [
+          expect.objectContaining({op: 'memory'}),
+          expect.objectContaining({op: 'memory'}),
+        ],
       },
       {
-        method: 'getNavCrumbs',
-        expected: [expectedNav],
+        method: 'getChapterFrames',
+        expected: [
+          expect.objectContaining({category: 'replay.init'}),
+          expect.objectContaining({category: 'ui.click'}),
+          expect.objectContaining({category: 'redux.action'}),
+          expect.objectContaining({op: 'navigation.navigate'}),
+        ],
       },
       {
-        method: 'getNetworkSpans',
-        expected: patchSpanEvents([navigationEvent]),
+        method: 'getTimelineFrames',
+        expected: [
+          expect.objectContaining({category: 'replay.init'}),
+          expect.objectContaining({category: 'ui.click'}),
+          expect.objectContaining({op: 'navigation.navigate'}),
+        ],
       },
       {
-        method: 'getMemorySpans',
-        expected: patchSpanEvents([secondMemory, secondMemory]),
+        method: 'getSDKOptions',
+        expected: optionsFrame,
       },
-    ])('Calling $method will filter attachments', ({method, expected}) => {
+    ])('Calling $method will filter frames', ({method, expected}) => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
@@ -205,7 +198,7 @@ describe('ReplayReader', () => {
       replayRecord,
     });
 
-    expect(replay?.sdkConfig()).toBe(optionsFrame);
+    expect(replay?.getSDKOptions()).toBe(optionsFrame);
   });
 
   describe('isNetworkDetailsSetup', () => {

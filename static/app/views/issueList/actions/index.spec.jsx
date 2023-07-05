@@ -282,6 +282,29 @@ describe('IssueListActions', function () {
     );
   });
 
+  it('can unarchive an issue when the query contains is:archived', async () => {
+    const org_escalating = {...organization, features: ['escalating-issues']};
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org_escalating.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} query="is:archived" />, {
+      organization: org_escalating,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({id: ['1'], project: [1]}),
+        data: {status: 'unresolved'},
+      })
+    );
+  });
+
   it('can resolve but not merge issues from different projects', function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')

@@ -1,3 +1,5 @@
+from symbolic.exceptions import SymbolicError
+
 from sentry.utils.rust import merge_rust_info_frames, starts_with, strip_symbol
 
 STACKTRACE = """
@@ -101,7 +103,7 @@ def get_event(stacktrace):
 
 
 def get_exc_info(rust_info):
-    exc = ValueError("hello world")
+    exc = SymbolicError("hello world")
     if rust_info is not None:
         exc.rust_info = rust_info
     return type(exc), exc, None

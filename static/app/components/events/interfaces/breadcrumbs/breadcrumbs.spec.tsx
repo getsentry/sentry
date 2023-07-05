@@ -9,17 +9,13 @@ import {
   useHasOrganizationSentAnyReplayEvents,
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
 
-const mockReplay = ReplayReader.factory({
-  replayRecord: TestStubs.ReplayRecord({}),
-  errors: [],
-  attachments: TestStubs.ReplaySegmentInit({}),
-});
-
-jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
+jest.mock('sentry/utils/replays/hooks/useReplayReader');
+jest.mock('sentry/utils/useProjects');
 
 jest.mock('screenfull', () => ({
   enabled: true,
@@ -30,15 +26,27 @@ jest.mock('screenfull', () => ({
   off: jest.fn(),
 }));
 
-jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({}),
+  errors: [],
+  attachments: TestStubs.ReplaySegmentInit({}),
+});
+
+const mockUseReplayReader = useReplayReader as jest.MockedFunction<
+  typeof useReplayReader
+>;
+
+mockUseReplayReader.mockImplementation(() => {
   return {
-    __esModule: true,
-    default: jest.fn(() => {
-      return {
-        replay: mockReplay,
-        fetching: false,
-      };
-    }),
+    attachments: [],
+    errors: [],
+    fetchError: undefined,
+    fetching: false,
+    onRetry: jest.fn(),
+    projectSlug: TestStubs.Project().slug,
+    replay: mockReplay,
+    replayId: TestStubs.ReplayRecord({}).id,
+    replayRecord: TestStubs.ReplayRecord(),
   };
 });
 

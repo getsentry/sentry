@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
@@ -15,7 +15,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.project import Project
 
 
 def validate_scope_list(value):
@@ -33,7 +32,7 @@ class OrgAuthToken(Model):
     token_hashed = models.TextField(unique=True, null=False)
     # An optional representation of the last characters of the original token, to be shown to the user
     token_last_characters = models.CharField(max_length=4, null=True)
-    name = models.CharField(max_length=255, null=False)
+    name = models.CharField(max_length=255, null=False, blank=False)
     scope_list = ArrayField(
         models.TextField(),
         validators=[validate_scope_list],
@@ -56,10 +55,13 @@ class OrgAuthToken(Model):
     __repr__ = sane_repr("organization_id", "token_hashed")
 
     def __str__(self):
-        return force_text(self.token_hashed)
+        return force_str(self.token_hashed)
 
     def get_audit_log_data(self):
-        return {"scopes": self.get_scopes()}
+        return {"name": self.name, "scopes": self.get_scopes()}
+
+    def get_allowed_origins(self):
+        return ()
 
     def get_scopes(self):
         return self.scope_list
@@ -67,11 +69,14 @@ class OrgAuthToken(Model):
     def has_scope(self, scope):
         return scope in self.get_scopes()
 
-    def project_last_used(self) -> Project | None:
-        if self.project_last_used_id is None:
-            return None
-
-        return Project.objects.get(id=self.project_last_used_id)
-
     def is_active(self) -> bool:
         return self.date_deactivated is None
+
+
+def is_org_auth_token_auth(auth: object) -> bool:
+    """:returns True when an API token is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "org_auth_token"
+    return isinstance(auth, OrgAuthToken)

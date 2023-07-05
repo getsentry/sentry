@@ -133,6 +133,10 @@ class OrganizationTeamsListTest(APITestCase):
         team2 = self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
 
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:undefined"
+        response = self.client.get(path)
+        assert response.status_code == 400, response.content
+
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
         response = self.client.get(path)
         assert response.status_code == 200, response.content

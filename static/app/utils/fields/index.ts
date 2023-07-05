@@ -19,6 +19,7 @@ export enum FieldKey {
   ASSIGNED = 'assigned',
   ASSIGNED_OR_SUGGESTED = 'assigned_or_suggested',
   BOOKMARKS = 'bookmarks',
+  BROWSER_NAME = 'browser.name',
   CULPRIT = 'culprit',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -74,6 +75,7 @@ export enum FieldKey {
   OS = 'os',
   OS_BUILD = 'os.build',
   OS_KERNEL_VERSION = 'os.kernel_version',
+  OS_NAME = 'os.name',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
@@ -129,6 +131,8 @@ export enum FieldValueType {
   STRING = 'string',
   NEVER = 'never',
   SIZE = 'size',
+  RATE = 'rate',
+  PERCENT_CHANGE = 'percent_change',
 }
 
 export enum WebVital {
@@ -500,6 +504,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.BROWSER_NAME]: {
+    desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.DEVICE_ARCH]: {
     desc: t('CPU architecture'),
     kind: FieldKind.FIELD,
@@ -775,6 +784,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.HAS]: {
     desc: t('Determines if a tag or field exists in an event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.OS_NAME]: {
+    desc: t('Name of the Operating System'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

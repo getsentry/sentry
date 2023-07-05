@@ -63,13 +63,13 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
         }
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
-    def test_regression(self, mock_trends_query):
+    def test_min_threshold(self, mock_trends_query):
         n = 25
         for i in range(n):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [500 if i < n / 2 else 100],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 110 * 1e6],
                         "package": "foo",
                         "function": "bar",
                         "in_app": True,
@@ -81,7 +81,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [1000 if i < n / 2 else 100],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 1000 * 1e6],
                         "package": "foo",
                         "function": "baz",
                         "in_app": True,
@@ -93,32 +93,111 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
 
         mock_trends_query.return_value = [
             {
-                "aggregate_range_1": 100.0,
-                "aggregate_range_2": 930.7692307692307,
-                "breakpoint": 1686621600,
-                "change": "regression",
+                "absolute_percentage_change": 0.9090909090909091,
+                "aggregate_range_1": 110000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1688022000,
+                "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
                     self.function_fingerprint({"package": "foo", "function": "bar"})
                 ),
-                "trend_difference": 830.7692307692307,
-                "trend_percentage": 9.307692307692307,
-                "unweighted_p_value": 4.84e-08,
-                "unweighted_t_value": -12.0,
+                "trend_difference": -10000000.0,
+                "trend_percentage": 0.9090909090909091,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
             },
             {
-                "aggregate_range_1": 100.0,
-                "aggregate_range_2": 469.2307692307692,
-                "breakpoint": 1686621600,
+                "absolute_percentage_change": 0.1,
+                "aggregate_range_1": 1000000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1688022000,
+                "change": "improvement",
+                "project": str(self.project.id),
+                "transaction": str(
+                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                ),
+                "trend_difference": -900000000.0,
+                "trend_percentage": 0.1,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
+            },
+        ]
+
+        with self.feature(PROFILING_FEATURES):
+            response = self.client.get(
+                self.url,
+                {
+                    "function": "avg()",
+                    "query": "is_application:1",
+                    "trend": "improvement",
+                    "statsPeriod": "24h",
+                    "threshold": "20",
+                },
+            )
+        assert response.status_code == 200
+        results = response.json()
+        assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
+
+    @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
+    def test_regression(self, mock_trends_query):
+        n = 25
+        for i in range(n):
+            self.store_functions(
+                [
+                    {
+                        "self_times_ns": [500 * 1e6 if i < n / 2 else 100 * 1e6],
+                        "package": "foo",
+                        "function": "bar",
+                        "in_app": True,
+                    },
+                ],
+                project=self.project,
+                timestamp=before_now(hours=i, minutes=10),
+            )
+            self.store_functions(
+                [
+                    {
+                        "self_times_ns": [1000 * 1e6 if i < n / 2 else 100 * 1e6],
+                        "package": "foo",
+                        "function": "baz",
+                        "in_app": True,
+                    },
+                ],
+                project=self.project,
+                timestamp=before_now(hours=i, minutes=11),
+            )
+
+        mock_trends_query.return_value = [
+            {
+                "absolute_percentage_change": 5.0,
+                "aggregate_range_1": 100000000.0,
+                "aggregate_range_2": 500000000.0,
+                "breakpoint": 1687323600,
                 "change": "regression",
                 "project": str(self.project.id),
                 "transaction": str(
                     self.function_fingerprint({"package": "foo", "function": "baz"})
                 ),
-                "trend_difference": 369.2307692307692,
-                "trend_percentage": 4.6923076923076925,
-                "unweighted_p_value": 4.84e-08,
-                "unweighted_t_value": -12.000000000000002,
+                "trend_difference": 400000000.0,
+                "trend_percentage": 5.0,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": -float("inf"),
+            },
+            {
+                "absolute_percentage_change": 10.0,
+                "aggregate_range_1": 100000000.0,
+                "aggregate_range_2": 1000000000.0,
+                "breakpoint": 1687323600,
+                "change": "regression",
+                "project": str(self.project.id),
+                "transaction": str(
+                    self.function_fingerprint({"package": "foo", "function": "bar"})
+                ),
+                "trend_difference": 900000000.0,
+                "trend_percentage": 10.0,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": -float("inf"),
             },
         ]
 
@@ -134,7 +213,10 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             )
         assert response.status_code == 200
         # TODO: assert response json
-        assert response.json()
+        results = response.json()
+        assert results
+        trend_percentages = [data["trend_percentage"] for data in results]
+        assert trend_percentages == [10.0, 5.0]
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
     def test_improvement(self, mock_trends_query):
@@ -143,7 +225,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [100 if i < n / 2 else 500],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 500 * 1e6],
                         "package": "foo",
                         "function": "bar",
                         "in_app": True,
@@ -155,7 +237,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [100 if i < n / 2 else 1000],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 1000 * 1e6],
                         "package": "foo",
                         "function": "baz",
                         "in_app": True,
@@ -167,32 +249,34 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
 
         mock_trends_query.return_value = [
             {
-                "aggregate_range_1": 1000.0,
-                "aggregate_range_2": 164.28571428571428,
-                "breakpoint": 1686625200,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
-                ),
-                "trend_difference": -835.7142857142858,
-                "trend_percentage": 0.16428571428571428,
-                "unweighted_p_value": 8e-09,
-                "unweighted_t_value": 13.0,
-            },
-            {
-                "aggregate_range_1": 500.0,
-                "aggregate_range_2": 128.57142857142858,
-                "breakpoint": 1686625200,
+                "absolute_percentage_change": 0.2,
+                "aggregate_range_1": 500000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1687323600,
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
                     self.function_fingerprint({"package": "foo", "function": "bar"})
                 ),
-                "trend_difference": -371.42857142857144,
-                "trend_percentage": 0.2571428571428572,
-                "unweighted_p_value": 8e-09,
-                "unweighted_t_value": 12.999999999999998,
+                "trend_difference": -400000000.0,
+                "trend_percentage": 0.2,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
+            },
+            {
+                "absolute_percentage_change": 0.1,
+                "aggregate_range_1": 1000000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1687323600,
+                "change": "improvement",
+                "project": str(self.project.id),
+                "transaction": str(
+                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                ),
+                "trend_difference": -900000000.0,
+                "trend_percentage": 0.1,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
             },
         ]
 
@@ -208,7 +292,10 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             )
         assert response.status_code == 200
         # TODO: assert response json
-        assert response.json()
+        results = response.json()
+        assert results
+        trend_percentages = [data["trend_percentage"] for data in results]
+        assert trend_percentages == [0.1, 0.2]
 
 
 def test_get_rollup_from_range_max_buckets():

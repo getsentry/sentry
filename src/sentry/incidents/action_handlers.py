@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from typing import Sequence, Set, Tuple
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.template.defaultfilters import pluralize
@@ -21,6 +22,7 @@ from sentry.incidents.models import (
 )
 from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.options.user_option import UserOption
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
@@ -47,10 +49,12 @@ class ActionHandler(metaclass=abc.ABCMeta):
 
 class DefaultActionHandler(ActionHandler):
     def fire(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            self.send_alert(metric_value, new_status)
 
     def resolve(self, metric_value: int | float, new_status: IncidentStatus):
-        self.send_alert(metric_value, new_status)
+        if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            self.send_alert(metric_value, new_status)
 
     @abc.abstractmethod
     def send_alert(self, metric_value: int | float, new_status: IncidentStatus):
@@ -68,7 +72,15 @@ class EmailActionHandler(ActionHandler):
         if not target:
             return set()
 
+        if RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
+            return set()
+
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            if RuleSnooze.objects.is_snoozed_for_user(
+                user_id=target.id, alert_rule=self.incident.alert_rule
+            ):
+                return set()
+
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
@@ -76,7 +88,10 @@ class EmailActionHandler(ActionHandler):
                 self.project,
                 {RpcUser(id=member.user_id) for member in target.member_set},
             )[ExternalProviders.EMAIL]
-            return {user.id for user in users}
+            snoozed_users = RuleSnooze.objects.filter(
+                alert_rule=self.incident.alert_rule, user_id__in=[user.id for user in users]
+            ).values_list("user_id", flat=True)
+            return {user.id for user in users if user.id not in snoozed_users}
 
         return set()
 
@@ -239,27 +254,38 @@ def generate_incident_trigger_email_context(
             tz = user_option_tz
 
     organization = incident.organization
+
+    alert_link = organization.absolute_url(
+        reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": organization.slug,
+                "incident_id": incident.identifier,
+            },
+        ),
+        query="referrer=alert_email",
+    )
+
+    rule_link = organization.absolute_url(
+        reverse(
+            "sentry-metric-alert-details",
+            kwargs={
+                "organization_slug": organization.slug,
+                "alert_rule_id": incident.alert_rule.id,
+            },
+        ),
+        query="referrer=alert_email",
+    )
+
+    snooze_alert = False
+    snooze_alert_url = None
+    if features.has("organizations:mute-metric-alerts", organization):
+        snooze_alert = True
+        snooze_alert_url = rule_link + "&" + urlencode({"mute": "1"})
+
     return {
-        "link": organization.absolute_url(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            ),
-            query="referrer=alert_email",
-        ),
-        "rule_link": organization.absolute_url(
-            reverse(
-                "sentry-alert-rule",
-                kwargs={
-                    "organization_slug": organization.slug,
-                    "project_slug": project.slug,
-                    "alert_rule_id": trigger.alert_rule_id,
-                },
-            )
-        ),
+        "link": alert_link,
+        "rule_link": rule_link,
         "project_slug": project.slug,
         "incident_name": incident.title,
         "environment": environment_string,
@@ -278,4 +304,6 @@ def generate_incident_trigger_email_context(
         "unsubscribe_link": None,
         "chart_url": chart_url,
         "timezone": tz,
+        "snooze_alert": snooze_alert,
+        "snooze_alert_url": snooze_alert_url,
     }

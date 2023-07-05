@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import threading
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
+from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -28,18 +29,10 @@ class use_real_service:
         if isinstance(self.service, DelegatedBySiloMode):
             if self.silo_mode is not None:
                 self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
-                self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, self.silo_mode),
-                    )
-                )
+                self.context.enter_context(self.service.with_replacement(None, self.silo_mode))
             else:
                 self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, SiloMode.get_current_mode()),
-                    )
+                    self.service.with_replacement(None, SiloMode.get_current_mode())
                 )
         else:
             raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
@@ -145,3 +138,80 @@ class HybridCloudTestMixin:
             organization_id=org_member.organization_id,
             organizationmember_id=org_member.id,
         ).exists()
+
+
+class SimulatedTransactionWatermarks(threading.local):
+    state: dict[str, int] = {}
+
+
+simulated_transaction_watermarks = SimulatedTransactionWatermarks()
+
+
+@contextlib.contextmanager
+def simulate_on_commit(request: Any):
+    """
+    Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
+    correctly test on_commit hooks.  Allows the use of django_test_transaction_water_mark to create a 'simulated'
+    level of outer transaction that fires on_commit hooks, allowing for logic dependent on this behavior (usually
+    outbox processing) to correctly detect which savepoint should call the `on_commit` hook.
+    """
+
+    from django.conf import settings
+    from django.db import transaction
+    from django.db.backends.base.base import BaseDatabaseWrapper
+    from django.test import TestCase as DjangoTestCase
+
+    request_node_cls = request.node.cls
+    simulated_transaction_watermarks.state = {}
+
+    if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
+        yield
+        return
+
+    _old_atomic_exit = transaction.Atomic.__exit__
+    _old_transaction_on_commit = transaction.on_commit
+
+    def maybe_flush_commit_hooks(connection):
+        if (
+            connection.in_atomic_block
+            and len(connection.savepoint_ids)
+            <= simulated_transaction_watermarks.state[connection.alias or "default"]
+            and not connection.closed_in_transaction
+            and not connection.needs_rollback
+        ):
+            old_validate = connection.validate_no_atomic_block
+            connection.validate_no_atomic_block = lambda: None
+            try:
+                connection.run_and_clear_commit_hooks()
+            finally:
+                connection.validate_no_atomic_block = old_validate
+        elif not connection.in_atomic_block or not connection.savepoint_ids:
+            assert not connection.run_on_commit, "Incidental run_on_commits detected!"
+
+    def new_atomic_exit(self, exc_type, *args, **kwds):
+        _old_atomic_exit(self, exc_type, *args, **kwds)
+        if exc_type is not None:
+            return
+        connection = transaction.get_connection(self.using)
+        maybe_flush_commit_hooks(connection)
+
+    def new_atomic_on_commit(func, using=None):
+        _old_transaction_on_commit(func, using)
+        maybe_flush_commit_hooks(transaction.get_connection(using))
+
+    functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
+    functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+    transaction.on_commit = new_atomic_on_commit
+    setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
+
+    # django tests start inside two transactions
+    for db_name in settings.DATABASES:
+        simulated_transaction_watermarks.state[db_name] = 1
+    try:
+        yield
+    finally:
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        transaction.on_commit = _old_transaction_on_commit
+        simulated_transaction_watermarks.state.clear()
+        delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")

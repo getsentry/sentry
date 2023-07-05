@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 import threading
 import types
-from typing import NoReturn
+from typing import MutableSequence, NoReturn, Sequence
 from urllib.parse import urlparse
 
 import click
@@ -24,54 +24,13 @@ _DEV_METRICS_INDEXER_ARGS = [
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
 #     daemons += [_get_daemon("my_new_daemon")]
+#
+# If you are looking to add a kafka consumer, please do not create a new click
+# subcommand. Instead, use sentry.consumers.
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
-    "post-process-forwarder": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=errors",
-        "--loglevel=debug",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-transactions": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=transactions",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-transactions-commit-log",
-        "--synchronize-commit-group=transactions_group",
-        "--no-strict-offset-reset",
-    ],
-    "post-process-forwarder-issue-platform": [
-        "sentry",
-        "run",
-        "post-process-forwarder",
-        "--entity=search_issues",
-        "--loglevel=debug",
-        "--commit-log-topic=snuba-generic-events-commit-log",
-        "--synchronize-commit-group=generic_events_group",
-        "--no-strict-offset-reset",
-    ],
     "server": ["sentry", "run", "web"],
-    "metrics-rh": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "release-health",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
-    "metrics-perf": [
-        "sentry",
-        "run",
-        "ingest-metrics-parallel-consumer",
-        "--ingest-profile",
-        "performance",
-        *_DEV_METRICS_INDEXER_ARGS,
-    ],
 }
 
 _SUBSCRIPTION_RESULTS_CONSUMERS = [
@@ -151,20 +110,6 @@ def devserver(
     bind: str | None,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
-    if ingest:
-        # Ingest requires kakfa+zookeeper to be running.
-        # They're too heavyweight to startup on-demand with devserver.
-        with get_docker_client() as docker:
-            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
-        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
-            raise SystemExit(
-                """
-Kafka + Zookeeper don't seem to be running.
-Make sure you have settings.SENTRY_USE_RELAY = True,
-and run `sentry devservices up kafka zookeeper`.
-"""
-            )
-
     if bind is None:
         bind = "127.0.0.1:8000"
 
@@ -230,9 +175,8 @@ and run `sentry devservices up kafka zookeeper`.
     if reload:
         uwsgi_overrides["py-autoreload"] = 1
 
-    daemons = []
-    kafka_consumers = []
-    needs_kafka = False
+    daemons: MutableSequence[tuple[str, Sequence[str]]] = []
+    kafka_consumers: set[str] = set()
 
     if experimental_spa:
         os.environ["SENTRY_UI_DEV_ONLY"] = "1"
@@ -286,7 +230,13 @@ and run `sentry devservices up kafka zookeeper`.
         os.environ["SENTRY_SILO_MODE"] = "REGION"
         os.environ["SENTRY_REGION"] = "us"
 
+    if ingest and not workers:
+        click.echo("--ingest was provided, implicitly enabling --workers")
+        workers = True
+
     if workers:
+        kafka_consumers.update(settings.DEVSERVER_START_KAFKA_CONSUMERS)
+
         if settings.CELERY_ALWAYS_EAGER:
             raise click.ClickException(
                 "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
@@ -296,49 +246,34 @@ and run `sentry devservices up kafka zookeeper`.
 
         from sentry import eventstream
 
-        if eventstream.requires_post_process_forwarder():
-            daemons += [_get_daemon("post-process-forwarder")]
-            daemons += [_get_daemon("post-process-forwarder-transactions")]
-            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
-            needs_kafka = True
+        if eventstream.backend.requires_post_process_forwarder():
+            kafka_consumers.add("post-process-forwarder-errors")
+            kafka_consumers.add("post-process-forwarder-transactions")
+            kafka_consumers.add("post-process-forwarder-issue-platform")
 
-        if settings.SENTRY_EXTRA_WORKERS:
-            daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
+        daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
         if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
-                raise click.ClickException(
-                    "`SENTRY_DEV_PROCESS_SUBSCRIPTIONS` can only be used when "
-                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
-                )
-            kafka_consumers.extend(_SUBSCRIPTION_RESULTS_CONSUMERS)
+            kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
 
         if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
-            if not settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
-                # The metrics indexer produces directly to kafka, so it makes
-                # no sense to run it with SnubaEventStream.
-                raise click.ClickException(
-                    "`SENTRY_USE_METRICS_DEV` can only be used when "
-                    "`SENTRY_EVENTSTREAM=sentry.eventstream.kafka.KafkaEventStream`."
-                )
-            daemons += [
-                _get_daemon("metrics-rh"),
-                _get_daemon("metrics-perf"),
-            ]
-            kafka_consumers.append("billing-metrics-consumer")
-            needs_kafka = True
+            kafka_consumers.add("ingest-metrics")
+            kafka_consumers.add("ingest-generic-metrics")
+            kafka_consumers.add("billing-metrics-consumer")
 
-    if settings.SENTRY_USE_RELAY:
-        kafka_consumers.append("ingest-events")
-        kafka_consumers.append("ingest-attachments")
-        kafka_consumers.append("ingest-transactions")
-        kafka_consumers.append("ingest-monitors")
+        if settings.SENTRY_USE_RELAY:
+            daemons += [("relay", ["sentry", "devservices", "attach", "--fast", "relay"])]
 
-        if settings.SENTRY_USE_PROFILING:
-            kafka_consumers.append("ingest-profiles")
+            kafka_consumers.add("ingest-events")
+            kafka_consumers.add("ingest-attachments")
+            kafka_consumers.add("ingest-transactions")
+            kafka_consumers.add("ingest-monitors")
 
-    if occurrence_ingest:
-        kafka_consumers.append("ingest-occurrences")
+            if settings.SENTRY_USE_PROFILING:
+                kafka_consumers.add("ingest-profiles")
+
+        if occurrence_ingest:
+            kafka_consumers.add("ingest-occurrences")
 
     if needs_https and has_https:
         https_port = str(parsed_url.port)
@@ -359,20 +294,41 @@ and run `sentry devservices up kafka zookeeper`.
         ]
 
     # Create all topics if the Kafka eventstream is selected
-    if (
-        settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream"
-        or kafka_consumers
-        or needs_kafka
-    ):
+    if kafka_consumers:
+        with get_docker_client() as docker:
+            containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+            raise click.ClickException(
+                f"""
+Devserver is configured to start some kafka consumers, but Kafka + Zookeeper
+don't seem to be running.
+
+The following consumers were intended to be started: {kafka_consumers}
+
+Make sure you have:
+
+    SENTRY_USE_RELAY = True
+
+or:
+
+    SENTRY_EVENTSTREAM = "sentry.eventstream.kafka.KafkaEventStream"
+
+and run `sentry devservices up kafka zookeeper`.
+
+Alternatively, run without --workers.
+"""
+            )
+
         from sentry.utils.batching_kafka_consumer import create_topics
 
         for (topic_name, topic_data) in settings.KAFKA_TOPICS.items():
             if topic_data is not None:
                 create_topics(topic_data["cluster"], [topic_name], force=True)
 
-    if kafka_consumers:
         if dev_consumer:
-            daemons.append(("dev-consumer", ["sentry", "run", "dev-consumer"] + kafka_consumers))
+            daemons.append(
+                ("dev-consumer", ["sentry", "run", "dev-consumer"] + list(kafka_consumers))
+            )
         else:
             for name in kafka_consumers:
                 daemons.append(
@@ -389,12 +345,6 @@ and run `sentry devservices up kafka zookeeper`.
                         ],
                     )
                 )
-
-    from sentry.runner.commands.devservices import _prepare_containers
-
-    for name, container_options in _prepare_containers("sentry", silent=True).items():
-        if container_options.get("with_devserver", False):
-            daemons += [(name, ["sentry", "devservices", "attach", "--fast", name])]
 
     # A better log-format for local dev when running through honcho,
     # but if there aren't any other daemons, we don't want to override.
@@ -440,9 +390,8 @@ and run `sentry devservices up kafka zookeeper`.
     manager = Manager(honcho_printer)
     for name, cmd in daemons:
         quiet = (
-            name not in settings.DEVSERVER_LOGS_ALLOWLIST
-            if settings.DEVSERVER_LOGS_ALLOWLIST is not None
-            else False
+            name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+            and settings.DEVSERVER_LOGS_ALLOWLIST
         )
         manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd)
 
@@ -467,9 +416,8 @@ and run `sentry devservices up kafka zookeeper`.
             name, cmd = _get_daemon(service)
             name = f"control.{name}"
             quiet = (
-                name not in settings.DEVSERVER_LOGS_ALLOWLIST
-                if settings.DEVSERVER_LOGS_ALLOWLIST is not None
-                else False
+                name not in (settings.DEVSERVER_LOGS_ALLOWLIST or ())
+                and settings.DEVSERVER_LOGS_ALLOWLIST
             )
             manager.add_process(name, list2cmdline(cmd), quiet=quiet, cwd=cwd, env=merged_env)
 

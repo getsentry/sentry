@@ -1,9 +1,11 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -11,7 +13,7 @@ from sentry.testutils.performance_issues.event_generators import (
     get_event,
 )
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import SlowDBQueryDetector
+from sentry.utils.performance_issues.detectors.slow_db_query_detector import SlowDBQueryDetector
 from sentry.utils.performance_issues.performance_detection import (
     get_detection_settings,
     run_detector_on_data,
@@ -24,10 +26,10 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 class SlowDBQueryDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = SlowDBQueryDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = SlowDBQueryDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -143,9 +145,32 @@ class SlowDBQueryDetectorTest(TestCase):
             [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
         )
 
-        detector = SlowDBQueryDetector(self.settings, slow_span_event)
+        detector = SlowDBQueryDetector(self._settings, slow_span_event)
 
         assert not detector.is_creation_allowed_for_organization(project.organization)
 
         with self.feature({"organizations:performance-slow-db-issue": True}):
             assert detector.is_creation_allowed_for_organization(project.organization)
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        slow_span_event = create_event(
+            [create_span("db", 1005, "SELECT `product`.`id` FROM `products`")] * 1
+        )
+        slow_span_event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = SlowDBQueryDetector(settings, slow_span_event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"slow_db_queries_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = SlowDBQueryDetector(settings, slow_span_event)
+
+        assert not detector.is_creation_allowed_for_project(project)

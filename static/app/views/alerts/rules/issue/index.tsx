@@ -1,4 +1,4 @@
-import {ChangeEvent, ReactNode} from 'react';
+import {ChangeEvent, Fragment, ReactNode} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
@@ -185,11 +185,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return createFromDuplicate && location?.query.duplicateRuleId;
   }
 
-  UNSAFE_componentWillMount() {
+  componentDidMount() {
+    super.componentDidMount();
     this.fetchPreview();
   }
 
   componentWillUnmount() {
+    super.componentWillUnmount();
     this.isUnmounted = true;
     GroupStore.reset();
     window.clearTimeout(this.pollingTimeout);
@@ -1263,6 +1265,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                             this.hasError('conditions') && (
                               <StyledAlert type="error">
                                 {detailedError?.conditions[0]}
+                                {(detailedError?.conditions[0] || '').startsWith(
+                                  'You may not exceed'
+                                ) && (
+                                  <Fragment>
+                                    {' '}
+                                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/#alert-limits">
+                                      {t('View Docs')}
+                                    </ExternalLink>
+                                  </Fragment>
+                                )}
                               </StyledAlert>
                             )
                           }

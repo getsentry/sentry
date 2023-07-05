@@ -30,7 +30,7 @@ function ReplayTimeline({}: Props) {
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().started_at.getTime();
   const userCrumbs = replay.getUserActionCrumbs();
-  const networkSpans = replay.getNetworkSpans();
+  const networkFrames = replay.getNetworkFrames();
 
   return (
     <Panel ref={elem} {...mouseTrackingProps}>
@@ -43,7 +43,7 @@ function ReplayTimeline({}: Props) {
             <UnderTimestamp paddingTop="36px">
               <ReplayTimelineSpans
                 durationMs={durationMs}
-                spans={networkSpans}
+                frames={networkFrames}
                 startTimestampMs={startTimestampMs}
               />
             </UnderTimestamp>

@@ -33,7 +33,7 @@ export function initializeData(settings?: InitializeDataSettings) {
     features,
     projects,
   });
-  const routerLocation: {query: {project?: number}} = {
+  const routerLocation: {query: {project?: string}} = {
     query: {
       ...query,
     },

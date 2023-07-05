@@ -4,10 +4,12 @@ import pytest
 from django.utils import timezone
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.function import Function
 
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
+from sentry.utils.pytest.fixtures import django_db_all
 
 # pin a timestamp for now so tests results dont change
 now = datetime(2022, 10, 31, 0, 0, tzinfo=timezone.utc)
@@ -60,8 +62,8 @@ def params():
         ),
     ],
 )
-@pytest.mark.django_db
-def test_conditions(params, search, condition):
+@django_db_all
+def test_where(params, search, condition):
     builder = ProfileFunctionsQueryBuilder(
         Dataset.Functions,
         params,
@@ -69,3 +71,64 @@ def test_conditions(params, search, condition):
         selected_columns=["count()"],
     )
     assert condition in builder.where
+
+
+@pytest.mark.parametrize(
+    "search,condition",
+    [
+        pytest.param(
+            "slope(avg):>0",
+            Condition(
+                Function(
+                    "tupleElement",
+                    [
+                        Function(
+                            "simpleLinearRegression",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                Function("finalizeAggregation", [Column("avg")]),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "sentry_slope_avg",
+                ),
+                Op(">"),
+                0,
+            ),
+            id="regression",
+        ),
+        pytest.param(
+            "slope(avg):<0",
+            Condition(
+                Function(
+                    "tupleElement",
+                    [
+                        Function(
+                            "simpleLinearRegression",
+                            [
+                                Function("toUInt32", [Column("timestamp")]),
+                                Function("finalizeAggregation", [Column("avg")]),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "sentry_slope_avg",
+                ),
+                Op("<"),
+                0,
+            ),
+            id="improvement",
+        ),
+    ],
+)
+@django_db_all
+def test_having(params, search, condition):
+    builder = ProfileFunctionsQueryBuilder(
+        Dataset.Functions,
+        params,
+        query=search,
+        selected_columns=["count()"],
+        use_aggregate_conditions=True,
+    )
+    assert condition in builder.having

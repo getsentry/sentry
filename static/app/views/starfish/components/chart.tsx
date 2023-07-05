@@ -29,19 +29,41 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
-import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {
+  EChartClickHandler,
+  EChartEventHandler,
+  EChartHighlightHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {aggregateOutputType, AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DAY, HOUR} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
+
+export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
+  [SpanMetricsFields.SPAN_DURATION]: {
+    outputType: 'duration',
+  },
+  [SpanMetricsFields.SPAN_SELF_TIME]: {
+    outputType: 'duration',
+  },
+  // local is only used with `time_spent_percentage` function
+  local: {
+    outputType: 'duration',
+  },
+};
 
 type Props = {
   data: Series[];
@@ -50,11 +72,13 @@ type Props = {
   start: DateString;
   statsPeriod: string | null | undefined;
   utc: boolean;
-  aggregateOutputFormat?: 'number' | 'percentage' | 'duration';
+  aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
+  dataMax?: number;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
+  durationUnit?: number;
   errored?: boolean;
   forwardedRef?: RefObject<ReactEchartsRef>;
   grid?: AreaChartProps['grid'];
@@ -64,6 +88,14 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onHighlight?: EChartHighlightHandler;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
+  onMouseOut?: EChartMouseOutHandler;
+  onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   scatterPlot?: Series[];
   showLegend?: boolean;
@@ -79,7 +111,7 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[], stacked?: boolean) {
+export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
@@ -109,11 +141,12 @@ function computeAxisMax(data: Series[], stacked?: boolean) {
   }
 
   const step = 10 ** Math.floor(power) * scale;
-  return Math.round(Math.ceil(maxValue / step) * step);
+  return Math.ceil(Math.ceil(maxValue / step) * step);
 }
 
 function Chart({
   data,
+  dataMax,
   previousData,
   statsPeriod,
   start,
@@ -124,6 +157,7 @@ function Chart({
   grid,
   disableXAxis,
   definedAxisTicks,
+  durationUnit,
   chartColors,
   isBarChart,
   isLineChart,
@@ -135,15 +169,19 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  onMouseOver,
+  onMouseOut,
+  onHighlight,
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
   errored,
+  onLegendSelectChanged,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter);
+  const {startTime, endTime} = getDateFilters(pageFilter.selection);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -162,20 +200,20 @@ function Chart({
     aggregateOutputFormat === 'percentage' ||
     data.every(value => aggregateOutputType(value.seriesName) === 'percentage');
 
-  let dataMax = durationOnly
-    ? computeAxisMax(
-        [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
-        stacked
-      )
-    : percentOnly
-    ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
-    : undefined;
-  // Fix an issue where max == 1 for duration charts would look funky cause we round
-  if (dataMax === 1 && durationOnly) {
-    dataMax += 1;
+  if (!dataMax) {
+    dataMax = durationOnly
+      ? computeAxisMax(
+          [...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])],
+          stacked
+        )
+      : percentOnly
+      ? computeMax([...data, ...(scatterPlot?.[0]?.data?.length ? scatterPlot : [])])
+      : undefined;
+    // Fix an issue where max == 1 for duration charts would look funky cause we round
+    if (dataMax === 1 && durationOnly) {
+      dataMax += 1;
+    }
   }
-
-  const durationUnit = getDurationUnit(data);
 
   let transformedThroughput: LineSeriesOption[] | undefined = undefined;
   const additionalAxis: YAXisOption[] = [];
@@ -193,7 +231,7 @@ function Chart({
       }),
     ];
     additionalAxis.push({
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: 'value',
@@ -209,7 +247,7 @@ function Chart({
 
   const yAxes = [
     {
-      minInterval: durationUnit,
+      minInterval: durationUnit ?? getDurationUnit(data),
       splitNumber: definedAxisTicks,
       max: dataMax,
       type: log ? 'log' : 'value',
@@ -220,7 +258,7 @@ function Chart({
             value,
             aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
             undefined,
-            durationUnit
+            durationUnit ?? getDurationUnit(data)
           );
         },
       },
@@ -333,6 +371,17 @@ function Chart({
       );
     }
 
+    // Trims off the last data point because it's incomplete
+    const trimmedSeries =
+      statsPeriod && !start && !end
+        ? series.map(serie => {
+            return {
+              ...serie,
+              data: serie.data.slice(0, -1),
+            };
+          })
+        : series;
+
     return (
       <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
         {zoomRenderProps => {
@@ -351,8 +400,11 @@ function Chart({
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
                 onClick={onClick}
+                onMouseOut={onMouseOut}
+                onMouseOver={onMouseOver}
+                onHighlight={onHighlight}
                 series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -380,7 +432,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={series}
+                series={trimmedSeries}
                 xAxis={xAxis}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
@@ -388,6 +440,7 @@ function Chart({
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
               />
             );
           }
@@ -397,12 +450,14 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={series}
+              series={trimmedSeries}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              onClick={onClick}
               {...areaChartProps}
+              onLegendSelectChanged={onLegendSelectChanged}
             />
           );
         }}

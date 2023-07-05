@@ -12,19 +12,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 function getReplayTabs(organization: Organization): Record<TabKey, ReactNode> {
-  const hasReplayNetworkDetails = organization.features.includes(
-    'session-replay-network-details'
-  );
   const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
-  const networkLabel =
-    !hasErrorTab && hasReplayNetworkDetails ? (
-      <Fragment>
-        {t('Network')} <FeatureBadge type="new" />
-      </Fragment>
-    ) : (
-      t('Network')
-    );
+  const networkLabel = !hasErrorTab ? (
+    <Fragment>
+      {t('Network')} <FeatureBadge type="new" />
+    </Fragment>
+  ) : (
+    t('Network')
+  );
 
   const errorLabel = hasErrorTab ? (
     <Fragment>

@@ -66,6 +66,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
     function = serializers.CharField(max_length=10)
     trend = TrendTypeField()
     query = serializers.CharField(required=False)
+    threshold = serializers.IntegerField(min_value=0, max_value=1000, required=False)
 
 
 @region_silo_endpoint
@@ -103,12 +104,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
+                    "examples()",
                 ],
                 query=query,
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
@@ -126,7 +129,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 top_events=top_functions,
                 organization=organization,
                 zerofill_results=zerofill_results,
-                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,  # type: ignore[attr-defined]
+                referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
                 # this ensures the result key is formatted as `{project.id},{fingerprint}`
                 # in order to be compatible with the trends service
                 result_key_order=["project.id", "fingerprint"],
@@ -135,8 +138,22 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return results
 
         def get_trends_data(stats_data):
+            if not stats_data:
+                return []
+
             trends_request = {
-                "data": stats_data,
+                "data": {
+                    k: {
+                        "data": v["data"],
+                        # set data_* to the same as request_* for now
+                        # as we dont pass more historical data for context
+                        "data_start": v["start"],
+                        "data_end": v["end"],
+                        "request_start": v["start"],
+                        "request_end": v["end"],
+                    }
+                    for k, v in stats_data.items()
+                },
                 "sort": data["trend"].as_sort(),
                 "trendFunction": data["function"],
             }
@@ -154,6 +171,23 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         )
 
         trending_functions = get_trends_data(stats_data)
+
+        # Profiling functions have a resolution of ~10ms. To increase the confidence
+        # of the results, the caller can specify a min threshold for the trend difference.
+        threshold = data.get("threshold")
+        if threshold is not None:
+            trending_functions = [
+                data
+                for data in trending_functions
+                if abs(data["trend_difference"]) >= threshold * 1e6
+            ]
+
+        # Make sure to sort the results so that it's in order of largest change
+        # to smallest change (ASC/DESC depends on the trend type)
+        trending_functions.sort(
+            key=lambda function: function["trend_percentage"],
+            reverse=data["trend"] is TrendType.REGRESSION,
+        )
 
         def paginate_trending_events(offset, limit):
             return {"data": trending_functions[offset : limit + offset]}
@@ -182,14 +216,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                             "trend_difference",
                             "trend_percentage",
                             "unweighted_p_value",
-                            "unweighted_t_value",
+                            # "unweighted_t_value",  # unneeded, but also can error because of infs
                         ]
                     }
                 )
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()"]
+                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
                     }
                 )
                 formatted_results.append(formatted_result)

@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set
+from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -14,10 +14,10 @@ from django.db.models import Q, QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
-from bitfield import BitField
+from bitfield.models import typed_dict_bitfield
 from sentry import features, roles
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -28,10 +28,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
@@ -194,16 +193,21 @@ class OrganizationMember(Model):
     # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
-    flags = BitField(
-        flags=(
-            ("sso:linked", "sso:linked"),
-            ("sso:invalid", "sso:invalid"),
-            ("member-limit:restricted", "member-limit:restricted"),
-            ("idp:provisioned", "idp:provisioned"),
-            ("idp:role-restricted", "idp:role-restricted"),
+
+    flags = typed_dict_bitfield(
+        TypedDict(
+            "flags",
+            {
+                "sso:linked": bool,
+                "sso:invalid": bool,
+                "member-limit:restricted": bool,
+                "idp:provisioned": bool,
+                "idp:role-restricted": bool,
+            },
         ),
         default=0,
     )
+
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
     token_expires_at = models.DateTimeField(default=None, null=True)
@@ -247,7 +251,7 @@ class OrganizationMember(Model):
     __org_roles_from_teams = None
 
     def delete(self, *args, **kwds):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             self.save_outbox_for_update()
             return super().delete(*args, **kwds)
 
@@ -256,7 +260,7 @@ class OrganizationMember(Model):
             self.user_id and self.email is None
         ), "Must set either user or email"
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
             super().save(*args, **kwargs)
@@ -535,7 +539,7 @@ class OrganizationMember(Model):
         all_org_roles.add(self.role)
         return list(all_org_roles)
 
-    def get_org_roles_from_teams_by_source(self) -> List[tuple(str, OrganizationRole)]:
+    def get_org_roles_from_teams_by_source(self) -> List[tuple[str, OrganizationRole]]:
         org_roles = list(self.teams.all().exclude(org_role=None).values_list("slug", "org_role"))
 
         sorted_org_roles = sorted(
@@ -593,8 +597,6 @@ class OrganizationMember(Model):
                 sender=self.approve_member_invitation,
                 referrer=referrer,
             )
-
-        self.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         create_audit_entry_from_user(
             user_to_approve,

@@ -140,6 +140,32 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
     });
 
+    it('can select options with values containing quotes', async function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          multiple
+          options={[
+            {value: '"opt_one"', label: 'Option One'},
+            {value: '"opt_two"', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // select Option One & Option Two
+      await userEvent.click(screen.getByRole('option', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Option Two'}));
+
+      expect(mock).toHaveBeenCalledWith([
+        {value: '"opt_one"', label: 'Option One'},
+        {value: '"opt_two"', label: 'Option Two'},
+      ]);
+    });
+
     it('displays trigger button with prefix', function () {
       render(
         <CompactSelect
@@ -272,8 +298,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'select'
@@ -295,8 +321,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'unselect'
@@ -320,8 +346,8 @@ describe('CompactSelect', function () {
           label: 'Section 2',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_three', label: 'Option Three'},
-            {value: 'opt_four', label: 'Option Four'},
+            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
+            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
           ],
         },
         'select'
@@ -400,6 +426,33 @@ describe('CompactSelect', function () {
         {value: 'opt_two', label: 'Option Two'},
       ]);
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
+    });
+
+    it('can select options with values containing quotes', async function () {
+      const mock = jest.fn();
+      render(
+        <CompactSelect
+          grid
+          multiple
+          options={[
+            {value: '"opt_one"', label: 'Option One'},
+            {value: '"opt_two"', label: 'Option Two'},
+          ]}
+          onChange={mock}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // select Option One & Option Two
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Option Two'}));
+
+      expect(mock).toHaveBeenCalledWith([
+        {value: '"opt_one"', label: 'Option One'},
+        {value: '"opt_two"', label: 'Option Two'},
+      ]);
     });
 
     it('displays trigger button with prefix', function () {
@@ -536,8 +589,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'select'
@@ -559,8 +612,8 @@ describe('CompactSelect', function () {
           label: 'Section 1',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
+            {key: 'opt_one', value: 'opt_one', label: 'Option One'},
+            {key: 'opt_two', value: 'opt_two', label: 'Option Two'},
           ],
         },
         'unselect'
@@ -584,8 +637,8 @@ describe('CompactSelect', function () {
           label: 'Section 2',
           showToggleAllButton: true,
           options: [
-            {value: 'opt_three', label: 'Option Three'},
-            {value: 'opt_four', label: 'Option Four'},
+            {key: 'opt_three', value: 'opt_three', label: 'Option Three'},
+            {key: 'opt_four', value: 'opt_four', label: 'Option Four'},
           ],
         },
         'select'

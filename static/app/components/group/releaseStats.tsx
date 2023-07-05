@@ -16,12 +16,12 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = {
-  allEnvironments: Group | undefined;
-  currentRelease: CurrentRelease | undefined;
   environments: string[];
-  group: Group | undefined;
   organization: Organization;
   project: Project;
+  allEnvironments?: Group;
+  currentRelease?: CurrentRelease;
+  group?: Group;
 };
 
 type GroupRelease = {
@@ -60,7 +60,7 @@ function GroupReleaseStats({
 
   const projectId = project.id;
   const projectSlug = project.slug;
-  const hasRelease = new Set(project.features).has('releases');
+  const hasRelease = project.features.includes('releases');
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (

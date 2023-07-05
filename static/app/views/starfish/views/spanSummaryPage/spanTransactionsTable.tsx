@@ -1,6 +1,10 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
+import {Location} from 'history';
+import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import {Button} from 'sentry/components/button';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnHeader,
@@ -8,72 +12,102 @@ import GridEditable, {
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
+import {t} from 'sentry/locale';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
-import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
-import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import useOrganization from 'sentry/utils/useOrganization';
+import {
+  renderHeadCell,
+  SORTABLE_FIELDS,
+} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
   useSpanTransactionMetrics,
 } from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = {
   metrics: SpanTransactionMetrics;
   transaction: string;
+  transactionMethod: string;
 };
 
 type Props = {
+  sort: ValidSort;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
+  endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-export type Keys =
-  | 'transaction'
-  | 'p95(transaction.duration)'
-  | 'time_spent_percentage(local)'
-  | 'sps()';
-export type TableColumnHeader = GridColumnHeader<Keys>;
+type ValidSort = Sort & {
+  field: keyof Row;
+};
+
+export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
 
 export function SpanTransactionsTable({
   span,
   openSidebar,
   onClickTransaction,
   endpoint,
+  endpointMethod,
+  sort,
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const {
-    data: spanTransactionMetrics,
+    data: spanTransactionMetrics = [],
+    meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span, endpoint ? [endpoint] : undefined);
+  } = useSpanTransactionMetrics(span, {
+    transactions: endpoint ? [endpoint] : undefined,
+    sorts: [sort],
+  });
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
       transaction: row.transaction,
+      transactionMethod: row['transaction.method'],
       metrics: row,
     };
   });
 
-  const renderHeadCell = (column: TableColumnHeader) => {
-    return <span>{column.name}</span>;
-  };
-
   const renderBodyCell = (column: TableColumnHeader, row: Row) => {
-    return (
-      <BodyCell
-        span={span}
-        column={column}
-        row={row}
-        openSidebar={openSidebar}
-        onClickTransactionName={onClickTransaction}
-        endpoint={endpoint}
-      />
-    );
+    if (column.key === 'transaction') {
+      return (
+        <TransactionCell
+          endpoint={endpoint}
+          endpointMethod={endpointMethod}
+          span={span}
+          row={row}
+          column={column}
+          openSidebar={openSidebar}
+          onClickTransactionName={onClickTransaction}
+          location={location}
+        />
+      );
+    }
+
+    if (!meta || !meta?.fields) {
+      return row[column.key];
+    }
+
+    const renderer = getFieldRenderer(column.key, meta.fields, false);
+    const rendered = renderer(row.metrics, {
+      location,
+      organization,
+      unit: meta.units?.[column.key],
+    });
+
+    return rendered;
   };
 
   return (
@@ -84,86 +118,57 @@ export function SpanTransactionsTable({
         columnOrder={COLUMN_ORDER}
         columnSortBy={[]}
         grid={{
-          renderHeadCell,
+          renderHeadCell: col => renderHeadCell({column: col, sort, location}),
           renderBodyCell,
         }}
         location={location}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Footer>
+        {endpoint && (
+          <Button
+            to={{
+              pathname: location.pathname,
+              query: omit(location.query, 'endpoint'),
+            }}
+          >
+            {t('View More Endpoints')}
+          </Button>
+        )}
+        <StyledPagination pageLinks={pageLinks} />
+      </Footer>
     </Fragment>
   );
 }
 
 type CellProps = {
   column: TableColumnHeader;
+  location: Location;
   row: Row;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
+  endpointMethod?: string;
   onClickTransactionName?: (row: Row) => void;
   openSidebar?: boolean;
 };
 
-function BodyCell({
-  span,
-  column,
-  row,
-  openSidebar,
-  onClickTransactionName,
-  endpoint,
-}: CellProps) {
-  if (column.key === 'transaction') {
-    return (
-      <TransactionCell
-        endpoint={endpoint}
-        span={span}
-        row={row}
-        column={column}
-        openSidebar={openSidebar}
-        onClickTransactionName={onClickTransactionName}
-      />
-    );
-  }
-
-  if (column.key === 'p95(transaction.duration)') {
-    return (
-      <DurationCell
-        milliseconds={row.metrics?.['p95(span.duration)']}
-        delta={row.metrics?.['percentile_percent_change(span.duration, 0.95)']}
-      />
-    );
-  }
-
-  if (column.key === 'sps()') {
-    return (
-      <ThroughputCell
-        throughputPerSecond={row.metrics?.['sps()']}
-        delta={row.metrics?.['sps_percent_change()']}
-      />
-    );
-  }
-
-  if (column.key === 'time_spent_percentage(local)') {
-    return (
-      <TimeSpentCell
-        timeSpentPercentage={row.metrics?.['time_spent_percentage(local)']}
-        totalSpanTime={row.metrics?.['sum(span.duration)']}
-      />
-    );
-  }
-
-  return <span>{row[column.key]}</span>;
-}
-
-function TransactionCell({span, column, row, endpoint}: CellProps) {
+function TransactionCell({span, row, endpoint, endpointMethod, location}: CellProps) {
+  const label = row.transactionMethod
+    ? `${row.transactionMethod} ${row.transaction}`
+    : row.transaction;
   return (
     <Fragment>
       <Link
-        to={`/starfish/span/${encodeURIComponent(span.group)}?${qs.stringify({
+        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
+          span.group
+        )}?${qs.stringify({
+          ...location.query,
           endpoint,
+          endpointMethod,
           transaction: row.transaction,
+          transactionMethod: row.transactionMethod,
         })}`}
       >
-        <Truncate value={row[column.key]} maxLength={75} />
+        <Truncate value={label} maxLength={75} />
       </Link>
     </Fragment>
   );
@@ -178,12 +183,22 @@ const COLUMN_ORDER: TableColumnHeader[] = [
   {
     key: 'sps()',
     name: DataTitles.throughput,
-    width: 175,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'p95(transaction.duration)',
+    key: 'sps_percent_change()',
+    name: DataTitles.change,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `p95(${SpanMetricsFields.SPAN_SELF_TIME})`,
     name: DataTitles.p95,
-    width: 175,
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: `percentile_percent_change(${SpanMetricsFields.SPAN_SELF_TIME}, 0.95)`,
+    name: DataTitles.change,
+    width: COL_WIDTH_UNDEFINED,
   },
   {
     key: 'time_spent_percentage(local)',
@@ -191,3 +206,17 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     width: COL_WIDTH_UNDEFINED,
   },
 ];
+
+const Footer = styled('div')`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
+  margin-left: auto;
+`;
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
+}

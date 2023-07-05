@@ -47,21 +47,11 @@ def test_unescape_string(s, expected):
 
 
 def test_codec_lookup():
-    def assert_match(enc, ref=None):
-        if ref is None:
-            ref = enc
-        rv = codec_lookup(enc)
-        if rv is None:
-            assert ref is rv is None
-        else:
-            assert rv.name == ref
-
     assert codec_lookup("utf-8").name == "utf-8"
     assert codec_lookup("utf8").name == "utf-8"
     assert codec_lookup("zlib").name == "utf-8"
     assert codec_lookup("utf16").name == "utf-16"
     assert codec_lookup("undefined").name == "utf-8"
-    assert codec_lookup("undefined", default=None) is None
     assert codec_lookup("undefined", default="latin1").name == "iso8859-1"
     assert codec_lookup("zlib", default="latin1").name == "iso8859-1"
     assert codec_lookup("unknowable", default="latin1").name == "iso8859-1"

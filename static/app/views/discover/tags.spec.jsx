@@ -6,7 +6,6 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import EventView from 'sentry/utils/discover/eventView';
 import {Tags} from 'sentry/views/discover/tags';
 
@@ -17,7 +16,7 @@ describe('Tags', function () {
 
   const org = TestStubs.Organization();
   beforeEach(function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
         {
@@ -46,12 +45,10 @@ describe('Tags', function () {
   });
 
   afterEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -61,7 +58,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -81,8 +78,6 @@ describe('Tags', function () {
   });
 
   it('creates URLs with generateUrl', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -99,7 +94,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         organization={org}
         totalValues={30}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -126,8 +121,6 @@ describe('Tags', function () {
   });
 
   it('renders tag keys', async function () {
-    const api = new Client();
-
     const view = new EventView({
       fields: [],
       sorts: [],
@@ -137,7 +130,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -157,8 +150,6 @@ describe('Tags', function () {
   });
 
   it('excludes top tag values on current page query', async function () {
-    const api = new Client();
-
     const initialData = initializeOrg({
       organization: org,
       router: {
@@ -175,7 +166,7 @@ describe('Tags', function () {
     render(
       <Tags
         eventView={view}
-        api={api}
+        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         selection={{projects: [], environments: [], datetime: {}}}
@@ -200,5 +191,64 @@ describe('Tags', function () {
       'href',
       '/organizations/org-slug/discover/homepage/?query=%21color%3A%5Bred%2C%20blue%2C%20green%2C%20yellow%5D'
     );
+  });
+
+  it('has a Show More button when there are more tags', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      headers: {
+        Link:
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+      },
+      body: [
+        {
+          key: 'release',
+          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/events-facets/`,
+      match: [MockApiClient.matchQuery({cursor: '0:10:0'})],
+      body: [],
+      headers: {
+        Link:
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:10:1",' +
+          '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
+      },
+    });
+
+    const view = new EventView({
+      fields: [],
+      sorts: [],
+      query: '',
+    });
+
+    render(
+      <Tags
+        eventView={view}
+        api={new MockApiClient()}
+        totalValues={30}
+        organization={org}
+        selection={{projects: [], environments: [], datetime: {}}}
+        location={{query: {}}}
+        generateUrl={generateUrl}
+        confirmedQuery={false}
+      />
+    );
+
+    await waitForElementToBeRemoved(
+      () => screen.queryAllByTestId('loading-placeholder')[0]
+    );
+
+    expect(screen.getByRole('button', {name: 'Show More'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
+    expect(mockRequest).toHaveBeenCalled();
+
+    // Button should disappear when there are no more tags to load
+    expect(screen.queryByRole('button', {name: 'Show More'})).not.toBeInTheDocument();
   });
 });

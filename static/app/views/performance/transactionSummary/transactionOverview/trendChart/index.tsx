@@ -141,13 +141,7 @@ function TrendChart({
   const trendDisplay = generateTrendFunctionAsString(trendFunction, trendParameter);
 
   const trendView = eventView.clone() as TrendView;
-  modifyTrendView(
-    trendView,
-    location,
-    TrendChangeType.REGRESSION,
-    projects,
-    organization
-  );
+  modifyTrendView(trendView, location, TrendChangeType.ANY, projects, organization);
 
   function transformTimeseriesData(
     data: EventsStatsData,
@@ -192,7 +186,7 @@ function TrendChart({
             // keep trend change type as regression until the backend can support passing the type
             const selectedTransaction = getSelectedTransaction(
               location,
-              TrendChangeType.REGRESSION,
+              TrendChangeType.ANY,
               events
             );
 

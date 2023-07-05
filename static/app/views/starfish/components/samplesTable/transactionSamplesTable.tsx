@@ -2,8 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
-import Duration from 'sentry/components/duration';
-import GridEditable, {GridColumnHeader} from 'sentry/components/gridEditable';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumnHeader,
+} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
@@ -16,12 +18,16 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
+import useErrorSamples from 'sentry/views/starfish/components/samplesTable/useErrorSamples';
 import useSlowMedianFastSamplesQuery from 'sentry/views/starfish/components/samplesTable/useSlowMedianFastSamplesQuery';
+import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignLeft,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
+import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {SampleFilter} from 'sentry/views/starfish/views/webServiceView/endpointOverview';
 
 type Keys =
   | 'id'
@@ -29,47 +35,18 @@ type Keys =
   | 'timestamp'
   | 'transaction.duration'
   | 'p95_comparison'
-  | 'span_ops_breakdown.relative';
+  | 'span_ops_breakdown.relative'
+  | 'http.status_code'
+  | 'transaction.status';
 type TableColumnHeader = GridColumnHeader<Keys>;
-
-const COLUMN_ORDER: TableColumnHeader[] = [
-  {
-    key: 'id',
-    name: 'Event ID',
-    width: 100,
-  },
-  {
-    key: 'profile_id',
-    name: 'Profile ID',
-    width: 140,
-  },
-  {
-    key: SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-    name: 'Operation Duration',
-    width: 180,
-  },
-  {
-    key: 'timestamp',
-    name: 'Timestamp',
-    width: 230,
-  },
-  {
-    key: 'transaction.duration',
-    name: 'Duration',
-    width: 100,
-  },
-  {
-    key: 'p95_comparison',
-    name: 'Compared to P95',
-    width: 100,
-  },
-];
 
 type Props = {
   queryConditions: string[];
+  sampleFilter: SampleFilter;
 };
 
 type DataRow = {
+  'http.status_code': number;
   id: string;
   profile_id: string;
   'spans.browser': number;
@@ -79,9 +56,10 @@ type DataRow = {
   'spans.ui': number;
   timestamp: string;
   'transaction.duration': number;
+  'transaction.status': string;
 };
 
-export function TransactionSamplesTable({queryConditions}: Props) {
+export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const query = new MutableSearch(queryConditions);
@@ -96,11 +74,66 @@ export function TransactionSamplesTable({queryConditions}: Props) {
     version: 2,
   };
 
+  const columnOrder: TableColumnHeader[] = [
+    {
+      key: 'id',
+      name: 'Event ID',
+      width: 100,
+    },
+    ...(sampleFilter === 'ALL'
+      ? [
+          {
+            key: 'profile_id',
+            name: 'Profile ID',
+            width: 140,
+          } as TableColumnHeader,
+          {
+            key: SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+            name: 'Operation Duration',
+            width: 180,
+          } as TableColumnHeader,
+          {
+            key: 'timestamp',
+            name: 'Timestamp',
+            width: 230,
+          } as TableColumnHeader,
+          {
+            key: 'transaction.duration',
+            name: DataTitles.duration,
+            width: 100,
+          } as TableColumnHeader,
+          {
+            key: 'p95_comparison',
+            name: 'Compared to P95',
+            width: 100,
+          } as TableColumnHeader,
+        ]
+      : [
+          {
+            key: 'http.status_code',
+            name: 'Response Code',
+            width: COL_WIDTH_UNDEFINED,
+          } as TableColumnHeader,
+          {
+            key: 'transaction.status',
+            name: 'Status',
+            width: COL_WIDTH_UNDEFINED,
+          } as TableColumnHeader,
+          {
+            key: 'timestamp',
+            name: 'Timestamp',
+            width: 230,
+          } as TableColumnHeader,
+        ]),
+  ];
+
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   const {isLoading, data, aggregatesData} = useSlowMedianFastSamplesQuery(eventView);
+  const {isLoading: isErrorSamplesLoading, data: errorSamples} =
+    useErrorSamples(eventView);
 
   function renderHeadCell(column: GridColumnHeader): React.ReactNode {
-    if (column.key === 'p95_comparison') {
+    if (column.key === 'p95_comparison' || column.key === 'transaction.duration') {
       return (
         <TextAlignRight>
           <OverflowEllipsisTextContainer>{column.name}</OverflowEllipsisTextContainer>
@@ -148,13 +181,7 @@ export function TransactionSamplesTable({queryConditions}: Props) {
     }
 
     if (column.key === 'transaction.duration') {
-      return (
-        <Duration
-          seconds={row['transaction.duration'] / 1000}
-          fixedDigits={2}
-          abbreviation
-        />
-      );
+      return <DurationCell milliseconds={row['transaction.duration']} />;
     }
 
     if (column.key === 'timestamp') {
@@ -183,9 +210,9 @@ export function TransactionSamplesTable({queryConditions}: Props) {
 
   return (
     <GridEditable
-      isLoading={isLoading}
-      data={data as DataRow[]}
-      columnOrder={COLUMN_ORDER}
+      isLoading={sampleFilter === 'ALL' ? isLoading : isErrorSamplesLoading}
+      data={sampleFilter === 'ALL' ? (data as DataRow[]) : (errorSamples as DataRow[])}
+      columnOrder={columnOrder}
       columnSortBy={[]}
       location={location}
       grid={{

@@ -10,5 +10,4 @@ def run_processor_with_signals(processor):
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
-
     processor.run()

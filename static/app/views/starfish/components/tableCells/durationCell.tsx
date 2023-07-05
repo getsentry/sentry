@@ -1,32 +1,18 @@
-import styled from '@emotion/styled';
-
 import Duration from 'sentry/components/duration';
-import {space} from 'sentry/styles/space';
-import {formatPercentage} from 'sentry/utils/formatters';
-import {ComparisonLabel} from 'sentry/views/starfish/components/samplesTable/common';
+import {NumberContainer} from 'sentry/utils/discover/styles';
 
 type Props = {
   milliseconds: number;
-  delta?: number;
+  containerProps?: React.DetailedHTMLProps<
+    React.HTMLAttributes<HTMLDivElement>,
+    HTMLDivElement
+  >;
 };
 
-export default function DurationCell({milliseconds, delta}: Props) {
+export default function DurationCell({milliseconds, containerProps}: Props) {
   return (
-    <Container>
+    <NumberContainer {...containerProps}>
       <Duration seconds={milliseconds / 1000} fixedDigits={2} abbreviation />
-      {delta ? (
-        <ComparisonLabel value={delta}>
-          {delta > 0 ? '+' : ''}
-          {formatPercentage(delta)}
-        </ComparisonLabel>
-      ) : null}
-    </Container>
+    </NumberContainer>
   );
 }
-
-const Container = styled('div')`
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  gap: ${space(1)};
-`;

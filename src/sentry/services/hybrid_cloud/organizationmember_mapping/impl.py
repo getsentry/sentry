@@ -7,7 +7,10 @@ from typing import Optional
 
 from django.db import IntegrityError, transaction
 
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
@@ -27,6 +30,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         mapping: RpcOrganizationMemberMappingUpdate,
     ) -> Optional[RpcOrganizationMemberMapping]:
         def apply_update(existing: OrganizationMemberMapping) -> None:
+            adding_user = existing.user_id is None and mapping.user_id is not None
             existing.role = mapping.role
             existing.user_id = mapping.user_id
             existing.email = mapping.email
@@ -35,8 +39,16 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             existing.organizationmember_id = organizationmember_id
             existing.save()
 
+            if adding_user:
+                try:
+                    user = existing.user
+                except User.DoesNotExist:
+                    return
+                for outbox in user.outboxes_for_update():
+                    outbox.save()
+
         try:
-            with transaction.atomic():
+            with outbox_context(transaction.atomic()):
                 existing = self._find_organization_member(
                     organization_id=organization_id,
                     organizationmember_id=organizationmember_id,
@@ -60,7 +72,12 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 organization_id=organization_id,
                 organizationmember_id=organizationmember_id,
             )
-            apply_update(existing)
+
+            if existing is None:
+                raise e
+
+            with outbox_context(transaction.atomic()):
+                apply_update(existing)
 
         return serialize_org_member_mapping(existing)
 
@@ -84,4 +101,5 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            org_member_map.delete()
+            with in_test_psql_role_override("postgres"):
+                org_member_map.delete()

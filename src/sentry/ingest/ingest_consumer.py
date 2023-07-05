@@ -103,7 +103,7 @@ def process_event(message: IngestMessage, project: Project) -> None:
     # serializing it again.
     # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
     # which assumes that data passed in is a raw dictionary.
-    data = json.loads(payload)
+    data = json.loads(payload, use_rapid_json=True)
 
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
@@ -202,7 +202,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
         # their ingestion quota, they are also within the snuba queries quota.
         # Since there is no dead letter queue on this consumer, the only way to
         # prevent the consumer to crash as of now is to ignore the error and proceed.
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
     except RateLimitExceeded as e:
         event = None
         logger.exception(e)
@@ -236,7 +236,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
 @metrics.wraps("ingest_consumer.process_userreport")
 def process_userreport(message: IngestMessage, project: Project) -> None:
     start_time = to_datetime(message["start_time"])
-    feedback = json.loads(message["payload"])
+    feedback = json.loads(message["payload"], use_rapid_json=True)
 
     try:
         save_userreport(project, feedback, start_time=start_time)

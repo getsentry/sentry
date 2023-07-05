@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pickle
 from functools import partial
 from typing import Any, Callable, Mapping, Optional, Union
 
@@ -120,6 +121,13 @@ class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPaylo
             kwargs.pop("output_block_size", None)
             kwargs.pop("max_batch_size", None)
             kwargs.pop("max_batch_time", None)
+
+            if initializer is not None:
+                initializer()
+
+            # Assert that initializer can be pickled and loaded again from subprocesses.
+            pickle.loads(pickle.dumps(initializer))
+            pickle.loads(pickle.dumps(kwargs["function"]))
 
             return RunTask(**kwargs)  # type: ignore[return-value]
         else:

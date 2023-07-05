@@ -6,6 +6,7 @@ import functools
 import inspect
 import logging
 import threading
+from enum import Enum
 from typing import (
     Any,
     Callable,
@@ -24,7 +25,9 @@ from typing import (
 
 import pydantic
 import sentry_sdk
+from typing_extensions import Self
 
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.silo import SiloMode
 
 logger = logging.getLogger(__name__)
@@ -103,11 +106,23 @@ def _hack_pydantic_type_validation() -> None:
 _hack_pydantic_type_validation()
 
 
+class ValueEqualityEnum(Enum):
+    def __eq__(self, other):
+        value = other
+        if isinstance(other, Enum):
+            value = other.value
+        return self.value == value
+
+    def __hash__(self):
+        return hash(self.value)
+
+
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
@@ -119,7 +134,7 @@ class RpcModel(pydantic.BaseModel):
         obj: Any,
         name_transform: Callable[[str], str] | None = None,
         value_transform: Callable[[Any], Any] | None = None,
-    ) -> RpcModel:
+    ) -> Self:
         """Serialize an object with field names matching this model class.
 
         This class method may be called only on an instantiable subclass. The
@@ -232,6 +247,9 @@ def CreateStubFromBase(
 
     def make_method(method_name: str) -> Any:
         def method(self: Any, *args: Any, **kwds: Any) -> Any:
+            in_test_assert_no_transaction(
+                f"remote service method {base.__name__}.{method_name} called inside transaction!  Move service calls to outside of transactions."
+            )
             from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
             with SiloMode.exit_single_process_silo_context():
@@ -243,10 +261,14 @@ def CreateStubFromBase(
                 auth_context: AuthenticationContext = AuthenticationContext()
                 if "auth_context" in call_args:
                     auth_context = call_args["auth_context"] or auth_context
-                with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
-                    target_mode
-                ):
-                    return method(*args, **kwds)
+
+                try:
+                    with auth_context.applied_to_request(), SiloMode.enter_single_process_silo_context(
+                        target_mode
+                    ):
+                        return method(*args, **kwds)
+                except Exception as e:
+                    raise RuntimeError(f"Service call failed: {base.__name__}.{method_name}") from e
 
         return method
 

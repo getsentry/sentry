@@ -62,7 +62,7 @@ function renderDebugIdBundlesMockRequests({
 describe('ProjectSourceMaps', function () {
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, router, routerContext, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -70,7 +70,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/release-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -79,18 +78,10 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       // Title
       expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
@@ -119,7 +110,7 @@ describe('ProjectSourceMaps', function () {
           '/projects/org-slug/project-slug/files/source-maps/',
           expect.objectContaining({
             query: expect.objectContaining({
-              sortBy: '-date_added',
+              sortBy: 'date_added',
             }),
           })
         );
@@ -169,7 +160,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerContext, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -177,7 +168,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/release-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -187,18 +177,10 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText('No release bundles found for this project.')
@@ -208,7 +190,7 @@ describe('ProjectSourceMaps', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerContext, router, routerProps} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -216,7 +198,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/artifact-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -225,18 +206,10 @@ describe('ProjectSourceMaps', function () {
         projectSlug: project.slug,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       // Title
       expect(screen.getByRole('heading', {name: 'Source Maps'})).toBeInTheDocument();
@@ -254,11 +227,29 @@ describe('ProjectSourceMaps', function () {
       expect(tabs[1]).not.toHaveClass('active');
 
       // Search bar
-      expect(screen.getByPlaceholderText('Filter by Bundle ID')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Filter by Bundle ID, Debug ID or Release')
+      ).toBeInTheDocument();
 
       // Date Uploaded can be sorted
+      await userEvent.click(screen.getByTestId('date-uploaded-header'));
       await userEvent.hover(screen.getByTestId('icon-arrow'));
       expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow'));
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'date_added',
+            }),
+          })
+        );
+      });
+
+      // Date Uploaded can be sorted in descending
+      await userEvent.hover(screen.getByTestId('icon-arrow'));
+      expect(await screen.findByText('Switch to descending order')).toBeInTheDocument();
       await userEvent.click(screen.getByTestId('icon-arrow'));
       await waitFor(() => {
         expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
@@ -271,8 +262,43 @@ describe('ProjectSourceMaps', function () {
         );
       });
 
+      // Date Modified can be sorted
+      await userEvent.click(screen.getByTestId('date-modified-header'));
+      await userEvent.hover(screen.getByTestId('icon-arrow-modified'));
+      expect(await screen.findByText('Switch to ascending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow-modified'));
+
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: 'date_modified',
+            }),
+          })
+        );
+      });
+
+      // Date Modified can be sorted in descending
+      await userEvent.hover(screen.getByTestId('icon-arrow-modified'));
+      expect(await screen.findByText('Switch to descending order')).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId('icon-arrow-modified'));
+
+      await waitFor(() => {
+        expect(mockRequests.artifactBundles).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              sortBy: '-date_modified',
+            }),
+          })
+        );
+      });
+
       // Artifacts
       expect(screen.getByText('39')).toBeInTheDocument();
+      // Date Modified
+      expect(screen.getByText('Mar 10, 2023 8:25 AM UTC')).toBeInTheDocument();
       // Date Uploaded
       expect(screen.getByText('Mar 8, 2023 9:53 AM UTC')).toBeInTheDocument();
       // Delete button
@@ -326,7 +352,7 @@ describe('ProjectSourceMaps', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, route, project, router, routerContext} = initializeOrg({
+      const {organization, project, routerProps, routerContext} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -334,7 +360,6 @@ describe('ProjectSourceMaps', function () {
               initializeOrg().project.slug
             }/source-maps/artifact-bundles/`,
           },
-          params: {},
         },
       });
 
@@ -344,18 +369,10 @@ describe('ProjectSourceMaps', function () {
         empty: true,
       });
 
-      render(
-        <ProjectSourceMaps
-          location={routerContext.context.location}
-          project={project}
-          route={route}
-          routeParams={{orgId: organization.slug, projectId: project.slug}}
-          router={router}
-          routes={[]}
-          params={{orgId: organization.slug, projectId: project.slug}}
-        />,
-        {context: routerContext, organization}
-      );
+      render(<ProjectSourceMaps project={project} {...routerProps} />, {
+        context: routerContext,
+        organization,
+      });
 
       expect(
         await screen.findByText('No artifact bundles found for this project.')

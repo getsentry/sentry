@@ -1,4 +1,4 @@
-import {SpanFrame as TSpanFrame} from 'sentry/utils/replays/types';
+import {RawSpanFrame as TSpanFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -16,8 +16,8 @@ function BaseFrame<T extends TSpanFrame['op']>(
   return {
     op,
     description: fields.description ?? '',
-    startTimestamp: fields.startTimestamp.getTime() / 100,
-    endTimestamp: fields.endTimestamp.getTime() / 100,
+    startTimestamp: fields.startTimestamp.getTime() / 1000,
+    endTimestamp: fields.endTimestamp.getTime() / 1000,
     data: fields.data,
   } as MockFrame<T>;
 }

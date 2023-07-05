@@ -5,10 +5,10 @@ import re
 from datetime import datetime
 from typing import Any, Collection, Dict, Mapping, Sequence
 
+from django.http import HttpResponse
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.api.utils import generate_organization_url
@@ -356,7 +356,7 @@ class GitHubInstallationRedirect(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 

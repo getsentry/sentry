@@ -134,6 +134,7 @@ from sentry.search.events.constants import (
     METRIC_SATISFIED_TAG_VALUE,
     METRIC_TOLERATED_TAG_VALUE,
     METRICS_MAP,
+    SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -153,8 +154,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..services.hybrid_cloud.actor import RpcActor
-from ..services.hybrid_cloud.organization.serial import serialize_organization
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..snuba.metrics import (
     MetricConditionField,
     MetricField,
@@ -422,6 +422,9 @@ class _AssertQueriesContext(CaptureQueriesContext):
 
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
     if DETECT_TESTCASE_MISUSE:
@@ -491,10 +494,16 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 
 class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     pass
 
 
 class PerformanceIssueTestCase(BaseTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     def create_performance_issue(
         self,
         tags=None,
@@ -566,6 +575,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     method = "get"
 
@@ -796,6 +808,9 @@ class PermissionTestCase(TestCase):
     def assert_member_can_access(self, path, **kwargs):
         return self.assert_role_can_access(path, "member", **kwargs)
 
+    def assert_manager_can_access(self, path, **kwargs):
+        return self.assert_role_can_access(path, "manager", **kwargs)
+
     def assert_teamless_member_can_access(self, path, **kwargs):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role="member", teams=[])
@@ -976,7 +991,7 @@ class IntegrationTestCase(TestCase):
 
         self.organization = self.create_organization(name="foo", owner=self.user)
         with exempt_from_silo_limits():
-            rpc_organization = serialize_organization(self.organization)
+            rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
         self.request = self.make_request(self.user)
@@ -1010,6 +1025,9 @@ class SnubaTestCase(BaseTestCase):
     Useful when you are working on acceptance tests or integration
     tests that require snuba.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     def setUp(self):
         super().setUp()
@@ -1075,7 +1093,9 @@ class SnubaTestCase(BaseTestCase):
         last_events_seen = 0
 
         while attempt < attempts:
-            events = eventstore.get_events(snuba_filter, referrer="test.wait_for_event_count")
+            events = eventstore.backend.get_events(
+                snuba_filter, referrer="test.wait_for_event_count"
+            )
             last_events_seen = len(events)
             if len(events) >= total:
                 break
@@ -1560,7 +1580,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     def build_metrics_query(
         self,
         select: Sequence[MetricField],
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         where: Optional[Sequence[Union[BooleanCondition, Condition, MetricConditionField]]] = None,
         having: Optional[ConditionGroup] = None,
         groupby: Optional[Sequence[MetricGroupByField]] = None,
@@ -1569,8 +1589,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         offset: Optional[Offset] = None,
         include_totals: bool = True,
         include_series: bool = True,
-        before_now: str = None,
-        granularity: str = None,
+        before_now: Optional[str] = None,
+        granularity: Optional[str] = None,
     ):
         # TODO: fix this method which gets the range after now instead of before now.
         (start, end, granularity_in_seconds) = get_date_range(
@@ -1603,6 +1623,8 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     }
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
+        "span.duration": "metrics_distributions",
+        "span.self_time": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1645,10 +1667,50 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
-        project: Optional[id] = None,
+        project: Optional[int] = None,
         use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
+        org_id = self.organization.id
+
+        if tags is None:
+            tags = {}
+
+        if timestamp is None:
+            metric_timestamp = self.DEFAULT_METRIC_TIMESTAMP.timestamp()
+        else:
+            metric_timestamp = timestamp.timestamp()
+
+        if project is None:
+            project = self.project.id
+
+        if not isinstance(value, list):
+            value = [value]
+        for subvalue in value:
+            self.store_metric(
+                org_id,
+                project,
+                self.TYPE_MAP[entity],
+                internal_metric,
+                tags,
+                int(metric_timestamp),
+                subvalue,
+                use_case_id=UseCaseKey.PERFORMANCE,
+            )
+
+    def store_span_metric(
+        self,
+        value: List[int] | int,
+        metric: str = "span.self_time",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+        timestamp: Optional[datetime] = None,
+        project: Optional[int] = None,
+        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
+    ):
+        internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
@@ -2264,19 +2326,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2328,19 +2390,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 

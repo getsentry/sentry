@@ -1,6 +1,7 @@
 from sentry.projectoptions import register
 
-# latest epoch
+# This controls what sentry:option-epoch value is given to a project when it is created
+# The epoch of a project will determine what options are valid options for that specific project
 LATEST_EPOCH = 11
 
 # grouping related configs
@@ -13,10 +14,11 @@ LATEST_EPOCH = 11
 # TODO: we might instead want to fall back to the latest of the project's
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
+DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 # NOTE: this is empty for now to migrate projects off the deprecated
 # `mobile` strategy via grouping auto-updates.
 BETA_GROUPING_CONFIG = ""
+# This registers the option as a valid project option
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -90,6 +92,9 @@ register(
     },
 )
 
+# NOTE: this is the HealthCheck filter, the name should match Relay reason (which is filtered-transaction)
+register(key="filters:filtered-transaction", default="1")
+
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
@@ -98,12 +103,18 @@ register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
-    "n_plus_one_db_detection_rate": 1.0,
-    "n_plus_one_api_calls_detection_rate": 1.0,
-    "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
+    "large_http_payload_detection_enabled": True,
+    "n_plus_one_db_queries_detection_enabled": True,
+    "n_plus_one_api_calls_detection_enabled": True,
+    "db_on_main_thread_detection_enabled": True,
+    "file_io_on_main_thread_detection_enabled": True,
+    "consecutive_db_queries_detection_enabled": True,
+    "large_render_blocking_asset_detection_enabled": True,
+    "slow_db_queries_detection_enabled": True,
 }
+
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",

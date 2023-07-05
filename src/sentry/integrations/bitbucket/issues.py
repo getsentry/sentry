@@ -117,7 +117,7 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
         try:
             issue = client.create_issue(data.get("repo"), data)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         return {
             "key": issue["id"],
@@ -158,4 +158,4 @@ class BitbucketIssueBasicMixin(IssueBasicMixin):
                     repo=repo, issue_id=issue_num, data={"content": {"raw": comment}}
                 )
             except ApiError as e:
-                raise self.raise_error(e)
+                self.raise_error(e)

@@ -28,10 +28,6 @@ TEST_REDIS_DB = 9
 def pytest_configure(config):
     import warnings
 
-    from django.utils.deprecation import RemovedInDjango30Warning  # type: ignore[attr-defined]
-
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
-
     # This is just to filter out an obvious warning before the pytest session starts.
     warnings.filterwarnings(
         action="ignore",
@@ -99,8 +95,6 @@ def pytest_configure(config):
     sudo = middleware.index("sentry.middleware.sudo.SudoMiddleware")
     middleware[sudo] = "sentry.testutils.middleware.SudoMiddleware"
     settings.MIDDLEWARE = tuple(middleware)
-
-    settings.SENTRY_OPTIONS["cloudflare.secret-key"] = "cloudflare-secret-key"
 
     # enable draft features
     settings.SENTRY_OPTIONS["mail.enable-replies"] = True

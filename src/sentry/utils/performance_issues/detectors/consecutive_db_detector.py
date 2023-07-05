@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import random
 import re
 from datetime import timedelta
 from typing import Any, List, Mapping, Optional, Sequence
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
@@ -56,7 +55,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
     __slots__ = "stored_problems"
 
-    type: DetectorType = DetectorType.CONSECUTIVE_DB_OP
+    type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
     def init(self):
@@ -182,9 +181,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return self.consecutive_db_spans[0].get("description", "")
 
-    def _sum_span_duration(self, spans: list[Span]) -> int:
+    def _sum_span_duration(self, spans: list[Span]) -> float:
         "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
+        sum = 0.0
         for span in spans:
             sum += get_span_duration(span).total_seconds() * 1000
         return sum
@@ -220,7 +219,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
         )
 
-        sum_of_dependent_span_durations = 0
+        sum_of_dependent_span_durations = 0.0
         for span in consecutive_spans:
             if span not in independent_spans:
                 sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000
@@ -264,10 +263,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 

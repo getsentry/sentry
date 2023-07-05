@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import Iterable, List, Optional, Set, cast
+from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
 from django.db import IntegrityError, models, transaction
+from django.dispatch import Signal
 
 from sentry import roles
+from sentry.api.serializers import serialize
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     Activity,
+    ControlOutbox,
     GroupAssignee,
     GroupBookmark,
     GroupSeen,
@@ -17,16 +20,22 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     OrganizationStatus,
+    OutboxCategory,
+    OutboxScope,
     Team,
+    outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
+    OrganizationSignalService,
+    RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
     RpcUserInviteContext,
@@ -34,10 +43,12 @@ from sentry.services.hybrid_cloud.organization import (
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
-    serialize_organization,
     serialize_organization_summary,
+    serialize_rpc_organization,
 )
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
+from sentry.types.region import find_regions_for_orgs
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
@@ -55,6 +66,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return serialize_member(member)
 
+    def serialize_organization(
+        self, *, id: int, as_user: Optional[RpcUser] = None
+    ) -> Optional[Any]:
+        org = Organization.objects.filter(id=id).first()
+        if org is None:
+            return None
+        return serialize(org, user=as_user)
+
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
     ) -> Optional[RpcUserOrganizationContext]:
@@ -71,7 +90,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             return None
 
         return RpcUserOrganizationContext(
-            user_id=user_id, organization=serialize_organization(org), member=membership
+            user_id=user_id, organization=serialize_rpc_organization(org), member=membership
         )
 
     def get_org_by_slug(
@@ -165,7 +184,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         Query for an organization member by its id and organization
         """
 
-        member: RpcOrganizationMember | None = None
+        member: OrganizationMember | None = None
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
@@ -184,7 +203,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         return RpcUserInviteContext(
             user_id=member.user_id,
-            organization=serialize_organization(org),
+            organization=serialize_rpc_organization(org),
             member=serialize_member(member),
             invite_organization_member_id=organization_member_id,
         )
@@ -219,7 +238,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     )
                     org_member.set_user(user_id)
                     org_member.save()
-                    org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)
@@ -234,27 +252,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
             logger.info("Organization by slug [%s] not found", slug)
 
         return None
-
-    def get_organizations(
-        self,
-        *,
-        user_id: Optional[int],
-        scope: Optional[str],
-        only_visible: bool,
-        organization_ids: Optional[List[int]] = None,
-    ) -> List[RpcOrganizationSummary]:
-        # This needs to query the control tables for organization data and not the region ones, because spanning out
-        # would be very expansive.
-        if user_id is not None:
-            organizations = self._query_organizations(user_id, scope, only_visible)
-        elif organization_ids is not None:
-            qs = Organization.objects.filter(id__in=organization_ids)
-            if only_visible:
-                qs = qs.filter(status=OrganizationStatus.ACTIVE)
-            organizations = list(qs)
-        else:
-            organizations = []
-        return [serialize_organization_summary(o) for o in organizations]
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool
@@ -281,16 +278,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates = models.F("flags")
+        updates: models.F | models.CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
-                updates = updates.bitor(Organization.flags[name])
+                updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
-                updates = updates.bitand(~Organization.flags[name])
+                updates = updates.bitand(~getattr(Organization.flags, name))
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
-        Organization.objects.filter(id=organization_id).update(flags=updates)
+        with outbox_context(transaction.atomic()):
+            Organization.objects.filter(id=organization_id).update(flags=updates)
+            Organization.outbox_for_update(org_id=organization_id).save()
 
     @staticmethod
     def _deserialize_member_flags(flags: RpcOrganizationMemberFlags) -> int:
@@ -314,7 +313,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if invite_status is None:
             invite_status = InviteStatus.APPROVED.value
 
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             org_member: Optional[OrganizationMember] = None
             if user_id is not None:
                 org_member = OrganizationMember.objects.filter(
@@ -335,9 +334,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     inviter_id=inviter_id,
                     invite_status=invite_status,
                 )
-
-            assert org_member
-            org_member.outbox_for_update().drain_shard(max_updates_to_drain=10)
         return serialize_member(org_member)
 
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
@@ -394,16 +390,14 @@ class DatabaseBackedOrganizationService(OrganizationService):
             )
         )
 
-    def update_default_role(
-        self, *, organization_id: int, default_role: str
-    ) -> RpcOrganizationMember:
+    def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         org = Organization.objects.get(id=organization_id)
         org.default_role = default_role
         org.save()
-        return serialize_organization(org)
+        return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             org_member = OrganizationMember.objects.get(
                 organization_id=organization_id, user_id=user_id
             )
@@ -494,8 +488,51 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     def update_option(self, *, organization_id: int, key: str, value: OptionValue) -> bool:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
-        return orm_organization.update_option(key, value)  # type: ignore[no-any-return]
+        return orm_organization.update_option(key, value)
 
     def delete_option(self, *, organization_id: int, key: str) -> None:
         orm_organization = Organization.objects.get_from_cache(id=organization_id)
         orm_organization.delete_option(key)
+
+    def send_signal(
+        self,
+        *,
+        organization_id: int,
+        signal: RpcOrganizationSignal,
+        args: Mapping[str, str | int | None],
+    ) -> None:
+        signal.signal.send_robust(None, organization_id=organization_id, **args)
+
+
+class OutboxBackedOrganizationSignalService(OrganizationSignalService):
+    def schedule_signal(
+        self, signal: Signal, organization_id: int, args: Mapping[str, Optional[Union[str, int]]]
+    ) -> None:
+        with outbox_context(flush=False):
+            payload: Any = {
+                "args": args,
+                "signal": int(RpcOrganizationSignal.from_signal(signal)),
+            }
+            for region_name in find_regions_for_orgs([organization_id]):
+                ControlOutbox(
+                    shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                    shard_identifier=organization_id,
+                    region_name=region_name,
+                    category=OutboxCategory.SEND_SIGNAL,
+                    object_identifier=ControlOutbox.next_object_identifier(),
+                    payload=payload,
+                ).save()
+
+
+class OnCommitBackedOrganizationSignalService(OrganizationSignalService):
+    def schedule_signal(
+        self, signal: Signal, organization_id: int, args: Mapping[str, int | str | None]
+    ) -> None:
+        _signal = RpcOrganizationSignal.from_signal(signal)
+        transaction.on_commit(
+            lambda: DatabaseBackedOrganizationService().send_signal(
+                organization_id=organization_id,
+                signal=_signal,
+                args=args,
+            )
+        )

@@ -24,26 +24,39 @@ class RpcAuthenticatorType(IntEnum):
     API_KEY_AUTHENTICATION = 0
     TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
+    ORG_AUTH_TOKEN_AUTHENTICATION = 3
 
     @classmethod
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
             return RpcAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == OrgAuthTokenAuthentication:
+            return RpcAuthenticatorType.ORG_AUTH_TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
             return TokenAuthentication()
+        if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
+            return OrgAuthTokenAuthentication()
         else:
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
@@ -64,6 +77,10 @@ class RpcAuthentication(BaseAuthentication):
         self.types = types
 
     def authenticate(self, request: Request) -> Optional[Tuple[Any, Any]]:
+        from django.contrib.auth.models import AnonymousUser
+
+        from sentry.models.apikey import is_api_key_auth
+        from sentry.models.orgauthtoken import is_org_auth_token_auth
         from sentry.services.hybrid_cloud.auth.service import auth_service
 
         response = auth_service.authenticate_with(
@@ -72,6 +89,11 @@ class RpcAuthentication(BaseAuthentication):
 
         if response.user is not None:
             return response.user, response.auth
+
+        if response.auth is not None and (
+            is_api_key_auth(response.auth) or is_org_auth_token_auth(response.auth)
+        ):
+            return AnonymousUser(), response.auth
 
         return None
 

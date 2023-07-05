@@ -38,8 +38,9 @@ export type SearchEventParameters = {
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
   'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
     item_name: string | undefined;
-    item_type: string | undefined;
     search_operator: string;
+    item_kind?: string;
+    item_type?: string;
   };
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.pin': {

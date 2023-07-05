@@ -36,6 +36,12 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             integration_key=service[0]["integration_key"],
             organization_integration_id=self.integration.organizationintegration_set.first().id,
         )
+        self.action = self.create_alert_rule_trigger_action(
+            target_identifier=self.service.id,
+            type=AlertRuleTriggerAction.Type.PAGERDUTY,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=self.integration,
+        )
 
     def test_build_incident_attachment(self):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
@@ -75,13 +81,6 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
     def run_test(self, incident, method):
         from sentry.integrations.pagerduty.utils import build_incident_attachment
 
-        action = self.create_alert_rule_trigger_action(
-            target_identifier=self.service.id,
-            type=AlertRuleTriggerAction.Type.PAGERDUTY,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            integration=self.integration,
-        )
-
         responses.add(
             method=responses.POST,
             url="https://events.pagerduty.com/v2/enqueue/",
@@ -89,7 +88,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             status=202,
             content_type="application/json",
         )
-        handler = PagerDutyActionHandler(action, incident, self.project)
+        handler = PagerDutyActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
             getattr(handler, method)(metric_value, IncidentStatus(incident.status))
@@ -120,3 +119,23 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
 
     def test_resolve_metric_alert(self):
         self.run_fire_test("resolve")
+
+    @responses.activate
+    def test_rule_snoozed(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        self.snooze_rule(alert_rule=alert_rule)
+
+        responses.add(
+            method=responses.POST,
+            url="https://events.pagerduty.com/v2/enqueue/",
+            json={},
+            status=202,
+            content_type="application/json",
+        )
+        handler = PagerDutyActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        with self.tasks():
+            handler.fire(metric_value, IncidentStatus(incident.status))
+
+        assert len(responses.calls) == 0

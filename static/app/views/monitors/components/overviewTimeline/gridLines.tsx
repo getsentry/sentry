@@ -1,3 +1,4 @@
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -6,13 +7,16 @@ import {space} from 'sentry/styles/space';
 import {TimeWindow} from 'sentry/views/monitors/components/overviewTimeline/types';
 import {
   getStartFromTimeWindow,
-  timeWindowData,
+  timeWindowConfig,
 } from 'sentry/views/monitors/components/overviewTimeline/utils';
+
+import {useTimelineCursor} from './timelineCursor';
 
 interface Props {
   end: Date;
   timeWindow: TimeWindow;
   width: number;
+  showCursor?: boolean;
 }
 
 function clampTimeBasedOnResolution(date: moment.Moment, resolution: string) {
@@ -32,7 +36,7 @@ interface TimeMarker {
 }
 
 function getTimeMarkers(end: Date, timeWindow: TimeWindow, width: number): TimeMarker[] {
-  const {elapsedMinutes, timeMarkerInterval} = timeWindowData[timeWindow];
+  const {elapsedMinutes, timeMarkerInterval} = timeWindowConfig[timeWindow];
   const msPerPixel = (elapsedMinutes * 60 * 1000) / width;
 
   const times: TimeMarker[] = [];
@@ -55,16 +59,34 @@ export function GridLineTimeLabels({end, timeWindow, width}: Props) {
     <LabelsContainer>
       {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
         <TimeLabelContainer key={date.getTime()} left={position}>
-          <TimeLabel date={date} {...timeWindowData[timeWindow].dateTimeProps} />
+          <TimeLabel date={date} {...timeWindowConfig[timeWindow].dateTimeProps} />
         </TimeLabelContainer>
       ))}
     </LabelsContainer>
   );
 }
 
-export function GridLineOverlay({end, timeWindow, width}: Props) {
+export function GridLineOverlay({end, timeWindow, width, showCursor}: Props) {
+  const {cursorLabelFormat} = timeWindowConfig[timeWindow];
+
+  const makeCursorText = useCallback(
+    (percentPosition: number) => {
+      const start = getStartFromTimeWindow(end, timeWindow);
+      const timeOffset = (end.getTime() - start.getTime()) * percentPosition;
+
+      return moment(start.getTime() + timeOffset).format(cursorLabelFormat);
+    },
+    [cursorLabelFormat, end, timeWindow]
+  );
+
+  const {cursorContainerRef, timelineCursor} = useTimelineCursor<HTMLDivElement>({
+    enabled: showCursor,
+    labelText: makeCursorText,
+  });
+
   return (
-    <Overlay>
+    <Overlay ref={cursorContainerRef}>
+      {timelineCursor}
       <GridLineContainer>
         {getTimeMarkers(end, timeWindow, width).map(({date, position}) => (
           <Gridline key={date.getTime()} left={position} />
@@ -80,6 +102,7 @@ const Overlay = styled('div')`
   height: 100%;
   width: 100%;
   position: absolute;
+  pointer-events: none;
 `;
 
 const GridLineContainer = styled('div')`

@@ -1,8 +1,11 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {SelectOption} from 'sentry/components/compactSelect';
 import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -13,11 +16,14 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdown';
 
+const {SPAN_SELF_TIME} = SpanMetricsFields;
+
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
-export const NULL_SPAN_CATEGORY = '<null>';
+export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
   transaction?: string;
@@ -29,8 +35,8 @@ type Group = {
 };
 
 export type Segment = Group & {
-  'p95(span.duration)': number;
-  'sum(span.duration)': number;
+  'p95(span.self_time)': number;
+  'sum(span.self_time)': number;
 };
 
 export type DataRow = {
@@ -38,12 +44,28 @@ export type DataRow = {
   group: Group;
 };
 
+export enum DataDisplayType {
+  DURATION_P95 = 'duration_p95',
+  CUMULATIVE_DURATION = 'cumulative_duration',
+  PERCENTAGE = 'percentage',
+}
+
 export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Props) {
   const pageFilter = usePageFilters();
   const organization = useOrganization();
   const location = useLocation();
   const {selection} = pageFilter;
   const theme = useTheme();
+
+  const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+    {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+  ];
+
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+    DataDisplayType.PERCENTAGE
+  );
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
@@ -83,6 +105,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
       ['span.category'],
+      dataDisplayType,
       true
     ),
     enabled: true,
@@ -90,12 +113,12 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     initialData: [],
   });
 
-  const totalValues = cumulativeTime?.data[0]?.['sum(span.duration)']
-    ? parseInt(cumulativeTime?.data[0]['sum(span.duration)'] as string, 10)
+  const totalValues = cumulativeTime?.data[0]?.[`sum(${SPAN_SELF_TIME})`]
+    ? parseInt(cumulativeTime?.data[0][`sum(${SPAN_SELF_TIME})`] as string, 10)
     : 0;
   const totalSegments =
     segments?.data.reduce(
-      (acc, segment) => acc + parseInt(segment['sum(span.duration)'] as string, 10),
+      (acc, segment) => acc + parseInt(segment[`sum(${SPAN_SELF_TIME})`] as string, 10),
       0
     ) ?? 0;
 
@@ -108,7 +131,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       const element = segments.data[index];
       const category = element['span.category'] as string;
       transformedData.push({
-        cumulativeTime: parseInt(element['sum(span.duration)'] as string, 10),
+        cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
         group: {
           'span.category': category === '' ? NULL_SPAN_CATEGORY : category,
         },
@@ -145,17 +168,13 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
         seriesByDomain[label].data =
           seriesData?.data.map(datum => {
-            return {name: datum[0], value: datum[1][0].count} as SeriesDataUnit;
+            return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
           }) ?? [];
       });
     }
   }
 
   const data = Object.values(seriesByDomain);
-
-  const initialShowSeries = transformedData.map(
-    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
-  );
 
   return (
     <StyledPanel>
@@ -165,11 +184,13 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTableLoading={isSegmentsLoading}
         topSeriesData={data}
         colorPalette={colorPalette}
-        initialShowSeries={initialShowSeries}
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
         errored={isError}
+        options={options}
+        dataDisplayType={dataDisplayType}
+        setDataDisplayType={setDataDisplayType}
       />
     </StyledPanel>
   );
@@ -184,18 +205,24 @@ const getEventView = (
   pageFilters: PageFilters,
   query: string,
   groups: string[],
+  dataDisplayType: DataDisplayType,
   getTimeseries?: boolean
 ) => {
+  const yAxis =
+    dataDisplayType === DataDisplayType.DURATION_P95
+      ? `p95(${SPAN_SELF_TIME})`
+      : `sum(${SPAN_SELF_TIME})`;
+
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', 'p95(span.duration)', ...groups],
-    yAxis: getTimeseries ? ['p95(span.duration)'] : [],
+    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+    yAxis: getTimeseries ? [yAxis] : [],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,
@@ -210,13 +237,13 @@ const getCumulativeTimeEventView = (
 ) => {
   return EventView.fromSavedQuery({
     name: '',
-    fields: ['sum(span.duration)', ...groups],
+    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
     query,
     dataset: DiscoverDatasets.SPANS_METRICS,
     start: pageFilters.datetime.start ?? undefined,
     end: pageFilters.datetime.end ?? undefined,
     range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
+    orderby: '-sum_span_self_time',
     projects: [1],
     version: 2,
     topEvents: groups.length > 0 ? '4' : undefined,

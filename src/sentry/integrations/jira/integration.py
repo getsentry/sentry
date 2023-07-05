@@ -7,7 +7,7 @@ from typing import Any, Mapping, Optional, Sequence
 
 from django.conf import settings
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
@@ -19,7 +19,6 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
     ExternalIssue,
     IntegrationExternalProject,
@@ -329,19 +328,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def get_persisted_ignored_fields(self):
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def get_performance_issue_body(self, event):
-        (
-            transaction_name,
-            parent_span,
-            num_repeating_spans,
-            repeating_spans,
-        ) = self.get_performance_issue_description_data(event)
-
-        body = f"| *Transaction Name* | {truncatechars(transaction_name, MAX_CHAR)} |\n"
-        body += f"| *Parent Span* | {truncatechars(parent_span, MAX_CHAR)} |\n"
-        body += f"| *Repeating Spans ({num_repeating_spans})* | {truncatechars(repeating_spans, MAX_CHAR)} |"
-        return body
-
     def get_generic_issue_body(self, event):
         body = ""
         important = event.occurrence.important_evidence_display
@@ -363,9 +349,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if isinstance(event, GroupEvent) and event.occurrence is not None:
             body = self.get_generic_issue_body(event)
             output.extend([body])
-        elif group.issue_category == GroupCategory.PERFORMANCE:
-            body = self.get_performance_issue_body(event)
-            output.extend([body])
         else:
             body = self.get_group_body(group, event)
             if body:
@@ -380,8 +363,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
 
         return JiraCloudClient(
-            self.model.metadata["base_url"],
-            self.model.metadata["shared_secret"],
+            integration=self.model,
+            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -420,7 +403,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             return self.get_client().search_issues(query)
         except ApiError as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
     def make_choices(self, values):
         if not values:
@@ -868,7 +851,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         try:
             response = client.create_issue(cleaned_data)
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         issue_key = response.get("key")
         if not issue_key:

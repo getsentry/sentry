@@ -2,13 +2,15 @@
 Note: Also see letterAvatar.jsx. Anything changed in this file (how colors are
       selected, the svg, etc) will also need to be changed there.
 """
-from typing import MutableMapping, Optional, TextIO, Union
+from __future__ import annotations
+
+from typing import IO, MutableMapping, Optional, Union
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import escape
 from PIL import Image
 
@@ -55,19 +57,19 @@ LETTER_AVATAR_COLORS = [
 COLOR_COUNT = len(LETTER_AVATAR_COLORS)
 
 
-def hash_user_identifier(identifier: str) -> int:
-    identifier = force_text(identifier, errors="replace")
+def hash_user_identifier(identifier: str | int) -> int:
+    identifier = force_str(identifier, errors="replace")
     return sum(map(ord, identifier))
 
 
-def get_letter_avatar_color(identifier: str) -> str:
+def get_letter_avatar_color(identifier: str | int) -> str:
     hashed_id = hash_user_identifier(identifier)
     return LETTER_AVATAR_COLORS[hashed_id % COLOR_COUNT]
 
 
 def get_letter_avatar(
     display_name: Optional[str],
-    identifier: str,
+    identifier: str | int,
     size: Optional[int] = None,
     use_svg: Optional[bool] = True,
     initials: Optional[str] = None,
@@ -139,7 +141,7 @@ def get_platform_avatar(
     return f'<img class="avatar" src="https://raw.githubusercontent.com/getsentry/platformicons/master/svg/{display_name}.svg" height={size}>'
 
 
-def is_black_alpha_only(data: TextIO) -> bool:
+def is_black_alpha_only(data: IO[bytes]) -> bool:
     """Check if an image has only black pixels (with alpha)"""
     result = False
     with Image.open(data) as image:

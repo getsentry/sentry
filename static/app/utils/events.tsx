@@ -5,6 +5,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {
   BaseGroup,
   EntryException,
+  EntryRequest,
   EntryThreads,
   EventMetadata,
   EventOrGroupType,
@@ -216,6 +217,10 @@ function hasTrace(event: Event) {
   return !!event.contexts?.trace;
 }
 
+function hasProfile(event: Event) {
+  return defined(event.contexts?.profile);
+}
+
 /**
  * Function to determine if an event has source maps
  * by ensuring that every inApp frame has a valid sourcemap
@@ -395,6 +400,16 @@ export function eventHasExceptionGroup(event: Event) {
   );
 }
 
+export function eventHasGraphQlRequest(event: Event) {
+  const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
+    | EntryRequest
+    | undefined;
+  return (
+    typeof requestEntry?.data?.apiTarget === 'string' &&
+    requestEntry.data.apiTarget.toLowerCase() === 'graphql'
+  );
+}
+
 /**
  * Return the integration type for the first assignment via integration
  */
@@ -425,6 +440,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_type: event?.type,
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
+    has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
+    has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
@@ -488,4 +505,19 @@ export function getAnalyticsDataForGroup(group?: Group | null): CommonGroupAnaly
     num_viewers: group?.seenBy?.filter(user => user.id !== activeUser?.id).length ?? 0,
     group_num_user_feedback: group?.userReportCount ?? 0,
   };
+}
+
+export function eventIsProfilingIssue(event: BaseGroup | Event | GroupTombstoneHelper) {
+  if (isTombstone(event) || isGroup(event)) {
+    return false;
+  }
+  if (event.issueCategory === IssueCategory.PROFILE) {
+    return true;
+  }
+  const evidenceData = event.occurrence?.evidenceData ?? {};
+  return evidenceData.templateName === 'profile';
+}
+
+function isGroup(event: BaseGroup | Event): event is BaseGroup {
+  return (event as BaseGroup).status !== undefined;
 }

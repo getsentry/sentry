@@ -48,6 +48,12 @@ TASK_OPTIONS = {
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
 }
+CONTROL_TASK_OPTIONS = {
+    "queue": "app_platform.control",
+    "default_retry_delay": (60 * 5),  # Five minutes.
+    "max_retries": 3,
+    "silo_mode": SiloMode.CONTROL,
+}
 
 RETRY_OPTIONS = {
     "on": (RequestException, ApiHostError, ApiTimeoutError),
@@ -239,9 +245,7 @@ def process_resource_change_bound(self, action, sender, instance_id, *args, **kw
     _process_resource_change(action, sender, instance_id, retryer=self, *args, **kwargs)
 
 
-@instrumented_task(
-    name="sentry.tasks.sentry_apps.installation_webhook", silo_mode=SiloMode.CONTROL, **TASK_OPTIONS
-)
+@instrumented_task(name="sentry.tasks.sentry_apps.installation_webhook", **CONTROL_TASK_OPTIONS)
 @retry(**RETRY_OPTIONS)
 def installation_webhook(installation_id, user_id, *args, **kwargs):
     from sentry.mediators.sentry_app_installations import InstallationNotifier

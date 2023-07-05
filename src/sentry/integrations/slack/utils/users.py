@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.integrations.slack.client import SlackClient
 from sentry.models import Integration, Organization, User
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 from ..utils import logger
@@ -55,8 +59,8 @@ def get_slack_info_by_email(
 
 
 def get_slack_data_by_user(
-    integration: Integration,
-    organization: Organization,
+    integration: Integration | RpcIntegration,
+    organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
 ) -> Mapping[User, Mapping[str, str]]:
     slack_info_by_email = get_slack_info_by_email(integration, organization)

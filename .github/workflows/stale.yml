@@ -12,14 +12,14 @@ jobs:
           repo-token: ${{ github.token }}
           days-before-stale: 21
           days-before-close: 7
-          only-labels: ""
+          only-labels: ''
           operations-per-run: 100
           remove-stale-when-updated: true
           debug-only: false
           ascending: false
 
-          exempt-issue-labels: "Status: Backlog,Status: In Progress"
-          stale-issue-label: "Status: Stale"
+          exempt-issue-labels: 'Status: Backlog,Status: In Progress'
+          stale-issue-label: 'Status: Stale'
           stale-issue-message: |-
             This issue has gone three weeks without activity. In another week, I will close it.
 
@@ -28,11 +28,11 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          close-issue-label: ""
-          close-issue-message: ""
+          close-issue-label: ''
+          close-issue-message: ''
 
-          exempt-pr-labels: "Status: Backlog,Status: In Progress"
-          stale-pr-label: "Status: Stale"
+          exempt-pr-labels: 'Status: Backlog,Status: In Progress'
+          stale-pr-label: 'Status: Stale'
           stale-pr-message: |-
             This pull request has gone three weeks without activity. In another week, I will close it.
 
@@ -41,5 +41,5 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          close-pr-label: ""
-          close-pr-message: ""
+          close-pr-label: ''
+          close-pr-message: ''

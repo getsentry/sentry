@@ -20,12 +20,11 @@ from django.conf import settings
 
 from sentry import options
 from sentry.eventstream.base import EventStreamEventType, GroupStates
-from sentry.eventstream.kafka.dispatch import _get_task_kwargs_and_dispatch
 from sentry.eventstream.snuba import KW_SKIP_SEMANTIC_PARTITIONING, SnubaProtocolEventStream
 from sentry.killswitches import killswitch_matches_context
 from sentry.post_process_forwarder import PostProcessForwarder, PostProcessForwarderType
 from sentry.utils import json
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +44,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def get_producer(self, topic: str) -> Producer:
         if topic not in self.__producers:
-            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+            cluster_name = get_topic_definition(topic)["cluster"]
             cluster_options = get_kafka_producer_cluster_options(cluster_name)
             self.__producers[topic] = Producer(cluster_options)
 
@@ -57,7 +56,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
     def _get_headers_for_insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -223,9 +222,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         initial_offset_reset: Union[Literal["latest"], Literal["earliest"]],
         strict_offset_reset: bool,
     ) -> None:
-        dispatch_function = _get_task_kwargs_and_dispatch
-
-        PostProcessForwarder(dispatch_function).run(
+        PostProcessForwarder().run(
             entity,
             consumer_group,
             topic,

@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -195,6 +196,22 @@ function ActionSet({
 
   return (
     <Fragment>
+      {hasEscalatingIssuesUi && query.includes('is:archived') ? (
+        <Button
+          size="xs"
+          onClick={() => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
+              onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+              message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
+              confirmText: label('unarchive'),
+            });
+          }}
+          disabled={!anySelected}
+        >
+          {t('Unarchive')}
+        </Button>
+      ) : null}
       {hasEscalatingIssuesUi ? (
         <ArchiveActions
           onUpdate={onUpdate}

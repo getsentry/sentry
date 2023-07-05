@@ -62,6 +62,7 @@ from sentry.monitors.models import (
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
@@ -174,19 +175,19 @@ def create_system_time_series():
         count = randint(1, 10)
         tsdb.incr_multi(
             (
-                (tsdb.models.internal, "client-api.all-versions.responses.2xx"),
-                (tsdb.models.internal, "client-api.all-versions.requests"),
+                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
+                (TSDBModel.internal, "client-api.all-versions.requests"),
             ),
             now,
             int(count * 0.9),
         )
         tsdb.incr_multi(
-            ((tsdb.models.internal, "client-api.all-versions.responses.4xx"),),
+            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
             now,
             int(count * 0.05),
         )
         tsdb.incr_multi(
-            ((tsdb.models.internal, "client-api.all-versions.responses.5xx"),),
+            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
             now,
             int(count * 0.1),
         )
@@ -196,19 +197,19 @@ def create_system_time_series():
         count = randint(100, 1000)
         tsdb.incr_multi(
             (
-                (tsdb.models.internal, "client-api.all-versions.responses.2xx"),
-                (tsdb.models.internal, "client-api.all-versions.requests"),
+                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
+                (TSDBModel.internal, "client-api.all-versions.requests"),
             ),
             now,
             int(count * 4.9),
         )
         tsdb.incr_multi(
-            ((tsdb.models.internal, "client-api.all-versions.responses.4xx"),),
+            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
             now,
             int(count * 0.05),
         )
         tsdb.incr_multi(
-            ((tsdb.models.internal, "client-api.all-versions.responses.5xx"),),
+            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
             now,
             int(count * 0.1),
         )
@@ -243,43 +244,43 @@ def create_sample_time_series(event, release=None):
     for _ in range(60):
         count = randint(1, 10)
         tsdb.incr_multi(
-            ((tsdb.models.project, project.id), (tsdb.models.group, group.id)),
+            ((TSDBModel.project, project.id), (TSDBModel.group, group.id)),
             now,
             count,
             environment_id=environment.id,
         )
         tsdb.incr_multi(
             (
-                (tsdb.models.organization_total_received, project.organization_id),
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.key_total_received, key.id),
+                (TSDBModel.organization_total_received, project.organization_id),
+                (TSDBModel.project_total_received, project.id),
+                (TSDBModel.key_total_received, key.id),
             ),
             now,
             int(count * 1.1),
         )
         tsdb.incr(
-            tsdb.models.project_total_forwarded,
+            TSDBModel.project_total_forwarded,
             project.id,
             now,
             int(count * 1.1),
         )
         tsdb.incr_multi(
             (
-                (tsdb.models.organization_total_rejected, project.organization_id),
-                (tsdb.models.project_total_rejected, project.id),
-                (tsdb.models.key_total_rejected, key.id),
+                (TSDBModel.organization_total_rejected, project.organization_id),
+                (TSDBModel.project_total_rejected, project.id),
+                (TSDBModel.key_total_rejected, key.id),
             ),
             now,
             int(count * 0.1),
         )
 
         frequencies = [
-            (tsdb.models.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: count}}),
+            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
+            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
+                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
         tsdb.record_frequency_multi(frequencies, now)
@@ -289,37 +290,37 @@ def create_sample_time_series(event, release=None):
     for _ in range(24 * 30):
         count = randint(100, 1000)
         tsdb.incr_multi(
-            ((tsdb.models.project, group.project.id), (tsdb.models.group, group.id)),
+            ((TSDBModel.project, group.project.id), (TSDBModel.group, group.id)),
             now,
             count,
             environment_id=environment.id,
         )
         tsdb.incr_multi(
             (
-                (tsdb.models.organization_total_received, project.organization_id),
-                (tsdb.models.project_total_received, project.id),
-                (tsdb.models.key_total_received, key.id),
+                (TSDBModel.organization_total_received, project.organization_id),
+                (TSDBModel.project_total_received, project.id),
+                (TSDBModel.key_total_received, key.id),
             ),
             now,
             int(count * 1.1),
         )
         tsdb.incr_multi(
             (
-                (tsdb.models.organization_total_rejected, project.organization_id),
-                (tsdb.models.project_total_rejected, project.id),
-                (tsdb.models.key_total_rejected, key.id),
+                (TSDBModel.organization_total_rejected, project.organization_id),
+                (TSDBModel.project_total_rejected, project.id),
+                (TSDBModel.key_total_rejected, key.id),
             ),
             now,
             int(count * 0.1),
         )
 
         frequencies = [
-            (tsdb.models.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (tsdb.models.frequent_environments_by_group, {group.id: {environment.id: count}}),
+            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
+            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
         ]
         if release:
             frequencies.append(
-                (tsdb.models.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
+                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
             )
 
         tsdb.record_frequency_multi(frequencies, now)

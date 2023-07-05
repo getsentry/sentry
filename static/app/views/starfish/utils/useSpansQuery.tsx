@@ -1,28 +1,28 @@
-import {useQuery} from '@tanstack/react-query';
 import moment from 'moment';
 
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {encodeSort} from 'sentry/utils/discover/eventView';
+import EventView, {
+  encodeSort,
+  EventsMetaType,
+  MetaType,
+} from 'sentry/utils/discover/eventView';
 import {
   DiscoverQueryProps,
   useGenericDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/starfish/utils/retryHandlers';
+import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
-const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
-
-// Setting return type since I'd rather not know if its discover query or not
-export type UseSpansQueryReturnType<T> = {
-  data: T;
-  isLoading: boolean;
-  pageLinks?: string;
-};
+export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
 
 export function useSpansQuery<T = any[]>({
   eventView,
-  queryString,
   initialData,
   limit,
   enabled,
@@ -34,66 +34,35 @@ export function useSpansQuery<T = any[]>({
   eventView?: EventView;
   initialData?: any;
   limit?: number;
-  queryString?: string;
-  referrer?: string;
-}): UseSpansQueryReturnType<T> {
-  const queryFunction = getQueryFunction({
-    useDiscover: true,
-    isTimeseriesQuery: (eventView?.yAxis?.length ?? 0) > 0,
-  });
-  if (isDiscoverFunction(queryFunction) || isDiscoverTimeseriesFunction(queryFunction)) {
-    if (eventView) {
-      return queryFunction({eventView, initialData, limit, enabled, referrer, cursor});
-    }
-    throw new Error(
-      'eventView argument must be defined when Starfish useDiscover is true'
-    );
-  }
-
-  if (queryString) {
-    return queryFunction({queryString, initialData, enabled, referrer});
-  }
-  throw new Error(
-    'queryString argument must be defined when Starfish useDiscover is false, ie when using scraped data via fetch API'
-  );
-}
-
-function isDiscoverFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverQuery {
-  return queryFunction === useWrappedDiscoverQuery;
-}
-
-function isDiscoverTimeseriesFunction(
-  queryFunction: Function
-): queryFunction is typeof useWrappedDiscoverTimeseriesQuery {
-  return queryFunction === useWrappedDiscoverTimeseriesQuery;
-}
-
-export function useWrappedQuery({
-  queryString,
-  initialData,
-  enabled,
-  referrer,
-}: {
-  queryString: string;
-  enabled?: boolean;
-  initialData?: any;
   referrer?: string;
 }) {
-  const {isLoading, data} = useQuery({
-    queryKey: [queryString],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${queryString}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
-    initialData,
-    enabled,
-    refetchOnWindowFocus: false,
-  });
-  return {isLoading, data};
+  const isTimeseriesQuery = (eventView?.yAxis?.length ?? 0) > 0;
+  const queryFunction = isTimeseriesQuery
+    ? useWrappedDiscoverTimeseriesQuery
+    : useWrappedDiscoverQuery;
+
+  const {isReady: pageFiltersReady} = usePageFilters();
+
+  if (eventView) {
+    const response = queryFunction<T>({
+      eventView,
+      initialData,
+      limit,
+      // We always want to wait until the pageFilters are ready to prevent clobbering requests
+      enabled: (enabled || enabled === undefined) && pageFiltersReady,
+      referrer,
+      cursor,
+    });
+
+    TrackResponse(eventView, response);
+
+    return response;
+  }
+
+  throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-export function useWrappedDiscoverTimeseriesQuery({
+export function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,
@@ -108,9 +77,10 @@ export function useWrappedDiscoverTimeseriesQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data} = useGenericDiscoverQuery<
+  const result = useGenericDiscoverQuery<
     {
       data: any[];
+      meta: MetaType;
     },
     DiscoverQueryProps
   >({
@@ -131,19 +101,26 @@ export function useWrappedDiscoverTimeseriesQuery({
     options: {
       enabled,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
     referrer,
   });
+
+  const data: T =
+    result.isLoading && initialData
+      ? initialData
+      : processDiscoverTimeseriesResult(result.data, eventView);
+
   return {
-    isLoading,
-    data:
-      isLoading && initialData
-        ? initialData
-        : processDiscoverTimeseriesResult(data, eventView),
+    ...result,
+    data,
+    meta: result.data?.meta,
   };
 }
 
-export function useWrappedDiscoverQuery({
+export function useWrappedDiscoverQuery<T>({
   eventView,
   initialData,
   enabled,
@@ -160,7 +137,7 @@ export function useWrappedDiscoverQuery({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {isLoading, data, pageLinks} = useDiscoverQuery({
+  const result = useDiscoverQuery({
     eventView,
     orgSlug: organization.slug,
     location,
@@ -170,29 +147,27 @@ export function useWrappedDiscoverQuery({
     options: {
       enabled,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
   });
-  return {
-    isLoading,
-    data: isLoading && initialData ? initialData : data?.data,
-    pageLinks,
-  };
-}
 
-function getQueryFunction({
-  useDiscover,
-  isTimeseriesQuery,
-}: {
-  useDiscover: boolean;
-  isTimeseriesQuery?: boolean;
-}) {
-  if (useDiscover) {
-    if (isTimeseriesQuery) {
-      return useWrappedDiscoverTimeseriesQuery;
-    }
-    return useWrappedDiscoverQuery;
+  const meta = result.data?.meta as EventsMetaType | undefined;
+  if (meta) {
+    // TODO: Remove this hack when the backend returns `"rate"` as the data
+    // type for `sps()` and other rate fields!
+    meta.fields['sps()'] = 'rate';
+    meta.units['sps()'] = '1/second';
   }
-  return useWrappedQuery;
+
+  const data: T = result.isLoading && initialData ? initialData : result.data?.data;
+
+  return {
+    ...result,
+    data,
+    meta, // TODO: useDiscoverQuery incorrectly states that it returns MetaType, but it does not!
+  };
 }
 
 type Interval = {[key: string]: any; interval: string; group?: string};
@@ -207,12 +182,16 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
   const firstYAxis =
     typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
-
   if (result.data) {
-    return processSingleDiscoverTimeseriesResult(
+    const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
       result,
       singleYAxis ? firstYAxis : 'count'
-    );
+    ).map(data => ({
+      interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
+      [firstYAxis]: data[firstYAxis],
+      group: data.group,
+    }));
+    return timeSeriesResult;
   }
   Object.keys(result).forEach(key => {
     if (result[key].data) {

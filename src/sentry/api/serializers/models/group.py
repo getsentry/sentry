@@ -55,6 +55,7 @@ from sentry.models import (
 )
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_groups_for_query,
@@ -726,6 +727,14 @@ class GroupSerializerBase(Serializer, ABC):
             ):
                 return True
 
+        if (
+            request
+            and user.is_anonymous
+            and hasattr(request, "auth")
+            and is_org_auth_token_auth(request.auth)
+        ):
+            return request.auth.organization_id == organization_id
+
         return (
             user.is_authenticated
             and OrganizationMember.objects.filter(
@@ -762,7 +771,7 @@ class GroupSerializer(GroupSerializerBase):
         ) -> Mapping[int, int]:
             pass
 
-    def __init__(self, environment_func: Callable[[], Environment] = None):
+    def __init__(self, environment_func: Optional[Callable[[], Environment]] = None):
         GroupSerializerBase.__init__(self)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 

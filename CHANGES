@@ -1,3 +1,89 @@
+23.6.1
+------
+
+### Various fixes & improvements
+
+- chore(hybrid-cloud): Fix get_webhook_payload_from_outbox classmethod (#51113) by @dashed
+- ref(js): Convert access.spec to tsx (#51106) by @evanpurkhiser
+- ref(js): Convert feature.spec to tsx (#51107) by @evanpurkhiser
+- ref(js): Convert breadcrumbs.spec to tsx (#51109) by @evanpurkhiser
+- ref(js): Convert dateTime.spec to tsx (#51111) by @evanpurkhiser
+- fix(crons): Properly send fingerprint array through issue platform (#51103) by @rjo100
+- ref(hc): Updates org deletion code to queue an org mapping outbox update (#51004) by @GabeVillalobos
+- meta: Snuba team owns the post process forwarder (#51090) by @lynnagara
+- ref: Remove dead code from post process forwarder (#51079) by @lynnagara
+- ref: Remove spammy debug logs (#51001) by @untitaker
+- fix: Use unified CLI for metrics indexer in devserver (#51046) by @untitaker
+- feat(mute-metric-alerts): Add mute button to metric alerts page (#50967) by @roggenkemper
+- fix(hc):  Serialize the organization via RPC to json (#51078) by @corps
+- fix(compactSelect): Escape quotes inside option values (#51007) by @vuluongj20
+- fix(hybridcloud) Drain outbox after transaction completes (#51059) by @markstory
+- feat(gh-comments): Queuing Logic (#50865) by @AniketDas-Tekky
+- Added pretty printing to dump command (#51065) by @kneeyo1
+- chore(ui): Upgrade to typescript 5.1 (#51073) by @scttcper
+- feat(crons): Add hover to rows (#51012) by @evanpurkhiser
+- feat(ts): Add LinkButton alias (#51013) by @evanpurkhiser
+- feat(starfish): Changes the web service view throughput chart to be a line chart (#51053) by @edwardgou-sentry
+- fix(starfish): use span.self_time instead of span.duration (#51051) by @DominikB2014
+- feat(debug): Add Metric Alert Trigger (#51060) by @roggenkemper
+- fix(ui): Remove xAxis boundaryGap from profilingMeasurements (#51008) by @scttcper
+
+_Plus 14 more_
+
+23.6.0
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#50456)
+
+### Escalating Issues V2 (EA) (ongoing)
+
+This is a placeholder milestone for tracking post-v1 work for escalating issues.
+See the RFC: https://github.com/getsentry/rfcs/blob/main/text/0078-escalating-issues.md
+There's also discussions about escalation in here:
+https://github.com/getsentry/sentry/discussions/43039
+
+V2 will focus on moving ongoing issues (upcoming) into the state archived-until-escalating after an issue being in the `ongoing` state for 14 days.
+
+
+By: @scttcper (#50896)
+
+### JS Project Cleanup (ongoing)
+
+By: @scttcper (#50684, #50682, #50670)
+
+### Various fixes & improvements
+
+- fix(issues): Switch to item kind on search autocomplete (#51045) by @scttcper
+- feat(consumer): Make max poll time configurable  (#51020) by @ayirr7
+- fix(api) Don't fail on invalid queries to organization_teams endpoint (#51042) by @markstory
+- feat(starfish): Cleanup (#50957) by @DominikB2014
+- feat(hybridcloud) Run celery workers for each silo  (#50821) by @markstory
+- fix(hybrid-cloud): Allow enums to serialize in RPC calls (#50913) by @mikejihbe
+- ref: Make model cache replica db preference configurable (#51027) by @beezz
+- fix(crons): Properly specify occurrence data (#50974) by @rjo100
+- ref(starfish): Remove all references to scraped data SQL (#51033) by @gggritso
+- feat(graphql): Add has_graphql_request analytics property to issue/event (#50949) by @malwilley
+- fix(perf-issues): Require space in N+1 ext span description (#50994) by @mjq-sentry
+- fix(starfish): issues table reloads when span type changes (#50970) by @DominikB2014
+- feat(dynamic-sampling): Improve AM2 compatibility check (#51039) by @iambriccardo
+- ref(replay): Deduplicate components used in Replay Details>Error & Network tabs (#50884) by @ryan953
+- fix(traces): Return empty array when accessing offender span ids (#51037) by @narsaynorath
+- feat(discover-tags): Add page_size and cursor to endpoint (#50971) by @narsaynorath
+- fix(hybrid-cloud): Fix normalizeUrl (#51014) by @dashed
+- feat(starfish): Switch use_case_id for spans (#50757) by @wmak
+- fix(mocks) Fix load-mocks usage or OrganizationMember (#50942) by @markstory
+- fix(profiling): Ensure there are symbolicated frames for profile (#50999) by @Zylphrex
+- fix(starfish): Special cursor name for span table cursor (#50966) by @shruthilayaj
+- feat(starfish): Span category chart error and loading status (#50946) by @shruthilayaj
+- ref(starfish): Remove scraped data query fallbacks (#50972) by @gggritso
+- fix(native/unreal): Don't overwrite a previously set event level (#50717) by @bitsandfoxes
+
+_Plus 669 more_
+
 23.5.2
 ------
 

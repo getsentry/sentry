@@ -12,7 +12,7 @@ def _request_should_be_proxied(request: Request, view_func, view_kwargs) -> bool
         return False
     view_class = getattr(view_func, "view_class", None)
     current_silo_mode = SiloMode.get_current_mode()
-    if current_silo_mode != SiloMode.MONOLITH and view_class is not None:
+    if current_silo_mode == SiloMode.CONTROL and view_class is not None:
         endpoint_silo_limit = getattr(view_class, "silo_limit", None)
         if endpoint_silo_limit is not None:
             endpoint_silo_set = endpoint_silo_limit.modes

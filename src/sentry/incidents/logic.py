@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -35,11 +35,12 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project
+from sentry.models import Actor, Integration, PagerDutyService, Project
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -48,6 +49,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
+from sentry.snuba.metrics.metric_extraction import is_on_demand_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -58,6 +60,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_query_builder
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
@@ -427,7 +430,6 @@ class AlertRuleNameAlreadyUsedError(Exception):
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
-
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
@@ -499,6 +501,13 @@ def create_alert_rule(
         "organizations:alert-crash-free-metrics", organization, actor=user
     ):
         dataset = Dataset.Metrics
+
+    actor = None
+    if owner and not isinstance(owner, Actor):
+        actor = owner.resolve_to_actor()
+    elif owner and isinstance(owner, Actor):
+        actor = owner
+
     with transaction.atomic():
         snuba_query = create_snuba_query(
             query_type,
@@ -510,9 +519,6 @@ def create_alert_rule(
             environment,
             event_types=event_types,
         )
-        actor = None
-        if owner:
-            actor = owner.resolve_to_actor()
 
         alert_rule = AlertRule.objects.create(
             organization=organization,
@@ -554,6 +560,8 @@ def create_alert_rule(
             user_id=user.id if user else None,
             type=AlertRuleActivityType.CREATED.value,
         )
+
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -676,7 +684,7 @@ def update_alert_rule(
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
-        if owner is not None:
+        if owner is not None and not isinstance(owner, Actor):
             owner = owner.resolve_to_actor()
         updated_fields["owner"] = owner
     if comparison_delta is not NOT_SET:
@@ -789,6 +797,8 @@ def update_alert_rule(
             data=alert_rule.get_audit_log_data(),
             event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
+
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -1086,6 +1096,8 @@ def create_alert_rule_trigger_action(
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
+    installations: List[RpcSentryAppInstallation] | None = None,
+    integrations: List[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Creates an AlertRuleTriggerAction
@@ -1114,10 +1126,11 @@ def create_alert_rule_trigger_action(
             integration_id,
             use_async_lookup=use_async_lookup,
             input_channel_id=input_channel_id,
+            integrations=integrations,
         )
     elif type == AlertRuleTriggerAction.Type.SENTRY_APP:
         target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-            trigger.alert_rule.organization, sentry_app_id
+            trigger.alert_rule.organization, sentry_app_id, installations
         )
 
     return AlertRuleTriggerAction.objects.create(
@@ -1136,12 +1149,14 @@ def update_alert_rule_trigger_action(
     trigger_action: AlertRuleTriggerAction,
     type: ActionService | None = None,
     target_type: ActionTarget | None = None,
-    target_identifier: str = None,
+    target_identifier: Optional[str] = None,
     integration_id: int | None = None,
     sentry_app_id: int | None = None,
     use_async_lookup: bool = False,
     input_channel_id=None,
     sentry_app_config=None,
+    installations: List[RpcSentryAppInstallation] | None = None,
+    integrations: List[RpcIntegration] | None = None,
 ) -> AlertRuleTriggerAction:
     """
     Updates values on an AlertRuleTriggerAction
@@ -1180,6 +1195,7 @@ def update_alert_rule_trigger_action(
                 integration_id,
                 use_async_lookup=use_async_lookup,
                 input_channel_id=input_channel_id,
+                integrations=integrations,
             )
             updated_fields["target_display"] = target_display
 
@@ -1188,7 +1204,7 @@ def update_alert_rule_trigger_action(
             organization = trigger_action.alert_rule_trigger.alert_rule.organization
 
             target_identifier, target_display = get_alert_rule_trigger_action_sentry_app(
-                organization, sentry_app_id
+                organization, sentry_app_id, installations
             )
             updated_fields["target_display"] = target_display
 
@@ -1227,11 +1243,17 @@ def get_target_identifier_display_for_integration(type, target_value, *args, **k
 
 
 def get_alert_rule_trigger_action_slack_channel_id(
-    name, organization, integration_id, use_async_lookup
+    name, organization, integration_id, use_async_lookup, integrations
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    if integrations is not None:
+        try:
+            integration = next(i for i in integrations if i.id == integration_id)
+        except StopIteration:
+            integration = None
+    else:
+        integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
@@ -1267,6 +1289,7 @@ def get_alert_rule_trigger_action_msteams_channel_id(
     integration_id,
     use_async_lookup=False,
     input_channel_id=None,
+    integrations=None,
 ):
     from sentry.integrations.msteams.utils import get_channel_id
 
@@ -1285,6 +1308,7 @@ def get_alert_rule_trigger_action_pagerduty_service(
     integration_id,
     use_async_lookup=False,
     input_channel_id=None,
+    integrations=None,
 ):
     try:
         # TODO: query the org as well to make sure we don't allow
@@ -1296,10 +1320,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
     return (service.id, service.service_name)
 
 
-def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
+def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
     from sentry.services.hybrid_cloud.app import app_service
 
-    for installation in app_service.get_installed_for_organization(organization_id=organization.id):
+    if installations is None:
+        installations = app_service.get_installed_for_organization(organization_id=organization.id)
+
+    for installation in installations:
         if installation.sentry_app.id == sentry_app_id:
             return sentry_app_id, installation.sentry_app.name
 
@@ -1437,6 +1464,7 @@ def get_slack_channel_ids(organization, user, data):
                 action["integration_id"],
                 use_async_lookup=True,
                 input_channel_id=None,
+                integrations=None,
             )
     return mapped_slack_channels
 
@@ -1458,7 +1486,8 @@ def rewrite_trigger_action_fields(action_data):
 
 
 def get_filtered_actions(
-    alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+    alert_rule_data: Mapping[str, Any],
+    action_type: ActionService,
 ):
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
@@ -1468,3 +1497,16 @@ def get_filtered_actions(
         for action in trigger.get("actions", [])
         if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
     ]
+
+
+def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
+    if not projects or not features.has(
+        "organizations:on-demand-metrics-extraction", alert_rule.organization
+    ):
+        return
+
+    if is_on_demand_query(alert_rule.snuba_query):
+        for project in projects:
+            schedule_invalidate_project_config(
+                trigger="alerts:create-on-demand-metric", project_id=project.id
+            )

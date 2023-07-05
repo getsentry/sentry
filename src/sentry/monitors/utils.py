@@ -1,7 +1,11 @@
+from typing import Optional
+
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.db.models import BoundedPositiveIntegerField
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleSource, User
 from sentry.models.project import Project
@@ -14,8 +18,10 @@ def signal_first_checkin(project: Project, monitor: Monitor):
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
         signal_first_monitor_created(project, None, False)
-        first_cron_checkin_received.send_robust(
-            project=project, monitor_id=str(monitor.guid), sender=Project
+        transaction.on_commit(
+            lambda: first_cron_checkin_received.send_robust(
+                project=project, monitor_id=str(monitor.guid), sender=Project
+            )
         )
 
 
@@ -24,6 +30,15 @@ def signal_first_monitor_created(project: Project, user, from_upsert: bool):
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+# Used to check valid implicit durations for closing check-ins without a duration specified
+# as payload is already validated. Max value is > 24 days.
+def valid_duration(duration: Optional[int]) -> bool:
+    if duration and (duration < 0 or duration > BoundedPositiveIntegerField.MAX_VALUE):
+        return False
+
+    return True
 
 
 def create_alert_rule(

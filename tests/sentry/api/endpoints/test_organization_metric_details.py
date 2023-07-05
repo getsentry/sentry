@@ -133,7 +133,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] "
+            == f"The following metrics ['{SessionMRI.CRASH_FREE_RATE.value}'] "
             f"do not exist in the dataset"
         )
 

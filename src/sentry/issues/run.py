@@ -14,6 +14,7 @@ from arroyo.processing.strategies import (
 from arroyo.types import Commit, Message, Partition
 
 from sentry.utils.arroyo import RunTaskWithMultiprocessing
+from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +54,9 @@ def create_ingest_occurences_consumer(
     input_block_size: int,
     output_block_size: int,
 ) -> StreamProcessor[KafkaPayload]:
-    from django.conf import settings
-
-    from sentry.utils.batching_kafka_consumer import create_topics
     from sentry.utils.kafka_config import get_kafka_consumer_cluster_options
 
-    kafka_cluster = settings.KAFKA_TOPICS[topic_name]["cluster"]
-    create_topics(kafka_cluster, [topic_name])
+    kafka_cluster = get_topic_definition(topic_name)["cluster"]
 
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(

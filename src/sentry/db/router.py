@@ -1,12 +1,12 @@
 import logging
 import sys
-from typing import List, Optional
+from typing import Iterable, Optional
 
 from django.apps import apps
 from django.db import connections
 from django.db.utils import ConnectionDoesNotExist
 
-from sentry.db.models.base import Model
+from sentry.db.models.base import Model, ModelSiloLimit
 from sentry.silo.base import SiloLimit, SiloMode
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class SiloRouter:
 
     __simulated_map = {
         SiloMode.MONOLITH: "default",
-        SiloMode.REGION: "region",
+        SiloMode.REGION: "default",
         SiloMode.CONTROL: "control",
     }
 
@@ -41,12 +41,28 @@ class SiloRouter:
     __is_simulated = False
     """Whether or not we're operating in a simulated silo environment"""
 
+    contrib_models = {
+        "django_admin_log",
+        "django_content_type",
+        "django_site",
+        "django_session",
+        "auth_user",
+        "auth_group",
+        "auth_permission",
+        "auth_group_permissions",
+        "auth_user_groups",
+        "auth_user_user_permissions",
+    }
+    """
+    We use a bunch of django contrib models that don't have silo annotations.
+    For now they are put in control silo.
+    """
+
     def __init__(self):
         self.__table_to_silo = {}
         try:
             # By accessing the connections Django will raise
             # Use `assert` to appease linters
-            assert connections["region"]
             assert connections["control"]
             self.__is_simulated = True
             logging.debug("Using simulated silos")
@@ -59,12 +75,12 @@ class SiloRouter:
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
-    def _resolve_silo_connection(self, silo_modes: List[SiloMode], table: str):
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str):
         # XXX This method has an override in getsentry for region silo primary splits.
         active_mode = SiloMode.get_current_mode()
 
         # In monolith mode we only use a single database.
-        if active_mode == SiloMode.MONOLITH:
+        if active_mode == SiloMode.MONOLITH and not self.__is_simulated:
             return "default"
 
         for silo_mode in silo_modes:
@@ -89,6 +105,9 @@ class SiloRouter:
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
             return silo_limit
+
+        if not silo_limit and model._meta.db_table in self.contrib_models:
+            return ModelSiloLimit(SiloMode.CONTROL)
 
         # If we didn't find a silo_limit we could be working with __fake__ model
         # from django, so we need to locate the real class by table.
@@ -128,9 +147,7 @@ class SiloRouter:
         return self._db_for_model(obj1) == self._db_for_model(obj2)
 
     def allow_syncdb(self, db, model):
-        if self._db_for_model(model) == db:
-            return True
-        return False
+        return self._db_for_model(model) == db
 
     def allow_migrate(self, db, app_label, model=None, **hints):
         if model:

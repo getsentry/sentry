@@ -222,7 +222,7 @@ export function Provider({
 }: Props) {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
-  const events = replay?.getRRWebEvents();
+  const events = replay?.getRRWebFrames();
   const savedReplayConfigRef = useRef<ReplayConfig>(
     JSON.parse(localStorage.getItem(ReplayLocalstorageKeys.REPLAY_CONFIG) || '{}')
   );

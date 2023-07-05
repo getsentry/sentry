@@ -207,12 +207,9 @@
       "team": {
           "type": "object",
           "nullable": true,
-          "oneOf": [
+          "allOf": [
             {
               "$ref": "team.json#/TeamMinimal"
-            },
-            {
-              "$ref": "null.json#/NullValue"
             }
           ]
       },
