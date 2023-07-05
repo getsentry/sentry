@@ -339,6 +339,7 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /src/sentry/scim/                                     @getsentry/enterprise
 /tests/sentry/api/test_scim*.py                       @getsentry/enterprise
+/src/sentry/tasks/integrations/github/pr_comment.py   @getsentry/enterprise @AniketDas-Tekky
 ## End of Enterprise
 
 

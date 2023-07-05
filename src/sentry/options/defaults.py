@@ -566,8 +566,6 @@ register(
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
-register("symbolicator.sourcemaps-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
@@ -1349,3 +1347,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Killswitch for monitor check-ins
+register("crons.organization.disable-check-in", type=Sequence, default=[])

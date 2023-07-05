@@ -316,6 +316,7 @@ class GroupUpdateTest(APITestCase):
 
         snooze = GroupSnooze.objects.get(group=group)
 
+        assert snooze.until is not None
         assert snooze.until > timezone.now() + timedelta(minutes=29)
         assert snooze.until < timezone.now() + timedelta(minutes=31)
 

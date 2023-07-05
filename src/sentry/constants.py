@@ -11,7 +11,8 @@ from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import sentry_relay
 from django.conf import settings
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from typing_extensions import TypeAlias
 
 from sentry.utils.geo import rust_geoip
 from sentry.utils.integrationdocs import load_doc
@@ -639,7 +640,7 @@ EVENTS_MEMBER_ADMIN_DEFAULT = True
 ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-DataCategory = sentry_relay.DataCategory
+DataCategory: TypeAlias = sentry_relay.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
@@ -686,3 +687,18 @@ DS_DENYLIST = frozenset(
         "url",
     ]
 )
+
+
+# DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
+# https://kubernetes.io/docs/reference/using-api/health-checks/
+# Also it covers: livez, readyz
+HEALTH_CHECK_GLOBS = [
+    "*healthcheck*",
+    "*healthy*",
+    "*live*",
+    "*ready*",
+    "*heartbeat*",
+    "*/health",
+    "*/healthz",
+    "*/ping",
+]

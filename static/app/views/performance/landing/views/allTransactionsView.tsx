@@ -14,11 +14,17 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     props.organization.features.includes('performance-new-widget-designs') &&
     canUseMetricsData(props.organization);
 
-  const doubleChartRowCharts = [
-    PerformanceWidgetSetting.MOST_REGRESSED,
-    PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-    PerformanceWidgetSetting.MOST_IMPROVED,
-  ];
+  const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
+
+  if (
+    props.organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
+  } else {
+    doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
+    doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_IMPROVED);
+  }
 
   if (showSpanOperationsWidget) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.SPAN_OPERATIONS);

@@ -12,12 +12,13 @@ from urllib.request import Request, urlopen
 
 import django.urls
 import pydantic
+import sentry_sdk
 from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
 from sentry.types.region import Region
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.region import RegionResolution
@@ -427,7 +428,10 @@ def dispatch_to_local_service(
 
         return value
 
-    return result_to_dict(result)
+    return {
+        "meta": {},  # reserved for future use
+        "value": result_to_dict(result),
+    }
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -464,11 +468,24 @@ def dispatch_remote_call(
         "args": serial_arguments,
     }
 
-    with _fire_request(url, request_body, api_token) as response:
+    timer = metrics.timer(
+        "hybrid_cloud.dispatch_rpc.duration", tags={"service": service_name, "method": method_name}
+    )
+    span = sentry_sdk.start_span(
+        op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
+    )
+    with span, timer, _fire_request(url, request_body, api_token) as response:
         charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
+        metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
         response_body = response.read().decode(charset)
+
     serial_response = json.loads(response_body)
-    return service.deserialize_rpc_response(method_name, serial_response)
+    return_value = serial_response["value"]
+    return (
+        None
+        if return_value is None
+        else service.deserialize_rpc_response(method_name, return_value)
+    )
 
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:

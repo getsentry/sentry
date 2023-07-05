@@ -118,7 +118,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=self.user.id).update(
-                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])  # type: ignore[index]
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
             )
 
         # disabled

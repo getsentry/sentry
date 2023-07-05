@@ -7,9 +7,9 @@ from django.conf import settings
 from django.db import ProgrammingError, models
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import TypedBitfield
+from bitfield import TypedClassBitField
 from sentry import features, options
 from sentry.db.models import (
     BaseManager,
@@ -53,7 +53,7 @@ class ProjectKey(Model):
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
 
-    class roles(TypedBitfield):
+    class roles(TypedClassBitField):
         # access to post events to the store endpoint
         store: bool
         # read/write access to rest API

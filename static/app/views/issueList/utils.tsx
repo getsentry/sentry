@@ -11,7 +11,7 @@ export enum Query {
   NEW = 'is:new',
   ARCHIVED = 'is:archived',
   ESCALATING = 'is:escalating',
-  ONGOING = 'is:ongoing',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -72,10 +72,10 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.NEW,
+      Query.REGRESSED,
       {
-        name: t('New'),
-        analyticsName: 'new',
+        name: t('Regressed'),
+        analyticsName: 'regressed',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -85,15 +85,6 @@ export function getTabs(organization: Organization) {
       {
         name: t('Escalating'),
         analyticsName: 'escalating',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
-      Query.ONGOING,
-      {
-        name: t('Ongoing'),
-        analyticsName: 'ongoing',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -176,8 +167,19 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({
+  query,
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  query: string;
+  sort: string;
+}) {
+  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
+    ? IssueSortOptions.BETTER_PRIORITY
+    : DEFAULT_ISSUE_STREAM_SORT;
+  return query === DEFAULT_QUERY && sort === defaultSort;
 }
 
 export function getSortLabel(key: string) {

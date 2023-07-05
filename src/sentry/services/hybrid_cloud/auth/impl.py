@@ -5,6 +5,7 @@ from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
+from django.http import HttpResponse
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
@@ -16,6 +17,7 @@ from sentry.models import (
     AuthIdentity,
     AuthProvider,
     OrganizationMemberMapping,
+    OrgAuthToken,
     SentryAppInstallationToken,
     User,
 )
@@ -165,7 +167,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
-        handler: Any = RequestAuthenticationMiddleware()
+        handler = RequestAuthenticationMiddleware(lambda _: HttpResponse("fake"))
         expired_user: User | None = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
@@ -317,6 +319,7 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
+AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
 
 

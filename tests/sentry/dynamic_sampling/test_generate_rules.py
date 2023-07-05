@@ -7,13 +7,9 @@ import pytz
 from freezegun import freeze_time
 from sentry_relay.processing import validate_project_config
 
+from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
-from sentry.dynamic_sampling import (
-    ENVIRONMENT_GLOBS,
-    HEALTH_CHECK_GLOBS,
-    generate_rules,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling import ENVIRONMENT_GLOBS, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.utils import (
     LATEST_RELEASES_BOOST_DECAYED_FACTOR,

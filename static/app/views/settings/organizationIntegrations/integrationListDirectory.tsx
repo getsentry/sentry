@@ -372,6 +372,13 @@ export class IntegrationListDirectory extends AsyncComponent<
     });
   };
 
+  getCategoryLabel = (value: string) => {
+    if (value === 'api') {
+      return 'API';
+    }
+    return startCase(value);
+  };
+
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
@@ -503,7 +510,7 @@ export class IntegrationListDirectory extends AsyncComponent<
                     {value: '', label: t('All Categories')},
                     ...categoryList.map(category => ({
                       value: category,
-                      label: startCase(category),
+                      label: this.getCategoryLabel(category),
                     })),
                   ]}
                 />

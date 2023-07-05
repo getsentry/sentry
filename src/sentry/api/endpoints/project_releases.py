@@ -12,6 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import Activity, Environment, Release, ReleaseStatus
+from sentry.models.apitoken import is_api_token_auth
 from sentry.plugins.interfaces.releasehook import ReleaseHook
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.signals import release_created
@@ -186,6 +187,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                     project_ids=[project.id],
                     user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
                     created_status=status,
+                    auth_type="api_token" if is_api_token_auth(request.auth) else None,
                 )
                 scope.set_tag("success_status", status)
 

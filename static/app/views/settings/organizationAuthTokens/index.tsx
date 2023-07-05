@@ -56,11 +56,13 @@ function TokenList({
 
   const idQueryParams = projectIds.map(id => `id:${id}`).join(' ');
 
-  const {data: projects} = useApiQuery<Project[]>(
+  const hasProjects = projectIds.length > 0;
+
+  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
     [apiEndpoint, {query: {query: idQueryParams}}],
     {
       staleTime: 0,
-      enabled: projectIds.length > 0,
+      enabled: hasProjects,
     }
   );
 
@@ -78,6 +80,7 @@ function TokenList({
             isRevoking={isRevoking}
             revokeToken={revokeToken ? () => revokeToken({token}) : undefined}
             projectLastUsed={projectLastUsed}
+            isProjectLoading={hasProjects && isLoadingProjects}
           />
         );
       })}
