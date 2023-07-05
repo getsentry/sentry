@@ -98,7 +98,6 @@ class MetricsQueryBuilder(QueryBuilder):
         field = selected_cols[0] if selected_cols else None
         if not self.is_performance or not self.is_alerts_query or not field:
             return None
-
         try:
             return OndemandMetricSpec.parse(field, query)
 

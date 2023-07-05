@@ -80,7 +80,6 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
     If the passed snuba_query is a valid query for on-demand metric extraction,
     returns a MetricSpec for the query. Otherwise, returns None.
     """
-
     try:
         spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
         if not spec:
