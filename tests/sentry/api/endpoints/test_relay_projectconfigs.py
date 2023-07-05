@@ -351,16 +351,14 @@ def test_relay_disabled_project(
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("is_business", [True, False], ids=["business_plan", "free_plan"])
-def test_health_check_filters(call_endpoint, add_org_key, relay, default_project, is_business):
+def test_health_check_filters(call_endpoint, add_org_key, relay, default_project):
     """
-    Test that only business plans contain healthcheck filters
+    Test health check filter (aka ignoreTransactions)
     """
     relay.save()
 
     default_project.update_option("filters:filtered-transaction", "1")
-    with Feature({"organizations:health-check-filter": is_business}):
-        result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint(full_config=True)
 
     assert status_code < 400
 
@@ -368,7 +366,4 @@ def test_health_check_filters(call_endpoint, add_org_key, relay, default_project
         result, "configs", str(default_project.id), "config", "filterSettings"
     )
     assert filter_settings is not None
-
-    has_health_check = "ignoreTransactions" in filter_settings
-
-    assert has_health_check == is_business
+    assert "ignoreTransactions" in filter_settings

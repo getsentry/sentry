@@ -54,7 +54,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         Update various inbound data filters for a project.
         """
 
-        for flt in inbound_filters.get_all_filter_specs(project):
+        for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:
                 current_filter = flt
                 break

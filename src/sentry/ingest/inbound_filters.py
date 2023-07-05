@@ -1,6 +1,5 @@
 from rest_framework import serializers
 
-from sentry import features
 from sentry.api.fields.multiplechoice import MultipleChoiceField
 from sentry.models import ProjectOption
 from sentry.relay.utils import to_camel_case_name
@@ -52,7 +51,7 @@ def get_filter_key(flt):
     return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
-def get_all_filter_specs(project):
+def get_all_filter_specs():
     """
     Return metadata about the filters known by Sentry.
 
@@ -66,16 +65,14 @@ def get_all_filter_specs(project):
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
+        _healthcheck_filter,
     ]
-
-    if features.has("organizations:health-check-filter", project.organization):
-        filters.append(_healthcheck_filter)
 
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
 def set_filter_state(filter_id, project, state):
-    flt = _filter_from_filter_id(filter_id, project)
+    flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
@@ -124,7 +121,7 @@ def get_filter_state(filter_id, project):
     :return: True if the filter is enabled False otherwise
     :raises: ValueError if filter id not registered
     """
-    flt = _filter_from_filter_id(filter_id, project)
+    flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
 
@@ -153,11 +150,11 @@ class FilterNotRegistered(Exception):
     pass
 
 
-def _filter_from_filter_id(filter_id, project):
+def _filter_from_filter_id(filter_id):
     """
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
-    for flt in get_all_filter_specs(project):
+    for flt in get_all_filter_specs():
         if flt.id == filter_id:
             return flt
     return None
