@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Any, Mapping, Optional
 
 from sentry.eventstore.models import Event
@@ -28,25 +29,20 @@ class SDKCrashDetection:
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
-    def detect_sdk_crash(self, event: Event, event_project_id: int) -> Optional[Event]:
+    def detect_sdk_crash(
+        self, event: Event, event_project_id: int, sample_rate: float
+    ) -> Optional[Event]:
+
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
-            and event.group.platform == "cocoa"
+            and self.cocoa_sdk_crash_detector.should_detect_sdk_crash(event.data)
         )
         if not should_detect_sdk_crash:
             return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
-        if context is not None and context.get("detected", False):
-            return None
-
-        # Getting the frames and checking if the event is unhandled might different per platform.
-        # We will change this once we implement this for more platforms.
-        is_unhandled = (
-            get_path(event.data, "exception", "values", -1, "mechanism", "handled") is False
-        )
-        if is_unhandled is False:
+        if context is not None:
             return None
 
         frames = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
@@ -54,11 +50,19 @@ class SDKCrashDetection:
             return None
 
         if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
-            # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
+            if random.random() >= sample_rate:
+                return None
+
             sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
-                sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
+                sdk_crash_event_data,
+                "contexts",
+                "sdk_crash_detection",
+                value={
+                    "original_project_id": event.project.id,
+                    "original_event_id": event.event_id,
+                },
             )
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
