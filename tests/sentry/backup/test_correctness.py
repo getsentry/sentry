@@ -4,9 +4,9 @@ import io
 import os
 from difflib import unified_diff
 from pathlib import Path
-from typing import NewType, Protocol
+from typing import NewType
 
-from dateutil import parser
+from freezegun import freeze_time
 from pydantic import FilePath, PositiveInt
 
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -71,37 +71,12 @@ class ComparatorFindings:
         return "\n".join(map(lambda f: f.print(), self.findings))
 
 
-class JSONMutatingComparator(Protocol):
-    """A callback protocol specifying the function signature for custom JSON comparators."""
-
-    def __call__(self, on: InstanceID, expect: JSONData, actual: JSONData) -> str | None:
-        ...
-
-    __name__: str
-
-
-def comparator_date_updated(on, expect, actual):
-    exp_date_updated = parser.parse(expect["fields"]["date_updated"])
-    act_date_updated = parser.parse(actual["fields"]["date_updated"])
-    if not act_date_updated >= exp_date_updated:
-        return f"{expect['fields']['date_updated']} was not >= {actual['fields']['date_updated']}"
-    # TODO(team-ospo/#155): Be more disciplined about how we do compared-field scrubbing.
-    else:
-        expect["fields"]["date_updated"] = "__COMPARATOR_DATE_UPDATED__"
-        actual["fields"]["date_updated"] = "__COMPARATOR_DATE_UPDATED__"
-
-
 REPO_PATH = Path(os.path.dirname(os.path.realpath("__file__")))
 FIXTURE_PATH = REPO_PATH / "fixtures/backup"
 INDENT = 2
 JSON_PRETTY_PRINTER = JSONEncoder(
     default=better_default_encoder, indent=INDENT, ignore_nan=True, sort_keys=True
 )
-COMPARATORS: dict[ModelName | None, list[JSONMutatingComparator]] = {
-    None: [],
-    ModelName("sentry.userrole"): [comparator_date_updated],
-    ModelName("sentry.userroleuser"): [comparator_date_updated],
-}
 
 
 def json_lines(obj: JSONData) -> list[str]:
@@ -146,17 +121,6 @@ def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
     for id, act in act_models.items():
         exp = exp_models[id]
 
-        # Try global comparators and comparators applicable for this specific model.
-        for cmp in COMPARATORS[None]:
-            res = cmp(id, exp, act)
-            if res:
-                findings.append(ComparatorFinding(ComparatorName(cmp.__name__), id, res))
-        if id.model in COMPARATORS:
-            for cmp in COMPARATORS[id.model]:
-                res = cmp(id, exp, act)
-                if res:
-                    findings.append(ComparatorFinding(ComparatorName(cmp.__name__), id, res))
-
         # Finally, perform a diff on the remaining JSON.
         diff = list(
             unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3, lineterm="\n")
@@ -190,5 +154,6 @@ def import_then_export(
 
 
 @django_db_all
+@freeze_time("2023-06-22T23:00:00.123Z")
 def test_fresh_install():
     import_then_export(FIXTURE_PATH / "fresh-install.json")

@@ -155,7 +155,7 @@
   "model": "sentry.userrole",
   "pk": 1,
   "fields": {
-    "date_updated": "2023-06-22T22:54:27.961Z",
+    "date_updated": "2023-06-22T23:00:00.123Z",
     "date_added": "2023-06-22T22:54:27.960Z",
     "name": "Super Admin",
     "permissions": "['broadcasts.admin', 'users.admin', 'options.admin']"
@@ -165,7 +165,7 @@
   "model": "sentry.userroleuser",
   "pk": 1,
   "fields": {
-    "date_updated": "2023-06-22T22:59:57.074Z",
+    "date_updated": "2023-06-22T23:00:00.123Z",
     "date_added": "2023-06-22T22:59:57.073Z",
     "user": [
       "testing@example.com"
