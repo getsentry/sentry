@@ -4,7 +4,6 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 import SpansView from 'sentry/views/starfish/views/spans/spansView';
 
@@ -21,9 +20,7 @@ export default function HTTPModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <StarfishPageFilterContainer>
-              <SpansView moduleName={ModuleName.HTTP} />
-            </StarfishPageFilterContainer>
+            <SpansView moduleName={ModuleName.HTTP} />
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
