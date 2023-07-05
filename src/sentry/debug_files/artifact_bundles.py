@@ -140,11 +140,11 @@ def index_artifact_bundles_for_release(
                 router.db_for_write(ArtifactBundle),
             )
         ):
-            was_bundle_not_indexed = ArtifactBundle.objects.filter(
+            is_bundle_not_indexed = ArtifactBundle.objects.filter(
                 id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value
-            ).update(indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value)
+            ).exists()
             # If the bundle was already indexed, we will skip insertion into the database.
-            if not was_bundle_not_indexed:
+            if not is_bundle_not_indexed:
                 continue
 
             for url in urls:
