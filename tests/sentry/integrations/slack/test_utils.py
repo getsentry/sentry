@@ -175,24 +175,6 @@ class GetChannelIdFasterTest(TestCase):
             body=json.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
-    def add_bad_msg_response(self):
-        self.resp.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
-        )
-
-    def add_bad_msg_response(self):
-        self.resp.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": False, "error": "channel_not_found"}),
-        )
-
     @with_feature("organizations:slack-use-new-lookup")
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert (expected_prefix, expected_id, timed_out) == get_channel_id(
