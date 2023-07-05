@@ -1,3 +1,5 @@
+import shuffle from 'lodash/shuffle';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {NewQuery, SavedQuery} from 'sentry/types';
 import EventView, {
@@ -1166,7 +1168,9 @@ describe('EventView.generateQueryStringObject()', function () {
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
-    query.field.push('newthing');
+    if (Array.isArray(query.field)) {
+      query.field.push('newthing');
+    }
 
     // Getting the query again should return the original values.
     const secondQuery = eventView.generateQueryStringObject();
@@ -1665,7 +1669,7 @@ describe('EventView.toNewQuery()', function () {
       ...state,
     };
 
-    delete modifiedState.query;
+    modifiedState.query = '';
 
     const eventView = new EventView(modifiedState);
 
@@ -3563,8 +3567,10 @@ describe('isAPIPayloadSimilar', function () {
       const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherEventView = thisEventView.clone();
-      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
+      const otherEventView = new EventView({
+        ...state,
+        fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
+      });
       const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
@@ -3668,8 +3674,7 @@ describe('isAPIPayloadSimilar', function () {
       const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      state.fields.reverse();
-      const otherEventView = new EventView(state);
+      const otherEventView = new EventView({...state, fields: shuffle(state.fields)});
       const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
@@ -3773,8 +3778,10 @@ describe('isAPIPayloadSimilar', function () {
       const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
-      const otherEventView = thisEventView.clone();
-      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
+      const otherEventView = new EventView({
+        ...state,
+        fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
+      });
       const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
