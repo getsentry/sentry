@@ -2,7 +2,7 @@ import hmac
 import logging
 from hashlib import sha256
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -15,9 +15,6 @@ from sentry.plugins.base import plugins
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
-
-
-from rest_framework.request import Request
 
 
 class ReleaseWebhookView(View):
@@ -35,7 +32,7 @@ class ReleaseWebhookView(View):
     def dispatch(self, *args, **kwargs):
         return super().dispatch(*args, **kwargs)
 
-    def _handle_builtin(self, request: Request, project):
+    def _handle_builtin(self, request: HttpRequest, project):
         endpoint = f"/projects/{project.organization.slug}/{project.slug}/releases/"
 
         try:
@@ -64,7 +61,7 @@ class ReleaseWebhookView(View):
             status=resp.status_code, content=json.dumps(resp.data), content_type="application/json"
         )
 
-    def post(self, request: Request, plugin_id, project_id, signature) -> HttpResponse:
+    def post(self, request: HttpRequest, plugin_id, project_id, signature) -> HttpResponse:
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:

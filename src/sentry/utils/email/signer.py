@@ -1,6 +1,6 @@
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
-from django.utils.encoding import force_str, force_text
+from django.utils.encoding import force_str
 
 
 class _CaseInsensitiveSigner(Signer):
@@ -30,4 +30,4 @@ class _CaseInsensitiveSigner(Signer):
         if not constant_time_compare(sig.lower(), self.signature(value)):
             raise BadSignature(f'Signature "{sig}" does not match')
 
-        return force_text(value)
+        return force_str(value)

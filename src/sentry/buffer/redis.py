@@ -6,7 +6,7 @@ from time import time
 
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 
 from sentry.buffer.base import Buffer
 from sentry.tasks.process_buffer import process_incr, process_pending
@@ -164,7 +164,7 @@ class RedisBuffer(Buffer):
     def _load_value(cls, payload):
         (type_, value) = payload
         if type_ == "s":
-            return force_text(value)
+            return force_str(value)
         elif type_ == "dt":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
         elif type_ == "d":
@@ -354,17 +354,17 @@ class RedisBuffer(Buffer):
             # XXX(python3): In python2 this isn't as important since redis will
             # return string tyes (be it, byte strings), but in py3 we get bytes
             # back, and really we just want to deal with keys as strings.
-            values = {force_text(k): v for k, v in values.items()}
+            values = {force_str(k): v for k, v in values.items()}
 
             if not values:
                 metrics.incr("buffer.revoked", tags={"reason": "empty"}, skip_internal=False)
                 self.logger.debug("buffer.revoked.empty", extra={"redis_key": key})
                 return
 
-            model = import_string(force_text(values.pop("m")))
+            model = import_string(force_str(values.pop("m")))
 
             if values["f"].startswith(b"{" if not self.is_redis_cluster else "{"):
-                filters = self._load_values(json.loads(force_text(values.pop("f"))))
+                filters = self._load_values(json.loads(force_str(values.pop("f"))))
             else:
                 # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                 filters = pickle.loads(force_bytes(values.pop("f")))
@@ -377,7 +377,7 @@ class RedisBuffer(Buffer):
                     incr_values[k[2:]] = int(v)
                 elif k.startswith("e+"):
                     if v.startswith(b"[" if not self.is_redis_cluster else "["):
-                        extra_values[k[2:]] = self._load_value(json.loads(force_text(v)))
+                        extra_values[k[2:]] = self._load_value(json.loads(force_str(v)))
                     else:
                         # TODO(dcramer): legacy pickle support - remove in Sentry 9.1
                         extra_values[k[2:]] = pickle.loads(force_bytes(v))

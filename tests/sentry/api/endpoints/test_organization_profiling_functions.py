@@ -69,7 +69,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [100 if i < n / 2 else 500],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 110 * 1e6],
                         "package": "foo",
                         "function": "bar",
                         "in_app": True,
@@ -81,7 +81,7 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
             self.store_functions(
                 [
                     {
-                        "self_times_ns": [100 if i < n / 2 else 1000],
+                        "self_times_ns": [100 * 1e6 if i < n / 2 else 1000 * 1e6],
                         "package": "foo",
                         "function": "baz",
                         "in_app": True,
@@ -93,32 +93,34 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
 
         mock_trends_query.return_value = [
             {
-                "aggregate_range_1": 1000.0,
-                "aggregate_range_2": 164.28571428571428,
-                "breakpoint": 1686625200,
-                "change": "improvement",
-                "project": str(self.project.id),
-                "transaction": str(
-                    self.function_fingerprint({"package": "foo", "function": "baz"})
-                ),
-                "trend_difference": -835.7142857142858,
-                "trend_percentage": 0.16428571428571428,
-                "unweighted_p_value": 8e-09,
-                "unweighted_t_value": 13.0,
-            },
-            {
-                "aggregate_range_1": 500.0,
-                "aggregate_range_2": 128.57142857142858,
-                "breakpoint": 1686625200,
+                "absolute_percentage_change": 0.9090909090909091,
+                "aggregate_range_1": 110000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1688022000,
                 "change": "improvement",
                 "project": str(self.project.id),
                 "transaction": str(
                     self.function_fingerprint({"package": "foo", "function": "bar"})
                 ),
-                "trend_difference": -371.42857142857144,
-                "trend_percentage": 0.2571428571428572,
-                "unweighted_p_value": 8e-09,
-                "unweighted_t_value": 12.999999999999998,
+                "trend_difference": -10000000.0,
+                "trend_percentage": 0.9090909090909091,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
+            },
+            {
+                "absolute_percentage_change": 0.1,
+                "aggregate_range_1": 1000000000.0,
+                "aggregate_range_2": 100000000.0,
+                "breakpoint": 1688022000,
+                "change": "improvement",
+                "project": str(self.project.id),
+                "transaction": str(
+                    self.function_fingerprint({"package": "foo", "function": "baz"})
+                ),
+                "trend_difference": -900000000.0,
+                "trend_percentage": 0.1,
+                "unweighted_p_value": 0.0,
+                "unweighted_t_value": float("inf"),
             },
         ]
 
@@ -130,11 +132,12 @@ class OrganizationProfilingFunctionTrendsEndpointTest(ProfilesSnubaTestCase):
                     "query": "is_application:1",
                     "trend": "improvement",
                     "statsPeriod": "24h",
+                    "threshold": "20",
                 },
             )
         assert response.status_code == 200
-        # the abs trend difference is too small, so we get no results
-        assert not response.json()
+        results = response.json()
+        assert [(result["package"], result["function"]) for result in results] == [("foo", "baz")]
 
     @mock.patch("sentry.api.endpoints.organization_profiling_functions.trends_query")
     def test_regression(self, mock_trends_query):

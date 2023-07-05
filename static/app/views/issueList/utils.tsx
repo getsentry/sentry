@@ -72,15 +72,6 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.NEW,
-      {
-        name: t('New'),
-        analyticsName: 'new',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
       Query.REGRESSED,
       {
         name: t('Regressed'),
@@ -176,8 +167,19 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({
+  query,
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  query: string;
+  sort: string;
+}) {
+  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
+    ? IssueSortOptions.BETTER_PRIORITY
+    : DEFAULT_ISSUE_STREAM_SORT;
+  return query === DEFAULT_QUERY && sort === defaultSort;
 }
 
 export function getSortLabel(key: string) {

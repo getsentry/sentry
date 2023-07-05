@@ -44,6 +44,15 @@ class SourceFileType(Enum):
         return None
 
 
+class ArtifactBundleIndexingState(Enum):
+    NOT_INDEXED = 0
+    WAS_INDEXED = 1
+
+    @classmethod
+    def choices(cls) -> List[Tuple[int, str]]:
+        return [(key.value, key.name) for key in cls]
+
+
 @region_silo_only_model
 class ArtifactBundle(Model):
     __include_in_export__ = False
@@ -54,6 +63,9 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
+    indexing_state = models.IntegerField(
+        default=None, null=True, choices=ArtifactBundleIndexingState.choices()
+    )
     # This field represents the date in which the bundle was renewed, since we have a renewal mechanism in place. The
     # name is the same across entities connected to this bundle named *ArtifactBundle.
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -95,6 +107,29 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
+
+
+@region_silo_only_model
+class ArtifactBundleIndex(Model):
+    __include_in_export__ = False
+
+    organization_id = BoundedBigIntegerField(db_index=True)
+    release_name = models.CharField(max_length=250)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
+    url = models.TextField()
+    artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    date_added = models.DateTimeField(default=timezone.now)
+    date_last_modified = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_artifactbundleindex"
+
+        index_together = (
+            ("organization_id", "release_name", "dist_name", "url", "artifact_bundle"),
+        )
 
 
 @region_silo_only_model
@@ -222,7 +257,7 @@ class ArtifactBundleArchive:
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
-    ) -> Tuple[IO, dict]:
+    ) -> Tuple[IO[bytes], dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 

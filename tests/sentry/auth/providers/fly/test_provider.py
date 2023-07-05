@@ -53,7 +53,7 @@ class FlyOAuth2ProviderTest(TestCase):
             },
         }
         result = provider.build_config(state)
-        assert result == {"org": {"id": "nathans-org", "role": "member"}}
+        assert result == {"org": {"id": "nathans-org"}}
 
     def test_build_identity(self):
         provider = self.auth_provider.get_provider()

@@ -8,7 +8,7 @@ User {{ actor.email }} has created a new Organization Auth Token "{{ token_name 
 Details
 -------
 
-Account: {{ account.email }}
+Account: {{ actor.email }}
 IP: {{ ip_address }}
 When: {{ datetime }} UTC
 {% block security_metadata %}{% endblock %}
