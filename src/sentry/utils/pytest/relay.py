@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+import os
 import shutil
 import sys
 import time
@@ -51,9 +52,10 @@ def relay_server_setup(live_server, tmpdir_factory):
     prefix = "test_relay_config_{}_".format(
         datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S_%f")
     )
-    config_path = tmpdir_factory.mktemp(prefix)
-    config_path.chmod(0o755)
-    config_path = str(config_path)
+    # colima (container runtime) can see ~ and /tmp/colima for mounts,
+    # so a normal mkdtemp isn't going to work
+    config_path = f"/tmp/colima/{prefix}"
+    os.makedirs(config_path)
 
     parsed_live_server_url = urlparse(live_server.url)
     if parsed_live_server_url.port is not None:
@@ -144,12 +146,12 @@ def relay_server(relay_server_setup, settings):
 
     url = relay_server_setup["url"]
 
-    for i in range(5):
+    for i in range(8):
         try:
             requests.get(url)
             break
         except Exception as ex:
-            if i == 4:
+            if i == 7:
                 raise ValueError(f"relay did not start in time:\n{container.logs()}") from ex
             time.sleep(0.1 * 2**i)
     else:
