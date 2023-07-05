@@ -1177,7 +1177,8 @@ describe('EventView.generateQueryStringObject()', function () {
 describe('EventView.getEventsAPIPayload()', function () {
   it('generates the API payload', function () {
     const eventView = new EventView({
-      id: 34,
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+      id: '34',
       name: 'amazing query',
       fields: generateFields(['id']),
       sorts: generateSorts(['id']),
