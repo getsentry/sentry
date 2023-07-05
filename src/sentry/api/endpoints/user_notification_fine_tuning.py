@@ -187,7 +187,7 @@ class UserNotificationFineTuningEndpoint(UserEndpoint):
                     ExternalProviders.EMAIL,
                     type,
                     get_option_value_from_int(type, value),
-                    user=user,
+                    user_id=user.id,
                     project=project_option,
                     organization=organization_option,
                 )

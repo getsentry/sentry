@@ -32,24 +32,17 @@ class SDKCrashDetection:
     def detect_sdk_crash(
         self, event: Event, event_project_id: int, sample_rate: float
     ) -> Optional[Event]:
+
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
-            and event.group.platform == "cocoa"
+            and self.cocoa_sdk_crash_detector.should_detect_sdk_crash(event.data)
         )
         if not should_detect_sdk_crash:
             return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
         if context is not None:
-            return None
-
-        # Getting the frames and checking if the event is unhandled might different per platform.
-        # We will change this once we implement this for more platforms.
-        is_unhandled = (
-            get_path(event.data, "exception", "values", -1, "mechanism", "handled") is False
-        )
-        if is_unhandled is False:
             return None
 
         frames = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")

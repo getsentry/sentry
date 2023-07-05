@@ -28,10 +28,6 @@ TEST_REDIS_DB = 9
 def pytest_configure(config):
     import warnings
 
-    from django.utils.deprecation import RemovedInDjango30Warning  # type: ignore[attr-defined]
-
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
-
     # This is just to filter out an obvious warning before the pytest session starts.
     warnings.filterwarnings(
         action="ignore",

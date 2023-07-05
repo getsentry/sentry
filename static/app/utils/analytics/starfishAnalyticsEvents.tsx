@@ -4,6 +4,11 @@ export type StarfishEventParameters = {
     start: number;
     route?: string;
   };
+  'starfish.page_filter.data_change': {
+    end: string;
+    relative: string;
+    start: string;
+  };
   'starfish.pageview': {
     route: string;
   };
@@ -14,6 +19,13 @@ export type StarfishEventParameters = {
   };
   'starfish.samples.loaded': {
     count: number;
+  };
+  'starfish.web_service_view.breakdown.display_change': {
+    display: string;
+  };
+  'starfish.web_service_view.breakdown.legend_change': {
+    selected: string[];
+    toggled: string;
   };
   'starfish.web_service_view.endpoint_list.endpoint.clicked': {
     endpoint: string;
@@ -41,4 +53,9 @@ export const starfishEventMap: Record<keyof StarfishEventParameters, string> = {
     'Starfish: Web Service View Endpoint List Header Clicked',
   'starfish.web_service_view.endpoint_list.search':
     'Starfish: Web Service View Endpoint List Search',
+  'starfish.web_service_view.breakdown.display_change':
+    'Starfish: Web Service View Breakdown Display Changed',
+  'starfish.page_filter.data_change': 'Starfish: Page Filter Data Changed',
+  'starfish.web_service_view.breakdown.legend_change':
+    'Starfish: Web Service View Breakdown Legend Changed',
 };

@@ -74,8 +74,29 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(function="Senry"), False, mock_sdk_crash_reporter)
 
-    def test_wrong_platform_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(get_crash_event(platform="coco"), False, mock_sdk_crash_reporter)
+    def test_wrong_sdk_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "name", value="sentry.coco")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
+
+    def test_beta_sdk_version_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="8.2.1-beta.1")
+
+        self.execute_test(event, True, mock_sdk_crash_reporter)
+
+    def test_too_low_min_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="8.1.1")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
+
+    def test_invalid_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="foo")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
 
     def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(exception=[]), False, mock_sdk_crash_reporter)
@@ -313,6 +334,97 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
                 "raw_function": "icu::Calendar::clear()",
                 "package": "/usr/lib/libicucore.A.dylib",
                 "in_app": False,
+            },
+        ]
+
+    def test_thread_inspector_crash_is_detected(self, mock_sdk_crash_reporter):
+        """
+        The frames stem from a real world crash caused by our MetricKit integration.
+        All data was anonymized.
+        """
+        frames = [
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__NSThread__start__",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker detectANRs]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTracker.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTracker.m",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker ANRDetected]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTracker.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTracker.m",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTrackingIntegration anrDetected]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTrackingIntegration.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTrackingIntegration.m",
+                "in_app": False,
+            },
+            {
+                "function": "getStackEntriesFromThread",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryThreadInspector.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryThreadInspector.m",
+                "in_app": True,
+            },
+        ]
+
+        event = get_crash_event_with_frames(frames)
+
+        self.execute_test(event, True, mock_sdk_crash_reporter)
+
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+        actual_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+        assert actual_frames == [
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__NSThread__start__",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker detectANRs]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "-[SentryANRTracker ANRDetected]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "-[SentryANRTrackingIntegration anrDetected]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "getStackEntriesFromThread",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
             },
         ]
 

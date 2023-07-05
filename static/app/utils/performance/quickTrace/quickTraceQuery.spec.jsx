@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 
 const traceId = 'abcdef1234567890';
@@ -28,9 +27,8 @@ function renderQuickTrace({isLoading, error, trace, type}) {
 }
 
 describe('TraceLiteQuery', function () {
-  let api, location, event, traceLiteMock, traceFullMock, traceMetaMock;
+  let location, event, traceLiteMock, traceFullMock, traceMetaMock;
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},
@@ -67,7 +65,7 @@ describe('TraceLiteQuery', function () {
     render(
       <QuickTraceQuery
         event={event}
-        api={api}
+        api={new MockApiClient()}
         location={location}
         orgSlug="test-org"
         statsPeriod="24h"
@@ -85,7 +83,7 @@ describe('TraceLiteQuery', function () {
       <QuickTraceQuery
         withMeta={false}
         event={event}
-        api={api}
+        api={new MockApiClient()}
         location={location}
         orgSlug="test-org"
         statsPeriod="24h"
@@ -104,7 +102,7 @@ describe('TraceLiteQuery', function () {
       <QuickTraceQuery
         withMeta={false}
         event={event}
-        api={api}
+        api={new MockApiClient()}
         location={location}
         orgSlug="test-org"
         statsPeriod="24h"
@@ -140,7 +138,7 @@ describe('TraceLiteQuery', function () {
       <QuickTraceQuery
         withMeta={false}
         event={event}
-        api={api}
+        api={new MockApiClient()}
         location={location}
         orgSlug="test-org"
         statsPeriod="24h"
