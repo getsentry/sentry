@@ -368,23 +368,6 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _get_bundles_that_need_indexing(associated_bundles: List[ArtifactBundle]):
-    # We get all the bundles that are not indexed. This implementation is not safe for concurrency, since the values
-    # might change afterward, however, we do use a Redis cache to prevent duplicate work. That cache is also not 100%
-    # concurrency safe, but it will help for most cases.
-    bundles_to_index = []
-    for associated_bundle in associated_bundles:
-        requires_indexing = ArtifactBundle.objects.filter(
-            id=associated_bundle.id,
-            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-        ).exists()
-
-        if requires_indexing:
-            bundles_to_index.append(associated_bundle)
-
-    return bundles_to_index
-
-
 def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
     # We collect how many times we tried to perform indexing.
     metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
@@ -437,6 +420,8 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
                 for associated_bundle in associated_bundles
                 if associated_bundle.indexing_state == ArtifactBundleIndexingState.NOT_INDEXED.value
             ]
+
+            # We want to index only if we have bundles to index.
             if len(bundles_to_index) > 0:
                 index_artifact_bundles_for_release(
                     organization_id=org_id,
