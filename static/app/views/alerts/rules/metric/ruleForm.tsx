@@ -600,7 +600,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
       const dataset = determineAlertDataset(
         organization,
-        rule.dataset,
+        this.state.dataset,
         model.getTransformedData().query
       );
 
