@@ -97,7 +97,7 @@ export default function SpansTable({
     });
   };
 
-  const isEndpointOverview = Boolean(endpoint);
+  const shouldTrackVCD = Boolean(endpoint);
 
   return (
     <Fragment>
@@ -105,7 +105,7 @@ export default function SpansTable({
         id="SpansTable"
         hasData={data.length > 0}
         isLoading={isLoading}
-        disabled={isEndpointOverview}
+        disabled={shouldTrackVCD}
       >
         <GridEditable
           isLoading={isLoading}
