@@ -2,23 +2,24 @@ from __future__ import annotations
 
 import io
 import os
+from difflib import unified_diff
 from pathlib import Path
 from typing import NewType, Protocol
 
 from dateutil import parser
-from jsondiff import diff
 from pydantic import FilePath, PositiveInt
 
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.runner.commands.backup import exporter, importer
+from sentry.runner.commands.backup import exec_export, exec_import
 from sentry.utils import json
-from sentry.utils.json import JSONData
+from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
 from sentry.utils.pytest.fixtures import django_db_all
 
 ComparatorName = NewType("ComparatorName", str)
 ModelName = NewType("ModelName", str)
 
 
+# TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
 class InstanceID:
     """Every entry in the generated backup JSON file should have a unique model+pk combination, which serves as its identifier."""
 
@@ -62,10 +63,13 @@ class ComparatorFindings:
         self.findings = findings
 
     def __str__(self):
-        "\n".join(self.findings)
+        return "\n".join(map(lambda f: str(f), self.findings))
 
-    def check_for_findings(self):
-        if len(self.findings) > 0:
+    def append(self, finding: ComparatorFinding):
+        self.findings.append(finding)
+
+    def assert_on_findings(self):
+        if self.findings:
             assert False, str(self)
 
 
@@ -81,6 +85,7 @@ def comparator_date_updated(on, expect, actual):
     act_date_updated = parser.parse(actual["fields"]["date_updated"])
     if not act_date_updated >= exp_date_updated:
         return f"{expect['fields']['date_updated']} was not >= {actual['fields']['date_updated']}"
+    # TODO(team-ospo/#155): Be more disciplined about how we do compared-field scrubbing.
     else:
         expect["fields"]["date_updated"] = "__COMPARATOR_DATE_UPDATED__"
         actual["fields"]["date_updated"] = "__COMPARATOR_DATE_UPDATED__"
@@ -88,7 +93,10 @@ def comparator_date_updated(on, expect, actual):
 
 REPO_PATH = Path(os.path.dirname(os.path.realpath("__file__")))
 FIXTURE_PATH = REPO_PATH / "fixtures/backup"
-EXPORT_INDENTATION = 2
+INDENT = 2
+JSON_PRETTY_PRINTER = JSONEncoder(
+    default=better_default_encoder, indent=INDENT, ignore_nan=True, sort_keys=True
+)
 COMPARATORS: dict[ModelName | None, list[JSONMutatingComparator]] = {
     None: [],
     ModelName("sentry.userrole"): [comparator_date_updated],
@@ -96,6 +104,13 @@ COMPARATORS: dict[ModelName | None, list[JSONMutatingComparator]] = {
 }
 
 
+def json_lines(obj: JSONData) -> str:
+    """Take a JSONData object and pretty-print it as JSON."""
+
+    return JSON_PRETTY_PRINTER.encode(obj).splitlines()
+
+
+# TODO(team-ospo/#155): Move this out of the test suite, and into its own standalone module, since eventually it will be used to compare live JSON as well.
 def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
     """Ensures that originally imported data correctly matches actual outputted data, and produces a list of reasons why not when it doesn't"""
 
@@ -143,13 +158,15 @@ def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
                     findings.append(ComparatorFinding(ComparatorName(cmp.__name__), id, res))
 
         # Finally, perform a diff on the remaining JSON.
-        json_diff = diff(exp["fields"], act["fields"], syntax="explicit", marshal=True)
-        if json_diff:
+        diff = list(
+            unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3, lineterm="\n")
+        )
+        if diff:
             findings.append(
-                ComparatorFinding(ComparatorName("json_diff"), id, json.dumps(json_diff))
+                ComparatorFinding(ComparatorName("json_diff"), id, "\n    " + "\n    ".join(diff))
             )
 
-    findings.check_for_findings()
+    findings.assert_on_findings()
     return findings
 
 
@@ -165,10 +182,10 @@ def import_then_export(
         input = json.load(instream)
         with in_test_psql_role_override("postgres"):
             instream.seek(0)
-            importer(instream)
+            exec_import(instream)
 
     outstream = io.StringIO()
-    exporter(outstream, silent, indent=EXPORT_INDENTATION, exclude=None)
+    exec_export(outstream, silent, indent=INDENT, exclude=None)
     outstream.seek(0)
     output = json.load(outstream)
     return input, output, validate(input, output)

@@ -14,12 +14,12 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 @click.argument("src", type=click.File("rb"))
 @configuration
 def import_(src):
-    """CLI command wrapping the `importer` functionality."""
+    """CLI command wrapping the `exec_import` functionality."""
 
-    importer(src)
+    exec_import(src)
 
 
-def importer(src):
+def exec_import(src):
     """Imports data from a Sentry export."""
 
     try:
@@ -151,12 +151,12 @@ def sort_dependencies():
 @click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
 @configuration
 def export(dest, silent, indent, exclude):
-    """CLI command wrapping the `importer` functionality."""
+    """CLI command wrapping the `exec_export` functionality."""
 
-    exporter(dest, silent, indent, exclude)
+    exec_export(dest, silent, indent, exclude)
 
 
-def exporter(dest, silent, indent, exclude):
+def exec_export(dest, silent, indent, exclude):
     """Exports core metadata for the Sentry installation."""
 
     if exclude is None:

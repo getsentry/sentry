@@ -84,7 +84,6 @@ isodate==0.6.1
 isort==5.10.1
 jmespath==0.10.0
 jsonschema==3.2.0
-jsondiff>=2.0.0
 kombu==4.6.11
 lazy-object-proxy==1.7.1
 lxml==4.9.1
