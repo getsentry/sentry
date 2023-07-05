@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import platform
 import os
 import signal
 import subprocess
@@ -15,14 +16,17 @@ import requests
 if TYPE_CHECKING:
     import docker
 
-RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
-if os.path.exists(RAW_SOCKET_PATH):
-    # If colima's installed, we want to use it.
-    os.environ["DOCKER_HOST"] = f"unix://{RAW_SOCKET_PATH}"
-
 # assigned as a constant so mypy's "unreachable" detection doesn't fail on linux
 # https://github.com/python/mypy/issues/12286
 DARWIN = sys.platform == "darwin"
+
+# platform.processor() changed at some point between these:
+# 11.2.3: arm
+# 12.3.1: arm64
+APPLE_ARM64 = DARWIN and platform.processor() in {"arm", "arm64"}
+
+RAW_SOCKET_PATH = os.path.expanduser("~/.colima/default/docker.sock")
+os.environ["DOCKER_HOST"] = f"unix://{RAW_SOCKET_PATH}"
 
 
 @contextlib.contextmanager
@@ -45,16 +49,15 @@ def get_docker_client() -> Generator[docker.DockerClient, None, None]:
                         ("sysctl", "-n", "hw.memsize"), check=True, capture_output=True
                     ).stdout
                 )
-                subprocess.check_call(
-                    (
-                        "colima",
-                        "start",
-                        "--cpu",
-                        f"{cpus//2}",
-                        "--memory",
-                        f"{memsize_bytes//(2*1024**3)}",
-                    )
+                args = (
+                    "--cpu",
+                    f"{cpus//2}",
+                    "--memory",
+                    f"{memsize_bytes//(2*1024**3)}",
                 )
+                if APPLE_ARM64:
+                    args += ("--vm-type=vz", "--vz-rosetta")
+                subprocess.check_call(("colima", "start") + args)
             else:
                 raise click.ClickException("Make sure docker is running.")
 
