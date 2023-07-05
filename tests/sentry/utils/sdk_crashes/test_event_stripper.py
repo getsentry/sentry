@@ -5,6 +5,7 @@ from fixtures.sdk_crash_detection.crash_event import (
     get_crash_event_with_frames,
     get_frames,
 )
+from sentry.db.models import NodeData
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import region_silo_test
@@ -304,6 +305,24 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             "in_app": True,
             "image_addr": "0x100304000",
         }
+
+    def test_strip_event_without_data_returns_empty_dict(self):
+        stripped_event_data = strip_event_data(NodeData({}), CocoaSDKCrashDetector())
+
+        assert stripped_event_data == {}
+
+    def test_strip_event_without_frames_returns_empty_dict(self):
+        event_data = get_crash_event_with_frames([])
+        set_path(event_data, "exception", value=None)
+
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        assert stripped_event_data == {}
 
 
 @region_silo_test
