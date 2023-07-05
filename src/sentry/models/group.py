@@ -404,22 +404,26 @@ class GroupManager(BaseManager):
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        updated_count = self.filter(id__in=[g.id for g in groups]).exclude(
+        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
             status=status, substatus=substatus
         )
 
-        self.bulk_update(updated_count, ["status", "substatus"])
-        if updated_count:
-            for group in groups:
-                group.status = status
-                group.substatus = substatus
-                Activity.objects.create_group_activity(
-                    group,
-                    activity_type,
-                    data=activity_data,
-                    send_notification=send_activity_notification,
-                )
-                record_group_history_from_activity_type(group, activity_type.value)
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+
+        self.bulk_update(to_be_updated, ["status", "substatus"])
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+            Activity.objects.create_group_activity(
+                group,
+                activity_type,
+                data=activity_data,
+                send_notification=send_activity_notification,
+            )
+            record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

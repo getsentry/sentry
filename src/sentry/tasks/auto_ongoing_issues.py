@@ -27,10 +27,13 @@ logger = logging.getLogger(__name__)
 TRANSITION_AFTER_DAYS = 7
 
 
-def skip_if_queue_has_items(func):
+def skip_if_queue_has_items(func, **kwargs):
+    breakpoint()
+
     def inner():
         from sentry.monitoring.queues import backend
 
+        breakpoint()
         queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
 
         if queue_size > 0:
@@ -40,7 +43,7 @@ def skip_if_queue_has_items(func):
             )
             return
 
-        func()
+        func(**kwargs)
 
     return inner
 
