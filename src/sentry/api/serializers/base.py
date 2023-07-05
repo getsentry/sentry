@@ -1,23 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Type, TypeVar, Union
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -140,39 +124,3 @@ class Serializer:
         :returns A serialized version of `obj`.
         """
         return {}
-
-
-_K = TypeVar("_K")
-_V_co = TypeVar("_V_co", covariant=True)
-
-
-class instance_map(Generic[_K, _V_co], Mapping[_K, _V_co]):
-    """
-    A dictionary like mapping object that can be constructed from objects that are not hashable
-    for the purpose of fitting the serialize expected protocol without forcing non sensical hashing
-    definitions for the object being serialized.
-
-    Use this in get_attrs results where the object being serialized is not serializable.  Instead, id()
-    will be used, which is sufficient for our serializer logic.
-    """
-
-    _inner: Dict[_K, _V_co]
-    _keys: List[_K]
-
-    def __init__(self, items: Iterable[Tuple[_K, _V_co]]) -> None:
-        self._inner = {}
-        self._keys = []
-        for k, v in items:
-            self._inner[id(k)] = v
-
-    def __getitem__(self, k: _K) -> _V_co:
-        return self._inner[id(k)]
-
-    def __len__(self) -> int:
-        return len(self._keys)
-
-    def __iter__(self) -> Iterator[_K]:
-        return iter(self._keys)
-
-    def __contains__(self, item: _K):
-        return id(item) in self._inner

@@ -50,7 +50,7 @@ class OrganizationPermission(SentryPermission):
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
     ) -> bool:
-        if not organization.flags.require_2fa:  # type: ignore
+        if not organization.flags.require_2fa:
             return False
 
         if request.user.has_2fa():  # type: ignore
@@ -490,16 +490,18 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         """
         has_valid_api_key = False
         if is_api_key_auth(request.auth):
-            if request.auth.organization_id != organization.id:
+            if request.auth.organization_id != organization.id:  # type: ignore
                 return []
-            has_valid_api_key = request.auth.has_scope(
+            has_valid_api_key = request.auth.has_scope(  # type: ignore
                 "project:releases"
-            ) or request.auth.has_scope("project:write")
+            ) or request.auth.has_scope(
+                "project:write"
+            )  # type: ignore
 
         if is_org_auth_token_auth(request.auth):
-            if request.auth.organization_id != organization.id:
+            if request.auth.organization_id != organization.id:  # type: ignore
                 return []
-            has_valid_api_key = request.auth.has_scope("org:ci")
+            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
@@ -534,9 +536,9 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
-        if getattr(request, "auth", None) and getattr(request.auth, "id", None):  # type: ignore
+        if getattr(request, "auth", None) and getattr(request.auth, "id", None):
             actor_id = "apikey:%s" % request.auth.id  # type: ignore
-        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):  # type: ignore
+        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
             actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore
         if actor_id is not None:
             requested_project_ids = project_ids
