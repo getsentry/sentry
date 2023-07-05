@@ -304,7 +304,6 @@ class EventView {
   dataset?: DiscoverDatasets;
 
   constructor(props: {
-    additionalConditions: MutableSearch;
     createdBy: User | undefined;
     display: string | undefined;
     end: string | undefined;
@@ -320,6 +319,7 @@ class EventView {
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
     yAxis: string | string[] | undefined;
+    additionalConditions?: MutableSearch;
     dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
