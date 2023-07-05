@@ -114,34 +114,15 @@ class GetChannelIdFasterTest(TestCase):
         self.resp.__enter__()
 
         self.integration = install_slack(self.event.project.organization)
-        self.add_list_response(
-            "conversations",
-            [
-                {"name": "my-channel", "id": "m-c"},
-                {"name": "other-chann", "id": "o-c"},
-                {"name": "my-private-channel", "id": "m-p-c", "is_private": True},
-            ],
-            result_name="channels",
-        )
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
-        self.add_msg_response("my-channel", "m-c")
-        self.add_msg_response("other-chann", "o-c")
-        self.add_msg_response("my-private-channel", "m-p-c")
-        self.resp.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true"}),
-        )
+        # self.add_list_response(
+        #     "users",
+        #     [
+        #         {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
+        #         {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+        #         {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+        #     ],
+        #     result_name="members",
+        # )
 
     @with_feature("organizations:slack-use-new-lookup")
     def tearDown(self):
@@ -167,6 +148,13 @@ class GetChannelIdFasterTest(TestCase):
                 {"ok": "true", result_name: channelid, "scheduled_message_id": "Q1298393284"}
             ),
         )
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true", "channel": channelid}),
+        )
 
     @with_feature("organizations:slack-use-new-lookup")
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
@@ -175,15 +163,20 @@ class GetChannelIdFasterTest(TestCase):
         )
 
     @with_feature("organizations:slack-use-new-lookup")
-    def test_valid_channel_selected(self):
+    def test_valid_channel_selected_new(self):
+        self.add_msg_response("my-channel", "m-c")
+        # ^^ this adds the responses this code path will hit
         self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
     @with_feature("organizations:slack-use-new-lookup")
-    def test_valid_private_channel_selected(self):
+    def test_valid_private_channel_selected_new(self):
+        self.add_msg_response("my-private-channel", "m-p-c")
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
     @with_feature("organizations:slack-use-new-lookup")
     def test_valid_member_selected(self):
+        # add_msg_response making sure no match comes back so you fall into the user.list code path
+        # mock the user.list response so you find your user
         self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
     @with_feature("organizations:slack-use-new-lookup")
@@ -196,7 +189,7 @@ class GetChannelIdFasterTest(TestCase):
             get_channel_id(self.organization, self.integration, "@Morty")
 
     @with_feature("organizations:slack-use-new-lookup")
-    def test_invalid_channel_selected(self):
+    def test_invalid_channel_selected_new(self):
         assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
         assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
 
