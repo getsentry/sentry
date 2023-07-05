@@ -1,6 +1,5 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import OrganizationProjectsContainer from 'sentry/views/settings/organizationProjects';
 
 describe('OrganizationProjects', function () {
@@ -15,24 +14,24 @@ describe('OrganizationProjects', function () {
     project = TestStubs.Project();
     org = TestStubs.Organization();
 
-    projectsGetMock = Client.addMockResponse({
+    projectsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
 
-    statsGetMock = Client.addMockResponse({
+    statsGetMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/stats/',
       body: [[[], 1]],
     });
 
-    projectsPutMock = Client.addMockResponse({
+    projectsPutMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: '/projects/org-slug/project-slug/',
     });
   });
 
   afterEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('should render the projects in the store', async function () {
