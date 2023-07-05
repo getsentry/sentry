@@ -1,13 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 
 describe('DiscoverQuery', function () {
-  let location, api, eventView;
+  let location, eventView;
   beforeEach(() => {
-    api = new Client();
     location = {
       pathname: '/events',
       query: {},
@@ -33,7 +31,7 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={api}
+        api={new MockApiClient()}
         location={location}
         eventView={eventView}
       >
@@ -63,7 +61,7 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={api}
+        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         limit={3}
@@ -105,7 +103,7 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={api}
+        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         setError={e => (errorValue = e)}
@@ -140,7 +138,7 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={api}
+        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         setError={e => (errorValue = e)}

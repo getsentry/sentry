@@ -119,7 +119,7 @@ def get_public_key_configs(
 def get_filter_settings(project: Project) -> Mapping[str, Any]:
     filter_settings = {}
 
-    for flt in get_all_filter_specs(project):
+    for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
 

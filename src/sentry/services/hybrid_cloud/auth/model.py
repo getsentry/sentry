@@ -80,6 +80,7 @@ class RpcAuthentication(BaseAuthentication):
         from django.contrib.auth.models import AnonymousUser
 
         from sentry.models.apikey import is_api_key_auth
+        from sentry.models.orgauthtoken import is_org_auth_token_auth
         from sentry.services.hybrid_cloud.auth.service import auth_service
 
         response = auth_service.authenticate_with(
@@ -89,7 +90,9 @@ class RpcAuthentication(BaseAuthentication):
         if response.user is not None:
             return response.user, response.auth
 
-        if response.auth is not None and is_api_key_auth(response.auth):
+        if response.auth is not None and (
+            is_api_key_auth(response.auth) or is_org_auth_token_auth(response.auth)
+        ):
             return AnonymousUser(), response.auth
 
         return None
