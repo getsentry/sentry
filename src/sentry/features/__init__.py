@@ -254,7 +254,6 @@ default_manager.add("organizations:codecov-integration", OrganizationFeature, Fe
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:health-check-filter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 
