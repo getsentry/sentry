@@ -77,6 +77,8 @@ Retrieve a collection of replays.
 | activity          | number                        | -                                                      |
 | browser.name      | optional[string]              | -                                                      |
 | browser.version   | optional[string]              | -                                                      |
+| count_dead_clicks | number                        | The number of dead clicks present in the replay.       |
+| count_rage_clicks | number                        | The number of rage clicks present in the replay.       |
 | count_errors      | number                        | The number of errors associated with the replay.       |
 | count_segments    | number                        | The number of segments that make up the replay.        |
 | count_urls        | number                        | The number of urls visited in the replay.              |
@@ -119,6 +121,8 @@ Retrieve a collection of replays.
           "name": "Chome",
           "version": "103.0.38"
         },
+        "count_dead_clicks": 6,
+        "count_rage_clicks": 1,
         "count_errors": 1,
         "count_segments": 0,
         "count_urls": 1,
@@ -183,6 +187,8 @@ Retrieve a single replay instance.
         "name": "Chome",
         "version": "103.0.38"
       },
+      "count_dead_clicks": 6,
+      "count_rage_clicks": 1,
       "count_errors": 1,
       "count_segments": 0,
       "count_urls": 1,
