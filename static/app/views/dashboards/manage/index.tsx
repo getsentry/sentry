@@ -180,18 +180,20 @@ class ManageDashboards extends AsyncView<Props, State> {
           onChange={opt => this.handleSortChange(opt.value)}
           position="bottom-end"
         />
-        <Wrapper>
-          <Button
-            onClick={() => {
-              openImportDashboardFromFileModal({organization, api, location});
-            }}
-            size="sm"
-            priority="primary"
-            icon={<IconAdd isCircled />}
-          >
-            {t('Import Dashboard from JSON')}
-          </Button>
-        </Wrapper>
+        <Feature features={['dashboards-import']}>
+          <Wrapper>
+            <Button
+              onClick={() => {
+                openImportDashboardFromFileModal({organization, api, location});
+              }}
+              size="sm"
+              priority="primary"
+              icon={<IconAdd isCircled />}
+            >
+              {t('Import Dashboard from JSON')}
+            </Button>
+          </Wrapper>
+        </Feature>
       </StyledActions>
     );
   }
