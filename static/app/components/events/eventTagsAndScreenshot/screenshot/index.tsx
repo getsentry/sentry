@@ -46,11 +46,11 @@ function Screenshot({
   const orgSlug = organization.slug;
   const [loadingImage, setLoadingImage] = useState(true);
 
-  function handleDelete(screenshotAttachment) {
+  function handleDelete(screenshotAttachmentId: string) {
     trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
       organization,
     });
-    onDelete(screenshotAttachment.id);
+    onDelete(screenshotAttachmentId);
   }
 
   function renderContent(screenshotAttachment: EventAttachment) {

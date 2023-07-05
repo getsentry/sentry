@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import logging
 import posixpath
 from copy import deepcopy
 from threading import Lock
+from typing import Generic, TypeVar
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -12,6 +15,7 @@ from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
+from sentry_redis_tools import clients
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
@@ -141,13 +145,16 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-class ClusterManager:
+T = TypeVar("T")
+
+
+class ClusterManager(Generic[T]):
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
         self.__cluster_type = cluster_type()
 
-    def get(self, key):
+    def get(self, key) -> T:
         cluster = self.__clusters.get(key)
 
         # Do not access attributes of the `cluster` object to prevent
@@ -172,7 +179,9 @@ class ClusterManager:
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
-redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
+redis_clusters: ClusterManager[clients.RedisCluster | clients.StrictRedis] = ClusterManager(
+    options.default_manager, _RedisCluster
+)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):
