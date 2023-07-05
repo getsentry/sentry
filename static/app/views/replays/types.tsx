@@ -1,4 +1,4 @@
-import type {customEvent, eventWithTime} from '@sentry-internal/rrweb/typings/types';
+import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -157,19 +157,6 @@ export interface Highlight {
 }
 
 export type RecordingEvent = eventWithTime;
-export type RecordingOptions = customEvent<{
-  blockAllMedia: boolean;
-  errorSampleRate: number;
-  maskAllInputs: boolean;
-  maskAllText: boolean;
-  networkCaptureBodies: boolean;
-  networkDetailHasUrls: boolean;
-  networkRequestHasHeaders: boolean;
-  networkResponseHasHeaders: boolean;
-  sessionSampleRate: number;
-  useCompression: boolean;
-  useCompressionOption: boolean;
-}>;
 
 export interface ReplaySpan<T = Record<string, any>> {
   data: T;

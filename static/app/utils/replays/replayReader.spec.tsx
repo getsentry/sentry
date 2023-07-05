@@ -198,7 +198,7 @@ describe('ReplayReader', () => {
       replayRecord,
     });
 
-    expect(replay?.sdkConfig()).toBe(optionsFrame);
+    expect(replay?.getSDKOptions()).toBe(optionsFrame);
   });
 
   describe('isNetworkDetailsSetup', () => {
