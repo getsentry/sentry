@@ -74,8 +74,29 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
     def test_wrong_function_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(function="Senry"), False, mock_sdk_crash_reporter)
 
-    def test_wrong_platform_not_detected(self, mock_sdk_crash_reporter):
-        self.execute_test(get_crash_event(platform="coco"), False, mock_sdk_crash_reporter)
+    def test_wrong_sdk_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "name", value="sentry.coco")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
+
+    def test_beta_sdk_version_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="8.2.1-beta.1")
+
+        self.execute_test(event, True, mock_sdk_crash_reporter)
+
+    def test_too_low_min_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="8.1.1")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
+
+    def test_invalid_sdk_version_not_detected(self, mock_sdk_crash_reporter):
+        event = get_crash_event()
+        set_path(event, "sdk", "version", value="foo")
+
+        self.execute_test(event, False, mock_sdk_crash_reporter)
 
     def test_no_exception_not_detected(self, mock_sdk_crash_reporter):
         self.execute_test(get_crash_event(exception=[]), False, mock_sdk_crash_reporter)
