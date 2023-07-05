@@ -1,5 +1,5 @@
-from django.conf.urls import url
 from django.test import override_settings
+from django.urls import re_path
 from freezegun import freeze_time
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -28,8 +28,8 @@ class RateLimitUnenforcedEndpoint(RateLimitTestEndpoint):
 
 
 urlpatterns = [
-    url(r"^/enforced$", RateLimitEnforcedEndpoint.as_view(), name="enforced-endpoint"),
-    url(r"^/unenforced$", RateLimitUnenforcedEndpoint.as_view(), name="unenforced-endpoint"),
+    re_path(r"^/enforced$", RateLimitEnforcedEndpoint.as_view(), name="enforced-endpoint"),
+    re_path(r"^/unenforced$", RateLimitUnenforcedEndpoint.as_view(), name="unenforced-endpoint"),
 ]
 
 

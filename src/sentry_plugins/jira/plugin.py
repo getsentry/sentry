@@ -3,7 +3,7 @@ import re
 from urllib.parse import parse_qs, quote_plus, unquote_plus, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -47,7 +47,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
     def get_group_urls(self):
         _patterns = super().get_group_urls()
         _patterns.append(
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

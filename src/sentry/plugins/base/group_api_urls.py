@@ -1,8 +1,8 @@
 import logging
 import re
 
-from django.conf.urls import include, url
-from django.urls import URLPattern, URLResolver
+from django.conf.urls import include
+from django.urls import URLPattern, URLResolver, re_path
 
 from sentry.plugins.base import plugins
 
@@ -16,7 +16,7 @@ def load_plugin_urls(plugins):
         if not urls:
             continue
         try:
-            # a plugin's get_group_urls should return an iterable of url()'s,
+            # a plugin's get_group_urls should return an iterable of re_path()'s,
             # which can either be RegexURLResolver or RegexURLPattern
             for u in urls:
                 if not isinstance(u, (URLResolver, URLPattern)):
@@ -28,7 +28,7 @@ def load_plugin_urls(plugins):
         except Exception:
             logger.exception("routes.failed", extra={"plugin": type(plugin).__name__})
         else:
-            urlpatterns.append(url(r"^%s/" % re.escape(plugin.slug), include(urls)))
+            urlpatterns.append(re_path(r"^%s/" % re.escape(plugin.slug), include(urls)))
 
     return urlpatterns
 

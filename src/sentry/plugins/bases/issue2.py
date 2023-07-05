@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from django.conf import settings
-from django.conf.urls import url
-from django.urls import reverse
+from django.urls import re_path, reverse
 from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -82,7 +81,7 @@ class IssueTrackingPlugin2(Plugin):
         for action in self.allowed_actions:
             view_method_name = "view_%s" % action
             _urls.append(
-                url(
+                re_path(
                     r"^%s/" % action,
                     PluginGroupEndpoint.as_view(view=getattr(self, view_method_name)),
                 )

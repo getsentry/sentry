@@ -2,7 +2,6 @@ from html import escape
 
 from django import forms
 from django.conf import settings
-from django.conf.urls import url
 from django.contrib import admin, messages
 from django.contrib.auth.forms import AdminPasswordChangeForm
 from django.contrib.auth.forms import UserChangeForm as DjangoUserChangeForm
@@ -12,6 +11,7 @@ from django.db import transaction
 from django.http import Http404, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.template.response import TemplateResponse
+from django.urls import re_path
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
@@ -198,7 +198,7 @@ class UserAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         return [
-            url(r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
+            re_path(r"^(\d+)/password/$", self.admin_site.admin_view(self.user_change_password))
         ] + super().get_urls()
 
     def lookup_allowed(self, lookup, value):

@@ -1,7 +1,6 @@
 from django.conf import settings
-from django.conf.urls import url
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -159,16 +158,16 @@ class OrganizationTestEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
     ),
-    url(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
+    re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
 
 
