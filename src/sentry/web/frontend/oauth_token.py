@@ -7,8 +7,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 
 from sentry.mediators import GrantTypes
-from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken, OpenIDToken
+from sentry.models import ApiApplication, ApiApplicationStatus, ApiGrant, ApiToken
 from sentry.utils import json
+from sentry.web.frontend.openidtoken import OpenIDToken
 
 logger = logging.getLogger("sentry.api")
 
@@ -81,10 +82,8 @@ class OAuthTokenView(View):
 
     def _get_open_id_token(self, grant, request):
         if grant.has_scope("openid"):
-            open_id_token = OpenIDToken.objects.create(
-                user=grant.user,
-                aud=request.POST.get("client_id"),
-                nonce=request.POST.get("nonce"),
+            open_id_token = OpenIDToken(
+                request.POST.get("client_id"), grant.user.id, nonce=request.POST.get("nonce")
             )
             return open_id_token.get_encrypted_id_token()
         return None

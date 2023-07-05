@@ -63,7 +63,6 @@ from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .notificationsetting import *  # NOQA
-from .openidtoken import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA
 from .organizationaccessrequest import *  # NOQA
