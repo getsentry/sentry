@@ -1068,7 +1068,7 @@ class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined): string {
+  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
     const queryParts: string[] = [];
 
     if (this.query) {
