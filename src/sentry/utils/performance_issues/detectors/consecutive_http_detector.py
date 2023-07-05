@@ -174,3 +174,64 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
+
+
+class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
+    """
+    Detector goals:
+    - Extend Consecutive HTTP Span Detector to mimic detection using thresholds from
+    - Consecutive DB Queries Detector.
+    """
+
+    type: DetectorType = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+    settings_key = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+
+    def _validate_and_store_performance_problem(self):
+        exceeds_count_threshold = len(self.consecutive_http_spans) >= self.settings.get(
+            "consecutive_count_threshold"
+        )
+
+        exceeds_min_time_saved_duration = False
+        if self.consecutive_http_spans:
+            exceeds_min_time_saved_duration = self._calculate_time_saved() >= self.settings.get(
+                "min_time_saved"
+            )
+
+        exceeds_duration_between_spans_threshold = all(
+            get_duration_between_spans(
+                self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
+            )
+            < self.settings.get("max_duration_between_spans")
+            for idx in range(1, len(self.consecutive_http_spans))
+        )
+
+        if (
+            exceeds_count_threshold
+            and exceeds_duration_between_spans_threshold
+            and exceeds_min_time_saved_duration
+        ):
+            self._store_performance_problem()
+
+    def _sum_span_duration(self) -> float:
+        "Given a list of spans, find the sum of the span durations in milliseconds"
+        sum = 0.0
+        for span in self.consecutive_http_spans:
+            sum += get_span_duration(span).total_seconds() * 1000
+        return sum
+
+    def _calculate_time_saved(self) -> float:
+        total_time = self._sum_span_duration()
+
+        max_span_duration = max(
+            [get_span_duration(span).total_seconds() * 1000 for span in self.consecutive_http_spans]
+        )
+
+        return total_time - max_span_duration
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        # Only collecting metrics.
+        return False

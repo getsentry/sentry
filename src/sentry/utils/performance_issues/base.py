@@ -36,6 +36,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
+    CONSECUTIVE_HTTP_OP_EXTENDED = "consecutive_http_ext"
     LARGE_HTTP_PAYLOAD = "large_http_payload"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
