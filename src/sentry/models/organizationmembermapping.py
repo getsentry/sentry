@@ -20,7 +20,7 @@ class OrganizationMemberMapping(Model):
 
     __include_in_export__ = False
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
     organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 

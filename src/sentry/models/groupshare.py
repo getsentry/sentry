@@ -30,7 +30,7 @@ class GroupShare(Model):
     group = FlexibleForeignKey("sentry.Group", unique=True)
     uuid = models.CharField(max_length=32, unique=True, default=default_uuid)
     # Tracking the user that initiated the share.
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     objects = BaseManager()

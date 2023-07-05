@@ -27,7 +27,7 @@ class ApiKeyStatus:
 class ApiKey(Model):
     __include_in_export__ = True
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
     label = models.CharField(max_length=64, blank=True, default="Default")
     key = models.CharField(max_length=32, unique=True)
     scopes = typed_dict_bitfield(

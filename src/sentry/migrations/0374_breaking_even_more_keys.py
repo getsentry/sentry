@@ -22,7 +22,7 @@ def auditlog_organization_migrations():
             model_name="auditlogentry",
             name="organization",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.Organization", db_index=True, on_delete="CASCADE"
+                "sentry.Organization", db_index=True, on_delete=models.CASCADE
             ),
         ),
         migrations.RemoveIndex(
@@ -74,7 +74,7 @@ def activityuser_migrations():
             model_name="activity",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, on_delete="SET_NULL", null=True
+                "sentry.User", db_index=True, on_delete=models.SET_NULL, null=True
             ),
         ),
         migrations.RenameField(
@@ -105,7 +105,7 @@ def recentsearch_user_migrations():
             model_name="recentsearch",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=False, on_delete="CASCADE"
+                "sentry.User", db_index=False, on_delete=models.CASCADE
             ),
         ),
         migrations.RenameField(
@@ -139,7 +139,7 @@ def dashboard_user_migrations():
             model_name="dashboard",
             name="created_by",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", on_delete="CASCADE"
+                "sentry.User", on_delete=models.CASCADE
             ),
         ),
         migrations.RenameField(

@@ -129,7 +129,7 @@ class RuleActivity(Model):
     __include_in_export__ = True
 
     rule = FlexibleForeignKey("sentry.Rule")
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
+    user_id = HybridCloudForeignKey("sentry.User", on_delete=models.SET_NULL, null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

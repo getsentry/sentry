@@ -13,7 +13,7 @@ class PagerDutyService(OrganizationIntegrityBackfillMixin, DefaultFieldsModel):
     __include_in_export__ = False
 
     organization_integration_id = HybridCloudForeignKey(
-        "sentry.OrganizationIntegration", on_delete="CASCADE"
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
     )
     organization_id = BoundedBigIntegerField(db_index=True)
     # From a region point of view, you really only have per organization scoping.

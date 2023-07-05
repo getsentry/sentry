@@ -175,7 +175,7 @@ class GroupSubscription(Model):
 
     project = FlexibleForeignKey("sentry.Project", related_name="subscription_set")
     group = FlexibleForeignKey("sentry.Group", related_name="subscription_set")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
     reason = BoundedPositiveIntegerField(default=GroupSubscriptionReason.unknown)
     date_added = models.DateTimeField(default=timezone.now, null=True)

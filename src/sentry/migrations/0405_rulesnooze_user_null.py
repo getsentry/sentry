@@ -49,14 +49,14 @@ class Migration(CheckedMigration):
             model_name="rulesnooze",
             name="owner_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                "sentry.User", db_index=True, null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.AlterField(
             model_name="rulesnooze",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE"
+                "sentry.User", db_index=True, null=True, on_delete=models.CASCADE
             ),
         ),
         migrations.AddConstraint(

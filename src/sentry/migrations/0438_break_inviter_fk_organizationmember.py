@@ -29,7 +29,11 @@ def break_inviter_fk():
             model_name="organizationmember",
             name="inviter",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                settings.AUTH_USER_MODEL, blank=True, db_index=True, null=True, on_delete="SET_NULL"
+                settings.AUTH_USER_MODEL,
+                blank=True,
+                db_index=True,
+                null=True,
+                on_delete=models.SET_NULL,
             ),
         ),
         migrations.RenameField(

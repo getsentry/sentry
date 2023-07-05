@@ -29,7 +29,7 @@ class Dashboard(Model):
     __include_in_export__ = True
 
     title = models.CharField(max_length=255)
-    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    created_by_id = HybridCloudForeignKey("sentry.User", on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)

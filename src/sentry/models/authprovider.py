@@ -42,7 +42,9 @@ class AuthProviderDefaultTeams(Model):
 class AuthProvider(Model):
     __include_in_export__ = True
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
+    organization_id = HybridCloudForeignKey(
+        "sentry.Organization", on_delete=models.CASCADE, unique=True
+    )
     provider = models.CharField(max_length=128)
     config = JSONField()
 

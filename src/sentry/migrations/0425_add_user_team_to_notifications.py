@@ -2,7 +2,7 @@
 
 import django.db.models.deletion
 from django.conf import settings
-from django.db import migrations
+from django.db import migrations, models
 
 import sentry.db.models.fields.foreignkey
 import sentry.db.models.fields.hybrid_cloud_foreign_key
@@ -31,7 +31,7 @@ class Migration(CheckedMigration):
             model_name="notificationsetting",
             name="team_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.Team", db_index=False, null=True, on_delete="CASCADE"
+                "sentry.Team", db_index=False, null=True, on_delete=models.CASCADE
             ),
         ),
         migrations.AddField(

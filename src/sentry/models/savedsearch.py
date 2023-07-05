@@ -73,7 +73,7 @@ class SavedSearch(Model):
     # Creator of the saved search. When visibility is
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
     # search is visibile to.
-    owner_id = HybridCloudForeignKey("sentry.User", on_delete="cascade", null=True)
+    owner_id = HybridCloudForeignKey("sentry.User", on_delete=models.CASCADE, null=True)
 
     # Defines who can see the saved search
     visibility = models.CharField(

@@ -21,7 +21,7 @@ from sentry.types.region import find_regions_for_orgs
 class OrganizationIntegration(DefaultFieldsModel):
     __include_in_export__ = False
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
     integration = FlexibleForeignKey("sentry.Integration")
     config = JSONField(default=dict)
 

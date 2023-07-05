@@ -47,7 +47,7 @@ class Migration(CheckedMigration):
                         blank=True,
                         db_index=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -57,7 +57,7 @@ class Migration(CheckedMigration):
                         blank=True,
                         db_index=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 ("trigger_type", models.SmallIntegerField()),

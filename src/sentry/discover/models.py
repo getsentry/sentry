@@ -43,7 +43,7 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
-    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
     name = models.CharField(max_length=255)
     query = JSONField()
     version = models.IntegerField(null=True)

@@ -93,7 +93,7 @@ class AbstractOnboardingTask(Model):
     STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     status = BoundedPositiveIntegerField(choices=[(k, str(v)) for k, v in STATUS_CHOICES])
     completion_seen = models.DateTimeField(null=True)
     date_completed = models.DateTimeField(default=timezone.now)

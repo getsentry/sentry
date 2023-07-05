@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
                 "sentry.User",
                 db_index=True,
                 null=True,
-                on_delete="CASCADE",
+                on_delete=models.CASCADE,
             ),
         ),
         migrations.RenameField(model_name="savedsearch", old_name="owner", new_name="owner_id"),

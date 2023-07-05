@@ -42,7 +42,7 @@ class Migration(CheckedMigration):
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
+                        "sentry.Organization", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("token_hashed", models.TextField(unique=True)),
@@ -59,14 +59,21 @@ class Migration(CheckedMigration):
                 (
                     "project_last_used_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Project", blank=True, db_index=True, null=True, on_delete="SET_NULL"
+                        "sentry.Project",
+                        blank=True,
+                        db_index=True,
+                        null=True,
+                        on_delete=models.SET_NULL,
                     ),
                 ),
                 ("date_deactivated", models.DateTimeField(blank=True, null=True)),
                 (
                     "created_by",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        blank=True, null=True, on_delete="SET_NULL", to=settings.AUTH_USER_MODEL
+                        blank=True,
+                        null=True,
+                        on_delete=models.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
                     ),
                 ),
             ],

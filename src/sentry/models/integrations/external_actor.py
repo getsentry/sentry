@@ -22,7 +22,7 @@ class ExternalActor(DefaultFieldsModel):
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete=models.CASCADE)
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),

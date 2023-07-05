@@ -188,7 +188,7 @@ class OrganizationMember(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
+    user_id = HybridCloudForeignKey("sentry.User", on_delete=models.CASCADE, null=True, blank=True)
     # This email indicates the invite state of this membership -- it will be cleared when the user is set.
     # it does not necessarily represent the final email of the user associated with the membership, see user_email.
     email = models.EmailField(null=True, blank=True, max_length=75)
@@ -219,7 +219,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        on_delete="SET_NULL",
+        on_delete=models.SET_NULL,
     )
     invite_status = models.PositiveSmallIntegerField(
         choices=InviteStatus.as_choices(),

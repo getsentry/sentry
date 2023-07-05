@@ -27,7 +27,9 @@ def validate_scope_list(value):
 class OrgAuthToken(Model):
     __include_in_export__ = True
 
-    organization_id = HybridCloudForeignKey("sentry.Organization", null=False, on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=False, on_delete=models.CASCADE
+    )
     # The JWT token in hashed form
     token_hashed = models.TextField(unique=True, null=False)
     # An optional representation of the last characters of the original token, to be shown to the user
@@ -38,11 +40,11 @@ class OrgAuthToken(Model):
         validators=[validate_scope_list],
     )
 
-    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete="SET_NULL")
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now, null=False)
     date_last_used = models.DateTimeField(null=True, blank=True)
     project_last_used_id = HybridCloudForeignKey(
-        "sentry.Project", null=True, blank=True, on_delete="SET_NULL"
+        "sentry.Project", null=True, blank=True, on_delete=models.SET_NULL
     )
     date_deactivated = models.DateTimeField(null=True, blank=True)
 

@@ -121,7 +121,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
     # The Organization the Sentry App was created in "owns" it. Members of that
     # Org have differing access, dependent on their role within the Org.
-    owner_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    owner_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
     name = models.TextField()
     slug = models.CharField(max_length=SENTRY_APP_SLUG_MAX_LENGTH, unique=True)

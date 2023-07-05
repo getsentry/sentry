@@ -45,7 +45,9 @@ class IncidentSeen(Model):
     __include_in_export__ = False
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
+    user_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_index=False
+    )
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -253,7 +255,7 @@ class IncidentActivity(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
@@ -270,7 +272,7 @@ class IncidentSubscription(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -651,7 +653,7 @@ class AlertRuleActivity(Model):
     previous_alert_rule = FlexibleForeignKey(
         "sentry.AlertRule", null=True, related_name="previous_alert_rule"
     )
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

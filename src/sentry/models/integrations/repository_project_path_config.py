@@ -21,7 +21,7 @@ class RepositoryProjectPathConfig(OrganizationIntegrityBackfillMixin, DefaultFie
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
     organization_integration_id = HybridCloudForeignKey(
-        "sentry.OrganizationIntegration", on_delete="CASCADE"
+        "sentry.OrganizationIntegration", on_delete=models.CASCADE
     )
     organization_id = BoundedBigIntegerField(db_index=True)
     # From a region point of view, you really only have per organization scoping.

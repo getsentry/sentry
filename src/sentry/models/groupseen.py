@@ -16,7 +16,9 @@ class GroupSeen(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
+    user_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_index=False
+    )
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:

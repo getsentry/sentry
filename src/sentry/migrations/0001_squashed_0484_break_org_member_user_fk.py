@@ -525,7 +525,7 @@ class Migration(CheckedMigration):
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
+                        "sentry.Organization", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("label", models.CharField(blank=True, default="Default", max_length=64)),
@@ -792,7 +792,7 @@ class Migration(CheckedMigration):
                 (
                     "created_by_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                        "sentry.User", db_index=True, null=True, on_delete=models.SET_NULL
                     ),
                 ),
             ],
@@ -1274,7 +1274,7 @@ class Migration(CheckedMigration):
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", on_delete="CASCADE"
+                        "sentry.Organization", on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -1322,7 +1322,7 @@ class Migration(CheckedMigration):
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.User",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                         null=True,
                         blank=True,
                     ),
@@ -1331,7 +1331,7 @@ class Migration(CheckedMigration):
                     "inviter_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                         null=True,
                         blank=True,
                     ),
@@ -1432,7 +1432,7 @@ class Migration(CheckedMigration):
                 (
                     "integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Integration", on_delete="CASCADE"
+                        "sentry.Integration", on_delete=models.CASCADE
                     ),
                 ),
                 (
@@ -1657,7 +1657,7 @@ class Migration(CheckedMigration):
                         blank=True,
                         null=True,
                         db_index=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
             ],
@@ -1762,7 +1762,7 @@ class Migration(CheckedMigration):
                 (
                     "owner_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, null=True, on_delete="CASCADE"
+                        "sentry.User", db_index=True, null=True, on_delete=models.CASCADE
                     ),
                 ),
                 (
@@ -1863,7 +1863,7 @@ class Migration(CheckedMigration):
                     "owner_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -1977,7 +1977,7 @@ class Migration(CheckedMigration):
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -2012,7 +2012,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.SentryAppInstallation",
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -2041,7 +2041,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.ApiApplication",
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -2544,7 +2544,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -2717,7 +2717,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -2773,7 +2773,7 @@ class Migration(CheckedMigration):
                     "integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Integration",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 ("key", models.CharField(max_length=128)),
@@ -3048,7 +3048,7 @@ class Migration(CheckedMigration):
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                         unique=True,
                     ),
                 ),
@@ -3098,7 +3098,7 @@ class Migration(CheckedMigration):
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -3146,7 +3146,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
             ],
@@ -3240,7 +3240,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -3248,7 +3248,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Project",
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -3615,7 +3615,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         db_index=False,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -3674,7 +3674,7 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
+                        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -3794,7 +3794,7 @@ class Migration(CheckedMigration):
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -3858,7 +3858,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
             ],
@@ -3891,7 +3891,7 @@ class Migration(CheckedMigration):
                 (
                     "requester_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        settings.AUTH_USER_MODEL, null=True, on_delete="CASCADE"
+                        settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -3968,7 +3968,7 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
+                        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -4003,7 +4003,7 @@ class Migration(CheckedMigration):
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                         db_index=False,
                     ),
                 ),
@@ -4218,7 +4218,7 @@ class Migration(CheckedMigration):
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -4373,7 +4373,7 @@ class Migration(CheckedMigration):
                 (
                     "created_by_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
+                        "sentry.User", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 (
@@ -4774,7 +4774,7 @@ class Migration(CheckedMigration):
                     "organization_integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.OrganizationIntegration",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -5068,7 +5068,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -5191,7 +5191,7 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        settings.AUTH_USER_MODEL, on_delete="CASCADE"
+                        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -5221,7 +5221,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         db_index=False,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -5298,7 +5298,7 @@ class Migration(CheckedMigration):
                         "sentry.Integration",
                         blank=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -5307,7 +5307,7 @@ class Migration(CheckedMigration):
                         "sentry.SentryApp",
                         blank=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
             ],
@@ -5402,7 +5402,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
                 (
@@ -5734,7 +5734,7 @@ class Migration(CheckedMigration):
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Organization",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -5795,7 +5795,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
             ],
@@ -5835,7 +5835,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
             ],
@@ -6017,7 +6017,7 @@ class Migration(CheckedMigration):
                     "organization_integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.OrganizationIntegration",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -6304,7 +6304,7 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", null=True, on_delete="CASCADE"
+                        "sentry.User", null=True, on_delete=models.CASCADE
                     ),
                 ),
             ],
@@ -6614,7 +6614,7 @@ class Migration(CheckedMigration):
                 (
                     "team_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Team", db_index=True, null=True, on_delete="CASCADE"
+                        "sentry.Team", db_index=True, null=True, on_delete=models.CASCADE
                     ),
                 ),
                 (
@@ -6628,7 +6628,7 @@ class Migration(CheckedMigration):
                 (
                     "target_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Actor", db_index=True, on_delete="CASCADE"
+                        "sentry.Actor", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("provider", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
@@ -6842,7 +6842,7 @@ class Migration(CheckedMigration):
                     "integration_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         "sentry.Integration",
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -7009,7 +7009,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
                 (
@@ -7051,7 +7051,7 @@ class Migration(CheckedMigration):
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                         settings.AUTH_USER_MODEL,
                         null=True,
-                        on_delete="SET_NULL",
+                        on_delete=models.SET_NULL,
                     ),
                 ),
                 (
@@ -9521,7 +9521,7 @@ class Migration(CheckedMigration):
                         blank=True,
                         db_index=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 (
@@ -9531,7 +9531,7 @@ class Migration(CheckedMigration):
                         blank=True,
                         db_index=True,
                         null=True,
-                        on_delete="CASCADE",
+                        on_delete=models.CASCADE,
                     ),
                 ),
                 ("trigger_type", models.SmallIntegerField()),
@@ -9675,7 +9675,7 @@ class Migration(CheckedMigration):
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=False, null=True, on_delete="CASCADE"
+                "sentry.User", db_index=False, null=True, on_delete=models.CASCADE
             ),
         ),
         migrations.SeparateDatabaseAndState(
@@ -9715,7 +9715,7 @@ class Migration(CheckedMigration):
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE"
+                "sentry.User", db_index=True, null=True, on_delete=models.CASCADE
             ),
         ),
         migrations.AddConstraint(
@@ -9741,13 +9741,13 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", null=True, on_delete="CASCADE"
+                        "sentry.User", null=True, on_delete=models.CASCADE
                     ),
                 ),
                 (
                     "owner_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", null=True, on_delete="SET_NULL"
+                        "sentry.User", null=True, on_delete=models.SET_NULL
                     ),
                 ),
                 ("until", models.DateTimeField(db_index=True, null=True)),
@@ -9797,7 +9797,7 @@ class Migration(CheckedMigration):
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
+                        "sentry.Organization", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
@@ -9845,7 +9845,7 @@ class Migration(CheckedMigration):
             model_name="actor",
             name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="CASCADE", unique=True
+                "sentry.User", db_index=True, null=True, on_delete=models.CASCADE, unique=True
             ),
         ),
         migrations.SeparateDatabaseAndState(

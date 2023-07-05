@@ -33,7 +33,7 @@ class ExportedData(Model):
     __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     file_id = BoundedBigIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)

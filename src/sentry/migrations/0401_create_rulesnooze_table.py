@@ -39,7 +39,7 @@ class Migration(CheckedMigration):
                 (
                     "user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.User", db_index=True, on_delete="CASCADE"
+                        "sentry.User", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("until", models.DateTimeField(db_index=True, null=True)),

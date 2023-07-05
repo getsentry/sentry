@@ -69,7 +69,7 @@ class ExternalIssue(Model):
     # The foreign key here is an `int`, not `bigint`.
     organization = FlexibleForeignKey("sentry.Organization", db_constraint=False)
 
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete=models.CASCADE)
 
     key = models.CharField(max_length=256)  # example APP-123 in jira
     date_added = models.DateTimeField(default=timezone.now)

@@ -45,19 +45,23 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
+from typing import Any, Callable, Tuple
 
+from django.apps import apps
 from django.db import models
 
 __all__ = ("HybridCloudForeignKey",)
-
-from typing import Any, Tuple
-
-from django.apps import apps
 
 
 class HybridCloudForeignKeyCascadeBehavior(IntEnum):
     CASCADE = 1
     SET_NULL = 2
+
+
+_CASCADE_BEHAVIOUR = {
+    models.CASCADE: HybridCloudForeignKeyCascadeBehavior.CASCADE,
+    models.SET_NULL: HybridCloudForeignKeyCascadeBehavior.SET_NULL,
+}
 
 
 class HybridCloudForeignKey(models.BigIntegerField):
@@ -74,13 +78,19 @@ class HybridCloudForeignKey(models.BigIntegerField):
         return self.foreign_model._meta.db_table
 
     def __init__(
-        self, foreign_model: str, *, on_delete: HybridCloudForeignKeyCascadeBehavior | str, **kwds
+        self,
+        foreign_model: str,
+        *,
+        on_delete: HybridCloudForeignKeyCascadeBehavior | str | Callable[..., None],
+        **kwds,
     ):
-        self.on_delete = (
-            on_delete
-            if isinstance(on_delete, HybridCloudForeignKeyCascadeBehavior)
-            else HybridCloudForeignKeyCascadeBehavior[on_delete.upper()]
-        ).name.upper()
+        if isinstance(on_delete, HybridCloudForeignKeyCascadeBehavior):
+            self.on_delete = on_delete.name.upper()
+        # TODO: remove support for `str` after `getsentry` upgrades
+        elif isinstance(on_delete, str):
+            self.on_delete = HybridCloudForeignKeyCascadeBehavior[on_delete].name.upper()
+        else:
+            self.on_delete = _CASCADE_BEHAVIOUR[on_delete].name.upper()
 
         parts = foreign_model.split(".")
         assert (

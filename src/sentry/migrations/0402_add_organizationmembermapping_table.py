@@ -41,7 +41,7 @@ class Migration(CheckedMigration):
                 (
                     "organization_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, on_delete="CASCADE"
+                        "sentry.Organization", db_index=True, on_delete=models.CASCADE
                     ),
                 ),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),

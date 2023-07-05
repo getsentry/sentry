@@ -1,3 +1,5 @@
+from django.db import models
+
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
@@ -13,7 +15,7 @@ class ProjectIntegration(Model):
     __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete=models.CASCADE)
     config = JSONField(default=dict)
 
     class Meta:

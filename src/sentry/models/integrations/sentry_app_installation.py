@@ -112,7 +112,7 @@ class SentryAppInstallation(ParanoidModel):
     # SentryApp's are installed and scoped to an Organization. They will have
     # access, defined by their scopes, to Teams, Projects, etc. under that
     # Organization, implicitly.
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
 
     # Each installation has a Grant that the integration can exchange for an
     # Access Token.

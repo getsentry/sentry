@@ -19,7 +19,7 @@ class RecentSearch(Model):
     __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user_id = HybridCloudForeignKey("sentry.User", db_index=False, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey("sentry.User", db_index=False, on_delete=models.CASCADE)
     type = models.PositiveSmallIntegerField()
     query = models.TextField()
     query_hash = models.CharField(max_length=32)

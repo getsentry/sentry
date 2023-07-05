@@ -65,7 +65,7 @@ class GroupOwner(Model):
         )
     )
     context = JSONField(null=True)
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True)
     team = FlexibleForeignKey("sentry.Team", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 

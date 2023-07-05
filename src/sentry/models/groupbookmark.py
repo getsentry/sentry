@@ -24,7 +24,7 @@ class GroupBookmark(Model):
     project = FlexibleForeignKey("sentry.Project", related_name="bookmark_set")
     group = FlexibleForeignKey("sentry.Group", related_name="bookmark_set")
     # namespace related_name on User since we don't own the model
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     objects = BaseManager()

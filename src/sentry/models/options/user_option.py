@@ -188,8 +188,10 @@ class UserOption(Model):
     __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
-    project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
-    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
+    project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete=models.CASCADE)
+    organization_id = HybridCloudForeignKey(
+        "sentry.Organization", null=True, on_delete=models.CASCADE
+    )
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 

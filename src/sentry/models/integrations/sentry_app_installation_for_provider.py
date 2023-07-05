@@ -11,7 +11,7 @@ class SentryAppInstallationForProvider(DefaultFieldsModel):
     __include_in_export__ = False
 
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
-    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete=models.CASCADE)
     provider = models.CharField(max_length=64)
 
     class Meta:

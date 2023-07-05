@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 
@@ -15,7 +16,9 @@ class OrganizationAccessRequest(Model):
     team = FlexibleForeignKey("sentry.Team")
     member = FlexibleForeignKey("sentry.OrganizationMember")
     # access request from a different user than the member
-    requester_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
+    requester_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True
+    )
 
     class Meta:
         app_label = "sentry"

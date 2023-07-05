@@ -60,7 +60,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
-    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = "sentry"
@@ -88,7 +88,7 @@ class ProjectTransactionThreshold(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
-    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    edited_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
 
     class Meta:
         app_label = "sentry"

@@ -21,7 +21,7 @@ class PromptsActivity(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
     project_id = BoundedBigIntegerField(db_index=True)
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar
     data = JSONField(default={})

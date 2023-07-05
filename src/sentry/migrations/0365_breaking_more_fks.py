@@ -22,7 +22,7 @@ def exported_data_user_migrations():
             model_name="exporteddata",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                "sentry.User", db_index=True, null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.RenameField(
@@ -53,7 +53,7 @@ def alertruleactivity_user_migrations():
             model_name="alertruleactivity",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                "sentry.User", db_index=True, null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.RenameField(
@@ -95,7 +95,7 @@ def discover_saved_query_user_migrations():
             model_name="discoversavedquery",
             name="created_by",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                "sentry.User", db_index=True, null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.RenameField(
@@ -126,7 +126,7 @@ def incidentsubscription_user_migrations():
             model_name="incidentsubscription",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, on_delete="CASCADE"
+                "sentry.User", db_index=True, on_delete=models.CASCADE
             ),
         ),
         migrations.RenameField(
@@ -161,7 +161,7 @@ def incidentactivity_user_migrations():
             model_name="incidentactivity",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=True, on_delete="CASCADE", null=True
+                "sentry.User", db_index=True, on_delete=models.CASCADE, null=True
             ),
         ),
         migrations.RenameField(
@@ -192,7 +192,7 @@ def incidentseen_user_migrations():
             model_name="incidentseen",
             name="user",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", db_index=False, on_delete="CASCADE"
+                "sentry.User", db_index=False, on_delete=models.CASCADE
             ),
         ),
         migrations.RenameField(
@@ -227,7 +227,7 @@ def projecttransactionthresholdoverride_user_migrations():
             model_name="projecttransactionthreshold",
             name="edited_by",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", null=True, on_delete="SET_NULL"
+                "sentry.User", null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.RenameField(
@@ -258,7 +258,7 @@ def project_transaction_threshold_user_migrations():
             model_name="projecttransactionthresholdoverride",
             name="edited_by",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                "sentry.User", null=True, on_delete="SET_NULL"
+                "sentry.User", null=True, on_delete=models.SET_NULL
             ),
         ),
         migrations.RenameField(
