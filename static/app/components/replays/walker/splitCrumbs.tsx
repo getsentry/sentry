@@ -93,8 +93,6 @@ function SummarySegment({
         <li key={crumb.id || i}>
           <BreadcrumbItem
             crumb={crumb}
-            isCurrent={false}
-            isHovered={false}
             onClick={handleOnClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}

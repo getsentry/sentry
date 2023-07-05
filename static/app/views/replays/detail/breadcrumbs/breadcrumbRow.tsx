@@ -1,14 +1,15 @@
-import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
+import {CSSProperties, memo, MouseEvent, useCallback, useMemo} from 'react';
+import classNames from 'classnames';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 interface Props {
   breadcrumb: Crumb;
   index: number;
-  isCurrent: boolean;
-  isHovered: boolean;
   onDimensionChange: (
     index: number,
     path: string,
@@ -25,12 +26,12 @@ function BreadcrumbRow({
   breadcrumb,
   expandPaths,
   index,
-  isCurrent,
   onDimensionChange,
-  isHovered,
   startTimestampMs,
   style,
 }: Props) {
+  const {currentTime, currentHoverTime} = useReplayContext();
+
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -47,12 +48,24 @@ function BreadcrumbRow({
     [handleMouseLeave, breadcrumb]
   );
 
+  const crumbTime = useMemo(
+    () => relativeTimeInMs(new Date(breadcrumb.timestamp || ''), startTimestampMs),
+    [breadcrumb.timestamp, startTimestampMs]
+  );
+
+  const hasOccurred = currentTime >= crumbTime;
+  const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
+
   return (
     <BreadcrumbItem
       index={index}
       crumb={breadcrumb}
-      isCurrent={isCurrent}
-      isHovered={isHovered}
+      className={classNames({
+        beforeCurrentTime: hasOccurred,
+        afterCurrentTime: !hasOccurred,
+        beforeHoverTime: currentHoverTime !== undefined ? isBeforeHover : undefined,
+        afterHoverTime: currentHoverTime !== undefined ? !isBeforeHover : undefined,
+      })}
       onClick={onClickTimestamp}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

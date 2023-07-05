@@ -80,8 +80,6 @@ function Event({
   const buttons = crumbs.map(crumb => (
     <BreadcrumbItem
       crumb={crumb}
-      isCurrent={false}
-      isHovered={false}
       key={crumb.id}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
