@@ -133,7 +133,9 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def is_on_demand_metric(snuba_query: SnubaQuery) -> bool:
+def is_on_demand_query(snuba_query: SnubaQuery) -> bool:
+    """Returns ``True`` if the snuba query can't be supported by standard metrics."""
+
     return (
         snuba_query.dataset == Dataset.PerformanceMetrics.value
         and "transaction.duration" in snuba_query.query
@@ -162,13 +164,13 @@ class OndemandMetricSpec:
     def parse(cls, field: str, query: str) -> Optional["OndemandMetricSpec"]:
         """
         Parses a selected column and query into an on demand metric spec containing the MRI, field and op.
-        Currents supports only one selected column.
+        Currently, supports only one selected column.
 
         Has two main uses:
         1. Querying on-demand metrics.
         2. Generation of rules for on-demand metric extraction.
 
-        Returns ``None`` if passed params do not require an on-demand metric.
+        Returns ``None`` if passed params do not require or support an on-demand metric.
         """
 
         if not cls.check(field, query):
