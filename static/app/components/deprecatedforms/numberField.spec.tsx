@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {NumberField} from 'sentry/components/deprecatedforms';
 import Form from 'sentry/components/deprecatedforms/form';
+import NumberField from 'sentry/components/deprecatedforms/numberField';
 
 describe('NumberField', function () {
   describe('render()', function () {

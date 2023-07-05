@@ -14,6 +14,7 @@ from snuba_sdk import Request as SnubaRequest
 from sentry import features
 from sentry.integrations.github.client import GitHubAppsClient
 from sentry.models import Group, GroupOwnerType, Project
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
@@ -21,6 +22,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
+from sentry.types.referrer_ids import GITHUB_PR_BOT_REFERRER
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
@@ -41,8 +43,6 @@ This pull request has been deployed and Sentry has observed the following issues
 
 {issue_list}
 
-Have questions? Reach out to us in the #proj-github-pr-comments channel.
-
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
@@ -56,10 +56,15 @@ def format_comment(issues: List[PullRequestIssue]):
     def format_subtitle(subtitle):
         return subtitle[:47] + "..." if len(subtitle) > 50 else subtitle
 
+    def format_url(url):
+        return url + "?referrer=" + GITHUB_PR_BOT_REFERRER
+
     issue_list = "\n".join(
         [
             SINGLE_ISSUE_TEMPLATE.format(
-                title=issue.title, subtitle=format_subtitle(issue.subtitle), url=issue.url
+                title=issue.title,
+                subtitle=format_subtitle(issue.subtitle),
+                url=format_url(issue.url),
             )
             for issue in issues
         ]
@@ -180,8 +185,15 @@ def github_comment_workflow(pullrequest_id: int, project_id: int):
         return
 
     # TODO(cathy): add check for OrganizationOption for comment bot
-    if not features.has("organizations:pr-comment-bot", organization):
-        logger.error("github.pr_comment.feature_flag_missing", extra={"organization_id": org_id})
+    if not (
+        features.has("organizations:pr-comment-bot", organization)
+        and OrganizationOption.objects.get_value(
+            organization=organization,
+            key="sentry:github_pr_bot",
+            default=True,
+        )
+    ):
+        logger.error("github.pr_comment.option_missing", extra={"organization_id": org_id})
         return
 
     pr_comment = None
@@ -293,7 +305,7 @@ def github_comment_reactions():
             comment.reactions = reactions
             comment.save()
         except ApiError as e:
-            if RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
                 break
 

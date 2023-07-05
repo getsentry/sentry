@@ -34,6 +34,9 @@ def control_metrics_access(monkeypatch, request, set_sentry_option):
         monkeypatch.setattr(
             "sentry.sentry_metrics.indexer.reverse_resolve", mock_indexer.reverse_resolve
         )
+        monkeypatch.setattr(
+            "sentry.sentry_metrics.indexer.bulk_reverse_resolve", mock_indexer.bulk_reverse_resolve
+        )
 
         old_resolve = indexer.resolve
 

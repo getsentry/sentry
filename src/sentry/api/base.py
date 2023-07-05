@@ -121,7 +121,7 @@ def allow_cors_options(func):
         # to be sent.
         basehost = options.get("system.base-hostname")
         if basehost and origin:
-            if origin.endswith(basehost):
+            if origin.endswith(("://" + basehost, "." + basehost)):
                 response["Access-Control-Allow-Credentials"] = "true"
 
         return response
@@ -158,7 +158,7 @@ class Endpoint(APIView):
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
             auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
-            if auth_type:
+            if auth_type is not None:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:

@@ -57,15 +57,18 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 
         span_group = request.query_params.get("spans.group", None)
         if span_group is not None:
+            backend = request.query_params.get("backend", "indexed_spans")
             profile_ids = get_profile_ids_with_spans(
                 organization.id,
                 project_ids[0],
                 params,
                 span_group,
+                backend,
                 request.query_params.get("query", None),
             )
         else:
             profile_ids = get_profile_ids(params, request.query_params.get("query", None))
+
         kwargs: Dict[str, Any] = {
             "method": "POST",
             "path": f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",

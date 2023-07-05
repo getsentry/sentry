@@ -106,3 +106,12 @@ class ApiKey(Model):
 
     def has_scope(self, scope):
         return scope in self.get_scopes()
+
+
+def is_api_key_auth(auth: object) -> bool:
+    """:returns True when an API Key is hitting the API."""
+    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+
+    if isinstance(auth, AuthenticatedToken):
+        return auth.kind == "api_key"
+    return isinstance(auth, ApiKey)
