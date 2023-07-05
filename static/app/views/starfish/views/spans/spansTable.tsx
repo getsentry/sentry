@@ -138,6 +138,7 @@ function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'span.description') {
     const queryString = {
+      ...location.query,
       endpoint,
       endpointMethod,
     };
