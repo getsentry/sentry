@@ -296,6 +296,8 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       },
     };
 
+    const hasRecapServerFeature = project.features.includes('recap-server');
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -305,7 +307,19 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, fields.platform]}
+            // TODO(recap): Move this to a separate page or debug files one, not general settings
+            fields={[
+              fields.name,
+              fields.platform,
+              {
+                ...fields.recapServerUrl,
+                visible: hasRecapServerFeature,
+              },
+              {
+                ...fields.recapServerToken,
+                visible: hasRecapServerFeature,
+              },
+            ]}
           />
 
           <JsonForm

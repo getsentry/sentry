@@ -1347,3 +1347,6 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Killswitch for monitor check-ins
+register("crons.organization.disable-check-in", type=Sequence, default=[])

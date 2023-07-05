@@ -23,6 +23,15 @@ describe('projectPerformance', function () {
   const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock, performanceIssuesMock;
 
+  const router = TestStubs.router();
+  const routerProps = {
+    router,
+    location: TestStubs.location(),
+    routes: router.routes,
+    route: router.routes[0],
+    routeParams: router.params,
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     getMock = MockApiClient.addMockResponse({
@@ -67,9 +76,10 @@ describe('projectPerformance', function () {
   it('renders the fields', function () {
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
         project={project}
+        {...routerProps}
       />
     );
 
@@ -83,9 +93,10 @@ describe('projectPerformance', function () {
   it('updates the field', async function () {
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
         project={project}
+        {...routerProps}
       />
     );
 
@@ -108,9 +119,10 @@ describe('projectPerformance', function () {
   it('clears the data', async function () {
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
         project={project}
+        {...routerProps}
       />
     );
 
@@ -125,9 +137,10 @@ describe('projectPerformance', function () {
 
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={orgWithoutPerfIssues}
         project={project}
+        {...routerProps}
       />
     );
 
@@ -149,9 +162,10 @@ describe('projectPerformance', function () {
 
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
         project={project}
+        {...routerProps}
       />,
       {organization: org}
     );
@@ -220,9 +234,10 @@ describe('projectPerformance', function () {
 
       render(
         <ProjectPerformance
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
+          {...routerProps}
         />,
         {organization: org}
       );
@@ -276,9 +291,10 @@ describe('projectPerformance', function () {
 
     render(
       <ProjectPerformance
-        params={{orgId: org.slug, projectId: project.slug}}
+        params={{projectId: project.slug}}
         organization={org}
         project={project}
+        {...routerProps}
       />,
       {organization: org}
     );

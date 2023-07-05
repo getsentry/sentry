@@ -1,4 +1,4 @@
-from sentry.models import NotificationSetting, OrganizationMemberMapping
+from sentry.models import NotificationSetting, OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
@@ -12,7 +12,7 @@ from sentry.types.integrations import ExternalProviders
 
 class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self):
-        return OrganizationMemberMapping.objects.filter(organization_id=self.organization.id)
+        return OrganizationMember.objects.filter(organization=self.organization)
 
 
 class DummyRequestNotification(OrganizationRequestNotification):
@@ -21,14 +21,12 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
         self.create_member(user=self.user2, organization=self.organization)
-        self.user_actor = RpcActor.from_orm_user(self.user)
-        self.user2_actor = RpcActor.from_orm_user(self.user2)
-        self.user_actors = {self.user_actor, self.user2_actor}
+        self.user_actors = {RpcActor.from_orm_user(user) for user in (self.user, self.user2)}
 
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)
@@ -43,14 +41,14 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            actor=self.user_actor,
+            user_id=self.user.id,
         )
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            actor=self.user2_actor,
+            user_id=self.user2.id,
         )
 
         notification = DummyRequestNotification(self.organization, self.user)

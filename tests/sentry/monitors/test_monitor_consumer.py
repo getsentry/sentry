@@ -9,6 +9,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry import killswitches, options
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
@@ -457,3 +458,18 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
+
+    def test_organization_killswitch(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        opt_val = killswitches.validate_user_input(
+            "crons.organization.disable-check-in", [{"organization_id": self.organization.id}]
+        )
+        options.set("crons.organization.disable-check-in", opt_val)
+
+        self.send_message(monitor.slug)
+
+        opt_val = killswitches.validate_user_input("crons.organization.disable-check-in", [])
+        options.set("crons.organization.disable-check-in", opt_val)
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()

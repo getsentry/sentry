@@ -7,7 +7,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import OrganizationDeveloperSettings from 'sentry/views/settings/organizationDeveloperSettings/index';
 
 describe('Organization Developer Settings', function () {
@@ -24,12 +23,12 @@ describe('Organization Developer Settings', function () {
   });
 
   beforeEach(() => {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   describe('when no Apps exist', () => {
     it('displays empty state', async () => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
@@ -45,7 +44,7 @@ describe('Organization Developer Settings', function () {
 
   describe('with unpublished apps', () => {
     beforeEach(() => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [sentryApp],
       });
@@ -71,7 +70,7 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows for deletion', async () => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/`,
         method: 'DELETE',
         body: [],
@@ -101,7 +100,7 @@ describe('Organization Developer Settings', function () {
     });
 
     it('can make a request to publish an integration', async () => {
-      const mock = Client.addMockResponse({
+      const mock = MockApiClient.addMockResponse({
         url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
         method: 'POST',
       });
@@ -162,7 +161,7 @@ describe('Organization Developer Settings', function () {
   describe('with published apps', () => {
     beforeEach(() => {
       const publishedSentryApp = TestStubs.SentryApp({status: 'published'});
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [publishedSentryApp],
       });
@@ -204,7 +203,7 @@ describe('Organization Developer Settings', function () {
     beforeEach(() => {
       const internalIntegration = TestStubs.SentryApp({status: 'internal'});
 
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [internalIntegration],
       });
@@ -225,7 +224,7 @@ describe('Organization Developer Settings', function () {
   describe('without Owner permissions', () => {
     const newOrg = TestStubs.Organization({access: ['org:read']});
     beforeEach(() => {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `/organizations/${newOrg.slug}/sentry-apps/`,
         body: [sentryApp],
       });

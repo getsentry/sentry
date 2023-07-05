@@ -22,11 +22,11 @@ from sentry.models import (
     Rule,
     UserOption,
 )
-from sentry.models.actor import Actor
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
@@ -62,6 +62,7 @@ def analytics_called_with_args(fn, name, **kwargs):
     return False
 
 
+@control_silo_test(stable=True)
 class ActivityNotificationTest(APITestCase):
     """
     Enable Slack AND email notification settings for a user
@@ -116,9 +117,10 @@ class ActivityNotificationTest(APITestCase):
 
         # leave a comment
         url = f"/api/0/issues/{self.group.id}/comments/"
-        with self.tasks():
-            response = self.client.post(url, format="json", data={"text": "blah blah"})
-        assert response.status_code == 201, response.content
+        with exempt_from_silo_limits():
+            with self.tasks():
+                response = self.client.post(url, format="json", data={"text": "blah blah"})
+            assert response.status_code == 201, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -149,12 +151,16 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is unassigned.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        GroupAssignee.objects.create(
-            group=self.group, project=self.project, user_id=self.user.id, date_added=timezone.now()
-        )
-        with self.tasks():
-            response = self.client.put(url, format="json", data={"assignedTo": ""})
-        assert response.status_code == 200, response.content
+        with exempt_from_silo_limits():
+            GroupAssignee.objects.create(
+                group=self.group,
+                project=self.project,
+                user_id=self.user.id,
+                date_added=timezone.now(),
+            )
+            with self.tasks():
+                response = self.client.put(url, format="json", data={"assignedTo": ""})
+            assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -181,9 +187,10 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved.
         """
         url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(url, format="json", data={"status": "resolved"})
-        assert response.status_code == 200, response.content
+        with exempt_from_silo_limits():
+            with self.tasks():
+                response = self.client.put(url, format="json", data={"status": "resolved"})
+            assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -208,7 +215,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -216,7 +222,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -231,12 +236,15 @@ class ActivityNotificationTest(APITestCase):
 
         release = self.create_release()
         version_parsed = self.version_parsed = parse_release(release.version)["description"]
-        url = f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
-        with self.tasks():
-            response = self.client.post(
-                url, format="json", data={"environment": self.environment.name}
+        with exempt_from_silo_limits():
+            url = (
+                f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
             )
-        assert response.status_code == 201, response.content
+            with self.tasks():
+                response = self.client.post(
+                    url, format="json", data={"environment": self.environment.name}
+                )
+            assert response.status_code == 201, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -267,7 +275,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=None,
         )
@@ -275,7 +282,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=None,
         )
@@ -289,23 +295,26 @@ class ActivityNotificationTest(APITestCase):
         """
         # resolve and unresolve the issue
         ts = time() - 300
-        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
-        with self.tasks():
-            event = manager.save(self.project.id)
+        with exempt_from_silo_limits():
+            manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+            with self.tasks():
+                event = manager.save(self.project.id)
 
-        group = Group.objects.get(id=event.group_id)
-        group.status = GroupStatus.RESOLVED
-        group.substatus = None
-        group.save()
-        assert group.is_resolved()
+            group = Group.objects.get(id=event.group_id)
+            group.status = GroupStatus.RESOLVED
+            group.substatus = None
+            group.save()
+            assert group.is_resolved()
 
-        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-        assert event.group_id == event2.group_id
+            manager = EventManager(
+                make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50)
+            )
+            with self.tasks():
+                event2 = manager.save(self.project.id)
+            assert event.group_id == event2.group_id
 
-        group = Group.objects.get(id=group.id)
-        assert not group.is_resolved()
+            group = Group.objects.get(id=group.id)
+            assert not group.is_resolved()
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -326,7 +335,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=group.id,
         )
@@ -334,7 +342,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=group.id,
         )
@@ -347,14 +354,15 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is resolved by a release.
         """
         release = self.create_release()
-        url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(
-                url,
-                format="json",
-                data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
-            )
-        assert response.status_code == 200, response.content
+        with exempt_from_silo_limits():
+            url = f"/api/0/issues/{self.group.id}/"
+            with self.tasks():
+                response = self.client.put(
+                    url,
+                    format="json",
+                    data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
+                )
+            assert response.status_code == 200, response.content
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -380,7 +388,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -388,7 +395,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
@@ -414,31 +420,32 @@ class ActivityNotificationTest(APITestCase):
             "targetType": "Member",
             "targetIdentifier": str(self.user.id),
         }
-        Rule.objects.create(
-            project=self.project,
-            label="a rule",
-            data={
-                "match": "all",
-                "actions": [action_data],
-            },
-        )
-        min_ago = iso_format(before_now(minutes=1))
-        event = self.store_event(
-            data={
-                "message": "Hello world",
-                "timestamp": min_ago,
-            },
-            project_id=self.project.id,
-        )
-        cache_key = write_event_to_cache(event)
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                group_id=event.group_id,
-                cache_key=cache_key,
+        with exempt_from_silo_limits():
+            Rule.objects.create(
+                project=self.project,
+                label="a rule",
+                data={
+                    "match": "all",
+                    "actions": [action_data],
+                },
             )
+            min_ago = iso_format(before_now(minutes=1))
+            event = self.store_event(
+                data={
+                    "message": "Hello world",
+                    "timestamp": min_ago,
+                },
+                project_id=self.project.id,
+            )
+            cache_key = write_event_to_cache(event)
+            with self.tasks():
+                post_process_group(
+                    is_new=True,
+                    is_regression=False,
+                    is_new_group_environment=True,
+                    group_id=event.group_id,
+                    cache_key=cache_key,
+                )
 
         msg = mail.outbox[0]
         assert isinstance(msg, EmailMultiAlternatives)
@@ -459,7 +466,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.email.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )
@@ -467,7 +473,6 @@ class ActivityNotificationTest(APITestCase):
             record_analytics,
             "integrations.slack.notification_sent",
             user_id=self.user.id,
-            actor_id=Actor.objects.get(user_id=self.user.id).id,
             organization_id=self.organization.id,
             group_id=event.group_id,
         )

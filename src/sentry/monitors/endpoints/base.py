@@ -94,7 +94,7 @@ class MonitorEndpoint(Endpoint):
 
 class MonitorIngestEndpoint(Endpoint):
     """
-    This type of endpont explicitly only allows for DSN and Token / Key based authentication.
+    This type of endpoint explicitly only allows for DSN and Token / Key based authentication.
 
     [!!]: These endpoints are legacy and will be replaced by relay based
           checkin ingestion in the very near future.
@@ -104,7 +104,7 @@ class MonitorIngestEndpoint(Endpoint):
           validate
 
     [!!]: This type of endpoint supports lookup of monitors by slug AND by
-          GUID. However slug lookup is **ONLY** supported in two scenarios:
+          GUID. However, slug lookup is **ONLY** supported in two scenarios:
 
           - When the organization slug is part of the URL parameters.
           - When using DSN auth
@@ -138,7 +138,6 @@ class MonitorIngestEndpoint(Endpoint):
         *args,
         **kwargs,
     ):
-        organization = None
         monitor = None
 
         # Include monitor_slug in kwargs when upsert is enabled

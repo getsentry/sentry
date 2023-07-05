@@ -54,7 +54,7 @@ function DurationChart({
 
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
     'span-summary-panel-samples-table-p95'
   );

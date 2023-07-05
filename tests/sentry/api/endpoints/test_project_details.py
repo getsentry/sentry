@@ -29,7 +29,6 @@ from sentry.models import (
     ScheduledDeletion,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import region_silo_test
@@ -626,7 +625,7 @@ class ProjectUpdateTest(APITestCase):
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
@@ -635,7 +634,7 @@ class ProjectUpdateTest(APITestCase):
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
             project=self.project,
         )
         assert value1 == NotificationSettingOptionValues.NEVER
@@ -1000,6 +999,78 @@ class ProjectUpdateTest(APITestCase):
 
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", json.dumps([source1]))
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") == "http://example.com"
+            assert poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") == "wat"
+            assert poll_project_recap_server.called
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_no_feature(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        with Feature({"projects:recap-server": False}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 400
+            assert project.get_option("sentry:recap_server_url") is None
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 400
+            assert project.get_option("sentry:recap_server_token") is None
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_no_modification(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        project.update_option("sentry:recap_server_url", "http://example.com")
+        project.update_option("sentry:recap_server_token", "wat")
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(
+                self.org_slug, self.proj_slug, recapServerUrl="http://example.com"
+            )
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") == "http://example.com"
+            assert not poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="wat")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") == "wat"
+            assert not poll_project_recap_server.called
+
+    @mock.patch("sentry.tasks.recap_servers.poll_project_recap_server.delay")
+    def test_recap_server_deletion(self, poll_project_recap_server):
+        project = Project.objects.get(id=self.project.id)
+        project.update_option("sentry:recap_server_url", "http://example.com")
+        project.update_option("sentry:recap_server_token", "wat")
+        with Feature({"projects:recap-server": True}):
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerUrl="")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_url") is None
+            assert not poll_project_recap_server.called
+
+            resp = self.get_response(self.org_slug, self.proj_slug, recapServerToken="")
+
+            assert resp.status_code == 200
+            assert project.get_option("sentry:recap_server_token") is None
+            assert not poll_project_recap_server.called
 
 
 @region_silo_test
