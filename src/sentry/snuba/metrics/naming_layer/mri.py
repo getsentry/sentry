@@ -132,7 +132,6 @@ class TransactionMRI(Enum):
     COUNT_ON_DEMAND = "c:transactions/on_demand@none"
     DIST_ON_DEMAND = "d:transactions/on_demand@none"
     SET_ON_DEMAND = "s:transactions/on_demand@none"
-    GAUGE_ON_DEMAND = "g:transactions/on_demand@none"
 
 
 @dataclass
