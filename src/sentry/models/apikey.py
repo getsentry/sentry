@@ -75,7 +75,7 @@ class ApiKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
+        return secrets.token_hex(nbytes=16)
 
     @property
     def is_active(self):

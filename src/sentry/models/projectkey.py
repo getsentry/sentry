@@ -105,7 +105,7 @@ class ProjectKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return secrets.token_hex(nbytes=32)
+        return secrets.token_hex(nbytes=16)
 
     @classmethod
     def looks_like_api_key(cls, key):

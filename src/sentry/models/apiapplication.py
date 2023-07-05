@@ -26,7 +26,7 @@ def generate_name():
 def generate_token():
     # `client_id` on `ApiApplication` is currently limited to 64 characters
     # so we need to restrict the length of the secret
-    return secrets.token_hex(nbytes=64)  # generates a 256-bit secure token
+    return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
 
 class ApiApplicationStatus:

@@ -24,7 +24,7 @@ def default_expiration():
 
 
 def generate_token():
-    return secrets.token_hex(nbytes=64)  # generates a 256-bit secure token
+    return secrets.token_hex(nbytes=32)
 
 
 @control_silo_only_model

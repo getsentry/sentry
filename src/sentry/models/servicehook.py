@@ -44,7 +44,7 @@ class ServiceHookProject(Model):
 
 def generate_secret():
     # the `secret` field on `ServiceHook` does not have a max_length so we can use the default length
-    # at 64 bytes (512-bits). This is sufficiently secure and will update over time to sane defaults.
+    # of 64 characters. This is sufficiently secure and will update over time to sane defaults.
     return secrets.token_hex()
 
 
