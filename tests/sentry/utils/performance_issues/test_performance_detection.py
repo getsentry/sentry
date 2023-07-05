@@ -132,13 +132,10 @@ class PerformanceDetectionTest(TestCase):
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
 
-    def test_project_options_overrides_default_settings(self):
-
+    def test_project_options_overrides_default_detection_settings(self):
         default_settings = get_detection_settings(self.project)
 
-        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
         assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
         assert default_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -152,9 +149,7 @@ class PerformanceDetectionTest(TestCase):
         assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
         self.project_option_mock.return_value = {
-            "n_plus_one_db_duration_threshold": 100000,
             "n_plus_one_db_queries_detection_enabled": False,
-            "slow_db_query_duration_threshold": 5000,
             "slow_db_queries_detection_enabled": False,
             "uncompressed_assets_detection_enabled": False,
             "consecutive_http_spans_detection_enabled": False,
@@ -168,11 +163,7 @@ class PerformanceDetectionTest(TestCase):
 
         configured_settings = get_detection_settings(self.project)
 
-        assert (
-            configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
-        )
         assert not configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
-        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
         assert not configured_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
         assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
@@ -186,6 +177,57 @@ class PerformanceDetectionTest(TestCase):
             configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["detection_enabled"]
         )
         assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
+
+    def test_project_options_overrides_default__threshold_settings(self):
+
+        default_settings = get_detection_settings(self.project)
+
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
+        assert (
+            default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"] == 0.33
+        )
+        assert default_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 16
+        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 16
+        assert (
+            default_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 500 * 1024
+        )
+        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 500
+        assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 100
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+            "slow_db_query_duration_threshold": 5000,
+            "render_blocking_fcp_ratio": 0.8,
+            "large_http_payload_size_threshold": 7000000,
+            "uncompressed_asset_size_threshold": 2000000,
+            "uncompressed_asset_duration_threshold": 300,
+            "db_on_main_thread_duration_threshold": 50,
+            "file_io_on_main_thread_duration_threshold": 33,
+            "consecutive_db_min_time_saved_threshold": 500,
+        }
+
+        configured_settings = get_detection_settings(self.project)
+
+        assert (
+            configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
+        )
+        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
+        assert (
+            configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["fcp_ratio_threshold"]
+            == 0.8
+        )
+        assert (
+            configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["size_threshold_bytes"] == 2000000
+        )
+        assert configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["duration_threshold"] == 300
+        assert (
+            configured_settings[DetectorType.LARGE_HTTP_PAYLOAD]["payload_size_threshold"]
+            == 7000000
+        )
+        assert configured_settings[DetectorType.DB_MAIN_THREAD][0]["duration_threshold"] == 50
+        assert configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["duration_threshold"] == 33
+        assert configured_settings[DetectorType.CONSECUTIVE_DB_OP]["min_time_saved"] == 500
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
