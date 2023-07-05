@@ -68,7 +68,7 @@ function IssueCategoryFilter({query, onSearch}: IssueCategoryFilterProps) {
         value: IssueCategory.PERFORMANCE,
         textValue: IssueCategory.PERFORMANCE,
       },
-      ...(organization.features.includes('crons-issue-platform')
+      ...(organization.features.includes('issue-platform')
         ? [
             {
               label: renderLabel(IssueCategory.CRON),
