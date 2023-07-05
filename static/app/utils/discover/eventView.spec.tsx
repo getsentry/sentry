@@ -197,6 +197,9 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -248,15 +251,14 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-count',
       name: 'foo bar',
       fields: ['release', 'count()'],
-      widths: [111, 222],
+      widths: ['111', '222'],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       environment: ['dev', 'production'],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T06:13:17.632096Z',
       id: '5',
       projects: [1],
-      yAxis: 'count()',
+      yAxis: ['count()'],
     };
 
     const eventView = EventView.fromSavedQuery(saved);
@@ -280,11 +282,16 @@ describe('EventView.fromSavedQuery()', function () {
 
   it('maps properties from v2 saved query', function () {
     const saved: SavedQuery = {
+      id: '42',
+      projects: [123],
       name: 'best query',
       fields: ['count()', 'title'],
       range: '14d',
       start: '',
       end: '',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.fields).toEqual([
@@ -307,7 +314,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -348,7 +354,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -384,7 +389,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -394,7 +398,7 @@ describe('EventView.fromSavedQuery()', function () {
 
     const eventView2 = EventView.fromSavedQuery({
       ...saved,
-      yAxis: 'count()',
+      yAxis: ['count()'],
     });
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
@@ -416,6 +420,9 @@ describe('EventView.fromSavedQuery()', function () {
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
       yAxis: ['count()'],
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -442,12 +449,18 @@ describe('EventView.fromSavedQuery()', function () {
 
   it('preserves utc with start/end', function () {
     const saved: SavedQuery = {
+      id: '42',
+      version: 2,
+      projects: [123],
       name: 'best query',
       query: 'event.type:transaction',
       fields: ['count()', 'title'],
       start: '2019-10-20T21:02:51+0000',
       end: '2019-10-23T19:27:04+0000',
       utc: 'true',
+
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
     };
     const eventView = EventView.fromSavedQuery(saved);
 
