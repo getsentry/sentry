@@ -352,7 +352,7 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def generate_token(self):
-        return secrets.token_hex(nbytes=64)
+        return secrets.token_hex(nbytes=32)
 
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:
