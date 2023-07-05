@@ -259,3 +259,10 @@ def _get_query_builder():
         # start and end parameters are required, but not used
         params={"start": datetime.now(), "end": datetime.now()},
     )
+
+
+def is_on_demand_metric(snuba_query: SnubaQuery) -> bool:
+    return (
+        snuba_query.dataset == Dataset.PerformanceMetrics.value
+        and "transaction.duration" in snuba_query.query
+    )

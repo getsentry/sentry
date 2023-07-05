@@ -95,13 +95,12 @@ class MetricsQueryBuilder(QueryBuilder):
     def _resolve_on_demand_spec(
         self, selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
-        field = selected_cols[0] if selected_cols and len(selected_cols) else None
+        field = selected_cols[0] if selected_cols else None
         if not self.is_performance or not self.is_alerts_query or not field:
             return None
 
         try:
-            if OndemandMetricSpec.check(field, query):
-                return OndemandMetricSpec.parse(field, query)
+            return OndemandMetricSpec.parse(field, query)
 
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -892,22 +891,18 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
 
             if self._on_demand_spec:
                 metrics_query = self._get_on_demand_metrics_query()
-
-                snuba_queries, _ = SnubaQueryBuilder(
-                    projects=self.params.projects,
-                    metrics_query=metrics_query,
-                    use_case_id=UseCaseKey.PERFORMANCE,
-                ).get_snuba_queries()
             else:
-                snuba_queries, _ = SnubaQueryBuilder(
-                    projects=self.params.projects,
-                    metrics_query=transform_mqb_query_to_metrics_query(
-                        snuba_request.query, is_alerts_query=self.is_alerts_query
-                    ),
-                    use_case_id=UseCaseKey.PERFORMANCE
-                    if self.is_performance
-                    else UseCaseKey.RELEASE_HEALTH,
-                ).get_snuba_queries()
+                metrics_query = transform_mqb_query_to_metrics_query(
+                    snuba_request.query, is_alerts_query=self.is_alerts_query
+                )
+
+            snuba_queries, _ = SnubaQueryBuilder(
+                projects=self.params.projects,
+                metrics_query=metrics_query,
+                use_case_id=UseCaseKey.PERFORMANCE
+                if self.is_performance
+                else UseCaseKey.RELEASE_HEALTH,
+            ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
                 # If we have zero or more than one queries resulting from the supplied query, we want to generate
