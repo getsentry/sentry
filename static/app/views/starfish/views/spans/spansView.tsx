@@ -2,10 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -49,6 +52,11 @@ export default function SpansView(props: Props) {
 
   return (
     <Fragment>
+      <StyledPageFilterBar condensed>
+        <StarfishProjectSelector />
+        <StarfishDatePicker />
+      </StyledPageFilterBar>
+
       <PaddedContainer>
         <SpanTimeCharts
           moduleName={props.moduleName || ModuleName.ALL}
@@ -96,5 +104,10 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   display: flex;
   flex-direction: row;
   gap: ${space(1)};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin: 0 ${space(2)};
   margin-bottom: ${space(2)};
 `;
