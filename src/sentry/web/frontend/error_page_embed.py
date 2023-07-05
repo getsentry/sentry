@@ -1,6 +1,6 @@
 from django import forms
 from django.db import IntegrityError, router
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
@@ -63,11 +63,8 @@ class UserReportForm(forms.ModelForm):
         fields = ("name", "email", "comments")
 
 
-from rest_framework.request import Request
-
-
 class ErrorPageEmbedView(View):
-    def _get_project_key(self, request: Request):
+    def _get_project_key(self, request: HttpRequest):
         try:
             dsn = request.GET["dsn"]
         except KeyError:
@@ -80,10 +77,10 @@ class ErrorPageEmbedView(View):
 
         return key
 
-    def _get_origin(self, request: Request):
+    def _get_origin(self, request: HttpRequest):
         return origin_from_request(request)
 
-    def _smart_response(self, request: Request, context=None, status=200):
+    def _smart_response(self, request: HttpRequest, context=None, status=200):
         json_context = json.dumps(context or {})
         accept = request.META.get("HTTP_ACCEPT") or ""
         if "text/javascript" in accept:
@@ -103,7 +100,7 @@ class ErrorPageEmbedView(View):
         return response
 
     @csrf_exempt
-    def dispatch(self, request: Request) -> HttpResponse:
+    def dispatch(self, request: HttpRequest) -> HttpResponse:
         try:
             event_id = request.GET["eventId"]
         except KeyError:

@@ -1,9 +1,8 @@
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry.models import ProjectKey
 from sentry.web.helpers import render_to_response
@@ -13,7 +12,7 @@ class DebugErrorPageEmbedView(View):
     def _get_project_key(self):
         return ProjectKey.objects.filter(project=settings.SENTRY_PROJECT)[0]
 
-    def get(self, request: Request) -> HttpResponse:
+    def get(self, request: HttpRequest) -> HttpResponse:
         context = {
             "query_params": urlencode(
                 {

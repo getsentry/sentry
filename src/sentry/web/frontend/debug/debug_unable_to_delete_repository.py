@@ -1,8 +1,7 @@
 import types
 
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.models import Repository
 from sentry.plugins.providers.dummy import DummyRepositoryProvider
@@ -11,7 +10,7 @@ from .mail import MailPreview
 
 
 class DebugUnableToDeleteRepository(View):
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         def mock_get_provider(self):
             return DummyRepositoryProvider("dummy")
 
