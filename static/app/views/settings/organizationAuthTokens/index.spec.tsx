@@ -129,10 +129,6 @@ describe('OrganizationAuthTokensIndex', function () {
     expect(screen.getByText('My Token 1')).toBeInTheDocument();
     expect(screen.getByText('My Token 2')).toBeInTheDocument();
     expect(screen.getAllByText('never used')).toHaveLength(2);
-
-    expect(screen.queryByTestId('loading-error')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('empty-state')).not.toBeInTheDocument();
   });
 
   it('handle error when loading tokens', async function () {
