@@ -5,7 +5,7 @@ import {getDateFilters} from 'sentry/views/starfish/utils/getDateFilters';
 export const getDateConditions = (
   selection: PageFilters
 ): {end?: string | undefined; start?: string | undefined; statsPeriod?: string} => {
-  const {startTime, endTime, statsPeriod} = getDateFilters(selection);
+  const {startTime, endTime, statsPeriod} = getDateFilters(selection.datetime);
   const {start, end} = normalizeDateTimeParams({
     start: startTime.toDate(),
     end: endTime.toDate(),

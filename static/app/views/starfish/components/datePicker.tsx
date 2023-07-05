@@ -4,8 +4,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MAXIMUM_DATE_RANGE} from 'sentry/views/starfish/components/pageFilterContainer';
 
+import {setStarfishDateFilterStorage} from '../utils/dateFilterStorage';
+
 function StarfishDatePicker() {
   const organization = useOrganization();
+
   return (
     <DatePageFilter
       maxDateRange={MAXIMUM_DATE_RANGE}
@@ -19,7 +22,13 @@ function StarfishDatePicker() {
       }}
       defaultPeriod="24h"
       alignDropdown="left"
-      onChange={({start, end, relative}) => {
+      onChange={({start, end, relative, utc}) => {
+        setStarfishDateFilterStorage(organization.slug, {
+          period: relative,
+          start,
+          end,
+          utc,
+        });
         trackAnalytics('starfish.page_filter.data_change', {
           organization,
           start,

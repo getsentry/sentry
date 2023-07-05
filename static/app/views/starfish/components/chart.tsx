@@ -181,7 +181,7 @@ function Chart({
   const router = useRouter();
   const theme = useTheme();
   const pageFilter = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilter.selection);
+  const {startTime, endTime} = getDateFilters(pageFilter.selection.datetime);
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
