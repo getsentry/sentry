@@ -38,9 +38,7 @@ class InstanceID:
     def __hash__(self):
         return hash((self.model, self.pk))
 
-    # This should probably be `__repr__`, but this interacts poorly with the debugger, so this and
-    # other similar instances use `__str__` instead.
-    def __str__(self):
+    def print(self):
         return f'InstanceID(model: "{self.model}", pk: {self.pk})'
 
 
@@ -52,10 +50,8 @@ class ComparatorFinding:
         self.on = on
         self.reason = reason
 
-    def __str__(self):
-        return (
-            f'Finding(\n\tname: "{self.name}",\n\ton: {str(self.on)},\n\treason: {self.reason}\n)'
-        )
+    def print(self):
+        return f'Finding(\n\tname: "{self.name}",\n\ton: {self.on.print()},\n\treason: {self.reason}\n)'
 
 
 class ComparatorFindings:
@@ -64,15 +60,15 @@ class ComparatorFindings:
     def __init__(self, findings: list[ComparatorFinding]):
         self.findings = findings
 
-    def __str__(self):
-        return "\n".join(map(lambda f: str(f), self.findings))
-
     def append(self, finding: ComparatorFinding):
         self.findings.append(finding)
 
     def assert_on_findings(self):
         if self.findings:
-            assert False, str(self)
+            assert False, self.print()
+
+    def print(self):
+        return "\n".join(map(lambda f: f.print(), self.findings))
 
 
 class JSONMutatingComparator(Protocol):
@@ -183,15 +179,13 @@ def import_then_export(
     with open(backup_json_file_path) as backup_file:
         contents = backup_file.read()
         instream = io.StringIO(contents)
-        input = json.load(instream)
+        input = json.loads(instream.getvalue())
         with in_test_psql_role_override("postgres"):
-            instream.seek(0)
             exec_import(instream)
 
     outstream = io.StringIO()
     exec_export(outstream, silent, indent=INDENT, exclude=None)
-    outstream.seek(0)
-    output = json.load(outstream)
+    output = json.loads(outstream.getvalue())
     return input, output, validate(input, output)
 
 
