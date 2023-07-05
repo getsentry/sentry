@@ -72,7 +72,7 @@ describe('IssueListFilters', () => {
 
   it('should filter by cron monitors', async () => {
     render(<IssueListFilters query="" onSearch={onSearch} />, {
-      organization: TestStubs.Organization({features: ['crons-issue-platform']}),
+      organization: TestStubs.Organization({features: ['issue-platform']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'All Categories'}));
