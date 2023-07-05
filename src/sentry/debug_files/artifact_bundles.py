@@ -89,7 +89,7 @@ def index_artifact_bundles_for_release(
             bundles_to_index.append(artifact_bundle)
         else:
             # A different asynchronous job is taking care of this bundle.
-            metrics.incr("artifact_bundle_indexing.conflict")
+            metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
 
     artifact_bundles = bundles_to_index
     if not artifact_bundles:
@@ -145,6 +145,7 @@ def index_artifact_bundles_for_release(
             ).exists()
             # If the bundle was already indexed, we will skip insertion into the database.
             if not is_bundle_not_indexed:
+                metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
                 continue
 
             for url in urls:
