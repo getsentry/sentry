@@ -5,6 +5,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
 import onboardingFrameworkSelectionJava from 'sentry-images/spot/onboarding-framework-selection-java.svg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
 import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
@@ -29,6 +30,7 @@ export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
   PYTHON = 'python',
   NODE = 'node',
+  DOTNET = 'dotnet',
   JAVA = 'java',
 }
 
@@ -58,6 +60,18 @@ const topNodeFrameworks = [
   'node-koa',
 ];
 
+const topDotNetFrameworks = [
+  'dotnet-aspnetcore',
+  'dotnet-aspnet',
+  'dotnet-maui',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'dotnet-uwp',
+  'dotnet-gcpfunctions',
+  'dotnet-awslambda',
+];
+
 const topJavaFrameworks = [
   'java-spring-boot',
   'java-spring',
@@ -83,6 +97,12 @@ export const languageDetails = {
       'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionPython,
+  },
+  [SupportedLanguages.DOTNET]: {
+    description: t(
+      'Our Dotnet framework SDKs include all the features of our Dotnet SDK with instructions specific to that framework'
+    ),
+    topFrameworksImage: onboardingFrameworkSelectionDotnet,
   },
   [SupportedLanguages.JAVA]: {
     description: t(
@@ -127,6 +147,9 @@ export function FrameworkSuggestionModal({
     if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.includes(framework.id);
     }
+    if (selectedPlatform.key === SupportedLanguages.DOTNET) {
+      return topDotNetFrameworks.includes(framework.id);
+    }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.includes(framework.id);
     }
@@ -140,6 +163,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.DOTNET) {
+      return topDotNetFrameworks.indexOf(framework.id);
     }
     if (selectedPlatform.key === SupportedLanguages.JAVA) {
       return topJavaFrameworks.indexOf(framework.id);
