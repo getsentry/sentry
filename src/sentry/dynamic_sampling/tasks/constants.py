@@ -16,7 +16,6 @@ MAX_REBALANCE_FACTOR = 10
 
 # Parameters to bound the execution time of queries in Snuba.
 MAX_SECONDS = 60
-RECALIBRATE_ORGS_MAX_SECONDS = 600
 # Snuba's limit is 10000, and we fetch CHUNK_SIZE + 1.
 CHUNK_SIZE = 9998
 

@@ -19,7 +19,6 @@ from snuba_sdk import (
 from sentry.dynamic_sampling.tasks.common import get_adjusted_base_rate_from_cache_or_compute
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
-    MAX_SECONDS,
     MIN_REBALANCE_FACTOR,
     RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
@@ -43,6 +42,10 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils.snuba import raw_snql_query
+
+# Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
+# multiple queries on Snuba.
+RECALIBRATE_ORGS_MAX_SECONDS = 600
 
 
 class RecalibrationError(Exception):
@@ -167,7 +170,7 @@ def get_active_orgs(
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
 
-    while (time.time() - start_time) < MAX_SECONDS:
+    while (time.time() - start_time) < RECALIBRATE_ORGS_MAX_SECONDS:
         query = (
             Query(
                 match=Entity(EntityKey.GenericOrgMetricsCounters.value),
