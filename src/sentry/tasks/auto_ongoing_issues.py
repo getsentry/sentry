@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Optional
 
 import pytz
@@ -28,24 +29,23 @@ logger = logging.getLogger(__name__)
 TRANSITION_AFTER_DAYS = 7
 
 
-def skip_if_queue_has_items(func, **kwargs):
-    # breakpoint()
+def skip_if_queue_has_items(func):
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+            if queue_size > 0:
+                logger.exception(
+                    f"{CELERY_ISSUE_STATES_QUEUE.name} queue size greater than 0.",
+                    extra={"size": queue_size, "task": func.__name__},
+                )
+                return
 
-    def inner():
+            func(*args, **kwargs)
 
-        breakpoint()
-        queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+        return wrapped
 
-        if queue_size > 0:
-            logger.exception(
-                f"{CELERY_ISSUE_STATES_QUEUE.name} queue size greater than 0.",
-                extra={"size": queue_size, "task": func.__name__},
-            )
-            return
-
-        func(**kwargs)
-
-    return inner
+    return inner(func)
 
 
 @instrumented_task(
