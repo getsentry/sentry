@@ -84,9 +84,15 @@ def orgs_to_check(org_volume: OrganizationDataVolume):
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
     for orgs in get_active_orgs(1000):
+        log_action_if("fetching_orgs", {"orgs": orgs}, lambda: True)
+
         for org_volume in fetch_org_volumes(orgs):
             try:
-                log_action_if("starting_recalibration", {}, orgs_to_check(org_volume))
+                log_action_if(
+                    "starting_recalibration",
+                    {"org_id": org_volume.org_id},
+                    orgs_to_check(org_volume),
+                )
 
                 recalibrate_org(org_volume)
             except Exception as e:
@@ -99,7 +105,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
     if not org_volume.is_valid_for_recalibration():
         raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
 
-    log_action_if("ready_for_recalibration", {}, orgs_to_check(org_volume))
+    log_action_if(
+        "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+    )
 
     target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
     log_sample_rate_source(
@@ -110,7 +118,9 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
             org_id=org_volume.org_id, message="couldn't get target sample rate for recalibration"
         )
 
-    log_action_if("target_sample_rate_determined", {}, orgs_to_check(org_volume))
+    log_action_if(
+        "target_sample_rate_determined", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+    )
 
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = org_volume.indexed / org_volume.total
@@ -142,7 +152,7 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
     # At the end we set the adjusted factor.
     set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
 
-    log_action_if("set_adjusted_factor", {}, orgs_to_check(org_volume))
+    log_action_if("set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume))
 
 
 def get_active_orgs(
