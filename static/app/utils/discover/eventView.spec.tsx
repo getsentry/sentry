@@ -22,9 +22,27 @@ const generateSorts = sorts =>
     kind: 'desc',
   }));
 
+const REQUIRED_CONSTRUCTOR_PROPS = {
+  createdBy: undefined,
+  end: undefined,
+  environment: [],
+  fields: [],
+  name: undefined,
+  project: [],
+  query: '',
+  start: undefined,
+  team: [],
+  sorts: [],
+  statsPeriod: undefined,
+  topEvents: undefined,
+  yAxis: undefined,
+  id: undefined,
+  display: undefined,
+};
+
 describe('EventView constructor', function () {
   it('instantiates default values', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView(REQUIRED_CONSTRUCTOR_PROPS);
 
     expect(eventView).toMatchObject({
       id: undefined,
@@ -1055,12 +1073,13 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 describe('EventView.generateQueryStringObject()', function () {
   it('skips empty values', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['id', 'title']),
       sorts: [],
       project: [],
-      environment: '',
+      environment: [],
       statsPeriod: '',
-      start: null,
+      start: undefined,
       end: undefined,
       yAxis: undefined,
       display: 'previous',
@@ -1084,6 +1103,7 @@ describe('EventView.generateQueryStringObject()', function () {
 
   it('generates query string object', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [
@@ -1126,6 +1146,7 @@ describe('EventView.generateQueryStringObject()', function () {
 
   it('encodes fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
     });
@@ -1135,6 +1156,7 @@ describe('EventView.generateQueryStringObject()', function () {
 
   it('returns a copy of data preventing mutation', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
     });
@@ -1176,6 +1198,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('does not append query conditions in location', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['id']),
       sorts: [],
       query: 'event.type:csp',
@@ -1191,6 +1214,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('only includes at most one sort key', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['count()', 'title']),
       sorts: generateSorts(['title', 'count']),
       query: 'event.type:csp',
@@ -1205,6 +1229,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('only includes sort keys that are defined in fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
       query: 'event.type:csp',
@@ -1219,6 +1244,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('only includes relevant query strings', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
       query: 'event.type:csp',
@@ -1256,6 +1282,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes default coerced statsPeriod when omitted or is invalid', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
       query: 'event.type:csp',
@@ -1313,6 +1340,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes default coerced statsPeriod when either start or end is only provided', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
       query: 'event.type:csp',
@@ -1367,6 +1395,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes start and end', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['count']),
       query: 'event.type:csp',
@@ -1417,6 +1446,7 @@ describe('EventView.getEventsAPIPayload()', function () {
     // eventview's statsPeriod has highest precedence
 
     let eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       ...initialState,
       statsPeriod: '90d',
       start: '2019-10-01T00:00:00',
@@ -1441,6 +1471,7 @@ describe('EventView.getEventsAPIPayload()', function () {
     // eventview's start/end has higher precedence than the date selection in the query string
 
     eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       ...initialState,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -1464,7 +1495,10 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     // the date selection in the query string should be applied as expected
 
-    eventView = new EventView(initialState);
+    eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+      ...initialState,
+    });
 
     location = TestStubs.location({
       query: {
@@ -1511,6 +1545,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 describe('EventView.getFacetsAPIPayload()', function () {
   it('only includes relevant query strings', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
       sorts: generateSorts(['project', 'count']),
       query: 'event.type:csp',
@@ -1546,6 +1581,7 @@ describe('EventView.getFacetsAPIPayload()', function () {
 
 describe('EventView.toNewQuery()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
@@ -1589,7 +1625,7 @@ describe('EventView.toNewQuery()', function () {
   });
 
   it('omits query when query is an empty string', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
     };
 
@@ -1619,7 +1655,7 @@ describe('EventView.toNewQuery()', function () {
   });
 
   it('omits query when query is not defined', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
     };
 
@@ -1652,6 +1688,7 @@ describe('EventView.toNewQuery()', function () {
 describe('EventView.isValid()', function () {
   it('event view is valid when there is at least one field', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1662,6 +1699,7 @@ describe('EventView.isValid()', function () {
 
   it('event view is not valid when there are no fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -1674,6 +1712,7 @@ describe('EventView.isValid()', function () {
 describe('EventView.getWidths()', function () {
   it('returns widths', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [
         {field: 'count()', width: COL_WIDTH_UNDEFINED},
         {field: 'project.id', width: 2020},
@@ -1701,6 +1740,7 @@ describe('EventView.getWidths()', function () {
 describe('EventView.getFields()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1715,6 +1755,7 @@ describe('EventView.numOfColumns()', function () {
     // has columns
 
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1725,6 +1766,7 @@ describe('EventView.numOfColumns()', function () {
     // has no columns
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -1737,12 +1779,14 @@ describe('EventView.numOfColumns()', function () {
 describe('EventView.getDays()', function () {
   it('returns the right number of days for statsPeriod', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       statsPeriod: '14d',
     });
 
     expect(eventView.getDays()).toBe(14);
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       statsPeriod: '12h',
     });
 
@@ -1751,6 +1795,7 @@ describe('EventView.getDays()', function () {
 
   it('returns the right number of days for start/end', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
     });
@@ -1758,6 +1803,7 @@ describe('EventView.getDays()', function () {
     expect(eventView.getDays()).toBe(1);
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       start: '2019-10-01T00:00:00',
       end: '2019-10-15T00:00:00',
     });
@@ -1768,6 +1814,7 @@ describe('EventView.getDays()', function () {
 describe('EventView.clone()', function () {
   it('returns a unique instance', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -1800,6 +1847,7 @@ describe('EventView.clone()', function () {
 
 describe('EventView.withColumns()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
@@ -1907,6 +1955,7 @@ describe('EventView.withColumns()', function () {
 
 describe('EventView.withNewColumn()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
@@ -1990,6 +2039,7 @@ describe('EventView.withNewColumn()', function () {
 
 describe('EventView.withResizedColumn()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2037,7 +2087,7 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column with no changes', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
       function: ['count', ''],
     };
@@ -2147,7 +2197,7 @@ describe('EventView.withUpdatedColumn()', function () {
     });
 
     it('the sorted column occurs at least twice', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [...state.fields, {field: 'count()'}],
       };
@@ -2201,7 +2251,7 @@ describe('EventView.withUpdatedColumn()', function () {
 
   describe('update a column to a non-sortable column', function () {
     it('default to a sortable column', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}, {field: 'title'}],
       };
@@ -2230,7 +2280,7 @@ describe('EventView.withUpdatedColumn()', function () {
     });
 
     it('has no sort if there are no sortable columns', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}],
       };
@@ -2280,7 +2330,7 @@ describe('EventView.withDeletedColumn()', function () {
   };
 
   it('returns itself when attempting to delete the last remaining column', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}],
     };
@@ -2341,7 +2391,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('has a remaining sortable column', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}, {field: 'project.id'}, {field: 'title'}],
       };
@@ -2363,7 +2413,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('sorted column occurs at least twice', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [...state.fields, state.fields[0]],
       };
@@ -2384,7 +2434,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('ensures there is at one auto-width column on deletion', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [
           {field: 'id', width: 75},
@@ -2416,6 +2466,7 @@ describe('EventView.withDeletedColumn()', function () {
 describe('EventView.getSorts()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: generateSorts(['count']),
       project: [],
@@ -2433,6 +2484,7 @@ describe('EventView.getSorts()', function () {
 describe('EventView.getQuery()', function () {
   it('with query', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2449,6 +2501,7 @@ describe('EventView.getQuery()', function () {
 
   it('without query', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2466,6 +2519,7 @@ describe('EventView.getQuery()', function () {
 describe('EventView.getQueryWithAdditionalConditions', function () {
   it('with overlapping conditions', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2482,6 +2536,7 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
 
 describe('EventView.sortForField()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2528,6 +2583,7 @@ describe('EventView.sortForField()', function () {
 
 describe('EventView.sortOnField()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2590,7 +2646,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('supports function format on equation sorts', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
       sorts: [{field: 'equation|count() + 100', kind: 'desc'}],
@@ -2601,7 +2657,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('supports index format on equation sorts', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
       sorts: [{field: 'equation[0]', kind: 'desc'}],
@@ -2612,7 +2668,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('sort on new field', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [...state.fields, {field: 'title'}],
     };
@@ -2653,7 +2709,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('sorts on a field using function format', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [...state.fields, {field: 'count()'}],
     };
@@ -2673,6 +2729,7 @@ describe('EventView.sortOnField()', function () {
 describe('EventView.withSorts()', function () {
   it('returns a clone', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'event.type'}],
     });
     const updated = eventView.withSorts([{kind: 'desc', field: 'event.type'}]);
@@ -2681,6 +2738,7 @@ describe('EventView.withSorts()', function () {
 
   it('only accepts sorting on fields in the view', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'event.type'}],
     });
     const updated = eventView.withSorts([
@@ -2692,6 +2750,7 @@ describe('EventView.withSorts()', function () {
 
   it('accepts aggregate field sorts', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'p50()'}],
     });
     const updated = eventView.withSorts([
@@ -2705,6 +2764,7 @@ describe('EventView.withSorts()', function () {
 describe('EventView.isEqualTo()', function () {
   it('should be true when equal', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2735,6 +2795,7 @@ describe('EventView.isEqualTo()', function () {
 
   it('should be true when datetime are equal but differ in format', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2758,6 +2819,7 @@ describe('EventView.isEqualTo()', function () {
 
   it('should be false when not equal', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2798,6 +2860,7 @@ describe('EventView.isEqualTo()', function () {
 
   it('undefined display type equals default display type', function () {
     const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2834,6 +2897,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2948,6 +3012,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -3006,7 +3071,9 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
 describe('EventView.getPageFilters()', function () {
   it('return default global selection', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.getPageFilters()).toMatchObject({
       projects: [],
@@ -3025,6 +3092,7 @@ describe('EventView.getPageFilters()', function () {
 
   it('returns global selection query', function () {
     const state2 = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       project: [42],
       start: 'start',
       end: 'end',
@@ -3093,7 +3161,9 @@ describe('EventView.getPageFiltersQuery()', function () {
 
 describe('EventView.generateBlankQueryStringObject()', function () {
   it('should return blank values', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.generateBlankQueryStringObject()).toEqual({
       id: undefined,
@@ -3114,6 +3184,7 @@ describe('EventView.generateBlankQueryStringObject()', function () {
 
 describe('EventView.getYAxisOptions()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3175,6 +3246,7 @@ describe('EventView.getYAxisOptions()', function () {
 
 describe('EventView.getYAxis()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3221,6 +3293,7 @@ describe('EventView.getYAxis()', function () {
 
 describe('EventView.getDisplayOptions()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3266,6 +3339,7 @@ describe('EventView.getDisplayOptions()', function () {
 
 describe('EventView.getDisplayMode()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3349,6 +3423,7 @@ describe('EventView.getDisplayMode()', function () {
 
 describe('EventView.getAggregateFields()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [
       {field: 'title'},
       {field: 'count()'},
@@ -3378,6 +3453,7 @@ describe('EventView.getAggregateFields()', function () {
 describe('EventView.hasAggregateField', function () {
   it('ensures an eventview has an aggregate field', function () {
     let eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'foobar'}],
       sorts: [],
       query: '',
@@ -3388,6 +3464,7 @@ describe('EventView.hasAggregateField', function () {
     expect(eventView.hasAggregateField()).toBe(false);
 
     eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count(foo.bar.is-Enterprise_42)'}],
       sorts: [],
       query: '',
@@ -3401,6 +3478,7 @@ describe('EventView.hasAggregateField', function () {
 
 describe('isAPIPayloadSimilar', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
