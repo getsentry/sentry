@@ -460,7 +460,7 @@ class FunctionSiloLimitTest(APITestCase):
             if expect_to_be_active:
                 decorated_function()
             else:
-                with raises(ValueError):
+                with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
     def test_with_active_mode(self):
