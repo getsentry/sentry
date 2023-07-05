@@ -114,7 +114,7 @@ export function SpanTransactionsTable({
   return (
     <Fragment>
       <VisuallyCompleteWithData
-        id="SpanSummary.EndpointTable"
+        id="SpanSummary.SpanTransactionsTable"
         hasData={spanTransactionMetrics.length > 0}
       >
         <GridEditable
