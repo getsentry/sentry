@@ -1,7 +1,9 @@
+from copy import deepcopy
 from time import time
 from unittest.mock import patch
 
 import responses
+from responses import matchers
 
 from fixtures.vsts import (
     WORK_ITEM_STATES,
@@ -20,10 +22,14 @@ from sentry.models import (
     IdentityProvider,
     Integration,
 )
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils.http import absolute_uri
 
 
+@region_silo_test(stable=True)
 class VstsWebhookWorkItemTest(APITestCase):
     def setUp(self):
         self.access_token = "1234567890"
@@ -80,7 +86,7 @@ class VstsWebhookWorkItemTest(APITestCase):
         return group
 
     def set_workitem_state(self, old_value, new_value):
-        work_item = dict(WORK_ITEM_UPDATED_STATUS)
+        work_item = deepcopy(WORK_ITEM_UPDATED_STATUS)
         state = work_item["resource"]["fields"]["System.State"]
 
         if old_value is None:
@@ -110,7 +116,7 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert mock.call_count == 1
             args = mock.call_args[1]
 
-            assert args["integration"].__class__ == Integration
+            assert isinstance(args["integration"], RpcIntegration)
             assert args["email"] == "lauryn@sentry.io"
             assert args["external_issue_key"] == work_item_id
             assert args["assign"] is True
@@ -133,18 +139,34 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert mock.call_count == 1
             args = mock.call_args[1]
 
-            assert args["integration"].__class__ == Integration
+            assert isinstance(args["integration"], RpcIntegration)
             assert args["email"] is None
             assert args["external_issue_key"] == work_item_id
             assert args["assign"] is False
 
     @responses.activate
     def test_inbound_status_sync_resolve(self):
+
+        header_validation = []
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            header_validation = [
+                matchers.header_matcher(
+                    {
+                        "Accept": "application/json; api-version=4.1-preview.1",
+                        "Content-Type": "application/json",
+                        "X-HTTP-Method-Override": "GET",
+                        "X-TFS-FedAuthRedirect": "Suppress",
+                        "Authorization": f"Bearer {self.access_token}",
+                    }
+                )
+            ]
         responses.add(
             responses.GET,
             "https://instance.visualstudio.com/c0bf429a-c03c-4a99-9336-d45be74db5a6/_apis/wit/workitemtypes/Bug/states",
             json=WORK_ITEM_STATES,
+            match=header_validation,
         )
+
         work_item_id = 33
         num_groups = 5
         external_issue = ExternalIssue.objects.create(

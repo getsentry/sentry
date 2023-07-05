@@ -42,12 +42,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
-from .client import VstsApiClient
+from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
 
 DESCRIPTION = """
@@ -161,11 +162,21 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         return True
 
     def get_client(self) -> VstsApiClient:
-        if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            if self.default_identity is None:
+                self.default_identity = self.get_default_identity()
+            self.check_domain_name(self.default_identity)
 
-        self.check_domain_name(self.default_identity)
-        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
+        if self.org_integration is None:
+            raise Exception("self.org_integration is not defined")
+        if self.org_integration.default_auth_id is None:
+            raise Exception("self.org_integration.default_auth_id is not defined")
+        return VstsApiClient(
+            base_url=self.instance,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=self.org_integration.id,
+            identity_id=self.org_integration.default_auth_id,
+        )
 
     def check_domain_name(self, default_identity: Identity) -> None:
         if re.match("^https://.+/$", self.model.metadata["domain_name"]):
@@ -444,7 +455,10 @@ class VstsIntegrationProvider(IntegrationProvider):
     def create_subscription(
         self, instance: str | None, oauth_data: Mapping[str, Any]
     ) -> tuple[int, str]:
-        client = VstsApiClient(Identity(data=oauth_data), self.oauth_redirect_url)
+        client = VstsSetupApiClient(
+            oauth_redirect_url=self.oauth_redirect_url,
+            access_token=oauth_data["access_token"],
+        )
         shared_secret = generate_token()
         try:
             subscription = client.create_subscription(instance, shared_secret)
