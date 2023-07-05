@@ -1,9 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFilters} from 'sentry/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -69,12 +71,14 @@ describe('Dashboards > WidgetQueries', function () {
       },
     ],
   };
-  const selection = {
+  const selection: PageFilters = {
     projects: [1],
     environments: ['prod'],
     datetime: {
       period: '14d',
-      orderby: '',
+      start: null,
+      end: null,
+      utc: null,
     },
   };
 
@@ -179,7 +183,8 @@ describe('Dashboards > WidgetQueries', function () {
       match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
 
-    let error = '';
+    let error: string | undefined;
+
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -187,7 +192,7 @@ describe('Dashboards > WidgetQueries', function () {
         organization={initialData.organization}
         selection={selection}
       >
-        {({errorMessage}) => {
+        {({errorMessage}: {errorMessage?: string}) => {
           error = errorMessage;
           return <div data-test-id="child" />;
         }}
@@ -208,13 +213,17 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const widget = {...singleQueryWidget, interval: '1m'};
 
-    const longSelection = {
+    const longSelection: PageFilters = {
       projects: [1],
       environments: ['prod', 'dev'],
       datetime: {
         period: '90d',
+        start: null,
+        end: null,
+        utc: null,
       },
     };
+
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -280,7 +289,7 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined = undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -310,9 +319,9 @@ describe('Dashboards > WidgetQueries', function () {
         }),
       })
     );
-    expect(childProps.timeseriesResults).toBeUndefined();
-    expect(childProps.tableResults[0].data).toHaveLength(1);
-    expect(childProps.tableResults[0].meta).toBeDefined();
+    expect(childProps?.timeseriesResults).toBeUndefined();
+    expect(childProps?.tableResults?.[0].data).toHaveLength(1);
+    expect(childProps?.tableResults[0].meta).toBeDefined();
   });
 
   it('can send multiple table queries', async function () {

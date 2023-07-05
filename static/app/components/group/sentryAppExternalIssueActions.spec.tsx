@@ -41,6 +41,8 @@ describe('SentryAppExternalIssueActions', () => {
   it('renders without an external issue linked', async () => {
     render(
       <SentryAppExternalIssueActions
+        organization={TestStubs.Organization()}
+        event={TestStubs.Event()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -83,6 +85,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
+        organization={TestStubs.Organization()}
+        event={TestStubs.Event()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -123,6 +127,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
+        organization={TestStubs.Organization()}
+        event={TestStubs.Event()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -161,6 +167,8 @@ describe('SentryAppExternalIssueActions', () => {
   it('renders with an external issue linked', () => {
     render(
       <SentryAppExternalIssueActions
+        organization={TestStubs.Organization()}
+        event={TestStubs.Event()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
@@ -184,6 +192,8 @@ describe('SentryAppExternalIssueActions', () => {
     });
     render(
       <SentryAppExternalIssueActions
+        organization={TestStubs.Organization()}
+        event={TestStubs.Event()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
