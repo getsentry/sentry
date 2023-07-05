@@ -98,7 +98,7 @@ export default function ReplayOnboardingPanel() {
                   <strong>
                     {t(
                       `Session Replay isn't available for project %s.`,
-                      selectedProjects[0].slug
+                      selectedProjects[0]!.slug
                     )}
                   </strong>
                 ),

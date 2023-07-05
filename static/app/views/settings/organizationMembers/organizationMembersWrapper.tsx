@@ -98,7 +98,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
       const inviteRequests = [...state.inviteRequests];
       const inviteIndex = inviteRequests.findIndex(request => request.id === id);
 
-      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
+      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex]!, ...data};
 
       return {inviteRequests};
     });

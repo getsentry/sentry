@@ -54,7 +54,7 @@ function queriesToMap(collectedQueries: Record<symbol, BatchQueryDefinition>) {
   const mergeMap: MergeMap = {};
 
   keys.forEach(key => {
-    const query = collectedQueries[key];
+    const query = collectedQueries[key]!;
     mergeMap[mergeKey(query)] = mergeMap[mergeKey(query)] || [];
     mergeMap[mergeKey(query)].push(query);
     delete collectedQueries[key];
@@ -80,7 +80,7 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
   let queriesSent = 0;
   Object.keys(mergeMap).forEach(k => {
     // Using async forEach to ensure calls start in parallel.
-    const mergeList = mergeMap[k];
+    const mergeList = mergeMap[k]!;
 
     if (mergeList.length === 1) {
       const [queryDefinition] = mergeList;
@@ -95,7 +95,7 @@ function _handleUnmergeableQueries(mergeMap: MergeMap) {
 function _handleMergeableQueries(mergeMap: MergeMap) {
   let queriesSent = 0;
   Object.keys(mergeMap).forEach(async k => {
-    const mergeList = mergeMap[k];
+    const mergeList = mergeMap[k]!;
 
     if (mergeList.length <= 1) {
       return;

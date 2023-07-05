@@ -189,7 +189,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
-    environment: eventView.environment.length ? eventView.environment[0] : null,
+    environment: eventView.environment.length ? eventView.environment[0]! : null,
   };
 }
 

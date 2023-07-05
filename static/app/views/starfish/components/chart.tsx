@@ -116,7 +116,7 @@ export function computeAxisMax(data: Series[], stacked?: boolean) {
   let maxValue = 0;
   if (data.length > 1 && stacked) {
     for (let i = 0; i < data.length; i++) {
-      maxValue += max(data[i].data.map(point => point.value)) as number;
+      maxValue += max(data[i]!.data.map(point => point.value)) as number;
     }
   } else {
     maxValue = computeMax(data);
@@ -256,7 +256,7 @@ function Chart({
         formatter(value: number) {
           return axisLabelFormatter(
             value,
-            aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+            aggregateOutputFormat ?? aggregateOutputType(data[0]!.seriesName),
             undefined,
             durationUnit ?? getDurationUnit(data)
           );
@@ -323,7 +323,7 @@ function Chart({
         return tooltipFormatter(
           value,
           aggregateOutputFormat ??
-            aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+            aggregateOutputType(data && data.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {

@@ -116,7 +116,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -135,7 +135,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[0].seriesName),
+                aggregateOutputType(data[0]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -152,7 +152,7 @@ function Chart({
             formatter(value: number) {
               return axisLabelFormatter(
                 value,
-                aggregateOutputType(data[1].seriesName),
+                aggregateOutputType(data[1]!.seriesName),
                 undefined,
                 durationUnit
               );
@@ -199,7 +199,7 @@ function Chart({
       valueFormatter: (value, seriesName) => {
         return tooltipFormatter(
           value,
-          aggregateOutputType(data && data.length ? data[0].seriesName : seriesName)
+          aggregateOutputType(data && data.length ? data[0]!.seriesName : seriesName)
         );
       },
       nameFormatter(value: string) {

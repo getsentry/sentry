@@ -472,7 +472,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       return;
     }
 
-    const entry = entries[0];
+    const entry = entries[0]!;
     const {width} = entry.contentRect;
     const actionCount = this.props.actionBarItems?.length ?? 0;
 
@@ -544,9 +544,9 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const token = this.cursorToken;
 
     if (this.searchInput.current && filterTokens.length > 0) {
-      this.searchInput.current.focus();
+      this.searchInput.current!.focus();
 
-      let offset = filterTokens[0].location.end.offset;
+      let offset = filterTokens[0]!.location.end.offset;
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
         if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
@@ -817,11 +817,11 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           : 0;
 
       // Clear previous selection
-      const prevItem = flatSearchItems[currIndex];
+      const prevItem = flatSearchItems[currIndex]!;
       searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, prevItem, false);
 
       // Set new selection
-      const activeItem = flatSearchItems[nextActiveSearchItem];
+      const activeItem = flatSearchItems[nextActiveSearchItem]!;
       searchGroups = getSearchGroupWithItemMarkedActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
@@ -914,7 +914,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     if (isSelectingDropdownItems) {
       searchGroups = getSearchGroupWithItemMarkedActive(
         searchGroups,
-        flatSearchItems[activeSearchItem],
+        flatSearchItems[activeSearchItem]!,
         false
       );
     }
@@ -1066,7 +1066,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     let tokenEnd = innerStart;
     while (
       tokenEnd < cursorToken.text.length &&
-      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd])
+      !LIMITER_CHARS.includes(cursorToken.text[tokenEnd]!)
     ) {
       tokenEnd++;
     }

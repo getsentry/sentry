@@ -138,8 +138,8 @@ function onResize(entries: ResizeObserverEntry[]) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      width = entry.devicePixelContentBoxSize[0].inlineSize;
-      height = entry.devicePixelContentBoxSize[0].blockSize;
+      width = entry.devicePixelContentBoxSize[0]!.inlineSize;
+      height = entry.devicePixelContentBoxSize[0]!.blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
       if (entry.contentBoxSize[0]) {
@@ -290,13 +290,13 @@ export function upperBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].start < target ? 1 : 0;
+    return values[0]!.start < target ? 1 : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
 
-    if (values[mid].start < target) {
+    if (values[mid]!.start < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -325,13 +325,13 @@ export function lowerBound<T extends {end: number; start: number}>(
   }
 
   if (high === 1) {
-    return values[0].end < target ? 1 : 0;
+    return values[0]!.end < target ? 1 : 0;
   }
 
   while (low !== high) {
     const mid = low + Math.floor((high - low) / 2);
 
-    if (values[mid].end < target) {
+    if (values[mid]!.end < target) {
       low = mid + 1;
     } else {
       high = mid;
@@ -524,7 +524,7 @@ export function computeMinZoomConfigViewForFrames(view: Rect, frames: Rect[]): R
   }
 
   if (frames.length === 1) {
-    return new Rect(frames[0].x, frames[0].y, frames[0].width, view.height);
+    return new Rect(frames[0]!.x, frames[0]!.y, frames[0]!.width, view.height);
   }
 
   const frame = frames.reduce(
@@ -732,7 +732,7 @@ export function useResizeCanvasObserver(
 
     const observer = watchForResize(canvases as HTMLCanvasElement[], entries => {
       const contentRect =
-        entries[0].contentRect ?? entries[0].target.getBoundingClientRect();
+        entries[0]!.contentRect ?? entries[0]!.target.getBoundingClientRect();
 
       setCanvasBounds(
         new Rect(contentRect.x, contentRect.y, contentRect.width, contentRect.height)

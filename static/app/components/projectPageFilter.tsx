@@ -142,7 +142,7 @@ function OldProjectPageFilter({
     // Show 2 projects only if the combined string does not exceed maxTitleLength.
     // Otherwise show only 1 project.
     const projectsToShow =
-      selectedProjects[0]?.slug?.length + selectedProjects[1]?.slug?.length <=
+      selectedProjects[0]!?.slug?.length + selectedProjects[1]!?.slug?.length <=
       maxTitleLength - 2
         ? selectedProjects.slice(0, 2)
         : selectedProjects.slice(0, 1);

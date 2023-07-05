@@ -404,7 +404,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
       seriesName: seriesName ?? 'Previous',
       data: this.calculateTotalsPerTimestamp(
         previous,
-        (_timestamp, _countArray, i) => current[i][0] * 1000
+        (_timestamp, _countArray, i) => current[i]![0]! * 1000
       ),
       stack: 'previous',
     };
@@ -551,7 +551,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             seriesName: string,
             index: number
           ): [number, Series, Series | null, AdditionalSeriesInfo] => {
-            const seriesData: EventsStats = timeseriesData[seriesName];
+            const seriesData: EventsStats = timeseriesData[seriesName]!;
             const processedData = this.processData(
               seriesData,
               index,
@@ -567,7 +567,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
             }
             return [
               seriesData.order || 0,
-              processedData.data[0],
+              processedData.data[0]!,
               processedData.previousData,
               {isMetricsData: processedData.isMetricsData},
             ];
@@ -576,7 +576,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         .sort((a, b) => a[0] - b[0]);
       const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
       Object.keys(timeseriesData).forEach(key => {
-        const fieldsMeta = timeseriesData[key].meta?.fields[getAggregateAlias(key)];
+        const fieldsMeta = timeseriesData[key]!.meta?.fields[getAggregateAlias(key)];
         if (fieldsMeta) {
           timeseriesResultsTypes[key] = fieldsMeta;
         }

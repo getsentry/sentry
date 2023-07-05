@@ -101,8 +101,8 @@ const getFields = ({
   if (authenticator.id === 'sms') {
     // Ideally we would have greater flexibility when rendering footer
     return [
-      {...form[0], disabled: sendingCode || hasSentCode},
-      ...(hasSentCode ? [{...form[1], required: true}] : []),
+      {...form[0]!, disabled: sendingCode || hasSentCode},
+      ...(hasSentCode ? [{...form[1]!, required: true}] : []),
       () => (
         <Actions key="sms-footer">
           <ButtonBar gap={1}>

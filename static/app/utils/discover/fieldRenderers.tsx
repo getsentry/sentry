@@ -814,7 +814,7 @@ export function getSortField(
     }
   }
 
-  const fieldType = tableMeta[field];
+  const fieldType = tableMeta[field]!;
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
     return FIELD_FORMATTERS[fieldType as keyof typeof FIELD_FORMATTERS].isSortable
       ? field
@@ -980,7 +980,7 @@ export function getFieldRenderer(
   }
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+    return partial(FIELD_FORMATTERS[fieldType]!.renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }
@@ -1005,10 +1005,10 @@ export function getFieldFormatter(
   isAlias: boolean = true
 ): FieldTypeFormatterRenderFunctionPartial {
   const fieldName = isAlias ? getAggregateAlias(field) : field;
-  const fieldType = meta[fieldName];
+  const fieldType = meta[fieldName]!;
 
   if (FIELD_FORMATTERS.hasOwnProperty(fieldType)) {
-    return partial(FIELD_FORMATTERS[fieldType].renderFunc, fieldName);
+    return partial(FIELD_FORMATTERS[fieldType]!.renderFunc, fieldName);
   }
   return partial(FIELD_FORMATTERS.string.renderFunc, fieldName);
 }

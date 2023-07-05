@@ -124,7 +124,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
           // downstream will already handle escaping
           eventView.additionalConditions.setFilterValues(
             'transaction',
-            [provided.widgetData.list.data[selectedListIndex].transaction as string],
+            [provided.widgetData.list!.data[selectedListIndex]!.transaction as string],
             false
           );
 
@@ -133,7 +133,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
               UNPARAMETERIZED_TRANSACTION,
             ]);
           }
-          const listResult = provided.widgetData.list.data[selectedListIndex];
+          const listResult = provided.widgetData.list!.data[selectedListIndex]!;
           const nonEmptySpanOpFields = Object.entries(listResult)
             .filter(result => fields.includes(result[0]) && result[1] !== 0)
             .map(result => result[0]);

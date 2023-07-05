@@ -377,7 +377,7 @@ function generateAdditionalConditions(
           ? `tags[${column.field}]`
           : column.field;
 
-        const tagValue = dataRow.tags[tagIndex].value;
+        const tagValue = dataRow.tags[tagIndex]!.value;
         conditions[key] = tagValue;
       }
     }
@@ -394,7 +394,7 @@ export function usesTransactionsDataset(eventView: EventView, yAxisValue: string
   let usesTransactions: boolean = false;
   const parsedQuery = new MutableSearch(eventView.query);
   for (let index = 0; index < yAxisValue.length; index++) {
-    const yAxis = yAxisValue[index];
+    const yAxis = yAxisValue[index]!;
     const aggregateArg = getAggregateArg(yAxis) ?? '';
     if (isMeasurement(aggregateArg) || aggregateArg === 'transaction.duration') {
       usesTransactions = true;
@@ -509,8 +509,8 @@ export function generateFieldOptions({
   // function names. Having a mapping makes finding the value objects easier
   // later as well.
   functions.forEach(func => {
-    const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
-    const parameters = aggregations[func].parameters.map(param => {
+    const ellipsis = aggregations[func]!.parameters.length ? '\u2026' : '';
+    const parameters = aggregations[func]!.parameters.map(param => {
       const overrides = AGGREGATIONS[func].getFieldOverrides;
       if (typeof overrides === 'undefined') {
         return param;
@@ -643,8 +643,8 @@ export function eventViewToWidgetQuery({
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
-      if (sort.field === getAggregateAlias(aggregateFields[i])) {
-        orderbyFunction = aggregateFields[i];
+      if (sort.field === getAggregateAlias(aggregateFields[i]!)) {
+        orderbyFunction = aggregateFields[i]!;
         break;
       }
     }

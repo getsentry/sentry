@@ -117,7 +117,7 @@ function getCurrentTab({router}: {router: RouteProps['router']}) {
     return Tab.TAGS;
   }
   return (
-    Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]) ?? Tab.DETAILS
+    Object.values(Tab).find(tab => currentRoute.path === TabPaths[tab]!) ?? Tab.DETAILS
   );
 }
 

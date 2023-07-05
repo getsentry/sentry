@@ -480,7 +480,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
               {releases.map((release, index) => (
                 <ReleaseCard
-                  key={`${release.version}-${release.projects[0].slug}`}
+                  key={`${release.version}-${release.projects[0]!.slug}`}
                   activeDisplay={activeDisplay}
                   release={release}
                   organization={organization}

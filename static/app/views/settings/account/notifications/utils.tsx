@@ -34,7 +34,7 @@ export const groupByOrganization = (
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {
-      acc[orgSlug].projects.push(project);
+      acc[orgSlug]!.projects.push(project);
     } else {
       acc[orgSlug] = {
         organization: project.organization,
@@ -71,7 +71,7 @@ export const getChoiceString = (choices: string[][], key: string): string => {
     throw new Error(`Could not find ${key}`);
   }
 
-  return found[1];
+  return found[1]!;
 };
 
 const isDataAllNever = (data: {[key: string]: string}): boolean =>
@@ -180,7 +180,7 @@ export const getCurrentDefault = (
 ): string => {
   const providersList = getCurrentProviders(notificationType, notificationSettings);
   return providersList.length
-    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
+    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]!]
     : 'never';
 };
 
@@ -307,7 +307,7 @@ export const getStateToPutForProvider = (
 
   return {
     [notificationType]: Object.fromEntries(
-      Object.entries(notificationSettings[notificationType]).map(
+      Object.entries(notificationSettings[notificationType]!).map(
         ([scopeType, scopeTypeData]) => [
           scopeType,
           Object.fromEntries(
@@ -354,7 +354,7 @@ export const getStateToPutForDefault = (
   };
 
   if (newValue === 'never') {
-    updatedNotificationSettings[notificationType][getParentKey(notificationType)] =
+    updatedNotificationSettings[notificationType]![getParentKey(notificationType)] =
       Object.fromEntries(
         parentIds.map(parentId => [
           parentId,
@@ -376,7 +376,7 @@ export const getStateToPutForParent = (
   parentId: string
 ): NotificationSettingsObject => {
   const providerList = getCurrentProviders(notificationType, notificationSettings);
-  const newValue = Object.values(changedData)[0];
+  const newValue = Object.values(changedData)[0]!;
 
   return {
     [notificationType]: {
@@ -401,7 +401,7 @@ export const getParentField = (
     parentId: string
   ) => NotificationSettingsObject
 ): FieldObject => {
-  const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
+  const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType]!;
 
   let choices = defaultFields.choices;
   if (Array.isArray(choices)) {

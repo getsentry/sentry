@@ -41,7 +41,7 @@ async function fetchReplayList({
 
     // HACK!!! Because the sort field needs to be in the eventView, but I cannot
     // ask the server for compound fields like `os.name`.
-    payload.field = payload.field.map(field => field.split('.')[0]);
+    payload.field = payload.field.map(field => field.split('.')[0]!);
 
     // unique list
     payload.field = Array.from(new Set(payload.field));

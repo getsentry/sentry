@@ -114,7 +114,7 @@ const storeConfig: ProjectsStoreDefinition = {
 
     // Assign stats into projects
     entries.forEach(([projectId, stats]) => {
-      this.itemsById[projectId].stats = stats;
+      this.itemsById[projectId]!.stats = stats;
     });
 
     const touchedIds = entries.map(([projectId]) => projectId);

@@ -232,7 +232,7 @@ export function getFormatter({
           ];
 
           for (const subLabel of filteredSubLabels) {
-            const serieValue = subLabel.data[serie.dataIndex].value;
+            const serieValue = subLabel.data[serie.dataIndex]!.value;
 
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
@@ -240,7 +240,7 @@ export function getFormatter({
               }</strong></span> ${valueFormatter(serieValue)}</div>`
             );
 
-            acc.total = acc.total + subLabel.data[serie.dataIndex].value;
+            acc.total = acc.total + subLabel.data[serie.dataIndex]!.value;
           }
 
           acc.series.push(labelWithSubLabels.join(''));

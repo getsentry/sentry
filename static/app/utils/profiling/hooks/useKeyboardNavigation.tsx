@@ -76,7 +76,7 @@ export function useKeyboardNavigation() {
           if (tabIndex === idx) {
             node?.focus();
           }
-          items[idx].node = node;
+          items[idx]!.node = node;
         }
       },
       onMouseOver: () => {

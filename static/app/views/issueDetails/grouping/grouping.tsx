@@ -170,11 +170,11 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
     }
 
     if (groupingLevels.length > 1) {
-      setActiveGroupingLevel(groupingLevels[1].id);
+      setActiveGroupingLevel(groupingLevels[1]!.id);
       return;
     }
 
-    setActiveGroupingLevel(groupingLevels[0].id);
+    setActiveGroupingLevel(groupingLevels[0]!.id);
   }
 
   if (isLoading) {

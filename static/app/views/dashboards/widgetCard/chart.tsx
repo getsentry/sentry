@@ -157,7 +157,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
       const eventView = eventViewFromWidget(
         widget.title,
-        widget.queries[0],
+        widget.queries[0]!,
         selection,
         widget.displayType
       );
@@ -223,7 +223,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
       const unit = tableMeta.units?.[field];
       const rendered = fieldRenderer(
-        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow,
+        shouldExpandInteger ? {[field]: dataRow[field]!.toLocaleString()} : dataRow,
         {location, organization, unit}
       );
 
@@ -255,7 +255,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
   chartComponent(chartProps): React.ReactNode {
     const {widget} = this.props;
-    const stacked = widget.queries[0]?.columns.length > 0;
+    const stacked = widget.queries[0]!?.columns.length > 0;
 
     switch (widget.displayType) {
       case 'bar':

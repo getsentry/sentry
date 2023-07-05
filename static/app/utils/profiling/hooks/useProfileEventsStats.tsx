@@ -91,7 +91,7 @@ function transformStatsResponse<F extends string>(
   }
 
   if (yAxes.length === 1) {
-    const {series, meta, timestamps} = transformSingleSeries(yAxes[0], rawResponse[0]);
+    const {series, meta, timestamps} = transformSingleSeries(yAxes[0]!, rawResponse[0]!);
     return [
       {
         data: [series],

@@ -198,7 +198,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return;
     }
 
-    teamRoles[i] = {...teamRoles[i], role};
+    teamRoles[i] = {...teamRoles[i]!, role};
     this.setState({teamRoles});
   };
 

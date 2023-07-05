@@ -98,7 +98,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
 
   if (defined(segments)) {
     for (let index = 0; index < segments.data.length; index++) {
-      const element = segments.data[index];
+      const element = segments.data[index]!;
       const category = element['span.category'] as string;
       transformedData.push({
         value: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
@@ -146,7 +146,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
               <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={value.name}>
                 <Segment
                   aria-label={`${value.name}`}
-                  color={colorPalette[index]}
+                  color={colorPalette[index]!}
                   {...segmentProps}
                 >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}
@@ -199,7 +199,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
                   onMouseLeave={() => setHoveredValue(null)}
                   onClick={() => {}}
                 >
-                  <LegendDot color={colorPalette[index]} focus={focus} />
+                  <LegendDot color={colorPalette[index]!} focus={focus} />
                   <Link to={spansLink}>
                     <LegendText unfocus={unfocus}>
                       {segment.name ?? (

@@ -316,7 +316,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           priority="link"
           icon={
             sourceCodeProviders.length === 1
-              ? getIntegrationIcon(sourceCodeProviders[0].provider.key, 'sm')
+              ? getIntegrationIcon(sourceCodeProviders[0]!.provider.key, 'sm')
               : undefined
           }
           onClick={() => {
@@ -325,7 +325,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
-                provider: sourceCodeProviders[0]?.provider.key,
+                provider: sourceCodeProviders[0]!?.provider.key,
                 setup_type: 'automatic',
                 organization,
                 ...getAnalyticsDataForEvent(event),

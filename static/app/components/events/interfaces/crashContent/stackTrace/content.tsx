@@ -267,7 +267,7 @@ class Content extends Component<Props, State> {
 
     if (frames.length > 0 && data.registers) {
       const lastFrame = frames.length - 1;
-      frames[lastFrame] = cloneElement(frames[lastFrame], {
+      frames[lastFrame] = cloneElement(frames[lastFrame]!, {
         registers: data.registers,
       });
     }

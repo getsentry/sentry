@@ -48,7 +48,7 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
     (dataKey: string) => {
       const _widgetData = widgetDataRef.current;
       const newWidgetData = {..._widgetData};
-      delete newWidgetData[dataKey];
+      delete newWidgetData[dataKey]!;
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },

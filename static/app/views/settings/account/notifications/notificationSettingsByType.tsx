@@ -312,8 +312,8 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     );
 
     return organizations.filter(organization => {
-      const externalID = integrationExternalIDsByOrganizationID[organization.id];
-      const identity = identitiesByExternalId[externalID];
+      const externalID = integrationExternalIDsByOrganizationID[organization.id]!;
+      const identity = identitiesByExternalId[externalID]!;
       return identity === undefined || identity === null;
     });
   };
@@ -325,7 +325,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       'slack'
     );
     const unlinkedOrgs = this.getUnlinkedOrgs();
-    const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType]!;
     return (
       <Fragment>
         <SentryDocumentTitle title={title} />

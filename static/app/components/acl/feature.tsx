@@ -132,11 +132,11 @@ class Feature extends Component<Props> {
     }
 
     if (shouldMatchOnlyProject) {
-      return project.includes(shouldMatchOnlyProject[1]);
+      return project.includes(shouldMatchOnlyProject[1]!);
     }
 
     if (shouldMatchOnlyOrg) {
-      return organization.includes(shouldMatchOnlyOrg[1]);
+      return organization.includes(shouldMatchOnlyOrg[1]!);
     }
 
     // default, check all feature arrays
@@ -173,7 +173,7 @@ class Feature extends Component<Props> {
       const hooks = HookStore.get(hookName);
 
       if (hooks.length > 0) {
-        customDisabledRender = hooks[0];
+        customDisabledRender = hooks[0]!;
       }
     }
     const renderProps = {

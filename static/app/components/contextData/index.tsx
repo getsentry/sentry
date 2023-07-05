@@ -149,7 +149,7 @@ function walk({
         <span className="val-dict-col">{': '}</span>
         <span className="val-dict-value">
           {walk({
-            value: value[key],
+            value: value[key]!,
             depth: depth + 1,
             preserveQuotes,
             withAnnotatedText,

@@ -193,7 +193,7 @@ const storeConfig: TagStoreDefinition = {
     const newState = {};
 
     for (let i = 0; i < data.length; i++) {
-      const tag = data[i];
+      const tag = data[i]!;
       newState[tag.key] = {
         values: [],
         ...tag,

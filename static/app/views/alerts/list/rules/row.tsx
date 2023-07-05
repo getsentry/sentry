@@ -247,7 +247,7 @@ function RuleListRow({
   };
 
   const projectRow = projects.filter(project => project.slug === slug);
-  const projectRowTeams = projectRow[0].teams;
+  const projectRowTeams = projectRow[0]!.teams;
   const filteredProjectTeams = projectRowTeams?.filter(projTeam => {
     return userTeams.has(projTeam.id);
   });

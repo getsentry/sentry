@@ -300,7 +300,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const {category, search} = qs.parse(this.props.location.search);
 
     const selectedCategory = Array.isArray(category) ? category[0] : category || '';
-    const searchInput = Array.isArray(search) ? search[0] : search || '';
+    const searchInput = Array.isArray(search) ? search[0]! : search || '';
 
     return {searchInput, selectedCategory};
   };

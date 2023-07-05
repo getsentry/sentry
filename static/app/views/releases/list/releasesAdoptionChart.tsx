@@ -173,8 +173,8 @@ class ReleasesAdoptionChart extends Component<Props> {
             return null;
           }
 
-          const numDataPoints = releasesSeries[0].data.length;
-          const xAxisData = releasesSeries[0].data.map(point => point.name);
+          const numDataPoints = releasesSeries[0]!.data.length;
+          const xAxisData = releasesSeries[0]!.data.map(point => point.name);
           const hideLastPoint =
             releasesSeries.findIndex(
               series => series.data[numDataPoints - 1].value > 0

@@ -215,7 +215,7 @@ export function analyzeFramesForRootCause(event: Event): {
 
   // iterating the frames in reverse order, because the topmost frames most like the root cause
   for (let index = exceptionFrames.length - 1; index >= 0; index--) {
-    const frame = exceptionFrames[index];
+    const frame = exceptionFrames[index]!;
     const rootCause = analyzeFrameForRootCause(frame, currentThread);
     if (defined(rootCause)) {
       return rootCause;

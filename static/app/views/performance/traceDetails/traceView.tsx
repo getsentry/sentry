@@ -193,7 +193,7 @@ export default function TraceView({
             }}
             measurements={
               traces && traces.length > 0
-                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                ? getMeasurements(traces[0]!, generateBounds(traceInfo))
                 : undefined
             }
             generateBounds={generateBounds(traceInfo)}
@@ -271,8 +271,8 @@ export default function TraceView({
 
   const bounds = generateBounds(traceInfo);
   const measurements =
-    Object.keys(traces[0].measurements ?? {}).length > 0
-      ? getMeasurements(traces[0], bounds)
+    Object.keys(traces[0]!.measurements ?? {}).length > 0
+      ? getMeasurements(traces[0]!, bounds)
       : undefined;
 
   const traceView = (

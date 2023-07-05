@@ -104,12 +104,12 @@ function getRuleChangeSeries(
   data: AreaChartSeries[]
 ): LineSeriesOption[] {
   const {dateModified} = rule;
-  if (!data.length || !data[0].data.length || !dateModified) {
+  if (!data.length || !data[0]!.data.length || !dateModified) {
     return [];
   }
 
-  const seriesData = data[0].data;
-  const seriesStart = new Date(seriesData[0].name).getTime();
+  const seriesData = data[0]!.data;
+  const seriesStart = new Date(seriesData[0]!.name).getTime();
   const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {

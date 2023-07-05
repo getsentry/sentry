@@ -113,7 +113,7 @@ class ProjectCharts extends Component<Props, State> {
       .filter(visibleChartId => visibleChartId !== chartId)
       .map(urlKey => {
         return decodeScalar(
-          location.query[urlKey],
+          location.query[urlKey]!,
           this.defaultDisplayModes[visibleCharts.findIndex(value => value === urlKey)]
         );
       });
@@ -346,7 +346,7 @@ class ProjectCharts extends Component<Props, State> {
                   router={router}
                   organization={organization}
                   onTotalValuesChange={this.handleTotalValuesChange}
-                  colors={[CHART_PALETTE[0][0], theme.purple200]}
+                  colors={[CHART_PALETTE[0]![0]!, theme.purple200]}
                 />
               )}
               {displayMode === DisplayModes.FAILURE_RATE && (

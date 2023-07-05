@@ -145,7 +145,7 @@ class Table extends Component<TableProps, TableState> {
                 onResizeColumn: this.handleResizeColumn,
                 renderHeadCell: this.renderHeadCellWithMeta(
                   tableData?.meta,
-                  columnOrder[2].name as string
+                  columnOrder[2]!.name as string
                 ) as any,
                 renderBodyCell: this.renderBodyCellWithData(tableData) as any,
               }}

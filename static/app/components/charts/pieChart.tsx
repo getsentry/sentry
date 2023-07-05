@@ -107,7 +107,7 @@ class PieChart extends Component<Props> {
           if (
             !this.isInitialSelected ||
             !name ||
-            firstSeries.data[this.selected].name === name
+            firstSeries.data[this.selected]!.name === name
           ) {
             return;
           }

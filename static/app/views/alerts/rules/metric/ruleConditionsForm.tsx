@@ -285,7 +285,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  model.setValue('owner', `team:${nextSelectedProject.teams[0].id}`);
+                  model.setValue('owner', `team:${nextSelectedProject.teams[0]!.id}`);
                 }
                 onChange(value, {});
                 onBlur(value, {});

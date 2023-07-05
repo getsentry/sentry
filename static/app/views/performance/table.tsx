@@ -158,12 +158,12 @@ class _Table extends Component<Props, State> {
               transactionName={transactionName}
               eventView={eventView}
               project={projectID}
-              transactionThreshold={project_threshold[1]}
-              transactionThresholdMetric={project_threshold[0]}
+              transactionThreshold={project_threshold[1]!}
+              transactionThresholdMetric={project_threshold[0]!}
               onApply={(threshold, metric) => {
                 if (
-                  threshold !== project_threshold[1] ||
-                  metric !== project_threshold[0]
+                  threshold !== project_threshold[1]! ||
+                  metric !== project_threshold[0]!
                 ) {
                   this.setState({
                     transaction: transactionName,
@@ -369,7 +369,7 @@ class _Table extends Component<Props, State> {
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
+        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key]!;
       });
     }
 

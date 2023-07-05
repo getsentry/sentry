@@ -69,8 +69,8 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
     };
 
     const forms = cloneDeep(organizationSettingsFields);
-    forms[0].fields = [
-      ...forms[0].fields,
+    forms[0]!.fields = [
+      ...forms[0]!.fields,
       {
         name: 'codecovAccess',
         type: 'boolean',

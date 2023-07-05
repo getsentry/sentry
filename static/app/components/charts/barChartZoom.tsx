@@ -108,8 +108,8 @@ class BarChartZoom extends Component<Props> {
     if (startValue !== null && endValue !== null) {
       const {buckets, location, paramStart, paramEnd, minZoomWidth, onHistoryPush} =
         this.props;
-      const {start} = buckets[startValue];
-      const {end} = buckets[endValue];
+      const {start} = buckets[startValue]!;
+      const {end} = buckets[endValue]!;
 
       if (minZoomWidth === undefined || end - start > minZoomWidth) {
         const target = {

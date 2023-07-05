@@ -311,7 +311,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                     <ProjectIssues
                       organization={organization}
                       location={location}
-                      projectId={selection.projects[0]}
+                      projectId={selection.projects[0]!}
                       query={query}
                       api={this.api}
                     />

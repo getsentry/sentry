@@ -195,7 +195,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
         images.push({
           type: 'sourcemap',
           code_file: filename,
-          debug_id: debugIdMap[filename],
+          debug_id: debugIdMap[filename]!,
         });
       });
     } catch (e) {
@@ -297,7 +297,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
 }
 
 export function addEndpointTagToRequestError(event: Event): void {
-  const errorMessage = event.exception?.values?.[0].value || '';
+  const errorMessage = event.exception?.values?.[0]!.value || '';
 
   // The capturing group here turns `GET /dogs/are/great 500` into just `GET /dogs/are/great`
   const requestErrorRegex = new RegExp('^([A-Za-z]+ (/[^/]+)+/) \\d+$');

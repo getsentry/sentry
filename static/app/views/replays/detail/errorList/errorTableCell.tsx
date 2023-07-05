@@ -179,7 +179,7 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       ),
     ];
 
-    return renderFns[columnIndex]();
+    return renderFns[columnIndex]!();
   }
 );
 

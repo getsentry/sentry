@@ -5,7 +5,7 @@ const fileNameBlocklist = ['@webkit-masked-url'];
 export function isFrameFilenamePathlike(frame: Frame): boolean {
   let filename = frame.absPath ?? '';
   try {
-    filename = new URL(filename).pathname.split('/').reverse()[0];
+    filename = new URL(filename).pathname.split('/').reverse()[0]!;
   } catch {
     // do nothing
   }

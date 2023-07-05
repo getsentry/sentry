@@ -139,7 +139,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
       </MinWidthButtonBar>
       <Chart
         statsPeriod="24h"
-        data={[durationSeries[selectedSeries]]}
+        data={[durationSeries[selectedSeries]!]}
         start=""
         end=""
         errored={isError}

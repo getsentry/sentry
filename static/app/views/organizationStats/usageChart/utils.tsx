@@ -110,8 +110,8 @@ function getLabelIntervalLongPeriod(dataPeriod: number, numBars: number) {
   const daysBetweenTicks = [1, 2, 7, 7];
 
   for (let i = 0; i < daysBetweenLabels.length && numLabels > MAX_NUMBER_OF_LABELS; i++) {
-    numLabels = numTicks / daysBetweenLabels[i];
-    numTicks = days / daysBetweenTicks[i];
+    numLabels = numTicks / daysBetweenLabels[i]!;
+    numTicks = days / daysBetweenTicks[i]!;
   }
 
   return {

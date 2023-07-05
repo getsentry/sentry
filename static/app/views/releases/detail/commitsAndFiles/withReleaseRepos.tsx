@@ -81,7 +81,7 @@ function withReleaseRepos<P extends DependentProps>(
 
       if (!activeCommitRepo) {
         this.setState({
-          activeReleaseRepo: releaseRepos[0] ?? null,
+          activeReleaseRepo: releaseRepos[0]! ?? null,
         });
         return;
       }

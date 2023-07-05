@@ -139,7 +139,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         help: (
           <Fragment>
             <p>
-              {NOTIFICATION_SETTING_FIELDS[notificationType].help}
+              {NOTIFICATION_SETTING_FIELDS[notificationType]!.help}
               &nbsp;
               <Link
                 data-test-id="fine-tuning"

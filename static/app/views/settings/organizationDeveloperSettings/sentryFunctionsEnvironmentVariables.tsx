@@ -27,7 +27,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
     while (newEnvVariables.length <= pos) {
       newEnvVariables.push({name: '', value: ''});
     }
-    newEnvVariables[pos] = {...newEnvVariables[pos], name: value};
+    newEnvVariables[pos] = {...newEnvVariables[pos]!, name: value};
     setEnvVariables(newEnvVariables);
   };
 
@@ -36,7 +36,7 @@ function SentryFunctionEnvironmentVariables(props: Props) {
     while (newEnvVariables.length <= pos) {
       newEnvVariables.push({name: '', value: ''});
     }
-    newEnvVariables[pos] = {...newEnvVariables[pos], value};
+    newEnvVariables[pos] = {...newEnvVariables[pos]!, value};
     setEnvVariables(newEnvVariables);
   };
 

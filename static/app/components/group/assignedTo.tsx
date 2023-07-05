@@ -74,7 +74,7 @@ function getSuggestedReason(owner: IssueOwner) {
   }
 
   if (owner.rules?.length) {
-    const firstRule = owner.rules[0];
+    const firstRule = owner.rules[0]!;
     return t('Owner of %s', firstRule.join(':'));
   }
 

@@ -324,7 +324,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
 
     const filterOptions = this.getFilterOptions(filteredImages);
     const defaultFilterSelections = (
-      'options' in filterOptions[0] ? filterOptions[0].options : []
+      'options' in filterOptions[0]! ? filterOptions[0]!.options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     this.setState({
@@ -438,7 +438,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       >
         <DebugImage
           style={style}
-          image={images[index]}
+          image={images[index]!}
           onOpenImageDetailsModal={this.handleOpenImageDetailsModal}
         />
       </CellMeasurer>

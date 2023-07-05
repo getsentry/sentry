@@ -110,7 +110,7 @@ class SpanTree {
       while (parent.contains(span)) {
         let nextParent: SpanTreeNode | null = null;
         for (let j = 0; j < parent.children.length; j++) {
-          const child = parent.children[j];
+          const child = parent.children[j]!;
           if (child.span.op !== 'missing instrumentation' && child.contains(span)) {
             nextParent = child;
             break;
@@ -153,7 +153,7 @@ class SpanTree {
         let foundOverlap = false;
         let start = parent.children.length - 1;
         while (start >= 0) {
-          const child = parent.children[start];
+          const child = parent.children[start]!;
           if (span.start_timestamp < child.span.timestamp) {
             foundOverlap = true;
             break;

@@ -217,7 +217,7 @@ class ProjectSessionsChartRequest extends Component<
     const totalSessions = responseData.groups.reduce(
       (acc, group) =>
         acc +
-        group.series[field]
+        group.series[field]!
           .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
           .reduce((value, groupAcc) => groupAcc + value, 0),
       0
@@ -227,7 +227,7 @@ class ProjectSessionsChartRequest extends Component<
       ? responseData.groups.reduce(
           (acc, group) =>
             acc +
-            group.series[field]
+            group.series[field]!
               .slice(0, dataMiddleIndex)
               .reduce((value, groupAcc) => groupAcc + value, 0),
           0
@@ -245,7 +245,7 @@ class ProjectSessionsChartRequest extends Component<
             const totalIntervalSessions = responseData.groups.reduce(
               (acc, group) =>
                 acc +
-                group.series[field].slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i],
+                group.series[field]!.slice(fetchedWithPrevious ? dataMiddleIndex : 0)[i],
               0
             );
 
@@ -277,7 +277,7 @@ class ProjectSessionsChartRequest extends Component<
           seriesName: t('Previous Period'),
           data: responseData.intervals.slice(0, dataMiddleIndex).map((_interval, i) => {
             const totalIntervalSessions = responseData.groups.reduce(
-              (acc, group) => acc + group.series[field].slice(0, dataMiddleIndex)[i],
+              (acc, group) => acc + group.series[field]!.slice(0, dataMiddleIndex)[i],
               0
             );
 

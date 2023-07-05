@@ -72,7 +72,7 @@ export function generateIconName(
     .replace(/^\-+/, '');
 
   if (formattedName === 'edge' && version) {
-    const majorVersion = version.split('.')[0];
+    const majorVersion = version.split('.')[0]!;
     const isLegacyEdge = majorVersion >= '12' && majorVersion <= '18';
 
     return isLegacyEdge ? 'legacy-edge' : 'edge';

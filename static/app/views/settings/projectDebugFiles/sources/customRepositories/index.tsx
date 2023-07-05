@@ -162,7 +162,7 @@ function CustomRepositories({
     newRepositories.splice(index, 1);
     persistData({
       updatedItems: newRepositories as CustomRepo[],
-      refresh: repositories[index].type === CustomRepoType.APP_STORE_CONNECT,
+      refresh: repositories[index]!.type === CustomRepoType.APP_STORE_CONNECT,
     });
   }
 

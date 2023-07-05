@@ -198,7 +198,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     }
 
     if (
-      onboardingContext.data.projects[projectId].status ===
+      onboardingContext.data.projects[projectId]!.status ===
       OnboardingProjectStatus.WAITING
     ) {
       return;
@@ -222,7 +222,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     }
 
     if (
-      onboardingContext.data.projects[projectId].status !==
+      onboardingContext.data.projects[projectId]!.status !==
       OnboardingProjectStatus.WAITING
     ) {
       return;
@@ -263,7 +263,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     router.push({
       ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
+      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId]!.firstIssueId}/?referrer=onboarding-first-event-footer`,
     });
   }, [organization, newOrg, router, onboardingContext, projectId, selectedProject]);
 

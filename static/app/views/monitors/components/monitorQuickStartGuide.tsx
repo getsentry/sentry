@@ -107,10 +107,10 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
     guide.platforms?.has(monitor.project.platform ?? 'other')
   );
 
-  const defaultExample = platformSpecific.length > 0 ? platformSpecific[0].key : 'cli';
+  const defaultExample = platformSpecific.length > 0 ? platformSpecific[0]!.key : 'cli';
 
   const [selectedGuide, setSelectedGuide] = useState(defaultExample);
-  const {Guide} = onboardingGuides[selectedGuide];
+  const {Guide} = onboardingGuides[selectedGuide]!;
 
   return (
     <Container>
@@ -119,7 +119,7 @@ export default function MonitorQuickStartGuide({monitor, orgId}: Props) {
         value={selectedGuide}
         onChange={({value}) => setSelectedGuide(value)}
       />
-      <Guide slug={monitor.slug} orgSlug={orgId} dsnKey={projectKeys?.[0].dsn.public} />
+      <Guide slug={monitor.slug} orgSlug={orgId} dsnKey={projectKeys?.[0]!.dsn.public} />
     </Container>
   );
 }

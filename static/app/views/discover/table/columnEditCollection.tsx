@@ -106,7 +106,7 @@ class ColumnEditCollection extends Component<Props, State> {
   checkColumnErrors(columns: Column[]) {
     const error = new Map();
     for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i];
+      const column = columns[i]!;
       if (column.kind === 'equation') {
         const result = parseArithmetic(column.field);
         if (result.error) {
@@ -172,15 +172,15 @@ class ColumnEditCollection extends Component<Props, State> {
   };
 
   updateEquationFields = (newColumns: Column[], index: number, updatedColumn: Column) => {
-    const oldColumn = newColumns[index];
-    const existingColumn = generateFieldAsString(newColumns[index]);
+    const oldColumn = newColumns[index]!;
+    const existingColumn = generateFieldAsString(newColumns[index]!);
     const updatedColumnString = generateFieldAsString(updatedColumn);
     if (!isLegalEquationColumn(updatedColumn) || hasDuplicate(newColumns, oldColumn)) {
       return;
     }
     // Find the equations in the list of columns
     for (let i = 0; i < newColumns.length; i++) {
-      const newColumn = newColumns[i];
+      const newColumn = newColumns[i]!;
 
       if (newColumn.kind === 'equation') {
         const result = parseArithmetic(newColumn.field);
@@ -196,9 +196,9 @@ class ColumnEditCollection extends Component<Props, State> {
         // for each field, add the text before it, then the new function and update index
         // to be where we want to start again
         for (const field of fields) {
-          if (field.term === existingColumn && lastIndex !== field.location.end.offset) {
+          if (field.term === existingColumn && lastIndex !== field.location.end!.offset) {
             newEquation +=
-              newColumn.field.substring(lastIndex, field.location.start.offset) +
+              newColumn.field.substring(lastIndex, field.location.start!.offset) +
               updatedColumnString;
             lastIndex = field.location.end.offset;
           }
@@ -210,7 +210,7 @@ class ColumnEditCollection extends Component<Props, State> {
         newColumns[i] = {
           kind: 'equation',
           field: newEquation,
-          alias: newColumns[i].alias,
+          alias: newColumns[i]!.alias,
         };
       }
     }
@@ -364,7 +364,7 @@ class ColumnEditCollection extends Component<Props, State> {
     // Reorder columns and trigger change.
     const newColumns = [...this.props.columns];
     const removed = newColumns.splice(sourceIndex, 1);
-    newColumns.splice(targetIndex, 0, removed[0]);
+    newColumns.splice(targetIndex, 0, removed[0]!);
     this.checkColumnErrors(newColumns);
     this.props.onChange(newColumns);
 

@@ -22,7 +22,7 @@ import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
   `${item.value || item.desc || item.title}-${
-    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]) : ''
+    item.children && item.children.length > 0 ? getDropdownItemKey(item.children[0]!) : ''
   }`;
 
 type Props = {
@@ -220,7 +220,7 @@ function ItemTitle({item, searchSubstring, isChild}: ItemTitleProps) {
   if (searchSubstring) {
     const idx =
       restWords.length === 0
-        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0])
+        ? fullWord.toLowerCase().indexOf(searchSubstring.split('.')[0]!)
         : fullWord.toLowerCase().indexOf(searchSubstring);
 
     // Below is the logic to make the current query bold inside the result.

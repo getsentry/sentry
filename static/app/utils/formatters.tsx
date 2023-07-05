@@ -243,8 +243,8 @@ export function parseClockToSeconds(clock: string) {
   let seconds = 0;
   const progression = [MONTH, WEEK, DAY, HOUR, MINUTE, SECOND].slice(parts.length * -1);
   for (let i = 0; i < parts.length; i++) {
-    const num = Number(parts[i]) || 0;
-    const time = progression[i] / 1000;
+    const num = Number(parts[i]!) || 0;
+    const time = progression[i]! / 1000;
     seconds += num * time;
   }
   const ms = Number(milliseconds) || 0;
@@ -282,7 +282,7 @@ export function formatAbbreviatedNumber(number: number | string) {
   let lookup: (typeof numberFormats)[number];
 
   // eslint-disable-next-line no-cond-assign
-  for (let i = 0; (lookup = numberFormats[i]); i++) {
+  for (let i = 0; (lookup = numberFormats[i]!); i++) {
     const [suffixNum, suffix] = lookup;
     const shortValue = Math.floor(number / suffixNum);
     const fitsBound = number % suffixNum;

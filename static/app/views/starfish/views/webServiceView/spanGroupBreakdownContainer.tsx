@@ -128,7 +128,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   if (defined(segments)) {
     for (let index = 0; index < segments.data.length; index++) {
-      const element = segments.data[index];
+      const element = segments.data[index]!;
       const category = element['span.category'] as string;
       transformedData.push({
         cumulativeTime: parseInt(element[`sum(${SPAN_SELF_TIME})`] as string, 10),
@@ -166,7 +166,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       Object.keys(topData).forEach(key => {
         const seriesData = topData?.[key];
         const label = key === '' ? NULL_SPAN_CATEGORY : key;
-        seriesByDomain[label].data =
+        seriesByDomain[label]!.data =
           seriesData?.data.map(datum => {
             return {name: datum[0] * 1000, value: datum[1][0].count} as SeriesDataUnit;
           }) ?? [];

@@ -276,8 +276,8 @@ class WaterfallModel {
         };
       },
       {
-        traceStartTimestamp: this.traceBounds[0].traceStartTimestamp,
-        traceEndTimestamp: this.traceBounds[0].traceEndTimestamp,
+        traceStartTimestamp: this.traceBounds[0]!.traceStartTimestamp,
+        traceEndTimestamp: this.traceBounds[0]!.traceEndTimestamp,
       }
     );
   };

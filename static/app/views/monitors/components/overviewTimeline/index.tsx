@@ -103,7 +103,7 @@ export function OverviewTimeline({monitorList}: Props) {
             <div>
               <CheckInTimeline
                 timeWindow={timeWindow}
-                bucketedData={monitorStats[monitor.slug]}
+                bucketedData={monitorStats[monitor.slug]!}
                 end={nowRef.current}
                 start={start}
                 width={timelineWidth}

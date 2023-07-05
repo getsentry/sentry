@@ -57,7 +57,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get installationStatus() {
-    return this.plugin.projectList.length > 0 ? 'Installed' : 'Not Installed';
+    return this.plugin.projectList!.length > 0 ? 'Installed' : 'Not Installed';
   }
 
   get integrationName() {
@@ -70,7 +70,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
   handleResetConfiguration = (projectId: string) => {
     // make a copy of our project list
-    const projectList = this.plugin.projectList.slice();
+    const projectList = this.plugin.projectList!.slice();
     // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
     // should match but quit if it doesn't
@@ -81,13 +81,13 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
     projectList.splice(index, 1);
     // update state
     this.setState({
-      plugins: [{...this.state.plugins[0], projectList}],
+      plugins: [{...this.state.plugins[0]!, projectList}],
     });
   };
 
   handlePluginEnableStatus = (projectId: string, enable: boolean = true) => {
     // make a copy of our project list
-    const projectList = this.plugin.projectList.slice();
+    const projectList = this.plugin.projectList!.slice();
     // find the index of the project
     const index = projectList.findIndex(item => item.projectId === projectId);
     // should match but quit if it doesn't
@@ -103,7 +103,7 @@ class PluginDetailedView extends AbstractIntegrationDetailedView<
 
     // update state
     this.setState({
-      plugins: [{...this.state.plugins[0], projectList}],
+      plugins: [{...this.state.plugins[0]!, projectList}],
     });
   };
 

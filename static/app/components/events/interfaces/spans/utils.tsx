@@ -530,7 +530,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   );
 
   return records.some(record => {
-    const {value} = marks[record.slug];
+    const {value} = marks[record.slug]!;
     if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
@@ -757,8 +757,8 @@ export function getSpanGroupTimestamps(spanGroup: EnhancedSpan[]) {
       };
     },
     {
-      startTimestamp: spanGroup[0].span.start_timestamp,
-      endTimestamp: spanGroup[0].span.timestamp,
+      startTimestamp: spanGroup[0]!.span.start_timestamp,
+      endTimestamp: spanGroup[0]!.span.timestamp,
     }
   );
 }
@@ -866,22 +866,22 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     start: string[];
   }>(
     (acc, startString, index) => {
-      if (startString.length > endStrings[index].length) {
+      if (startString.length > endStrings[index]!.length) {
         acc.start.push(startString);
         acc.end.push(
           index === 0
-            ? endStrings[index].padStart(startString.length, '0')
-            : endStrings[index].padEnd(startString.length, '0')
+            ? endStrings[index]!.padStart(startString.length, '0')
+            : endStrings[index]!.padEnd(startString.length, '0')
         );
         return acc;
       }
 
       acc.start.push(
         index === 0
-          ? startString.padStart(endStrings[index].length, '0')
-          : startString.padEnd(endStrings[index].length, '0')
+          ? startString.padStart(endStrings[index]!.length, '0')
+          : startString.padEnd(endStrings[index]!.length, '0')
       );
-      acc.end.push(endStrings[index]);
+      acc.end.push(endStrings[index]!);
       return acc;
     },
     {start: [], end: []}

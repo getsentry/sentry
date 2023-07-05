@@ -95,7 +95,7 @@ class UIFramesRenderer {
     this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
-      const frame = this.uiFrames.frames[index];
+      const frame = this.uiFrames.frames[index]!;
 
       const x1 = frame.start;
       const x2 = frame.end;
@@ -267,8 +267,8 @@ class UIFramesRenderer {
     const end = upperBound(configSpaceCursor[0], this.uiFrames.frames);
 
     for (let i = 0; i < end; i++) {
-      const frame = this.uiFrames.frames[i];
-      if (configSpaceCursor[0] <= frame.end && configSpaceCursor[0] >= frame.start) {
+      const frame = this.uiFrames.frames[i]!;
+      if (configSpaceCursor[0]! <= frame.end && configSpaceCursor[0]! >= frame.start) {
         overlaps.push(frame);
       }
     }

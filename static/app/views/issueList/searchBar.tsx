@@ -28,7 +28,7 @@ const getSupportedTags = (supportedTags: TagCollection) =>
         ...supportedTags[key],
         kind:
           getFieldDefinition(key)?.kind ??
-          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+          (supportedTags[key]!.predefined ? FieldKind.FIELD : FieldKind.TAG),
       },
     ])
   );

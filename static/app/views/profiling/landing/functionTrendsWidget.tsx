@@ -198,7 +198,7 @@ function FunctionTrendsEntry({
     const target = generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: func['examples()'][0],
+      profileId: func['examples()'][0]!,
       query: {
         frameName: func.function as string,
         framePackage: func.package as string,
@@ -274,9 +274,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
       color: getTrendLineColor(func.change, theme),
     };
 
-    const seriesStart = func.stats.data[0][0] * 1e3;
+    const seriesStart = func.stats.data[0]![0]! * 1e3;
     const seriesMid = func.breakpoint * 1e3;
-    const seriesEnd = func.stats.data[func.stats.data.length - 1][0] * 1e3;
+    const seriesEnd = func.stats.data[func.stats.data!.length - 1]![0]! * 1e3;
 
     const dividingLine = {
       data: [],

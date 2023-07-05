@@ -91,9 +91,9 @@ function TagFacetsDistributionMeter({
         <Tooltip
           skipWrapper
           delay={TOOLTIP_DELAY}
-          title={topSegments[0].name || t('n/a')}
+          title={topSegments[0]!.name || t('n/a')}
         >
-          <TitleDescription>{topSegments[0].name || t('n/a')}</TitleDescription>
+          <TitleDescription>{topSegments[0]!.name || t('n/a')}</TitleDescription>
         </Tooltip>
         <ExpandToggleButton
           borderless
@@ -160,7 +160,7 @@ function TagFacetsDistributionMeter({
               ) : (
                 <Segment
                   aria-label={`${value.value} ${t('segment')}`}
-                  color={colors[index]}
+                  color={colors[index]!}
                   {...segmentProps}
                 >
                   {/* if the first segment is 6% or less, the label won't fit cleanly into the segment, so don't show the label */}

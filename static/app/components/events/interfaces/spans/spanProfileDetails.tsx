@@ -102,7 +102,7 @@ export function SpanProfileDetails({
     // find the number of nodes with the minimum number of samples
     let hasMinCount = 0;
     for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
+      if (nodes[i]!.count >= TOP_NODE_MIN_COUNT) {
         hasMinCount += 1;
       } else {
         break;
@@ -120,7 +120,7 @@ export function SpanProfileDetails({
     }
 
     return {
-      frames: extractFrames(nodes[index], event.platform || 'other'),
+      frames: extractFrames(nodes[index]!, event.platform || 'other'),
       hasPrevious: index > 0,
       hasNext: index + 1 < maxNodes,
     };
@@ -160,11 +160,11 @@ export function SpanProfileDetails({
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
-            <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
+            <Tooltip title={t('%s out of %s samples', nodes[index]!.count, totalWeight)}>
               {tct('Showing stacks [index] of [total] ([percentage])', {
                 index: index + 1,
                 total: maxNodes,
-                percentage: formatPercentage(nodes[index].count / totalWeight),
+                percentage: formatPercentage(nodes[index]!.count / totalWeight),
               })}
             </Tooltip>
           </SectionSubtext>
@@ -226,7 +226,7 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
     // TODO: should this take self times into consideration?
     const inRange = startTimestamp <= duration && duration < stopTimestamp;
 
-    duration += profile.weights[i];
+    duration += profile.weights[i]!;
 
     if (sample.isRoot || !inRange) {
       continue;

@@ -265,7 +265,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
   renderSingleOrgView() {
     const {organizations, sentryApp} = this.state;
     // pull the name out of organizations since state.organization won't be loaded initially
-    const organizationName = organizations[0].name;
+    const organizationName = organizations[0]!.name;
     return (
       <div>
         <p>

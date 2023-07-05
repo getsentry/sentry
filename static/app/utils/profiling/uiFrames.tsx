@@ -81,8 +81,8 @@ class UIFrames {
         ? 'frozen'
         : !frozenFramesQueue.length
         ? 'slow'
-        : slowFramesQueue[0].elapsed_since_start_ns - slowFramesQueue[0].value <
-          frozenFramesQueue[0].elapsed_since_start_ns - frozenFramesQueue[0].value
+        : slowFramesQueue[0]!.elapsed_since_start_ns - slowFramesQueue[0]!.value <
+          frozenFramesQueue[0]!.elapsed_since_start_ns - frozenFramesQueue[0]!.value
         ? 'slow'
         : 'frozen';
 

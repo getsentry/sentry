@@ -43,7 +43,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
 
   const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
-      fields: props.fields[0],
+      fields: props.fields[0]!,
       component: provided => (
         <QueryBatchNode batchProperty="yAxis" transform={unmergeIntoIndividualResults}>
           {({queryBatching}) => (

@@ -49,7 +49,7 @@ function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onExpand}: Props) 
   if (isSerializedError && objectIsEmpty(args[0]) && breadcrumb.message) {
     // Sometimes message can include stacktrace
     const splitMessage = breadcrumb.message.split('\n');
-    const errorMessagePiece = splitMessage[0].trim();
+    const errorMessagePiece = splitMessage[0]!.trim();
     // Error.prototype.toString() will prepend the error type meaning it will
     // not be the same as `message` property. We want message only when
     // creating a new Error instance, otherwise the type will repeat.

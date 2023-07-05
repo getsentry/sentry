@@ -183,19 +183,19 @@ class SourceField extends Component<Props, State> {
         continue;
       }
 
-      if (value.includes('!') && !!value.split('!')[1]) {
-        const valueAfterUnaryOperator = value.split('!')[1];
+      if (value.includes('!') && !!value.split('!')[1]!) {
+        const valueAfterUnaryOperator = value.split('!')[1]!;
         const selector = this.getAllSuggestions().find(
           s => s.value === valueAfterUnaryOperator
         );
         if (!selector) {
           fieldValues.push([
-            unarySuggestions[0],
+            unarySuggestions[0]!,
             {type: SourceSuggestionType.STRING, value: valueAfterUnaryOperator},
           ]);
           continue;
         }
-        fieldValues.push([unarySuggestions[0], selector]);
+        fieldValues.push([unarySuggestions[0]!, selector]);
         continue;
       }
 
@@ -220,7 +220,7 @@ class SourceField extends Component<Props, State> {
   scrollToSuggestion() {
     const {activeSuggestion, hideCaret} = this.state;
 
-    this.suggestionList?.current?.children[activeSuggestion].scrollIntoView({
+    this.suggestionList?.current?.children[activeSuggestion]!.scrollIntoView({
       behavior: 'smooth',
       block: 'nearest',
       inline: 'start',
@@ -263,7 +263,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (Array.isArray(lastFieldValue)) {
-      fieldValues[fieldValues.length - 1] = [lastFieldValue[0], suggestion];
+      fieldValues[fieldValues.length - 1] = [lastFieldValue[0]!, suggestion];
       return fieldValues;
     }
 
@@ -353,7 +353,7 @@ class SourceField extends Component<Props, State> {
     }
 
     if (key === 'Enter') {
-      this.handleClickSuggestionItem(suggestions[activeSuggestion]);
+      this.handleClickSuggestionItem(suggestions[activeSuggestion]!);
       return;
     }
 

@@ -272,7 +272,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
           <Alert type="info">
             {instructions?.length === 1 ? (
               <span
-                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0])}}
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
               />
             ) : (
               <List symbol={<IconArrow size="xs" direction="right" />}>

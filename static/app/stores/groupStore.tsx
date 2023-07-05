@@ -178,14 +178,14 @@ const storeConfig: GroupStoreDefinition = {
     if (this.statuses[id] === undefined) {
       this.statuses[id] = {};
     }
-    this.statuses[id][status] = true;
+    this.statuses[id]![status] = true;
   },
 
   clearStatus(id, status) {
     if (this.statuses[id] === undefined) {
       return;
     }
-    this.statuses[id][status] = false;
+    this.statuses[id]![status] = false;
   },
 
   hasStatus(id, status) {
@@ -199,7 +199,7 @@ const storeConfig: GroupStoreDefinition = {
     }
 
     for (let i = 0; i < group.activity.length; i++) {
-      if (group.activity[i].id === id) {
+      if (group.activity[i]!.id === id) {
         return i;
       }
     }
@@ -239,7 +239,7 @@ const storeConfig: GroupStoreDefinition = {
     // Here, we want to merge the new `data` being passed in
     // into the existing `data` object. This effectively
     // allows passing in an object of only changes.
-    group.activity[index].data = Object.assign(group.activity[index].data, data);
+    group.activity[index]!.data = Object.assign(group.activity[index]!.data, data);
     this.updateItems([group.id]);
   },
 
@@ -256,7 +256,7 @@ const storeConfig: GroupStoreDefinition = {
 
     const activity = group.activity.splice(index, 1);
 
-    if (activity[0].type === 'note') {
+    if (activity[0]!.type === 'note') {
       group.numComments--;
     }
 
@@ -290,7 +290,7 @@ const storeConfig: GroupStoreDefinition = {
         ? item
         : {
             ...item,
-            ...pendingById[item.id].reduce((a, change) => ({...a, ...change.data}), {}),
+            ...pendingById[item.id]!.reduce((a, change) => ({...a, ...change.data}), {}),
           }
     );
   },
@@ -320,7 +320,7 @@ const storeConfig: GroupStoreDefinition = {
       return;
     }
 
-    this.items[idx] = {...this.items[idx], assignedTo: response.assignedTo};
+    this.items[idx] = {...this.items[idx]!, assignedTo: response.assignedTo};
     this.clearStatus(itemId, 'assignTo');
     this.updateItems([itemId]);
   },

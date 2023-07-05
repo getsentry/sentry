@@ -194,7 +194,7 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
+        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key]!;
       });
     }
 

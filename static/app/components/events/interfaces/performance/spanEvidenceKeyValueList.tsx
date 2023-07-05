@@ -113,7 +113,7 @@ function ConsecutiveDBQueriesSpanEvidence({
         [
           makeTransactionNameRow(event, orgSlug, projectSlug),
           causeSpans
-            ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]))
+            ? makeRow(t('Starting Span'), getSpanEvidenceValue(causeSpans[0]!))
             : null,
           makeRow('Parallelizable Spans', offendingSpans.map(getSpanEvidenceValue)),
           makeRow(
@@ -161,11 +161,11 @@ function LargeHTTPPayloadSpanEvidence({
       data={
         [
           makeTransactionNameRow(event, orgSlug, projectSlug),
-          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0])),
+          makeRow(t('Large HTTP Payload Span'), getSpanEvidenceValue(offendingSpans[0]!)),
           makeRow(
             t('Payload Size'),
-            getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
-              getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
+            getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
+              getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
           ),
         ].filter(Boolean) as KeyValueListData
       }
@@ -198,7 +198,7 @@ function NPlusOneDBQueriesSpanEvidence({
           makeTransactionNameRow(event, orgSlug, projectSlug),
           parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
           causeSpans.length > 0
-            ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]))
+            ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]!))
             : null,
           ...repeatingSpanRows,
         ].filter(Boolean) as KeyValueListData
@@ -217,7 +217,7 @@ function NPlusOneAPICallsSpanEvidence({
   const baseURL = requestEntry?.data?.url;
 
   const problemParameters = formatChangingQueryParameters(offendingSpans, baseURL);
-  const commonPathPrefix = formatBasePath(offendingSpans[0], baseURL);
+  const commonPathPrefix = formatBasePath(offendingSpans[0]!, baseURL);
 
   return (
     <PresortedKeyValueList
@@ -266,10 +266,10 @@ function SlowDBQueryEvidence({
     <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, orgSlug, projectSlug),
-        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Duration Impact'),
-          getSingleSpanDurationImpact(event, offendingSpans[0])
+          getSingleSpanDurationImpact(event, offendingSpans[0]!)
         ),
       ]}
     />
@@ -309,15 +309,15 @@ function UncompressedAssetSpanEvidence({
     <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, orgSlug, projectSlug),
-        makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(t('Slow Resource Span'), getSpanEvidenceValue(offendingSpans[0]!)),
         makeRow(
           t('Asset Size'),
-          getSpanFieldBytes(offendingSpans[0], 'http.response_content_length') ??
-            getSpanFieldBytes(offendingSpans[0], 'Encoded Body Size')
+          getSpanFieldBytes(offendingSpans[0]!, 'http.response_content_length') ??
+            getSpanFieldBytes(offendingSpans[0]!, 'Encoded Body Size')
         ),
         makeRow(
           t('Duration Impact'),
-          getSingleSpanDurationImpact(event, offendingSpans[0])
+          getSingleSpanDurationImpact(event, offendingSpans[0]!)
         ),
       ]}
     />
@@ -336,7 +336,7 @@ function DefaultSpanEvidence({
         [
           makeTransactionNameRow(event, orgSlug, projectSlug),
           offendingSpans.length > 0
-            ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]))
+            ? makeRow(t('Offending Span'), getSpanEvidenceValue(offendingSpans[0]!))
             : null,
         ].filter(Boolean) as KeyValueListData
       }
@@ -558,8 +558,8 @@ export function extractQueryParameters(URLs: URL[]): ParameterLookup {
 
   URLs.forEach(url => {
     for (const [key, value] of url.searchParams) {
-      parameterValuesByKey[key] ??= [];
-      parameterValuesByKey[key].push(value);
+      parameterValuesByKey[key]! ??= [];
+      parameterValuesByKey[key]!.push(value);
     }
   });
 

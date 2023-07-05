@@ -123,8 +123,8 @@ export class Profile {
       }
 
       for (let i = toOpen.length - 1; i >= 0; i--) {
-        openFrame(toOpen[i], value);
-        prevStack.push(toOpen[i]);
+        openFrame(toOpen[i]!, value);
+        prevStack.push(toOpen[i]!);
       }
 
       value += this.weights[sampleIndex++];
@@ -132,7 +132,7 @@ export class Profile {
 
     // Close any remaining frames
     for (let i = prevStack.length - 1; i >= 0; i--) {
-      closeFrame(prevStack[i], value);
+      closeFrame(prevStack[i]!, value);
     }
   }
 

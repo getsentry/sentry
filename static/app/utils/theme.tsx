@@ -403,19 +403,19 @@ const generateAliases = (colors: BaseColors) => ({
 });
 
 const dataCategory = {
-  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
-  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
-  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
-  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4]![3]!,
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4]![2]!,
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4]![1]!,
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4]![4]!,
 };
 
 /**
  * Default colors for data usage outcomes
  */
 const outcome = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
-  [Outcome.FILTERED]: CHART_PALETTE[1][1],
-  [Outcome.DROPPED]: CHART_PALETTE[5][3],
+  [Outcome.ACCEPTED]: CHART_PALETTE[0]![0]!,
+  [Outcome.FILTERED]: CHART_PALETTE[1]![1]!,
+  [Outcome.DROPPED]: CHART_PALETTE[5]![3]!,
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({

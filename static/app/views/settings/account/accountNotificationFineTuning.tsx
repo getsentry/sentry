@@ -188,10 +188,10 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
     const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
 
     const isProject = isGroupedByProject(fineTuneType);
-    const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType]!;
     const {title, description} = field;
 
-    const [stateKey, url] = isProject ? this.getEndpoints()[2] : [];
+    const [stateKey, url] = isProject ? this.getEndpoints()[2]! : [];
     const hasProjects = !!projects?.length;
 
     if (fineTuneType === 'email') {
@@ -220,7 +220,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
             >
               <JsonForm
                 title={`Default ${title}`}
-                fields={[fields[field.defaultFieldName]]}
+                fields={[fields[field.defaultFieldName]!]}
               />
             </Form>
           )}

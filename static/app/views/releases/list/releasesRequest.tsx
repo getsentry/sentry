@@ -362,7 +362,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     const totalCount = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
 
     const crashedCount = this.getCrashCount(version, project, display);
 
@@ -381,7 +381,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByReleaseIn24h?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getPeriodCountByRelease = (
@@ -394,7 +394,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   get24hCountByProject = (project: number, display: ReleasesDisplayOption) => {
@@ -403,7 +403,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByProjectIn24h?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getPeriodCountByProject = (project: number, display: ReleasesDisplayOption) => {
@@ -412,7 +412,7 @@ class ReleasesRequest extends Component<Props, State> {
 
     return totalCountByProjectInPeriod?.groups
       .filter(({by}) => by.project === project)
-      ?.reduce((acc, group) => acc + group.totals[field], 0);
+      ?.reduce((acc, group) => acc + group.totals[field]!, 0);
   };
 
   getTimeSeries = (version: string, project: number, display: ReleasesDisplayOption) => {

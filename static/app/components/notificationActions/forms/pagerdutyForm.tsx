@@ -39,7 +39,7 @@ function PagerdutyForm({
 }: PagerdutyFormProps) {
   const [selectedAccount, setSelectedAccount] = useState(
     action.integrationId
-      ? pagerdutyIntegrations[action.integrationId][0].action.integrationName
+      ? pagerdutyIntegrations[action.integrationId]![0]!.action.integrationName
       : ''
   );
   const [selectedDisplay, setSelectedDisplay] = useState(action.targetDisplay ?? '');
@@ -66,7 +66,7 @@ function PagerdutyForm({
     if (!action.integrationId) {
       return [];
     }
-    const services = pagerdutyIntegrations[action.integrationId];
+    const services = pagerdutyIntegrations[action.integrationId]!;
     return services.map<MenuItemProps>(service => ({
       key: service.action.targetDisplay ?? '',
       label: service.action.targetDisplay,

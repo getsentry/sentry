@@ -141,7 +141,7 @@ function findLongestMatchingFrame(
     }
 
     for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+      frames.push(frame.children[i]!);
     }
   }
 

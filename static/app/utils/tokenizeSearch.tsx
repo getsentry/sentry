@@ -234,14 +234,14 @@ export class MutableSearch {
       parensToDelete = [];
 
       for (let i = 0; i < this.tokens.length; i++) {
-        const token = this.tokens[i];
+        const token = this.tokens[i]!;
         if (!isOp(token) || token.value !== '(') {
           continue;
         }
 
         let alreadySeen = false;
         for (let j = i + 1; j < this.tokens.length; j++) {
-          const nextToken = this.tokens[j];
+          const nextToken = this.tokens[j]!;
           if (isOp(nextToken) && nextToken.value === '(') {
             // Continue down to the nested parens. We can skip i forward since we know
             // everything between i and j is NOT an open paren.

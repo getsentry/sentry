@@ -188,7 +188,7 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
       singleYAxis ? firstYAxis : 'count'
     ).map(data => ({
       interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
-      [firstYAxis]: data[firstYAxis],
+      [firstYAxis]: data[firstYAxis]!,
       group: data.group,
     }));
     return timeSeriesResult;
@@ -197,7 +197,7 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     if (result[key].data) {
       intervals = mergeIntervals(
         intervals,
-        processSingleDiscoverTimeseriesResult(result[key], singleYAxis ? firstYAxis : key)
+        processSingleDiscoverTimeseriesResult(result[key]!, singleYAxis ? firstYAxis : key)
       );
     } else {
       Object.keys(result[key]).forEach(innerKey => {

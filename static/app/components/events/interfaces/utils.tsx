@@ -86,8 +86,8 @@ export function stringifyQueryList(query: string | [key: string, value: string][
     if (kv !== null && kv.length === 2) {
       const [key, value] = kv;
       if (value !== null) {
-        if (Array.isArray(queryObj[key])) {
-          queryObj[key].push(value);
+        if (Array.isArray(queryObj[key]!)) {
+          queryObj[key]!.push(value);
         } else {
           queryObj[key] = [value];
         }
@@ -197,7 +197,7 @@ export function parseAssembly(assembly: string | null) {
   }
 
   for (let i = 1; i < pieces.length; i++) {
-    const [key, value] = pieces[i].trim().split('=');
+    const [key, value] = pieces[i]!.trim().split('=');
 
     // eslint-disable-next-line default-case
     switch (key) {
@@ -226,7 +226,7 @@ export function stackTracePlatformIcon(platform: PlatformType, frames: Frame[]) 
   );
 
   if (fileExtensions.length === 1) {
-    const newPlatform = fileExtensionToPlatform(fileExtensions[0]);
+    const newPlatform = fileExtensionToPlatform(fileExtensions[0]!);
 
     return newPlatform ?? platform;
   }

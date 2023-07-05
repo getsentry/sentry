@@ -62,7 +62,7 @@ function IssueCategoryFilter({
     [renderLabel]
   );
 
-  const [selectedOption, setSelectedOption] = useState<SelectOption<string>>(options[0]);
+  const [selectedOption, setSelectedOption] = useState<SelectOption<string>>(options[0]!);
 
   // Effect that handles setting the current option if the query is changed manually
   useEffect(() => {

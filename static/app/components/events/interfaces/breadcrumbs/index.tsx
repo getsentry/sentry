@@ -114,7 +114,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     const filterTypes: SelectOptionWithLevels[] = [];
 
     for (const index in crumbs) {
-      const breadcrumb = crumbs[index];
+      const breadcrumb = crumbs[index]!;
       const foundFilterType = filterTypes.findIndex(
         f => f.value === `type-${breadcrumb.type}`
       );
@@ -131,9 +131,9 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
       if (
         breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
+        !filterTypes[foundFilterType]!.levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType].levels?.push(breadcrumb.level);
+        filterTypes[foundFilterType]!.levels?.push(breadcrumb.level);
       }
     }
 
@@ -144,8 +144,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     const filterLevels: SelectOption<string>[] = [];
 
     for (const indexType in types) {
-      for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels?.[indexLevel];
+      for (const indexLevel in types[indexType]!.levels) {
+        const level = types[indexType]!.levels?.[indexLevel];
 
         if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;

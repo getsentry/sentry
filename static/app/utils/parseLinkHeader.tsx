@@ -16,7 +16,7 @@ export default function parseLinkHeader(header: string | null): Result {
       );
     const hasResults = match![3] === 'true' ? true : match![3] === 'false' ? false : null;
 
-    links[match![2]] = {
+    links[match![2]!] = {
       href: match![1],
       results: hasResults,
       cursor: match![4],

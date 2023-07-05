@@ -151,7 +151,7 @@ export function getCurrentTrendFunction(
   const trendFunctionField =
     _trendFunctionField ?? decodeScalar(location?.query?.trendFunction);
   const trendFunction = TRENDS_FUNCTIONS.find(({field}) => field === trendFunctionField);
-  return trendFunction || TRENDS_FUNCTIONS[0];
+  return trendFunction || TRENDS_FUNCTIONS[0]!;
 }
 
 function getDefaultTrendParameter(

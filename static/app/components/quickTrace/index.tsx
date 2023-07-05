@@ -340,14 +340,14 @@ function EventNodeSelector({
     const hoverText = totalErrors ? (
       t('View the error for this Transaction')
     ) : (
-      <SingleEventHoverText event={events[0]} />
+      <SingleEventHoverText event={events[0]!} />
     );
     const target = errors.length
-      ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      ? generateSingleErrorTarget(errors[0]!, organization, location, errorDest)
       : perfIssues.length
-      ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
+      ? generateSingleErrorTarget(perfIssues[0]!, organization, location, errorDest)
       : generateSingleTransactionTarget(
-          events[0],
+          events[0]!,
           organization,
           location,
           transactionDest

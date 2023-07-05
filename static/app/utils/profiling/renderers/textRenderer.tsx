@@ -19,11 +19,11 @@ abstract class TextRenderer {
   }
 
   measureAndCacheText(text: string): TextMetrics {
-    if (this.textCache[text]) {
-      return this.textCache[text];
+    if (this.textCache[text]!) {
+      return this.textCache[text]!;
     }
     this.textCache[text] = this.context.measureText(text);
-    return this.textCache[text];
+    return this.textCache[text]!;
   }
 
   maybeInvalidateCache(): void {

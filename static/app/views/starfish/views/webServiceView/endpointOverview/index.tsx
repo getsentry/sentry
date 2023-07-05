@@ -129,10 +129,10 @@ export default function EndpointOverview() {
             return null;
           }
           // Force label to be Requests
-          const throughputResults = {seriesName: 'Requests', data: results[0].data};
+          const throughputResults = {seriesName: 'Requests', data: results[0]!.data};
           const percentileData: Series = {
             seriesName: t('Requests'),
-            data: results[2].data,
+            data: results[2]!.data,
           };
           return (
             <Fragment>
@@ -145,7 +145,7 @@ export default function EndpointOverview() {
                   defined(totals)
                     ? t(
                         '%sms',
-                        (totals.data[0]['p95(transaction.duration)'] as number).toFixed(2)
+                        (totals.data[0]!['p95(transaction.duration)'] as number).toFixed(2)
                       )
                     : undefined
                 }
@@ -180,7 +180,7 @@ export default function EndpointOverview() {
                 isLoading={isTotalsLoading}
                 value={
                   defined(totals)
-                    ? t('%s/s', (totals.data[0]['tps()'] as number).toFixed(2))
+                    ? t('%s/s', (totals.data[0]!['tps()'] as number).toFixed(2))
                     : undefined
                 }
               />
@@ -216,7 +216,7 @@ export default function EndpointOverview() {
                 value={
                   defined(totals)
                     ? tooltipFormatterUsingAggregateOutputType(
-                        totals.data[0]['http_error_count()'] as number,
+                        totals.data[0]!['http_error_count()'] as number,
                         'integer'
                       )
                     : undefined
@@ -225,7 +225,7 @@ export default function EndpointOverview() {
               <Chart
                 statsPeriod={eventView.statsPeriod}
                 height={80}
-                data={[results[1]]}
+                data={[results[1]!]}
                 start={eventView.start as string}
                 end={eventView.end as string}
                 loading={loading}

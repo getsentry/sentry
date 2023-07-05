@@ -124,7 +124,7 @@ function Breadcrumbs({
   });
 
   function renderRow({index, key, parent, style}: ListRowProps) {
-    const {breadcrumb, meta} = breadcrumbs[index];
+    const {breadcrumb, meta} = breadcrumbs[index]!;
     const isLastItem = index === breadcrumbs.length - 1;
 
     return (

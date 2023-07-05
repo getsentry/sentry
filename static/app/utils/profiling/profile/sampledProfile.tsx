@@ -20,7 +20,7 @@ function sortStacks(
     if (a.stack[i] === b.stack[i]) {
       continue;
     }
-    return a.stack[i] - b.stack[i];
+    return a.stack[i]! - b.stack[i]!;
   }
   return 0;
 }
@@ -120,8 +120,8 @@ export class SampledProfile extends Profile {
     let frame: Frame | null = null;
 
     for (let i = 0; i < samples.length; i++) {
-      const stack = samples[i].stack;
-      let weight = samples[i].weight;
+      const stack = samples[i]!.stack;
+      let weight = samples[i]!.weight;
 
       const isGCStack =
         options.type === 'flamechart' &&
@@ -171,7 +171,7 @@ export class SampledProfile extends Profile {
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
+      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]!);
     }
 
     return profile.build();
@@ -244,10 +244,10 @@ export class SampledProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = framesInStack.length - 1;
       while (start >= 0) {
-        if (framesInStack[start].frame === node.frame) {
+        if (framesInStack[start]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].recursive = node;
-          node.recursive = framesInStack[start];
+          framesInStack[start]!.recursive = node;
+          node.recursive = framesInStack[start]!;
           break;
         }
         start--;

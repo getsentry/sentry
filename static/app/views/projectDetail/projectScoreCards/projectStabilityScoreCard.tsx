@@ -177,7 +177,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     }
 
     const totalSessions = data.groups.reduce(
-      (acc, group) => acc + group.totals[field],
+      (acc, group) => acc + group.totals[field]!,
       0
     );
 

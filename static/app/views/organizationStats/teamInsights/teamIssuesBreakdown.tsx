@@ -93,17 +93,17 @@ function TeamIssuesBreakdown({
       }
 
       for (const key of keys) {
-        projectTotals[projectId][key] += counts[key];
+        projectTotals[projectId]![key] += counts[key]!;
       }
 
       if (!allReviewedByDay[projectId]) {
         allReviewedByDay[projectId] = {};
       }
 
-      if (allReviewedByDay[projectId][bucket] === undefined) {
-        allReviewedByDay[projectId][bucket] = counts.total;
+      if (allReviewedByDay[projectId]![bucket] === undefined) {
+        allReviewedByDay[projectId]![bucket] = counts.total;
       } else {
-        allReviewedByDay[projectId][bucket] += counts.total;
+        allReviewedByDay[projectId]![bucket] += counts.total;
       }
     }
   }
@@ -115,7 +115,7 @@ function TeamIssuesBreakdown({
   const allSeries = Object.keys(allReviewedByDay).map(
     (projectId, idx): BarChartSeries => ({
       seriesName: ProjectsStore.getById(projectId)?.slug ?? projectId,
-      data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId])),
+      data: sortSeriesByDay(convertDayValueObjectToSeries(allReviewedByDay[projectId]!)),
       animationDuration: 500,
       animationDelay: idx * 500,
       silent: true,
@@ -172,10 +172,10 @@ function TeamIssuesBreakdown({
                     </ProjectBadgeContainer>
                     {statuses.map(action => (
                       <AlignRight key={action}>
-                        {projectTotals[projectId][action]}
+                        {projectTotals[projectId]![action]}
                       </AlignRight>
                     ))}
-                    <AlignRight>{projectTotals[projectId].total}</AlignRight>
+                    <AlignRight>{projectTotals[projectId]!.total}</AlignRight>
                   </Fragment>
                 );
               })}

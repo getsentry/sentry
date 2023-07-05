@@ -170,10 +170,10 @@ export function getMetricAlertChartOption({
   const series: AreaChartSeries[] = [...timeseriesData];
   const areaSeries: AreaChartSeries[] = [];
   // Ensure series data appears below incident/mark lines
-  series[0].z = 1;
-  series[0].color = CHART_PALETTE[0][0];
+  series[0]!.z = 1;
+  series[0]!.color = CHART_PALETTE[0]![0]!;
 
-  const dataArr = timeseriesData[0].data;
+  const dataArr = timeseriesData[0]!.data;
   const maxSeriesValue = dataArr.reduce(
     (currMax, coord) => Math.max(currMax, coord.value),
     0
@@ -193,7 +193,7 @@ export function getMetricAlertChartOption({
         ) / ALERT_CHART_MIN_MAX_BUFFER
       )
     : 0;
-  const firstPoint = new Date(dataArr[0]?.name).getTime();
+  const firstPoint = new Date(dataArr[0]!?.name).getTime();
   const lastPoint = new Date(dataArr[dataArr.length - 1]?.name).getTime();
   const totalDuration = lastPoint - firstPoint;
   let criticalDuration = 0;
@@ -245,15 +245,15 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            series[0].seriesName,
+            series[0]!.seriesName,
             rule.aggregate,
             handleIncidentClick
           )
         );
         const areaStart = Math.max(new Date(incident.dateStarted).getTime(), firstPoint);
         const areaEnd = Math.min(
-          statusChanges.length && statusChanges[0].dateCreated
-            ? new Date(statusChanges[0].dateCreated).getTime() - timeWindowMs
+          statusChanges.length && statusChanges[0]!.dateCreated
+            ? new Date(statusChanges[0]!.dateCreated).getTime() - timeWindowMs
             : new Date(incidentEnd).getTime(),
           lastPoint
         );
@@ -349,7 +349,7 @@ export function getMetricAlertChartOption({
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
-        alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
+        alertAxisFormatter(value, timeseriesData[0]!.seriesName, rule.aggregate),
     },
     max: isCrashFreeAlert(rule.dataset)
       ? 100

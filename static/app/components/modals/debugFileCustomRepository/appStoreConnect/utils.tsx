@@ -73,9 +73,9 @@ export function getAppStoreErrorMessage(
       const fieldErrorMessage = fieldErrorMessageMapping[serverSideField] ?? {};
       const field = Object.keys(fieldErrorMessage)[0];
 
-      const errorMessages: string[] = errorResponse[serverSideField].map(errorMessage => {
-        if (fieldErrorMessage[field][errorMessage]) {
-          return fieldErrorMessage[field][errorMessage];
+      const errorMessages: string[] = errorResponse[serverSideField]!.map(errorMessage => {
+        if (fieldErrorMessage[field]![errorMessage]) {
+          return fieldErrorMessage[field]![errorMessage];
         }
 
         // This will be difficult to happen,
@@ -92,7 +92,7 @@ export function getAppStoreErrorMessage(
       });
 
       // the UI only displays one error message at a time
-      return {...acc, [field]: errorMessages[0]};
+      return {...acc, [field]: errorMessages[0]!};
     },
     {}
   ) as Record<keyof StepOneData, string>;

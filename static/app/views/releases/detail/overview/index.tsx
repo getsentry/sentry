@@ -730,7 +730,7 @@ function getTransactionsListSort(location: Location): {
     location.query.showTransactions,
     TransactionsListOption.FAILURE_COUNT
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selectedSort, sortOptions};
 }
 

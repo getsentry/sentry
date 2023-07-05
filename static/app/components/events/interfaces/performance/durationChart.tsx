@@ -164,7 +164,7 @@ function Content({affectedEvents, allEvents, errored, loading}: ContentProps) {
             value,
             aggregateOutputType(
               affectedEvents && affectedEvents.length
-                ? affectedEvents[0].seriesName
+                ? affectedEvents[0]!.seriesName
                 : seriesName
             )
           );

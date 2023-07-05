@@ -120,7 +120,7 @@ function NotificationActionManager({
         const integrationId = service.action.integrationId;
         if (integrationId) {
           if (integrationId in integrations) {
-            integrations[integrationId].push(service);
+            integrations[integrationId]!.push(service);
           } else {
             integrations[integrationId] = [service];
           }
@@ -179,7 +179,7 @@ function NotificationActionManager({
         ),
         onAction: () => {
           // Add notification action
-          const updatedActions = [...notificationActions, validActions[0].action];
+          const updatedActions = [...notificationActions, validActions[0]!.action];
           setNotificationActions(updatedActions);
           updateAlertCount(parseInt(project.id, 10), updatedActions.length);
         },

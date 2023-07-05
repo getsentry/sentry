@@ -119,7 +119,7 @@ type EventVitalProps = Props & {
 };
 
 function EventVital({event, name, vital}: EventVitalProps) {
-  const value = event.measurements?.[name].value ?? null;
+  const value = event.measurements?.[name]!.value ?? null;
   if (value === null || !vital) {
     return null;
   }

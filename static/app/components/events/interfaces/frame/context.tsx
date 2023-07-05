@@ -137,7 +137,7 @@ function Context({
     ) : null;
   }
 
-  const startLineNo = hasContextSource ? frame.context[0][0] : 0;
+  const startLineNo = hasContextSource ? frame.context[0]![0]! : 0;
   const hasStacktraceLink =
     frame.inApp &&
     !!frame.filename &&

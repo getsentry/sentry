@@ -271,7 +271,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             : transactionTarget;
 
           const data = {
-            [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+            [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
               listItem,
               vital,
               false
@@ -286,7 +286,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               <VitalBarCell>
                 <VitalBar
                   isLoading={provided.widgetData.list?.isLoading}
-                  vital={settingToVital[props.chartSetting]}
+                  vital={settingToVital[props.chartSetting]!}
                   data={data}
                   showBar
                   showDurationDetail={false}
@@ -371,7 +371,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         const vital = settingToVital[props.chartSetting];
 
         const data = {
-          [settingToVital[props.chartSetting]]: getVitalDataForListItem(
+          [settingToVital[props.chartSetting]!]: getVitalDataForListItem(
             listItem,
             vital,
             false
@@ -382,7 +382,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
           <Subtitle>
             <VitalBar
               isLoading={provided.widgetData.list?.isLoading}
-              vital={settingToVital[props.chartSetting]}
+              vital={settingToVital[props.chartSetting]!}
               data={data}
               showBar={false}
               showDurationDetail={false}

@@ -206,7 +206,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />
@@ -230,7 +230,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
               break: <br />,
               release: (
                 <Version
-                  version={deployedReleases[0].version}
+                  version={deployedReleases[0]!.version}
                   projectId={projectId}
                   tooltipRawVersion
                 />

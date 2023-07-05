@@ -55,8 +55,8 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
 
   const hasOnlySingleColumnWithValue =
     columns.length === 1 &&
-    columns[0].kind === FieldValueKind.FIELD &&
-    columns[0]?.field !== '';
+    columns[0]!.kind === FieldValueKind.FIELD &&
+    columns[0]!?.field !== '';
 
   const canDrag = columns.length > 1;
   const canDelete = canDrag || hasOnlySingleColumnWithValue;
@@ -68,9 +68,9 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
       filteredFieldOptions: FieldOptions;
     }>(
       (acc, key) => {
-        const value = fieldOptions[key];
+        const value = fieldOptions[key]!;
         const optionInColumnsIndex = columnFieldsAsString.findIndex(
-          column => column === value.value.meta.name
+          column => column === value.value.meta!.name
         );
         if (optionInColumnsIndex === -1) {
           acc.filteredFieldOptions[key] = value;
@@ -130,8 +130,8 @@ export function GroupBySelector({fieldOptions, columns = [], onChange}: Props) {
               <SortableQueryFields>
                 {columns.map((column, index) => (
                   <SortableQueryField
-                    key={items[index]}
-                    dragId={items[index]}
+                    key={items[index]!}
+                    dragId={items[index]!}
                     value={column}
                     fieldOptions={{
                       ...filteredFieldOptions,

@@ -126,7 +126,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     const hasOlderReleases = await fetchAnyReleaseExistence(
       this.api,
       organization.slug,
-      selection.projects[0]
+      selection.projects[0]!
     );
 
     this.setState({noReleaseEver: !hasOlderReleases, loading: false});

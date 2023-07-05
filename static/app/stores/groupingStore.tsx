@@ -339,10 +339,10 @@ const storeConfig: GroupingStoreDefinition = {
             // v1 layout: '<interface>:...'
             const [interfaceName] = String(scoreKey).split(':');
 
-            if (!acc[interfaceName]) {
+            if (!acc[interfaceName]!) {
               acc[interfaceName] = [];
             }
-            acc[interfaceName].push([scoreKey, score]);
+            acc[interfaceName]!.push([scoreKey, score]);
 
             return acc;
           }, {});

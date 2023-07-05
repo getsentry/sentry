@@ -246,7 +246,7 @@ export function ActivityCell({replay}: Props) {
   if (replay.is_archived) {
     return <Item isArchived />;
   }
-  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0][0]]);
+  const scoreBarPalette = new Array(10).fill([CHART_PALETTE[0]![0]!]);
   return (
     <Item>
       <ScoreBar

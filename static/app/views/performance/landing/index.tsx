@@ -129,7 +129,7 @@ export function PerformanceLanding(props: Props) {
 
   const derivedQuery = getTransactionSearchQuery(location, eventView.query);
 
-  const ViewComponent = fieldToViewMap[landingDisplay.field];
+  const ViewComponent = fieldToViewMap[landingDisplay.field]!;
 
   let pageFilters: React.ReactNode = (
     <PageFilterBar condensed>

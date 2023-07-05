@@ -36,7 +36,7 @@ function TeamRoleSelect({
   // and adding the user to the current team changes their minimum team-role
   const possibleOrgRoles = [member.orgRole];
   if (member.groupOrgRoles && member.groupOrgRoles.length > 0) {
-    possibleOrgRoles.push(member.groupOrgRoles[0].role.id);
+    possibleOrgRoles.push(member.groupOrgRoles[0]!.role.id);
   }
   if (team.orgRole) {
     possibleOrgRoles.push(team.orgRole);

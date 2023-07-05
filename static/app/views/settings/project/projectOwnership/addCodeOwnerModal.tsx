@@ -152,7 +152,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
     const {errorJSON, codeMappingId, codeMappings} = this.state;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
-    const errActors = errorJSON?.raw?.[0].split('\n').map((el, i) => <p key={i}>{el}</p>);
+    const errActors = errorJSON?.raw?.[0]!.split('\n').map((el, i) => <p key={i}>{el}</p>);
     return (
       <Alert type="error" showIcon>
         {errActors}

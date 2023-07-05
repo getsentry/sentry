@@ -295,7 +295,7 @@ function SidebarChartsContainer({
     utc,
     isGroupedByDate: true,
     showTimeInTooltip: true,
-    colors: [colors[0], colors[1]],
+    colors: [colors[0]!, colors[1]!],
     tooltip: {
       trigger: 'axis',
       truncate: 80,

@@ -159,7 +159,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
       const inviteRequests = [...state.inviteRequests];
       const inviteIndex = inviteRequests.findIndex(request => request.id === id);
 
-      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex], ...data};
+      inviteRequests[inviteIndex] = {...inviteRequests[inviteIndex]!, ...data};
 
       return {inviteRequests};
     });
@@ -315,7 +315,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
                 key={member.id}
                 organization={organization}
                 member={member}
-                status={this.state.invited[member.id]}
+                status={this.state.invited[member.id]!}
                 memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}

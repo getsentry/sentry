@@ -17,7 +17,7 @@ function sortSentrySampledProfileSamples(
 ) {
   const frameIds = [...Array(frames.length).keys()].sort((a, b) => {
     const frameA = frames[a];
-    const frameB = frames[b];
+    const frameB = frames[b]!;
 
     if (defined(frameA.function) && defined(frameB.function)) {
       // sort alphabetically first
@@ -62,11 +62,11 @@ function sortSentrySampledProfileSamples(
     }
 
     const stackA = frameFilter
-      ? stacks[a.stack_id].filter(frameFilter)
-      : stacks[a.stack_id];
+      ? stacks[a.stack_id]!.filter(frameFilter)
+      : stacks[a.stack_id]!;
     const stackB = frameFilter
-      ? stacks[b.stack_id].filter(frameFilter)
-      : stacks[b.stack_id];
+      ? stacks[b.stack_id]!.filter(frameFilter)
+      : stacks[b.stack_id]!;
 
     const minDepth = Math.min(stackA.length, stackB.length);
 
@@ -80,8 +80,8 @@ function sortSentrySampledProfileSamples(
         continue;
       }
 
-      const frameIdxA = framesMapping[frameIdA];
-      const frameIdxB = framesMapping[frameIdB];
+      const frameIdxA = framesMapping[frameIdA]!;
+      const frameIdxB = framesMapping[frameIdB]!;
 
       // same frame idx, so check the next frame in the stack
       if (frameIdxA === frameIdxB) {
@@ -137,7 +137,7 @@ export class SentrySampledProfile extends Profile {
           )
         : weightedSamples;
 
-    const startedAt = samples[0].elapsed_since_start_ns;
+    const startedAt = samples[0]!.elapsed_since_start_ns;
     const endedAt = samples[samples.length - 1].elapsed_since_start_ns;
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
       throw TypeError('startedAt or endedAt is NaN');
@@ -156,8 +156,8 @@ export class SentrySampledProfile extends Profile {
     });
 
     for (let i = 0; i < samples.length; i++) {
-      const sample = samples[i];
-      let stack = stacks[sample.stack_id].map(resolveFrame);
+      const sample = samples[i]!;
+      let stack = stacks[sample.stack_id]!.map(resolveFrame);
 
       if (options.frameFilter) {
         stack = stack.filter(frame => options.frameFilter!(frame));
@@ -201,10 +201,10 @@ export class SentrySampledProfile extends Profile {
       // We check the stack in a top-down order to find the first recursive frame.
       let start = framesInStack.length - 1;
       while (start >= 0) {
-        if (framesInStack[start].frame === node.frame) {
+        if (framesInStack[start]!.frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].recursive = node;
-          node.recursive = framesInStack[start];
+          framesInStack[start]!.recursive = node;
+          node.recursive = framesInStack[start]!;
           break;
         }
         start--;
@@ -265,7 +265,7 @@ function getThreadData(profile: Profiling.SentrySampledProfile): {
   threadName: string;
 } {
   const {samples, queue_metadata = {}, thread_metadata = {}} = profile.profile;
-  const sample = samples[0];
+  const sample = samples[0]!;
   const threadId = parseInt(sample.thread_id, 10);
 
   const threadName = thread_metadata?.[threadId]?.name;

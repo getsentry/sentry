@@ -19,7 +19,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
     !project ||
     !appStoreConnectContext ||
     !Object.keys(appStoreConnectContext).some(
-      key => !!appStoreConnectContext[key].updateAlertMessage
+      key => !!appStoreConnectContext[key]!.updateAlertMessage
     )
   ) {
     return null;
@@ -28,7 +28,7 @@ function UpdateAlert({Wrapper, project, className}: Props) {
   const notices = (
     <Notices className={className}>
       {Object.keys(appStoreConnectContext).map(key => {
-        const {updateAlertMessage} = appStoreConnectContext[key];
+        const {updateAlertMessage} = appStoreConnectContext[key]!;
         if (!updateAlertMessage) {
           return null;
         }

@@ -132,8 +132,8 @@ class Container extends Component<Props> {
         </EventsRequest>
         <Footer
           api={api}
-          leftAxis={axisOptions[0].value}
-          rightAxis={axisOptions[1].value}
+          leftAxis={axisOptions[0]!.value}
+          rightAxis={axisOptions[1]!.value}
           organization={organization}
           eventView={eventView}
           location={location}

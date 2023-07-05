@@ -223,7 +223,7 @@ export function NativeContent({
 
   if (convertedFrames.length > 0 && registers) {
     const lastFrame = convertedFrames.length - 1;
-    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
+    convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame]!, {
       registers,
     });
   }

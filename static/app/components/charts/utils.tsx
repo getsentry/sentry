@@ -254,7 +254,7 @@ export const processTableResults = (tableResults?: TableDataWithTitle[]) => {
     return DEFAULT_GEO_DATA;
   }
 
-  const tableResult = tableResults[0];
+  const tableResult = tableResults[0]!;
 
   const {data} = tableResult;
 

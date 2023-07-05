@@ -168,7 +168,7 @@ class GridEditable<
 
   clearWindowLifecycleEvents() {
     Object.keys(this.resizeWindowLifecycleEvents).forEach(e => {
-      this.resizeWindowLifecycleEvents[e].forEach(c => window.removeEventListener(e, c));
+      this.resizeWindowLifecycleEvents[e]!.forEach(c => window.removeEventListener(e, c));
       this.resizeWindowLifecycleEvents[e] = [];
     });
   }
@@ -183,7 +183,7 @@ class GridEditable<
     };
     this.setGridTemplateColumns(nextColumnOrder);
 
-    const onResizeColumn = this.props.grid.onResizeColumn;
+    const onResizeColumn = this.props.grid!.onResizeColumn;
     if (onResizeColumn) {
       onResizeColumn(i, {
         ...nextColumnOrder[i],
@@ -214,10 +214,10 @@ class GridEditable<
     };
 
     window.addEventListener('mousemove', this.onResizeMouseMove);
-    this.resizeWindowLifecycleEvents.mousemove.push(this.onResizeMouseMove);
+    this.resizeWindowLifecycleEvents.mousemove!.push(this.onResizeMouseMove);
 
     window.addEventListener('mouseup', this.onResizeMouseUp);
-    this.resizeWindowLifecycleEvents.mouseup.push(this.onResizeMouseUp);
+    this.resizeWindowLifecycleEvents.mouseup!.push(this.onResizeMouseUp);
   };
 
   onResizeMouseUp = (e: MouseEvent) => {

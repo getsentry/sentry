@@ -28,12 +28,12 @@ function getReadableDesyncedFilterList(desyncedFilters: Set<PinnedPageFilter>) {
   const filters = [...desyncedFilters];
 
   if (filters.length === 1) {
-    return `${filterNameMap[filters[0]]} filter`;
+    return `${filterNameMap[filters[0]!]} filter`;
   }
 
   return `${filters
     .slice(0, -1)
-    .map(value => filterNameMap[value])
+    .map(value => filterNameMap[value]!)
     .join(', ')} and ${filterNameMap[filters[filters.length - 1]]} filters`;
 }
 

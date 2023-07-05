@@ -46,7 +46,7 @@ export function getPeriod(
     if (!shouldDoublePeriod) {
       return {statsPeriod: period};
     }
-    const [, periodNumber, periodLength] = period.match(/([0-9]+)([mhdw])/)!;
+    const [, periodNumber, periodLength] = period.match(/([0!-9]+)([mhdw])/)!;
 
     return {statsPeriod: `${parseInt(periodNumber, 10) * 2}${periodLength}`};
   }

@@ -121,16 +121,16 @@ function importSentrySampledProfile(
     Profiling.SentrySampledProfile['profile']['samples']
   > = {};
 
-  for (let i = 0; i < input.profile.samples.length; i++) {
-    const sample = input.profile.samples[i];
-    if (!samplesByThread[sample.thread_id]) {
+  for (let i = 0; i < input.profile.samples!.length; i++) {
+    const sample = input.profile.samples[i]!;
+    if (!samplesByThread[sample.thread_id]!) {
       samplesByThread[sample.thread_id] = [];
     }
-    samplesByThread[sample.thread_id].push(sample);
+    samplesByThread[sample.thread_id]!.push(sample);
   }
 
   for (const key in samplesByThread) {
-    samplesByThread[key].sort(
+    samplesByThread[key]!.sort(
       (a, b) => a.elapsed_since_start_ns - b.elapsed_since_start_ns
     );
   }
@@ -144,7 +144,7 @@ function importSentrySampledProfile(
       ...input,
       profile: {
         ...input.profile,
-        samples: samplesByThread[key],
+        samples: samplesByThread[key]!,
       },
     };
 

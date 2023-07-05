@@ -16,7 +16,7 @@ export function createSentrySampleProfileFrameIndex(
   const indices: number[] = [];
 
   for (let i = 0; i < frames.length; i++) {
-    const frame = frames[i];
+    const frame = frames[i]!;
     const frameKey = `${frame.filename ?? ''}:${frame.function ?? 'unknown'}:${
       String(frame.lineno) ?? ''
     }:${frame.instruction_addr ?? ''}`;
@@ -48,7 +48,7 @@ export function createSentrySampleProfileFrameIndex(
 
   const frameIndex: FrameIndex = {};
   for (let i = 0; i < indices.length; i++) {
-    frameIndex[i] = framesList[indices[i]];
+    frameIndex[i] = framesList[indices[i]!];
   }
   return frameIndex;
 }
@@ -204,18 +204,18 @@ function indexNodeToParents(
   // Begin in each root node
   for (let i = 0; i < roots.length; i++) {
     // If the root is a leaf node, push it to the leafs array
-    if (!roots[i].children?.length) {
-      leafs.push(roots[i]);
+    if (!roots[i]!.children?.length) {
+      leafs.push(roots[i]!);
     }
 
     // Init the map for the root in case we havent yet
-    if (!map[roots[i].key]) {
-      map[roots[i].key] = [];
+    if (!map[roots[i]!.key]) {
+      map[roots[i]!.key] = [];
     }
 
     // descend down to each child and index them
-    for (let j = 0; j < roots[i].children.length; j++) {
-      indexNode(roots[i].children[j], roots[i]);
+    for (let j = 0; j < roots[i]!.children.length; j++) {
+      indexNode(roots[i]!.children[j]!, roots[i]!);
     }
   }
 }

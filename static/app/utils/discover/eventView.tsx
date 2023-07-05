@@ -827,7 +827,7 @@ class EventView {
         }
         // Existing columns that were not re ordered should retain
         // their old widths.
-        const existing = newEventView.fields[i];
+        const existing = newEventView.fields[i]!;
         const width =
           existing.field === field && existing.width !== undefined
             ? existing.width
@@ -971,7 +971,7 @@ class EventView {
             isFieldSortable(currentField, tableMeta)
           );
           if (sortableFieldIndex >= 0) {
-            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex]!;
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -1003,12 +1003,12 @@ class EventView {
     // To ensure a well formed table results.
     const hasAutoIndex = fields.find(field => field.width === COL_WIDTH_UNDEFINED);
     if (!hasAutoIndex) {
-      newEventView.fields[0].width = COL_WIDTH_UNDEFINED;
+      newEventView.fields[0]!.width = COL_WIDTH_UNDEFINED;
     }
 
     // if the deleted column is one of the sorted columns, we need to remove
     // it from the list of sorts
-    const columnToBeDeleted = this.fields[columnIndex];
+    const columnToBeDeleted = this.fields[columnIndex]!;
     const needleSortIndex = this.sorts.findIndex(sort =>
       isSortEqualToField(sort, columnToBeDeleted, tableMeta)
     );
@@ -1038,7 +1038,7 @@ class EventView {
           );
 
           if (sortableFieldIndex >= 0) {
-            const fieldToBeSorted = newEventView.fields[sortableFieldIndex];
+            const fieldToBeSorted = newEventView.fields[sortableFieldIndex]!;
             const sort = fieldToSort(fieldToBeSorted, tableMeta)!;
             newEventView.sorts = [sort];
           }
@@ -1165,7 +1165,7 @@ class EventView {
         ? undefined
         : this.sorts.length > 1
         ? encodeSorts(this.sorts)
-        : encodeSort(this.sorts[0]);
+        : encodeSort(this.sorts[0]!);
     const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
@@ -1336,7 +1336,7 @@ class EventView {
     const yAxisOptions = this.getYAxisOptions();
 
     const yAxis = this.yAxis;
-    const defaultOption = yAxisOptions[0].value;
+    const defaultOption = yAxisOptions[0]!.value;
 
     if (!yAxis) {
       return defaultOption;
@@ -1348,7 +1348,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return typeof yAxis === 'string' ? yAxis : yAxis[0];
+      return typeof yAxis === 'string' ? yAxis : yAxis[0]!;
     }
 
     return defaultOption;

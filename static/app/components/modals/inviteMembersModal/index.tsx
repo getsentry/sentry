@@ -176,7 +176,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setEmails(emails: string[], index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], emails: new Set(emails)};
+      pendingInvites[index] = {...pendingInvites[index]!, emails: new Set(emails)};
 
       return {pendingInvites};
     });
@@ -185,7 +185,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setTeams(teams: string[], index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], teams: new Set(teams)};
+      pendingInvites[index] = {...pendingInvites[index]!, teams: new Set(teams)};
 
       return {pendingInvites};
     });
@@ -194,7 +194,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
   setRole(role: string, index: number) {
     this.setState(state => {
       const pendingInvites = [...state.pendingInvites];
-      pendingInvites[index] = {...pendingInvites[index], role};
+      pendingInvites[index] = {...pendingInvites[index]!, role};
 
       return {pendingInvites};
     });

@@ -80,7 +80,7 @@ function ReleaseHeader({
       return activeTab.to;
     }
 
-    return tabs[0].to; // default to 'Overview'
+    return tabs[0]!.to; // default to 'Overview'
   };
 
   return (

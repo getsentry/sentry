@@ -101,7 +101,7 @@ function Modal({
         return;
       }
       setCurrentAttachmentIndex(newAttachmentIndex);
-      setCurrentAttachment(memoizedAttachments[newAttachmentIndex]);
+      setCurrentAttachment(memoizedAttachments[newAttachmentIndex]!);
     }
   };
 

@@ -122,7 +122,7 @@ function Task(props: Props) {
     <Tooltip
       containerDisplayMode="block"
       title={tct('[requisite] before completing this task', {
-        requisite: task.requisiteTasks[0].title,
+        requisite: task.requisiteTasks[0]!.title,
       })}
     >
       <IconLock color="pink400" isSolid />

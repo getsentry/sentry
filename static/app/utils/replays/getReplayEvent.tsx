@@ -16,11 +16,11 @@ export function getPrevReplayEvent<T extends ReplaySpan | Crumb>({
     return undefined;
   }
 
-  const index = sortedIndexBy(itemLookup, [targetTimestampMs], o => o[0]);
+  const index = sortedIndexBy(itemLookup, [targetTimestampMs], o => o[0]!);
   if (index !== undefined && index > 0) {
-    const ts = itemLookup[Math.min(index, itemLookup.length - 1)][0];
+    const ts = itemLookup[Math.min(index, itemLookup.length - 1)][0]!;
     return items[
-      itemLookup[ts === targetTimestampMs ? index : Math.max(0, index - 1)][1]
+      itemLookup[ts === targetTimestampMs ? index : Math.max(0, index - 1)][1]!
     ];
   }
 

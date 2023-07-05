@@ -352,7 +352,7 @@ class ResultGrid extends Component<Props, State> {
             <Filter
               key={filterKey}
               queryKey={filterKey}
-              value={this.state.filters[filterKey]}
+              value={this.state.filters[filterKey]!}
               path={path ?? ''}
               location={location}
               {...(filters?.[filterKey] as FilterConfig)}

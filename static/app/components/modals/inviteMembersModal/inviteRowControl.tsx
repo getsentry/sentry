@@ -37,7 +37,7 @@ function ValueComponent(
   props: MultiValueProps<SelectOption>,
   inviteStatus: Props['inviteStatus']
 ) {
-  return renderEmailValue(inviteStatus[props.data.value], props);
+  return renderEmailValue(inviteStatus[props.data.value]!, props);
 }
 
 function mapToOptions(values: string[]): SelectOption[] {

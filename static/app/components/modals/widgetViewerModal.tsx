@@ -278,13 +278,13 @@ function WidgetViewerModal(props: Props) {
     ...cloneDeep({...widget, queries: [sortedQueries[selectedQueryIndex]]}),
     displayType: DisplayType.TABLE,
   };
-  const {aggregates, columns} = tableWidget.queries[0];
-  const {orderby} = widget.queries[0];
+  const {aggregates, columns} = tableWidget.queries[0]!;
+  const {orderby} = widget.queries[0]!;
   const order = orderby.startsWith('-');
   const rawOrderby = trimStart(orderby, '-');
 
-  const fields = defined(tableWidget.queries[0].fields)
-    ? tableWidget.queries[0].fields
+  const fields = defined(tableWidget.queries[0]!.fields)
+    ? tableWidget.queries[0]!.fields
     : [...columns, ...aggregates];
 
   // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
@@ -315,10 +315,10 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  // Need to set the orderby of the eventsv2 query to equation[index] format
+  // Need to set the orderby of the eventsv2 query to equation[index]! format
   // since eventsv2 does not accept the raw equation as a valid sort payload
-  if (isEquation(rawOrderby) && tableWidget.queries[0].orderby === orderby) {
-    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${
+  if (isEquation(rawOrderby) && tableWidget.queries[0]!.orderby === orderby) {
+    tableWidget.queries[0]!.orderby = `${order ? '-' : ''}equation[${
       getNumEquations(fields) - 1
     }]`;
   }
@@ -367,8 +367,8 @@ function WidgetViewerModal(props: Props) {
     switch (widget.widgetType) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
-          tableWidget.queries[0].orderby =
-            tableWidget.queries[0].orderby || `-${fields[0]}`;
+          tableWidget.queries[0]!.orderby =
+            tableWidget.queries[0]!.orderby || `-${fields[0]!}`;
         }
         fields.unshift('title');
         columns.unshift('title');
@@ -384,7 +384,7 @@ function WidgetViewerModal(props: Props) {
 
   const eventView = eventViewFromWidget(
     tableWidget.title,
-    tableWidget.queries[0],
+    tableWidget.queries[0]!,
     modalTableSelection,
     tableWidget.displayType
   );
@@ -397,7 +397,7 @@ function WidgetViewerModal(props: Props) {
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
     ...column,
-    width: parseInt(widths[index], 10) || -1,
+    width: parseInt(widths[index]!, 10) || -1,
   }));
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
@@ -659,7 +659,7 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
+        {!tableWidget.queries[0]!.orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (
             <Pagination
               pageLinks={pageLinks}
@@ -894,7 +894,7 @@ function WidgetViewerModal(props: Props) {
             )}
           </Alert>
         )}
-        {(widget.queries.length > 1 || widget.queries[0].conditions) && (
+        {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
           <QueryContainer>
             <SelectControl
               value={selectedQueryIndex}
@@ -930,10 +930,10 @@ function WidgetViewerModal(props: Props) {
                         padding: `0 ${space(0.5)}`,
                       })}
                     >
-                      {queryOptions[selectedQueryIndex].getHighlightedQuery({
+                      {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
                         display: 'block',
                       }) ??
-                        (queryOptions[selectedQueryIndex].label || (
+                        (queryOptions[selectedQueryIndex]!.label || (
                           <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
                         ))}
                     </components.SingleValue>
@@ -1101,7 +1101,7 @@ function OpenButton({
     default:
       openLabel = t('Open in Discover');
       path = getWidgetDiscoverUrl(
-        {...widget, queries: [widget.queries[selectedQueryIndex]]},
+        {...widget, queries: [widget.queries[selectedQueryIndex]!]},
         selection,
         organization,
         0,

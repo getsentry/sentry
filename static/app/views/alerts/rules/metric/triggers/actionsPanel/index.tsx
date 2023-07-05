@@ -129,7 +129,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: string
   ) {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
       ...actions[index],
       [key]: value,
@@ -140,7 +140,7 @@ class ActionsPanel extends PureComponent<Props> {
 
   conditionallyRenderHelpfulBanner(triggerIndex: number, index: number) {
     const {triggers} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {...actions[index]};
     if (newAction.type !== 'slack') {
       return null;
@@ -183,7 +183,7 @@ class ActionsPanel extends PureComponent<Props> {
 
   handleDeleteAction = (triggerIndex: number, index: number) => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
 
     onChange(triggerIndex, triggers, removeAtArrayIndex(actions, index));
   };
@@ -195,10 +195,10 @@ class ActionsPanel extends PureComponent<Props> {
   ) => {
     const {triggers, onChange} = this.props;
     // Convert saved action to unsaved by removing id
-    const {id: _, ...action} = triggers[triggerIndex].actions[index];
+    const {id: _, ...action} = triggers[triggerIndex]!.actions[index]!;
     action.unsavedId = uniqueId();
-    triggers[value.value].actions.push(action);
-    onChange(value.value, triggers, triggers[value.value].actions);
+    triggers[value.value]!.actions.push(action);
+    onChange(value.value, triggers, triggers[value.value]!.actions);
     this.handleDeleteAction(triggerIndex, index);
   };
 
@@ -208,7 +208,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<ActionType>
   ) => {
     const {triggers, onChange, availableActions} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const actionConfig = availableActions?.find(
       availableAction => getActionUniqueKey(availableAction) === value.value
     );
@@ -230,7 +230,7 @@ class ActionsPanel extends PureComponent<Props> {
     value: SelectValue<keyof typeof TargetLabel>
   ) => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
       ...actions[index],
       targetType: value.value,
@@ -251,7 +251,7 @@ class ActionsPanel extends PureComponent<Props> {
     formData: {[key: string]: string}
   ): void => {
     const {triggers, onChange} = this.props;
-    const {actions} = triggers[triggerIndex];
+    const {actions} = triggers[triggerIndex]!;
     const newAction = {
       ...actions[actionIndex],
       ...formData,
@@ -313,7 +313,7 @@ class ActionsPanel extends PureComponent<Props> {
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           const actionDisabled =
-            triggers[triggerIndex].actions[actionIdx]?.disabled || disabled;
+            triggers[triggerIndex]!.actions[actionIdx]!?.disabled || disabled;
           return (
             <div key={action.id ?? action.unsavedId}>
               <RuleRowContainer>
@@ -385,7 +385,7 @@ class ActionsPanel extends PureComponent<Props> {
                                   actionIdx
                                 )}
                                 resetValues={
-                                  triggers[triggerIndex].actions[actionIdx] || {}
+                                  triggers[triggerIndex]!.actions[actionIdx]! || {}
                                 }
                               />
                             ),

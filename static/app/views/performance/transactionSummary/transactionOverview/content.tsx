@@ -553,7 +553,7 @@ function getTransactionsListSort(
     location.query.showTransactions,
     TransactionFilterOptions.SLOW
   );
-  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0];
+  const selectedSort = sortOptions.find(opt => opt.value === urlParam) || sortOptions[0]!;
   return {selected: selectedSort, options: sortOptions};
 }
 

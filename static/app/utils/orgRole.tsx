@@ -10,7 +10,7 @@ export function getEffectiveOrgRole(
   }, {});
 
   // sort by ascending index (high to low priority)
-  memberOrgRoles.sort((a, b) => orgRoleMap[b].index - orgRoleMap[a].index);
+  memberOrgRoles.sort((a, b) => orgRoleMap[b]!.index - orgRoleMap[a]!.index);
 
-  return orgRoleMap[memberOrgRoles[0]]?.role;
+  return orgRoleMap[memberOrgRoles[0]!]?.role;
 }

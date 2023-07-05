@@ -105,7 +105,7 @@ class FilesChanged extends AsyncView<Props, State> {
     return (
       <Fragment>
         {reposToRender.map(repoName => {
-          const repoData = filesByRepository[repoName];
+          const repoData = filesByRepository[repoName]!;
           const files = Object.keys(repoData);
           const fileCount = files.length;
           return (
@@ -116,7 +116,7 @@ class FilesChanged extends AsyncView<Props, State> {
               </PanelHeader>
               <PanelBody>
                 {files.map(filename => {
-                  const {authors} = repoData[filename];
+                  const {authors} = repoData[filename]!;
                   return (
                     <StyledFileChange
                       key={filename}

@@ -236,7 +236,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: CONDITIONS_ARGUMENTS,
         dataType: 'string',
-        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        defaultValue: CONDITIONS_ARGUMENTS[0]!.value,
         required: true,
       },
       {
@@ -268,7 +268,7 @@ export const AGGREGATIONS = {
         kind: 'dropdown',
         options: WEB_VITALS_QUALITY,
         dataType: 'string',
-        defaultValue: WEB_VITALS_QUALITY[0].value,
+        defaultValue: WEB_VITALS_QUALITY[0]!.value,
         required: true,
       },
     ],
@@ -653,7 +653,7 @@ export function measurementType(field: string): MeasurementType {
 export function getMeasurementSlug(field: string): string | null {
   const results = field.match(MEASUREMENT_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }
@@ -667,7 +667,7 @@ export function getAggregateArg(field: string): string | null {
   const result = parseFunction(field);
 
   if (result && result.arguments.length > 0) {
-    return result.arguments[0];
+    return result.arguments[0]!;
   }
 
   return null;
@@ -677,8 +677,8 @@ export function parseFunction(field: string): ParsedFunction | null {
   const results = field.match(AGGREGATE_PATTERN);
   if (results && results.length === 3) {
     return {
-      name: results[1],
-      arguments: parseArguments(results[1], results[2]),
+      name: results[1]!,
+      arguments: parseArguments(results[1]!, results[2]!),
     };
   }
 
@@ -772,7 +772,7 @@ export function getEquationAliasIndex(field: string): number {
   const results = field.match(EQUATION_ALIAS_PATTERN);
 
   if (results && results.length === 2) {
-    return parseInt(results[1], 10);
+    return parseInt(results[1]!, 10);
   }
   return -1;
 }
@@ -1028,8 +1028,8 @@ export function aggregateFunctionOutputType(
     return SESSIONS_FIELDS[firstArg].type as AggregationOutputType;
   }
 
-  if (firstArg && STARFISH_FIELDS[firstArg]) {
-    return STARFISH_FIELDS[firstArg].outputType;
+  if (firstArg && STARFISH_FIELDS[firstArg]!) {
+    return STARFISH_FIELDS[firstArg]!.outputType;
   }
 
   if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
@@ -1204,7 +1204,7 @@ export function isLegalYAxisType(match: ColumnType | MetricsType) {
 export function getSpanOperationName(field: string): string | null {
   const results = field.match(SPAN_OP_BREAKDOWN_PATTERN);
   if (results && results.length >= 2) {
-    return results[1];
+    return results[1]!;
   }
   return null;
 }

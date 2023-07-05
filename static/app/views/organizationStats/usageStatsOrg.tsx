@@ -361,18 +361,18 @@ class UsageStatsOrganization<
           count.total += group.totals['sum(quantity)'];
         }
 
-        count[outcome] += group.totals['sum(quantity)'];
+        count[outcome]! += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
           switch (outcome) {
             case Outcome.ACCEPTED:
             case Outcome.FILTERED:
-              usageStats[i][outcome] += stat;
+              usageStats[i]![outcome] += stat;
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
             case Outcome.INVALID:
-              usageStats[i].dropped.total += stat;
+              usageStats[i]!.dropped.total += stat;
               // TODO: add client discards to dropped?
               return;
             default:

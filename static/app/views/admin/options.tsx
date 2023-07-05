@@ -615,7 +615,7 @@ const disabledReasons = {
 };
 
 export function getOption(option: string): Field {
-  return definitionsMap[option];
+  return definitionsMap[option]!;
 }
 
 export function getOptionDefault(option: string): string | number | false | undefined {
@@ -658,8 +658,8 @@ export function getForm(fieldMap: Record<string, Field>) {
     const set: Field[] = [];
 
     for (const option of optionsForSection(section)) {
-      if (fieldMap[option.key]) {
-        set.push(fieldMap[option.key]);
+      if (fieldMap[option.key]!) {
+        set.push(fieldMap[option.key]!);
       }
     }
 

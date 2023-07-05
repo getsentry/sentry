@@ -121,7 +121,7 @@ export default class InstallWizard extends AsyncView<Props, State> {
     return (
       <ApiForm
         apiMethod="PUT"
-        apiEndpoint={this.getEndpoints()[0][1]}
+        apiEndpoint={this.getEndpoints()[0]![1]!}
         submitLabel={t('Continue')}
         initialData={this.getInitialData()}
         onSubmitSuccess={this.props.onConfigured}

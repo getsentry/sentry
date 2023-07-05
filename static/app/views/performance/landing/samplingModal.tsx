@@ -30,7 +30,7 @@ function SamplingModal(props: Props) {
     ['false', t('Always show sampled data')],
   ];
 
-  const [choice, setChoice] = useState(choices[isMEPEnabled ? 0 : 1][0]);
+  const [choice, setChoice] = useState(choices[isMEPEnabled ? 0 : 1]![0]!);
 
   return (
     <Fragment>

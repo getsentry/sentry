@@ -182,7 +182,7 @@ function extractNode(frame: BreadcrumbFrame | SpanFrame, replayer: Replayer) {
 
 function removeChildLevel(max: number, collection: HTMLCollection, current: number = 0) {
   for (let i = 0; i < collection.length; i++) {
-    const child = collection[i];
+    const child = collection[i]!;
 
     if (child.nodeName === 'STYLE') {
       child.textContent = '/* Inline CSS */';

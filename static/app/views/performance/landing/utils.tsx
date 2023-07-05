@@ -175,7 +175,7 @@ export function getDefaultDisplayFieldForPlatform(
   };
   const performanceType = platformToPerformanceType(projects, projectIds);
   const landingField =
-    performanceTypeToDisplay[performanceType] ?? LandingDisplayField.ALL;
+    performanceTypeToDisplay[performanceType]! ?? LandingDisplayField.ALL;
   return landingField;
 }
 

@@ -287,23 +287,23 @@ class QueryField extends Component<Props> {
     }
 
     const fieldName = `field:${name}`;
-    if (fieldOptions[fieldName]) {
-      return fieldOptions[fieldName].value;
+    if (fieldOptions[fieldName]!) {
+      return fieldOptions[fieldName]!.value;
     }
 
     const measurementName = `measurement:${name}`;
-    if (fieldOptions[measurementName]) {
-      return fieldOptions[measurementName].value;
+    if (fieldOptions[measurementName]!) {
+      return fieldOptions[measurementName]!.value;
     }
 
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
-    if (fieldOptions[spanOperationBreakdownName]) {
-      return fieldOptions[spanOperationBreakdownName].value;
+    if (fieldOptions[spanOperationBreakdownName]!) {
+      return fieldOptions[spanOperationBreakdownName]!.value;
     }
 
     const equationName = `equation:${name}`;
-    if (fieldOptions[equationName]) {
-      return fieldOptions[equationName].value;
+    if (fieldOptions[equationName]!) {
+      return fieldOptions[equationName]!.value;
     }
 
     const tagName =
@@ -311,8 +311,8 @@ class QueryField extends Component<Props> {
         ? `tag:${name.replace(/tags\[(.*?)\]/, '$1')}`
         : `tag:${name}`;
 
-    if (fieldOptions[tagName]) {
-      return fieldOptions[tagName].value;
+    if (fieldOptions[tagName]!) {
+      return fieldOptions[tagName]!.value;
     }
 
     if (name.length > 0) {
@@ -349,9 +349,9 @@ class QueryField extends Component<Props> {
     let {fieldOptions} = this.props;
 
     if (fieldValue?.kind === 'function') {
-      const funcName = `function:${fieldValue.function[0]}`;
-      if (fieldOptions[funcName] !== undefined) {
-        field = fieldOptions[funcName].value;
+      const funcName = `function:${fieldValue.function[0]!}`;
+      if (fieldOptions[funcName]! !== undefined) {
+        field = fieldOptions[funcName]!.value;
       }
     }
 

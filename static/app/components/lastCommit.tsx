@@ -30,7 +30,7 @@ function LastCommit({commit, className}: Props) {
       return t('No message provided');
     }
 
-    const firstLine = message.split(/\n/)[0];
+    const firstLine = message.split(/\n/)[0]!;
     if (firstLine.length > 100) {
       let truncated = firstLine.substring(0, 90);
       const words = truncated.split(/ /);

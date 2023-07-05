@@ -57,7 +57,7 @@ function OldEnvironmentPageFilter({
     value,
   }) => {
     const environmentsToShow =
-      value[0]?.length + value[1]?.length <= maxTitleLength - 2
+      value[0]!?.length + value[1]!?.length <= maxTitleLength - 2
         ? value.slice(0, 2)
         : value.slice(0, 1);
     const summary = value.length

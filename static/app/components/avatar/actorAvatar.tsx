@@ -40,7 +40,7 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
       <Teams ids={[actor.id]}>
         {({initiallyLoaded, teams}) =>
           initiallyLoaded ? (
-            <TeamAvatar team={teams[0]} {...otherProps} />
+            <TeamAvatar team={teams[0]!} {...otherProps} />
           ) : (
             <LoadingIndicator mini />
           )

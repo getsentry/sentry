@@ -64,7 +64,7 @@ class ProjectFiltersChart extends Component<Props, State> {
   formatData(rawData: RawStats) {
     const seriesWithData: Set<string> = new Set();
     const transformed = Object.keys(STAT_OPS).map(stat => ({
-      data: rawData[stat].map(([timestamp, value]) => {
+      data: rawData[stat]!.map(([timestamp, value]) => {
         if (value > 0) {
           seriesWithData.add(STAT_OPS[stat].title);
           this.setState({blankStats: false});
@@ -100,7 +100,7 @@ class ProjectFiltersChart extends Component<Props, State> {
       .then(results => {
         const rawStatsData: RawStats = {};
         for (let i = 0; i < statOptions.length; i++) {
-          rawStatsData[statOptions[i]] = results[i];
+          rawStatsData[statOptions[i]!] = results[i]!;
         }
 
         this.setState({

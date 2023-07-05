@@ -148,7 +148,7 @@ class ContextPickerModal extends Component<Props> {
       this.onFinishTimeout =
         onFinish(
           replaceRouterParams(nextPath, {
-            orgId: organizations[0].slug,
+            orgId: organizations[0]!.slug,
           })
         ) ?? undefined;
       return;
@@ -157,15 +157,15 @@ class ContextPickerModal extends Component<Props> {
     // Use latest org or if only 1 org, use that
     let org = latestOrg;
     if (!org && organizations.length === 1) {
-      org = organizations[0].slug;
+      org = organizations[0]!.slug;
     }
 
     this.onFinishTimeout =
       onFinish(
         replaceRouterParams(nextPath, {
           orgId: org,
-          projectId: projects[0].slug,
-          project: this.props.projects.find(p => p.slug === projects[0].slug)?.id,
+          projectId: projects[0]!.slug,
+          project: this.props.projects!.find(p => p.slug === projects[0]!.slug)?.id,
         })
       ) ?? undefined;
   };
@@ -324,7 +324,7 @@ class ContextPickerModal extends Component<Props> {
     const options = [
       {
         label: tct('[providerName] Configurations', {
-          providerName: integrationConfigs[0].provider.name,
+          providerName: integrationConfigs[0]!.provider.name,
         }),
         options: integrationConfigs.map(config => ({
           value: config.id,

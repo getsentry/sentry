@@ -65,7 +65,7 @@ class TransactionsTable extends PureComponent<Props> {
     const tableTitles = this.getTitles();
 
     const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index];
+      const column = columnOrder[index]!;
       const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {

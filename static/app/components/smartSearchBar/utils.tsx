@@ -391,8 +391,8 @@ export const getTagItemsFromKeys = (
     const sections = key.split('.');
 
     const definition =
-      supportedTags[key]?.kind === FieldKind.FUNCTION
-        ? fieldDefinitionGetter(key.split('(')[0])
+      supportedTags[key]!?.kind === FieldKind.FUNCTION
+        ? fieldDefinitionGetter(key.split('(')[0]!)
         : fieldDefinitionGetter(key);
     const kind = supportedTags[key]?.kind ?? definition?.kind ?? FieldKind.FIELD;
 
@@ -604,7 +604,7 @@ export const getSearchConfigFromCustomPerformanceMetrics = (
   };
   if (customPerformanceMetrics) {
     Object.keys(customPerformanceMetrics).forEach(metricName => {
-      const {fieldType} = customPerformanceMetrics[metricName];
+      const {fieldType} = customPerformanceMetrics[metricName]!;
       switch (fieldType) {
         case 'size':
           searchConfigMap.sizeKeys.push(metricName);

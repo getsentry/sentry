@@ -146,7 +146,7 @@ export function getHiddenOptions<Value extends React.Key>(
   let currentIndex = 0;
 
   while (currentIndex < remainingItems.length) {
-    const item = remainingItems[currentIndex];
+    const item = remainingItems[currentIndex]!;
     const delta = 'options' in item ? item.options.length : 1;
 
     if (accumulator + delta > limit) {

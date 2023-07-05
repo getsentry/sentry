@@ -40,8 +40,8 @@ type PermissionLevelResources = {
  * which is higher than Read. Used to sort scopes by access.
  */
 const permissionLevel = (scope: string): number => {
-  const permission = scope.split(':')[1];
-  return PERMISSION_LEVELS[permission];
+  const permission = scope.split(':')[1]!;
+  return PERMISSION_LEVELS[permission]!;
 };
 
 const compareScopes = (a: string, b: string) => permissionLevel(a) - permissionLevel(b);
@@ -92,7 +92,7 @@ function toResourcePermissions(scopes: string[]): Permissions {
   topScopes(filteredScopes).forEach((scope: string | undefined) => {
     if (scope) {
       const [resource, permission] = scope.split(':');
-      permissions[HUMAN_RESOURCE_NAMES[resource]] = permission;
+      permissions[HUMAN_RESOURCE_NAMES[resource]!] = permission;
     }
   });
 

@@ -148,7 +148,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         continue;
       }
 
-      return group.options[selection];
+      return group.options[selection]!;
     }
 
     return null;
@@ -182,7 +182,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       }
       // This is modifying the `active` value of the references so make sure to
       // use `newOptionGroups` at the end.
-      flattenedOptions[newSelection].active = true;
+      flattenedOptions[newSelection]!.active = true;
 
       this.setState({
         activeSelection: newSelection,

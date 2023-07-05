@@ -355,7 +355,7 @@ function transformEventsResponseToSeries(
     } else {
       seriesWithOrdering = Object.keys(data).map((seriesName: string) => {
         const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = data[seriesName];
+        const seriesData: EventsStats = data[seriesName]!;
         return [
           seriesData.order || 0,
           transformSeries(seriesData, prefixedName, seriesName),
@@ -369,7 +369,7 @@ function transformEventsResponseToSeries(
         .map(item => item[1]),
     ];
   } else {
-    const field = widgetQuery.aggregates[0];
+    const field = widgetQuery.aggregates[0]!;
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
     const transformed = transformSeries(data, prefixedName, field);
     output.push(transformed);
@@ -388,7 +388,7 @@ function getSeriesResultType(
   // Need to use getAggregateAlias since events-stats still uses aggregate alias format
   if (isMultiSeriesStats(data)) {
     Object.keys(data).forEach(
-      key => (resultTypes[key] = data[key].meta?.fields[getAggregateAlias(key)])
+      key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
     );
   } else {
     resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];

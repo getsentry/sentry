@@ -121,7 +121,7 @@ export function constructWidgetFromQuery(query?: Query): Widget | undefined {
       const {columns, aggregates} = getColumnsAndAggregates(queryFields);
       queryConditions.forEach((condition, index) => {
         queries.push({
-          name: queryNames[index],
+          name: queryNames[index]!,
           conditions: condition,
           fields: queryFields,
           columns,
@@ -226,7 +226,7 @@ export function getWidgetDiscoverUrl(
 ) {
   const eventView = eventViewFromWidget(
     widget.title,
-    widget.queries[index],
+    widget.queries[index]!,
     selection,
     widget.displayType
   );
@@ -236,7 +236,7 @@ export function getWidgetDiscoverUrl(
   const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
   discoverLocation.query.yAxis = [
     ...new Set(
-      widget.queries[0].aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
+      widget.queries[0]!.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
     ),
   ].slice(0, 3);
 
@@ -251,7 +251,7 @@ export function getWidgetDiscoverUrl(
     case DisplayType.TOP_N:
       discoverLocation.query.display = DisplayModes.TOP5;
       // Last field is used as the yAxis
-      const aggregates = widget.queries[0].aggregates;
+      const aggregates = widget.queries[0]!.aggregates;
       discoverLocation.query.yAxis = aggregates[aggregates.length - 1];
       if (aggregates.slice(0, -1).includes(aggregates[aggregates.length - 1])) {
         discoverLocation.query.field = aggregates.slice(0, -1);
@@ -263,7 +263,7 @@ export function getWidgetDiscoverUrl(
 
   // Equation fields need to have their terms explicitly selected as columns in the discover table
   const fields = discoverLocation.query.field;
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];

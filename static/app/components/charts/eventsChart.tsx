@@ -332,7 +332,7 @@ class Chart extends Component<ChartProps, State> {
               // Check to see if all series output types are the same. If not, then default to number.
               const outputType =
                 new Set(Object.values(timeseriesResultsTypes)).size === 1
-                  ? timeseriesResultsTypes[yAxis]
+                  ? timeseriesResultsTypes[yAxis]!
                   : 'number';
               return axisLabelFormatterUsingAggregateOutputType(value, outputType);
             }
@@ -623,7 +623,7 @@ class EventsChart extends Component<EventsChartProps> {
             additionalSeries={additionalSeries}
             previousSeriesTransformer={previousSeriesTransformer}
             stacked={this.isStacked()}
-            yAxis={yAxisArray[0]}
+            yAxis={yAxisArray[0]!}
             showDaily={showDaily}
             colors={colors}
             legendOptions={legendOptions}

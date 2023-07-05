@@ -33,7 +33,7 @@ export const getComparisonMarkLines = (
       const lastPointLimit =
         (baseData[changeData.length - 1].name as number) - timeWindow * MINUTE;
       changeData.forEach(({name, value: comparisonValue}, idx) => {
-        const baseValue = baseData[idx].value;
+        const baseValue = baseData[idx]!.value;
         const comparisonPercentage =
           comparisonValue === 0
             ? baseValue === 0

@@ -80,15 +80,15 @@ function AssigneeAvatar({
             <div>
               {tct('Suggestion: [name]', {
                 name:
-                  suggestedActors[0].type === 'team'
-                    ? `#${suggestedActors[0].name}`
-                    : suggestedActors[0].name,
+                  suggestedActors[0]!.type === 'team'
+                    ? `#${suggestedActors[0]!.name}`
+                    : suggestedActors[0]!.name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
             </div>
             <TooltipSubtext>
-              {suggestedReasons[suggestedActors[0].suggestedReason]}
+              {suggestedReasons[suggestedActors[0]!.suggestedReason]}
             </TooltipSubtext>
           </TooltipWrapper>
         }

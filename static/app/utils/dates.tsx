@@ -178,7 +178,7 @@ export function intervalToMilliseconds(interval: string): number {
     h: 60 * 60,
     m: 60,
   };
-  return parseInt(value, 10) * multipliers[unit] * 1000;
+  return parseInt(value, 10) * multipliers[unit]! * 1000;
 }
 
 /**

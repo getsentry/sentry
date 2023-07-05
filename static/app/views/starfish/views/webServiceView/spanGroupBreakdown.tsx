@@ -48,7 +48,7 @@ export function SpanGroupBreakdown({
   const visibleSeries: LineChartSeries[] = [];
 
   for (let index = 0; index < data.length; index++) {
-    const series = data[index];
+    const series = data[index]!;
     series.emphasis = {
       disabled: false,
       focus: 'series',
@@ -61,11 +61,11 @@ export function SpanGroupBreakdown({
   }
 
   const dataAsPercentages = cloneDeep(visibleSeries);
-  const numDataPoints = data[0]?.data?.length ?? 0;
+  const numDataPoints = data[0]!?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
-    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
+    const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i]!.value, 0);
     dataAsPercentages.forEach(segment => {
-      const clone = {...segment.data[i]};
+      const clone = {...segment.data[i]!};
       clone.value = clone.value / totalTimeAtIndex;
       segment.data[i] = clone;
     });

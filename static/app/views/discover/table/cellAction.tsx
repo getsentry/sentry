@@ -44,7 +44,7 @@ export function updateQuery(
   if (Array.isArray(value)) {
     value = [...new Set(value)];
     if (value.length === 1) {
-      value = value[0];
+      value = value[0]!;
     }
   }
 

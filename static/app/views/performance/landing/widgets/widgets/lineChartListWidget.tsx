@@ -149,7 +149,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             return null;
           }
           eventView.additionalConditions.setFilterValues('transaction', [
-            provided.widgetData.list.data[selectedListIndex].transaction as string,
+            provided.widgetData.list!.data[selectedListIndex]!.transaction as string,
           ]);
           if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
             if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
@@ -162,7 +162,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               {field},
             ];
             eventView.additionalConditions.setFilterValues('issue', [
-              provided.widgetData.list.data[selectedListIndex].issue as string,
+              provided.widgetData.list!.data[selectedListIndex]!.issue as string,
             ]);
             eventView.additionalConditions.setFilterValues('event.type', ['error']);
 
@@ -273,11 +273,11 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           const valueMap = {
             [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
             [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
-            slowest: getPerformanceDuration(listItem[fieldString] as number),
+            slowest: getPerformanceDuration(listItem[fieldString]! as number),
           };
           const rightValue =
             valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
-            listItem[fieldString];
+            listItem[fieldString]!;
 
           switch (props.chartSetting) {
             case PerformanceWidgetSetting.MOST_RELATED_ISSUES:

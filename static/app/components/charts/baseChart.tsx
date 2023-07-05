@@ -467,8 +467,8 @@ function BaseChartUnwrapped({
     : [XAxis(defaultAxesProps), XAxis(defaultAxesProps)];
 
   const seriesData =
-    Array.isArray(series?.[0]?.data) && series[0].data.length > 1
-      ? series[0].data
+    Array.isArray(series?.[0]!?.data) && series[0]!.data.length > 1
+      ? series[0]!.data
       : undefined;
   const bucketSize = seriesData ? seriesData[1][0] - seriesData[0][0] : undefined;
 

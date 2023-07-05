@@ -26,7 +26,7 @@ export function getCount(
   groups: SessionApiResponse['groups'] = [],
   field: SessionFieldWithOperation
 ) {
-  return groups.reduce((acc, group) => acc + group.totals[field], 0);
+  return groups.reduce((acc, group) => acc + group.totals[field]!, 0);
 }
 
 export function getCountAtIndex(
@@ -34,7 +34,7 @@ export function getCountAtIndex(
   field: SessionFieldWithOperation,
   index: number
 ) {
-  return groups.reduce((acc, group) => acc + group.series[field][index], 0);
+  return groups.reduce((acc, group) => acc + group.series[field]![index], 0);
 }
 
 export function getCrashFreeRate(
@@ -68,7 +68,7 @@ export function getSeriesSum(
   const groupSeries = groups.map(group => group.series[field]);
 
   groupSeries.forEach(series => {
-    series.forEach((dataPoint, idx) => (dataPointsSums[idx] += dataPoint));
+    series.forEach((dataPoint, idx) => (dataPointsSums[idx]! += dataPoint));
   });
 
   return dataPointsSums;
@@ -133,12 +133,12 @@ export function getSessionStatusRateSeries(
   return compact(
     intervals.map((interval, i) => {
       const intervalTotalSessions = groups.reduce(
-        (acc, group) => acc + group.series[field][i],
+        (acc, group) => acc + group.series[field]![i],
         0
       );
 
       const intervalStatusSessions =
-        groups.find(group => group.by['session.status'] === status)?.series[field][i] ??
+        groups.find(group => group.by['session.status'] === status)?.series[field]![i] ??
         0;
 
       const statusSessionsPercent = percent(
@@ -190,7 +190,7 @@ export function getCountSeries(
 ): SeriesDataUnit[] {
   return intervals.map((interval, index) => ({
     name: interval,
-    value: group?.series[field][index] ?? 0,
+    value: group?.series[field]![index] ?? 0,
   }));
 }
 
@@ -331,7 +331,7 @@ export function filterSessionsInTimeWindow(
     const totals = {};
     Object.keys(group.series).forEach(field => {
       totals[field] = 0;
-      series[field] = group.series[field].filter((value, index) => {
+      series[field] = group.series[field]!.filter((value, index) => {
         const isBetween = filteredIndexes.includes(index);
         if (isBetween) {
           totals[field] = (totals[field] ?? 0) + value;

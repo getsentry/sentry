@@ -49,14 +49,14 @@ export function IssueWidgetCard({
     return <LoadingPlaceholder height="200px" />;
   }
 
-  const query = widget.queries[0];
+  const query = widget.queries[0]!;
   const queryFields = defined(query.fields)
     ? query.fields
     : [...query.columns, ...query.aggregates];
   const fieldAliases = query.fieldAliases ?? [];
   const eventView = eventViewFromWidget(
     widget.title,
-    widget.queries[0],
+    widget.queries[0]!,
     selection,
     widget.displayType
   );

@@ -16,7 +16,7 @@ function ProjectSettingsNavigation({organization, project}: Props) {
 
   const debugFilesNeedsReview = appStoreConnectContext
     ? Object.keys(appStoreConnectContext).some(
-        key => appStoreConnectContext[key].credentials.status === 'invalid'
+        key => appStoreConnectContext[key]!.credentials.status === 'invalid'
       )
     : false;
 

@@ -271,7 +271,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       // Cast so we can add the title.
       const transformedData = config.transformTable(
         data,
-        widget.queries[0],
+        widget.queries[0]!,
         organization,
         selection
       ) as TableDataWithTitle;
@@ -331,7 +331,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       rawResultsClone[requestIndex] = data;
       const transformedResult = config.transformSeries!(
         data,
-        widget.queries[requestIndex],
+        widget.queries[requestIndex]!,
         organization
       );
       // When charting timeseriesData on echarts, color association to a timeseries result
@@ -349,8 +349,8 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
     // Get series result type
     // Only used by custom measurements in errorsAndTransactions at the moment
     const timeseriesResultsTypes = config.getSeriesResultType?.(
-      responses[0][0],
-      widget.queries[0]
+      responses[0]![0]!,
+      widget.queries[0]!
     );
 
     if (this._isMounted && this.state.queryFetchID === queryFetchID) {

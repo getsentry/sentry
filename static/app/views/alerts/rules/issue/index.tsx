@@ -731,7 +731,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       const clonedState = cloneDeep(prevState);
 
       // Set initial configuration, but also set
-      const id = (clonedState.rule as IssueAlertRule)[type][idx].id;
+      const id = (clonedState.rule as IssueAlertRule)[type]![idx]!.id;
       const newRule = {
         ...this.getInitialValue(type, id),
         id,
@@ -1064,7 +1064,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     undefined &&
                   nextSelectedProject.teams.length
                 ) {
-                  this.handleOwnerChange({value: nextSelectedProject.teams[0].id});
+                  this.handleOwnerChange({value: nextSelectedProject.teams[0]!.id});
                 }
 
                 this.setState({project: nextSelectedProject});
@@ -1264,8 +1264,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('conditions') && (
                               <StyledAlert type="error">
-                                {detailedError?.conditions[0]}
-                                {(detailedError?.conditions[0] || '').startsWith(
+                                {detailedError?.conditions[0]!}
+                                {(detailedError?.conditions[0]! || '').startsWith(
                                   'You may not exceed'
                                 ) && (
                                   <Fragment>
@@ -1349,7 +1349,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('filters') && (
                               <StyledAlert type="error">
-                                {detailedError?.filters[0]}
+                                {detailedError?.filters[0]!}
                               </StyledAlert>
                             )
                           }
@@ -1395,7 +1395,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">
-                                {detailedError?.actions[0]}
+                                {detailedError?.actions[0]!}
                               </StyledAlert>
                             )
                           }
@@ -1470,7 +1470,7 @@ export const findIncompatibleRules = (
     let eventFrequency = -1;
     let userFrequency = -1;
     for (let i = 0; i < conditions.length; i++) {
-      const id = conditions[i].id;
+      const id = conditions[i]!.id;
       if (id.endsWith('FirstSeenEventCondition')) {
         firstSeen = i;
       } else if (id.endsWith('RegressionEventCondition')) {
@@ -1479,12 +1479,12 @@ export const findIncompatibleRules = (
         reappeared = i;
       } else if (
         id.endsWith('EventFrequencyCondition') &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         eventFrequency = i;
       } else if (
         id.endsWith('EventUniqueUserFrequencyCondition') &&
-        (conditions[i].value as number) >= 1
+        (conditions[i]!.value as number) >= 1
       ) {
         userFrequency = i;
       }
@@ -1509,7 +1509,7 @@ export const findIncompatibleRules = (
   if (firstSeen !== -1 && (rule.actionMatch === 'all' || conditions.length === 1)) {
     let incompatibleFilters = 0;
     for (let i = 0; i < filters.length; i++) {
-      const filter = filters[i];
+      const filter = filters[i]!;
       const id = filter.id;
       if (id.endsWith('IssueOccurrencesFilter') && filter) {
         if (

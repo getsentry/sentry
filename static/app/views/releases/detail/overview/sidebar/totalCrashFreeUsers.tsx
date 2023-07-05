@@ -75,7 +75,7 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
         const dateLabel =
           index === 0
             ? t('Release created')
-            : `${moment(data[0].date).from(date, true)} ${t('later')}`;
+            : `${moment(data[0]!.date).from(date, true)} ${t('later')}`;
 
         return {date: moment(date), dateLabel, crashFreeUsers, crashFreeUserCount};
       })

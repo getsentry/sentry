@@ -305,7 +305,7 @@ class SpanTree extends Component<PropType> {
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
     if (showHiddenSpansMessage) {
-      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(outOfViewSpansAbove[0]!.span);
       messages.push(
         <span key={`spans-out-of-view-${firstHiddenSpanId}`}>
           <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
@@ -318,7 +318,7 @@ class SpanTree extends Component<PropType> {
       !isCurrentSpanFilteredOut && numOfFilteredSpansAbove > 0;
 
     if (showFilteredSpansMessage) {
-      firstHiddenSpanId = getSpanID(filteredSpansAbove[0].span);
+      firstHiddenSpanId = getSpanID(filteredSpansAbove[0]!.span);
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
@@ -809,12 +809,12 @@ function SpanRow(props: SpanRowProps) {
     // we only need to keep track of spans to calculate an average depth, a few missing spans will not
     // throw off the calculation too hard
     if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
-      addSpanRowToState(spanNode.props.span.span_id, rowRef, spanNode.props.treeDepth);
+      addSpanRowToState(spanNode.props.span!.span_id, rowRef, spanNode.props.treeDepth);
     }
 
     return () => {
       if (spanNode.type !== SpanTreeNodeType.MESSAGE && !isGapSpan(spanNode.props.span)) {
-        removeSpanRowFromState(spanNode.props.span.span_id);
+        removeSpanRowFromState(spanNode.props.span!.span_id);
       }
     };
   }, [rowRef, spanNode, addSpanRowToState, removeSpanRowFromState]);

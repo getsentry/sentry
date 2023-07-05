@@ -80,13 +80,13 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
           const errorsData: Series = {
             seriesName: t('5XX Responses'),
-            color: CHART_PALETTE[5][3],
+            color: CHART_PALETTE[5]![3]!,
             data: results[1].data,
           };
 
           const percentileData: Series = {
             seriesName: t('Requests'),
-            data: results[2].data,
+            data: results[2]!.data,
           };
 
           return (
