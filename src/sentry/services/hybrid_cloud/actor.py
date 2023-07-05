@@ -54,7 +54,6 @@ class RpcActor(RpcModel):
         Queries for actors are batched to increase efficiency. Users that are
         missing actors will have actors generated.
         """
-        from sentry.models.actor import Actor
         from sentry.models.team import Team
         from sentry.models.user import User
 
@@ -71,28 +70,21 @@ class RpcActor(RpcModel):
                 grouped_by_type[ActorType.TEAM].append(obj.id)
 
         if grouped_by_type[ActorType.TEAM]:
-            actors = Actor.objects.filter(
-                type=ACTOR_TYPES["team"], team__in=grouped_by_type[ActorType.TEAM]
-            )
-            for actor in actors:
+            for team_id in grouped_by_type[ActorType.TEAM]:
                 result.append(
                     RpcActor(
-                        actor_id=actor.id,
-                        id=actor.team_id,
+                        id=team_id,
                         actor_type=ActorType.TEAM,
-                        slug=team_slugs.get(actor.team_id),
+                        slug=team_slugs.get(team_id),
                     )
                 )
 
         if grouped_by_type[ActorType.USER]:
             user_ids = grouped_by_type[ActorType.USER]
             missing = set(user_ids)
-            actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
-            for actor in actors:
-                missing.remove(actor.user_id)
-                result.append(
-                    RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
-                )
+            for user_id in user_ids:
+                missing.remove(user_id)
+                result.append(RpcActor(id=user_id, actor_type=ActorType.USER))
             if len(missing):
                 for user_id in missing:
                     actor = get_actor_for_user(user_id)
