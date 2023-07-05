@@ -183,7 +183,7 @@ class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
     - Consecutive DB Queries Detector.
     """
 
-    type: DetectorType = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
+    type = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
     settings_key = DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED
 
     def _validate_and_store_performance_problem(self):
@@ -212,15 +212,8 @@ class ConsecutiveHTTPSpanDetectorExtended(ConsecutiveHTTPSpanDetector):
         ):
             self._store_performance_problem()
 
-    def _sum_span_duration(self) -> float:
-        "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0.0
-        for span in self.consecutive_http_spans:
-            sum += get_span_duration(span).total_seconds() * 1000
-        return sum
-
     def _calculate_time_saved(self) -> float:
-        total_time = self._sum_span_duration()
+        total_time = self._sum_span_duration(self.consecutive_http_spans)
 
         max_span_duration = max(
             [get_span_duration(span).total_seconds() * 1000 for span in self.consecutive_http_spans]
