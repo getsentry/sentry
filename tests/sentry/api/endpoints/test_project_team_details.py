@@ -34,12 +34,14 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     def test_add_team_not_found(self):
         project = self.create_project()
 
-        self.get_error_response(
+        response = self.get_error_response(
             project.organization.slug,
             project.slug,
             "not-a-team",
             status_code=status.HTTP_404_NOT_FOUND,
         )
+
+        assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
     def test_add_team_with_team_role(self):
@@ -131,12 +133,14 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     def test_remove_team_not_found(self):
         project = self.create_project()
 
-        self.get_error_response(
+        response = self.get_error_response(
             project.organization.slug,
             project.slug,
             "not-a-team",
             status_code=status.HTTP_404_NOT_FOUND,
         )
+
+        assert response.data["detail"] == "Team does not exist."
 
     @with_feature("organizations:team-roles")
     def test_remove_team_with_team_role(self):
