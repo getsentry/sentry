@@ -7,7 +7,6 @@ from typing import Any, Dict, Literal, Optional, Sequence, Tuple, TypedDict, Uni
 from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
 
-from sentry.constants import DataCategory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.snuba.models import SnubaQuery
@@ -132,24 +131,6 @@ class MetricSpec(TypedDict):
     field: NotRequired[Optional[str]]
     condition: NotRequired[RuleCondition]
     tags: NotRequired[Sequence[TagSpec]]
-
-
-def convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
-    try:
-        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
-        if not spec:
-            return None
-
-        return {
-            "category": DataCategory.TRANSACTION.api_name(),
-            "mri": spec.mri,
-            "field": spec.field,
-            "condition": spec.condition(),
-            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
-        }
-    except Exception as e:
-        logger.error(e, exc_info=True)
-        return None
 
 
 @dataclass(frozen=True)

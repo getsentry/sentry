@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
 from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
+from sentry.constants import DataCategory
 from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Project,
@@ -12,10 +13,12 @@ from sentry.models import (
     TransactionMetric,
 )
 from sentry.snuba.metrics.metric_extraction import (
+    QUERY_HASH_KEY,
     MetricSpec,
+    OndemandMetricSpec,
     RuleCondition,
-    convert_alert_to_metric,
 )
+from sentry.snuba.models import SnubaQuery
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +73,24 @@ def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionC
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metrics,
     }
+
+
+def convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+    try:
+        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
+        if not spec:
+            return None
+
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": spec.mri,
+            "field": spec.field,
+            "condition": spec.condition(),
+            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
+        }
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        return None
 
 
 # CONDITIONAL TAGGING
