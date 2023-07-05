@@ -316,6 +316,97 @@ class CococaSDKTestMixin(BaseSDKCrashDetectionMixin):
             },
         ]
 
+    def test_thread_inspector_crash_is_detected(self, mock_sdk_crash_reporter):
+        """
+        The frames stem from a real world crash caused by our MetricKit integration.
+        All data was anonymized.
+        """
+        frames = [
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__NSThread__start__",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker detectANRs]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTracker.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTracker.m",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker ANRDetected]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTracker.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTracker.m",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTrackingIntegration anrDetected]",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryANRTrackingIntegration.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryANRTrackingIntegration.m",
+                "in_app": False,
+            },
+            {
+                "function": "getStackEntriesFromThread",
+                "package": "/private/var/containers/Bundle/Application/CA061D22-C965-4C50-B383-59D8F14A6DDF/Sentry.app/Sentry",
+                "filename": "SentryThreadInspector.m",
+                "abs_path": "/Users/sentry/Library/Developer/Xcode/DerivedData/SentryApp/SourcePackages/checkouts/sentry-cocoa/Sources/Sentry/SentryThreadInspector.m",
+                "in_app": True,
+            },
+        ]
+
+        event = get_crash_event_with_frames(frames)
+
+        self.execute_test(event, True, mock_sdk_crash_reporter)
+
+        reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+        actual_frames = get_path(
+            reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+        )
+        assert actual_frames == [
+            {
+                "function": "_pthread_start",
+                "package": "/usr/lib/system/libdispatch.dylib",
+                "in_app": False,
+            },
+            {
+                "function": "__NSThread__start__",
+                "package": "/System/Library/Frameworks/Foundation.framework/Foundation",
+                "in_app": False,
+            },
+            {
+                "function": "-[SentryANRTracker detectANRs]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "-[SentryANRTracker ANRDetected]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "-[SentryANRTrackingIntegration anrDetected]",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+            {
+                "function": "getStackEntriesFromThread",
+                "package": "Sentry.framework",
+                "abs_path": "Sentry.framework",
+                "in_app": True,
+            },
+        ]
+
 
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
 class CococaSDKFunctionTestMixin(BaseSDKCrashDetectionMixin):
