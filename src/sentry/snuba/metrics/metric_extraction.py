@@ -135,9 +135,6 @@ class MetricSpec(TypedDict):
 
 
 def convert_alert_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
-    if snuba_query.dataset != Dataset.PerformanceMetrics.value:
-        return None
-
     try:
         spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
         if not spec:
@@ -168,7 +165,6 @@ class OndemandMetricSpec:
     @classmethod
     def check(cls, field: str, query: str) -> bool:
         """Returns ``True`` if a metrics query requires an on-demand metric."""
-        # TODO?: self.dataset == Dataset.PerformanceMetrics.value and
         return "transaction.duration" in query
 
     @classmethod
