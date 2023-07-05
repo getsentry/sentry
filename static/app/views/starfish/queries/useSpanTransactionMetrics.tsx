@@ -38,6 +38,7 @@ export const useSpanTransactionMetrics = (
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    referrer: _referrer,
   });
 };
 

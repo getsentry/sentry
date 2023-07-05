@@ -36,7 +36,7 @@ export const useSpanMetrics = (
     referrer,
   });
 
-  return {...result, data: result?.data[0] ?? {}};
+  return {...result, data: result?.data?.[0] ?? {}};
 };
 
 function getEventView(

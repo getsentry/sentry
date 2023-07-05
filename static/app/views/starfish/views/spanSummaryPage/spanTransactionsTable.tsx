@@ -63,7 +63,7 @@ export function SpanTransactionsTable({
   const organization = useOrganization();
 
   const {
-    data: spanTransactionMetrics,
+    data: spanTransactionMetrics = [],
     meta,
     isLoading,
     pageLinks,
@@ -161,6 +161,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
         to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
+          ...location.query,
           endpoint,
           endpointMethod,
           transaction: row.transaction,
