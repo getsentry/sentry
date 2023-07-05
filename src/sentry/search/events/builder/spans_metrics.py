@@ -14,8 +14,8 @@ from snuba_sdk import (
 
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
+from sentry.search.events.builder.utils import remove_hours, remove_minutes
 from sentry.search.events.types import ParamsType, SelectType, WhereType
-from sentry.search.events.utils import remove_hours, remove_minutes
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
@@ -66,10 +66,10 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
         if granularity == 60:
             rounding_function = remove_minutes
-            base_granularity = 1
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING[60]
         elif granularity == 3600:
             rounding_function = remove_hours
-            base_granularity = 2
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING[3600]
 
         if rounding_function(self.start, False) > rounding_function(self.end):
             return [], Granularity(granularity)
