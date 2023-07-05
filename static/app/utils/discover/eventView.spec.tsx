@@ -42,7 +42,6 @@ const REQUIRED_CONSTRUCTOR_PROPS = {
   sorts: [],
   statsPeriod: undefined,
   topEvents: undefined,
-  yAxis: undefined,
   id: undefined,
   display: undefined,
 };

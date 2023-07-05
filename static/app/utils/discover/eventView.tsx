@@ -318,12 +318,12 @@ class EventView {
     statsPeriod: string | undefined;
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    yAxis: string | string[] | undefined;
     additionalConditions?: MutableSearch;
     dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
     utc?: string | boolean | undefined;
+    yAxis?: string | string[] | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
