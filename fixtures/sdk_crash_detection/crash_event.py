@@ -232,7 +232,7 @@ def get_crash_event_with_frames(
         "environment": "test-app",
         "sdk": {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
             "integrations": [
                 "Crash",
                 "PerformanceTracking",

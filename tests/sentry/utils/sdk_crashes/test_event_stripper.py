@@ -80,7 +80,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
         assert stripped_event_data.get("sdk") == {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
         }
 
     def test_strip_event_data_strips_value_if_not_simple_type(self):
