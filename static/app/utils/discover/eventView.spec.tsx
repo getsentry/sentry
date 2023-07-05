@@ -636,7 +636,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
 describe('EventView.fromSavedQueryOrLocation()', function () {
   it('maps basic properties of saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -649,12 +649,15 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
     const location = TestStubs.location({
       query: {
         statsPeriod: '14d',
-        project: [123],
+        project: ['123'],
         team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
@@ -682,15 +685,15 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       dataset: DiscoverDatasets.DISCOVER,
     });
 
-    const savedQuery2 = {...saved, range: undefined};
-    const location2 = {
+    const savedQuery2: SavedQuery = {...saved, range: undefined};
+    const location2 = TestStubs.location({
       query: {
         project: ['123'],
         environment: ['staging'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
       },
-    };
+    });
 
     const eventView2 = EventView.fromSavedQueryOrLocation(savedQuery2, location2);
 
@@ -712,7 +715,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('overrides saved query params with location params', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -725,6 +728,9 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
     const location = TestStubs.location({
@@ -758,25 +764,25 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('maps saved query with no conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count',
       name: 'foo bar',
       fields: ['release', 'count()'],
-      widths: [111, 222],
+      widths: ['111', '222'],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       query: '',
       environment: [],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T06:13:17.632096Z',
+      projects: [123],
       id: '5',
-      yAxis: 'count()',
+      yAxis: ['count()'],
     };
 
     const location = TestStubs.location({
       query: {
         id: '5',
-        project: [1],
+        project: ['1'],
       },
     });
 
@@ -799,7 +805,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('maps query with cleared conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -811,6 +817,9 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
     const location = TestStubs.location({
@@ -839,13 +848,13 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       display: 'previous',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '42',
         statsPeriod: '7d',
         query: '',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView2).toMatchObject({
@@ -868,7 +877,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('event views are equal when start and end datetime differ in format', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -876,8 +885,8 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       dateCreated: '2019-10-30T05:10:23.718937Z',
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
+      projects: [123],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
     };
@@ -892,42 +901,42 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
         end: '2019-10-23T19:27:04Z',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
 
-    const location3 = {
+    const location3 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
         end: '2019-10-23T19:27:04+0000',
       },
-    };
+    });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
     expect(eventView.isEqualTo(eventView3)).toBe(true);
 
-    const location4 = {
+    const location4 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51+0000',
         end: '2019-10-23T19:27:04Z',
       },
-    };
+    });
     const eventView4 = EventView.fromSavedQueryOrLocation(saved, location4);
 
     expect(eventView.isEqualTo(eventView4)).toBe(true);
   });
 
   it('event views are not equal when datetime selection are invalid', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -936,7 +945,6 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -952,24 +960,24 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '3',
         end: '2019-10-23T19:27:04+0000',
         start: '',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
-    const location3 = {
+    const location3 = TestStubs.location({
       query: {
         id: '3',
         end: '',
         start: '2019-10-20T21:02:51+0000',
       },
-    };
+    });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
@@ -979,7 +987,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('uses the first yAxis from the SavedQuery', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -992,12 +1000,15 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       yAxis: ['count()', 'failure_count()'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      version: 2,
     };
 
     const location = TestStubs.location({
       query: {
         statsPeriod: '14d',
-        project: [123],
+        project: ['123'],
         team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
@@ -1025,14 +1036,17 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('filters out invalid teams', function () {
-    const eventView = EventView.fromSavedQueryOrLocation(undefined, {
-      query: {
-        statsPeriod: '14d',
-        project: ['123'],
-        team: ['myteams', '1', 'unassigned'],
-        environment: ['staging'],
-      },
-    });
+    const eventView = EventView.fromSavedQueryOrLocation(
+      undefined,
+      TestStubs.location({
+        query: {
+          statsPeriod: '14d',
+          project: ['123'],
+          team: ['myteams', '1', 'unassigned'],
+          environment: ['staging'],
+        },
+      })
+    );
 
     expect(eventView.team).toEqual(['myteams', 1]);
   });
@@ -1273,7 +1287,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         start: '',
         end: '',
@@ -1281,7 +1295,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         // statsPeriod is omitted here
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
@@ -1328,14 +1342,14 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         end: '',
         utc: 'true',
         statsPeriod: 'invalid',
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
