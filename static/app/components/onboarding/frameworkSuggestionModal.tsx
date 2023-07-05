@@ -63,7 +63,6 @@ const topJavaFrameworks = [
   'java-spring',
   'java-logback',
   'java-log4j2',
-  'java',
 ];
 
 export const languageDetails = {
