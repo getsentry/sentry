@@ -824,7 +824,6 @@ module = [
     "sentry.runner.commands.upgrade",
     "sentry.runner.importer",
     "sentry.runner.initializer",
-    "sentry.runner.settings",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
