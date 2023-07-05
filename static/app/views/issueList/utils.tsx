@@ -72,15 +72,6 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.NEW,
-      {
-        name: t('New'),
-        analyticsName: 'new',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
       Query.REGRESSED,
       {
         name: t('Regressed'),
