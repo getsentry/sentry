@@ -165,7 +165,7 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
     def identity(self):
         if self._identity:
             return self._identity
-        self._identity = Identity.objects.filter(id=self.identity_id).first()
+        self._identity = Identity.objects.get(id=self.identity_id)
         return self._identity
 
     def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
