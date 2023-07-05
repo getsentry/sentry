@@ -2082,7 +2082,7 @@ describe('EventView.withUpdatedColumn()', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
@@ -2327,7 +2327,7 @@ describe('EventView.withDeletedColumn()', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
@@ -2552,7 +2552,7 @@ describe('EventView.sortForField()', function () {
     environment: ['staging'],
   };
   const eventView = new EventView(state);
-  const meta = {count: 'integer'};
+  const meta: MetaType = {count: 'integer'};
 
   it('returns the sort when selected field is sorted', function () {
     const field = {
@@ -3494,7 +3494,7 @@ describe('isAPIPayloadSimilar', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
