@@ -15,6 +15,7 @@ from django.utils.text import slugify
 
 from sentry import ratelimits
 from sentry.constants import ObjectStatus
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.monitors.models import (
     MAX_SLUG_LENGTH,
@@ -126,6 +127,16 @@ def _process_message(wrapper: Dict) -> None:
         "source": "consumer",
         "source_sdk": source_sdk,
     }
+
+    if killswitch_matches_context(
+        "crons.organization.disable-check-in", {"organization_id": project.organization_id}
+    ):
+        metrics.incr(
+            "monitors.checkin.dropped.blocked",
+            tags={**metric_kwargs},
+        )
+        logger.debug("monitor check in blocked: %s", monitor_slug)
+        return
 
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
