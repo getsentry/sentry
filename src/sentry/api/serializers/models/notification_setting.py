@@ -66,7 +66,6 @@ class NotificationSettingsSerializer(Serializer):
                 raise ValueError(
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
                 )
-
         return result
 
     def serialize(
@@ -92,7 +91,6 @@ class NotificationSettingsSerializer(Serializer):
                         "email": "subscribe_only",
                         "slack": "subscribe_only"
                     }
-                }
             }
         }
 

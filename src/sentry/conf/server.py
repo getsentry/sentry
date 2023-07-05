@@ -708,6 +708,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.weekly_reports",
@@ -851,6 +852,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
+    Queue("recap_servers", routing_key="recap_servers"),
 ]
 
 from celery.schedules import crontab
@@ -1096,6 +1098,12 @@ CELERYBEAT_SCHEDULE_REGION = {
     "github_comment_reactions": {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
+    "poll_recap_servers": {
+        "task": "sentry.tasks.poll_recap_servers",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
 }
 
@@ -1584,8 +1592,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -1662,6 +1668,8 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable functionality for recap server polling.
+    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
@@ -3531,10 +3539,13 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# The project ID for SDK Crash Detection to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
+
+# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
+SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"

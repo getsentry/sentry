@@ -21,18 +21,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
-type State = AsyncView['state'] & {
+interface State extends AsyncViewState {
   reportList: UserReport[];
-};
+}
 
-type Props = RouteComponentProps<{}, {}> & {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-};
+}
 
 class OrganizationUserFeedback extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
