@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -230,6 +231,16 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :param autoAssignment: String detailing automatic assignment setting
         :auth: required
         """
+
+        # Ownership settings others than "raw" ownership rules can only be updated by
+        # users with the organization-level owner, manager, or team-level admin roles
+        has_project_write = request.access and (
+            request.access.has_scope("project:write")
+            or request.access.has_project_scope(project, "project:write")
+        )
+        if list(request.data) != ["raw"] and not has_project_write:
+            raise PermissionDenied
+
         should_return_schema = features.has(
             "organizations:streamline-targeting-context", project.organization
         )
