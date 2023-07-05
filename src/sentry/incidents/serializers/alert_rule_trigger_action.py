@@ -1,4 +1,4 @@
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from rest_framework import serializers
 
 from sentry import analytics
@@ -160,7 +160,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                 trigger=self.context["trigger"], **validated_data
             )
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
-            raise serializers.ValidationError(force_text(e))
+            raise serializers.ValidationError(force_str(e))
 
         analytics.record(
             "metric_alert_with_ui_component.created",
@@ -177,6 +177,6 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         try:
             action = update_alert_rule_trigger_action(instance, **validated_data)
         except (ApiRateLimitedError, InvalidTriggerActionError) as e:
-            raise serializers.ValidationError(force_text(e))
+            raise serializers.ValidationError(force_str(e))
 
         return action

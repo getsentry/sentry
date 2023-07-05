@@ -1,26 +1,103 @@
+import logging
 from dataclasses import dataclass
-from typing import Any, List, Literal, Sequence, Tuple, TypedDict, Union, cast
+from typing import Any, List, Optional, Sequence, Tuple, TypedDict, Union, cast
 
+from sentry import features
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
+from sentry.constants import DataCategory
+from sentry.incidents.models import AlertRule, AlertRuleStatus
 from sentry.models import (
     Project,
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
+from sentry.snuba.metrics.metric_extraction import (
+    QUERY_HASH_KEY,
+    MetricSpec,
+    OndemandMetricSpec,
+    RuleCondition,
+)
+from sentry.snuba.models import SnubaQuery
+
+logger = logging.getLogger(__name__)
+
+# GENERIC METRIC EXTRACTION
+
+# Version of the metric extraction config.
+_METRIC_EXTRACTION_VERSION = 1
+
+# Maximum number of custom metrics that can be extracted for alert rules with
+# advanced filter expressions.
+_MAX_ALERT_METRICS = 100
 
 
-class RuleConditionInner(TypedDict):
-    op: Literal["eq", "gt", "gte"]
-    name: str
-    value: Any
+class MetricExtractionConfig(TypedDict):
+    """Configuration for generic extraction of metrics from all data categories."""
+
+    version: int
+    metrics: List[MetricSpec]
 
 
-# mypy does not support recursive types. type definition is a very small subset
-# of the values relay actually accepts
-class RuleCondition(TypedDict):
-    op: Literal["and"]
-    inner: Sequence[RuleConditionInner]
+def get_metric_extraction_config(project: Project) -> Optional[MetricExtractionConfig]:
+    """
+    Returns generic metric extraction config for the given project.
+
+    This requires respective feature flags to be enabled. At the moment, metrics
+    for the following models are extracted:
+     - Performance alert rules which advanced filter expressions.
+    """
+
+    if not features.has("organizations:on-demand-metrics-extraction", project.organization):
+        return None
+
+    alerts = (
+        AlertRule.objects.fetch_for_project(project)
+        .filter(status=AlertRuleStatus.PENDING.value)
+        .select_related("snuba_query")
+    )
+
+    metrics: List[MetricSpec] = []
+    for alert in alerts:
+        if metric := convert_query_to_metric(alert.snuba_query):
+            metrics.append(metric)
+
+    if not metrics:
+        return None
+
+    if len(metrics) > _MAX_ALERT_METRICS:
+        logger.error("Too many custom alert metrics for project")
+        metrics = metrics[:_MAX_ALERT_METRICS]
+
+    return {
+        "version": _METRIC_EXTRACTION_VERSION,
+        "metrics": metrics,
+    }
+
+
+def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
+    """
+    If the passed snuba_query is a valid query for on-demand metric extraction,
+    returns a MetricSpec for the query. Otherwise, returns None.
+    """
+    try:
+        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
+        if not spec:
+            return None
+
+        return {
+            "category": DataCategory.TRANSACTION.api_name(),
+            "mri": spec.mri,
+            "field": spec.field,
+            "condition": spec.condition(),
+            "tags": [{"key": QUERY_HASH_KEY, "value": spec.query_hash()}],
+        }
+    except Exception as e:
+        logger.error(e, exc_info=True)
+        return None
+
+
+# CONDITIONAL TAGGING
 
 
 class MetricConditionalTaggingRule(TypedDict):
@@ -102,7 +179,7 @@ def _threshold_to_rules(
     threshold: Union[
         ProjectTransactionThreshold, ProjectTransactionThresholdOverride, _DefaultThreshold
     ],
-    extra_conditions: Sequence[RuleConditionInner],
+    extra_conditions: Sequence[RuleCondition],
 ) -> Sequence[MetricConditionalTaggingRule]:
     frustrated: MetricConditionalTaggingRule = {
         "condition": {

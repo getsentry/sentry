@@ -252,23 +252,37 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=0.5
-        ):
-            response = self.get_success_response(org.slug)
-            assert response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(org.slug)
+                assert response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=1.0
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=None
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
+
+        with self.feature({"organizations:dynamic-sampling": False}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
@@ -347,6 +361,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "aiSuggestedSolution": False,
+            "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -416,6 +431,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
 
     @responses.activate
     @patch(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import binascii
 import errno
@@ -17,10 +19,10 @@ from urllib.parse import urlsplit
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from requests.utils import get_encoding_from_headers
-from symbolic import SourceMapCache as SmCache
-from symbolic import SourceView
+from symbolic.sourcemap import SourceView
+from symbolic.sourcemapcache import SourceMapCache as SmCache
 
 from sentry import features, http, options
 from sentry.event_manager import set_tag
@@ -190,7 +192,7 @@ def discover_sourcemap(result):
     sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
     sourcemap_url = find_sourcemap(sourcemap_header, result.body)
     sourcemap_url = (
-        force_text(non_standard_url_join(result.url, force_text(sourcemap_url)))
+        force_str(non_standard_url_join(result.url, force_str(sourcemap_url)))
         if sourcemap_url is not None
         else None
     )
@@ -244,7 +246,9 @@ def fetch_and_cache_artifact(result_url, fetch_fn, cache_key, cache_key_meta, he
             # We want to avoid performing compression in case we have None cache keys or the size of the compressed body
             # is more than the limit.
             if (cache_key is None and cache_key_meta is None) or (
-                z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE
+                z_body_size
+                and CACHE_MAX_VALUE_SIZE is not None
+                and z_body_size > CACHE_MAX_VALUE_SIZE
             ):
                 return None, fp.read()
             else:
@@ -404,8 +408,8 @@ def fetch_release_file(filename, release, dist=None):
 
 @metrics.wraps("sourcemaps.get_from_archive")
 def try_get_with_normalized_urls(
-    url: str, block: Callable[[str], Tuple[bytes, dict]]
-) -> Tuple[bytes, dict]:
+    url: str, block: Callable[[str], Tuple[IO[bytes], dict]]
+) -> Tuple[IO[bytes], dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
@@ -454,7 +458,7 @@ def get_index_entry(release, dist, url) -> Optional[dict]:
 
 
 @metrics.wraps("sourcemaps.fetch_release_archive")
-def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
+def fetch_release_archive_for_url(release, dist, url) -> Optional[IO[bytes]]:
     """Fetch release archive and cache if possible.
 
     Multiple archives might have been uploaded, so we need the URL
@@ -1161,9 +1165,7 @@ class Fetcher:
                     except KeyError:
                         # The manifest mapped the url to an archive, but the file
                         # is not there.
-                        logger.error(
-                            "Release artifact %r not found in archive %s", url, archive_file.id
-                        )
+                        logger.error("Release artifact %r not found in archive %s", url, cache_key)
                         cache.set(cache_key, -1, 60)
                         metrics.timing(
                             "sourcemaps.release_artifact_from_archive", time.monotonic() - start
@@ -2139,109 +2141,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             metrics.incr(
                 "sourcemaps.processed", amount=len(self.sourcemaps_touched), skip_internal=True
             )
-
-        # If we do some A/B testing for symbolicator, we want to compare the stack traces
-        # processed by both the existing processor (this one), and the symbolicator result,
-        # and log any differences.
-        # Q: what do we want to diff? raw/_stacktraces? With the full source context?
-        # Processing Errors?
-        # We also need to account for known differences? Like symbolicator not
-        # outputting a trailing empty line, whereas the python processor does.
-        if symbolicator_stacktraces := self.data.pop("symbolicator_stacktraces", None):
-
-            metrics.incr("sourcemaps.ab-test.performed")
-
-            interesting_keys = {
-                "abs_path",
-                "filename",
-                "lineno",
-                "colno",
-                "function",
-                "context_line",
-                "module",
-                "in_app",
-            }
-            known_diffs = {
-                "context_line",
-                "data.sourcemap",
-            }
-
-            def filtered_frame(frame: dict) -> dict:
-                new_frame = {key: value for key, value in frame.items() if key in interesting_keys}
-
-                ds = get_path(frame, "data", "sourcemap")
-                # The python code does some trimming of the `data.sourcemap` prop to
-                # 150 characters with a trailing `...`, so replicate this here to avoid some
-                # bogus differences
-                if ds is not None and len(ds) > 150:
-                    ds = ds[:147] + "..."
-                new_frame["data.sourcemap"] = ds
-
-                # The code in `get_event_preprocessors` backfills the `module`.
-                # Contrary to its name, this runs *after* the stacktrace processor,
-                # so we want to backfill this here for all the frames as well:
-                abs_path = new_frame.get("abs_path")
-                if (
-                    new_frame.get("module") is None
-                    and abs_path
-                    and abs_path.startswith(("http:", "https:", "webpack:", "app:"))
-                ):
-                    new_frame["module"] = generate_module(abs_path)
-
-                return new_frame
-
-            def without_known_diffs(frame: dict) -> dict:
-                {key: value for key, value in frame.items() if key not in known_diffs}
-
-            different_frames = []
-            for symbolicator_stacktrace, stacktrace_info in zip(
-                symbolicator_stacktraces,
-                (
-                    sinfo
-                    for sinfo in self.stacktrace_infos
-                    # only include `stacktrace_infos` that have a stacktrace with frames
-                    if get_path(sinfo.container, "stacktrace", "frames", filter=True)
-                ),
-            ):
-                python_stacktrace = stacktrace_info.container.get("stacktrace")
-
-                for symbolicator_frame, python_frame in zip(
-                    symbolicator_stacktrace,
-                    python_stacktrace["frames"],
-                ):
-                    symbolicator_frame = filtered_frame(symbolicator_frame)
-                    python_frame = filtered_frame(python_frame)
-
-                    if symbolicator_frame != python_frame:
-                        # skip some insignificant differences
-                        if without_known_diffs(symbolicator_frame) == without_known_diffs(
-                            python_frame
-                        ):
-                            # python emits a `debug-id://` prefix whereas symbolicator does not
-                            # OR: python adds a `data.sourcemap` even though it could not be resolved
-                            if (python_frame.get("data.sourcemap") or "").startswith(
-                                "debug-id://"
-                            ) or symbolicator_frame.get("data.sourcemap") is None:
-                                continue
-
-                            # with minified files and high column numbers, we might have a difference in
-                            # source context slicing, probably due to encodings
-                            if python_frame.get("colno", 0) > 10_000 and python_frame.get(
-                                "context_line"
-                            ) != symbolicator_frame.get("context_line"):
-                                continue
-
-                        different_frames.append(
-                            {"symbolicator": symbolicator_frame, "python": python_frame}
-                        )
-
-            if different_frames:
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_extra("different_frames", different_frames)
-                    scope.set_extra("event_id", self.data.get("event_id"))
-                    sentry_sdk.capture_message(
-                        "JS symbolication differences between symbolicator and python."
-                    )
 
     def suspected_console_errors(self, frames):
         def is_suspicious_frame(frame) -> bool:

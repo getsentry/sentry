@@ -4,7 +4,7 @@ import logging
 import warnings
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Collection, Iterable, Mapping, Sequence
 from uuid import uuid1
 
 import sentry_sdk
@@ -14,9 +14,9 @@ from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import projectoptions
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
@@ -69,7 +69,7 @@ class ProjectManager(BaseManager):
             projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all projects that a set of Users have access to."""
         return self.filter(
             status=ObjectStatus.ACTIVE,
@@ -138,31 +138,45 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
     # projects that were created before this field was present
     # will have their first_event field set to date_added
     first_event = models.DateTimeField(null=True)
-    flags = BitField(
-        flags=(
-            ("has_releases", "This Project has sent release data"),
-            ("has_issue_alerts_targeting", "This Project has issue alerts targeting"),
-            ("has_transactions", "This Project has sent transactions"),
-            ("has_alert_filters", "This Project has filters"),
-            ("has_sessions", "This Project has sessions"),
-            ("has_profiles", "This Project has sent profiles"),
-            ("has_replays", "This Project has sent replays"),
-            ("spike_protection_error_currently_active", "spike_protection_error_currently_active"),
-            (
-                "spike_protection_transaction_currently_active",
-                "spike_protection_transaction_currently_active",
-            ),
-            (
-                "spike_protection_attachment_currently_active",
-                "spike_protection_attachment_currently_active",
-            ),
-            ("has_minified_stack_trace", "This Project has event with minified stack trace"),
-            ("has_cron_monitors", "This Project has cron monitors"),
-            ("has_cron_checkins", "This Project has sent check-ins"),
-        ),
-        default=10,
-        null=True,
-    )
+
+    class flags(TypedClassBitField):
+        # This Project has sent release data
+        has_releases: bool
+        # This Project has issue alerts targeting
+        has_issue_alerts_targeting: bool
+
+        # This Project has sent transactions
+        has_transactions: bool
+
+        # This Project has filters
+        has_alert_filters: bool
+
+        # This Project has sessions
+        has_sessions: bool
+
+        # This Project has sent profiles
+        has_profiles: bool
+
+        # This Project has sent replays
+        has_replays: bool
+
+        # spike_protection_error_currently_active
+        spike_protection_error_currently_active: bool
+
+        spike_protection_transaction_currently_active: bool
+        spike_protection_attachment_currently_active: bool
+
+        # This Project has event with minified stack trace
+        has_minified_stack_trace: bool
+
+        # This Project has cron monitors
+        has_cron_monitors: bool
+
+        # This Project has sent check-ins
+        has_cron_checkins: bool
+
+        bitfield_default = 10
+        bitfield_null = True
 
     objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, MutableMapping, Optional
 
 from django.db.models import Q, QuerySet
 
@@ -12,7 +12,12 @@ from sentry.api.serializers import (
 from sentry.api.serializers.base import Serializer
 from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
-from sentry.models import OrganizationMapping, OrganizationMemberMapping, OrganizationStatus
+from sentry.models import (
+    OrganizationMapping,
+    OrganizationMemberMapping,
+    OrganizationStatus,
+    UserEmail,
+)
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
@@ -55,19 +60,26 @@ class DatabaseBackedUserService(UserService):
         is_verified: bool = True,
         organization_id: Optional[int] = None,
     ) -> List[RpcUser]:
-        query = self._FQ.base_query()
-        if is_verified:
-            query = query.filter(emails__is_verified=is_verified)
-        if is_active:
-            query = query.filter(is_active=is_active)
-        if organization_id is not None:
-            query = query.filter(orgmembermapping_set__organization_id=organization_id)
+        user_emails_query = UserEmail.objects.filter(in_iexact("email", emails))
 
-        users = [
-            self._FQ.serialize_rpc(user)
-            for user in query.filter(in_iexact("emails__email", emails))
+        if is_verified:
+            user_emails_query = user_emails_query.filter(is_verified=True)
+
+        emails_by_user_ids: MutableMapping[int, List[str]] = {}
+        for ue in user_emails_query:
+            emails_by_user_ids.setdefault(ue.user_id, []).append(ue.email)
+
+        user_query = self._FQ.base_query().filter(id__in=list(emails_by_user_ids.keys()))
+        if is_active:
+            user_query = user_query.filter(is_active=is_active)
+        if organization_id is not None:
+            user_query = user_query.filter(orgmembermapping_set__organization_id=organization_id)
+
+        return [
+            self._FQ.serialize_rpc(user).by_email(email)
+            for user in user_query
+            for email in emails_by_user_ids[user.id]
         ]
-        return [user.by_email(email) for user in users for email in user.emails]
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None

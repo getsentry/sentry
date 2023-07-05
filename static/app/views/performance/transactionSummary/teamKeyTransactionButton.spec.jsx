@@ -7,8 +7,10 @@ import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown() {
-  await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
-  await userEvent.click(screen.getByRole('button'));
+  await waitFor(() =>
+    expect(screen.getByRole('button', {expanded: false})).toBeEnabled()
+  );
+  await userEvent.click(screen.getByRole('button', {expanded: false}));
 }
 
 describe('TeamKeyTransactionButton', function () {
@@ -81,12 +83,15 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    // header should show the checked state
-    expect(screen.getByRole('checkbox', {name: 'My Teams with Access'})).toBeChecked();
-
     // all teams should be checked
-    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   it('renders with some teams checked', async function () {
@@ -113,14 +118,15 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    // header should show the indeterminate state
-    expect(
-      screen.getByRole('checkbox', {name: 'My Teams with Access'})
-    ).toBePartiallyChecked();
-
     // only team 1 should be checked
-    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 
   it('renders with no teams checked', async function () {
@@ -144,14 +150,15 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    // header should show the unchecked state
-    expect(
-      screen.getByRole('checkbox', {name: 'My Teams with Access'})
-    ).not.toBeChecked();
-
     // all teams should be unchecked
-    expect(screen.getByRole('checkbox', {name: teams[0].slug})).not.toBeChecked();
-    expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 
   it('should be able to check one team', async function () {
@@ -185,7 +192,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
+    await userEvent.click(screen.getByRole('option', {name: `#${teams[0].slug}`}));
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -220,7 +227,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
+    await userEvent.click(screen.getByRole('option', {name: `#${teams[0].slug}`}));
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -258,13 +265,17 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All in My Teams'}));
 
     // all teams should be checked now
-    await waitFor(() => {
-      expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
-      expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
-    });
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
 
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
@@ -303,13 +314,17 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Unselect All in My Teams'}));
 
-    // all teams should be unchecked now
-    await waitFor(() => {
-      expect(screen.getByRole('checkbox', {name: teams[0].slug})).not.toBeChecked();
-      expect(screen.getByRole('checkbox', {name: teams[1].slug})).not.toBeChecked();
-    });
+    // all teams should be checked now
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
@@ -338,17 +353,15 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    expect(
-      screen.getByRole('button', {
-        name: `${teams[0].slug} Max ${MAX_TEAM_KEY_TRANSACTIONS}`,
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
-    expect(
-      screen.getByRole('button', {
-        name: `${teams[1].slug} Max ${MAX_TEAM_KEY_TRANSACTIONS}`,
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('renders keyed as checked even if count is maxed', async function () {
@@ -378,7 +391,14 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    expect(screen.getByRole('checkbox', {name: teams[0].slug})).toBeChecked();
-    expect(screen.getByRole('checkbox', {name: teams[1].slug})).toBeChecked();
+    expect(screen.getByRole('option', {name: `#${teams[0].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+
+    expect(screen.getByRole('option', {name: `#${teams[1].slug}`})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 });

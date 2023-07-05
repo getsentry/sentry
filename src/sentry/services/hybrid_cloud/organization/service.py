@@ -244,9 +244,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def update_default_role(
-        self, *, organization_id: int, default_role: str
-    ) -> RpcOrganizationMember:
+    def update_default_role(self, *, organization_id: int, default_role: str) -> RpcOrganization:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

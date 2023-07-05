@@ -64,18 +64,19 @@ class BindOrgContextFromIntegrationTest(TestCase):
 
     @patch("sentry.integrations.utils.scope.bind_ambiguous_org_context")
     @patch("sentry.integrations.utils.scope.bind_organization_context")
-    @patch("sentry.integrations.utils.scope.logger.exception")
-    def test_logs_error_if_no_orgs_found(
+    @patch("sentry.integrations.utils.scope.logger.warning")
+    def test_logs_warning_if_no_orgs_found(
         self,
-        mock_logger_exception: MagicMock,
+        mock_logger_warning: MagicMock,
         mock_bind_org_context: MagicMock,
         mock_bind_ambiguous_org_context: MagicMock,
     ):
         integration = Integration.objects.create(name="squirrelChasers")
 
-        bind_org_context_from_integration(integration.id)
-        mock_logger_exception.assert_called_with(
-            f"Can't bind org context - no orgs are associated with integration id={integration.id}."
+        bind_org_context_from_integration(integration.id, {"webhook": "issue_updated"})
+        mock_logger_warning.assert_called_with(
+            f"Can't bind org context - no orgs are associated with integration id={integration.id}.",
+            extra={"webhook": "issue_updated"},
         )
         mock_bind_org_context.assert_not_called()
         mock_bind_ambiguous_org_context.assert_not_called()

@@ -1,12 +1,9 @@
-from typing import Dict, List
-
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.negotiation import BaseContentNegotiation
 from rest_framework.request import Request
-from typing_extensions import TypedDict
 
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import Organization
@@ -29,25 +26,6 @@ class SCIMApiError(APIException):
 
 class SCIMFilterError(ValueError):
     pass
-
-
-def scim_response_envelope(name, envelope):
-    from sentry.apidocs.utils import inline_sentry_response_serializer
-
-    class SCIMListResponseEnvelope(SCIMListResponseDict):
-        Resources: List[envelope]
-
-    return inline_sentry_response_serializer(
-        f"SCIMListResponseEnvelope{name}", SCIMListResponseEnvelope
-    )
-
-
-class SCIMListResponseDict(TypedDict):
-    schemas: List[str]
-    totalResults: int
-    startIndex: int
-    itemsPerPage: int
-    Resources: List[Dict]
 
 
 class SCIMClientNegotiation(BaseContentNegotiation):

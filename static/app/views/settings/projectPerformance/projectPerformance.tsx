@@ -23,7 +23,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
-import {tenSecondInMs} from 'sentry/views/discover/table/quickContext/utils';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -42,17 +41,6 @@ export const allowedDurationValues: number[] = [
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
 
-type ConfigExtremeType = {
-  default: number | boolean;
-  max: number | boolean;
-  min: number | boolean;
-};
-
-const configExtremes: {[key in DetectorConfigCustomer]?: ConfigExtremeType} = {
-  slow_db_query_duration_threshold: {min: 100, default: 1000, max: tenSecondInMs},
-  n_plus_one_db_duration_threshold: {min: 50, default: 100, max: tenSecondInMs},
-};
-
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
   SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
@@ -62,13 +50,6 @@ enum DetectorConfigCustomer {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
   N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
 }
-
-const mapThresholdToDetectionEnabled: {
-  [key in DetectorConfigCustomer]: DetectorConfigAdmin;
-} = {
-  slow_db_query_duration_threshold: DetectorConfigAdmin.SLOW_DB_ENABLED,
-  n_plus_one_db_duration_threshold: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
-};
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -160,26 +141,21 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   handleThresholdsReset = () => {
     const {projectId} = this.props.params;
-    const {organization} = this.props;
+    const {organization, project} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    const data = {};
-    Object.values(DetectorConfigCustomer).forEach(threshold => {
-      if (
-        this.state.performance_issue_settings[mapThresholdToDetectionEnabled[threshold]]
-      ) {
-        data[threshold] = configExtremes[threshold]?.default;
-      }
+    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+      organization,
+      project_slug: project.slug,
     });
 
     this.api.request(
       `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
       {
-        method: 'PUT',
-        data,
+        method: 'DELETE',
         complete: () => this.fetchData(),
       }
     );
@@ -561,6 +537,19 @@ class ProjectPerformance extends AsyncView<Props, State> {
               apiMethod="PUT"
               apiEndpoint={performanceIssuesEndpoint}
               saveOnBlur
+              onSubmitSuccess={(option: {[key: string]: number}) => {
+                const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+                trackAnalytics(
+                  'performance_views.project_issue_detection_threshold_changed',
+                  {
+                    organization,
+                    project_slug: project.slug,
+                    threshold_key,
+                    threshold_value,
+                  }
+                );
+              }}
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (

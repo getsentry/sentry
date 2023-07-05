@@ -196,10 +196,19 @@ class SpansIndexedDatasetConfig(DatasetConfig):
             [
                 Function("greaterOrEquals", [args["column"], args["min"]]),
                 Function(
-                    "endsWith",
+                    "greater",
                     [
-                        Function("toString", [Column("span_id")]),
-                        Function("substring", [Function("toString", [Function("rand", [])]), 1, 2]),
+                        Function(
+                            "position",
+                            [
+                                Function("toString", [Column("span_id")]),
+                                Function(
+                                    "substring",
+                                    [Function("toString", [Function("rand", [])]), 1, 2],
+                                ),
+                            ],
+                        ),
+                        0,
                     ],
                 ),
             ],

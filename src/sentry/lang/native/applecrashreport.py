@@ -1,6 +1,6 @@
 import posixpath
 
-from symbolic import parse_addr
+from symbolic.common import parse_addr
 
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism

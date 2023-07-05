@@ -190,7 +190,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         Query for an organization member by its id and organization
         """
 
-        member: RpcOrganizationMember | None = None
+        member: OrganizationMember | None = None
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
@@ -284,12 +284,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates = models.F("flags")
+        updates: models.F | models.CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
-                updates = updates.bitor(Organization.flags[name])
+                updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
-                updates = updates.bitand(~Organization.flags[name])
+                updates = updates.bitand(~getattr(Organization.flags, name))
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
@@ -553,7 +553,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         organization_id: int,
         signal: RpcOrganizationSignal,
-        args: Mapping[str, Optional[str, int]],
+        args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 

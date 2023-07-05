@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -13,12 +14,13 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Scope} from 'sentry/types';
+import {Integration, Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
@@ -35,18 +37,28 @@ type Props = {
 
 type State = AsyncComponent['state'] & {
   authProvider: object;
+  githubIntegrations: Integration[];
 };
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    return [['authProvider', `/organizations/${organization.slug}/auth-provider/`]];
+    return [
+      ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
+      [
+        'githubIntegrations',
+        `/organizations/${organization.slug}/integrations/?provider_key=github`,
+      ],
+    ];
   }
 
   render() {
     const {initialData, organization, onSave, access} = this.props;
-    const {authProvider} = this.state;
+    const {authProvider, githubIntegrations} = this.state;
     const endpoint = `/organizations/${organization.slug}/`;
+    const hasGithubIntegration = githubIntegrations
+      ? githubIntegrations.length > 0
+      : false;
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
@@ -98,6 +110,28 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
             {t('powered by')} <IconCodecov /> Codecov{' '}
             <HookCodecovSettingsLink organization={organization} />
           </PoweredByCodecov>
+        ),
+      },
+      {
+        name: 'githubPRBot',
+        type: 'boolean',
+        label: t('Enable Pull Request Bot'),
+        visible: ({features}) => features.has('pr-comment-bot'),
+        help: (
+          <Fragment>
+            {t(
+              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
+            )}{' '}
+            <Link to={`/settings/${organization.slug}/integrations/github`}>
+              {t('Configure GitHub integration')}
+            </Link>
+          </Fragment>
+        ),
+        disabled: !hasGithubIntegration,
+        disabledReason: (
+          <Fragment>
+            {t('You must have a GitHub integration to enable this feature.')}
+          </Fragment>
         ),
       },
     ];

@@ -128,6 +128,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.AI_SUGGESTED_SOLUTION,
     ),
+    (
+        "githubPRBot",
+        "sentry:github_pr_bot",
+        bool,
+        org_serializers.GITHUB_PR_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -171,6 +177,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)

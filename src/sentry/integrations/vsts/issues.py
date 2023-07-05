@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 

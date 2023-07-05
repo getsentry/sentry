@@ -66,6 +66,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
     function = serializers.CharField(max_length=10)
     trend = TrendTypeField()
     query = serializers.CharField(required=False)
+    threshold = serializers.IntegerField(min_value=0, max_value=1000, required=False)
 
 
 @region_silo_endpoint
@@ -103,6 +104,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
+                    "examples()",
                 ],
                 query=query,
                 params=params,
@@ -171,11 +173,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
         trending_functions = get_trends_data(stats_data)
 
         # Profiling functions have a resolution of ~10ms. To increase the confidence
-        # of the results, ensure there's an minimum difference of 20ms. Otherwise,
-        # the result can easily be contributed to just noise.
-        trending_functions = [
-            data for data in trending_functions if abs(data["trend_difference"]) >= 20 * 1e6
-        ]
+        # of the results, the caller can specify a min threshold for the trend difference.
+        threshold = data.get("threshold")
+        if threshold is not None:
+            trending_functions = [
+                data
+                for data in trending_functions
+                if abs(data["trend_difference"]) >= threshold * 1e6
+            ]
 
         # Make sure to sort the results so that it's in order of largest change
         # to smallest change (ASC/DESC depends on the trend type)
@@ -218,7 +223,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()"]
+                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
                     }
                 )
                 formatted_results.append(formatted_result)

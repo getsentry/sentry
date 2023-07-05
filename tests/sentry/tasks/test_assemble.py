@@ -324,6 +324,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
         assert artifact_bundles[0].date_added == expected_updated_date
+        # We want to also check whether we tracked the modification date of this bundle.
+        assert artifact_bundles[0].date_last_modified == expected_updated_date
 
         files = File.objects.filter()
         assert len(files) == 1

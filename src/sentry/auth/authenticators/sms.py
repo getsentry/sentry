@@ -1,7 +1,7 @@
 import logging
 from hashlib import md5
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import ratelimits as ratelimiter
 from sentry.utils.decorators import classproperty
