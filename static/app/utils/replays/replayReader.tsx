@@ -4,6 +4,7 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
@@ -100,6 +101,8 @@ export default class ReplayReader {
     errors,
     replayRecord,
   }: RequiredNotNull<ReplayReaderParams>) {
+    this._cacheKey = domId('replayReader-');
+
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
       hydrateFrames(attachments);
 
@@ -190,6 +193,7 @@ export default class ReplayReader {
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
+  private _cacheKey: string;
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[];
@@ -201,6 +205,8 @@ export default class ReplayReader {
   private replayRecord: ReplayRecord;
   private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
+
+  toJSON = () => this._cacheKey;
 
   /**
    * @returns Duration of Replay (milliseonds)
