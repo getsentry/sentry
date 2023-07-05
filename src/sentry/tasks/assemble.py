@@ -368,6 +368,23 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
+def _get_bundles_that_need_indexing(associated_bundles: List[ArtifactBundle]):
+    # We get all the bundles that are not indexed. This implementation is not safe for concurrency, since the values
+    # might change afterward, however, we do use a Redis cache to prevent duplicate work. That cache is also not 100%
+    # concurrency safe, but it will help for most cases.
+    bundles_to_index = []
+    for associated_bundle in associated_bundles:
+        requires_indexing = ArtifactBundle.objects.filter(
+            id=associated_bundle.id,
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+        ).exists()
+
+        if requires_indexing:
+            bundles_to_index.append(associated_bundle)
+
+    return bundles_to_index
+
+
 def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
     # We collect how many times we tried to perform indexing.
     metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
@@ -409,12 +426,24 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
         # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
         # async if we see a performance degradation of assembling.
         try:
-            index_artifact_bundles_for_release(
-                organization_id=org_id,
-                artifact_bundles=associated_bundles,
-                release=release,
-                dist=dist,
-            )
+            # We only want to get the bundles that are not indexed. Keep in mind that this query is concurrency unsafe
+            # since in the meanwhile the bundles might be modified and the modification will not be reflected in the
+            # objects that we are iterating here.
+            #
+            # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing function
+            # no consistency issues should arise.
+            bundles_to_index = [
+                associated_bundle
+                for associated_bundle in associated_bundles
+                if associated_bundle.indexing_state == ArtifactBundleIndexingState.NOT_INDEXED.value
+            ]
+            if len(bundles_to_index) > 0:
+                index_artifact_bundles_for_release(
+                    organization_id=org_id,
+                    artifact_bundles=bundles_to_index,
+                    release=release,
+                    dist=dist,
+                )
         except Exception as e:
             # We want to capture any exception happening during indexing, since it's crucial to understand if
             # the system is behaving well because the database can easily end up in an inconsistent state.
