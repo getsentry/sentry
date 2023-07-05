@@ -113,10 +113,7 @@ export function SpanGroupBreakdown({
             />
           )}
         </Header>
-        <VisuallyCompleteWithData
-          id={`WSV.${isEndpointBreakdownView ? 'EndpointBreakdown' : 'ServiceBreakdown'}`}
-          hasData={data.length > 0}
-        >
+        <VisuallyCompleteWithData id="WSV.SpanGroupBreakdown" hasData={data.length > 0}>
           <Chart
             statsPeriod="24h"
             height={340}
