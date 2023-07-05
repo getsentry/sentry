@@ -1650,7 +1650,7 @@ SENTRY_FEATURES = {
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
     # slack lookup
-    "organizations:slack-use-new-lookup": True,
+    "organizations:slack-use-new-lookup": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
