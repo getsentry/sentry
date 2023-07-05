@@ -2076,6 +2076,7 @@ describe('EventView.withResizedColumn()', function () {
 
 describe('EventView.withUpdatedColumn()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2318,6 +2319,7 @@ describe('EventView.withUpdatedColumn()', function () {
 
 describe('EventView.withDeletedColumn()', function () {
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -2958,6 +2960,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
@@ -3129,7 +3132,9 @@ describe('EventView.getPageFilters()', function () {
 
 describe('EventView.getPageFiltersQuery()', function () {
   it('return default global selection query', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.getPageFiltersQuery()).toMatchObject({
       project: [],
@@ -3146,6 +3151,7 @@ describe('EventView.getPageFiltersQuery()', function () {
 
   it('returns global selection query', function () {
     const state2 = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       project: [42],
       start: 'start',
       end: 'end',
@@ -3155,14 +3161,12 @@ describe('EventView.getPageFiltersQuery()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getPageFiltersQuery()).toMatchObject({
-      ...state2,
-
-      // when generating the query, it converts numbers to strings
+    expect(eventView.getPageFiltersQuery()).toEqual({
+      end: 'end',
+      start: 'start',
+      statsPeriod: '42d',
+      environment: ['prod'],
       project: ['42'],
-
-      // event views currently do not support the utc option,
-      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });
