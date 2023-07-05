@@ -5,6 +5,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 
 from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.utils.auth import is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 
 
@@ -18,7 +19,7 @@ class AuthOrganizationIdentifierLoginView(AuthOrganizationLoginView):
 
         if request.user.is_authenticated:
             next_uri = self.get_next_uri(request)
-            if next_uri:
+            if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
                 return self.redirect(next_uri)
             else:
                 return self.redirect(reverse("issues"))
