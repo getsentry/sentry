@@ -33,7 +33,7 @@ class NoteTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -49,7 +49,7 @@ class NoteTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="0")
 
@@ -61,7 +61,7 @@ class NoteTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         email = NoteActivityNotification(

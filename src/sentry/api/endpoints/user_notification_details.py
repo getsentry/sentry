@@ -99,7 +99,7 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
                     ExternalProviders.EMAIL,
                     type,
                     get_option_value_from_int(type, int(value)),
-                    user=user,
+                    user_id=user.id,
                 )
             else:
                 user_option, _ = UserOption.objects.get_or_create(

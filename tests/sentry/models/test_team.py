@@ -185,27 +185,28 @@ class TeamDeletionTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=team,
+            team_id=team.id,
         )
 
         assert Team.objects.filter(id=team.id).exists()
         assert NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            team=team,
+            team_id=team.id,
         ).exists()
 
+        team_id = team.id
         with outbox_runner():
             team.delete()
 
-        assert not Team.objects.filter(id=team.id).exists()
+        assert not Team.objects.filter(id=team_id).exists()
 
         with self.tasks():
             schedule_hybrid_cloud_foreign_key_jobs()
 
-        assert not Team.objects.filter(id=team.id).exists()
+        assert not Team.objects.filter(id=team_id).exists()
         assert not NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            team=team,
+            team_id=team_id,
         ).exists()

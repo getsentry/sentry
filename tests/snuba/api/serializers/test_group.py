@@ -20,7 +20,6 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -282,13 +281,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.EMAIL,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -296,13 +295,13 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     default_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
                 NotificationSetting.objects.update_settings(
                     ExternalProviders.SLACK,
                     NotificationSettingTypes.WORKFLOW,
                     project_value,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 
@@ -330,7 +329,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                 )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -351,7 +350,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
                     provider,
                     NotificationSettingTypes.WORKFLOW,
                     NotificationSettingOptionValues.NEVER,
-                    actor=RpcActor.from_orm_user(user),
+                    user_id=user.id,
                     project=group.project.id,
                 )
 

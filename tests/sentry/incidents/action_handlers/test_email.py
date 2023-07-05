@@ -97,7 +97,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         action = self.create_alert_rule_trigger_action(
@@ -149,7 +149,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         disabled_user = self.create_user()
@@ -157,7 +157,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=disabled_user,
+            user_id=disabled_user.id,
         )
 
         new_user = self.create_user()

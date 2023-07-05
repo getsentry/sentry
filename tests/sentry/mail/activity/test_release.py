@@ -56,7 +56,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user3,
+            user_id=self.user3.id,
             organization=self.org,
         )
 
@@ -64,7 +64,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user4,
+            user_id=self.user4.id,
             organization=self.org,
         )
 
@@ -73,7 +73,7 @@ class ReleaseTestCase(ActivityTestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user4,
+            user_id=self.user4.id,
         )
 
     def test_simple(self):
@@ -190,7 +190,7 @@ class ReleaseTestCase(ActivityTestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.DEPLOY,
                 NotificationSettingOptionValues.ALWAYS,
-                user=user6,
+                user_id=user6.id,
             )
             release, deploy = self.another_release("b")
 

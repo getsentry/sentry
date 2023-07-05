@@ -5,7 +5,6 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
@@ -33,7 +32,7 @@ def create_setting(**kwargs):
 @control_silo_test
 class NotificationSettingTest(TestCase):
     def test_remove_for_user(self):
-        create_setting(actor=RpcActor.from_orm_user(self.user))
+        create_setting(user_id=self.user.id)
 
         # Refresh user for actor
         self.user = User.objects.get(id=self.user.id)
@@ -45,7 +44,7 @@ class NotificationSettingTest(TestCase):
         assert_no_notification_settings()
 
     def test_remove_for_team(self):
-        create_setting(actor=RpcActor.from_orm_team(self.team), project=self.project)
+        create_setting(team_id=self.team.id, project=self.project)
 
         # Deletion is deferred and tasks aren't run in tests.
         with outbox_runner():
@@ -57,12 +56,12 @@ class NotificationSettingTest(TestCase):
         assert_no_notification_settings()
 
     def test_remove_for_project(self):
-        create_setting(actor=RpcActor.from_orm_user(self.user), project=self.project)
+        create_setting(user_id=self.user.id, project=self.project)
         self.project.delete()
         assert_no_notification_settings()
 
     def test_remove_for_organization(self):
-        create_setting(actor=RpcActor.from_orm_user(self.user), organization=self.organization)
+        create_setting(user_id=self.user.id, organization=self.organization)
         self.organization.delete()
         assert_no_notification_settings()
 
@@ -71,12 +70,12 @@ class NotificationSettingTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         ns = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            user_id=self.user.id,
         )[0]
         assert ns.user_id == self.user.id
         assert ns.team_id is None
@@ -86,12 +85,12 @@ class NotificationSettingTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
         ns = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            team=self.team,
+            team_id=self.team.id,
         )[0]
         assert ns.team_id == self.team.id
         assert ns.user_id is None
@@ -120,12 +119,12 @@ class NotificationSettingTest(TestCase):
         ns1 = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            user=self.user,
+            user_id=self.user.id,
         )[0]
         ns2 = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.QUOTA,
-            user=self.user,
+            user_id=self.user.id,
         )[0]
 
         assert ns1.user_id == self.user.id
@@ -157,12 +156,12 @@ class NotificationSettingTest(TestCase):
         ns1 = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
-            team=self.team,
+            team_id=self.team.id,
         )[0]
         ns2 = NotificationSetting.objects.find_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.QUOTA,
-            team=self.team,
+            team_id=self.team.id,
         )[0]
 
         assert ns1.team_id == self.team.id
