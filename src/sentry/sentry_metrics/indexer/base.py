@@ -399,6 +399,13 @@ class UseCaseKeyResults:
         return self.results[use_case_id]
 
 
+def to_use_case_id(use_case: Union[UseCaseID, UseCaseKey]) -> UseCaseID:
+    if isinstance(use_case, UseCaseKey):
+        use_case = REVERSE_METRIC_PATH_MAPPING[use_case]
+        metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
+    return use_case
+
+
 def metric_path_key_compatible_resolve(
     resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
 ) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
@@ -406,9 +413,7 @@ def metric_path_key_compatible_resolve(
     def wrapper(
         self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
     ) -> Optional[int]:
-        if isinstance(use_case_id, UseCaseKey):
-            use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
-            metrics.incr("sentry_metrics.indexer.unsafe_resolve")
+        use_case_id = to_use_case_id(use_case_id)
         return resolve_func(self, use_case_id, org_id, string)
 
     return wrapper
@@ -421,9 +426,7 @@ def metric_path_key_compatible_rev_resolve(
     def wrapper(
         self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
     ) -> Optional[str]:
-        if isinstance(use_case_id, UseCaseKey):
-            use_case_id = REVERSE_METRIC_PATH_MAPPING[use_case_id]
-            metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
+        use_case_id = to_use_case_id(use_case_id)
         return rev_resolve_func(self, use_case_id, org_id, id)
 
     return wrapper
