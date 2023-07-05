@@ -5,6 +5,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
+import onboardingFrameworkSelectionDotnet from 'sentry-images/spot/onboarding-framework-selection-dotnet.svg';
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/onboarding-framework-selection-javascript.svg';
 import onboardingFrameworkSelectionNode from 'sentry-images/spot/onboarding-framework-selection-node.svg';
 import onboardingFrameworkSelectionPython from 'sentry-images/spot/onboarding-framework-selection-python.svg';
@@ -28,6 +29,7 @@ export enum SupportedLanguages {
   JAVASCRIPT = 'javascript',
   PYTHON = 'python',
   NODE = 'node',
+  DOTNET = 'dotnet',
 }
 
 export const topJavascriptFrameworks = [
@@ -56,24 +58,42 @@ const topNodeFrameworks = [
   'node-koa',
 ];
 
+const topDotNetFrameworks = [
+  'dotnet-aspnetcore',
+  'dotnet-aspnet',
+  'dotnet-maui',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'dotnet-uwp',
+  'dotnet-gcpfunctions',
+  'dotnet-awslambda',
+];
+
 export const languageDetails = {
   [SupportedLanguages.JAVASCRIPT]: {
     description: t(
-      'Our JavaScript framework SDK’s include all the features of our Browser Javascript SDK with additional features specific to that framework'
+      'Our JavaScript framework SDKs include all the features of our Browser Javascript SDK with additional features specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionJavascript,
   },
   [SupportedLanguages.NODE]: {
     description: t(
-      'Our Node framework SDK’s include all the features of our Node SDK with instructions specific to that framework'
+      'Our Node framework SDKs include all the features of our Node SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionNode,
   },
   [SupportedLanguages.PYTHON]: {
     description: t(
-      'Our Python framework SDK’s include all the features of our Python SDK with instructions specific to that framework'
+      'Our Python framework SDKs include all the features of our Python SDK with instructions specific to that framework'
     ),
     topFrameworksImage: onboardingFrameworkSelectionPython,
+  },
+  [SupportedLanguages.DOTNET]: {
+    description: t(
+      'Our Dotnet framework SDKs include all the features of our Dotnet SDK with instructions specific to that framework'
+    ),
+    topFrameworksImage: onboardingFrameworkSelectionDotnet,
   },
 };
 
@@ -112,6 +132,9 @@ export function FrameworkSuggestionModal({
     if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.includes(framework.id);
     }
+    if (selectedPlatform.key === SupportedLanguages.DOTNET) {
+      return topDotNetFrameworks.includes(framework.id);
+    }
     return topJavascriptFrameworks.includes(framework.id);
   });
 
@@ -122,6 +145,9 @@ export function FrameworkSuggestionModal({
     }
     if (selectedPlatform.key === SupportedLanguages.PYTHON) {
       return topPythonFrameworks.indexOf(framework.id);
+    }
+    if (selectedPlatform.key === SupportedLanguages.DOTNET) {
+      return topDotNetFrameworks.indexOf(framework.id);
     }
     return topJavascriptFrameworks.indexOf(framework.id);
   });
