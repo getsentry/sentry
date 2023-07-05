@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import secrets
 from datetime import timedelta
-from uuid import uuid4
 
 from django.db import models, router, transaction
 from django.utils import timezone
@@ -24,7 +24,7 @@ def default_expiration():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    return secrets.token_hex(nbytes=64)  # generates a 256-bit secure token
 
 
 @control_silo_only_model

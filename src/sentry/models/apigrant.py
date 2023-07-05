@@ -1,6 +1,6 @@
+import secrets
 from datetime import timedelta
 from typing import TypedDict
-from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
@@ -16,7 +16,7 @@ def default_expiration():
 
 
 def generate_code():
-    return uuid4().hex
+    return secrets.token_hex(nbytes=64)  # generates a 256-bit secure token
 
 
 @control_silo_only_model

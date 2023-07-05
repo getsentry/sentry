@@ -1,9 +1,9 @@
 import abc
 import logging
+import secrets
 from time import time
 from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
 from django.http import HttpResponse
 from rest_framework.request import Request
@@ -50,7 +50,7 @@ class OAuth2Login(AuthView):
         if "code" in request.GET:
             return helper.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_urlsafe()
 
         params = self.get_authorize_params(state=state, redirect_uri=helper.get_redirect_url())
         authorization_url = f"{self.get_authorize_url()}?{urlencode(params)}"

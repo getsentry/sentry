@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import datetime
+import secrets
 from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
 from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set, TypedDict
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -352,7 +352,7 @@ class OrganizationMember(Model):
         return checksum.hexdigest()
 
     def generate_token(self):
-        return uuid4().hex + uuid4().hex
+        return secrets.token_hex(nbytes=64)
 
     def get_invite_link(self):
         if not self.is_pending or not self.invite_approved:

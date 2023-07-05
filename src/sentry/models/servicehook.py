@@ -1,4 +1,5 @@
 import hmac
+import secrets
 from functools import cached_property
 from hashlib import sha256
 from uuid import uuid4
@@ -42,7 +43,9 @@ class ServiceHookProject(Model):
 
 
 def generate_secret():
-    return uuid4().hex + uuid4().hex
+    # the `secret` field on `ServiceHook` does not have a max_length so we can use the default length
+    # at 64 bytes (512-bits). This is sufficiently secure and will update over time to sane defaults.
+    return secrets.token_hex()
 
 
 @region_silo_only_model

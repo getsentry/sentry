@@ -1,9 +1,9 @@
 __all__ = ["OAuth2Provider", "OAuth2CallbackView", "OAuth2LoginView"]
 
 import logging
+import secrets
 from time import time
 from urllib.parse import parse_qsl, urlencode
-from uuid import uuid4
 
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -239,7 +239,7 @@ class OAuth2LoginView(PipelineView):
             if param in request.GET:
                 return pipeline.next_step()
 
-        state = uuid4().hex
+        state = secrets.token_urlsafe()
 
         params = self.get_authorize_params(
             state=state, redirect_uri=absolute_uri(pipeline.redirect_url())

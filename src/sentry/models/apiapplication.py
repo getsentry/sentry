@@ -1,6 +1,6 @@
+import secrets
 from typing import List
 from urllib.parse import urlparse
-from uuid import uuid4
 
 import petname
 from django.db import models, router, transaction
@@ -24,7 +24,9 @@ def generate_name():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    # `client_id` on `ApiApplication` is currently limited to 64 characters
+    # so we need to restrict the length of the secret
+    return secrets.token_hex(nbytes=64)  # generates a 256-bit secure token
 
 
 class ApiApplicationStatus:

@@ -1,5 +1,5 @@
+import secrets
 from typing import TypedDict
-from uuid import uuid4
 
 from django.db import models
 from django.utils import timezone
@@ -75,7 +75,7 @@ class ApiKey(Model):
 
     @classmethod
     def generate_api_key(cls):
-        return uuid4().hex
+        return secrets.token_hex(nbytes=32)  # generates a 128-bit secure token
 
     @property
     def is_active(self):
