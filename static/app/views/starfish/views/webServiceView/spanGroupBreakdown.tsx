@@ -114,45 +114,49 @@ export function SpanGroupBreakdown({
           )}
         </Header>
         <VisuallyCompleteWithData
-        id={`WSV.${isEndpointBreakdownView ? 'EndpointBreakdown' : 'ServiceBreakdown'}`}
-        hasData={data.length > 0}
+          id={`WSV.${isEndpointBreakdownView ? 'EndpointBreakdown' : 'ServiceBreakdown'}`}
+          hasData={data.length > 0}
         >
-        <Chart
-          statsPeriod="24h"
-          height={340}
-          showLegend
-          data={dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data}
-          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
-          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
-          start=""
-          end=""
-          errored={errored}
-          loading={isTimeseriesLoading}
-          utc={false}
-          onClick={handleModuleAreaClick}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '20px',
-            bottom: '0',
-          }}
-          definedAxisTicks={6}
-          stacked
-          aggregateOutputFormat={
-            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
-          }
-          tooltipFormatterOptions={{
-            valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
-          }}
-          onLegendSelectChanged={event => {
-            trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
-              organization,
-              selected: Object.keys(event.selected).filter(key => event.selected[key]),
-              toggled: event.name,
-            });
-          }}
-        />
+          <Chart
+            statsPeriod="24h"
+            height={340}
+            showLegend
+            data={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data
+            }
+            dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+            durationUnit={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
+            }
+            start=""
+            end=""
+            errored={errored}
+            loading={isTimeseriesLoading}
+            utc={false}
+            onClick={handleModuleAreaClick}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '20px',
+              bottom: '0',
+            }}
+            definedAxisTicks={6}
+            stacked
+            aggregateOutputFormat={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+            }
+            tooltipFormatterOptions={{
+              valueFormatter: value =>
+                tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+            }}
+            onLegendSelectChanged={event => {
+              trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
+                organization,
+                selected: Object.keys(event.selected).filter(key => event.selected[key]),
+                toggled: event.name,
+              });
+            }}
+          />
         </VisuallyCompleteWithData>
       </ChartPadding>
     </FlexRowContainer>
