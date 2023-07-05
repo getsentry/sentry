@@ -91,7 +91,8 @@ const Span = styled('li')<{isDark: boolean; startPct: number; widthPct: number}>
   min-width: 1px;
   width: ${p => p.widthPct * 100}%;
   height: 100%;
-  background: ${p => (p.isDark ? p.theme.charts!.colors[5]! : p.theme.charts!.colors[0]!)};
+  background: ${p =>
+    p.isDark ? p.theme.charts!.colors[5]! : p.theme.charts!.colors[0]!};
   border-radius: 2px;
   pointer-events: auto;
 `;

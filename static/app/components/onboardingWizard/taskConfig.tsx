@@ -265,14 +265,18 @@ export function getOnboardingTasks({
 
         if (projectsForOnboarding.length) {
           navigateTo(
-            `/organizations/${organization.slug}/performance/?project=${projectsForOnboarding[0]!.id}#performance-sidequest`,
+            `/organizations/${organization.slug}/performance/?project=${
+              projectsForOnboarding[0]!.id
+            }#performance-sidequest`,
             router
           );
           return;
         }
 
         navigateTo(
-          `/organizations/${organization.slug}/performance/?project=${projectsWithoutFirstTransactionEvent[0]!.id}#performance-sidequest`,
+          `/organizations/${organization.slug}/performance/?project=${
+            projectsWithoutFirstTransactionEvent[0]!.id
+          }#performance-sidequest`,
           router
         );
       },

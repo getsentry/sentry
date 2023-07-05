@@ -73,23 +73,25 @@ export function getAppStoreErrorMessage(
       const fieldErrorMessage = fieldErrorMessageMapping[serverSideField] ?? {};
       const field = Object.keys(fieldErrorMessage)[0];
 
-      const errorMessages: string[] = errorResponse[serverSideField]!.map(errorMessage => {
-        if (fieldErrorMessage[field]![errorMessage]) {
-          return fieldErrorMessage[field]![errorMessage];
+      const errorMessages: string[] = errorResponse[serverSideField]!.map(
+        errorMessage => {
+          if (fieldErrorMessage[field]![errorMessage]) {
+            return fieldErrorMessage[field]![errorMessage];
+          }
+
+          // This will be difficult to happen,
+          // but if it happens we will be able to see which message is not being mapped on the fron-tend
+          Sentry.withScope(scope => {
+            scope.setExtra('serverSideField', serverSideField);
+            scope.setExtra('message', errorMessage);
+            Sentry.captureException(
+              new Error('App Store Connect - Untranslated error message')
+            );
+          });
+
+          return errorMessage;
         }
-
-        // This will be difficult to happen,
-        // but if it happens we will be able to see which message is not being mapped on the fron-tend
-        Sentry.withScope(scope => {
-          scope.setExtra('serverSideField', serverSideField);
-          scope.setExtra('message', errorMessage);
-          Sentry.captureException(
-            new Error('App Store Connect - Untranslated error message')
-          );
-        });
-
-        return errorMessage;
-      });
+      );
 
       // the UI only displays one error message at a time
       return {...acc, [field]: errorMessages[0]!};

@@ -391,7 +391,8 @@ function TagsHeatMap(
       </PositionWrapper>
     );
 
-  const histogramBucketInfo = histogramData && parseHistogramBucketInfo(histogramData[0]!);
+  const histogramBucketInfo =
+    histogramData && parseHistogramBucketInfo(histogramData[0]!);
 
   return (
     <StyledPanel>

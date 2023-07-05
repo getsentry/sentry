@@ -217,9 +217,10 @@ class ProjectSessionsChartRequest extends Component<
     const totalSessions = responseData.groups.reduce(
       (acc, group) =>
         acc +
-        group.series[field]!
-          .slice(fetchedWithPrevious ? dataMiddleIndex : 0)
-          .reduce((value, groupAcc) => groupAcc + value, 0),
+        group.series[field]!.slice(fetchedWithPrevious ? dataMiddleIndex : 0).reduce(
+          (value, groupAcc) => groupAcc + value,
+          0
+        ),
       0
     );
 
@@ -227,9 +228,10 @@ class ProjectSessionsChartRequest extends Component<
       ? responseData.groups.reduce(
           (acc, group) =>
             acc +
-            group.series[field]!
-              .slice(0, dataMiddleIndex)
-              .reduce((value, groupAcc) => groupAcc + value, 0),
+            group.series[field]!.slice(0, dataMiddleIndex).reduce(
+              (value, groupAcc) => groupAcc + value,
+              0
+            ),
           0
         )
       : 0;

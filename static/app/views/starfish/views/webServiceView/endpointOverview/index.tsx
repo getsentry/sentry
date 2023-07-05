@@ -145,7 +145,9 @@ export default function EndpointOverview() {
                   defined(totals)
                     ? t(
                         '%sms',
-                        (totals.data[0]!['p95(transaction.duration)'] as number).toFixed(2)
+                        (totals.data[0]!['p95(transaction.duration)'] as number).toFixed(
+                          2
+                        )
                       )
                     : undefined
                 }

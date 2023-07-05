@@ -244,7 +244,9 @@ export function FooterWithViewSampleErrorButton({
 
     router.push({
       ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data.projects[projectId]!.firstIssueId}/?referrer=onboarding-first-event-footer`,
+      pathname: `/organizations/${organization.slug}/issues/${
+        onboardingContext.data.projects[projectId]!.firstIssueId
+      }/?referrer=onboarding-first-event-footer`,
     });
   }, [organization, newOrg, router, onboardingContext, projectId, selectedProject]);
 

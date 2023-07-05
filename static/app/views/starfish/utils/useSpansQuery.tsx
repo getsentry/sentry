@@ -197,7 +197,10 @@ function processDiscoverTimeseriesResult(result, eventView: EventView) {
     if (result[key].data) {
       intervals = mergeIntervals(
         intervals,
-        processSingleDiscoverTimeseriesResult(result[key]!, singleYAxis ? firstYAxis : key)
+        processSingleDiscoverTimeseriesResult(
+          result[key]!,
+          singleYAxis ? firstYAxis : key
+        )
       );
     } else {
       Object.keys(result[key]).forEach(innerKey => {
