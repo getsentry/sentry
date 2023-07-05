@@ -996,7 +996,6 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.csrf_failure",
     "sentry.web.frontend.debug.debug_assigned_email",
     "sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email",
     "sentry.web.frontend.debug.debug_incident_activity_email",
