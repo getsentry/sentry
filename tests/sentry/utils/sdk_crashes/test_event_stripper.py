@@ -65,6 +65,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
                 "family": "iOS",
                 "model": "iPhone14,8",
                 "arch": "arm64e",
+                "simulator": True,
             },
         }
 

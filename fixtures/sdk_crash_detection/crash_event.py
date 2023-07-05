@@ -178,6 +178,7 @@ def get_crash_event_with_frames(
                 "boot_time": "2023-02-01T05:21:23Z",
                 "timezone": "PST",
                 "type": "device",
+                "simulator": True,
             },
             "os": {
                 "name": "iOS",

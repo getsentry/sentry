@@ -648,7 +648,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 get_option_value_from_boolean(result.get("isSubscribed")),
-                user=request.user,
+                user_id=request.user.id,
                 project=project,
             )
 

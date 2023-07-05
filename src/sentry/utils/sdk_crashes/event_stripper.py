@@ -82,6 +82,7 @@ EVENT_DATA_ALLOWLIST = {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
+            "simulator": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
@@ -153,24 +154,12 @@ def _strip_frames(
     We need to adapt this logic once we support other platforms.
     """
 
-    fields_containing_paths = {"package", "module", "abs_path"}
-
-    def is_system_library(frame: Mapping[str, Any]) -> bool:
-        system_library_paths = {"/System/Library/", "/usr/lib/system/"}
-
-        for field in fields_containing_paths:
-            for path in system_library_paths:
-                if frame.get(field, "").startswith(path):
-                    return True
-
-        return False
-
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
 
             # The path field usually contains the name of the application, which we can't keep.
-            for field in fields_containing_paths:
+            for field in sdk_crash_detector.fields_containing_paths:
                 if frame.get(field):
                     frame[field] = "Sentry.framework"
         else:
@@ -181,5 +170,6 @@ def _strip_frames(
     return [
         strip_frame(frame)
         for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
+        if sdk_crash_detector.is_sdk_frame(frame)
+        or sdk_crash_detector.is_system_library_frame(frame)
     ]
