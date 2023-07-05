@@ -217,6 +217,10 @@ function hasTrace(event: Event) {
   return !!event.contexts?.trace;
 }
 
+function hasProfile(event: Event) {
+  return defined(event.contexts?.profile);
+}
+
 /**
  * Function to determine if an event has source maps
  * by ensuring that every inApp frame has a valid sourcemap
@@ -437,6 +441,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_release: !!event?.release,
     has_exception_group: event ? eventHasExceptionGroup(event) : false,
     has_graphql_request: event ? eventHasGraphQlRequest(event) : false,
+    has_profile: event ? hasProfile(event) : false,
     has_source_context: event ? eventHasSourceContext(event) : false,
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
