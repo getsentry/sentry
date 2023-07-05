@@ -1,5 +1,6 @@
 import pytest
-from django.db import connection
+from django.db import router
+from django.db.transaction import get_connection
 
 from sentry import deletions
 from sentry.models import (
@@ -84,7 +85,7 @@ class TestSentryAppIntallationDeletionTask(TestCase):
 
         # The QuerySet will automatically NOT include deleted installs, so we
         # use a raw sql query to ensure it still exists.
-        c = connection.cursor()
+        c = get_connection(router.db_for_write(SentryAppInstallation)).cursor()
         c.execute(
             "SELECT COUNT(1) "
             "FROM sentry_sentryappinstallation "

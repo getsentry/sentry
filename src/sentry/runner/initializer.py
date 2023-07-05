@@ -9,6 +9,7 @@ from typing import Any, TypeVar
 import click
 from django.conf import settings
 
+from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -373,6 +374,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     validate_regions(settings)
 
     monkeypatch_django_migrations()
+
+    patch_silo_aware_atomic()
 
     apply_legacy_settings(settings)
 
