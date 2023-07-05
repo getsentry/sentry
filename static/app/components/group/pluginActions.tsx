@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import {closeModal, ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 import NavTabs from 'sentry/components/navTabs';
@@ -87,13 +87,15 @@ class PluginActions extends Component<Props, State> {
     );
   };
 
-  handleModalClose = (data?: any) =>
+  handleModalClose = (data?: any) => {
     this.setState({
       issue:
         data?.id && data?.link
           ? {issue_id: data.id, url: data.link, label: data.label}
           : null,
     });
+    closeModal();
+  };
 
   openModal = () => {
     const {issue} = this.state;
