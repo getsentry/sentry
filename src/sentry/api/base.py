@@ -121,7 +121,7 @@ def allow_cors_options(func):
         # to be sent.
         basehost = options.get("system.base-hostname")
         if basehost and origin:
-            if origin.endswith(basehost):
+            if origin.endswith(("://" + basehost, "." + basehost)):
                 response["Access-Control-Allow-Credentials"] = "true"
 
         return response
