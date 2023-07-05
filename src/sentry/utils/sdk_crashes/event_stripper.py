@@ -82,6 +82,7 @@ EVENT_DATA_ALLOWLIST = {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
+            "simulator": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
