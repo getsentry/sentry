@@ -5,6 +5,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconInfo} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbFrame, SpanFrame} from 'sentry/utils/replays/types';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 interface SortCrumbs {
@@ -18,11 +19,22 @@ interface SortSpans {
   getValue: (row: NetworkSpan) => any;
 }
 
+interface SortBreadcrumbFrame {
+  asc: boolean;
+  by: keyof BreadcrumbFrame | string;
+  getValue: (row: BreadcrumbFrame) => any;
+}
+interface SortSpanFrame {
+  asc: boolean;
+  by: keyof SpanFrame | string;
+  getValue: (row: SpanFrame) => any;
+}
+
 type Props = {
   field: string;
   handleSort: (fieldName: string) => void;
   label: string;
-  sortConfig: SortCrumbs | SortSpans;
+  sortConfig: SortCrumbs | SortSpans | SortBreadcrumbFrame | SortSpanFrame;
   style: CSSProperties;
   tooltipTitle: undefined | ReactNode;
 };

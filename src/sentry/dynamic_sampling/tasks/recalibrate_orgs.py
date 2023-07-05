@@ -30,6 +30,7 @@ from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
     set_guarded_adjusted_factor,
 )
 from sentry.dynamic_sampling.tasks.logging import (
+    log_action_if,
     log_recalibrate_org_error,
     log_recalibrate_org_state,
     log_sample_rate_source,
@@ -68,6 +69,10 @@ class OrganizationDataVolume:
         return self.total > 0 and self.indexed > 0
 
 
+def orgs_to_check(org_volume: OrganizationDataVolume):
+    return lambda: org_volume.org_id in [1, 1407395]
+
+
 @instrumented_task(
     name="sentry.dynamic_sampling.tasks.recalibrate_orgs",
     queue="dynamicsampling",
@@ -79,11 +84,19 @@ class OrganizationDataVolume:
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
     for orgs in get_active_orgs(1000):
+        log_action_if("fetching_orgs", {"orgs": orgs}, lambda: True)
+
         for org_volume in fetch_org_volumes(orgs):
             try:
+                log_action_if(
+                    "starting_recalibration",
+                    {"org_id": org_volume.org_id},
+                    orgs_to_check(org_volume),
+                )
+
                 recalibrate_org(org_volume)
-            except RecalibrationError as e:
-                log_recalibrate_org_error(org_volume.org_id, e.message)
+            except Exception as e:
+                log_recalibrate_org_error(org_volume.org_id, str(e))
 
 
 def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
@@ -91,6 +104,10 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
     # recalibration.
     if not org_volume.is_valid_for_recalibration():
         raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
+
+    log_action_if(
+        "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+    )
 
     target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
     log_sample_rate_source(
@@ -100,6 +117,10 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
         raise RecalibrationError(
             org_id=org_volume.org_id, message="couldn't get target sample rate for recalibration"
         )
+
+    log_action_if(
+        "target_sample_rate_determined", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+    )
 
     # We compute the effective sample rate that we had in the last considered time window.
     effective_sample_rate = org_volume.indexed / org_volume.total
@@ -130,6 +151,8 @@ def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
 
     # At the end we set the adjusted factor.
     set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
+
+    log_action_if("set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume))
 
 
 def get_active_orgs(

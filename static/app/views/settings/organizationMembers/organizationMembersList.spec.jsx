@@ -11,7 +11,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -88,13 +87,13 @@ describe('OrganizationMembersList', function () {
   });
 
   beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',
       method: 'GET',
       body: {roles},
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [...TestStubs.Members(), member],
@@ -103,7 +102,7 @@ describe('OrganizationMembersList', function () {
       url: `/organizations/org-slug/members/${member.id}/`,
       body: member,
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/access-requests/',
       method: 'GET',
       body: [
@@ -124,7 +123,7 @@ describe('OrganizationMembersList', function () {
         },
       ],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/auth-provider/',
       method: 'GET',
       body: {
@@ -132,12 +131,12 @@ describe('OrganizationMembersList', function () {
         require_link: true,
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
       body: [TestStubs.Team(), ownerTeam],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
       method: 'GET',
       body: [],
@@ -192,7 +191,7 @@ describe('OrganizationMembersList', function () {
   });
 
   it('can leave org', async function () {
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
@@ -214,7 +213,7 @@ describe('OrganizationMembersList', function () {
   });
 
   it('can redirect to remaining org after leaving', async function () {
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
     });
@@ -246,7 +245,7 @@ describe('OrganizationMembersList', function () {
   });
 
   it('displays error message when failing to leave org', async function () {
-    const deleteMock = Client.addMockResponse({
+    const deleteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'DELETE',
       statusCode: 500,
