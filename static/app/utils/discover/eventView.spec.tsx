@@ -2147,7 +2147,7 @@ describe('EventView.withUpdatedColumn()', function () {
 
     const newColumn: Column = {
       kind: 'function',
-      function: [AggregationKey.AVG, 'transaction.duration'],
+      function: [AggregationKey.AVG, 'transaction.duration', undefined, undefined],
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -3576,7 +3576,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const newColumn: Column = {
         kind: 'function',
-        function: [AggregationKey.COUNT, ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -3614,7 +3614,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const newColumn: Column = {
         kind: 'function',
-        function: [AggregationKey.AVG, ''],
+        function: [AggregationKey.AVG, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -3633,7 +3633,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const newColumn: Column = {
         kind: 'function',
-        function: [AggregationKey.COUNT, ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
@@ -3753,7 +3753,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const newColumn: Column = {
         kind: 'function',
-        function: [AggregationKey.COUNT, ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
