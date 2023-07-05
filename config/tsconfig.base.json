@@ -38,7 +38,7 @@
     "noImplicitAny": false,
     "noImplicitReturns": true,
     "noImplicitThis": true,
-    "noUncheckedIndexedAccess": true, // TODO: Run ./bin/fix-noUncheckedIndexedAccess.ts to fix this.
+    "noUncheckedIndexedAccess": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strict": true,
