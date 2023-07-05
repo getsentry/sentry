@@ -3410,9 +3410,10 @@ describe('EventView.getDisplayMode()', function () {
     const eventView = new EventView({
       ...state,
       // the period being less than 24h will disable the DAILY mode
+      statsPeriod: undefined,
       start: '2020-04-01T12:13:14',
       end: '2020-04-02T12:10:14',
-      display: DisplayModes.TOP5DAILY,
+      display: DisplayModes.DAILYTOP5,
     });
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
