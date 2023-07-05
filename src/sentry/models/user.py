@@ -11,14 +11,14 @@ from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
-    BoundedAutoField,
+    BoundedBigAutoField,
     control_silo_only_model,
     sane_repr,
 )
@@ -28,7 +28,6 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
@@ -71,7 +70,7 @@ class UserManager(BaseManager, DjangoUserManager):
 class User(BaseModel, AbstractBaseUser):
     __include_in_export__ = True
 
-    id = BoundedAutoField(primary_key=True)
+    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -129,13 +128,12 @@ class User(BaseModel, AbstractBaseUser):
         help_text=_("The date the password was changed last."),
     )
 
-    flags = BitField(
-        flags=(
-            ("newsletter_consent_prompt", "Do we need to ask this user for newsletter consent?"),
-        ),
-        default=0,
-        null=True,
-    )
+    class flags(TypedClassBitField):
+        # Do we need to ask this user for newsletter consent?
+        newsletter_consent_prompt: bool
+
+        bitfield_default = 0
+        bitfield_null = True
 
     session_nonce = models.CharField(max_length=12, null=True)
 
@@ -294,7 +292,6 @@ class User(BaseModel, AbstractBaseUser):
             Authenticator,
             AuthIdentity,
             Identity,
-            OrganizationMember,
             OrganizationMemberMapping,
             UserAvatar,
             UserEmail,
@@ -306,14 +303,9 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         organization_ids: List[int]
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            organization_ids = OrganizationMember.objects.filter(user_id=from_user.id).values_list(
-                "organization_id", flat=True
-            )
-        else:
-            organization_ids = OrganizationMemberMapping.objects.filter(
-                user_id=from_user.id
-            ).values_list("organization_id", flat=True)
+        organization_ids = OrganizationMemberMapping.objects.filter(
+            user_id=from_user.id
+        ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(

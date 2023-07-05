@@ -1,13 +1,12 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AccountSecurityEnroll from 'sentry/views/settings/account/accountSecurity/accountSecurityEnroll';
 
 const ENDPOINT = '/users/me/authenticators/';
 
 describe('AccountSecurityEnroll', function () {
   describe('Totp', function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
     const authenticator = TestStubs.Authenticators().Totp({
       isEnrolled: false,
       qrcode: 'otpauth://totp/test%40sentry.io?issuer=Sentry&secret=secret',
@@ -31,7 +30,7 @@ describe('AccountSecurityEnroll', function () {
     ]);
 
     beforeAll(function () {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: authenticator,
       });
@@ -52,7 +51,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('can enroll', async function () {
-      const enrollMock = Client.addMockResponse({
+      const enrollMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
       });
@@ -74,7 +73,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('can redirect with already enrolled error', function () {
-      Client.addMockResponse({
+      MockApiClient.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: {details: 'Already enrolled'},
         statusCode: 400,

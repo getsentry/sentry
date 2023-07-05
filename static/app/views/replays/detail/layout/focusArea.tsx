@@ -43,8 +43,8 @@ function FocusArea({}: Props) {
     case TabKey.ERRORS:
       return (
         <ErrorList
-          errorCrumbs={replay?.getIssueCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          errorFrames={replay?.getErrorFrames()}
+          startTimestampMs={replay?.getReplay().started_at.getTime() ?? 0}
         />
       );
     case TabKey.DOM:
@@ -59,7 +59,7 @@ function FocusArea({}: Props) {
         <MemoryChart
           currentTime={currentTime}
           currentHoverTime={currentHoverTime}
-          memorySpans={replay?.getMemorySpans()}
+          memoryFrames={replay?.getMemoryFrames()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime()}

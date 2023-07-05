@@ -10,7 +10,7 @@ import IdBadge from 'sentry/components/idBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Panel} from 'sentry/components/panels';
-import PanelTable from 'sentry/components/panels/panelTable';
+import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -150,6 +150,10 @@ const StyledPanelTable = styled(PanelTable)`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 1fr repeat(5, minmax(0, auto));
+  }
+
+  ${PanelTableHeader} {
+    height: 45px;
   }
 `;
 

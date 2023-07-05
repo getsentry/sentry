@@ -3,6 +3,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -13,7 +14,6 @@ logger = logging.getLogger("sentry.api")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class OAuthAuthorizeView(AuthLoginView):
@@ -71,7 +71,7 @@ class OAuthAuthorizeView(AuthLoginView):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: Request, **kwargs) -> Response:
+    def get(self, request: Request, **kwargs) -> HttpResponse:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -156,7 +156,7 @@ class OAuthAuthorizeView(AuthLoginView):
         if not force_prompt:
             try:
                 existing_auth = ApiAuthorization.objects.get(
-                    user=request.user, application=application
+                    user_id=request.user.id, application=application
                 )
             except ApiAuthorization.DoesNotExist:
                 pass
@@ -207,7 +207,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: Request, **kwargs) -> Response:
+    def post(self, request: Request, **kwargs) -> HttpResponse:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -275,11 +275,13 @@ class OAuthAuthorizeView(AuthLoginView):
         try:
             with transaction.atomic():
                 ApiAuthorization.objects.create(
-                    application=application, user=request.user, scope_list=params["scopes"]
+                    application=application, user_id=request.user.id, scope_list=params["scopes"]
                 )
         except IntegrityError:
             if params["scopes"]:
-                auth = ApiAuthorization.objects.get(application=application, user=request.user)
+                auth = ApiAuthorization.objects.get(
+                    application=application, user_id=request.user.id
+                )
                 for scope in params["scopes"]:
                     if scope not in auth.scope_list:
                         auth.scope_list.append(scope)
@@ -287,7 +289,7 @@ class OAuthAuthorizeView(AuthLoginView):
 
         if params["response_type"] == "code":
             grant = ApiGrant.objects.create(
-                user=request.user,
+                user_id=request.user.id,
                 application=application,
                 redirect_uri=params["redirect_uri"],
                 scope_list=params["scopes"],
@@ -300,7 +302,7 @@ class OAuthAuthorizeView(AuthLoginView):
         elif params["response_type"] == "token":
             token = ApiToken.objects.create(
                 application=application,
-                user=request.user,
+                user_id=request.user.id,
                 refresh_token=None,
                 scope_list=params["scopes"],
             )

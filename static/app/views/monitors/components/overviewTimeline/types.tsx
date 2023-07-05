@@ -4,6 +4,10 @@ export type TimeWindow = '1h' | '24h' | '7d' | '30d';
 
 export interface TimeWindowOptions {
   /**
+   * The time format used for the cursor label
+   */
+  cursorLabelFormat: string;
+  /**
    * Props to pass to <DateTime> when displaying a time marker
    */
   dateTimeProps: {dateOnly?: boolean; timeOnly?: boolean};

@@ -440,6 +440,11 @@ register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFI
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
+# Discord Integration
+register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -561,8 +566,6 @@ register(
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
-register("symbolicator.sourcemaps-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
@@ -1212,6 +1215,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1253,11 +1261,6 @@ register(
 )  # 1MB
 
 # Dynamic Sampling system-wide options
-# Kill-switch to disable new dynamic sampling behavior specifically new dynamic sampling biases.
-register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# System-wide options that observes latest releases on transactions and caches these values to be used later in
-# project config computation. This is temporary option to monitor the performance of this feature.
-register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
@@ -1318,21 +1321,32 @@ register(
 )
 register(
     "backpressure.high_watermarks.attachments-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.post-process-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for monitor check-ins
+register("crons.organization.disable-check-in", type=Sequence, default=[])

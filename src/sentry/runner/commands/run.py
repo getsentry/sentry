@@ -567,7 +567,6 @@ def ingest_consumer(consumer_type, **options):
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 def occurrences_ingest_consumer(**options):
     from sentry.consumers import print_deprecation_warning
-    from sentry.issues.run import get_occurrences_ingest_consumer
 
     print_deprecation_warning("ingest-occurrences", options["group_id"])
     from django.conf import settings
@@ -578,6 +577,8 @@ def occurrences_ingest_consumer(**options):
 
     # Our batcher expects the time in seconds
     options["max_batch_time"] = int(options["max_batch_time"] / 1000)
+
+    from sentry.issues.run import get_occurrences_ingest_consumer
 
     with metrics.global_tags(ingest_consumer_types=consumer_type, _all_threads=True):
         consumer = get_occurrences_ingest_consumer(consumer_type, **options)
@@ -681,6 +682,18 @@ def profiles_consumer(**options):
     "--max-poll-interval-ms",
     type=int,
 )
+@click.option(
+    "--synchronize-commit-log-topic",
+    help="Topic that the Snuba writer is publishing its committed offsets to.",
+)
+@click.option(
+    "--synchronize-commit-group",
+    help="Consumer group that the Snuba writer is committing its offset as.",
+)
+@click.option(
+    "--healthcheck-file-path",
+    help="A file to touch roughly every second to indicate that the consumer is still alive. See https://getsentry.github.io/arroyo/strategies/healthcheck.html for more information.",
+)
 @strict_offset_reset_option()
 @configuration
 def basic_consumer(consumer_name, consumer_args, topic, **options):
@@ -740,6 +753,11 @@ def dev_consumer(consumer_names):
             auto_offset_reset="latest",
             strict_offset_reset=False,
             join_timeout=None,
+            max_poll_interval_ms=None,
+            synchronize_commit_group=None,
+            synchronize_commit_log_topic=None,
+            healthcheck_file_path=None,
+            validate_schema=True,
         )
         for consumer_name in consumer_names
     ]
@@ -802,17 +820,12 @@ def monitors_consumer(**options):
 @click.option("--ingest-profile", required=True)
 @click.option("--indexer-db", default="postgres")
 def last_seen_updater(**options):
-    from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.consumers.last_seen_updater import get_last_seen_updater
     from sentry.utils.metrics import global_tags
 
-    ingest_config = get_ingest_config(
-        UseCaseKey(options.pop("ingest_profile")), IndexerStorage(options.pop("indexer_db"))
-    )
+    config, consumer = get_last_seen_updater(**options)
 
-    consumer = get_last_seen_updater(ingest_config=ingest_config, **options)
-
-    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
+    with global_tags(_all_threads=True, pipeline=config.internal_metrics_tag):
         run_processor_with_signals(consumer)
 
 

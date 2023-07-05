@@ -9,8 +9,8 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
+    MonitorCheckInFailure,
     NoiseConfig,
-    PerformanceNPlusOneGroupType,
 )
 from sentry.issues.ingest import (
     _create_issue_kwargs,
@@ -30,6 +30,7 @@ from sentry.models import (
     ReleaseProjectEnvironment,
 )
 from sentry.ratelimits.sliding_windows import Quota
+from sentry.receivers import create_default_projects
 from sentry.snuba.dataset import Dataset
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -98,6 +99,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert GroupRelease.objects.filter(group_id=group.id, release_id=release.id).exists()
 
     def test_different_ids(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id", self.project.id)
         event_data["event"]["timestamp"] = datetime.utcnow().isoformat()
@@ -141,6 +143,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert group.title == occurrence.issue_title
         assert group.data["metadata"]["value"] == occurrence.subtitle
         assert group.culprit == occurrence.culprit
+        assert group.message == "<unlabeled event> something bad happened it was bad api/123"
         assert group.location() == event.location
 
     def test_existing_group(self) -> None:
@@ -165,6 +168,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert updated_group.culprit == new_occurrence.culprit
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
+        assert updated_group.message == "<unlabeled event> new title new subtitle api/123"
 
     def test_existing_group_different_category(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
@@ -174,7 +178,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
 
         new_event = self.store_event(data={}, project_id=self.project.id)
         new_occurrence = self.build_occurrence(
-            fingerprint=occurrence.fingerprint, type=PerformanceNPlusOneGroupType.type_id
+            fingerprint=occurrence.fingerprint, type=MonitorCheckInFailure.type_id
         )
         with mock.patch("sentry.issues.ingest.logger") as logger:
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
@@ -259,6 +263,7 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):
 @region_silo_test
 class SaveIssueOccurrenceToEventstreamTest(OccurrenceTestMixin, TestCase):
     def test(self) -> None:
+        create_default_projects()
         event_data = load_data("generic-event-profiling").data
         project_id = event_data["event"].pop("project_id")
         event_data["event"]["timestamp"] = datetime.utcnow().isoformat()

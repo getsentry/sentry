@@ -2,6 +2,7 @@ import pytest
 from django.conf import settings
 from django.test import override_settings
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
@@ -56,7 +57,7 @@ class RegionMappingTest(TestCase):
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_regions(regions):
+        with override_regions(regions), in_test_psql_role_override("postgres"):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
                 # Region does not exist
@@ -91,8 +92,7 @@ class RegionMappingTest(TestCase):
             "address": "http://na.testserver",
             "category": RegionCategory.MULTI_TENANT.name,
         }
-        region_config_as_json = json.dumps([region_config])
-        with override_settings(SENTRY_REGION_CONFIG=region_config_as_json):
+        with override_settings(SENTRY_REGION_CONFIG=[region_config]):
             region = get_region_by_name("na")
         assert region.snowflake_id == 1
 
@@ -104,7 +104,9 @@ class RegionMappingTest(TestCase):
         organization_mapping.name = "test name"
         organization_mapping.region_name = "na"
         organization_mapping.idempotency_key = "test"
-        organization_mapping.save()
+
+        with in_test_psql_role_override("postgres"):
+            organization_mapping.save()
 
         region_config = [
             {

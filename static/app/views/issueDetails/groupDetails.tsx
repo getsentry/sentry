@@ -41,6 +41,7 @@ import {
 } from 'sentry/utils/queryClient';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
+import useDisableRouteAnalytics from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
@@ -230,24 +231,43 @@ function useRefetchGroupForReprocessing({
   }, [hasReprocessingV2Feature, refetchGroup]);
 }
 
-function useEventApiQuery(
-  eventID: string,
-  queryKey: [string, {query: {environment?: string[]}}]
-) {
-  const isLatest = eventID === 'latest';
-  const latestEventQuery = useApiQuery<Event>(queryKey, {
+function useEventApiQuery({
+  groupId,
+  eventId,
+  environments,
+}: {
+  environments: string[];
+  groupId: string;
+  eventId?: string;
+}) {
+  const organization = useOrganization();
+  const hasMostHelpfulEventFeature = organization.features.includes(
+    'issue-details-most-helpful-event'
+  );
+  const eventIdUrl = eventId ?? (hasMostHelpfulEventFeature ? 'helpful' : 'latest');
+
+  const queryKey: ApiQueryKey = [
+    `/issues/${groupId}/events/${eventIdUrl}/`,
+    {query: getGroupEventDetailsQueryData({environments})},
+  ];
+
+  const isLatestOrHelpfulEvent = eventIdUrl === 'latest' || eventIdUrl === 'helpful';
+
+  const latestOrHelpfulEvent = useApiQuery<Event>(queryKey, {
+    // Latest/helpful event will change over time, so only cache for 30 seconds
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: isLatest,
+    enabled: isLatestOrHelpfulEvent,
     retry: (_, error) => error.status !== 404,
   });
   const otherEventQuery = useApiQuery<Event>(queryKey, {
+    // Oldest/specific events will never change
     staleTime: Infinity,
-    enabled: !isLatest,
+    enabled: !isLatestOrHelpfulEvent,
     retry: (_, error) => error.status !== 404,
   });
 
-  return isLatest ? latestEventQuery : otherEventQuery;
+  return isLatestOrHelpfulEvent ? latestOrHelpfulEvent : otherEventQuery;
 }
 
 type FetchGroupQueryParameters = {
@@ -308,19 +328,13 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   const environments = useEnvironmentsFromUrl();
 
   const groupId = params.groupId;
-  const eventId = params.eventId ?? 'latest';
-
-  const eventUrl = `/issues/${groupId}/events/${eventId}/`;
 
   const {
     data: eventData,
     isLoading: loadingEvent,
     isError,
     refetch: refetchEvent,
-  } = useEventApiQuery(eventId, [
-    eventUrl,
-    {query: getGroupEventDetailsQueryData({environments})},
-  ]);
+  } = useEventApiQuery({groupId, eventId: params.eventId, environments});
 
   const {
     data: groupData,
@@ -524,6 +538,7 @@ function useTrackView({
     // Will be updated in GroupDetailsHeader if there are replays
     group_has_replay: false,
   });
+  useDisableRouteAnalytics(!group || !event || !project);
 }
 
 const trackTabChanged = ({

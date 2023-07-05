@@ -104,6 +104,16 @@ export type ApiApplication = {
   termsUrl: string | null;
 };
 
+export type OrgAuthToken = {
+  dateCreated: Date;
+  id: string;
+  name: string;
+  scopes: string[];
+  dateLastUsed?: Date;
+  projectLastUsedId?: string;
+  tokenLastCharacters?: string;
+};
+
 // Used in user session history.
 export type InternetProtocol = {
   countryCode: string | null;

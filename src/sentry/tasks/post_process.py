@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
+from time import time
 from typing import TYPE_CHECKING, List, Mapping, Optional, Sequence, Tuple, TypedDict, Union
 
 import sentry_sdk
@@ -500,7 +501,7 @@ def post_process_group(
             # instead.
 
             def get_event_raise_exception() -> Event:
-                retrieved = eventstore.get_event_by_id(
+                retrieved = eventstore.backend.get_event_by_id(
                     project_id,
                     occurrence.event_id,
                     group_id=group_id,
@@ -590,6 +591,13 @@ def post_process_group(
 
         for job in group_jobs:
             run_post_process_job(job)
+
+        if not is_reprocessed and event.data.get("received"):
+            metrics.timing(
+                "events.time-to-post-process",
+                time() - event.data["received"],
+                instance=event.data["platform"],
+            )
 
 
 def run_post_process_job(job: PostProcessJob):
@@ -1072,7 +1080,9 @@ def sdk_crash_monitoring(job: PostProcessJob):
     with metrics.timer("post_process.sdk_crash_monitoring.duration"):
         with sentry_sdk.start_span(op="tasks.post_process_group.sdk_crash_monitoring"):
             sdk_crash_detection.detect_sdk_crash(
-                event=event, event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID
+                event=event,
+                event_project_id=settings.SDK_CRASH_DETECTION_PROJECT_ID,
+                sample_rate=settings.SDK_CRASH_DETECTION_SAMPLE_RATE,
             )
 
 
@@ -1112,13 +1122,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         update_existing_attachments,
         fire_error_processed,
         sdk_crash_monitoring,
-    ],
-    GroupCategory.PERFORMANCE: [
-        process_snoozes,
-        process_inbox_adds,
-        process_rules,
-        # TODO: Uncomment this when we want to send perf issues out via plugins as well
-        # process_plugins,
     ],
 }
 

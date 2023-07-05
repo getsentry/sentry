@@ -731,3 +731,185 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             {"count": 1, "name": "error", "value": "error"},
         ]
         self.assert_facet(response, "level", expected)
+
+    def test_projects_data_are_injected_on_first_page_with_multiple_projects_selected(self):
+        test_project = self.create_project()
+        test_project2 = self.create_project()
+        test_tags = {
+            "a": "one",
+            "b": "two",
+            "c": "three",
+            "d": "four",
+            "e": "five",
+            "f": "six",
+            "g": "seven",
+            "h": "eight",
+            "i": "nine",
+            "j": "ten",
+            "k": "eleven",
+        }
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": [test_project.id, test_project2.id]}
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Project is injected into the first page
+        expected = [
+            {"count": 1, "name": test_project.slug, "value": test_project.id},
+        ]
+        self.assert_facet(response, "project", expected)
+
+        # Loop over the first 9 tags to ensure they're in the results
+        # in this case, the 10th key is "projects" since it was injected
+        for tag_key in list(test_tags.keys())[:9]:
+            expected = [
+                {"count": 1, "name": test_tags[tag_key], "value": test_tags[tag_key]},
+            ]
+            self.assert_facet(response, tag_key, expected)
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": [test_project.id, test_project2.id], "cursor": "0:10:0"},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 3
+        expected = [
+            {"count": 1, "name": "ten", "value": "ten"},
+        ]
+        self.assert_facet(response, "j", expected)
+        expected = [
+            {"count": 1, "name": "eleven", "value": "eleven"},
+        ]
+        self.assert_facet(response, "k", expected)
+        expected = [
+            {"count": 1, "name": "error", "value": "error"},
+        ]
+        self.assert_facet(response, "level", expected)
+
+    def test_multiple_pages_with_single_project(self):
+        test_project = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(self.url, format="json", data={"project": test_project.id})
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": test_project.id, "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more tags to fetch
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": test_project.id, "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 3
+
+    def test_multiple_pages_with_multiple_projects(self):
+        test_project = self.create_project()
+        test_project2 = self.create_project()
+        test_tags = {str(i): str(i) for i in range(22)}  # At least 3 pages worth of information
+
+        self.store_event(
+            data={"event_id": uuid4().hex, "timestamp": self.min_ago_iso, "tags": test_tags},
+            project_id=test_project.id,
+        )
+
+        # Test the default query fetches the first 10 results
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, format="json", data={"project": [test_project.id, test_project2.id]}
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more results to be fetched
+        assert links[1]["cursor"] == "0:10:0"
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": [test_project.id, test_project2.id], "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "true"  # There are more tags to fetch
+        assert len(response.data) == 10
+
+        # Get the next page
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={"project": [test_project.id, test_project2.id], "cursor": links[1]["cursor"]},
+            )
+            links = requests.utils.parse_header_links(
+                response.get("link", "").rstrip(">").replace(">,<", ",<")
+            )
+
+        assert response.status_code == 200, response.content
+        assert links[1]["results"] == "false"  # There should be no more tags to fetch
+        assert len(response.data) == 4  # 4 because projects and levels were added to the base 22

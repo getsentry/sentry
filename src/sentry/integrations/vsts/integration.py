@@ -6,9 +6,9 @@ from time import time
 from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.utils.translation import ugettext as _
+from django.http import HttpResponse
+from django.utils.translation import gettext as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -320,18 +320,14 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
     @property
     def instance(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        instance_: str = self.model.metadata["domain_name"]
-        return instance_
+        return self.model.metadata["domain_name"]
 
     @property
     def default_project(self) -> str | None:
         try:
-            # Explicitly typing to satisfy mypy.
-            default_project_: str = self.model.metadata["default_project"]
+            return self.model.metadata["default_project"]
         except KeyError:
             return None
-        return default_project_
 
 
 class VstsIntegrationProvider(IntegrationProvider):
@@ -499,9 +495,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                 },
             )
         if response.status_code == 200:
-            # Explicitly typing to satisfy mypy.
-            location_url: str | None = response.json()["locationUrl"]
-            return location_url
+            return response.json()["locationUrl"]
 
         logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
         return None
@@ -515,7 +509,7 @@ class VstsIntegrationProvider(IntegrationProvider):
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(

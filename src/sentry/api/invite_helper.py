@@ -14,6 +14,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     organization_service,
 )
+from sentry.signals import member_joined
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 
@@ -254,6 +255,14 @@ class ApiInviteHelper:
         )
 
         metrics.incr("organization.invite-accepted", sample_rate=1.0)
+        organization_service.schedule_signal(
+            member_joined,
+            organization_id=member.organization_id,
+            args=dict(
+                user_id=member.user_id,
+                organization_member_id=member.id,
+            ),
+        )
 
         return member
 

@@ -4,13 +4,14 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
   ARCHIVED = 'is:archived',
   ESCALATING = 'is:escalating',
-  ONGOING = 'is:ongoing',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
 
@@ -43,6 +44,7 @@ type OverviewTab = {
  */
 export function getTabs(organization: Organization) {
   const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
+  const hasAssignToMe = organization.features.includes('assign-to-me');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
@@ -54,7 +56,7 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.FOR_REVIEW,
+      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
@@ -70,10 +72,10 @@ export function getTabs(organization: Organization) {
       },
     ],
     [
-      Query.NEW,
+      Query.REGRESSED,
       {
-        name: t('New'),
-        analyticsName: 'new',
+        name: t('Regressed'),
+        analyticsName: 'regressed',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -83,15 +85,6 @@ export function getTabs(organization: Organization) {
       {
         name: t('Escalating'),
         analyticsName: 'escalating',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
-      },
-    ],
-    [
-      Query.ONGOING,
-      {
-        name: t('Ongoing'),
-        analyticsName: 'ongoing',
         count: true,
         enabled: hasEscalatingIssuesUi,
       },
@@ -174,8 +167,19 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({
+  query,
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  query: string;
+  sort: string;
+}) {
+  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
+    ? IssueSortOptions.BETTER_PRIORITY
+    : DEFAULT_ISSUE_STREAM_SORT;
+  return query === DEFAULT_QUERY && sort === defaultSort;
 }
 
 export function getSortLabel(key: string) {
@@ -212,6 +216,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

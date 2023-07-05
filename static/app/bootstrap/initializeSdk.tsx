@@ -45,11 +45,7 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Function) {
-  const extraTracePropagationTargets = SPA_DSN
-    ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
-
+function getSentryIntegrations(routes?: Function) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -69,7 +65,6 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
         enableInteractions: true,
         onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
-      tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     }),
     new Sentry.BrowserProfilingIntegration(),
     new HTTPTimingIntegration(),
@@ -87,6 +82,9 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
 export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
+  const extraTracePropagationTargets = SPA_DSN
+    ? SPA_MODE_TRACE_PROPAGATION_TARGETS
+    : [...sentryConfig?.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
@@ -102,10 +100,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    integrations: getSentryIntegrations(sentryConfig, routes),
+    integrations: getSentryIntegrations(routes),
     tracesSampleRate,
     // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
+    tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
         return tracesSampleRate / 100;
@@ -252,6 +251,9 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
     const is200 =
       ['RequestError'].includes(type) && !!value.match('(GET|POST|PUT|DELETE) .* 200');
+    const is400 =
+      ['BadRequestError', 'RequestError'].includes(type) &&
+      !!value.match('(GET|POST|PUT|DELETE) .* 400');
     const is401 =
       ['UnauthorizedError', 'RequestError'].includes(type) &&
       !!value.match('(GET|POST|PUT|DELETE) .* 401');
@@ -265,7 +267,7 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
       ['TooManyRequestsError', 'RequestError'].includes(type) &&
       !!value.match('(GET|POST|PUT|DELETE) .* 429');
 
-    if (is200 || is401 || is403 || is404 || is429) {
+    if (is200 || is400 || is401 || is403 || is404 || is429) {
       return true;
     }
   }

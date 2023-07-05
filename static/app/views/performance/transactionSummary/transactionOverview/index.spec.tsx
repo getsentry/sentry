@@ -812,7 +812,7 @@ describe('Performance > TransactionSummary', function () {
       // Click the key transaction button
       await userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-      await userEvent.click(screen.getByText('team1'));
+      await userEvent.click(screen.getByRole('option', {name: '#team1'}));
 
       // Ensure request was made.
       expect(mockUpdate).toHaveBeenCalled();

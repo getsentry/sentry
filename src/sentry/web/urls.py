@@ -223,7 +223,7 @@ urlpatterns += [
                     r"^sso/$",
                     AuthProviderLoginView.as_view(),
                     name="sentry-auth-sso",
-                ),
+                ),  # OAuth Pipeline for SSO redirect URI
                 url(
                     r"^logout/$",
                     AuthLogoutView.as_view(),
@@ -903,6 +903,16 @@ urlpatterns += [
                     name="sentry-organization-stats",
                 ),
                 url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/$",
+                    react_page_view,
+                    name="sentry-organization-replays",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-replay-details",
+                ),
+                url(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
@@ -1011,7 +1021,7 @@ urlpatterns += [
                     r"^(?P<provider_id>[\w_-]+)/setup/$",
                     PipelineAdvancerView.as_view(),
                     name="sentry-extension-setup",
-                ),
+                ),  # OAuth Pipeline for integration redirect URI
                 url(
                     r"^jira/",
                     include("sentry.integrations.jira.urls"),

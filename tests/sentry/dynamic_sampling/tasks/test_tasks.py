@@ -10,21 +10,24 @@ from freezegun import freeze_time
 from sentry.dynamic_sampling import RuleType, generate_rules, get_redis_client_for_ds
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.dynamic_sampling.rules.biases.recalibration_bias import RecalibrationBias
-from sentry.dynamic_sampling.rules.helpers.prioritise_project import (
-    generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
-    get_transactions_resampling_rates,
-)
-from sentry.dynamic_sampling.rules.helpers.sliding_window import (
-    SLIDING_WINDOW_CALCULATION_ERROR,
-    generate_sliding_window_cache_key,
-    mark_sliding_window_org_executed,
-)
-from sentry.dynamic_sampling.rules.utils import generate_cache_key_rebalance_factor
 from sentry.dynamic_sampling.tasks.boost_low_volume_projects import boost_low_volume_projects
 from sentry.dynamic_sampling.tasks.boost_low_volume_transactions import (
     boost_low_volume_transactions,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
+    generate_boost_low_volume_projects_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
+    get_transactions_resampling_rates,
+)
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
+    generate_recalibrate_orgs_cache_key,
+)
+from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
+    SLIDING_WINDOW_CALCULATION_ERROR,
+    generate_sliding_window_cache_key,
+    generate_sliding_window_org_cache_key,
+    mark_sliding_window_org_executed,
 )
 from sentry.dynamic_sampling.tasks.recalibrate_orgs import recalibrate_orgs
 from sentry.dynamic_sampling.tasks.sliding_window import sliding_window
@@ -650,6 +653,29 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                     org_id=org.id,
                 )
 
+    @staticmethod
+    def flush_redis():
+        get_redis_client_for_ds().flushdb()
+
+    @staticmethod
+    def set_sliding_window_org_cache_entry(org_id: int, value: str):
+        redis = get_redis_client_for_ds()
+        cache_key = generate_sliding_window_org_cache_key(org_id=org_id)
+        redis.set(cache_key, value)
+
+    def set_sliding_window_org_sample_rate(self, org_id: int, sample_rate: float):
+        self.set_sliding_window_org_cache_entry(org_id, str(sample_rate))
+
+    def for_all_orgs(self, block: Callable[[int], None]):
+        for org in self.orgs_info:
+            org_id = org["org_id"]
+            block(org_id)
+
+    def set_sliding_window_org_sample_rate_for_all(self, sample_rate: float):
+        self.for_all_orgs(
+            lambda org_id: self.set_sliding_window_org_sample_rate(org_id, sample_rate)
+        )
+
     @patch("sentry.quotas.backend.get_blended_sample_rate")
     def test_rebalance_orgs(self, get_blended_sample_rate):
         """
@@ -660,14 +686,15 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
         The third is at 30%, so we should decrease the sampling
         """
         BLENDED_RATE = 0.20
-        get_blended_sample_rate.return_value = BLENDED_RATE
+        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
+
         redis_client = get_redis_client_for_ds()
 
         with self.tasks():
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_cache_key_rebalance_factor(org.id)
+            cache_key = generate_recalibrate_orgs_cache_key(org.id)
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -686,7 +713,7 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
             recalibrate_orgs()
 
         for idx, org in enumerate(self.orgs):
-            cache_key = generate_cache_key_rebalance_factor(org.id)
+            cache_key = generate_recalibrate_orgs_cache_key(org.id)
             val = redis_client.get(cache_key)
 
             if idx == 0:
@@ -701,15 +728,14 @@ class TestRecalibrateOrgsTasks(TasksTestCase):
                 # half it again to 0.25
                 assert float(val) == 0.25
 
-    @patch("sentry.quotas.backend.get_blended_sample_rate")
-    def test_rebalance_rules(self, get_blended_sample_rate):
+    def test_rules_generation_with_recalibrate_orgs(self):
         """
         Test that we pass rebalancing values all the way to the rules
 
         (An integration test)
         """
         BLENDED_RATE = 0.20
-        get_blended_sample_rate.return_value = BLENDED_RATE
+        self.set_sliding_window_org_sample_rate_for_all(BLENDED_RATE)
 
         with self.tasks():
             recalibrate_orgs()
@@ -1138,9 +1164,7 @@ class TestSlidingWindowTasks(TasksTestCase):
         with self.tasks():
             sliding_window()
 
-        with self.feature(
-            {"organizations:ds-sliding-window": True, "organizations:ds-boost-new-projects": True}
-        ):
+        with self.feature({"organizations:ds-sliding-window": True}):
             # We expect that the project is boosted to 100%.
             assert generate_rules(project)[0]["samplingValue"] == {
                 "type": "sampleRate",
@@ -1159,9 +1183,7 @@ class TestSlidingWindowTasks(TasksTestCase):
         with self.tasks():
             sliding_window()
 
-        with self.feature(
-            {"organizations:ds-sliding-window": True, "organizations:ds-boost-new-projects": True}
-        ):
+        with self.feature({"organizations:ds-sliding-window": True}):
             # We expect that the projects are boosted to 100%.
             assert generate_rules(project_a)[0]["samplingValue"] == {
                 "type": "sampleRate",

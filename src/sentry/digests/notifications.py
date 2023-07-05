@@ -11,6 +11,7 @@ from sentry.digests import Digest, Record
 from sentry.eventstore.models import Event
 from sentry.models import Group, GroupStatus, Project, Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.tsdb.base import TSDBModel
 from sentry.utils.dates import to_timestamp
 from sentry.utils.pipeline import Pipeline
 
@@ -84,14 +85,14 @@ def fetch_state(project: Project, records: Sequence[Record]) -> Mapping[str, Any
             itertools.chain.from_iterable(record.value.rules for record in records)
         ),
         "event_counts": tsdb.get_sums(
-            tsdb.models.group,
+            TSDBModel.group,
             list(groups.keys()),
             start,
             end,
             tenant_ids=tenant_ids,
         ),
         "user_counts": tsdb.get_distinct_counts_totals(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             list(groups.keys()),
             start,
             end,
@@ -190,9 +191,7 @@ def sort_rule_groups(rules: Mapping[str, Rule]) -> Mapping[str, Rule]:
 
 
 def check_group_state(record: Record) -> bool:
-    # Explicitly typing to satisfy mypy.
-    is_unresolved: bool = record.value.event.group.get_status() == GroupStatus.UNRESOLVED
-    return is_unresolved
+    return record.value.event.group.get_status() == GroupStatus.UNRESOLVED
 
 
 def build_digest(

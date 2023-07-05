@@ -1,25 +1,24 @@
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
 from enum import IntEnum
 from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, transaction
 from django.db.models import QuerySet
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
+from typing_extensions import override
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import features, roles
 from sentry.app import env
 from sentry.constants import (
     ALERTS_MEMBER_WRITE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
-    RESERVED_PROJECT_SLUGS,
 )
 from sentry.db.models import (
     BaseManager,
@@ -85,7 +84,7 @@ OrganizationStatus._labels = {
 
 
 class OrganizationManager(BaseManager):
-    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+    def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
         """Returns the QuerySet of all organizations that a set of Users have access to."""
         return self.filter(
             status=OrganizationStatus.ACTIVE,
@@ -174,40 +173,34 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     default_role = models.CharField(max_length=32, default=str(roles.get_default().id))
     is_test = models.BooleanField(default=False)
 
-    flags = BitField(
-        flags=(
-            (
-                "allow_joinleave",
-                "Allow members to join and leave teams without requiring approval.",
-            ),
-            (
-                "enhanced_privacy",
-                "Enable enhanced privacy controls to limit personally identifiable information (PII) as well as source code in things like notifications.",
-            ),
-            (
-                "disable_shared_issues",
-                "Disable sharing of limited details on issues to anonymous users.",
-            ),
-            (
-                "early_adopter",
-                "Enable early adopter status, gaining access to features prior to public release.",
-            ),
-            ("require_2fa", "Require and enforce two-factor authentication for all members."),
-            (
-                "disable_new_visibility_features",
-                "Temporarily opt out of new visibility features and ui",
-            ),
-            (
-                "require_email_verification",
-                "Require and enforce email verification for all members.",
-            ),
-            (
-                "codecov_access",
-                "Enable codecov integration.",
-            ),
-        ),
-        default=1,
-    )
+    class flags(TypedClassBitField):
+        # Allow members to join and leave teams without requiring approval
+        allow_joinleave: bool
+
+        # Enable enhanced privacy controls to limit personally identifiable
+        # information (PII) as well as source code in things like
+        # notifications.
+        enhanced_privacy: bool
+
+        # Disable sharing of limited details on issues to anonymous users.
+        disable_shared_issues: bool
+
+        # Enable early adopter status, gaining access to features prior to public release.
+        early_adopter: bool
+
+        # Require and enforce two-factor authentication for all members.
+        require_2fa: bool
+
+        # Temporarily opt out of new visibility features and ui
+        disable_new_visibility_features: bool
+
+        # Require and enforce email verification for all members.
+        require_email_verification: bool
+
+        # Enable codecov integration.
+        codecov_access: bool
+
+        bitfield_default = 1
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
@@ -264,6 +257,16 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         else:
             with outbox_context(transaction.atomic()):
                 self.save_with_update_outbox(*args, **kwargs)
+
+    # Override for the default update method to ensure that most atomic updates
+    #  generate an outbox alongside any mutations to ensure data is replicated
+    #  properly to the control silo.
+    @override
+    def update(self, *args, **kwargs):
+        with outbox_context(transaction.atomic()):
+            results = super().update(*args, **kwargs)
+            Organization.outbox_for_update(self.id).save()
+            return results
 
     @classmethod
     def reserve_snowflake_id(cls):
@@ -376,174 +379,6 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             id__in=members_with_role.union(members_on_teams_with_role)
         )
 
-    def merge_to(from_org, to_org):
-        from sentry.models import (
-            ApiKey,
-            AuditLogEntry,
-            AuthProvider,
-            Commit,
-            Environment,
-            OrganizationAvatar,
-            OrganizationIntegration,
-            OrganizationMember,
-            OrganizationMemberTeam,
-            Project,
-            Release,
-            ReleaseCommit,
-            ReleaseEnvironment,
-            ReleaseFile,
-            ReleaseHeadCommit,
-            Repository,
-            Team,
-        )
-
-        logger = logging.getLogger("sentry.merge")
-        for from_member in OrganizationMember.objects.filter(
-            organization=from_org, user_id__isnull=False
-        ):
-            try:
-                to_member = OrganizationMember.objects.get(
-                    organization=to_org, user_id=from_member.user_id
-                )
-            except OrganizationMember.DoesNotExist:
-                with transaction.atomic():
-                    from_member.organization = to_org
-                    from_member.save()
-                to_member = from_member
-            else:
-                qs = OrganizationMemberTeam.objects.filter(
-                    organizationmember=from_member, is_active=True
-                ).select_related()
-                for omt in qs:
-                    OrganizationMemberTeam.objects.create_or_update(
-                        organizationmember=to_member, team=omt.team, defaults={"is_active": True}
-                    )
-            logger.info(
-                "user.migrate",
-                extra={
-                    "instance_id": from_member.id,
-                    "new_member_id": to_member.id,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        for from_team in Team.objects.filter(organization=from_org):
-            try:
-                with transaction.atomic():
-                    from_team.update(organization=to_org)
-            except IntegrityError:
-                slugify_instance(from_team, from_team.name, organization=to_org)
-                from_team.update(organization=to_org, slug=from_team.slug)
-            logger.info(
-                "team.migrate",
-                extra={
-                    "instance_id": from_team.id,
-                    "new_slug": from_team.slug,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        for from_project in Project.objects.filter(organization=from_org):
-            try:
-                with transaction.atomic():
-                    from_project.update(organization=to_org)
-            except IntegrityError:
-                slugify_instance(
-                    from_project,
-                    from_project.name,
-                    organization=to_org,
-                    reserved=RESERVED_PROJECT_SLUGS,
-                )
-                from_project.update(organization=to_org, slug=from_project.slug)
-            logger.info(
-                "project.migrate",
-                extra={
-                    "instance_id": from_project.id,
-                    "new_slug": from_project.slug,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        # TODO(jess): update this when adding unique constraint
-        # on version, organization for releases
-        for from_release in Release.objects.filter(organization=from_org):
-            try:
-                to_release = Release.objects.get(version=from_release.version, organization=to_org)
-            except Release.DoesNotExist:
-                Release.objects.filter(id=from_release.id).update(organization=to_org)
-            else:
-                Release.merge(to_release, [from_release])
-            logger.info(
-                "release.migrate",
-                extra={
-                    "instance_id": from_release.id,
-                    "from_organization_id": from_org.id,
-                    "to_organization_id": to_org.id,
-                },
-            )
-
-        def do_update(queryset, params):
-            model_name = queryset.model.__name__.lower()
-            try:
-                with transaction.atomic(using=router.db_for_write(queryset.model)):
-                    queryset.update(**params)
-            except IntegrityError:
-                for instance in queryset:
-                    try:
-                        with transaction.atomic(using=router.db_for_write(queryset.model)):
-                            instance.update(**params)
-                    except IntegrityError:
-                        logger.info(
-                            f"{model_name}.migrate-skipped",
-                            extra={
-                                "from_organization_id": from_org.id,
-                                "to_organization_id": to_org.id,
-                            },
-                        )
-                    else:
-                        logger.info(
-                            f"{model_name}.migrate",
-                            extra={
-                                "instance_id": instance.id,
-                                "from_organization_id": from_org.id,
-                                "to_organization_id": to_org.id,
-                            },
-                        )
-            else:
-                logger.info(
-                    f"{model_name}.migrate",
-                    extra={"from_organization_id": from_org.id, "to_organization_id": to_org.id},
-                )
-
-        INST_MODEL_LIST = (
-            AuthProvider,
-            ApiKey,
-            AuditLogEntry,
-            OrganizationAvatar,
-            OrganizationIntegration,
-            ReleaseEnvironment,
-        )
-
-        ATTR_MODEL_LIST = (
-            Commit,
-            Environment,
-            ReleaseCommit,
-            ReleaseFile,
-            ReleaseHeadCommit,
-            Repository,
-        )
-
-        for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization_id=from_org.id)
-            do_update(queryset, {"organization_id": to_org.id})
-
-        for model in ATTR_MODEL_LIST:
-            queryset = model.objects.filter(organization_id=from_org.id)
-            do_update(queryset, {"organization_id": to_org.id})
-
     @property
     def option_manager(self) -> OptionManager:
         from sentry.models import OrganizationOption
@@ -573,13 +408,11 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         ).send_async([o.email for o in owners])
 
     def _handle_requirement_change(self, request, task):
-        from sentry.models import ApiKey
+        from sentry.models.apikey import is_api_key_auth
 
         actor_id = request.user.id if request.user and request.user.is_authenticated else None
         api_key_id = (
-            request.auth.id
-            if hasattr(request, "auth") and isinstance(request.auth, ApiKey)
-            else None
+            request.auth.id if hasattr(request, "auth") and is_api_key_auth(request.auth) else None
         )
         ip_address = request.META["REMOTE_ADDR"]
 

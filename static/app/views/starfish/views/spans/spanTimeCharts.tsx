@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -40,14 +39,8 @@ type ChartProps = {
   moduleName: ModuleName;
 };
 
-function getSegmentLabel(span_operation, action, domain) {
-  if (span_operation === 'http.client') {
-    return t('%s requests to %s', action, domain);
-  }
-  if (span_operation === 'db') {
-    return t('%s queries on %s', action, domain);
-  }
-  return span_operation || domain || undefined;
+function getSegmentLabel(moduleName: ModuleName) {
+  return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
 }
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
@@ -105,11 +98,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery({
     eventView,
     initialData: [],
@@ -160,11 +149,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = `p95(${SPAN_SELF_TIME})`;
 
   const {isLoading, data} = useSpansQuery({
     eventView,
@@ -176,7 +161,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
     const groupData = dataByGroup[groupName];
 
     return {
-      seriesName: label ?? `p95(${SPAN_SELF_TIME})`,
+      seriesName: label,
       data: groupData.map(datum => ({
         value: datum[`p95(${SPAN_SELF_TIME})`],
         name: datum.interval,
@@ -284,6 +269,10 @@ const buildDiscoverQueryConditions = (
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
   }
 
   if (spanCategory) {

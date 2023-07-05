@@ -132,6 +132,7 @@ export enum FieldValueType {
   NEVER = 'never',
   SIZE = 'size',
   RATE = 'rate',
+  PERCENT_CHANGE = 'percent_change',
 }
 
 export enum WebVital {

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import uuid
@@ -8,9 +10,10 @@ from typing import List, Optional, Set, Tuple
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
-from symbolic import SymbolicError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import SymbolicError
 
-from sentry import options
+from sentry import analytics, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -41,7 +44,8 @@ class ChunkFileState:
 
 class AssembleTask:
     DIF = "project.dsym"  # Debug file upload
-    ARTIFACTS = "organization.artifacts"  # Release file upload
+    RELEASE_BUNDLE = "organization.artifacts"  # Release file upload
+    ARTIFACT_BUNDLE = "organization.artifact_bundle"  # Artifact bundle upload
 
 
 def _get_cache_key(task, scope, checksum):
@@ -165,7 +169,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         )
     finally:
         if delete_file:
-            file.delete()  # pyright: ignore
+            file.delete()
 
 
 class AssembleArtifactsError(Exception):
@@ -297,7 +301,7 @@ def _remove_duplicate_artifact_bundles(org_id: int, ids: List[int]):
 
 
 def _bind_or_create_artifact_bundle(
-    bundle_id: uuid,
+    bundle_id: str | None,
     date_added: datetime,
     org_id: int,
     archive_file: File,
@@ -324,10 +328,12 @@ def _bind_or_create_artifact_bundle(
             bundle_id=bundle_id or uuid.uuid4().hex,
             file=archive_file,
             artifact_count=artifact_count,
-            # For now these two fields will have the same value but in separate tasks we will update "date_added"
-            # in order to perform partitions rebalancing in the database.
+            # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
+            # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
             date_added=date_added,
             date_uploaded=date_added,
+            # When creating a new bundle by default its last modified date corresponds to the creation date.
+            date_last_modified=date_added,
         )
 
         return artifact_bundle, True
@@ -339,9 +345,14 @@ def _bind_or_create_artifact_bundle(
         # a newly bound file.
         if existing_file != archive_file:
             # In case there is an ArtifactBundle with a specific bundle_id, we want to change its underlying File model
-            # with its corresponding artifact count.
+            # with its corresponding artifact count and also update the dates.
             existing_artifact_bundle.update(
-                date_added=date_added, file=archive_file, artifact_count=artifact_count
+                file=archive_file,
+                artifact_count=artifact_count,
+                date_added=date_added,
+                # If you upload a bundle which already exists, we track this as a modification since our goal is to show
+                # first all the bundles that have had the most recent activity.
+                date_last_modified=date_added,
             )
 
             # We now delete that file, in order to avoid orphan files in the database.
@@ -360,6 +371,13 @@ def _create_artifact_bundle(
 ) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+
+        analytics.record(
+            "artifactbundle.manifest_extracted",
+            organization_id=org_id,
+            project_ids=project_ids,
+            has_debug_ids=len(debug_ids_with_types) > 0,
+        )
 
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.
@@ -489,11 +507,16 @@ def assemble_artifacts(
     if project_ids is None:
         project_ids = []
 
+    # We want to evaluate the type of assemble task given the input parameters.
+    assemble_task = (
+        AssembleTask.ARTIFACT_BUNDLE if upload_as_artifact_bundle else AssembleTask.RELEASE_BUNDLE
+    )
+
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
 
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ASSEMBLING)
 
         archive_name = "bundle-artifacts" if upload_as_artifact_bundle else "release-artifacts"
         archive_filename = f"{archive_name}-{uuid.uuid4().hex}.zip"
@@ -501,7 +524,7 @@ def assemble_artifacts(
 
         # Assemble the chunks into a temporary file
         rv = assemble_file(
-            AssembleTask.ARTIFACTS,
+            assemble_task,
             organization,
             archive_filename,
             checksum,
@@ -518,8 +541,6 @@ def assemble_artifacts(
         bundle, temp_file = rv
 
         try:
-            # TODO(iambriccardo): Once the new lookup PR is merged it would be better if we generalize the archive
-            #  handling class.
             archive = ReleaseArchive(temp_file)
         except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
@@ -535,20 +556,18 @@ def assemble_artifacts(
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=archive.artifact_count)
     except AssembleArtifactsError as e:
-        set_assemble_status(
-            AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
-        )
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception:
         logger.error("failed to assemble release bundle", exc_info=True)
         set_assemble_status(
-            AssembleTask.ARTIFACTS,
+            assemble_task,
             org_id,
             checksum,
             ChunkFileState.ERROR,
             detail="internal server error",
         )
     else:
-        set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.OK)
+        set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.OK)
 
 
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type):

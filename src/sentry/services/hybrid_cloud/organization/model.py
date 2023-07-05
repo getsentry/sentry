@@ -2,10 +2,12 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
+from enum import IntEnum
+from typing import Any, List, Mapping, Optional
 
-from typing import Any, List, Mapping, Optional, TypedDict
-
+from django.dispatch import Signal
 from pydantic import Field
+from typing_extensions import TypedDict
 
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption
@@ -13,6 +15,7 @@ from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 
@@ -134,6 +137,20 @@ class RpcOrganizationFlags(RpcModel):
     require_2fa: bool = False
     disable_new_visibility_features: bool = False
     require_email_verification: bool = False
+    codecov_access: bool = False
+
+    def as_int(self):
+        # Must maintain the same order as the ORM's `Organization.flags` fields
+        return flags_to_bits(
+            self.allow_joinleave,
+            self.enhanced_privacy,
+            self.disable_shared_issues,
+            self.early_adopter,
+            self.require_2fa,
+            self.disable_new_visibility_features,
+            self.require_email_verification,
+            self.codecov_access,
+        )
 
 
 class RpcOrganizationFlagsUpdate(TypedDict):
@@ -189,6 +206,16 @@ class RpcOrganization(RpcOrganizationSummary):
 
     default_role: str = ""
 
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "flags": self.flags.as_int(),
+            "default_role": self.default_role,
+        }
+
 
 class RpcUserOrganizationContext(RpcModel):
     """
@@ -232,3 +259,28 @@ class RpcRegionUser(RpcModel):
     id: int = -1
     is_active: bool = True
     email: Optional[str] = None
+
+
+class RpcOrganizationSignal(IntEnum):
+    INTEGRATION_ADDED = 1
+    MEMBER_JOINED = 2
+
+    @classmethod
+    def from_signal(cls, signal: Signal) -> "RpcOrganizationSignal":
+        for enum, s in cls.signal_map().items():
+            if s is signal:
+                return enum
+        raise ValueError(f"Signal {signal!r} is not a valid RpcOrganizationSignal")
+
+    @classmethod
+    def signal_map(cls) -> Mapping["RpcOrganizationSignal", Signal]:
+        from sentry.signals import integration_added, member_joined
+
+        return {
+            RpcOrganizationSignal.INTEGRATION_ADDED: integration_added,
+            RpcOrganizationSignal.MEMBER_JOINED: member_joined,
+        }
+
+    @property
+    def signal(self) -> Signal:
+        return self.signal_map()[self]

@@ -5,8 +5,8 @@ from typing import Any, Mapping
 from urllib.parse import parse_qsl, urlencode
 from uuid import uuid4
 
+from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
@@ -46,7 +46,7 @@ class OAuth2Login(AuthView):
             "redirect_uri": redirect_uri,
         }
 
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         if "code" in request.GET:
             return helper.next_step()
 
@@ -94,7 +94,7 @@ class OAuth2Callback(AuthView):
             return dict(parse_qsl(body))
         return json.loads(body)
 
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         error = request.GET.get("error")
         state = request.GET.get("state")
         code = request.GET.get("code")

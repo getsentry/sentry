@@ -5,14 +5,18 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/types';
+import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import {Panel, PanelFooter, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,6 +33,23 @@ export const retentionPrioritiesLabels = {
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
+
+export const allowedDurationValues: number[] = [
+  50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+  10000,
+]; // In milliseconds
+
+type ProjectPerformanceSettings = {[key: string]: number | boolean};
+
+enum DetectorConfigAdmin {
+  N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
+  SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
+}
+
+enum DetectorConfigCustomer {
+  SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
+  N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+}
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -118,6 +139,28 @@ class ProjectPerformance extends AsyncView<Props, State> {
     );
   };
 
+  handleThresholdsReset = () => {
+    const {projectId} = this.props.params;
+    const {organization, project} = this.props;
+
+    this.setState({
+      loading: true,
+    });
+
+    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+      organization,
+      project_slug: project.slug,
+    });
+
+    this.api.request(
+      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
+      {
+        method: 'DELETE',
+        complete: () => this.fetchData(),
+      }
+    );
+  };
+
   getEmptyMessage() {
     return t('There is no threshold set for this project.');
   }
@@ -170,6 +213,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return fields;
   }
 
+  get areAllConfigurationsDisabled(): boolean {
+    let result = true;
+    Object.values(DetectorConfigAdmin).forEach(threshold => {
+      result = result && !this.state.performance_issue_settings[threshold];
+    });
+    return result;
+  }
+
   get performanceIssueFormFields(): Field[] {
     return [
       {
@@ -205,70 +256,97 @@ class ProjectPerformance extends AsyncView<Props, State> {
     ];
   }
 
-  get performanceIssueDetectorsFormFields(): Field[] {
+  get performanceIssueDetectorAdminFields(): Field[] {
     return [
       {
-        name: 'n_plus_one_db_queries_detection_enabled',
+        name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
         type: 'boolean',
         label: t('N+1 DB Queries Detection Enabled'),
         defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              n_plus_one_db_queries_detection_enabled: value,
+            },
+          }),
       },
       {
-        name: 'slow_db_queries_detection_enabled',
+        name: DetectorConfigAdmin.SLOW_DB_ENABLED,
         type: 'boolean',
         label: t('Slow DB Queries Detection Enabled'),
         defaultValue: true,
-      },
-      {
-        name: 'n_plus_one_api_calls_detection_enabled',
-        type: 'boolean',
-        label: t('N+1 API Calls Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'consecutive_http_spans_detection_enabled',
-        type: 'boolean',
-        label: t('Consecutive HTTP Spans Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'consecutive_db_queries_detection_enabled',
-        type: 'boolean',
-        label: t('Consecutive DB Queries Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'large_http_payload_detection_enabled',
-        type: 'boolean',
-        label: t('Large HTTP Payload Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'db_on_main_thread_detection_enabled',
-        type: 'boolean',
-        label: t('DB On Main Thread Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'file_io_on_main_thread_detection_enabled',
-        type: 'boolean',
-        label: t('File I/O on Main Thread Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'uncompressed_assets_detection_enabled',
-        type: 'boolean',
-        label: t('Uncompressed Assets Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'large_render_blocking_asset_detection_enabled',
-        type: 'boolean',
-        label: t('Large Render Blocking Asset Detection Enabled'),
-        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              slow_db_queries_detection_enabled: value,
+            },
+          }),
       },
     ];
   }
+
+  project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
+    const performanceSettings: ProjectPerformanceSettings =
+      this.state.performance_issue_settings;
+    const supportMail = ConfigStore.get('supportEmail');
+    const disabledReason = hasAccess
+      ? tct(
+          'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
+          {
+            link: <ExternalLink href={'mailto:' + supportMail} />,
+          }
+        )
+      : null;
+
+    const formatDuration = (value: number | ''): string => {
+      return value && value < 1000 ? `${value}ms` : `${(value as number) / 1000}s`;
+    };
+
+    return [
+      {
+        title: t('N+1 DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 200ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 200ms'
+            ),
+            allowedValues: allowedDurationValues,
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Slow DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.SLOW_DB_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 1000, // ms
+            help: t(
+              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s.'
+            ),
+            allowedValues: allowedDurationValues.slice(1),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+    ];
+  };
 
   get retentionPrioritiesFormFields(): Field[] {
     return [
@@ -295,9 +373,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostLowVolumeTransactions,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        visible: this.props.organization.features.includes(
-          'dynamic-sampling-transaction-name-priority'
-        ),
         getData: this.getRetentionPrioritiesData,
       },
       {
@@ -328,7 +403,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
     const isSuperUser = isActiveSuperuser();
-
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
@@ -452,11 +526,58 @@ class ProjectPerformance extends AsyncView<Props, State> {
               >
                 <JsonForm
                   title={t('Performance Issues - Admin Detector Settings')}
-                  fields={this.performanceIssueDetectorsFormFields}
+                  fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
               </Form>
             )}
+            <Form
+              allowUndo
+              initialData={this.state.performance_issue_settings}
+              apiMethod="PUT"
+              apiEndpoint={performanceIssuesEndpoint}
+              saveOnBlur
+              onSubmitSuccess={(option: {[key: string]: number}) => {
+                const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+                trackAnalytics(
+                  'performance_views.project_issue_detection_threshold_changed',
+                  {
+                    organization,
+                    project_slug: project.slug,
+                    threshold_key,
+                    threshold_value,
+                  }
+                );
+              }}
+            >
+              <Access access={requiredScopes} project={project}>
+                {({hasAccess}) => (
+                  <div>
+                    <StyledPanelHeader>
+                      {t('Performance Issues - Detector Threshold Settings')}
+                    </StyledPanelHeader>
+                    <StyledJsonForm
+                      forms={this.project_owner_detector_settings(hasAccess)}
+                      collapsible
+                    />
+                    <StyledPanelFooter>
+                      <Actions>
+                        <Confirm
+                          message={t(
+                            'Are you sure you wish to reset all detector thresholds?'
+                          )}
+                          onConfirm={() => this.handleThresholdsReset()}
+                          disabled={!hasAccess || this.areAllConfigurationsDisabled}
+                        >
+                          <Button>{t('Reset All Thresholds')}</Button>
+                        </Confirm>
+                      </Actions>
+                    </StyledPanelFooter>
+                  </div>
+                )}
+              </Access>
+            </Form>
           </Feature>
         </Fragment>
       </Fragment>
@@ -466,6 +587,50 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  border: 1px solid ${p => p.theme.border};
+  border-bottom: none;
+`;
+
+const StyledJsonForm = styled(JsonForm)`
+  ${Panel} {
+    margin-bottom: 0;
+    border-radius: 0;
+    border-bottom: 0;
+  }
+
+  ${FieldWrapper} {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+
+  ${FieldWrapper} + ${FieldWrapper} {
+    border-top: 0;
+  }
+
+  ${Panel} + ${Panel} {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+
+  ${PanelHeader} {
+    border-bottom: 0;
+    text-transform: none;
+    margin-bottom: 0;
+    background: none;
+    padding: ${space(3)} ${space(2)};
+  }
+`;
+
+const StyledPanelFooter = styled(PanelFooter)`
+  background: ${p => p.theme.white};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
+    calc(${p => p.theme.panelBorderRadius} - 1px);
+
+  ${Actions} {
+    padding: ${space(1.5)};
+  }
 `;
 
 const LoadingIndicatorContainer = styled('div')`

@@ -1,3 +1,5 @@
+import {CSSProperties} from 'react';
+
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -9,15 +11,16 @@ const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Props = {
   groupId: string;
+  transactionMethod: string;
   transactionName: string;
 };
 
 function SampleInfo(props: Props) {
-  const {groupId, transactionName} = props;
+  const {groupId, transactionName, transactionMethod} = props;
 
   const {data: spanMetrics} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [
       'sps()',
       `sum(${SPAN_SELF_TIME})`,
@@ -27,13 +30,23 @@ function SampleInfo(props: Props) {
     'span-summary-panel-metrics'
   );
 
+  const style: CSSProperties = {
+    textAlign: 'left',
+  };
+
   return (
     <BlockContainer>
       <Block title={DataTitles.throughput}>
-        <ThroughputCell throughputPerSecond={spanMetrics?.['sps()']} />
+        <ThroughputCell
+          containerProps={{style}}
+          throughputPerSecond={spanMetrics?.['sps()']}
+        />
       </Block>
       <Block title={DataTitles.p95}>
-        <DurationCell milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]} />
+        <DurationCell
+          containerProps={{style}}
+          milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
+        />
       </Block>
     </BlockContainer>
   );

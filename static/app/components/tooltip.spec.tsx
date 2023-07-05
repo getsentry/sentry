@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Tooltip} from 'sentry/components/tooltip';
 
@@ -57,7 +52,9 @@ describe('Tooltip', function () {
     expect(screen.getByText('bar')).toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('My Button'));
-    await waitForElementToBeRemoved(() => screen.queryByText('bar'));
+    await waitFor(() => {
+      expect(screen.queryByText('bar')).not.toBeInTheDocument();
+    });
   });
 
   it('disables and does not render', async function () {

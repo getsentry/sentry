@@ -1,6 +1,6 @@
 import functools
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
@@ -114,7 +114,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(group.id)
 
     @with_feature("organizations:issue-list-better-priority-sort")
-    @with_feature("organizations:better-priority-sort-experiment")
     def test_sort_by_better_priority(self):
         group = self.store_event(
             data={
@@ -3148,7 +3147,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -3182,7 +3181,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -3374,11 +3373,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3400,7 +3398,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}
             )
 
-        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+        mock_eventstream.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id]
         )
 
@@ -3426,7 +3424,13 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                     qs_params={"id": [group1.id, group2.id], "group4": group4.id}
                 )
 
-        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
+        # XXX(markus): Something is sending duplicated replacements to snuba --
+        # once from within tasks.deletions.groups and another time from
+        # sentry.deletions.defaults.groups
+        assert mock_eventstream.end_delete_groups.call_args_list == [
+            call(eventstream_state),
+            call(eventstream_state),
+        ]
 
         assert response.status_code == 204
 
@@ -3442,11 +3446,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_performance_issue_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
             status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id

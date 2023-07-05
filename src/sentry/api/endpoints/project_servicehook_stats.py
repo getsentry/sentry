@@ -6,6 +6,7 @@ from sentry.api.base import StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ServiceHook
+from sentry.tsdb.base import TSDBModel
 
 
 @region_silo_endpoint
@@ -19,7 +20,7 @@ class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
         stat_args = self._parse_args(request)
 
         stats = {}
-        for model, name in ((tsdb.models.servicehook_fired, "total"),):
+        for model, name in ((TSDBModel.servicehook_fired, "total"),):
             result = tsdb.get_range(
                 model=model,
                 keys=[hook.id],

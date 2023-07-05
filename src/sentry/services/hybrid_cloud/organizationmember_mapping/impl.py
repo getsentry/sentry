@@ -7,6 +7,7 @@ from typing import Optional
 
 from django.db import IntegrityError, transaction
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
@@ -100,4 +101,5 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            org_member_map.delete()
+            with in_test_psql_role_override("postgres"):
+                org_member_map.delete()

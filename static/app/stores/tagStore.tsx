@@ -39,10 +39,12 @@ const storeConfig: TagStoreDefinition = {
     const isSuggestions = [
       'resolved',
       'unresolved',
-      org.features.includes('escalating-issues') ? 'archived' : 'ignored',
+      ...(org.features.includes('escalating-issues')
+        ? ['archived', 'escalating', 'new', 'ongoing', 'regressed']
+        : ['ignored']),
       'assigned',
-      'for_review',
       'unassigned',
+      'for_review',
       'linked',
       'unlinked',
     ];
@@ -80,11 +82,7 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: [
-          IssueCategory.ERROR,
-          IssueCategory.PERFORMANCE,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
-        ],
+        values: [IssueCategory.ERROR, IssueCategory.PERFORMANCE],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
@@ -102,6 +100,7 @@ const storeConfig: TagStoreDefinition = {
                 IssueType.PROFILE_FILE_IO_MAIN_THREAD,
                 IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
                 IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+                IssueType.PROFILE_REGEX_MAIN_THREAD,
               ]
             : []),
         ],

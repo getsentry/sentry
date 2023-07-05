@@ -52,6 +52,7 @@ body:
         - 'Settings - Repositories'
         - 'Settings - Integrations'
         - 'Settings - Developer Settings'
+        - 'Settings - Spend Allocation'
         - 'Settings - Spike Protection'
         - 'Help'
         - "What's New"

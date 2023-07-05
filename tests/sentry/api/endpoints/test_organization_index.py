@@ -26,14 +26,19 @@ class OrganizationsListTest(OrganizationIndexTest):
 
     def test_show_all_with_superuser(self):
         org = self.organization  # force creation
+        org2 = self.create_organization()
         user = self.create_user(is_superuser=True)
         self.login_as(user=user, superuser=True)
 
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(org.id)
+        assert {r["id"] for r in response.data} == {str(org.id), str(org2.id)}
 
     def test_show_all_without_superuser(self):
+        self.organization  # force creation
+        self.create_organization()
+        user = self.create_user()
+        self.login_as(user=user)
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 0
 

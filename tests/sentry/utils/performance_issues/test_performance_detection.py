@@ -28,6 +28,7 @@ from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
+    get_detection_settings,
 )
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
@@ -117,7 +118,7 @@ class PerformanceDetectionTest(TestCase):
         assert mock.call_count == 1
 
     @override_options(BASE_DETECTOR_OPTIONS)
-    def test_project_option_overrides_default(self):
+    def test_detector_respects_project_option_settings(self):
         n_plus_one_event = get_event("n-plus-one-in-django-index-view")
         sdk_span_mock = Mock()
 
@@ -130,6 +131,61 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
+
+    def test_project_options_overrides_default_settings(self):
+
+        default_settings = get_detection_settings(self.project)
+
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100
+        assert default_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 1000
+        assert default_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
+        assert default_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
+        assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
+        assert default_settings[DetectorType.DB_MAIN_THREAD][0]["detection_enabled"]
+        assert default_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["detection_enabled"]
+        assert default_settings[DetectorType.M_N_PLUS_ONE_DB]["detection_enabled"]
+        assert default_settings[DetectorType.N_PLUS_ONE_API_CALLS]["detection_enabled"]
+        assert default_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
+        assert default_settings[DetectorType.LARGE_HTTP_PAYLOAD]["detection_enabled"]
+        assert default_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["detection_enabled"]
+        assert default_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
+
+        self.project_option_mock.return_value = {
+            "n_plus_one_db_duration_threshold": 100000,
+            "n_plus_one_db_queries_detection_enabled": False,
+            "slow_db_query_duration_threshold": 5000,
+            "slow_db_queries_detection_enabled": False,
+            "uncompressed_assets_detection_enabled": False,
+            "consecutive_http_spans_detection_enabled": False,
+            "large_http_payload_detection_enabled": False,
+            "n_plus_one_api_calls_detection_enabled": False,
+            "db_on_main_thread_detection_enabled": False,
+            "file_io_on_main_thread_detection_enabled": False,
+            "consecutive_db_queries_detection_enabled": False,
+            "large_render_blocking_asset_detection_enabled": False,
+        }
+
+        configured_settings = get_detection_settings(self.project)
+
+        assert (
+            configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["duration_threshold"] == 100000
+        )
+        assert not configured_settings[DetectorType.N_PLUS_ONE_DB_QUERIES]["detection_enabled"]
+        assert configured_settings[DetectorType.SLOW_DB_QUERY][0]["duration_threshold"] == 5000
+        assert not configured_settings[DetectorType.SLOW_DB_QUERY][0]["detection_enabled"]
+        assert not configured_settings[DetectorType.CONSECUTIVE_DB_OP]["detection_enabled"]
+        assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
+        assert not configured_settings[DetectorType.DB_MAIN_THREAD][0]["detection_enabled"]
+        assert not (configured_settings[DetectorType.FILE_IO_MAIN_THREAD][0]["detection_enabled"])
+        assert not configured_settings[DetectorType.M_N_PLUS_ONE_DB]["detection_enabled"]
+        assert not configured_settings[DetectorType.N_PLUS_ONE_API_CALLS]["detection_enabled"]
+        assert not configured_settings[DetectorType.CONSECUTIVE_HTTP_OP]["detection_enabled"]
+        assert not configured_settings[DetectorType.LARGE_HTTP_PAYLOAD]["detection_enabled"]
+        assert not (
+            configured_settings[DetectorType.RENDER_BLOCKING_ASSET_SPAN]["detection_enabled"]
+        )
+        assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_n_plus_one_extended_detection_no_parent_span(self):
@@ -256,8 +312,7 @@ class PerformanceDetectionTest(TestCase):
         )
         with override_options(
             {
-                "performance.issues.n_plus_one_db.count_threshold": 20,
-                "performance.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.n_plus_one_db.duration_threshold": 100000,
             }
         ):
             perf_problems = _detect_performance_problems(
@@ -267,7 +322,6 @@ class PerformanceDetectionTest(TestCase):
 
         with override_options(
             {
-                "performance.issues.n_plus_one_db.count_threshold": 5,
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
             }
         ):

@@ -1,7 +1,4 @@
-import random
-
 from django.apps import apps
-from django.conf import settings
 from django.db import DatabaseError, IntegrityError, router
 
 from sentry.locks import locks
@@ -113,9 +110,6 @@ def copy_file_to_control_and_update_model(
     from sentry.models.files import ControlFile, ControlFileBlob, File
 
     if ControlFileBlob._storage_config() is None:
-        return
-
-    if random.uniform(0, 1) > settings.SENTRY_FILE_COPY_ROLLOUT_RATE:
         return
 
     lock = f"copy-file-lock-{model_name}:{model_id}"

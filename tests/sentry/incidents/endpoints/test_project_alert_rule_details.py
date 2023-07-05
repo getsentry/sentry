@@ -1,4 +1,6 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Optional
 from unittest.mock import patch
 
 import responses
@@ -22,7 +24,6 @@ from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
-from sentry.utils.types import Dict
 
 
 @region_silo_test(stable=True)
@@ -202,7 +203,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 **serialized_alert_rule,
             )
 
-    def _mock_slack_response(self, url: str, body: Dict, status: int = 200) -> None:
+    def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
             url=url,

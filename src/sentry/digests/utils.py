@@ -158,9 +158,7 @@ def sort_records(records: Sequence[Record]) -> Sequence[Record]:
     """Sorts records ordered from newest to oldest."""
 
     def sort_func(record: Record) -> datetime:
-        # Explicitly typing to satisfy mypy.
-        key: datetime = record.value.event.datetime
-        return key
+        return record.value.event.datetime
 
     return sorted(records, key=sort_func, reverse=True)
 

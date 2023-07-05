@@ -121,9 +121,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         self._reset_variables()
 
-    def _sum_span_duration(self, spans: list[Span]) -> int:
+    def _sum_span_duration(self, spans: list[Span]) -> float:
         "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
+        sum = 0.0
         for span in spans:
             sum += get_span_duration(span).total_seconds() * 1000
         return sum

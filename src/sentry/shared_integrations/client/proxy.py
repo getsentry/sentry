@@ -58,7 +58,7 @@ class IntegrationProxyClient(ApiClient):
     add sensitive credentials at that stage.
 
     When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
-    is set to True.
+    is set to True. Enable to test proxying locally.
     """
 
     _should_proxy_to_control = False
@@ -83,6 +83,7 @@ class IntegrationProxyClient(ApiClient):
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
         if is_test_environment and not self._use_proxy_url_for_tests:
+            logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
     @control_silo_function

@@ -12,6 +12,7 @@ from typing import (
     FrozenSet,
     Mapping,
     MutableMapping,
+    NoReturn,
     Optional,
     Sequence,
     Type,
@@ -19,7 +20,6 @@ from typing import (
 from urllib.request import Request
 
 from sentry import audit_log
-from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import ExternalActor, Identity, Integration, Team
 from sentry.pipeline import PipelineProvider
@@ -42,6 +42,7 @@ from sentry.utils.audit import create_audit_entry
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
+    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 FeatureDescription = namedtuple(
     "FeatureDescription",
@@ -187,7 +188,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
 
     @classmethod
     def get_installation(
-        cls, model: M, organization_id: int, **kwargs: Any
+        cls, model: RpcIntegration | Integration, organization_id: int, **kwargs: Any
     ) -> IntegrationInstallation:
         if cls.integration_cls is None:
             raise NotImplementedError
@@ -295,7 +296,7 @@ class IntegrationInstallation:
 
     logger = logging.getLogger("sentry.integrations")
 
-    def __init__(self, model: M, organization_id: int) -> None:
+    def __init__(self, model: RpcIntegration | Integration, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
         self._org_integration: RpcOrganizationIntegration | None
@@ -342,11 +343,9 @@ class IntegrationInstallation:
         )
 
     def get_config_data(self) -> Mapping[str, str]:
-        # Explicitly typing to satisfy mypy.
         if not self.org_integration:
             return {}
-        config_data: Mapping[str, str] = self.org_integration.config
-        return config_data
+        return self.org_integration.config
 
     def get_dynamic_display_information(self) -> Optional[Mapping[str, Any]]:
         return None
@@ -378,9 +377,7 @@ class IntegrationInstallation:
         if isinstance(exc, ApiUnauthorized):
             return ERR_UNAUTHORIZED
         elif isinstance(exc, ApiHostError):
-            # Explicitly typing to satisfy mypy.
-            message: str = exc.text
-            return message
+            return exc.text
         elif isinstance(exc, UnsupportedResponseType):
             return ERR_UNSUPPORTED_RESPONSE_TYPE.format(content_type=exc.content_type)
         elif isinstance(exc, ApiError):
@@ -392,7 +389,7 @@ class IntegrationInstallation:
         else:
             return ERR_INTERNAL
 
-    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> None:
+    def raise_error(self, exc: Exception, identity: Optional[Identity] = None) -> NoReturn:
         if isinstance(exc, ApiUnauthorized):
             raise InvalidIdentity(self.message_from_error(exc), identity=identity).with_traceback(
                 sys.exc_info()[2]
@@ -412,9 +409,7 @@ class IntegrationInstallation:
 
     @property
     def metadata(self) -> IntegrationMetadata:
-        # Explicitly typing to satisfy mypy.
-        _metadata: IntegrationMetadata = self.model.metadata
-        return _metadata
+        return self.model.metadata
 
     def uninstall(self) -> None:
         """

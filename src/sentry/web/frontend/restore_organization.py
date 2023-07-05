@@ -1,14 +1,18 @@
 import logging
 
 from django.contrib import messages
+from django.http import HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
 from sentry.models import Organization, OrganizationStatus
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.web.frontend.base import OrganizationView
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    unmark_organization_as_pending_deletion_with_outbox_message,
+)
+from sentry.web.frontend.base import ControlSiloOrganizationView
 from sentry.web.helpers import render_to_response
 
 ERR_MESSAGES = {
@@ -22,10 +26,9 @@ delete_logger = logging.getLogger("sentry.deletions.ui")
 
 
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 
-class RestoreOrganizationView(OrganizationView):
+class RestoreOrganizationView(ControlSiloOrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
@@ -41,7 +44,7 @@ class RestoreOrganizationView(OrganizationView):
         else:
             self.active_organization = None
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization) -> HttpResponse:
         if organization.status == OrganizationStatus.ACTIVE:
             return self.redirect(Organization.get_url(organization.slug))
 
@@ -55,7 +58,7 @@ class RestoreOrganizationView(OrganizationView):
 
         return render_to_response("sentry/restore-organization.html", context, self.request)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization) -> HttpResponse:
         deletion_statuses = [
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,
@@ -65,9 +68,10 @@ class RestoreOrganizationView(OrganizationView):
             messages.add_message(request, messages.ERROR, ERR_MESSAGES[organization.status])
             return self.redirect(reverse("sentry"))
 
-        updated = Organization.objects.filter(
-            id=organization.id, status__in=deletion_statuses
-        ).update(status=OrganizationStatus.ACTIVE)
+        updated = unmark_organization_as_pending_deletion_with_outbox_message(
+            org_id=organization.id
+        )
+
         if updated:
             client.put(
                 f"/organizations/{organization.slug}/",

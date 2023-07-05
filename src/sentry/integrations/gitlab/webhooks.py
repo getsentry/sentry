@@ -11,7 +11,6 @@ from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -239,13 +238,13 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     _handlers = handlers
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405, reason="HTTP method not supported.")
 
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request) -> Response:
+    def post(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)

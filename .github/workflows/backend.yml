@@ -74,12 +74,13 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3, 4]
+        instance: [0, 1, 2, 3, 4, 5]
         pg-version: ['14']
 
     env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 5
+      # XXX: `MATRIX_INSTANCE_TOTAL` must be hardcoded to the length of `strategy.matrix.instance`.
+      # If this increases, make sure to also increase `flags.backend.after_n_builds` in `codecov.yml`.
+      MATRIX_INSTANCE_TOTAL: 6
 
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
@@ -87,6 +88,12 @@ jobs:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
+
+      - name: Update environment for silo databases
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -128,6 +135,13 @@ jobs:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
 
+      - name: Update environment for silo databases
+        id: silo_env
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -158,6 +172,12 @@ jobs:
         pg-version: ['14']
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+
+      - name: Update environment for silo databases
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -312,6 +332,12 @@ jobs:
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
+      - name: Update environment for silo databases
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -327,7 +353,7 @@ jobs:
     needs: files-changed
     name: relay test
     runs-on: ubuntu-20.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         with:
@@ -383,6 +409,12 @@ jobs:
           # Avoid codecov error message related to SHA resolution:
           # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
           fetch-depth: '2'
+
+      - name: Update environment for silo databases
+        if: |
+          contains( github.event.pull_request.labels.*.name, 'Trigger: Silo db' )
+        run: |
+          echo "SENTRY_USE_SPLIT_DBS=1" >> "$GITHUB_ENV"
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -452,7 +484,7 @@ jobs:
     needs: files-changed
     name: backend typing
     runs-on: ubuntu-20.04
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 

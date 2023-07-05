@@ -27,7 +27,7 @@ def grant_sudo_privileges(request, max_age=COOKIE_AGE):
 
     # Token doesn't need to be unique,
     # just needs to be unpredictable and match the cookie and the session
-    token = get_random_string()
+    token = get_random_string(12)
     request.session[COOKIE_NAME] = token
     request._sudo = True
     request._sudo_token = token

@@ -229,7 +229,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert self.release.count_artifacts() == 0
 
             status, details = get_assemble_status(
-                AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK
             assert details is None
@@ -324,6 +324,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
         assert artifact_bundles[0].date_added == expected_updated_date
+        # We want to also check whether we tracked the modification date of this bundle.
+        assert artifact_bundles[0].date_last_modified == expected_updated_date
 
         files = File.objects.filter()
         assert len(files) == 1
@@ -567,7 +569,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 assert self.release.count_artifacts() == 2
 
                 status, details = get_assemble_status(
-                    AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                    AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
                 )
                 assert status == ChunkFileState.OK
                 assert details is None
@@ -605,7 +607,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -623,7 +625,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -641,7 +643,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         )
 
         status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
 
@@ -669,6 +671,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
             # Status is still OK:
             status, details = get_assemble_status(
-                AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                AssembleTask.RELEASE_BUNDLE, self.organization.id, total_checksum
             )
             assert status == ChunkFileState.OK

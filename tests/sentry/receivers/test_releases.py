@@ -2,7 +2,7 @@ from hashlib import sha1
 from unittest.mock import patch
 from uuid import uuid4
 
-from sentry.buffer import Buffer
+from sentry.buffer.base import Buffer
 from sentry.models import (
     Activity,
     Commit,

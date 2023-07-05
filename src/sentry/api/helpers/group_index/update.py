@@ -25,6 +25,7 @@ from sentry.issues.update_inbox import update_inbox
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
+    Actor,
     ActorTuple,
     Group,
     GroupAssignee,
@@ -615,48 +616,14 @@ def update_groups(
         pass
 
     if "assignedTo" in result:
-        assigned_actor = result["assignedTo"]
-        assigned_by = (
-            data.get("assignedBy")
-            if data.get("assignedBy") in ["assignee_selector", "suggested_assignee"]
-            else None
+        result["assignedTo"] = handle_assigned_to(
+            result["assignedTo"],
+            data.get("assignedBy"),
+            data.get("integration"),
+            group_list,
+            project_lookup,
+            acting_user,
         )
-        extra = (
-            {"integration": data.get("integration")}
-            if data.get("integration")
-            in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
-            else dict()
-        )
-        if assigned_actor:
-            for group in group_list:
-                resolved_actor: RpcUser | Team = assigned_actor.resolve()
-
-                assignment = GroupAssignee.objects.assign(
-                    group, resolved_actor, acting_user, extra=extra
-                )
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=assignment["updated_assignment"],
-                )
-            result["assignedTo"] = serialize(
-                assigned_actor.resolve(), acting_user, ActorSerializer()
-            )
-
-        else:
-            for group in group_list:
-                GroupAssignee.objects.deassign(group, acting_user)
-                analytics.record(
-                    "manual.issue_assignment",
-                    organization_id=project_lookup[group.project_id].organization_id,
-                    project_id=group.project_id,
-                    group_id=group.id,
-                    assigned_by=assigned_by,
-                    had_to_deassign=True,
-                )
 
     handle_has_seen(
         result.get("hasSeen"), group_list, group_ids, project_lookup, projects, acting_user
@@ -822,3 +789,55 @@ def handle_is_public(
                 )
 
     return share_id
+
+
+def handle_assigned_to(
+    assigned_actor: str,
+    assigned_by: str,
+    integration: str,
+    group_list: list[Group],
+    project_lookup: dict[int, Project],
+    acting_user: User | None,
+) -> Actor | None:
+    """
+    Handle the assignedTo field on a group update.
+
+    This sets a new assignee or removes existing assignees, and logs the
+    manual.issue_assignment analytic.
+    """
+    assigned_by = (
+        assigned_by if assigned_by in ["assignee_selector", "suggested_assignee"] else None
+    )
+    extra = (
+        {"integration": integration}
+        if integration in [ActivityIntegration.SLACK.value, ActivityIntegration.MSTEAMS.value]
+        else dict()
+    )
+    if assigned_actor:
+        for group in group_list:
+            resolved_actor: RpcUser | Team = assigned_actor.resolve()
+
+            assignment = GroupAssignee.objects.assign(
+                group, resolved_actor, acting_user, extra=extra
+            )
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=assignment["updated_assignment"],
+            )
+        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
+
+    else:
+        for group in group_list:
+            GroupAssignee.objects.deassign(group, acting_user)
+            analytics.record(
+                "manual.issue_assignment",
+                organization_id=project_lookup[group.project_id].organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                assigned_by=assigned_by,
+                had_to_deassign=True,
+            )

@@ -19,7 +19,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
@@ -348,11 +348,8 @@ class VercelWebhookEndpoint(Endpoint):
 
         orgs = {
             o.id: o
-            for o in organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=[oi.organization_id for oi in org_integrations],
+            for o in organization_mapping_service.get_many(
+                organization_ids=[oi.organization_id for oi in org_integrations]
             )
         }
 

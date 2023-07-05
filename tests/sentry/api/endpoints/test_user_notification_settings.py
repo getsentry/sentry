@@ -2,7 +2,6 @@ from rest_framework import status
 
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
@@ -16,34 +15,34 @@ class UserNotificationSettingsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test()
 class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
     def test_simple(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.get_success_response("me")
@@ -94,7 +93,7 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            user_id=self.user.id,
             project=other_project,
         )
 
@@ -115,27 +114,27 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.get_v2_response()
@@ -197,7 +196,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-            user=self.user,
+            user_id=self.user.id,
             project=other_project,
         )
 
@@ -206,7 +205,7 @@ class UserNotificationSettingsGetTestV2(UserNotificationSettingsTestBase):
         assert other_project.id not in response.data["preferences"]["workflow"]["project"]
 
 
-@control_silo_test
+@control_silo_test()
 class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
     method = "put"
 
@@ -217,7 +216,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                user_id=self.user.id,
             )
             == NotificationSettingOptionValues.DEFAULT
         )
@@ -232,7 +231,7 @@ class UserNotificationSettingsUpdateTest(UserNotificationSettingsTestBase):
             NotificationSetting.objects.get_settings(
                 provider=ExternalProviders.SLACK,
                 type=NotificationSettingTypes.DEPLOY,
-                actor=RpcActor.from_orm_user(self.user),
+                user_id=self.user.id,
             )
             == NotificationSettingOptionValues.ALWAYS
         )

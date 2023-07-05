@@ -1,8 +1,7 @@
 import os
-from typing import MutableSet
 
 import pytest
-from django.db.transaction import get_connection
+from django.db import connections
 
 from sentry.silo import SiloMode
 
@@ -170,51 +169,29 @@ def protect_hybrid_cloud_writes_and_deletes(request):
     If you are certain you need to delete the objects in a new codepath, check out User.delete
     logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
     create Outbox objects in the same transaction that matches what you delete.
+
+    See sentry.testutils.silo for where the postgres_unprivileged role comes from and
+    how its permissions are assigned.
     """
-    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-    from sentry.models import OrganizationMember, OrganizationMemberMapping
-    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+    for conn in connections.all():
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")
+        except (RuntimeError, AssertionError) as e:
+            # Tests that do not have access to the database should pass through.
+            # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
+            # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
+            if "Database access not allowed" in str(e) or "Database queries to" in str(e):
+                yield
+                return
+            raise e
 
-    try:
-        with get_connection().cursor() as conn:
-            conn.execute("SET ROLE 'postgres'")
-    except (RuntimeError, AssertionError) as e:
-        # Tests that do not have access to the database should pass through.
-        # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
-        # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
-        if "Database access not allowed" in str(e) or "Database queries to" in str(e):
-            yield
-            return
-
-    reset_test_role(role="postgres_unprivileged")
-
-    # "De-escalate" the default connection's permission level to prevent queryset level deletions of HCFK.
-    seen_models: MutableSet[type] = set()
-    for model in iter_models():
-        for field in model._meta.fields:
-            if not isinstance(field, HybridCloudForeignKey):
-                continue
-            fk_model = field.foreign_model
-            if fk_model is None or fk_model in seen_models:
-                continue
-            seen_models.add(fk_model)
-            restrict_role(role="postgres_unprivileged", model=fk_model, revocation_type="DELETE")
-
-    # Protect organization members from being updated without also invoking the correct outbox logic.
-    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
-    # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
-    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
-
-    restrict_role(
-        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
-    )
-
-    with get_connection().cursor() as conn:
-        conn.execute("SET ROLE 'postgres_unprivileged'")
+        with conn.cursor() as cursor:
+            cursor.execute("SET ROLE 'postgres_unprivileged'")
 
     try:
         yield
     finally:
-        with get_connection().cursor() as conn:
-            conn.execute("SET ROLE 'postgres'")
+        for connection in connections.all():
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")

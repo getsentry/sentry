@@ -4,6 +4,7 @@ import {duration} from 'moment';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
 import hydrateBreadcrumbs, {
@@ -19,23 +20,22 @@ import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {
   breadcrumbFactory,
   replayTimestamps,
-  rrwebEventListFactory,
   spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import splitAttachmentsByType from 'sentry/utils/replays/splitAttachmentsByType';
 import type {
   BreadcrumbFrame,
   ErrorFrame,
+  MemoryFrame,
   OptionFrame,
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {BreadcrumbCategories, EventType} from 'sentry/utils/replays/types';
+import {BreadcrumbCategories} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
   RecordingEvent,
-  RecordingOptions,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
@@ -69,6 +69,8 @@ type RequiredNotNull<T> = {
   [P in keyof T]: NonNullable<T[P]>;
 };
 
+const sortFrames = (a, b) => a.timestampMs - b.timestampMs;
+
 export default class ReplayReader {
   static factory({attachments, errors, replayRecord}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
@@ -97,6 +99,8 @@ export default class ReplayReader {
     errors,
     replayRecord,
   }: RequiredNotNull<ReplayReaderParams>) {
+    this._cacheKey = domId('replayReader-');
+
     const {breadcrumbFrames, optionFrame, rrwebFrames, spanFrames} =
       hydrateFrames(attachments);
 
@@ -124,16 +128,27 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this.replayRecord = replayRecord;
-    this._errors = hydrateErrors(replayRecord, errors);
-    this._rrwebEvents = rrwebFrames;
-    this._breadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames);
-    this._spanFrames = hydrateSpans(replayRecord, spanFrames);
+    // Errors don't need to be sorted here, they will be merged with breadcrumbs
+    // and spans in the getter and then sorted together.
+    this._errors = hydrateErrors(replayRecord, errors).sort(sortFrames);
+    // RRWeb Events are not sorted here, they are fetched in sorted order.
+    this._sortedRRWebEvents = rrwebFrames;
+    // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
+    // have the same timestamp as the click breadcrumb, but will be emitted a
+    // few seconds later.
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
+      replayRecord,
+      breadcrumbFrames
+    ).sort(sortFrames);
+    // Spans must be sorted so components like the Timeline and Network Chart
+    // can have an easier time to render.
+    this._sortedSpanFrames = hydrateSpans(replayRecord, spanFrames).sort(sortFrames);
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._breadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
-    this._rrwebEvents.unshift(recordingStartFrame(replayRecord));
-    this._rrwebEvents.push(recordingEndFrame(replayRecord));
+    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
     /*********************/
     /** OLD STUFF BELOW **/
@@ -166,27 +181,25 @@ export default class ReplayReader {
       rawBreadcrumbs as ReplayCrumb[],
       this.sortedSpans
     );
-    this.rrwebEvents = rrwebEventListFactory(
-      replayRecord,
-      rawRRWebEvents as RecordingEvent[]
-    );
 
     this.replayRecord = replayRecord;
   }
 
   public timestampDeltas = {startedAtDelta: 0, finishedAtDelta: 0};
 
-  private _breadcrumbFrames: BreadcrumbFrame[];
+  private _cacheKey: string;
   private _errors: ErrorFrame[];
   private _optionFrame: undefined | OptionFrame;
-  private _rrwebEvents: RecordingFrame[];
-  private _spanFrames: SpanFrame[];
+  private _sortedBreadcrumbFrames: BreadcrumbFrame[];
+  private _sortedRRWebEvents: RecordingFrame[];
+  private _sortedSpanFrames: SpanFrame[];
 
   private rawErrors: ReplayError[];
   private sortedSpans: ReplaySpan[];
   private replayRecord: ReplayRecord;
-  private rrwebEvents: RecordingEvent[];
   private breadcrumbs: Crumb[];
+
+  toJSON = () => this._cacheKey;
 
   /**
    * @returns Duration of Replay (milliseonds)
@@ -199,59 +212,96 @@ export default class ReplayReader {
     return this.replayRecord;
   };
 
-  getRRWebFrames = () => this._rrwebEvents;
+  getRRWebFrames = () => this._sortedRRWebEvents;
+
+  getErrorFrames = () => this._errors;
 
   getConsoleFrames = memoize(() =>
-    this._breadcrumbFrames.filter(frame => frame.category === 'console')
+    this._sortedBreadcrumbFrames.filter(frame => frame.category === 'console')
+  );
+
+  getNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'replay.init'),
+      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+    ].sort(sortFrames)
   );
 
   getNetworkFrames = memoize(() =>
-    this._spanFrames.filter(
+    this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
     )
   );
 
-  getDOMFrames = memoize(() =>
-    this._breadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {}))
+  getDOMFrames = memoize(() => [
+    ...this._sortedBreadcrumbFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+    ...this._sortedSpanFrames.filter(frame => 'nodeId' in (frame.data ?? {})),
+  ]);
+
+  getDomNodes = memoize(() =>
+    extractDomNodes({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      finishedAt: this.replayRecord.finished_at,
+    })
   );
 
   getMemoryFrames = memoize(() =>
-    this._spanFrames.filter(frame => frame.op === 'memory')
+    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
   );
 
-  _getChapters = () => [
-    ...this._breadcrumbFrames.filter(
-      frame =>
-        ['replay.init', 'ui.click', 'replay.mutations', 'ui.slowClickDetected'].includes(
-          frame.category
-        ) || !BreadcrumbCategories.includes(frame.category)
-    ),
-    ...this._spanFrames.filter(frame =>
-      ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
-        frame.op
-      )
-    ),
-    ...this._errors,
-  ];
-
-  // Sort and memoize the chapters, so the Breadcrumbs UI Component has an easier time
-  getSortedChapters = memoize(() =>
-    this._getChapters().sort((a, b) => a.timestampMs - b.timestampMs)
+  getChapterFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          [
+            'replay.init',
+            'ui.click',
+            'replay.mutations',
+            'ui.slowClickDetected',
+          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+          frame.op
+        )
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
   );
 
-  getTimelineEvents = memoize(() => [
-    ...this._breadcrumbFrames.filter(frame =>
-      ['replay.init', 'ui.click'].includes(frame.category)
-    ),
-    ...this._spanFrames.filter(frame =>
-      ['navigation.navigate', 'navigation.reload'].includes(frame.op)
-    ),
-    ...this._errors,
-  ]);
+  getTimelineFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'ui.click'].includes(frame.category)
+      ),
+      ...this._sortedSpanFrames.filter(frame =>
+        ['navigation.navigate', 'navigation.reload'].includes(frame.op)
+      ),
+      ...this._errors,
+    ].sort(sortFrames)
+  );
 
   getSDKOptions = () => this._optionFrame;
 
-  // TODO: move isNetworkDetailsSetup() up here? or extract it
+  isNetworkDetailsSetup = memoize(() => {
+    const sdkOptions = this.getSDKOptions();
+    if (sdkOptions) {
+      return sdkOptions.networkDetailHasUrls;
+    }
+
+    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
+    // So even if we don't have the config object, we should still fallback and
+    // look for spans with network data, as that means things are setup!
+    return this.getNetworkFrames().some(
+      frame =>
+        // We'd need to `filter()` before calling `some()` in order for TS to be happy
+        // @ts-expect-error
+        Object.keys(frame?.data?.request?.headers ?? {}).length ||
+        // @ts-expect-error
+        Object.keys(frame?.data?.response?.headers ?? {}).length
+    );
+  });
 
   /*********************/
   /** OLD STUFF BELOW **/
@@ -296,37 +346,6 @@ export default class ReplayReader {
   getNetworkSpans = memoize(() => this.sortedSpans.filter(isNetworkSpan));
 
   getMemorySpans = memoize(() => this.sortedSpans.filter(isMemorySpan));
-
-  getDomNodes = memoize(() =>
-    extractDomNodes({
-      crumbs: this.getCrumbsWithRRWebNodes(),
-      rrwebEvents: this.getRRWebFrames(),
-      finishedAt: this.replayRecord.finished_at,
-    })
-  );
-
-  sdkConfig = memoize(() => {
-    const found = this.rrwebEvents.find(
-      event => event.type === EventType.Custom && event.data.tag === 'options'
-    ) as undefined | RecordingOptions;
-    return found?.data?.payload;
-  });
-
-  isNetworkDetailsSetup = memoize(() => {
-    const config = this.sdkConfig();
-    if (config) {
-      return this.sdkConfig()?.networkDetailHasUrls;
-    }
-
-    // Network data was added in JS SDK 7.50.0 while sdkConfig was added in v7.51.1
-    // So even if we don't have the config object, we should still fallback and
-    // look for spans with network data, as that means things are setup!
-    return this.getNetworkSpans().some(
-      span =>
-        Object.keys(span.data.request?.headers || {}).length ||
-        Object.keys(span.data.response?.headers || {}).length
-    );
-  });
 }
 
 const isMemorySpan = (span: ReplaySpan): span is MemorySpan => {

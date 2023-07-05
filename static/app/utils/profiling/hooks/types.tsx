@@ -21,3 +21,31 @@ export type Sort<F> = {
   key: F;
   order: 'asc' | 'desc';
 };
+
+export type TrendType = 'regression' | 'improvement';
+
+export type FunctionTrend = {
+  aggregate_range_1: number;
+  aggregate_range_2: number;
+  breakpoint: number;
+  change: TrendType;
+  'count()': number;
+  // fingerprint: number; DO NOT use this yet
+  function: string;
+  package: string;
+  project: string;
+  stats: FunctionTrendStats;
+  trend_difference: number;
+  trend_percentage: number;
+  unweighted_p_value: number;
+};
+
+type EpochTime = number;
+type DataPoint = {count: number};
+type FunctionTrendStatsData = [EpochTime, DataPoint];
+
+type FunctionTrendStats = {
+  data: FunctionTrendStatsData[];
+  end: number;
+  start: number;
+};

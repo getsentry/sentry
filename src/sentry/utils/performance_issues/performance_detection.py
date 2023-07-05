@@ -133,6 +133,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         "n_plus_one_db_duration_threshold": options.get(
             "performance.issues.n_plus_one_db.duration_threshold"
         ),
+        "slow_db_query_duration_threshold": options.get(
+            "performance.issues.slow_db_query.duration_threshold"
+        ),
         "render_blocking_fcp_min": options.get(
             "performance.issues.render_blocking_assets.fcp_minimum_threshold"
         ),
@@ -186,7 +189,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
     return {
         DetectorType.SLOW_DB_QUERY: [
             {
-                "duration_threshold": 1000.0,  # ms
+                "duration_threshold": settings["slow_db_query_duration_threshold"],  # ms
                 "allowed_span_ops": ["db"],
                 "detection_enabled": settings["slow_db_queries_detection_enabled"],
             },

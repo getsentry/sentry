@@ -53,6 +53,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS_RULE.value, "active": True},
     {"id": RuleType.BOOST_REPLAY_ID_RULE.value, "active": True},
+    {"id": RuleType.RECALIBRATION_RULE.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE: 1000,
@@ -217,16 +218,3 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
 def get_redis_client_for_ds() -> Any:
     cluster_key = settings.SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
-
-
-def generate_cache_key_rebalance_factor(org_id: int) -> str:
-    return f"ds::o:{org_id}:rate_rebalance_factor2"
-
-
-def adjusted_factor(prev_factor: float, actual_rate: float, desired_sample_rate: float) -> float:
-    """
-    Calculates an adjustment factor in order to bring the actual sample rate to the blended_sample rate (i.e.
-    desired_sample_rate)
-    """
-    assert prev_factor != 0.0
-    return prev_factor * (desired_sample_rate / actual_rate)

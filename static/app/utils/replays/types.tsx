@@ -12,7 +12,8 @@ import type {
   OptionFrameEvent as TOptionFrameEvent,
   SpanFrame as TRawSpanFrame,
   SpanFrameEvent as TSpanFrameEvent,
-} from './replayFrame';
+} from '@sentry/replay';
+import invariant from 'invariant';
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -46,6 +47,12 @@ export function isOptionFrameEvent(
   return attachment.data?.tag === 'options';
 }
 
+export function frameOpOrCategory(frame: BreadcrumbFrame | SpanFrame | ErrorFrame) {
+  const val = ('op' in frame && frame.op) || ('category' in frame && frame.category);
+  invariant(val, 'Frame has no category or op');
+  return val;
+}
+
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type HydratedTimestamp = {
@@ -72,6 +79,10 @@ type HydratedStartEndDate = {
    * The end Date of the span
    */
   endTimestamp: Date;
+  /**
+   * Alias of endTimestamp, in milliseconds
+   */
+  endTimestampMs: number;
   /**
    * The difference in startTimestamp and replay.started_at, in millieseconds
    */
@@ -104,6 +115,7 @@ export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 
 // This list should match each of the categories used in `HydratedBreadcrumb` above.
 export const BreadcrumbCategories = [
@@ -115,6 +127,7 @@ export const BreadcrumbCategories = [
   'ui.blur',
   'ui.focus',
   'ui.slowClickDetected',
+  'ui.multiClick',
 ];
 
 // Spans
@@ -174,11 +187,12 @@ export type ErrorFrame = Overwrite<
   {
     category: 'issue';
     data: {
-      eventId: string; // error['id']
-      groupId: number; // error['issue.id']
-      groupShortId: string; // error['issue']
-      label: string; // error['error.type'].join('')
-      projectSlug: string; // error['project.name']
+      eventId: string;
+      groupId: number;
+      groupShortId: string;
+      label: string;
+      labels: string[];
+      projectSlug: string;
     };
     message: string;
   }

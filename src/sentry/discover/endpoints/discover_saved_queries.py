@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import Case, When
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -40,11 +42,9 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "name" or key == "query":
-                    value = " ".join(value)
-                    queryset = queryset.filter(name__icontains=value)
+                    queryset = queryset.filter(name__icontains=" ".join(value))
                 elif key == "version":
-                    value = " ".join(value)
-                    queryset = queryset.filter(version=value)
+                    queryset = queryset.filter(version=" ".join(value))
                 else:
                     queryset = queryset.none()
 
@@ -55,16 +55,16 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             desc = False
 
         if sort_by == "name":
-            order_by = [
+            order_by: list[Case | str] = [
                 "-lower_name" if desc else "lower_name",
                 "-date_created",
             ]
 
         elif sort_by == "dateCreated":
-            order_by = "-date_created" if desc else "date_created"
+            order_by = ["-date_created" if desc else "date_created"]
 
         elif sort_by == "dateUpdated":
-            order_by = "-date_updated" if desc else "date_updated"
+            order_by = ["-date_updated" if desc else "date_updated"]
 
         elif sort_by == "mostPopular":
             order_by = [
@@ -73,7 +73,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = "last_visited" if desc else "-last_visited"
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "myqueries":
             order_by = [
@@ -82,10 +82,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             ]
 
         else:
-            order_by = "lower_name"
+            order_by = ["lower_name"]
 
-        if not isinstance(order_by, list):
-            order_by = [order_by]
         queryset = queryset.order_by(*order_by)
 
         # Old discover expects all queries and uses this parameter.

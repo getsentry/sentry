@@ -108,15 +108,17 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             return Response({})
 
         buckets = request.GET.get("intervals", 3)
-        lower_bound = request.GET.get("lowerBound")
+        lower_bound = request.GET.get("lowerBound", 0)
+        first_bound = request.GET.get("firstBound")
+        second_bound = request.GET.get("secondBound")
         upper_bound = request.GET.get("upperBound")
         column = request.GET.get("column", "span.self_time")
 
         if lower_bound is None or upper_bound is None:
             bound_results = spans_metrics.query(
                 selected_columns=[
-                    f"p50({column}) as lower_bound",
-                    f"p95({column}) as upper_bound",
+                    f"p50({column}) as first_bound",
+                    f"p95({column}) as second_bound",
                 ],
                 params=params,
                 query=request.query_params.get("query"),
@@ -126,15 +128,15 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 raise ParseError("Could not find bounds")
 
             bound_data = bound_results["data"][0]
-            lower_bound, upper_bound = bound_data["lower_bound"], bound_data["upper_bound"]
+            first_bound, second_bound = bound_data["first_bound"], bound_data["second_bound"]
             if lower_bound == 0 or upper_bound == 0:
                 raise ParseError("Could not find bounds")
 
         result = spans_indexed.query(
             selected_columns=[
-                f"bounded_sample({column}, 0, {lower_bound}) as lower",
-                f"bounded_sample({column}, {lower_bound}, {upper_bound}) as middle",
-                f"bounded_sample({column}, {upper_bound}) as top",
+                f"bounded_sample({column}, {lower_bound}, {first_bound}) as lower",
+                f"bounded_sample({column}, {first_bound}, {second_bound}) as middle",
+                f"bounded_sample({column}, {second_bound}{', ' if upper_bound else ''}{upper_bound}) as top",
                 f"rounded_time({buckets})",
             ],
             params=params,
@@ -150,6 +152,8 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
                 span_ids.append(middle)
             if top:
                 span_ids.append(top)
+        if len(span_ids) == 0:
+            return Response({"data": []})
 
         result = spans_indexed.query(
             selected_columns=["project", "transaction.id", column, "timestamp", "span_id"],

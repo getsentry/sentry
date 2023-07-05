@@ -564,7 +564,7 @@ GROUP_URLS = [
         GroupEventsEndpoint.as_view(),
     ),
     url(
-        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|\d+|[A-Fa-f0-9-]{32,36}))/$",
+        r"^(?P<issue_id>[^\/]+)/events/(?P<event_id>(?:latest|oldest|helpful|\d+|[A-Fa-f0-9-]{32,36}))/$",
         GroupEventDetailsEndpoint.as_view(),
     ),
     url(

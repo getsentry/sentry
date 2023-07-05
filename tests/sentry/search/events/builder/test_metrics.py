@@ -10,6 +10,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
+    AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
@@ -23,6 +24,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
+from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY
 
 
 def _metric_percentile_definition(
@@ -1631,7 +1633,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
-        assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
+        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
         assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
 
         # If we're on the start of the hour we should use the hour granularity
@@ -2045,3 +2047,56 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             (300.0, 400.0, 17),
             (400.0, 500.0, 10),
         ]
+
+
+class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
+    def test_get_snql_query(self):
+        query = AlertMetricsQueryBuilder(
+            self.params,
+            use_metrics_layer=True,
+            granularity=3600,
+            query="transaction.duration:>=100",
+            dataset=Dataset.PerformanceMetrics,
+            selected_columns=["p75(measurements.fp)"],
+        )
+
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "generic_metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            [
+                Function(
+                    "arrayElement",
+                    [
+                        Function(
+                            "quantilesIf(0.75)",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        indexer.resolve(
+                                            UseCaseID.TRANSACTIONS,
+                                            None,
+                                            "d:transactions/on_demand@none",
+                                        ),
+                                    ],
+                                ),
+                            ],
+                        ),
+                        1,
+                    ],
+                    "d:transactions/on_demand@none",
+                )
+            ],
+            snql_query.select,
+        )
+
+        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+
+        query_hash_clause = Condition(
+            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
+        )
+
+        assert query_hash_clause in snql_query.where

@@ -6,6 +6,7 @@ import logging
 from typing import Any, Mapping, Protocol
 
 from django.http import (
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseNotFound,
@@ -17,7 +18,6 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
@@ -33,6 +33,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -105,9 +106,9 @@ class OrganizationMixin:
             organization_slug, request
         )
         backup_organization: RpcOrganizationSummary | None = None
-        if active_organization is None:
-            organizations = organization_service.get_organizations(
-                user_id=request.user.id, scope=None, only_visible=True
+        if active_organization is None and request.user.id is not None:
+            organizations = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
             )
 
             if organizations:
@@ -272,7 +273,7 @@ class BaseView(View, OrganizationMixin):
         super().__init__(*args, **kwargs)
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         """
         A note on the CSRF protection process.
 
@@ -337,7 +338,10 @@ class BaseView(View, OrganizationMixin):
         return self.handle(request, *args, **kwargs)
 
     def test_csrf(self, request: Request) -> HttpResponse:
-        middleware = CsrfViewMiddleware()
+        def _fake_get_response(request: HttpRequest) -> HttpResponse:
+            raise AssertionError("this should be unreachable")
+
+        middleware = CsrfViewMiddleware(_fake_get_response)
         return middleware.process_view(request, self.dispatch, [request], {})
 
     def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
@@ -348,7 +352,7 @@ class BaseView(View, OrganizationMixin):
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def handle(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
@@ -645,7 +649,7 @@ class ProjectView(OrganizationView):
 class AvatarPhotoView(View):
     model: type[AvatarBase]
 
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def get(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
         avatar_id = kwargs["avatar_id"]
         try:
             avatar = self.model.objects.get(ident=avatar_id)

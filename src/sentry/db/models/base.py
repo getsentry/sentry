@@ -209,7 +209,7 @@ class ModelSiloLimit(SiloLimit):
         setattr(
             model_class,
             "objects",
-            create_silo_limited_copy(getattr(model_class, "objects"), self, self.read_only),
+            create_silo_limited_copy(getattr(model_class, "objects"), self),
         )
 
         # On the model (not manager) class itself, find all methods that are tagged
