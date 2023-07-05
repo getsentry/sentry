@@ -100,6 +100,7 @@ class TransactionMetricKey(Enum):
     SPAN_USER = "span.user"
     SPAN_DURATION = "span.duration"
 
+    # TODO: Remove this as soon as the MetricsQuery supports private metrics
     COUNT_ON_DEMAND = "count.on_demand"
     DIST_ON_DEMAND = "dist.on_demand"
     SET_ON_DEMAND = "set.on_demand"
