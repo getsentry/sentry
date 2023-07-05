@@ -75,7 +75,7 @@ function getEventView(
   pageFilters: PageFilters,
   spanCategory?: string
 ) {
-  const queryConditions: string[] = [`!span.domain:""`];
+  const queryConditions: string[] = [`has:span.domain has:span.description`];
   if (moduleName) {
     queryConditions.push(`span.module:${moduleName}`);
   }

@@ -267,6 +267,8 @@ const buildDiscoverQueryConditions = (
       return `${key}:${appliedFilters[key]}`;
     });
 
+  result.push('has:span.description');
+
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
   }
