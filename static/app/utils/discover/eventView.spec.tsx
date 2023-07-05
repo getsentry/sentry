@@ -1,4 +1,5 @@
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {SavedQuery} from 'sentry/types';
 import EventView, {
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
@@ -182,7 +183,7 @@ describe('EventView.fromLocation()', function () {
 
 describe('EventView.fromSavedQuery()', function () {
   it('maps basic properties of saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -243,7 +244,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('maps saved query with no conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count',
       name: 'foo bar',
       fields: ['release', 'count()'],
@@ -278,7 +279,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('maps properties from v2 saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
       name: 'best query',
       fields: ['count()', 'title'],
       range: '14d',
@@ -297,7 +298,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries are equal when start and end datetime differ in format', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -338,7 +339,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries are not equal when datetime selection are invalid', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -374,7 +375,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries with undefined yAxis are defaulted to count() when comparing with isEqualTo', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -400,7 +401,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('uses the first yAxis from the SavedQuery', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -440,7 +441,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('preserves utc with start/end', function () {
-    const saved = {
+    const saved: SavedQuery = {
       name: 'best query',
       query: 'event.type:transaction',
       fields: ['count()', 'title'],
