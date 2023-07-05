@@ -493,11 +493,12 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
         notify(provider, notification, participants, shared_context, extra_context)
 
 
-def get_replay_id(event: Event, group: Group) -> str | None:
+def get_replay_id(event: Event) -> str | None:
     tags_replay_id = event.get_tag("replay_id")
-    if group.occurrence is not None:
-        evidence_replay_id = group.occurrence.evidence_data.get("replay_id", "")
-        return evidence_replay_id or tags_replay_id
+    if event.occurrence is not None and event.occurrence.evidence_data:
+        evidence_replay_id = event.occurrence.evidence_data.get("replay_id", "")
+        if evidence_replay_id:
+            return evidence_replay_id
 
     return tags_replay_id
 

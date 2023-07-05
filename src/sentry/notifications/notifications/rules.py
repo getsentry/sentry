@@ -165,7 +165,7 @@ class AlertRuleNotification(ProjectNotification):
         show_replay_link = features.has(
             "organizations:session-replay-issue-emails", self.organization
         )
-        replay_id = get_replay_id(self.event, self.group)
+        replay_id = get_replay_id(self.event)
         if has_session_replay and show_replay_link and replay_id:
             context.update(
                 {
