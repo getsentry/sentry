@@ -12,7 +12,9 @@ import {
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
+import {AggregationKey, WebVital} from 'sentry/utils/fields';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -3031,9 +3033,9 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
-  const showTransactions = 'p99';
-  const breakdown = 'http';
-  const webVital = 'measurements.lcp';
+  const showTransactions = EventsDisplayFilterName.P99;
+  const breakdown = SpanOperationBreakdownFilter.HTTP;
+  const webVital = WebVital.LCP;
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
