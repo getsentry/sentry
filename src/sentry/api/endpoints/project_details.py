@@ -425,7 +425,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         """
         Update various attributes and configurable settings for the given project.
 
-        Note that soley having the **`project:read`** scope restricts updatable settings to
+        Note that solely having the **`project:read`** scope restricts updatable settings to
         `isBookmarked` only.
         """
 

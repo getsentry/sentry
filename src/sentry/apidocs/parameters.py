@@ -310,7 +310,7 @@ Configures multiple options for the Javascript Loader Script.
         location="query",
         required=False,
         type=bool,
-        description="Enables setting the bookmark flag when the request is invoked with a user context.",
+        description="Enables the option to favorite a project within the projects tab.",
     )
 
     RATE_LIMIT = OpenApiParameter(
