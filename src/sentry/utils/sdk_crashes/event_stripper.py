@@ -109,7 +109,7 @@ def strip_event_data(
 
     stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 
-    if (stripped_event_data is None) or (stripped_event_data == {}):
+    if not stripped_event_data:
         return {}
 
     return stripped_event_data
