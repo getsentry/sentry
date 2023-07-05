@@ -3434,7 +3434,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3451,7 +3451,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3465,7 +3465,7 @@ describe('isAPIPayloadSimilar', function () {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3480,7 +3480,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const otherEventView = thisEventView.clone();
       otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3499,7 +3499,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3518,7 +3518,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3537,7 +3537,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3556,7 +3556,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3570,7 +3570,7 @@ describe('isAPIPayloadSimilar', function () {
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3585,7 +3585,7 @@ describe('isAPIPayloadSimilar', function () {
 
       state.fields.reverse();
       const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3613,7 +3613,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3641,7 +3641,7 @@ describe('isAPIPayloadSimilar', function () {
         equationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3676,7 +3676,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3690,7 +3690,7 @@ describe('isAPIPayloadSimilar', function () {
 
       const otherEventView = thisEventView.clone();
       otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
