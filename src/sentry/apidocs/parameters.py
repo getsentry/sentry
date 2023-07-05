@@ -310,7 +310,7 @@ Configures multiple options for the Javascript Loader Script.
         location="query",
         required=False,
         type=bool,
-        description="Enables the option to favorite a project within the projects tab.",
+        description="Enables favoriting the project within the projects tab.",
     )
 
     RATE_LIMIT = OpenApiParameter(
