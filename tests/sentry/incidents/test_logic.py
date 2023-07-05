@@ -1934,6 +1934,7 @@ class TestCustomMetricAlertRule(TestCase):
     ):
         self.create_alert_rule(
             projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>=100",
         )
 
@@ -1948,6 +1949,7 @@ class TestCustomMetricAlertRule(TestCase):
     ):
         self.create_alert_rule(
             projects=[self.project],
+            dataset=Dataset.PerformanceMetrics,
             query="transaction.duration:>=100",
         )
 
