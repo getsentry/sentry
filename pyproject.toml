@@ -31,8 +31,6 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
-    "ignore::django.utils.deprecation.RemovedInDjango30Warning",
-
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is
     # released: https://github.com/googleapis/python-bigtable/pull/246
@@ -826,7 +824,6 @@ module = [
     "sentry.runner.commands.upgrade",
     "sentry.runner.importer",
     "sentry.runner.initializer",
-    "sentry.runner.settings",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",

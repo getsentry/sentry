@@ -1,9 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import Settings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
+  const router = TestStubs.router();
   const organization = TestStubs.Organization();
   // 12 minutes
   const digestsMinDelay = 12 * 60;
@@ -15,13 +15,13 @@ describe('ProjectAlertSettings', () => {
   });
 
   beforeEach(() => {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
     });
 
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/plugins/`,
       method: 'GET',
       body: [],
@@ -35,6 +35,10 @@ describe('ProjectAlertSettings', () => {
         params={{projectId: project.slug}}
         organization={organization}
         routes={[]}
+        router={router}
+        routeParams={router.params}
+        route={router.routes[0]}
+        location={router.location}
       />
     );
 
