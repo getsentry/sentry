@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from sentry import features
-from sentry.models import Group, Project, User
+from sentry.issues.ongoing import transition_group_to_ongoing
+from sentry.models import Group, GroupStatus, Project, User
 from sentry.models.groupinbox import (
     GroupInboxReason,
     GroupInboxRemoveAction,
@@ -11,6 +12,7 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.signals import issue_mark_reviewed
+from sentry.types.group import GroupSubStatus
 
 
 def update_inbox(
@@ -32,16 +34,30 @@ def update_inbox(
     if in_inbox:
         for group in group_list:
             add_group_to_inbox(group, GroupInboxReason.MANUAL)
-    elif not in_inbox and not features.has(
-        "organizations:remove-mark-reviewed", group_list[0].project.organization
-    ):
+    elif not in_inbox:
+        has_escalating = features.has(
+            "organizations:escalating-issues", group_list[0].project.organization, actor=acting_user
+        )
         for group in group_list:
+            # Remove from inbox first to insert the mark reviewed activity
             remove_group_from_inbox(
                 group,
                 action=GroupInboxRemoveAction.MARK_REVIEWED,
                 user=acting_user,
                 referrer=http_referrer,
             )
+            if (
+                has_escalating
+                and group.substatus != GroupSubStatus.ONGOING
+                and group.status == GroupStatus.UNRESOLVED
+            ):
+                transition_group_to_ongoing(
+                    group.status,
+                    group.substatus,
+                    group,
+                    activity_data={"manually": True},
+                )
+
             issue_mark_reviewed.send_robust(
                 project=project_lookup[group.project_id],
                 user=acting_user,

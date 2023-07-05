@@ -45,9 +45,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
+        assert not GroupInbox.objects.filter(group=group).exists()
 
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
@@ -74,9 +72,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
+        assert not GroupInbox.objects.filter(group=group).exists()
 
     def test_multiple_old_new(self):
         now = datetime.now(tz=pytz.UTC)
@@ -126,10 +122,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(project=project).count() == len(older_groups)
-        assert GroupInbox.objects.filter(
-            project_id=project.id, reason=GroupInboxReason.ONGOING.value
-        ).count() == len(older_groups)
+        assert not GroupInbox.objects.filter(group=group).exists()
 
         assert set(
             Group.objects.filter(
@@ -194,11 +187,6 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                 substatus=GroupSubStatus.ONGOING,
             ).values_list("id", flat=True)
         ) == {g.id for g in groups}
-        assert set(
-            GroupInbox.objects.filter(
-                project=project, reason=GroupInboxReason.ONGOING.value
-            ).values_list("group_id", flat=True)
-        ) == {g.id for g in groups}
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
@@ -227,10 +215,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
-
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
 
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value

@@ -1354,8 +1354,6 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the new issue states and substates
-    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
