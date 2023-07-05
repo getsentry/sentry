@@ -1501,8 +1501,10 @@ class QueryBuilder(BaseQueryBuilder):
         )
 
     @classmethod
-    def handle_invalid_float(cls, value: float) -> Optional[float]:
-        if math.isnan(value):
+    def handle_invalid_float(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return value
+        elif math.isnan(value):
             return 0
         elif math.isinf(value):
             return None

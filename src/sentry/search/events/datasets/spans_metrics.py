@@ -250,24 +250,21 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "http_error_rate",
-                    snql_distribution=lambda args, alias: Function(
-                        "divide",
-                        [
-                            self._resolve_http_error_count(args),
-                            Function(
-                                "countIf",
-                                [
-                                    Column("value"),
-                                    Function(
-                                        "equals",
-                                        [
-                                            Column("metric_id"),
-                                            self.resolve_metric("span.self_time"),
-                                        ],
-                                    ),
-                                ],
-                            ),
-                        ],
+                    snql_distribution=lambda args, alias: self.builder.resolve_division(
+                        self._resolve_http_error_count(args),
+                        Function(
+                            "countIf",
+                            [
+                                Column("value"),
+                                Function(
+                                    "equals",
+                                    [
+                                        Column("metric_id"),
+                                        self.resolve_metric("span.self_time"),
+                                    ],
+                                ),
+                            ],
+                        ),
                         alias,
                     ),
                     default_result_type="percentage",
@@ -408,18 +405,15 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         )
         metric_id = self.resolve_metric("span.self_time")
 
-        return Function(
-            "divide",
-            [
-                Function(
-                    "sumIf",
-                    [
-                        Column("value"),
-                        Function("equals", [Column("metric_id"), metric_id]),
-                    ],
-                ),
-                total_time,
-            ],
+        return self.builder.resolve_division(
+            Function(
+                "sumIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column("metric_id"), metric_id]),
+                ],
+            ),
+            total_time,
             alias,
         )
 
@@ -561,28 +555,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         return self._resolve_percent_change_function(first_half, second_half, alias)
 
     def _resolve_percent_change_function(self, first_half, second_half, alias):
-        return Function(
-            "if",
-            [
-                Function(
-                    "greater",
-                    [
-                        first_half,
-                        0,
-                    ],
-                ),
-                Function(
-                    "divide",
-                    [
-                        Function(
-                            "minus",
-                            [second_half, first_half],
-                        ),
-                        first_half,
-                    ],
-                ),
-                None,
-            ],
+        return self.builder.resolve_division(
+            Function(
+                "minus",
+                [second_half, first_half],
+            ),
+            first_half,
             alias,
         )
 
