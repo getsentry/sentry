@@ -14,7 +14,6 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
 
 import {StarfishView} from './starfishView';
 
@@ -31,7 +30,6 @@ type Props = {
 export function StarfishLanding(props: Props) {
   const pageFilters: React.ReactNode = (
     <PageFilterBar condensed>
-      <StarfishProjectSelector />
       <StarfishDatePicker />
     </PageFilterBar>
   );

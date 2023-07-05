@@ -4,6 +4,7 @@ import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
+import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 import SpansView from 'sentry/views/starfish/views/spans/spansView';
 
@@ -20,7 +21,9 @@ export default function DBModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <SpansView moduleName={ModuleName.DB} />
+            <StarfishPageFilterContainer>
+              <SpansView moduleName={ModuleName.DB} />
+            </StarfishPageFilterContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
