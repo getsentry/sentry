@@ -3,10 +3,11 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from enum import IntEnum
-from typing import Any, List, Mapping, Optional, TypedDict
+from typing import Any, List, Mapping, Optional
 
 from django.dispatch import Signal
 from pydantic import Field
+from typing_extensions import TypedDict
 
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption

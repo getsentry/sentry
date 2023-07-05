@@ -3,9 +3,10 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import List, Optional, TypedDict
+from typing import List, Optional
 
 from pydantic.fields import Field
+from typing_extensions import TypedDict
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
