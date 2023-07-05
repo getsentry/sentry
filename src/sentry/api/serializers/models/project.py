@@ -827,7 +827,7 @@ def _get_project_to_release_version_mapping(
     }
 
 
-class Plugins(TypedDict):
+class Plugin(TypedDict):
     id: str
     name: str
     slug: str
@@ -882,7 +882,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     groupingAutoUpdate: bool
     fingerprintingRules: str
     organization: OrganizationSerializerResponse
-    plugins: List[Plugins]
+    plugins: List[Plugin]
     platforms: List[str]
     processingIssues: int
     defaultEnvironment: Optional[str]
