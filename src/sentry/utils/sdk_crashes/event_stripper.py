@@ -97,7 +97,7 @@ def strip_event_data(
 ) -> Mapping[str, Any]:
 
     frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
-    if frames is None:
+    if not frames:
         return {}
 
     # We strip the frames first because applying the allowlist removes fields that are needed
