@@ -9,8 +9,6 @@ from sentry.testutils.cases import TestCase
 
 
 class DiscordClientTest(TestCase):
-    guild_name: DiscordClient
-
     def setUp(self):
         self.application_id = "application-id"
         self.bot_token = "bot-token"
