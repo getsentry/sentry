@@ -1,6 +1,5 @@
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
-from rest_framework.request import Request
 
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
@@ -521,7 +520,7 @@ crash_free_metric_alert = {
 
 
 class DebugChartRendererView(View):
-    def get(self, request: Request) -> HttpResponse:
+    def get(self, request: HttpRequest) -> HttpResponse:
         ret = []
 
         ret.append(
