@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestMigrations
 
 
 @pytest.mark.skip(
-    "Test setup no longer valid after adding migration 'indexing_state' field to 'ArtifactBundle'"
+    "Test setup no longer valid after adding 'indexing_state' field to 'ArtifactBundle'"
 )
 class SetNoneDateLastModifiedToDateUploadedTest(TestMigrations):
     migrate_from = "0499_typed_bitfield_revert"
