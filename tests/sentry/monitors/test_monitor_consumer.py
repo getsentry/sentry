@@ -457,3 +457,10 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
+
+    def test_monitor_blocked_orgs(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        with override_settings(SENTRY_BLOCKED_MONITOR_CHECK_IN_ORGS=[self.organization.id]):
+            self.send_message(monitor.slug)
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()

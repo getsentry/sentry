@@ -127,6 +127,14 @@ def _process_message(wrapper: Dict) -> None:
         "source_sdk": source_sdk,
     }
 
+    if project.organization_id in settings.SENTRY_BLOCKED_MONITOR_CHECK_IN_ORGS:
+        metrics.incr(
+            "monitors.checkin.dropped.blocked",
+            tags={**metric_kwargs},
+        )
+        logger.debug("monitor check in blocked: %s", monitor_slug)
+        return
+
     if ratelimits.is_limited(
         f"monitor-checkins:{ratelimit_key}",
         limit=CHECKIN_QUOTA_LIMIT,
