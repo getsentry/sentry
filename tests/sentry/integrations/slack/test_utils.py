@@ -131,6 +131,7 @@ class GetChannelIdFasterTest(TestCase):
             result_name="members",
         )
 
+    @with_feature("organizations:slack-use-new-lookup")
     def tearDown(self):
         self.resp.__exit__(None, None, None)
 
@@ -143,27 +144,34 @@ class GetChannelIdFasterTest(TestCase):
             body=json.dumps({"ok": "true", result_name: channels}),
         )
 
+    @with_feature("organizations:slack-use-new-lookup")
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert (expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration, channel
         )
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_channel_selected(self):
         self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_private_channel_selected(self):
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_member_selected(self):
         self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_member_selected_display_name(self):
         self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_invalid_member_selected_display_name(self):
         with pytest.raises(DuplicateDisplayNameError):
             get_channel_id(self.organization, self.integration, "@Morty")
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_invalid_channel_selected(self):
         assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
         assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
@@ -186,9 +194,11 @@ class GetChannelIdFasterErrorTest(TestCase):
         )
         self.integration.add_organization(self.event.project.organization, self.user)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def tearDown(self):
         self.resp.__exit__(None, None, None)
 
+    @with_feature("organizations:slack-use-new-lookup")
     def test_rate_limiting(self):
         """Should handle 429 from Slack when searching for channels"""
         self.resp.add(
