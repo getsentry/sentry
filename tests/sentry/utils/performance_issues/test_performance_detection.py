@@ -434,6 +434,7 @@ class PerformanceDetectionTest(TestCase):
                     "consecutive_db": False,
                     "large_http_payload": False,
                     "consecutive_http": False,
+                    "consecutive_http_ext": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,
                     "n_plus_one_db": False,
