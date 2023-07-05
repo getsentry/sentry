@@ -2245,11 +2245,8 @@ describe('EventView.withUpdatedColumn()', function () {
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
       expect(eventView2).toMatchObject(expected);
 
-      const eventView3 = eventView.withUpdatedColumn(0, newColumn);
+      const eventView3 = eventView.withUpdatedColumn(0, newColumn, undefined);
       expect(eventView3).toMatchObject(expected);
-
-      const eventView4 = eventView.withUpdatedColumn(0, newColumn, null);
-      expect(eventView4).toMatchObject(expected);
     });
   });
 
@@ -2369,11 +2366,8 @@ describe('EventView.withDeletedColumn()', function () {
       const eventView2 = eventView.withDeletedColumn(1, {});
       expect(eventView2).toMatchObject(expected);
 
-      const eventView3 = eventView.withDeletedColumn(1);
+      const eventView3 = eventView.withDeletedColumn(1, undefined);
       expect(eventView3).toMatchObject(expected);
-
-      const eventView4 = eventView.withDeletedColumn(1, null);
-      expect(eventView4).toMatchObject(expected);
     });
 
     it('has no remaining sortable column', function () {
