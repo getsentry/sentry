@@ -131,8 +131,8 @@ describe('Dashboards util', () => {
         selection,
         widget.displayType
       );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.fields[0]!.field).toEqual('geo.country_code');
+      expect(eventView.fields[1]!.field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
     });
     it('does not attach geo.country_code condition and field to a World Map widget if it already has one', () => {
@@ -144,8 +144,8 @@ describe('Dashboards util', () => {
         selection,
         widget.displayType
       );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.fields[0]!.field).toEqual('geo.country_code');
+      expect(eventView.fields[1]!.field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
     });
     it('handles sorts in function format', () => {
@@ -156,8 +156,8 @@ describe('Dashboards util', () => {
         selection,
         widget.displayType
       );
-      expect(eventView.fields[0].field).toEqual('geo.country_code');
-      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.fields[0]!.field).toEqual('geo.country_code');
+      expect(eventView.fields[1]!.field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
       expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
     });

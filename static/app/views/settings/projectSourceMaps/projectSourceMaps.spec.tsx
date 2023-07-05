@@ -140,7 +140,7 @@ describe('ProjectSourceMaps', function () {
 
       // Delete item displays a confirmation modal
       await userEvent.click(
-        screen.getAllByRole('button', {name: 'Remove All Artifacts'})[0]
+        screen.getAllByRole('button', {name: 'Remove All Artifacts'})[0]!
       );
       expect(
         await screen.findByText(

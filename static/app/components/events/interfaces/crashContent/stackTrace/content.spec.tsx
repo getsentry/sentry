@@ -85,7 +85,7 @@ describe('StackTrace', function () {
     const frameTitles = screen.getAllByTestId('title');
 
     // collapse the expanded frame (by default)
-    await userEvent.click(frameTitles[0]);
+    await userEvent.click(frameTitles[0]!);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();

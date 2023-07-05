@@ -141,7 +141,7 @@ describe('Onboarding Product Selection', function () {
     await userEvent.hover(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
 
     // A tooltip with explanation why the option is disabled shall be displayed on hover
-    expect(await screen.findByText(disabledProducts[0].reason)).toBeInTheDocument();
+    expect(await screen.findByText(disabledProducts[0]!.reason)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('checkbox', {name: 'Performance Monitoring'}));
 
     // Try to uncheck performance monitoring

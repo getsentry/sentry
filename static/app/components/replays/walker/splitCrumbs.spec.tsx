@@ -41,7 +41,7 @@ describe('splitCrumbs', () => {
     });
     expect(results).toHaveLength(1);
 
-    render(results[0]);
+    render(results[0]!);
     expect(screen.getByText('0 Pages')).toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe('splitCrumbs', () => {
     });
     expect(results).toHaveLength(1);
 
-    render(results[0]);
+    render(results[0]!);
     expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
   });
 
@@ -69,17 +69,17 @@ describe('splitCrumbs', () => {
     });
     expect(results).toHaveLength(3);
 
-    render(results[0]);
+    render(results[0]!);
     expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
 
-    render(results[1]);
+    render(results[1]!);
     expect(
       screen.getByText(
         '/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js'
       )
     ).toBeInTheDocument();
 
-    render(results[2]);
+    render(results[2]!);
     expect(
       screen.getByText(
         '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
@@ -103,13 +103,13 @@ describe('splitCrumbs', () => {
     });
     expect(results).toHaveLength(3);
 
-    render(results[0]);
+    render(results[0]!);
     expect(screen.getByText('https://sourcemaps.io/')).toBeInTheDocument();
 
-    render(results[1]);
+    render(results[1]!);
     expect(screen.getByText('3 Pages')).toBeInTheDocument();
 
-    render(results[2]);
+    render(results[2]!);
     expect(
       screen.getByText(
         '/report/1669088273097_http%3A%2F%2Funderscorejs.org%2Funderscore-min.js'
@@ -133,7 +133,7 @@ describe('splitCrumbs', () => {
     });
     expect(results).toHaveLength(3);
 
-    render(results[1]);
+    render(results[1]!);
     expect(screen.getByText('3 Pages')).toBeInTheDocument();
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 

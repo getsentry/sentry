@@ -18,7 +18,7 @@ describe('UIFrames', () => {
       }
     );
 
-    expect(tree.frames[0].duration).toBe(tree.frames[1].duration);
+    expect(tree.frames[0]!.duration).toBe(tree.frames[1]!.duration);
   });
 
   it.each([

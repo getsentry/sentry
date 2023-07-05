@@ -28,16 +28,16 @@ describe('ProjectKeyDetails', function () {
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'GET',
       body: projectKeys[0],
     });
     putMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'PUT',
     });
     statsMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/stats/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/stats/`,
       method: 'GET',
       body: [
         {filtered: 0, accepted: 0, total: 0, ts: 1517270400, dropped: 0},
@@ -74,7 +74,7 @@ describe('ProjectKeyDetails', function () {
       ],
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      url: `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       method: 'DELETE',
     });
 
@@ -93,7 +93,7 @@ describe('ProjectKeyDetails', function () {
         organization={org}
         project={project}
         params={{
-          keyId: projectKeys[0].id,
+          keyId: projectKeys[0]!.id,
           projectId: project.slug,
         }}
       />,
@@ -114,7 +114,7 @@ describe('ProjectKeyDetails', function () {
     await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {
           name: 'New Name',
@@ -127,7 +127,7 @@ describe('ProjectKeyDetails', function () {
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {isActive: false},
       })
@@ -136,7 +136,7 @@ describe('ProjectKeyDetails', function () {
     await userEvent.click(screen.getByRole('checkbox', {name: 'Enabled'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0].id}/`,
+      `/projects/${org.slug}/${project.slug}/keys/${projectKeys[0]!.id}/`,
       expect.objectContaining({
         data: {isActive: false},
       })

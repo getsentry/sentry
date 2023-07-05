@@ -341,7 +341,7 @@ describe('WidgetBuilder', function () {
       // Selector "sortBy"
       expect(screen.getAllByText('count()')).toHaveLength(3);
 
-      await selectEvent.select(screen.getAllByText('count()')[2], 'count_unique(id)');
+      await selectEvent.select(screen.getAllByText('count()')[2]!, 'count_unique(id)');
 
       // Wait for the Builder update the widget values
       await waitFor(() => {
@@ -425,13 +425,13 @@ describe('WidgetBuilder', function () {
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
 
       // Select GroupBy value
-      await selectEvent.select(screen.getAllByText('Select group')[0], 'project');
+      await selectEvent.select(screen.getAllByText('Select group')[0]!, 'project');
 
       // Now that at least one groupBy value is selected, the SortBy step shall be visible
       expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
 
       // Remove selected GroupBy value
-      await userEvent.click(screen.getAllByLabelText('Remove group')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove group')[0]!);
 
       // SortBy step shall no longer be visible
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
@@ -447,7 +447,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
       await userEvent.paste('count_unique(user) * 2');
       await userEvent.keyboard('{Enter}');
@@ -475,7 +475,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
       await userEvent.paste('count_unique(user) * 2');
       await userEvent.keyboard('{Enter}');
@@ -486,7 +486,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('project')).toHaveLength(2);
 
       // Switch back, the equation should still be visible
-      await selectEvent.select(screen.getAllByText('project')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('project')[1]!, 'Custom Equation');
       expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
         'count_unique(user) * 2'
       );
@@ -502,7 +502,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
       await userEvent.paste('count_unique(user) * 2');
       await userEvent.keyboard('{Enter}');
@@ -561,7 +561,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       selectEvent.openMenu(screen.getByPlaceholderText('Enter Equation'));
 
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
@@ -580,7 +580,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
       await userEvent.paste('count_unique(user) * 2');
       await userEvent.keyboard('{Enter}');
@@ -614,7 +614,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       await userEvent.click(screen.getByText('Add an Equation'));
-      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove this Y-Axis')[0]!);
 
       expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
     });
@@ -631,8 +631,8 @@ describe('WidgetBuilder', function () {
       expect(screen.getAllByText('count()')).toHaveLength(2);
 
       // Change the sort option to a grouping field, and then change a y-axis
-      await selectEvent.select(screen.getAllByText('count()')[1], 'project');
-      await selectEvent.select(screen.getAllByText('count()')[0], /count_unique/);
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'project');
+      await selectEvent.select(screen.getAllByText('count()')[0]!, /count_unique/);
 
       // project should appear in the group by field, as well as the sort field
       expect(screen.getAllByText('project')).toHaveLength(2);
@@ -650,7 +650,7 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(screen.getByText('Select group'), 'project');
 
       // Change the sort by to count_unique
-      await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+      await selectEvent.select(screen.getAllByText('count()')[1]!, /count_unique/);
 
       // Change the grouping
       await selectEvent.select(screen.getByText('project'), 'environment');
@@ -669,7 +669,7 @@ describe('WidgetBuilder', function () {
       });
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
-      await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
       await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
       await userEvent.paste('count_unique(user) * 2');
       await userEvent.keyboard('{Enter}');
@@ -768,7 +768,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], /count_unique/);
+      await selectEvent.select(screen.getAllByText('count()')[1]!, /count_unique/);
 
       await userEvent.click(screen.getByText('Line Chart'));
       await userEvent.click(screen.getByText('Table'));
@@ -793,7 +793,7 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(screen.getByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
-      await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
+      await selectEvent.select(screen.getAllByText('count()')[1]!, 'count() * 100');
     });
 
     it('does not reset the orderby when ordered by an equation in table', async function () {
@@ -892,7 +892,7 @@ describe('WidgetBuilder', function () {
 
     await selectEvent.select(await screen.findByText('Select group'), 'project');
     expect(screen.getAllByText('count()')).toHaveLength(2);
-    await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
+    await selectEvent.select(screen.getAllByText('count()')[1]!, 'Custom Equation');
     await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
     await userEvent.paste('count_unique(user) * 2');
     await userEvent.keyboard('{Enter}');

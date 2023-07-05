@@ -204,21 +204,21 @@ describe('EventTagsAndScreenshot', function () {
       expect(contextItems).toHaveLength(Object.keys(contexts).length);
 
       // Context Item 1
-      const contextItem1 = within(contextItems[0]);
+      const contextItem1 = within(contextItems[0]!);
       expect(contextItem1.getByRole('heading')).toHaveTextContent(user.email);
       expect(contextItem1.getByTestId('context-sub-title')).toHaveTextContent(
         `ID:${user.id}`
       );
 
       // Context Item 2
-      const contextItem2 = within(contextItems[1]);
+      const contextItem2 = within(contextItems[1]!);
       expect(contextItem2.getByRole('heading')).toHaveTextContent(contexts.os.name);
       expect(contextItem2.getByTestId('context-sub-title')).toHaveTextContent(
         `Version:${contexts.os.version}`
       );
 
       // Context Item 3
-      const contextItem3 = within(contextItems[2]);
+      const contextItem3 = within(contextItems[2]!);
       expect(contextItem3.getByRole('heading')).toHaveTextContent(
         deviceNameMapper(contexts.device.model)?.trim() ?? ''
       );
@@ -307,7 +307,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${attachments[1]!.id}/?download`
       );
 
       // Display help text when hovering question element
@@ -357,7 +359,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(await screen.findByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${attachments[1]!.id}/?download`
       );
 
       expect(screen.getByTestId('screenshot-data-section')?.textContent).toContain(
@@ -419,7 +423,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${moreAttachments[1]!.id}/?download`
       );
 
       screen.getByRole('button', {name: 'Next Screenshot'}).click();
@@ -431,7 +437,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${moreAttachments[2]!.id}/?download`
       );
     });
 
@@ -496,7 +504,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${attachments[1]!.id}/?download`
       );
 
       // Tags Container
@@ -529,7 +539,9 @@ describe('EventTagsAndScreenshot', function () {
       expect(screen.getByText('View screenshot')).toBeInTheDocument();
       expect(screen.getByTestId('image-viewer')).toHaveAttribute(
         'src',
-        `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
+        `/api/0/projects/${organization.slug}/${project.slug}/events/${
+          event.id
+        }/attachments/${attachments[1]!.id}/?download`
       );
 
       // Tags Container

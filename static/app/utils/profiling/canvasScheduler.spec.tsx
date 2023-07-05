@@ -108,8 +108,8 @@ describe('CanvasScheduler', () => {
     scheduler.draw();
 
     jest.runAllTimers();
-    expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
-      drawAfterFn.mock.invocationCallOrder[0]
+    expect(drawBeforeFn.mock.invocationCallOrder[0]!).toBeLessThan(
+      drawAfterFn.mock.invocationCallOrder[0]!
     );
   });
   it('drawSync', () => {
@@ -125,8 +125,8 @@ describe('CanvasScheduler', () => {
     // be evaluated before the callbacks have ran.
     scheduler.drawSync();
 
-    expect(drawBeforeFn.mock.invocationCallOrder[0]).toBeLessThan(
-      drawAfterFn.mock.invocationCallOrder[0]
+    expect(drawBeforeFn.mock.invocationCallOrder[0]!).toBeLessThan(
+      drawAfterFn.mock.invocationCallOrder[0]!
     );
   });
   it('dispose', () => {

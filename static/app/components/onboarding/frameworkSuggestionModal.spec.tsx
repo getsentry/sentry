@@ -68,7 +68,7 @@ describe('Framework suggestion modal', function () {
       await screen.findByText('Select a framework to configure')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('radio', {name: frameworks[0].name}));
+    await userEvent.click(screen.getByRole('radio', {name: frameworks[0]!.name}));
 
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeEnabled();
 

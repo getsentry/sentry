@@ -80,7 +80,7 @@ describe('ArithmeticInput', function () {
 
     options.forEach((option, i) => {
       if (i < numericColumns.length) {
-        expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]));
+        expect(option).toHaveTextContent(generateFieldAsString(numericColumns[i]!));
         return;
       }
       expect(option).toHaveTextContent(operators[i - numericColumns.length]);
@@ -141,7 +141,7 @@ describe('ArithmeticInput', function () {
     await userEvent.keyboard('{Escape}');
 
     expect(screen.getByRole('textbox')).toHaveValue(
-      `${generateFieldAsString(numericColumns[0])} `
+      `${generateFieldAsString(numericColumns[0]!)} `
     );
   });
 
@@ -160,10 +160,10 @@ describe('ArithmeticInput', function () {
 
     await userEvent.click(screen.getByRole('textbox'));
 
-    await userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2])));
+    await userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2]!)));
 
     expect(screen.getByRole('textbox')).toHaveValue(
-      `${generateFieldAsString(numericColumns[2])} `
+      `${generateFieldAsString(numericColumns[2]!)} `
     );
   });
 

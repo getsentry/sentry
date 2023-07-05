@@ -6,8 +6,8 @@ import {getUniqueFilesFromException} from './useSourceMapDebug';
 
 function modifyEventFrames(event: Event, modify: any): Event {
   const modifiedEvent = cloneDeep(event);
-  modifiedEvent.entries[0].data.values[0].stacktrace.frames =
-    event.entries[0].data.values[0].stacktrace.frames.map(frame => ({
+  modifiedEvent.entries[0]!.data.values[0]!.stacktrace.frames =
+    event.entries[0]!.data.values[0]!.stacktrace.frames.map(frame => ({
       ...frame,
       ...modify,
     }));
@@ -22,7 +22,7 @@ describe('getUniqueFilesFromException', () => {
       platform: 'javascript',
     });
     const result = getUniqueFilesFromException(
-      (event.entries as EntryException[])[0].data.values!,
+      (event.entries as EntryException[])[0]!.data.values!,
       props
     );
 
@@ -47,7 +47,7 @@ describe('getUniqueFilesFromException', () => {
       {filename: '<anonymous>'}
     );
     const result = getUniqueFilesFromException(
-      (event.entries as EntryException[])[0].data.values!,
+      (event.entries as EntryException[])[0]!.data.values!,
       props
     );
 
@@ -62,7 +62,7 @@ describe('getUniqueFilesFromException', () => {
       {absPath: '~/myfile.js', filename: '~/myfile.js'}
     );
     const result = getUniqueFilesFromException(
-      (event.entries as EntryException[])[0].data.values!,
+      (event.entries as EntryException[])[0]!.data.values!,
       props
     );
 

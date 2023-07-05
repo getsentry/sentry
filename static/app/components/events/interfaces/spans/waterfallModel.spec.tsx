@@ -666,12 +666,12 @@ describe('WaterfallModel', () => {
 
     expected[1] = {
       type: 'out_of_view',
-      span: fullWaterfall[1].span,
+      span: fullWaterfall[1]!.span,
     } as EnhancedProcessedSpanType;
 
     expected[4] = {
       type: 'out_of_view',
-      span: fullWaterfall[4].span,
+      span: fullWaterfall[4]!.span,
     } as EnhancedProcessedSpanType;
 
     expect(spans).toEqual(expected);
@@ -684,51 +684,51 @@ describe('WaterfallModel', () => {
     });
 
     assert(
-      fullWaterfall[10].type === 'span_group_chain' &&
-        fullWaterfall[10].spanNestedGrouping
+      fullWaterfall[10]!.type === 'span_group_chain' &&
+        fullWaterfall[10]!.spanNestedGrouping
     );
     expected = [
       {
         type: 'filtered_out',
-        span: fullWaterfall[0].span,
+        span: fullWaterfall[0]!.span,
       },
       {
         type: 'out_of_view',
-        span: fullWaterfall[1].span,
+        span: fullWaterfall[1]!.span,
       },
       fullWaterfall[2],
       fullWaterfall[3],
       {
         type: 'filtered_out',
-        span: fullWaterfall[4].span,
+        span: fullWaterfall[4]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[5].span,
+        span: fullWaterfall[5]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[6].span,
+        span: fullWaterfall[6]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[7].span,
+        span: fullWaterfall[7]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[9].span,
+        span: fullWaterfall[9]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10].spanNestedGrouping[0].span,
+        span: fullWaterfall[10]!.spanNestedGrouping[0]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[10].spanNestedGrouping[1].span,
+        span: fullWaterfall[10]!.spanNestedGrouping[1]!.span,
       },
       {
         type: 'filtered_out',
-        span: fullWaterfall[11].span,
+        span: fullWaterfall[11]!.span,
       },
     ] as EnhancedProcessedSpanType[];
 
@@ -744,7 +744,7 @@ describe('WaterfallModel', () => {
       viewEnd: 0.65,
     });
 
-    expected[1].type = 'filtered_out';
+    expected[1]!.type = 'filtered_out';
 
     expect(spans).toEqual(expected);
   });
@@ -812,7 +812,7 @@ describe('WaterfallModel', () => {
       ...event,
       entries: [
         {
-          data: [event.entries[0].data[0]],
+          data: [event.entries[0]!.data[0]!],
           type: EntryType.SPANS,
         },
       ],
@@ -846,10 +846,10 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0].data[0],
+            event.entries[0]!.data[0]!,
             {
-              ...event.entries[0].data[0],
-              parent_span_id: event.entries[0].data[0].span_id,
+              ...event.entries[0]!.data[0]!,
+              parent_span_id: event.entries[0]!.data[0]!.span_id,
               span_id: 'foo',
             },
           ],
@@ -880,10 +880,10 @@ describe('WaterfallModel', () => {
         toggleNestedSpanGroup: undefined,
       },
       {
-        ...fullWaterfall[1],
+        ...fullWaterfall[1]!,
         span: {
-          ...fullWaterfall[1].span,
-          parent_span_id: event.entries[0].data[0].span_id,
+          ...fullWaterfall[1]!.span,
+          parent_span_id: event.entries[0]!.data[0]!.span_id,
           span_id: 'foo',
         },
         treeDepth: 2,
@@ -900,14 +900,14 @@ describe('WaterfallModel', () => {
       entries: [
         {
           data: [
-            event.entries[0].data[0],
+            event.entries[0]!.data[0]!,
             {
-              ...event.entries[0].data[0],
-              parent_span_id: event.entries[0].data[0].span_id,
+              ...event.entries[0]!.data[0]!,
+              parent_span_id: event.entries[0]!.data[0]!.span_id,
               span_id: 'foo',
             },
             {
-              ...event.entries[0].data[0],
+              ...event.entries[0]!.data[0]!,
               parent_span_id: 'foo',
               span_id: 'bar',
             },
@@ -926,7 +926,7 @@ describe('WaterfallModel', () => {
     // expect 1 or more spans are grouped
     expect(spans).toHaveLength(3);
 
-    assert(fullWaterfall[1].type === 'span');
+    assert(fullWaterfall[1]!.type === 'span');
     const collapsedWaterfallExpected = [
       {
         ...fullWaterfall[0],
@@ -936,9 +936,9 @@ describe('WaterfallModel', () => {
       {
         type: 'span_group_chain',
         treeDepth: 1,
-        continuingTreeDepths: fullWaterfall[1].continuingTreeDepths,
+        continuingTreeDepths: fullWaterfall[1]!.continuingTreeDepths,
         span: {
-          ...fullWaterfall[1].span,
+          ...fullWaterfall[1]!.span,
           parent_span_id: 'foo',
           span_id: 'bar',
         },
@@ -950,10 +950,10 @@ describe('WaterfallModel', () => {
             toggleNestedSpanGroup: undefined,
           },
           {
-            ...fullWaterfall[1],
+            ...fullWaterfall[1]!,
             span: {
-              ...fullWaterfall[1].span,
-              parent_span_id: event.entries[0].data[0].span_id,
+              ...fullWaterfall[1]!.span,
+              parent_span_id: event.entries[0]!.data[0]!.span_id,
               span_id: 'foo',
             },
             isLastSibling: true,
@@ -965,9 +965,9 @@ describe('WaterfallModel', () => {
         toggleNestedSpanGroup: expect.anything(),
       },
       {
-        ...fullWaterfall[1],
+        ...fullWaterfall[1]!,
         span: {
-          ...fullWaterfall[1].span,
+          ...fullWaterfall[1]!.span,
           parent_span_id: 'foo',
           span_id: 'bar',
         },
@@ -981,8 +981,8 @@ describe('WaterfallModel', () => {
     expect(spans).toEqual(collapsedWaterfallExpected);
 
     // Expand span group
-    assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
-    spans[1].toggleNestedSpanGroup();
+    assert(spans[1]!.type === 'span' && spans[1]!.toggleNestedSpanGroup);
+    spans[1]!.toggleNestedSpanGroup();
 
     spans = waterfallModel.getWaterfall({
       viewStart: 0,
@@ -1007,10 +1007,10 @@ describe('WaterfallModel', () => {
         toggleNestedSpanGroup: expect.anything(),
       },
       {
-        ...fullWaterfall[1],
+        ...fullWaterfall[1]!,
         span: {
-          ...fullWaterfall[1].span,
-          parent_span_id: event.entries[0].data[0].span_id,
+          ...fullWaterfall[1]!.span,
+          parent_span_id: event.entries[0]!.data[0]!.span_id,
           span_id: 'foo',
         },
         isLastSibling: true,
@@ -1019,9 +1019,9 @@ describe('WaterfallModel', () => {
         toggleNestedSpanGroup: undefined,
       },
       {
-        ...fullWaterfall[1],
+        ...fullWaterfall[1]!,
         span: {
-          ...fullWaterfall[1].span,
+          ...fullWaterfall[1]!.span,
           parent_span_id: 'foo',
           span_id: 'bar',
         },
@@ -1033,8 +1033,8 @@ describe('WaterfallModel', () => {
     ]);
 
     // Collapse span group
-    assert(spans[1].type === 'span' && spans[1].toggleNestedSpanGroup);
-    spans[1].toggleNestedSpanGroup();
+    assert(spans[1]!.type === 'span' && spans[1]!.toggleNestedSpanGroup);
+    spans[1]!.toggleNestedSpanGroup();
 
     spans = waterfallModel.getWaterfall({
       viewStart: 0,

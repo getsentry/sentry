@@ -145,32 +145,32 @@ const breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[] = [
 
 describe('MessageFormatter', () => {
   it('Should print console message with placeholders correctly', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[0]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[0]!} />);
 
     expect(screen.getByText('This is a test')).toBeInTheDocument();
   });
 
   it('Should print console message with objects correctly', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[1]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[1]!} />);
 
     expect(screen.getByText('test 1 false')).toBeInTheDocument();
     expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should print console message correctly when it is an Error object', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[2]!} />);
 
     expect(screen.getByText('this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[3]!} />);
 
     expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[4]!} />);
 
     expect(screen.getByText(/%c prev state/)).toBeInTheDocument();
     expect(screen.getByText('cart')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print arrays correctly', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[5]!} />);
 
     expect(screen.getByText('test')).toBeInTheDocument();
     expect(screen.getByText('(2)')).toBeInTheDocument();
@@ -189,19 +189,19 @@ describe('MessageFormatter', () => {
   });
 
   it('Should print literal %', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[6]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[6]!} />);
 
     expect(screen.getByText('This is a literal 100%')).toBeInTheDocument();
   });
 
   it('Should print unbound %s placeholder', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[7]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[7]!} />);
 
     expect(screen.getByText('Unbound placeholder %s')).toBeInTheDocument();
   });
 
   it('Should print placeholder with literal %', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[8]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[8]!} />);
 
     expect(screen.getByText('Placeholder myPlaceholder with 100%')).toBeInTheDocument();
   });

@@ -174,7 +174,7 @@ describe('EventAttachments', function () {
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]!);
     await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /delete/i})
     );

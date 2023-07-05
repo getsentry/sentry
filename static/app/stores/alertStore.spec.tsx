@@ -21,8 +21,8 @@ describe('AlertStore', function () {
       });
 
       expect(AlertStore.alerts).toHaveLength(2);
-      expect(AlertStore.alerts[0].key).toEqual(0);
-      expect(AlertStore.alerts[1].key).toEqual(1);
+      expect(AlertStore.alerts[0]!.key).toEqual(0);
+      expect(AlertStore.alerts[1]!.key).toEqual(1);
     });
 
     it('should not add duplicates when noDuplicates is set', function () {
@@ -51,11 +51,11 @@ describe('AlertStore', function () {
         {key: 3, message: 'baz', type: 'error'},
       ];
 
-      AlertStore.closeAlert(AlertStore.alerts[1]);
+      AlertStore.closeAlert(AlertStore.alerts[1]!);
 
       expect(AlertStore.alerts).toHaveLength(2);
-      expect(AlertStore.alerts[0].key).toEqual(1);
-      expect(AlertStore.alerts[1].key).toEqual(3);
+      expect(AlertStore.alerts[0]!.key).toEqual(1);
+      expect(AlertStore.alerts[1]!.key).toEqual(3);
     });
     it('should persist removal of persistent alerts', function () {
       const alert = {

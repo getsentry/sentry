@@ -58,7 +58,7 @@ describe('EnvironmentPageFilter', function () {
     await userEvent.click(screen.getByRole('checkbox', {name: 'prod'}));
 
     // Close the dropdown
-    await userEvent.click(screen.getAllByText('prod')[0]);
+    await userEvent.click(screen.getAllByText('prod')[0]!);
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(

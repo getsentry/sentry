@@ -63,7 +63,7 @@ describe('ProjectPageFilter', function () {
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
 
     // Close the dropdown
-    await userEvent.click(screen.getAllByText('project-2')[0]);
+    await userEvent.click(screen.getAllByText('project-2')[0]!);
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(

@@ -161,7 +161,7 @@ describe('IntegrationCodeMappings', function () {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
     const {waitForModalToHide} = renderGlobalModal();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]!);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Stack Trace Root'}),

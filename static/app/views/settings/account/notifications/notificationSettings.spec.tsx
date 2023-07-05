@@ -57,7 +57,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ].forEach(field => {
       expect(
-        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
       ).toBeInTheDocument();
     });
 
@@ -95,7 +95,7 @@ describe('NotificationSettings', function () {
       ...SELF_NOTIFICATION_SETTINGS_TYPES,
     ].forEach(field => {
       expect(
-        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
+        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field]!.label))
       ).toBeInTheDocument();
     });
   });

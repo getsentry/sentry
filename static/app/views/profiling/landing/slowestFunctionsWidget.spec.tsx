@@ -196,7 +196,7 @@ describe('SlowestFunctionsWidget', function () {
     // toggle the second function
     const toggles = screen.getAllByRole('button', {});
     expect(toggles.length).toEqual(2);
-    await userEvent.click(toggles[1]);
+    await userEvent.click(toggles[1]!);
 
     // first row
     const transaction3 = await screen.findByText('transaction-3');

@@ -123,7 +123,7 @@ describe('GuideStore', function () {
     ];
 
     GuideStore.fetchSucceeded(data);
-    expect(GuideStore.state.guides.length).toBe(1);
-    expect(GuideStore.state.guides[0].guide).toBe(data[0].guide);
+    expect(GuideStore.state.guides!.length).toBe(1);
+    expect(GuideStore.state.guides[0]!.guide).toBe(data[0]!.guide);
   });
 });

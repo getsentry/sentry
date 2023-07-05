@@ -84,7 +84,7 @@ describe('EnvironmentSelector', function () {
     renderSelector();
     await clickMenu();
 
-    await userEvent.click(screen.queryAllByRole('checkbox')[0]);
+    await userEvent.click(screen.queryAllByRole('checkbox')[0]!);
     expect(onUpdate).not.toHaveBeenCalled();
 
     await clickMenu();

@@ -400,7 +400,7 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
-      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1], {
+      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]!, {
         delay: null,
       });
 
@@ -736,8 +736,8 @@ describe('WidgetBuilder', function () {
         )
       ).toHaveLength(3);
 
-      await userEvent.click(screen.getAllByLabelText('Remove column')[1]);
-      await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[1]!);
+      await userEvent.click(screen.getAllByLabelText('Remove column')[0]!);
 
       expect(
         within(screen.getByTestId('choose-column-step')).getByText('issue')
@@ -797,7 +797,7 @@ describe('WidgetBuilder', function () {
 
       await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
+      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0]!, 'First Alias');
 
       await userEvent.click(screen.getByText('Add Widget'));
 
@@ -848,7 +848,7 @@ describe('WidgetBuilder', function () {
         const countFields = screen.getAllByText('count()');
         expect(countFields).toHaveLength(3);
 
-        await selectEvent.select(countFields[1], ['p99(…)']);
+        await selectEvent.select(countFields[1]!, ['p99(…)']);
         await selectEvent.select(screen.getByText('transaction.duration'), [
           'measurements.custom.measurement',
         ]);
@@ -1048,13 +1048,13 @@ describe('WidgetBuilder', function () {
 
         expect(await screen.findByText('Custom Widget')).toBeInTheDocument();
 
-        await selectEvent.select(screen.getAllByText('count()')[1], ['p99(…)']);
+        await selectEvent.select(screen.getAllByText('count()')[1]!, ['p99(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.custom.measurement');
         expect(
-          screen.queryByText('measurements.another.custom.measurement')
+          screen.queryByText('measurements.another.custom!.measurement')
         ).not.toBeInTheDocument();
-        await selectEvent.select(screen.getAllByText('p99(…)')[0], ['p95(…)']);
+        await selectEvent.select(screen.getAllByText('p99(…)')[0]!, ['p95(…)']);
         await userEvent.click(screen.getByText('transaction.duration'));
         screen.getByText('measurements.another.custom.measurement');
         expect(
@@ -1275,7 +1275,7 @@ describe('WidgetBuilder', function () {
           orgFeatures: [...defaultOrgFeatures],
         });
         await screen.findByText('transaction');
-        await userEvent.click(screen.getAllByText('count()')[1]);
+        await userEvent.click(screen.getAllByText('count()')[1]!);
         expect(screen.getByText('measurements.custom.measurement')).toBeInTheDocument();
       });
 
@@ -1317,7 +1317,7 @@ describe('WidgetBuilder', function () {
           await screen.findByText('p99(measurements.custom.measurement)')
         ).toBeInTheDocument();
         // Delete p99(measurements.custom.measurement) column
-        await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
+        await userEvent.click(screen.getAllByLabelText('Remove column')[0]!);
         expect(
           screen.queryByText('p99(measurements.custom.measurement)')
         ).not.toBeInTheDocument();

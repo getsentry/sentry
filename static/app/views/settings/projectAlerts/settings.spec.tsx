@@ -37,7 +37,7 @@ describe('ProjectAlertSettings', () => {
         routes={[]}
         router={router}
         routeParams={router.params}
-        route={router.routes[0]}
+        route={router.routes[0]!}
         location={router.location}
       />
     );

@@ -14,7 +14,7 @@ describe('DateSummary', () => {
   it('does not show times when it is midnight for start date and 23:59:59 for end date', () => {
     const {rerender} = render(<DateSummary start={start} end={end} />);
     // Search by year because day may change depending on timezone
-    expect(screen.getAllByText(/Oct.+2017/)[0].childElementCount).toBe(1);
+    expect(screen.getAllByText(/Oct.+2017/)[0]!.childElementCount).toBe(1);
 
     // Date Summary formats using system time
     // tests run on EST/EDT
@@ -25,6 +25,6 @@ describe('DateSummary', () => {
       />
     );
 
-    expect(screen.getAllByText(/Oct.+2017/)[0].childElementCount).toBe(0);
+    expect(screen.getAllByText(/Oct.+2017/)[0]!.childElementCount).toBe(0);
   });
 });

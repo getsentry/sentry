@@ -219,7 +219,7 @@ class ActionsPanel extends PureComponent<Props> {
     }
 
     const existingDateCreated =
-      actions[index].dateCreated ?? actions[index].unsavedDateCreated;
+      actions[index]!.dateCreated ?? actions[index]!.unsavedDateCreated;
     const newAction: Action = getCleanAction(actionConfig, existingDateCreated);
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
   };

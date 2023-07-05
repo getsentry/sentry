@@ -10,7 +10,7 @@ describe('Collapsible', function () {
     render(<Collapsible>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
-    expect(screen.getAllByText(/Item/)[2].innerHTML).toBe('Item 3');
+    expect(screen.getAllByText(/Item/)[2]!.innerHTML).toBe('Item 3');
 
     expect(screen.getByLabelText('Show 2 hidden items')).toBeInTheDocument();
     expect(screen.queryByLabelText('Collapse')).not.toBeInTheDocument();

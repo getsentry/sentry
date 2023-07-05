@@ -109,7 +109,7 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
-    routerContext.context.organization.scrapeJavaScript = false;
+    routerContext.context.organization!.scrapeJavaScript = false;
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {

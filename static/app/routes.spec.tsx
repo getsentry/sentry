@@ -37,7 +37,7 @@ function extractRoutes(rootRoute: any): Record<string, RouteComponent> {
   const routeMap: Record<string, RouteComponent> = {};
 
   // A queue of routes we need to visit
-  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: routeTree[0]}];
+  const visitQueue: RouteMetadata[] = [{leadingPath: '', route: routeTree[0]!}];
   while (visitQueue.length > 0) {
     const current = visitQueue.pop();
     if (!current) {

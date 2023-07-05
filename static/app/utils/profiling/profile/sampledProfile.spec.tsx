@@ -226,14 +226,18 @@ describe('SampledProfile', () => {
     );
 
     // GC gets places on top of the previous stack and the weight is updated
-    expect(profile.callTree.children[0].children[0].frame.name).toBe('f1 [native code]');
+    expect(profile.callTree.children[0]!.children[0]!.frame.name).toBe(
+      'f1 [native code]'
+    );
     // The total weight of the previous top is now the weight of the GC call + the weight of the previous top
-    expect(profile.callTree.children[0].children[0].frame.totalWeight).toBe(4);
-    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.frame.totalWeight).toBe(4);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       '(garbage collector) [native code]'
     );
     // The self weight of the GC call is only the weight of the GC call
-    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
+      3
+    );
   });
 
   it('places garbage collector calls on top of previous stack and skips stack', () => {
@@ -292,11 +296,11 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].children[0].children.length).toBe(2);
-    expect(profile.callTree.children[0].children[0].children[0].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.children.length).toBe(2);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.name).toBe(
       'f2 [native code]'
     );
-    expect(profile.callTree.children[0].children[0].children[1].frame.name).toBe(
+    expect(profile.callTree.children[0]!.children[0]!.children[1]!.frame.name).toBe(
       '(garbage collector) [native code]'
     );
   });
@@ -329,8 +333,10 @@ describe('SampledProfile', () => {
     );
 
     // There are no other children than the GC call meaning merge happened
-    expect(profile.callTree.children[0].children[0].children[1]).toBe(undefined);
-    expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
+    expect(profile.callTree.children[0]!.children[0]!.children[1]!).toBe(undefined);
+    expect(profile.callTree.children[0]!.children[0]!.children[0]!.frame.selfWeight).toBe(
+      6
+    );
   });
 
   it('flamegraph tracks node occurences', () => {
@@ -351,8 +357,8 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 
   it('filters frames', () => {
@@ -383,8 +389,8 @@ describe('SampledProfile', () => {
 
     expect(profile.callTree.frame).toBe(Frame.Root);
     expect(profile.callTree.children).toHaveLength(1);
-    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    expect(profile.callTree.children[0]!.frame.name).toEqual('f0');
     // the f1 frame is filtered out, so the f0 frame has no children
-    expect(profile.callTree.children[0].children).toHaveLength(0);
+    expect(profile.callTree.children[0]!.children).toHaveLength(0);
   });
 });

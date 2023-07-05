@@ -83,8 +83,8 @@ describe('SpanTree', () => {
       ]
     );
     expect(tree.orphanedSpans.length).toBe(0);
-    expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[0].children[0].span.span_id).toBe('2');
+    expect(tree.root.children[0]!.span.span_id).toBe('1');
+    expect(tree.root.children[0]!.children[0]!.span.span_id).toBe('2');
   });
 
   it('checks for span overlaps that contains span', () => {
@@ -119,9 +119,9 @@ describe('SpanTree', () => {
     );
 
     expect(tree.orphanedSpans.length).toBe(1);
-    expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[0].children[0].span.span_id).toBe('2');
-    expect(tree.root.children[0].children[1]).toBe(undefined);
+    expect(tree.root.children[0]!.span.span_id).toBe('1');
+    expect(tree.root.children[0]!.children[0]!.span.span_id).toBe('2');
+    expect(tree.root.children[0]!.children[1]!).toBe(undefined);
   });
 
   it('creates missing instrumentation node', () => {
@@ -149,9 +149,9 @@ describe('SpanTree', () => {
       ]
     );
     expect(tree.orphanedSpans.length).toBe(0);
-    expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[1].span.op).toBe('missing span instrumentation');
-    expect(tree.root.children[2].span.span_id).toBe('2');
+    expect(tree.root.children[0]!.span.span_id).toBe('1');
+    expect(tree.root.children[1]!.span.op).toBe('missing span instrumentation');
+    expect(tree.root.children[2]!.span.span_id).toBe('2');
   });
 
   it('does not create missing instrumentation if elapsed < threshold', () => {
@@ -179,8 +179,8 @@ describe('SpanTree', () => {
         }),
       ]
     );
-    expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[1].span.span_id).toBe('2');
+    expect(tree.root.children[0]!.span.span_id).toBe('1');
+    expect(tree.root.children[1]!.span.span_id).toBe('2');
   });
 
   it('pushes consecutive span', () => {
@@ -209,8 +209,8 @@ describe('SpanTree', () => {
     );
 
     expect(tree.orphanedSpans.length).toBe(0);
-    expect(tree.root.children[0].span.span_id).toBe('1');
-    expect(tree.root.children[1].span.span_id).toBe('2');
+    expect(tree.root.children[0]!.span.span_id).toBe('1');
+    expect(tree.root.children[1]!.span.span_id).toBe('2');
   });
   it('marks span as orphaned if parent_id does not match', () => {
     const tree = new SpanTree(
@@ -230,6 +230,6 @@ describe('SpanTree', () => {
         }),
       ]
     );
-    expect(tree.orphanedSpans[0].span_id).toBe('2');
+    expect(tree.orphanedSpans[0]!.span_id).toBe('2');
   });
 });

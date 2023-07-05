@@ -34,8 +34,8 @@ describe('jsSelfProfile', () => {
     expect(profile.duration).toBe(1000);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
-    expect(profile.callTree.children[0].frame.name).toBe('ReactDOM.render');
-    expect(profile.callTree.children[0].frame.resource).toBe('app.js');
+    expect(profile.callTree.children[0]!.frame.name).toBe('ReactDOM.render');
+    expect(profile.callTree.children[0]!.frame.resource).toBe('app.js');
   });
 
   it('tracks discarded samples', () => {
@@ -416,7 +416,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
-    expect(profile.callTree.children[0].children[0].count).toBe(1);
+    expect(profile.callTree.children[0]!.count).toBe(3);
+    expect(profile.callTree.children[0]!.children[0]!.count).toBe(1);
   });
 });

@@ -140,7 +140,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(postResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByText('Select Sentry User'), 'option2');
     await act(tick);
-    await userEvent.click(screen.getAllByText('option2')[1]);
+    await userEvent.click(screen.getAllByText('option2')[1]!);
     await userEvent.click(screen.getByTestId('form-submit'));
     await act(tick);
     expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
@@ -168,7 +168,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(putResponse).not.toHaveBeenCalled();
     await userEvent.type(screen.getByRole('textbox'), 'option3');
     await act(tick);
-    await userEvent.click(screen.getAllByText('option3')[1]);
+    await userEvent.click(screen.getAllByText('option3')[1]!);
     expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith({
       ...MOCK_TEAM_MAPPING,
       integrationId: baseProps.integration.id,
@@ -198,7 +198,7 @@ describe('IntegrationExternalMappingForm', function () {
     // Now that the user types, query for results
     await userEvent.type(sentryNameField, 'option2');
     await act(tick);
-    await userEvent.click(screen.getAllByText('option2')[1]);
+    await userEvent.click(screen.getAllByText('option2')[1]!);
     expect(getResponse).toHaveBeenCalled();
   });
 });

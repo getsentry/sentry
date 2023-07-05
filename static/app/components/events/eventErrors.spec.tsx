@@ -50,9 +50,9 @@ describe('EventErrors', () => {
     );
     const errorItems = screen.getAllByTestId('event-error-item');
     expect(errorItems).toHaveLength(2);
-    expect(within(errorItems[0]).getByText('logentry')).toBeInTheDocument();
+    expect(within(errorItems[0]!).getByText('logentry')).toBeInTheDocument();
     expect(
-      within(errorItems[1]).getByText('breadcrumbs.values.2.data')
+      within(errorItems[1]!).getByText('breadcrumbs.values.2!.data')
     ).toBeInTheDocument();
   });
 

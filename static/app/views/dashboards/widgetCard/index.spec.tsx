@@ -128,7 +128,7 @@ describe('Dashboards > WidgetCard', function () {
       <WidgetCard
         api={api}
         organization={organization}
-        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]]}}
+        widget={{...multipleQueryWidget, queries: [multipleQueryWidget.queries[0]!]}}
         selection={selection}
         isEditing={false}
         onDelete={() => undefined}
@@ -325,7 +325,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -353,7 +353,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -381,7 +381,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -409,7 +409,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.WORLD_MAP,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -444,7 +444,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -479,7 +479,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0], fields: ['count()']}],
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
         }}
         selection={selection}
         isEditing={false}
@@ -626,7 +626,7 @@ describe('Dashboards > WidgetCard', function () {
         widget={{
           ...multipleQueryWidget,
           displayType: DisplayType.TABLE,
-          queries: [{...multipleQueryWidget.queries[0]}],
+          queries: [{...multipleQueryWidget.queries[0]!}],
         }}
         selection={selection}
         isEditing={false}

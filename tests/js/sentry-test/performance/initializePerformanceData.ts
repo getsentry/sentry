@@ -227,10 +227,10 @@ export function generateSampleSpan(
     data: {},
   };
 
-  if (!Array.isArray(event.entries[0].data)) {
+  if (!Array.isArray(event.entries[0]!.data)) {
     throw new Error('Event entries data is not an array');
   }
 
-  event.entries[0].data.push(span);
+  event.entries[0]!.data.push(span);
   return span;
 }

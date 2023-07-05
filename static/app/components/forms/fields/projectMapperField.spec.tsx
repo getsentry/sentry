@@ -73,7 +73,7 @@ describe('ProjectMapperField', () => {
         ]}
       />
     );
-    await userEvent.click(screen.getAllByLabelText('Delete')[0]);
+    await userEvent.click(screen.getAllByLabelText('Delete')[0]!);
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith([[24, 1]], []);
     expect(defaultProps.onChange).toHaveBeenCalledWith([[24, 1]], []);

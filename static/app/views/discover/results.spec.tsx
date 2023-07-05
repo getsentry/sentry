@@ -1254,7 +1254,7 @@ describe('Results', function () {
             ...TestStubs.location(),
             query: {
               ...EventView.fromNewQueryWithLocation(
-                TRANSACTION_VIEWS[0],
+                TRANSACTION_VIEWS[0]!,
                 TestStubs.location()
               ).generateQueryStringObject(),
             },
@@ -1275,7 +1275,7 @@ describe('Results', function () {
         {context: initialData.routerContext, organization}
       );
 
-      await screen.findAllByText(TRANSACTION_VIEWS[0].name);
+      await screen.findAllByText(TRANSACTION_VIEWS[0]!.name);
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 

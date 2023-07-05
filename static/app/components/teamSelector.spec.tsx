@@ -116,7 +116,7 @@ describe('Team Selector', function () {
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = screen.getAllByRole('button');
 
-    await userEvent.click(addToProjectButtons[0]);
+    await userEvent.click(addToProjectButtons[0]!);
 
     expect(addTeamToProject).toHaveBeenCalled();
   });

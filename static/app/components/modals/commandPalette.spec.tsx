@@ -116,9 +116,9 @@ describe('Command Palette Modal', function () {
     const badges = await screen.findAllByTestId('badge-display-name');
 
     expect(badges[0]).toHaveTextContent('billy-org Dashboard');
-    expect(badges[1]).toHaveTextContent('billy-org Settings');
+    expect(badges[1]!).toHaveTextContent('billy-org Settings');
 
-    await userEvent.click(badges[0]);
+    await userEvent.click(badges[0]!);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

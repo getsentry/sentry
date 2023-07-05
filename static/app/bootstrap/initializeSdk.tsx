@@ -288,7 +288,7 @@ function handlePossibleUndefinedResponseBodyErrors(event: Event): void {
   const causeErrorIsURBE = causeError?.type === 'UndefinedResponseBodyError';
 
   if (mainErrorIsURBE || causeErrorIsURBE) {
-    mainError.type = 'UndefinedResponseBodyError';
+    mainError!.type = 'UndefinedResponseBodyError';
     event.tags = {...event.tags, undefinedResponseBody: true};
     event.fingerprint = mainErrorIsURBE
       ? ['UndefinedResponseBodyError as main error']
