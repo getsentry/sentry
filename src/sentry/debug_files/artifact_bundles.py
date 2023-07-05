@@ -2,18 +2,17 @@ from collections import defaultdict
 from datetime import datetime
 from typing import DefaultDict, Dict, List, Set
 
-import sentry_sdk
+from django.conf import settings
 from django.db import IntegrityError, router
 from django.db.models import Q
 
-from sentry.cache import default_cache
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
 )
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
@@ -21,7 +20,12 @@ from sentry.utils.db import atomic_transaction
 INDEXING_CACHE_TIMEOUT = 600
 
 
-def _generate_artifact_bundle_indexing_cache_key(
+def get_redis_cluster_for_artifact_bundles():
+    cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
+    return redis.redis_clusters.get(cluster_key)
+
+
+def _generate_artifact_bundle_indexing_state_cache_key(
     organization_id: int, artifact_bundle_id: int
 ) -> str:
     return f"ab::o:{organization_id}:b:{artifact_bundle_id}:bundle_indexing_state"
@@ -29,14 +33,24 @@ def _generate_artifact_bundle_indexing_cache_key(
 
 def set_artifact_bundle_being_indexed_if_null(
     organization_id: int, artifact_bundle_id: int
-) -> None:
-    cache_key = _generate_artifact_bundle_indexing_cache_key(organization_id, artifact_bundle_id)
-    default_cache.set(cache_key, 1, INDEXING_CACHE_TIMEOUT)
+) -> bool:
+    redis_client = get_redis_cluster_for_artifact_bundles()
+    cache_key = _generate_artifact_bundle_indexing_state_cache_key(
+        organization_id, artifact_bundle_id
+    )
+    # This function will return true only if the update is applied because there was no value set in memory.
+    #
+    # For now the state will just contain one, since it's unary but in case we would like to expand it, it will be
+    # straightforward by just using a set of integers.
+    return redis_client.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT, nx=True)
 
 
-def is_artifact_bundle_being_indexed(organization_id: int, artifact_bundle_id: int) -> bool:
-    cache_key = _generate_artifact_bundle_indexing_cache_key(organization_id, artifact_bundle_id)
-    return default_cache.exists(cache_key)
+def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_id: int) -> None:
+    redis_client = get_redis_cluster_for_artifact_bundles()
+    cache_key = _generate_artifact_bundle_indexing_state_cache_key(
+        organization_id, artifact_bundle_id
+    )
+    redis_client.delete(cache_key)
 
 
 def index_artifact_bundles_for_release(
@@ -55,6 +69,9 @@ def index_artifact_bundles_for_release(
       as that indicates out-of-order calls of this method. We always want the
       most up-to-date bundle to win.
     - Otherwise, the key is created or updated to point to the `artifact_bundle`.
+
+    This function is idempotent and such property makes it suitable for a more flexible implementation on the calling
+    side.
     """
 
     # First: we check if all the bundles to index, are actually not being indexed by someone else. We could also check
@@ -63,15 +80,12 @@ def index_artifact_bundles_for_release(
     bundles_to_index = []
 
     for artifact_bundle in artifact_bundles:
-        # For each bundle we want to check if it is being processed by another job, if not we will mark it as being
-        # indexed. Since indexing is idempotent, we don't mind concurrency issues that might arise when the state is
-        # modified concurrently.
-        if not is_artifact_bundle_being_indexed(
+        # For each bundle we will atomically check if it is not in progress before actually marking it as
+        # `being indexed`. In order to do this atomic check, we will issue a single operation with cas semantics, which
+        # will apply the insertion only if the specific key doesn't exist.
+        if set_artifact_bundle_being_indexed_if_null(
             organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
         ):
-            set_artifact_bundle_being_indexed_if_null(
-                organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
-            )
             bundles_to_index.append(artifact_bundle)
         else:
             # A different asynchronous job is taking care of this bundle.
@@ -100,9 +114,6 @@ def index_artifact_bundles_for_release(
                 bundle_ordering = (artifact_bundle.date_last_modified, artifact_bundle.id)
                 if not indexed or (indexed.date_last_modified, indexed.id) < bundle_ordering:
                     files_to_index[url] = artifact_bundle
-        except Exception as e:
-            # We want to capture any errors happening during archive indexing.
-            sentry_sdk.capture_exception(e)
         finally:
             archive.close()
 
@@ -120,65 +131,62 @@ def index_artifact_bundles_for_release(
     # We have to loop over all bundles, since we have to mark all the ones we inspected as `was_indexed`, irrespectively
     # if we have urls to add for that bundle.
     for artifact_bundle in artifact_bundles:
-        try:
-            urls = urls_by_bundle.get(artifact_bundle, set())
-            # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
-            # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(ArtifactBundleIndex),
-                    router.db_for_write(ArtifactBundle),
-                )
-            ):
-                for url in urls:
-                    key = {
-                        "organization_id": artifact_bundle.organization_id,
-                        "release_name": release,
-                        "dist_name": dist,
-                        "url": url,
-                    }
-                    value = {
-                        "date_last_modified": artifact_bundle.date_last_modified,
-                        "date_added": date_added,
-                        "artifact_bundle_id": artifact_bundle.id,
-                    }
-                    # Also here we want to perform the comparison by falling back to id in case of equal dates.
-                    condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
-                        date_last_modified=artifact_bundle.date_last_modified,
-                        artifact_bundle_id__lt=artifact_bundle.id,
-                    )
-
-                    # NOTE:
-                    # Ideally, we would want a single atomic query for this upsert.
-                    # This would be possible with postgres using:
-                    # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
-                    # However, writing raw SQL would be too error-prone.
-                    # The builtin `update_or_create` functionality is also not up for the task,
-                    # as it does not support an additional update condition,
-                    # and would do even more queries, so we split this up into two separate queries:
-                    # - Try to update a matching row.
-                    # - Otherwise, try to insert it.
-                    # - Ignore any key conflicts. This happens if the row exists, but does not match the `condition`.
-                    did_update = ArtifactBundleIndex.objects.filter(
-                        condition,
-                        **key,
-                    ).update(**value)
-                    if not did_update:
-                        try:
-                            ArtifactBundleIndex.objects.create(
-                                **key,
-                                **value,
-                            )
-                        except IntegrityError:
-                            pass
-
-                ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-                    indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+        urls = urls_by_bundle.get(artifact_bundle, set())
+        # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
+        # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundleIndex),
+                router.db_for_write(ArtifactBundle),
+            )
+        ):
+            for url in urls:
+                key = {
+                    "organization_id": artifact_bundle.organization_id,
+                    "release_name": release,
+                    "dist_name": dist,
+                    "url": url,
+                }
+                value = {
+                    "date_last_modified": artifact_bundle.date_last_modified,
+                    "date_added": date_added,
+                    "artifact_bundle_id": artifact_bundle.id,
+                }
+                # Also here we want to perform the comparison by falling back to id in case of equal dates.
+                condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
+                    date_last_modified=artifact_bundle.date_last_modified,
+                    artifact_bundle_id__lt=artifact_bundle.id,
                 )
 
-            # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
-            # there and wait for auto-expiration.
-            metrics.incr("artifact_bundle_indexing.bundles_indexed")
-            metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
+                # NOTE:
+                # Ideally, we would want a single atomic query for this upsert.
+                # This would be possible with postgres using:
+                # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
+                # However, writing raw SQL would be too error-prone.
+                # The builtin `update_or_create` functionality is also not up for the task,
+                # as it does not support an additional update condition,
+                # and would do even more queries, so we split this up into two separate queries:
+                # - Try to update a matching row.
+                # - Otherwise, try to insert it.
+                # - Ignore any key conflicts. This happens if the row exists, but does not match the `condition`.
+                did_update = ArtifactBundleIndex.objects.filter(
+                    condition,
+                    **key,
+                ).update(**value)
+                if not did_update:
+                    try:
+                        ArtifactBundleIndex.objects.create(
+                            **key,
+                            **value,
+                        )
+                    except IntegrityError:
+                        pass
+
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
+                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+            )
+
+        # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
+        # there and wait for auto-expiration.
+        metrics.incr("artifact_bundle_indexing.bundles_indexed")
+        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))

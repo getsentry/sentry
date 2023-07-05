@@ -4,6 +4,7 @@ from io import BytesIO
 
 from django.core.files.base import ContentFile
 
+from sentry.debug_files.artifact_bundles import get_redis_cluster_for_artifact_bundles
 from sentry.models import FileBlob
 from sentry.models.artifactbundle import ArtifactBundle, ArtifactBundleIndex
 from sentry.tasks.assemble import assemble_artifacts
@@ -77,8 +78,14 @@ def get_indexed_files(project, release_name="", dist_name=""):
 
 
 class ArtifactLookupTest(TestCase):
+    def clear_cache(self):
+        redis_client = get_redis_cluster_for_artifact_bundles()
+        redis_client.flushall()
+
     @with_feature("organizations:sourcemaps-bundle-indexing")
     def test_indexing_artifacts(self):
+        self.clear_cache()
+
         bundle = make_compressed_zip_file(
             {
                 "path/in/zip/foo": {
@@ -113,7 +120,8 @@ class ArtifactLookupTest(TestCase):
         )
         upload_bundle(bundle, self.project, "1.0.0")
 
-        # uploading the same bundle a second time which internally still creates two artifact bundles, which both cover the same set of files.
+        # Uploading the same bundle a second time which internally still creates two artifact bundles, which both
+        # cover the same set of files.
 
         bundles = get_artifact_bundles(self.project, "1.0.0")
         assert len(bundles) == 2

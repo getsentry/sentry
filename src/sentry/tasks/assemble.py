@@ -7,6 +7,7 @@ from datetime import datetime
 from os import path
 from typing import List, Optional, Set, Tuple
 
+import sentry_sdk
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
@@ -367,23 +368,6 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
-def _get_bundles_that_need_indexing(associated_bundles: List[ArtifactBundle]):
-    # We get all the bundles that are not indexed. This implementation is not safe for concurrency, since the values
-    # might change afterward, however, we do use a Redis cache to prevent duplicate work. That cache is also not 100%
-    # concurrency safe, but it will help for most cases.
-    bundles_to_index = []
-    for associated_bundle in associated_bundles:
-        requires_indexing = ArtifactBundle.objects.filter(
-            id=associated_bundle.id,
-            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-        ).exists()
-
-        if requires_indexing:
-            bundles_to_index.append(associated_bundle)
-
-    return bundles_to_index
-
-
 def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
     # We collect how many times we tried to perform indexing.
     metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
@@ -422,18 +406,20 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
 
     # We want to measure how much time it takes to perform indexing.
     with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
-        # We now want to mark the bundles that need indexing.
-        bundles_to_index = _get_bundles_that_need_indexing(associated_bundles=associated_bundles)
-        # Only if we have bundles to index we want to run the indexing.
-        if len(bundles_to_index) > 0:
-            # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
-            # async if we see a performance degradation of assembling.
+        # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
+        # async if we see a performance degradation of assembling.
+        try:
             index_artifact_bundles_for_release(
                 organization_id=org_id,
-                artifact_bundles=bundles_to_index,
+                artifact_bundles=associated_bundles,
                 release=release,
                 dist=dist,
             )
+        except Exception as e:
+            # We want to capture any exception happening during indexing, since it's crucial to understand if
+            # the system is behaving well because the database can easily end up in an inconsistent state.
+            metrics.incr("tasks.assemble.artifact_bundle.indexing_error")
+            sentry_sdk.capture_exception(e)
 
 
 def _create_artifact_bundle(
