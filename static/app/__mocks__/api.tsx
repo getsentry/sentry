@@ -171,7 +171,9 @@ class Client implements ApiNamespace.Client {
    * In the real client, this clears in-flight responses. It's NOT
    * clearMockResponses. You probably don't want to call this from a test.
    */
-  clear() {}
+  clear() {
+    Object.values(this.activeRequests).forEach(r => r.cancel());
+  }
 
   wrapCallback<T extends any[]>(
     _id: string,
