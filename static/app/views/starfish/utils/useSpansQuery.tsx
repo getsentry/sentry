@@ -13,6 +13,10 @@ import {
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/starfish/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
@@ -97,7 +101,8 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
     options: {
       enabled,
       refetchOnWindowFocus: false,
-      retry: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
     referrer,
@@ -142,7 +147,8 @@ export function useWrappedDiscoverQuery<T>({
     options: {
       enabled,
       refetchOnWindowFocus: false,
-      retry: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
       staleTime: Infinity,
     },
   });
