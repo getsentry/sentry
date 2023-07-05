@@ -3,7 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFilters} from 'sentry/types';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
+import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import WidgetQueries, {
@@ -21,7 +21,7 @@ describe('Dashboards > WidgetQueries', function () {
   const multipleQueryWidget = {
     title: 'Errors',
     interval: '5m',
-    displayType: 'line',
+    displayType: DisplayType.LINE,
     queries: [
       {
         conditions: 'event.type:error',
@@ -44,7 +44,7 @@ describe('Dashboards > WidgetQueries', function () {
   const singleQueryWidget = {
     title: 'Errors',
     interval: '5m',
-    displayType: 'line',
+    displayType: DisplayType.LINE,
     queries: [
       {
         conditions: 'event.type:error',
@@ -59,7 +59,7 @@ describe('Dashboards > WidgetQueries', function () {
   const tableWidget = {
     title: 'SDK',
     interval: '5m',
-    displayType: 'table',
+    displayType: DisplayType.TABLE,
     queries: [
       {
         conditions: 'event.type:error',
@@ -78,7 +78,7 @@ describe('Dashboards > WidgetQueries', function () {
       period: '14d',
       start: null,
       end: null,
-      utc: null,
+      utc: false,
     },
   };
 
@@ -184,7 +184,6 @@ describe('Dashboards > WidgetQueries', function () {
     });
 
     let error: string | undefined;
-
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -220,7 +219,7 @@ describe('Dashboards > WidgetQueries', function () {
         period: '90d',
         start: null,
         end: null,
-        utc: null,
+        utc: false,
       },
     };
 
@@ -289,7 +288,7 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps: GenericWidgetQueriesChildrenProps | undefined = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -321,7 +320,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
     expect(childProps?.timeseriesResults).toBeUndefined();
     expect(childProps?.tableResults?.[0].data).toHaveLength(1);
-    expect(childProps?.tableResults[0].meta).toBeDefined();
+    expect(childProps?.tableResults?.[0].meta).toBeDefined();
   });
 
   it('can send multiple table queries', async function () {
@@ -345,7 +344,7 @@ describe('Dashboards > WidgetQueries', function () {
     const widget = {
       title: 'SDK',
       interval: '5m',
-      displayType: 'table',
+      displayType: DisplayType.TABLE,
       queries: [
         {
           conditions: 'event.type:error',
@@ -366,7 +365,7 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
 
-    let childProps = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -386,9 +385,9 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps.tableResults).toHaveLength(2);
-    expect(childProps.tableResults[0].data[0]['sdk.name']).toBeDefined();
-    expect(childProps.tableResults[1].data[0].title).toBeDefined();
+    expect(childProps?.tableResults).toHaveLength(2);
+    expect(childProps?.tableResults?.[0].data[0]['sdk.name']).toBeDefined();
+    expect(childProps?.tableResults?.[1].data[0].title).toBeDefined();
   });
 
   it('can send big number result queries', async function () {
@@ -400,14 +399,14 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
         widget={{
           title: 'SDK',
           interval: '5m',
-          displayType: 'big_number',
+          displayType: DisplayType.BIG_NUMBER,
           queries: [
             {
               conditions: 'event.type:error',
@@ -445,9 +444,9 @@ describe('Dashboards > WidgetQueries', function () {
         }),
       })
     );
-    expect(childProps.timeseriesResults).toBeUndefined();
-    expect(childProps.tableResults[0].data).toHaveLength(1);
-    expect(childProps.tableResults[0].meta).toBeDefined();
+    expect(childProps?.timeseriesResults).toBeUndefined();
+    expect(childProps?.tableResults?.[0]?.data).toHaveLength(1);
+    expect(childProps?.tableResults?.[0]?.meta).toBeDefined();
   });
 
   it('can send world map result queries', async function () {
@@ -459,14 +458,14 @@ describe('Dashboards > WidgetQueries', function () {
       },
     });
 
-    let childProps = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
         widget={{
           title: 'SDK',
           interval: '5m',
-          displayType: 'world_map',
+          displayType: DisplayType.WORLD_MAP,
           queries: [
             {
               conditions: 'event.type:error',
@@ -504,9 +503,9 @@ describe('Dashboards > WidgetQueries', function () {
         }),
       })
     );
-    expect(childProps.timeseriesResults).toBeUndefined();
-    expect(childProps.tableResults[0].data).toHaveLength(1);
-    expect(childProps.tableResults[0].meta).toBeDefined();
+    expect(childProps?.timeseriesResults).toBeUndefined();
+    expect(childProps?.tableResults?.[0].data).toHaveLength(1);
+    expect(childProps?.tableResults?.[0].meta).toBeDefined();
   });
 
   it('stops loading state once all queries finish even if some fail', async function () {
@@ -528,7 +527,7 @@ describe('Dashboards > WidgetQueries', function () {
     const widget = {
       title: 'SDK',
       interval: '5m',
-      displayType: 'table',
+      displayType: DisplayType.TABLE,
       queries: [
         {
           conditions: 'event.type:error',
@@ -549,7 +548,7 @@ describe('Dashboards > WidgetQueries', function () {
       ],
     };
 
-    let childProps = undefined;
+    let childProps: GenericWidgetQueriesChildrenProps | undefined;
     renderWithProviders(
       <WidgetQueries
         api={new MockApiClient()}
@@ -569,7 +568,7 @@ describe('Dashboards > WidgetQueries', function () {
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
-    expect(childProps.loading).toEqual(false);
+    expect(childProps?.loading).toEqual(false);
   });
 
   it('sets bar charts to 1d interval', async function () {
@@ -580,7 +579,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const barWidget = {
       ...singleQueryWidget,
-      displayType: 'bar',
+      displayType: DisplayType.BAR,
       // Should be ignored for bars.
       interval: '5m',
     };
@@ -642,7 +641,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const barWidget = {
       ...multipleQueryWidget,
-      displayType: 'bar',
+      displayType: DisplayType.BAR,
       // Should be ignored for bars.
       interval: '5m',
     };
@@ -678,7 +677,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const areaWidget = {
       ...singleQueryWidget,
-      displayType: 'area',
+      displayType: DisplayType.AREA,
       interval: '5m',
     };
     renderWithProviders(
@@ -690,6 +689,9 @@ describe('Dashboards > WidgetQueries', function () {
           ...selection,
           datetime: {
             period: '90d',
+            start: null,
+            end: null,
+            utc: false,
           },
         }}
       >
@@ -713,7 +715,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     const lineWidget = {
       ...singleQueryWidget,
-      displayType: 'line',
+      displayType: DisplayType.LINE,
       interval: '5m',
     };
     let childProps;
@@ -953,7 +955,7 @@ describe('Dashboards > WidgetQueries', function () {
       >
         <WidgetQueries
           api={new MockApiClient()}
-          widget={{...singleQueryWidget, displayType: 'table'}}
+          widget={{...singleQueryWidget, displayType: DisplayType.TABLE}}
           organization={{
             ...organization,
             features: [...organization.features, 'dashboards-mep'],
@@ -988,7 +990,8 @@ describe('Dashboards > WidgetQueries', function () {
       body: [],
     });
     const areaWidget = {
-      displayType: 'area',
+      title: 'Errors',
+      displayType: DisplayType.AREA,
       interval: '5m',
       queries: [
         {

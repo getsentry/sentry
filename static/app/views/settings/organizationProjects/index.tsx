@@ -15,7 +15,7 @@ import {sortProjects} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import CreateProjectButton from 'sentry/views/settings/organizationProjects/createProjectButton';
@@ -24,18 +24,18 @@ import ProjectStatsGraph from './projectStatsGraph';
 
 const ITEMS_PER_PAGE = 50;
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   location: Location;
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
 type ProjectStats = Record<string, Required<Project['stats']>>;
 
-type State = AsyncView['state'] & {
+interface State extends AsyncViewState {
   projectList: Project[] | null;
   projectListPageLinks: string | null;
   projectStats: ProjectStats | null;
-};
+}
 
 class OrganizationProjects extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {

@@ -25,6 +25,17 @@ describe('TeamMembers', function () {
     name: 'Sentry 9 Name',
   });
 
+  const router = TestStubs.router();
+
+  const routerProps = {
+    router,
+    routes: router.routes,
+    params: router.params,
+    routeParams: router.params,
+    route: router.routes[0],
+    location: router.location,
+  };
+
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -58,7 +69,8 @@ describe('TeamMembers', function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />
@@ -78,7 +90,8 @@ describe('TeamMembers', function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />
@@ -99,7 +112,8 @@ describe('TeamMembers', function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />
@@ -119,7 +133,8 @@ describe('TeamMembers', function () {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />
@@ -139,7 +154,8 @@ describe('TeamMembers', function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />
@@ -164,7 +180,8 @@ describe('TeamMembers', function () {
     });
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />,
@@ -190,7 +207,8 @@ describe('TeamMembers', function () {
     });
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />,
@@ -213,7 +231,8 @@ describe('TeamMembers', function () {
     });
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />,
@@ -236,7 +255,8 @@ describe('TeamMembers', function () {
     });
     render(
       <TeamMembers
-        params={{orgId: org.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={org}
         team={team}
       />,
@@ -260,7 +280,8 @@ describe('TeamMembers', function () {
     });
     render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={organization}
         team={team}
       />
@@ -293,7 +314,8 @@ describe('TeamMembers', function () {
 
     render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={organizationMember}
         team={team}
       />
@@ -327,7 +349,8 @@ describe('TeamMembers', function () {
 
     await render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={organization}
         team={team}
       />
@@ -355,7 +378,8 @@ describe('TeamMembers', function () {
 
     await render(
       <TeamMembers
-        params={{orgId: orgWithTeamRoles.slug, teamId: team.slug}}
+        {...routerProps}
+        params={{teamId: team.slug}}
         organization={orgWithTeamRoles}
         team={team}
       />
@@ -375,7 +399,8 @@ describe('TeamMembers', function () {
     const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
     render(
       <TeamMembers
-        params={{orgId: orgWithTeamRoles.slug, teamId: managerTeam.slug}}
+        {...routerProps}
+        params={{teamId: managerTeam.slug}}
         organization={orgWithTeamRoles}
         team={managerTeam}
       />
@@ -427,7 +452,8 @@ describe('TeamMembers', function () {
 
     render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team2.slug}}
+        {...routerProps}
+        params={{teamId: team2.slug}}
         organization={organization}
         team={team2}
       />
@@ -467,7 +493,8 @@ describe('TeamMembers', function () {
 
     render(
       <TeamMembers
-        params={{orgId: organization.slug, teamId: team2.slug}}
+        {...routerProps}
+        params={{teamId: team2.slug}}
         organization={organization}
         team={team2}
       />
