@@ -255,13 +255,13 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                         provider,
                         NotificationSettingTypes.WORKFLOW,
                         default_value,
-                        user=user,
+                        user_id=user.id,
                     )
                     NotificationSetting.objects.update_settings(
                         provider,
                         NotificationSettingTypes.WORKFLOW,
                         project_value,
-                        user=user,
+                        user_id=user.id,
                         project=group.project,
                     )
 
@@ -288,14 +288,14 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
             )
 
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
             )
 
         result = serialize(group, user)
@@ -315,7 +315,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
                 project=group.project,
             )
 
@@ -323,7 +323,7 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.WORKFLOW,
                 NotificationSettingOptionValues.NEVER,
-                user=user,
+                user_id=user.id,
                 project=group.project,
             )
 

@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -35,7 +34,6 @@ describe('TransactionsList', function () {
   };
 
   beforeEach(function () {
-    api = new Client();
     location = {
       pathname: '/',
       query: {},

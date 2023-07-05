@@ -1,7 +1,6 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import AssigneeSelectorComponent from 'sentry/components/assigneeSelector';
 import {putSessionUserFirst} from 'sentry/components/assigneeSelectorDropdown';
 import ConfigStore from 'sentry/stores/configStore';
@@ -88,7 +87,7 @@ describe('AssigneeSelector', () => {
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
-    assignMock = Client.addMockResponse({
+    assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
       body: {
@@ -97,7 +96,7 @@ describe('AssigneeSelector', () => {
       },
     });
 
-    assignGroup2Mock = Client.addMockResponse({
+    assignGroup2Mock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_2.id}/`,
       body: {
@@ -118,7 +117,7 @@ describe('AssigneeSelector', () => {
   };
 
   afterEach(() => {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   describe('render with props', () => {
@@ -218,8 +217,8 @@ describe('AssigneeSelector', () => {
   });
 
   it('successfully assigns teams', async () => {
-    Client.clearMockResponses();
-    assignMock = Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_1.id}/`,
       body: {
@@ -329,7 +328,7 @@ describe('AssigneeSelector', () => {
     render(<AssigneeSelectorComponent id={GROUP_2.id} />);
     act(() => MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]));
 
-    assignMock = Client.addMockResponse({
+    assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/issues/${GROUP_2.id}/`,
       statusCode: 400,

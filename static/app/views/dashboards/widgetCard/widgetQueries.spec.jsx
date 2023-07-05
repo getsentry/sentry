@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DashboardFilterKeys} from 'sentry/views/dashboards/types';
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
@@ -79,8 +78,6 @@ describe('Dashboards > WidgetQueries', function () {
     },
   };
 
-  const api = new Client();
-
   afterEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -98,7 +95,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={multipleQueryWidget}
         organization={initialData.organization}
         selection={selection}
@@ -120,7 +117,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={singleQueryWidget}
         organization={initialData.organization}
         selection={selection}
@@ -148,7 +145,7 @@ describe('Dashboards > WidgetQueries', function () {
     });
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={tableWidget}
         organization={initialData.organization}
         selection={selection}
@@ -185,7 +182,7 @@ describe('Dashboards > WidgetQueries', function () {
     let error = '';
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={multipleQueryWidget}
         organization={initialData.organization}
         selection={selection}
@@ -220,7 +217,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={widget}
         organization={initialData.organization}
         selection={longSelection}
@@ -254,7 +251,7 @@ describe('Dashboards > WidgetQueries', function () {
 
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={widget}
         organization={initialData.organization}
         selection={selection}
@@ -286,7 +283,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps = undefined;
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={tableWidget}
         organization={initialData.organization}
         selection={selection}
@@ -363,7 +360,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps = undefined;
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={widget}
         organization={initialData.organization}
         selection={selection}
@@ -397,7 +394,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps = undefined;
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={{
           title: 'SDK',
           interval: '5m',
@@ -456,7 +453,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps = undefined;
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={{
           title: 'SDK',
           interval: '5m',
@@ -546,7 +543,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps = undefined;
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={widget}
         organization={initialData.organization}
         selection={selection}
@@ -580,7 +577,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={barWidget}
         organization={initialData.organization}
         selection={selection}
@@ -643,7 +640,7 @@ describe('Dashboards > WidgetQueries', function () {
     const child = jest.fn(() => <div data-test-id="child" />);
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={barWidget}
         organization={initialData.organization}
         selection={selection}
@@ -677,7 +674,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={areaWidget}
         organization={initialData.organization}
         selection={{
@@ -713,7 +710,7 @@ describe('Dashboards > WidgetQueries', function () {
     let childProps;
     const {rerender} = renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={lineWidget}
         organization={initialData.organization}
         selection={selection}
@@ -732,7 +729,7 @@ describe('Dashboards > WidgetQueries', function () {
     rerender(
       <MEPSettingProvider forceTransactions={false}>
         <WidgetQueries
-          api={api}
+          api={new MockApiClient()}
           widget={{
             ...lineWidget,
             queries: [
@@ -900,7 +897,7 @@ describe('Dashboards > WidgetQueries', function () {
         }}
       >
         <WidgetQueries
-          api={api}
+          api={new MockApiClient()}
           widget={singleQueryWidget}
           organization={{
             ...organization,
@@ -946,7 +943,7 @@ describe('Dashboards > WidgetQueries', function () {
         }}
       >
         <WidgetQueries
-          api={api}
+          api={new MockApiClient()}
           widget={{...singleQueryWidget, displayType: 'table'}}
           organization={{
             ...organization,
@@ -997,7 +994,7 @@ describe('Dashboards > WidgetQueries', function () {
     };
     renderWithProviders(
       <WidgetQueries
-        api={api}
+        api={new MockApiClient()}
         widget={areaWidget}
         organization={testData.organization}
         selection={selection}
