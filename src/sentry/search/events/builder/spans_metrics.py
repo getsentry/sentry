@@ -1,5 +1,4 @@
 from collections import defaultdict
-from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from snuba_sdk import (
@@ -16,25 +15,10 @@ from snuba_sdk import (
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
 from sentry.search.events.types import ParamsType, SelectType, WhereType
+from sentry.search.events.utils import remove_hours, remove_minutes
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
 from sentry.utils.snuba import bulk_snql_query
-
-
-def remove_minutes(timestamp, floor=True):
-    if floor:
-        return datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour)
-    else:
-        return datetime(timestamp.year, timestamp.month, timestamp.day, timestamp.hour) + timedelta(
-            hours=1
-        )
-
-
-def remove_hours(timestamp, floor=True):
-    if floor:
-        return datetime(timestamp.year, timestamp.month, timestamp.day)
-    else:
-        return datetime(timestamp.year, timestamp.month, timestamp.day) + timedelta(days=1)
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
