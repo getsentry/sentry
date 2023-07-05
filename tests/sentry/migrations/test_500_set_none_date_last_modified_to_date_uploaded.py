@@ -1,11 +1,15 @@
 import uuid
 
+import pytest
 from django.utils import timezone
 
 from sentry.models import ArtifactBundle, File
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(
+    "Test setup no longer valid after adding 'indexing_state' field to 'ArtifactBundle'"
+)
 class SetNoneDateLastModifiedToDateUploadedTest(TestMigrations):
     migrate_from = "0499_typed_bitfield_revert"
     migrate_to = "0500_set_none_date_last_modified_to_date_uploaded"
