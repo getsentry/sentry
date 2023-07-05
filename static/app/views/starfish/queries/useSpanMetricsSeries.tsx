@@ -34,7 +34,7 @@ export const useSpanMetricsSeries = (
     : undefined;
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     referrer,
@@ -44,7 +44,10 @@ export const useSpanMetricsSeries = (
     yAxis.map(seriesName => {
       const series: Series = {
         seriesName,
-        data: data.map(datum => ({value: datum[seriesName], name: datum.interval})),
+        data: result?.data.map(datum => ({
+          value: datum[seriesName],
+          name: datum.interval,
+        })),
       };
 
       return series;
@@ -52,7 +55,7 @@ export const useSpanMetricsSeries = (
     'seriesName'
   );
 
-  return {isLoading, data: parsedData};
+  return {...result, data: parsedData};
 };
 
 function getEventView(
