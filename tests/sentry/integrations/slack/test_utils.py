@@ -9,6 +9,8 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.utils import json
 
+# from responses import matchers
+
 
 class GetChannelIdBotTest(TestCase):
     def setUp(self):
@@ -130,6 +132,16 @@ class GetChannelIdFasterTest(TestCase):
             ],
             result_name="members",
         )
+        self.add_msg_response("my-channel", "m-c")
+        self.add_msg_response("other-chann", "o-c")
+        self.add_msg_response("my-private-channel", "m-p-c")
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.deleteScheduledMessage",
+            status=200,
+            content_type="application/json",
+            body=json.dumps({"ok": "true"}),
+        )
 
     @with_feature("organizations:slack-use-new-lookup")
     def tearDown(self):
@@ -142,6 +154,18 @@ class GetChannelIdFasterTest(TestCase):
             status=200,
             content_type="application/json",
             body=json.dumps({"ok": "true", result_name: channels}),
+        )
+
+    def add_msg_response(self, channelname, channelid, result_name="channel"):
+        self.resp.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.scheduleMessage",
+            status=200,
+            content_type="application/json",
+            #     match=[matchers.json_params_matcher({"channel": channelname})],
+            body=json.dumps(
+                {"ok": "true", result_name: channelid, "scheduled_message_id": "Q1298393284"}
+            ),
         )
 
     @with_feature("organizations:slack-use-new-lookup")

@@ -208,11 +208,14 @@ def get_channel_id_with_timeout_new(
     id_data: Optional[Tuple[str, Optional[str], bool]] = None
     found_duplicate = False
     prefix = ""
+    channel_id = None
     try:  # Check for channel
         channel_id = check_for_channel(client, name)
         prefix = "#"
     except ApiError as e:
+        #  print(str(e))
         if str(e) != "channel_not_found":
+            # return prefix, None, False
             raise e
         # Check if user
         while True:
@@ -277,7 +280,7 @@ def check_for_channel(
             "post_at": int(time.time() + 500),
         },
     )
-
+    #   print(msg_response)
     client.post(
         "/chat.deleteScheduledMessage",
         params=dict(
