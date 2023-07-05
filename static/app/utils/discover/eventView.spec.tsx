@@ -554,13 +554,13 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   });
 
   it('new query takes precedence over global selection values', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '99d',
         project: ['456'],
         environment: ['prod'],
       },
-    };
+    });
 
     const prebuiltQuery2 = {
       ...prebuiltQuery,
@@ -593,14 +593,14 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     // also test start and end
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         project: ['456'],
         environment: ['prod'],
       },
-    };
+    });
 
     const prebuiltQuery3 = {
       ...prebuiltQuery,
