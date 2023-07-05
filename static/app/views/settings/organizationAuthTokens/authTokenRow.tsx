@@ -10,6 +10,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, OrgAuthToken, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
@@ -168,7 +169,7 @@ const Actions = styled('div')`
 const LastUsedDate = styled('div')`
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: ${space(0.5)};
 `;
 
 const NeverUsed = styled('div')`
