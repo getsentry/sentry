@@ -117,7 +117,7 @@ def index_artifact_bundles_for_release(
         finally:
             archive.close()
 
-    # Finally: we commit the intended changes to the database, carefully merging with the state that already exists
+    # Third: we commit the intended changes to the database, carefully merging with the state that already exists
     # in the database. We do so grouping by bundle, using one atomic transaction for the indexing and setting of
     # the indexed state as well.
     urls_by_bundle: DefaultDict[ArtifactBundle, Set[str]] = defaultdict(set)
@@ -128,8 +128,8 @@ def index_artifact_bundles_for_release(
     # table and auto-expiration.
     date_added = datetime.now()
 
-    # We have to loop over all bundles, since we have to mark all the ones we inspected as `was_indexed`, irrespectively
-    # if we have urls to add for that bundle.
+    # Finally: we have to loop over all bundles, since we have to mark all the ones we inspected as `was_indexed`,
+    # irrespectively if we have urls to add for that bundle.
     for artifact_bundle in artifact_bundles:
         urls = urls_by_bundle.get(artifact_bundle, set())
         # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
@@ -140,6 +140,13 @@ def index_artifact_bundles_for_release(
                 router.db_for_write(ArtifactBundle),
             )
         ):
+            was_bundle_not_indexed = ArtifactBundle.objects.filter(
+                id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value
+            ).update(indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value)
+            # If the bundle was already indexed, we will skip insertion into the database.
+            if not was_bundle_not_indexed:
+                continue
+
             for url in urls:
                 key = {
                     "organization_id": artifact_bundle.organization_id,
@@ -173,6 +180,12 @@ def index_artifact_bundles_for_release(
                     condition,
                     **key,
                 ).update(**value)
+                # The `did_update` result will be 0 in case:
+                # 1. There is no value in the index
+                # 2. There is a value but has higher timestamp or bundle id
+                # We don't distinguish between them and since we don't, we might end up with duplicates into the
+                # database and since we don't have uniqueness constraints (partitioning doesn't support them), we must
+                # de-duplicate on the reading side.
                 if not did_update:
                     try:
                         ArtifactBundleIndex.objects.create(
