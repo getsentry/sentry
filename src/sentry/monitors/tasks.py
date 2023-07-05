@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 
+from django.conf import settings
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
@@ -94,9 +95,11 @@ def check_monitors(current_datetime=None):
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
-        "monitor", "monitor_environment"
-    )[:CHECKINS_LIMIT]
+    qs = (
+        MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS)
+        .select_related("monitor", "monitor_environment")
+        .exclude(monitor_id__in=settings.SENTRY_MONITORS_IGNORED_MONITORS)[:CHECKINS_LIMIT]
+    )
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:

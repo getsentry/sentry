@@ -3533,6 +3533,9 @@ SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
 MAX_MONITORS_PER_ORG = 10000
 MAX_ENVIRONMENTS_PER_MONITOR = 1000
 
+# Killswitch to ignore checkins for explicit monitors
+SENTRY_MONITORS_IGNORED_MONITORS = []
+
 # Raise schema validation errors and make the indexer crash (only useful in
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
