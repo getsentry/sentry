@@ -307,7 +307,7 @@ def github_comment_reactions():
             comment.reactions = reactions
             comment.save()
         except ApiError as e:
-            if RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
                 metrics.incr("github_pr_comment.comment_reactions.rate_limited_error")
                 break
 
