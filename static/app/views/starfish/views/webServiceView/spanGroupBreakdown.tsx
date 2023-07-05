@@ -1,10 +1,11 @@
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,7 +24,7 @@ type Props = {
   options: SelectOption<DataDisplayType>[];
   setDataDisplayType: any;
   tableData: DataRow[];
-  topSeriesData: Series[];
+  topSeriesData: LineChartSeries[];
   totalCumulativeTime: number;
   errored?: boolean;
   transaction?: string;
@@ -43,7 +44,22 @@ export function SpanGroupBreakdown({
     'starfish-wsv-chart-dropdown'
   );
 
-  const dataAsPercentages = cloneDeep(data);
+  const visibleSeries: LineChartSeries[] = [];
+
+  for (let index = 0; index < data.length; index++) {
+    const series = data[index];
+    series.emphasis = {
+      disabled: false,
+      focus: 'series',
+    };
+    series.blur = {
+      areaStyle: {opacity: 0.3},
+    };
+    series.triggerLineEvent = true;
+    visibleSeries.push(series);
+  }
+
+  const dataAsPercentages = cloneDeep(visibleSeries);
   const numDataPoints = data[0]?.data?.length ?? 0;
   for (let i = 0; i < numDataPoints; i++) {
     const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
@@ -60,6 +76,23 @@ export function SpanGroupBreakdown({
       organization,
       display: option.value,
     });
+  };
+
+  const handleModuleAreaClick = event => {
+    switch (event.seriesName) {
+      case 'http':
+        browserHistory.push('/starfish/api');
+        break;
+      case 'db':
+        browserHistory.push('/starfish/database');
+        break;
+      case 'custom':
+      case 'Other':
+      case 'cache':
+      default:
+        browserHistory.push('/starfish/spans');
+        break;
+    }
   };
 
   return (
@@ -89,6 +122,7 @@ export function SpanGroupBreakdown({
           errored={errored}
           loading={isTimeseriesLoading}
           utc={false}
+          onClick={handleModuleAreaClick}
           grid={{
             left: '0',
             right: '0',
