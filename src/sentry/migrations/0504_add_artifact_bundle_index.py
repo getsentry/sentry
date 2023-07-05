@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0502_savedsearch_update_me_myteams"),
+        ("sentry", "0503_alter_notification_actor_nullable"),
     ]
 
     operations = [
