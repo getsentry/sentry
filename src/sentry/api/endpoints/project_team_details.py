@@ -6,10 +6,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import (
-    ProjectWithTeamResponseDict,
-    ProjectWithTeamSerializer,
-)
+from sentry.api.serializers.models.project import ProjectWithTeamSerializer
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -28,10 +25,11 @@ class ProjectTeamsPermission(ProjectPermission):
 @extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectTeamDetailsEndpoint(ProjectEndpoint):
+    public = {"POST", "DELETE"}
     permission_classes = (ProjectTeamsPermission,)
 
     @extend_schema(
-        operation_id="Add a Team to a Project",
+        operation_id="Register a Team to a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
@@ -39,7 +37,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         ],
         request=None,
         responses={
-            201: ProjectWithTeamResponseDict,
+            201: ProjectWithTeamSerializer,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -67,7 +65,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         ],
         request=None,
         responses={
-            200: ProjectWithTeamResponseDict,
+            200: ProjectWithTeamSerializer,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
