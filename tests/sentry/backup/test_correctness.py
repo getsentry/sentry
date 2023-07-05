@@ -38,6 +38,8 @@ class InstanceID:
     def __hash__(self):
         return hash((self.model, self.pk))
 
+    # This should probably be `__repr__`, but this interacts poorly with the debugger, so this and
+    # other similar instances use `__str__` instead.
     def __str__(self):
         return f'InstanceID(model: "{self.model}", pk: {self.pk})'
 
