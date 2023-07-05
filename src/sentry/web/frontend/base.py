@@ -34,7 +34,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit
+from sentry.silo import SiloLimit, SiloMode
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -559,6 +559,13 @@ class AbstractOrganizationView(BaseView, abc.ABC):
 
         return super().convert_args(request, *args, **kwargs)
 
+    def _check_silo_mode(self, expected_mode: SiloMode) -> None:
+        if not expected_mode.is_available():
+            raise Exception(
+                f"{type(self).__name__} is not served from {SiloMode.get_current_mode()} "
+                f"(expected {expected_mode})"
+            )
+
 
 class OrganizationView(AbstractOrganizationView):
     """
@@ -567,6 +574,8 @@ class OrganizationView(AbstractOrganizationView):
     """
 
     def _get_organization(self) -> Organization | None:
+        self._check_silo_mode(SiloMode.REGION)
+
         if not self.active_organization:
             return None
         try:
@@ -586,6 +595,8 @@ class ControlSiloOrganizationView(AbstractOrganizationView):
     """
 
     def _get_organization(self) -> RpcOrganization | None:
+        self._check_silo_mode(SiloMode.CONTROL)
+
         return self.active_organization.organization if self.active_organization else None
 
 

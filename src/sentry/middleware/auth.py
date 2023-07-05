@@ -45,7 +45,7 @@ def get_user(request):
                 )
                 user = AnonymousUser()
             else:
-                if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+                if SiloMode.CONTROL.is_available():
                     UserIP.log(user, request.META["REMOTE_ADDR"])
         request._cached_user = user
     return request._cached_user
@@ -54,7 +54,7 @@ def get_user(request):
 class AuthenticationMiddleware(MiddlewareMixin):
     @property
     def impl(self) -> Any:
-        if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        if SiloMode.CONTROL.is_available():
             return RequestAuthenticationMiddleware(self.get_response)
         return HybridCloudAuthenticationMiddleware(self.get_response)
 

@@ -81,6 +81,16 @@ class SiloMode(Enum):
         process_level_silo_mode = cls.resolve(settings.SILO_MODE)
         return cls.resolve(single_process_silo_mode_state.mode, process_level_silo_mode)
 
+    def is_available(self) -> bool:
+        """Check whether the functionality of this mode is available in the local env.
+
+        In other words, return true if the environment is in either this mode or
+        monolith mode. (A server in monolith mode has the functionality of all modes
+        available, so this method always returns true.)
+        """
+        current_mode = self.get_current_mode()
+        return self == current_mode or self.MONOLITH == current_mode
+
 
 class SingleProcessSiloModeState(threading.local):
     mode: SiloMode | None = None

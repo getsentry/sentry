@@ -33,7 +33,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
-from sentry.web.frontend.base import BaseView
+from sentry.web.frontend.base import ControlSiloOrganizationView
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -64,7 +64,7 @@ class AdditionalContext:
 additional_context = AdditionalContext()
 
 
-class AuthLoginView(BaseView):
+class AuthLoginView(ControlSiloOrganizationView):
     auth_required = False
 
     def get_auth_provider(self, organization_slug):
