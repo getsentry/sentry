@@ -213,7 +213,6 @@ def get_channel_id_with_timeout_new(
         channel_id = check_for_channel(client, name)
         prefix = "#"
     except ApiError as e:
-        #  print(str(e))
         if str(e) != "channel_not_found":
             # return prefix, None, False
             raise e
@@ -261,8 +260,6 @@ def get_channel_id_with_timeout_new(
             raise DuplicateDisplayNameError(name)
         elif id_data:
             return id_data
-        # Not a channel or user
-        raise ValidationError("Channel or user not found")
 
     return prefix, channel_id, False
 
@@ -280,15 +277,16 @@ def check_for_channel(
             "post_at": int(time.time() + 500),
         },
     )
-    #   print(msg_response)
-    client.post(
-        "/chat.deleteScheduledMessage",
-        params=dict(
-            {
-                "channel": msg_response["channel"],
-                "scheduled_message_id": msg_response["scheduled_message_id"],
-            }
-        ),
-    )
 
-    return msg_response["channel"]
+    if "channel" in msg_response:
+        client.post(
+            "/chat.deleteScheduledMessage",
+            params=dict(
+                {
+                    "channel": msg_response["channel"],
+                    "scheduled_message_id": msg_response["scheduled_message_id"],
+                }
+            ),
+        )
+
+        return msg_response["channel"]
