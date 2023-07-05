@@ -20,9 +20,10 @@ export function StarfishProjectSelector() {
       value: project.id,
     }));
 
-  const selectedOption = projectOptions.find(option =>
-    selection.projects.includes(parseInt(option.value, 10))
-  );
+  const selectedOption =
+    projectOptions.find(option =>
+      selection.projects.includes(parseInt(option.value, 10))
+    ) ?? projectOptions[0];
 
   const handleProjectChange = option =>
     updateProjects([parseInt(option.value, 10)], router);
