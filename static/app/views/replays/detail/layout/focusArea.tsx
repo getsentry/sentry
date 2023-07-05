@@ -43,8 +43,8 @@ function FocusArea({}: Props) {
     case TabKey.ERRORS:
       return (
         <ErrorList
-          errorCrumbs={replay?.getIssueCrumbs()}
-          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+          errorFrames={replay?.getErrorFrames()}
+          startTimestampMs={replay?.getReplay().started_at.getTime() ?? 0}
         />
       );
     case TabKey.DOM:

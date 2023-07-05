@@ -187,11 +187,12 @@ export type ErrorFrame = Overwrite<
   {
     category: 'issue';
     data: {
-      eventId: string; // error['id']
-      groupId: number; // error['issue.id']
-      groupShortId: string; // error['issue']
-      label: string; // error['error.type'].join('')
-      projectSlug: string; // error['project.name']
+      eventId: string;
+      groupId: number;
+      groupShortId: string;
+      label: string;
+      labels: string[];
+      projectSlug: string;
     };
     message: string;
   }

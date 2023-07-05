@@ -1,17 +1,17 @@
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {
-  errorCrumbs: undefined | Crumb[];
+  errorFrames: undefined | ErrorFrame[];
 } & ReturnType<typeof useErrorFilters>;
 
 function ErrorFilters({
   getProjectOptions,
-  errorCrumbs,
+  errorFrames,
   searchTerm,
   selectValue,
   setFilters,
@@ -36,7 +36,7 @@ function ErrorFilters({
         onChange={setSearchTerm}
         placeholder={t('Search Errors')}
         query={searchTerm}
-        disabled={!errorCrumbs || !errorCrumbs.length}
+        disabled={!errorFrames || !errorFrames.length}
       />
     </FiltersGrid>
   );
