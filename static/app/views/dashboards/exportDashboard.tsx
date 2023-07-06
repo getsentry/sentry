@@ -16,7 +16,7 @@ async function exportDashboard() {
     const normalized = normalize_data(jsonData);
     normalized.projects = [];
 
-    downloadObjectAsJson(normalized, 'dashboard');
+    downloadObjectAsJson(normalized, cleanTitle(normalized.title));
   } catch (error) {
     addErrorMessage(
       'Could not export dashboard. Please wait or try again with a different dashboard'
@@ -82,6 +82,13 @@ function normalize_data(source) {
   }
 
   return payload;
+}
+
+function cleanTitle(title) {
+  const regex = /[^a-z0-9]/gi;
+  const formatted_title = title.replace(regex, '-');
+  const date = new Date();
+  return `${formatted_title}-${date.toISOString()}`;
 }
 
 function downloadObjectAsJson(exportObj, exportName) {
