@@ -16,6 +16,7 @@ const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
 const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', function () {
+  const router = TestStubs.router();
   beforeEach(function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
@@ -31,13 +32,34 @@ describe('AccountSecurity', function () {
   });
 
   afterEach(function () {
-    window.location.assign.mockRestore();
+    (window.location.assign as jest.Mock).mockRestore();
   });
 
   function renderComponent() {
     return render(
-      <AccountSecurityWrapper>
-        <AccountSecurity />
+      <AccountSecurityWrapper
+        location={router.location}
+        route={router.routes[0]}
+        routes={router.routes}
+        router={router}
+        routeParams={router.params}
+        params={{...router.params, authId: '15'}}
+      >
+        <AccountSecurity
+          deleteDisabled={false}
+          authenticators={[]}
+          hasVerifiedEmail
+          countEnrolled={0}
+          handleRefresh={jest.fn()}
+          onDisable={jest.fn()}
+          orgsRequire2fa={[]}
+          location={router.location}
+          route={router.routes[0]}
+          routes={router.routes}
+          router={router}
+          routeParams={router.params}
+          params={{...router.params, authId: '15'}}
+        />
       </AccountSecurityWrapper>,
       {context: TestStubs.routerContext()}
     );

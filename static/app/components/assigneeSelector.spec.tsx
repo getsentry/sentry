@@ -83,7 +83,7 @@ describe('AssigneeSelector', () => {
     GroupStore.reset();
     GroupStore.loadInitialData([GROUP_1, GROUP_2]);
 
-    jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => null);
+    jest.spyOn(MemberListStore, 'getAll').mockImplementation(() => []);
     jest.spyOn(ProjectsStore, 'getAll').mockImplementation(() => [PROJECT_1]);
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
 
@@ -110,10 +110,7 @@ describe('AssigneeSelector', () => {
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way
   const openMenu = async () => {
-    await userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
-      // Skip hover to prevent tooltip from rendering
-      skipHover: true,
-    });
+    await userEvent.click(await screen.findByTestId('assignee-selector'), undefined);
   };
 
   afterEach(() => {
@@ -142,19 +139,21 @@ describe('AssigneeSelector', () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => USER_2);
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_2, USER_1]);
-      ConfigStore.get.mockRestore();
+      (ConfigStore.get as jest.Mock).mockRestore();
     });
 
     it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
-      jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
-        id: '555',
-        name: 'Here Comes a New Challenger',
-        email: 'guile@mail.us.af.mil',
-      }));
+      jest.spyOn(ConfigStore, 'get').mockImplementation(() =>
+        TestStubs.User({
+          id: '555',
+          name: 'Here Comes a New Challenger',
+          email: 'guile@mail.us.af.mil',
+        })
+      );
 
       expect(putSessionUserFirst([USER_1, USER_2])).toEqual([USER_1, USER_2]);
-      ConfigStore.get.mockRestore();
+      (ConfigStore.get as jest.Mock).mockRestore();
     });
   });
 
@@ -290,7 +289,7 @@ describe('AssigneeSelector', () => {
 
     await userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
-    ConfigStore.get.mockRestore();
+    (ConfigStore.get as jest.Mock).mockRestore();
   });
 
   it('filters user by email and selects with keyboard', async () => {

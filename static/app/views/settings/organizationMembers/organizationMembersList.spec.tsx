@@ -74,16 +74,21 @@ describe('OrganizationMembersList', function () {
       id: 'active',
     },
   });
+  const router = TestStubs.router();
   const defaultProps = {
     organization,
-    router: {routes: []},
-    location: {query: {}},
+    router,
+    location: router.location,
+    routes: router.routes,
+    route: router.routes[0],
+    params: router.params,
+    routeParams: router.params,
   };
 
   jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser);
 
   afterAll(function () {
-    ConfigStore.get.mockRestore();
+    (ConfigStore.get as jest.Mock).mockRestore();
   });
 
   beforeEach(function () {
@@ -141,7 +146,7 @@ describe('OrganizationMembersList', function () {
       method: 'GET',
       body: [],
     });
-    browserHistory.push.mockReset();
+    (browserHistory.push as jest.Mock).mockReset();
     OrganizationsStore.load([organization]);
   });
 

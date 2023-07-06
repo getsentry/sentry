@@ -29,17 +29,12 @@ describe('DiscoverQuery', function () {
       },
     });
     render(
-      <DiscoverQuery
-        orgSlug="test-org"
-        api={new MockApiClient()}
-        location={location}
-        eventView={eventView}
-      >
+      <DiscoverQuery orgSlug="test-org" location={location} eventView={eventView}>
         {({tableData, isLoading}) => {
           if (isLoading) {
             return 'loading';
           }
-          return <p>{tableData.data[0].transaction}</p>;
+          return <p>{tableData?.data[0].transaction}</p>;
         }}
       </DiscoverQuery>
     );
@@ -61,7 +56,6 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         limit={3}
@@ -71,7 +65,7 @@ describe('DiscoverQuery', function () {
           if (isLoading) {
             return 'loading';
           }
-          return <p>{tableData.data[0].transaction}</p>;
+          return <p>{tableData?.data[0].transaction}</p>;
         }}
       </DiscoverQuery>
     );
@@ -103,7 +97,6 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         setError={e => (errorValue = e)}
@@ -138,7 +131,6 @@ describe('DiscoverQuery', function () {
     render(
       <DiscoverQuery
         orgSlug="test-org"
-        api={new MockApiClient()}
         location={location}
         eventView={eventView}
         setError={e => (errorValue = e)}

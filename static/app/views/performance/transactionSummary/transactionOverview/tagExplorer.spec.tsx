@@ -13,7 +13,7 @@ import {TagExplorer} from 'sentry/views/performance/transactionSummary/transacti
 function WrapperComponent(props) {
   return (
     <OrganizationContext.Provider value={props.organization}>
-      <MEPSettingProvider _isMEPEnabled={false}>
+      <MEPSettingProvider>
         <TagExplorer {...props} />
       </MEPSettingProvider>
     </OrganizationContext.Provider>
