@@ -27,6 +27,7 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
+import {AggregationKey} from 'sentry/utils/fields';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -520,6 +521,22 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState({query, isQueryValid});
   };
 
+  validateCustomAlert() {
+    const {aggregate, query} = this.state;
+
+    if (!query.includes('transaction.duration')) {
+      return false;
+    }
+
+    const unsupportedAggregates = [
+      AggregationKey.PERCENTILE,
+      AggregationKey.APDEX,
+      AggregationKey.FAILURE_RATE,
+    ];
+
+    return !unsupportedAggregates.some(agg => aggregate.includes(agg));
+  }
+
   handleSubmit = async (
     _data: Partial<MetricRule>,
     _onSubmitSuccess,
@@ -533,6 +550,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // Validate Triggers
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
+    const validCustomAlert = this.validateCustomAlert();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -548,6 +566,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       ].filter(x => x);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
+      return;
+    }
+
+    if (!validCustomAlert) {
+      addErrorMessage(
+        t('%s is not supported for custom metrics alerts', this.state.aggregate)
+      );
       return;
     }
 
