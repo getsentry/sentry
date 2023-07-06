@@ -161,7 +161,7 @@ class JavaScriptSdkLoader(BaseView):
         )
 
     def get(
-        self, request: Request, public_key: Optional[str], minified: Optional[str]
+        self, request: Request, public_key: Optional[str], minified: Optional[str] = None
     ) -> HttpResponse:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()
