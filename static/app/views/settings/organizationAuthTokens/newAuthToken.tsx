@@ -9,8 +9,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import {Form, TextField} from 'sentry/components/forms';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

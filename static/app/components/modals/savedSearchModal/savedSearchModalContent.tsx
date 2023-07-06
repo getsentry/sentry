@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {SelectField, TextField} from 'sentry/components/forms';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchVisibility} from 'sentry/types';

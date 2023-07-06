@@ -1,5 +1,5 @@
 import Feature from 'sentry/components/acl/feature';
-import {Form} from 'sentry/components/forms';
+import Form from 'sentry/components/forms/form';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
