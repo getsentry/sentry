@@ -150,7 +150,14 @@ def index_artifact_bundles_for_release(
                     continue
 
                 # Now we index the urls in the bundle.
-                _index_urls_in_bundle(artifact_bundle, release, dist, date_added, urls)
+                _index_urls_in_bundle(
+                    organization_id=organization_id,
+                    artifact_bundle=artifact_bundle,
+                    release=release,
+                    dist=dist,
+                    date_added=date_added,
+                    urls=urls,
+                )
 
             # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
             # there and wait for auto-expiration.
@@ -163,11 +170,16 @@ def index_artifact_bundles_for_release(
 
 
 def _index_urls_in_bundle(
-    artifact_bundle: ArtifactBundle, release: str, dist: str, date_added: datetime, urls: Set[str]
+    organization_id: int,
+    artifact_bundle: ArtifactBundle,
+    release: str,
+    dist: str,
+    date_added: datetime,
+    urls: Set[str],
 ):
     for url in urls:
         key = {
-            "organization_id": artifact_bundle.organization_id,
+            "organization_id": organization_id,
             "release_name": release,
             "dist_name": dist,
             "url": url,
