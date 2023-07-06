@@ -24,7 +24,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
-# pytestmark = pytest.mark.sentry_metrics
+pytestmark = pytest.mark.sentry_metrics
 
 
 def _metric_percentile_definition(
