@@ -445,6 +445,7 @@ const appConfig: Configuration = {
   //   assetModuleFilename: 'assets/[name].[contenthash][ext]',
   // },
   optimization: {
+    minimize: true,
     // chunkIds: 'named',
     // moduleIds: 'named',
     // splitChunks: {
@@ -461,7 +462,7 @@ const appConfig: Configuration = {
 
     // This only runs in production mode
     // Grabbed this example from https://github.com/webpack-contrib/css-minimizer-webpack-plugin
-    minimizer: ['...', new CssMinimizerPlugin()],
+    // minimizer: ['...', new CssMinimizerPlugin()],
   },
   // devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
@@ -701,10 +702,10 @@ const minificationPlugins = [
   //
   // TODO(ts): The current @types/compression-webpack-plugin is still targeting
   //           webpack@4, for now we just as any it.
-  new CompressionPlugin({
-    algorithm: 'gzip',
-    test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
-  }) as any,
+  // new CompressionPlugin({
+  //   algorithm: 'gzip',
+  //   test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+  // }) as any,
   // NOTE: In production mode webpack will automatically minify javascript
   // using the TerserWebpackPlugin.
 ];
