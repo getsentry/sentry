@@ -205,7 +205,7 @@ function SlowestFunctionEntry({
 
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -232,7 +232,7 @@ function SlowestFunctionEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
@@ -325,6 +325,11 @@ const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
 
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+`;
+
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
@@ -332,8 +337,9 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 65% 10% 25%;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-rows: 18px auto auto auto auto auto;
+  column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};
 `;
 

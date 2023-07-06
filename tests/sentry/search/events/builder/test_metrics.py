@@ -21,10 +21,10 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
-from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY
 
 
 def _metric_percentile_definition(
