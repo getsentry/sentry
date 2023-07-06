@@ -14,7 +14,8 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
   const datetime = selection.datetime;
 
   const {endTime, startTime} = getDateFilters(selection);
-  if (endTime.diff(startTime, 'days') > MAXIMUM_DATE_RANGE) {
+  const invalidDateFilters = endTime.diff(startTime, 'days') > MAXIMUM_DATE_RANGE;
+  if (invalidDateFilters) {
     datetime.period = DEFAULT_STATS_PERIOD;
     datetime.start = null;
     datetime.end = null;
@@ -27,6 +28,10 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
         end: null,
       },
     });
+  }
+
+  if (invalidDateFilters) {
+    return null;
   }
 
   return <PageFiltersContainer>{props.children}</PageFiltersContainer>;
