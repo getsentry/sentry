@@ -16,8 +16,8 @@ type Props = {
 export function DurationComparisonCell({duration, p95, containerProps}: Props) {
   const diff = duration - p95;
 
-  if (Math.floor(duration) === Math.floor(p95)) {
-    return <TextAlignRight>{t('At baseline')}</TextAlignRight>;
+  if (isNearBaseline(duration, p95)) {
+    return <TextAlignRight {...containerProps}>{t('Near baseline')}</TextAlignRight>;
   }
 
   const readableDiff = getDuration(diff / 1000, 2, true, true);
@@ -29,6 +29,12 @@ export function DurationComparisonCell({duration, p95, containerProps}: Props) {
     </ComparisonLabel>
   );
 }
+
+export const isNearBaseline = (duration: number, p95: number) => {
+  const maxDiff = 0.03 * p95;
+  const diff = Math.abs(duration - p95);
+  return diff < maxDiff;
+};
 
 export const PlaintextLabel = styled('div')``;
 
