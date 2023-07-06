@@ -34,7 +34,10 @@ function DurationChart({
 }: Props) {
   const theme = useTheme();
 
-  const getSampleSymbol = (duration: number, p95: number): Series[''] => {
+  const getSampleSymbol = (
+    duration: number,
+    p95: number
+  ): {color: string; symbol: string} => {
     if (isNearBaseline(duration, p95)) {
       return {
         symbol: 'path://M 0 0 V -8 L 5 0 L 0 8 L -5 0 L 0 -8',
