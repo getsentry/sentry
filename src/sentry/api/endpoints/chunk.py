@@ -31,6 +31,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
+    "artifact_bundles",  # Artifact Bundles for JavaScript Source Maps
 )
 
 
@@ -80,13 +81,6 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             url = absolute_uri(relative_url, endpoint)
 
         accept = CHUNK_UPLOAD_ACCEPT
-        # We keep checking for the early adopter flag, since we don't want existing early adopters to have a time in
-        # which the system rolls back to release bundles, since we want to change the option after deploying.
-        if (
-            options.get("sourcemaps.enable-artifact-bundles") == 1.0
-            or organization.flags.early_adopter
-        ):
-            accept += ("artifact_bundles",)
 
         # We introduced the new missing chunks functionality for artifact bundles and in order to synchronize upload
         # capabilities we need to tell CLI to use the new upload style. This is done since if we have mismatched
