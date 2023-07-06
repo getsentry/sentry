@@ -39,7 +39,9 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -85,6 +87,51 @@ class MetricsQueryBuilder(QueryBuilder):
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
+
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            kwargs.get("selected_columns", []), kwargs.get("query", "")
+        )
+
+    def _resolve_on_demand_spec(
+        self, selected_cols: List[Optional[str]], query: str
+    ) -> Optional[OndemandMetricSpec]:
+        field = selected_cols[0] if selected_cols else None
+        if not self.is_performance or not self.is_alerts_query or not field:
+            return None
+        try:
+            return OndemandMetricSpec.parse(field, query)
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
+        if not self.is_performance or not self.is_alerts_query:
+            return None
+
+        spec = self._on_demand_spec
+
+        return MetricsQuery(
+            select=[MetricField(spec.op, spec.mri, alias=spec.mri)],
+            where=[
+                Condition(
+                    lhs=Column(QUERY_HASH_KEY),
+                    op=Op.EQ,
+                    rhs=spec.query_hash(),
+                ),
+            ],
+            # TODO(ogi): groupby and orderby
+            limit=self.limit,
+            offset=self.offset,
+            granularity=self.resolve_granularity(),
+            is_alerts_query=self.is_alerts_query,
+            org_id=self.params.organization.id,
+            project_ids=[p.id for p in self.params.projects],
+            # We do not need the series here, as later, we only extract the totals and assign it to the
+            # request.query
+            include_series=False,
+            start=self.params.start,
+            end=self.params.end,
+        )
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -645,9 +692,13 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        self.get_metrics_layer_snql_query().query, self.is_alerts_query
-                    )
+                    if self._on_demand_spec:
+                        metric_query = self._get_on_demand_metrics_query()
+                    else:
+                        metric_query = transform_mqb_query_to_metrics_query(
+                            self.get_metrics_layer_snql_query().query, self.is_alerts_query
+                        )
+                    # metric_query.where = metric_query_ondemand.where
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
@@ -836,18 +887,24 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             )
 
             snuba_request = self.get_metrics_layer_snql_query()
+
+            if self._on_demand_spec:
+                metrics_query = self._get_on_demand_metrics_query()
+            else:
+                metrics_query = transform_mqb_query_to_metrics_query(
+                    snuba_request.query, is_alerts_query=self.is_alerts_query
+                )
+
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
-                metrics_query=transform_mqb_query_to_metrics_query(
-                    snuba_request.query, is_alerts_query=self.is_alerts_query
-                ),
+                metrics_query=metrics_query,
                 use_case_id=UseCaseKey.PERFORMANCE
                 if self.is_performance
                 else UseCaseKey.RELEASE_HEALTH,
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
-                # If we have have zero or more than one queries resulting from the supplied query, we want to generate
+                # If we have zero or more than one queries resulting from the supplied query, we want to generate
                 # an error as we don't support this case.
                 raise IncompatibleMetricsQuery(
                     "The metrics layer generated zero or multiple queries from the supplied query, only a single query is supported"

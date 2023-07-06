@@ -36,7 +36,7 @@ export const useSpanMetrics = (
     referrer,
   });
 
-  return {...result, data: result?.data[0] ?? {}};
+  return {...result, data: result?.data?.[0] ?? {}};
 };
 
 function getEventView(
@@ -61,7 +61,6 @@ function getEventView(
       }`,
       fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

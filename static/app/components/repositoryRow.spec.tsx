@@ -5,7 +5,6 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import RepositoryRow from 'sentry/components/repositoryRow';
 
 describe('RepositoryRow', function () {
@@ -28,7 +27,7 @@ describe('RepositoryRow', function () {
     },
     status: 'pending_deletion',
   });
-  const api = new Client();
+  const api = new MockApiClient();
 
   describe('rendering with access', function () {
     const organization = TestStubs.Organization({

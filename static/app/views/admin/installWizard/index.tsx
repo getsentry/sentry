@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
 import {Alert} from 'sentry/components/alert';
-import {ApiForm} from 'sentry/components/forms';
+import ApiForm from 'sentry/components/forms/apiForm';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';

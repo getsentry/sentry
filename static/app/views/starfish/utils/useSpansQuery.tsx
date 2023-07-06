@@ -12,6 +12,11 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/starfish/utils/retryHandlers';
 import {TrackResponse} from 'sentry/views/starfish/utils/trackResponse';
 
 export const DATE_FORMAT = 'YYYY-MM-DDTHH:mm:ssZ';
@@ -36,12 +41,15 @@ export function useSpansQuery<T = any[]>({
     ? useWrappedDiscoverTimeseriesQuery
     : useWrappedDiscoverQuery;
 
+  const {isReady: pageFiltersReady} = usePageFilters();
+
   if (eventView) {
     const response = queryFunction<T>({
       eventView,
       initialData,
       limit,
-      enabled,
+      // We always want to wait until the pageFilters are ready to prevent clobbering requests
+      enabled: (enabled || enabled === undefined) && pageFiltersReady,
       referrer,
       cursor,
     });
@@ -93,6 +101,9 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
     options: {
       enabled,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
     referrer,
   });
@@ -136,6 +147,9 @@ export function useWrappedDiscoverQuery<T>({
     options: {
       enabled,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
   });
 

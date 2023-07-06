@@ -16,7 +16,7 @@ import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
@@ -47,7 +47,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
 };
 
