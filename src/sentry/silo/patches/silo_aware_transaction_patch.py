@@ -1,14 +1,26 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, Type
 
 from django import get_version
 from django.db import router, transaction
 from django.db.transaction import Atomic
+
+if TYPE_CHECKING:
+    from sentry.db.models import Model
 
 _default_atomic_impl = transaction.atomic
 
 
 class MismatchedSiloTransactionError(Exception):
     pass
+
+
+def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
+    from sentry.db.router import SiloConnectionUnavailableError
+
+    try:
+        return router.db_for_write(model)
+    except SiloConnectionUnavailableError:
+        return None
 
 
 def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:
@@ -20,24 +32,17 @@ def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic
         model_to_route_to = RegionOutbox if current_silo_mode == SiloMode.REGION else ControlOutbox
         using = router.db_for_write(model_to_route_to)
 
-    both_silos_route_to_same_db = router.db_for_write(ControlOutbox) == router.db_for_write(
-        RegionOutbox
-    )
+    control_db = _get_db_for_model_if_available(ControlOutbox)
+    region_db = _get_db_for_model_if_available(RegionOutbox)
+    both_silos_route_to_same_db = control_db == region_db
 
     if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
         pass
-    elif (
-        using == router.db_for_write(ControlOutbox)
-        and SiloMode.get_current_mode() != SiloMode.CONTROL
-    ):
+    elif using == control_db and SiloMode.get_current_mode() != SiloMode.CONTROL:
         raise MismatchedSiloTransactionError(
             f"Cannot use transaction.atomic({using}) in Control Mode"
         )
-
-    elif (
-        using == router.db_for_write(RegionOutbox)
-        and SiloMode.get_current_mode() != SiloMode.REGION
-    ):
+    elif using == region_db and SiloMode.get_current_mode() != SiloMode.REGION:
         raise MismatchedSiloTransactionError(
             f"Cannot use transaction.atomic({using}) in Region Mode"
         )
