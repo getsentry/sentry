@@ -40,11 +40,11 @@ def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic
         pass
     elif using == control_db and SiloMode.get_current_mode() != SiloMode.CONTROL:
         raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) in Control Mode"
+            f"Cannot use transaction.atomic({using}) except in Control Mode"
         )
     elif using == region_db and SiloMode.get_current_mode() != SiloMode.REGION:
         raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) in Region Mode"
+            f"Cannot use transaction.atomic({using}) except in Region Mode"
         )
 
     return _default_atomic_impl(using=using, savepoint=savepoint)
