@@ -119,7 +119,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         help: (
           <Fragment>
             {t(
-              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
+              'Allow Sentry to comment on pull requests about issues impacting your app.'
             )}{' '}
             <Link to={`/settings/${organization.slug}/integrations/github`}>
               {t('Configure GitHub integration')}

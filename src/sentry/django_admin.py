@@ -1,7 +1,8 @@
 from copy import copy
 
-from django.conf.urls import include, url
+from django.conf.urls import include
 from django.contrib import admin
+from django.urls import re_path
 
 from sentry.auth.superuser import is_active_superuser
 
@@ -32,4 +33,4 @@ def make_site():
 
 site = make_site()
 
-urlpatterns = [url(r"^admin/", include(site.urls[:2]))]
+urlpatterns = [re_path(r"^admin/", include(site.urls[:2]))]

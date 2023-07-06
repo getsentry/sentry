@@ -1,13 +1,13 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from social_auth.views import auth, complete
 
 urlpatterns = [
     # authentication
-    url(
+    re_path(
         r"^associate/complete/(?P<backend>[^/]+)/$", complete, name="socialauth_associate_complete"
     ),
-    url(
+    re_path(
         r"^associate/(?P<backend>[^/]+)/$",
         auth,
         name="socialauth_associate",
