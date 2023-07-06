@@ -13,10 +13,11 @@ from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.ingest import inbound_filters
+from sentry.ingest.inbound_filters import FilterStatKeys
 
 
 @extend_schema(tags=["Projects"])
@@ -41,10 +42,10 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             },
         ),
         responses={
-            201: RESPONSE_NO_CONTENT,
+            204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=None,
     )
@@ -52,7 +53,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         """
         Update various inbound data filters for a project.
         """
-        current_filter = None
+
         for flt in inbound_filters.get_all_filter_specs():
             if flt.id == filter_id:
                 current_filter = flt
@@ -91,7 +92,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             elif new_state == current_state:
                 returned_state = new_state
 
-        if filter_id in ("browser-extensions", "localhost", "web-crawlers"):
+        if filter_id in (
+            FilterStatKeys.BROWSER_EXTENSION,
+            FilterStatKeys.LOCALHOST,
+            FilterStatKeys.WEB_CRAWLER,
+            FilterStatKeys.HEALTH_CHECK,
+        ):
             returned_state = filter_id
             removed = current_state - new_state
 
@@ -108,4 +114,4 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             data={"state": returned_state},
         )
 
-        return Response(status=201)
+        return Response(status=204)

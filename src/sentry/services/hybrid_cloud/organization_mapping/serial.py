@@ -12,7 +12,6 @@ def update_organization_mapping_from_instance(
 ) -> RpcOrganizationMappingUpdate:
     return RpcOrganizationMappingUpdate(
         name=organization.name,
-        customer_id=organization.customer_id,
         status=organization.status,
         slug=organization.slug,
         region_name=region.name,

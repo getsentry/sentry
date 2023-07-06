@@ -162,15 +162,16 @@ class EndpointTest(APITestCase):
         org = self.create_organization()
         apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
-        request = self.make_request(method="GET")
-        request.META["HTTP_ORIGIN"] = "http://acme.example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
+            request = self.make_request(method="GET")
+            request.META["HTTP_ORIGIN"] = http_origin
+            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+                apikey.key.encode("utf-8")
+            )
 
-        response = _dummy_endpoint(request)
-        response.render()
-        assert "Access-Control-Allow-Credentials" not in response
+            response = _dummy_endpoint(request)
+            response.render()
+            assert "Access-Control-Allow-Credentials" not in response
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
@@ -460,7 +461,7 @@ class FunctionSiloLimitTest(APITestCase):
             if expect_to_be_active:
                 decorated_function()
             else:
-                with raises(ValueError):
+                with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
     def test_with_active_mode(self):

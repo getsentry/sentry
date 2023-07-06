@@ -9,11 +9,11 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
+from django.http import HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features
 from sentry.integrations import (
@@ -158,7 +158,7 @@ class InstallationConfigView(PipelineView):
     Collect the OAuth client credentials from the user.
     """
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():
@@ -183,7 +183,7 @@ class OAuthLoginView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "oauth_token" in request.GET:
             return pipeline.next_step()
 
@@ -223,7 +223,7 @@ class OAuthCallbackView(PipelineView):
     """
 
     @csrf_exempt
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         config = pipeline.fetch_state("installation_data")
         client = JiraServerSetupClient(
             config.get("url"),

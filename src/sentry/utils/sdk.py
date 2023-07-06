@@ -468,17 +468,26 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
-def check_tag(tag_key: str, expected_value: str) -> None:
-    """Detect a tag already set and being different than what we expect.
-
-    This function checks if a tag has been already been set and if it differs
-    from what we want to set it to.
+def check_tag_for_scope_bleed(
+    tag_key: str, expected_value: str | int, add_to_scope: bool = True
+) -> None:
     """
+    Detect if the given tag has already been set to a value different than what we expect. If we
+    find a mismatch, log a warning and, if `add_to_scope` is `True`, add scope bleed tags to the
+    scope. (An example of when we don't want to add scope bleed tag is if we're only logging a
+    warning rather than capturing an event.)
+    """
+    # force the string version to prevent false positives
+    expected_value = str(expected_value)
+
     with configure_scope() as scope:
         current_value = scope._tags.get(tag_key)
 
         if not current_value:
             return
+
+        # ensure we're comparing apples to apples
+        current_value = str(current_value)
 
         # There are times where we can only narrow down the current org to a list, for example if
         # we've derived it from an integration, since integrations can be shared across multiple orgs.
@@ -500,13 +509,14 @@ def check_tag(tag_key: str, expected_value: str) -> None:
                     return
 
         if current_value != expected_value:
-            scope.set_tag("possible_mistag", True)
-            scope.set_tag(f"scope_bleed.{tag_key}", True)
             extra = {
                 f"previous_{tag_key}_tag": current_value,
                 f"new_{tag_key}_tag": expected_value,
             }
-            merge_context_into_scope("scope_bleed", extra, scope)
+            if add_to_scope:
+                scope.set_tag("possible_mistag", True)
+                scope.set_tag(f"scope_bleed.{tag_key}", True)
+                merge_context_into_scope("scope_bleed", extra, scope)
             logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
 
 
@@ -594,7 +604,7 @@ def bind_organization_context(organization):
         op="other", description="bind_organization_context"
     ):
         # This can be used to find errors that may have been mistagged
-        check_tag("organization.slug", organization.slug)
+        check_tag_for_scope_bleed("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
@@ -636,7 +646,7 @@ def bind_ambiguous_org_context(orgs: Sequence[Organization], source: str | None 
 
         # It's also possible that the org seems already to be set but it's just a case of scope
         # bleed. In that case, we want to test for that and proceed.
-        check_tag("organization.slug", MULTIPLE_ORGS_TAG)
+        check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
         scope.set_tag("organization", MULTIPLE_ORGS_TAG)
         scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
@@ -681,7 +691,7 @@ __all__ = (
     "capture_exception_with_scope_check",
     "capture_message",
     "check_current_scope_transaction",
-    "check_tag",
+    "check_tag_for_scope_bleed",
     "configure_scope",
     "configure_sdk",
     "get_options",

@@ -2,9 +2,9 @@ import time
 from typing import Optional, Tuple, TypedDict
 
 from django.conf import settings
+from django.http import HttpResponse
 from packaging.version import Version
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.loader.browsersdkversion import get_browser_sdk_version
@@ -160,7 +160,9 @@ class JavaScriptSdkLoader(BaseView):
             sdk_url,
         )
 
-    def get(self, request: Request, public_key: Optional[str], minified: Optional[str]) -> Response:
+    def get(
+        self, request: Request, public_key: Optional[str], minified: Optional[str] = None
+    ) -> HttpResponse:
         """Returns a js file that can be integrated into a website"""
         start_time = time.time()
         key = None

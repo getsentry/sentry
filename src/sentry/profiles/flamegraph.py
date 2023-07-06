@@ -1,8 +1,10 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
+from rest_framework.exceptions import ParseError
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 
+from sentry import eventstore
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -73,11 +75,12 @@ def get_span_intervals(
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("transaction_id"), Op.IN, transaction_ids),
-            Condition(Column("group"), Op.EQ, span_group),
+            Condition(Column("group_raw"), Op.EQ, span_group),
             Condition(Column("timestamp"), Op.GTE, params["start"]),
             Condition(Column("timestamp"), Op.LT, params["end"]),
         ],
     )
+
     request = Request(
         dataset=Dataset.SpansIndexed.value,
         app_id="default",
@@ -87,10 +90,51 @@ def get_span_intervals(
             "organization_id": organization_id,
         },
     )
-    return raw_snql_query(
+    data = raw_snql_query(
         request,
         referrer=Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
     )["data"]
+    spans_interval = []
+    for row in data:
+        start_ns = (int(datetime.fromisoformat(row["start_timestamp"]).timestamp()) * 10**9) + (
+            row["start_ms"] * 10**6
+        )
+        end_ns = (int(datetime.fromisoformat(row["end_timestamp"]).timestamp()) * 10**9) + (
+            row["end_ms"] * 10**6
+        )
+        interval = {}
+        interval["transaction_id"] = row["transaction_id"]
+        interval["start_ns"] = str(start_ns)
+        interval["end_ns"] = str(end_ns)
+        spans_interval.append(interval)
+    return spans_interval
+
+
+def get_span_intervals_from_nodestore(
+    project_id: str,
+    span_group: str,
+    transaction_ids: List[str],
+) -> List[Dict[str, Any]]:
+    spans_interval = []
+    for id in transaction_ids:
+        nodestore_event = eventstore.backend.get_event_by_id(project_id, id)
+        data = nodestore_event.data
+        for span in data.get("spans", []):
+            if span["hash"] == span_group:
+
+                start_sec, start_us = map(int, str(span["start_timestamp"]).split("."))
+                end_sec, end_us = map(int, str(span["timestamp"]).split("."))
+
+                start_ns = (start_sec * 10**9) + (start_us * 10**3)
+                end_ns = (end_sec * 10**9) + (end_us * 10**3)
+
+                interval = {}
+                interval["transaction_id"] = id
+                interval["start_ns"] = str(start_ns)
+                interval["end_ns"] = str(end_ns)
+
+                spans_interval.append(interval)
+    return spans_interval
 
 
 def get_profile_ids_with_spans(
@@ -98,6 +142,7 @@ def get_profile_ids_with_spans(
     project_id: str,
     params: ParamsType,
     span_group: str,
+    backend: str,
     query: Optional[str] = None,
 ):
     data = query_profiles_data(
@@ -110,28 +155,34 @@ def get_profile_ids_with_spans(
         ],
     )
     # map {transaction_id: (profile_id, [span intervals])}
+
     transaction_to_prof: Dict[str, Tuple[str, List[Dict[str, str]]]] = {
         row["id"]: (row["profile.id"], []) for row in data
     }
 
-    data = get_span_intervals(
-        project_id,
-        span_group,
-        list(transaction_to_prof.keys()),
-        organization_id,
-        params,
-    )
+    if backend == "nodestore":
+        data = get_span_intervals_from_nodestore(
+            project_id,
+            span_group,
+            list(transaction_to_prof.keys()),
+        )
+    elif backend == "indexed_spans":
+        data = get_span_intervals(
+            project_id,
+            span_group,
+            list(transaction_to_prof.keys()),
+            organization_id,
+            params,
+        )
+    else:
+        raise ParseError(
+            detail="Backend not supported: choose between 'indexed_spans' or 'nodestore'."
+        )
 
     for row in data:
-        start_ns = (int(datetime.fromisoformat(row["start_timestamp"]).timestamp()) * 10**9) + (
-            row["start_ms"] * 10**6
+        transaction_to_prof[row["transaction_id"]][1].append(
+            {"start": row["start_ns"], "end": row["end_ns"]}
         )
-        end_ns = (int(datetime.fromisoformat(row["end_timestamp"]).timestamp()) * 10**9) + (
-            row["end_ms"] * 10**6
-        )
-        transaction_id = row["transaction_id"]
-
-        transaction_to_prof[transaction_id][1].append({"start": str(start_ns), "end": str(end_ns)})
 
     profile_ids = [tup[0] for tup in transaction_to_prof.values()]
     spans = [tup[1] for tup in transaction_to_prof.values()]

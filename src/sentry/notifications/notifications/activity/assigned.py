@@ -10,20 +10,19 @@ from ...utils.participants import ParticipantMap
 from .base import GroupActivityNotification
 
 
-def _get_user_option(assignee_id: int) -> User | None:
+def _get_user_option(assignee_id: int | None) -> User | None:
     try:
         return User.objects.get_from_cache(id=assignee_id)
     except User.DoesNotExist:
         return None
 
 
-def _get_team_option(assignee_id: int, organization: Organization) -> Team | None:
+def _get_team_option(assignee_id: int | None, organization: Organization) -> Team | None:
     return Team.objects.filter(id=assignee_id, organization=organization).first()
 
 
 def is_team_assignee(activity: Activity) -> bool:
-    assignee_type: str | None = activity.data.get("assigneeType")
-    return assignee_type == "team"
+    return activity.data.get("assigneeType") == "team"
 
 
 def get_assignee_str(activity: Activity, organization: Organization) -> str:

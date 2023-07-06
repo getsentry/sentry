@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -12,6 +12,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.fields import Field
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import TypedDict
 
 from sentry import audit_log, roles
 from sentry.api.base import control_silo_endpoint
@@ -26,12 +27,13 @@ from sentry.api.serializers.models.organization_member import (
 )
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_SUCCESS,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
 from sentry.models import AuthIdentity, AuthProvider, InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
@@ -52,7 +54,6 @@ from .utils import (
     SCIMApiError,
     SCIMEndpoint,
     SCIMQueryParamSerializer,
-    scim_response_envelope,
 )
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
@@ -203,7 +204,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             200: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.QUERY_ORG_MEMBER,
     )
@@ -227,7 +228,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.UPDATE_ORG_MEMBER_ATTRIBUTES,
     )
@@ -270,7 +271,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             204: RESPONSE_SUCCESS,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(self, request: Request, organization, member) -> Response:
@@ -291,7 +292,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             201: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.UPDATE_USER_ROLE,
     )
@@ -358,6 +359,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
+class SCIMListResponseDict(TypedDict):
+    schemas: List[str]
+    totalResults: int
+    startIndex: int
+    itemsPerPage: int
+    Resources: List[OrganizationMemberSCIMSerializerResponse]
+
+
 @control_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
@@ -368,12 +377,12 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         parameters=[GlobalParams.ORG_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
-            200: scim_response_envelope(
-                "SCIMMemberIndexResponse", OrganizationMemberSCIMSerializerResponse
+            200: inline_sentry_response_serializer(
+                "SCIMListResponseEnvelopeSCIMMemberIndexResponse", SCIMListResponseDict
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.LIST_ORG_MEMBERS,
     )
@@ -392,7 +401,9 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         ).order_by("email", "id")
         if query_params["filter"]:
             filtered_users = user_service.get_many_by_email(
-                emails=query_params["filter"], organization_id=organization.id
+                emails=query_params["filter"],
+                organization_id=organization.id,
+                is_verified=False,
             )
             queryset = queryset.filter(
                 Q(email__iexact=query_params["filter"])
@@ -433,7 +444,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             201: OrganizationMemberSCIMSerializer,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=SCIMExamples.PROVISION_NEW_MEMBER,
     )

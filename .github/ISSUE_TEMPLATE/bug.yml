@@ -48,6 +48,9 @@ body:
         - 'Issues - Suggested Fix'
         - 'Projects'
         - 'Performance'
+        - 'Starfish'
+        - 'Starfish - API'
+        - 'Starfish - Database'
         - 'Profiling'
         - 'Replays'
         - 'Crons'
@@ -68,6 +71,7 @@ body:
         - 'Settings - Repositories'
         - 'Settings - Integrations'
         - 'Settings - Developer Settings'
+        - 'Settings - Spend Allocation'
         - 'Settings - Spike Protection'
         - 'Help'
         - "What's New"

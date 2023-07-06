@@ -2,7 +2,8 @@ import logging
 import posixpath
 from typing import Any, Callable, Optional, Set
 
-from symbolic import ParseDebugIdError, normalize_debug_id
+from symbolic.debuginfo import normalize_debug_id
+from symbolic.exceptions import ParseDebugIdError
 
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator

@@ -3,14 +3,16 @@ from html import escape
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models import PlatformExternalIssue
+from sentry.models.group import Group
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 
 
 class Creator(Mediator):
-    install = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    group = Param("sentry.models.Group")
-    web_url = Param((str,))
-    project = Param((str,))
-    identifier = Param((str,))
+    install = Param(RpcSentryAppInstallation)
+    group = Param(Group)
+    web_url = Param(str)
+    project = Param(str)
+    identifier = Param(str)
 
     def call(self):
         self._create_external_issue()

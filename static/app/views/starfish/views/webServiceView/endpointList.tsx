@@ -16,7 +16,8 @@ import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -27,7 +28,6 @@ import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {TableColumn} from 'sentry/views/discover/table/types';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -47,7 +47,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
 };
 
@@ -99,6 +98,12 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             end: eventView.end,
           })}`}
           style={{display: `block`, width: `100%`}}
+          onClick={() => {
+            trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {
+              organization,
+              endpoint: dataRow.transaction,
+            });
+          }}
         >
           {prefix}
           {dataRow.transaction}
@@ -124,48 +129,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       );
     }
 
+    // TODO: This can be removed if/when the backend returns this field's type
+    // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return (
-        <NumberContainer>
-          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
-        </NumberContainer>
-      );
-    }
-
-    if (
-      [
-        'percentile_percent_change(transaction.duration,0.95)',
-        'http_error_count_percent_change()',
-      ].includes(field)
-    ) {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
-      return (
-        <NumberContainer>
-          <PercentChangeCell trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </PercentChangeCell>
-        </NumberContainer>
-      );
-    }
-
-    if (field === 'tps_percent_change()') {
-      const deltaValue = dataRow[field] as number;
-
-      return (
-        <NumberContainer>
-          <PercentChangeCell trendDirection="neutral">
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </PercentChangeCell>
-        </NumberContainer>
-      );
+      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
     }
 
     if (field === 'project') {
@@ -255,6 +222,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAnalytics('starfish.web_service_view.endpoint_list.header.clicked', {
+            organization,
+            direction: currentSortKind === 'desc' ? 'asc' : 'desc',
+            header: title || field.field,
+          });
+        }}
       />
     );
 
@@ -281,6 +255,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
   const columnOrder = eventView

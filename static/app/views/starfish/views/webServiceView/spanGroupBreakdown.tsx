@@ -1,78 +1,64 @@
-import {useEffect, useState} from 'react';
-import {Link} from 'react-router';
-import {useTheme} from '@emotion/react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
-import * as qs from 'query-string';
 
-import Checkbox from 'sentry/components/checkbox';
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
-import TextOverflow from 'sentry/components/textOverflow';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Series} from 'sentry/types/echarts';
-import {defined} from 'sentry/utils';
-import {getUtcDateString} from 'sentry/utils/dates';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
-import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {RightAlignedCell} from 'sentry/views/performance/landing/widgets/components/selectableList';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import useOrganization from 'sentry/utils/useOrganization';
 import Chart from 'sentry/views/starfish/components/chart';
-import {DataRow} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+import {
+  DataDisplayType,
+  DataRow,
+} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   colorPalette: string[];
-  initialShowSeries: boolean[];
+  dataDisplayType: DataDisplayType;
   isCumulativeTimeLoading: boolean;
   isTableLoading: boolean;
   isTimeseriesLoading: boolean;
+  options: SelectOption<DataDisplayType>[];
+  setDataDisplayType: any;
   tableData: DataRow[];
-  topSeriesData: Series[];
+  topSeriesData: LineChartSeries[];
   totalCumulativeTime: number;
   errored?: boolean;
   transaction?: string;
 };
 
-export enum DataDisplayType {
-  CUMULATIVE_DURATION = 'cumulative_duration',
-  PERCENTAGE = 'percentage',
-}
-
 export function SpanGroupBreakdown({
-  tableData: transformedData,
-  totalCumulativeTime: totalValues,
   topSeriesData: data,
-  initialShowSeries,
   transaction,
   isTimeseriesLoading,
   errored,
+  options,
+  dataDisplayType,
+  setDataDisplayType,
 }: Props) {
-  const {selection} = usePageFilters();
-  const theme = useTheme();
-  const [showSeriesArray, setShowSeriesArray] = useState<boolean[]>(initialShowSeries);
-  const options: SelectOption<DataDisplayType>[] = [
-    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
-  ];
-  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.CUMULATIVE_DURATION
+  const organization = useOrganization();
+  const hasDropdownFeatureFlag = organization.features.includes(
+    'starfish-wsv-chart-dropdown'
   );
 
-  useEffect(() => {
-    setShowSeriesArray(initialShowSeries);
-  }, [initialShowSeries]);
-
-  const visibleSeries: Series[] = [];
+  const visibleSeries: LineChartSeries[] = [];
 
   for (let index = 0; index < data.length; index++) {
     const series = data[index];
-    if (showSeriesArray[index]) {
-      visibleSeries.push(series);
-    }
+    series.emphasis = {
+      disabled: false,
+      focus: 'series',
+    };
+    series.blur = {
+      areaStyle: {opacity: 0.3},
+    };
+    series.triggerLineEvent = true;
+    visibleSeries.push(series);
   }
-  const colorPalette = theme.charts.getColorPalette(transformedData.length - 2);
 
   const dataAsPercentages = cloneDeep(visibleSeries);
   const numDataPoints = data[0]?.data?.length ?? 0;
@@ -85,142 +71,96 @@ export function SpanGroupBreakdown({
     });
   }
 
-  const handleChange = (option: SelectOption<DataDisplayType>) =>
+  const handleChange = (option: SelectOption<DataDisplayType>) => {
     setDataDisplayType(option.value);
+    trackAnalytics('starfish.web_service_view.breakdown.display_change', {
+      organization,
+      display: option.value,
+    });
+  };
+
+  const isEndpointBreakdownView = Boolean(transaction);
+
+  const handleModuleAreaClick = event => {
+    switch (event.seriesName) {
+      case 'http':
+        browserHistory.push('/starfish/api');
+        break;
+      case 'db':
+        browserHistory.push('/starfish/database');
+        break;
+      case 'custom':
+      case 'Other':
+      case 'cache':
+      default:
+        browserHistory.push('/starfish/spans');
+        break;
+    }
+  };
 
   return (
     <FlexRowContainer>
       <ChartPadding>
         <Header>
           <ChartLabel>
-            {transaction ? t('Endpoint Time Breakdown') : t('Service Breakdown')}
+            {isEndpointBreakdownView ? t('Endpoint Breakdown') : t('Service Breakdown')}
           </ChartLabel>
-          <CompactSelect
-            options={options}
-            value={dataDisplayType}
-            onChange={handleChange}
-          />
+          {hasDropdownFeatureFlag && (
+            <CompactSelect
+              options={options}
+              value={dataDisplayType}
+              onChange={handleChange}
+            />
+          )}
         </Header>
-        <Chart
-          statsPeriod="24h"
-          height={210}
-          data={
-            dataDisplayType === DataDisplayType.PERCENTAGE
-              ? dataAsPercentages
-              : visibleSeries
-          }
-          dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
-          durationUnit={dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined}
-          start=""
-          end=""
-          errored={errored}
-          loading={isTimeseriesLoading}
-          utc={false}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '8px',
-            bottom: '0',
-          }}
-          definedAxisTicks={6}
-          stacked
-          aggregateOutputFormat={
-            dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
-          }
-          tooltipFormatterOptions={{
-            valueFormatter: value =>
-              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-          }}
-        />
+        <VisuallyCompleteWithData id="WSV.SpanGroupBreakdown" hasData={data.length > 0}>
+          <Chart
+            statsPeriod="24h"
+            height={340}
+            showLegend
+            data={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? dataAsPercentages : data
+            }
+            dataMax={dataDisplayType === DataDisplayType.PERCENTAGE ? 1 : undefined}
+            durationUnit={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? 0.25 : undefined
+            }
+            start=""
+            end=""
+            errored={errored}
+            loading={isTimeseriesLoading}
+            utc={false}
+            onClick={handleModuleAreaClick}
+            grid={{
+              left: '0',
+              right: '0',
+              top: '20px',
+              bottom: '0',
+            }}
+            definedAxisTicks={6}
+            stacked
+            aggregateOutputFormat={
+              dataDisplayType === DataDisplayType.PERCENTAGE ? 'percentage' : 'duration'
+            }
+            tooltipFormatterOptions={{
+              valueFormatter: value =>
+                dataDisplayType === DataDisplayType.PERCENTAGE
+                  ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
+                  : tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+            }}
+            onLegendSelectChanged={event => {
+              trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
+                organization,
+                selected: Object.keys(event.selected).filter(key => event.selected[key]),
+                toggled: event.name,
+              });
+            }}
+          />
+        </VisuallyCompleteWithData>
       </ChartPadding>
-      <ListContainer>
-        {transformedData.map((row, index) => {
-          const checkedValue = showSeriesArray[index];
-          const group = row.group;
-          const {start, end, utc, period} = selection.datetime;
-          const spansLinkQueryParams =
-            start && end
-              ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
-              : {statsPeriod: period};
-          if (['db', 'http'].includes(group['span.category'])) {
-            spansLinkQueryParams['span.module'] = group['span.category'];
-          } else {
-            spansLinkQueryParams['span.module'] = 'Other';
-          }
-          spansLinkQueryParams['span.category'] = group['span.category'];
-
-          const spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
-          return (
-            <StyledLineItem key={`${group['span.category']}`}>
-              <ListItemContainer>
-                <Checkbox
-                  size="sm"
-                  checkboxColor={colorPalette[index]}
-                  inputCss={{backgroundColor: 'red'}}
-                  checked={checkedValue}
-                  onChange={() => {
-                    const updatedSeries = [...showSeriesArray];
-                    updatedSeries[index] = !checkedValue;
-                    setShowSeriesArray(updatedSeries);
-                  }}
-                />
-                <TextAlignLeft>
-                  {defined(transaction) ? (
-                    <TextOverflow>{group['span.category']}</TextOverflow>
-                  ) : (
-                    <Link to={spansLink}>
-                      <TextOverflow>{group['span.category']}</TextOverflow>
-                    </Link>
-                  )}
-                </TextAlignLeft>
-                <RightAlignedCell>
-                  <Tooltip
-                    title={t(
-                      '%s time spent on %s',
-                      formatPercentage(row.cumulativeTime / totalValues, 1),
-                      group['span.category']
-                    )}
-                    containerDisplayMode="block"
-                    position="top"
-                  >
-                    <NumberContainer
-                      style={{textDecoration: 'underline', textDecorationStyle: 'dotted'}}
-                    >
-                      {formatPercentage(row.cumulativeTime / totalValues, 1)}
-                    </NumberContainer>
-                  </Tooltip>
-                </RightAlignedCell>
-              </ListItemContainer>
-            </StyledLineItem>
-          );
-        })}
-      </ListContainer>
     </FlexRowContainer>
   );
 }
-
-const StyledLineItem = styled('li')`
-  line-height: ${p => p.theme.text.lineHeightBody};
-`;
-
-const ListItemContainer = styled('div')`
-  display: flex;
-  padding: ${space(1)} ${space(2)};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const ListContainer = styled('ul')`
-  padding: ${space(1)} 0 0 0;
-  margin: 0;
-  border-left: 1px solid ${p => p.theme.border};
-  list-style-type: none;
-`;
-
-const TextAlignLeft = styled('span')`
-  text-align: left;
-  width: 100%;
-  padding: 0 ${space(1.5)};
-`;
 
 const ChartPadding = styled('div')`
   padding: 0 ${space(2)};
@@ -238,6 +178,7 @@ const Header = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
 const FlexRowContainer = styled('div')`

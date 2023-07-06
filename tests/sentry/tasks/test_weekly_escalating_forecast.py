@@ -9,7 +9,6 @@ from sentry.issues.escalating_group_forecast import (
     EscalatingGroupForecast,
 )
 from sentry.models.group import Group, GroupStatus
-from sentry.models.project import Project
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.types.group import GroupSubStatus
@@ -19,7 +18,7 @@ from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
     def create_archived_until_escalating_groups(self, num_groups: int) -> List[Group]:
         group_list = []
-        project_1 = Project.objects.get(id=1)
+        project_1 = self.project
         for i in range(num_groups):
             group = self.create_group(project=project_1)
             group.status = GroupStatus.IGNORED

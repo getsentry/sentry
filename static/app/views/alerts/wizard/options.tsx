@@ -244,17 +244,24 @@ export function datasetSupportedTags(
       [Dataset.ERRORS]: undefined,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
-        : TRANSACTION_SUPPORTED_TAGS,
+        : transactionSupportedTags(org),
       [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
       [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
         ? undefined
-        : TRANSACTION_SUPPORTED_TAGS,
+        : transactionSupportedTags(org),
       [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
     },
     value => {
       return value ? makeTagCollection(value) : undefined;
     }
   )[dataset];
+}
+
+function transactionSupportedTags(org: Organization) {
+  if (org.features.includes('on-demand-metrics-extraction')) {
+    return [...TRANSACTION_SUPPORTED_TAGS, FieldKey.TRANSACTION_DURATION];
+  }
+  return TRANSACTION_SUPPORTED_TAGS;
 }
 
 // Some data sets support all tags except some. For these cases, define the

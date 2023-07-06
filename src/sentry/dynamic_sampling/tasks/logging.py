@@ -1,5 +1,7 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, Optional
+
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +39,39 @@ def log_sample_rate_source(
     )
 
 
-def log_query_timeout(query: str, offset: int) -> None:
-    logger.error("dynamic_sampling.query_timeout", extra={"query": query, "offset": offset})
+def log_query_timeout(query: str, offset: int, timeout_seconds: int) -> None:
+    logger.error(
+        "dynamic_sampling.query_timeout",
+        extra={"query": query, "offset": offset, "timeout_seconds": timeout_seconds},
+    )
+
+    # We also want to collect a metric, in order to measure how many retries we are having. It may help us to spot
+    # possible problems on the Snuba end that affect query performance.
+    metrics.incr("dynamic_sampling.query_timeout", tags={"query": query})
 
 
-def log_recalibrate_orgs_errors(errors: Dict[str, List[str]]) -> None:
-    logger.info("dynamic_sampling.recalibrate_orgs", extra={"errors": errors})
+def log_recalibrate_org_error(org_id: int, error: str) -> None:
+    logger.info("dynamic_sampling.recalibrate_org_error", extra={"org_id": org_id, "error": error})
+
+
+def log_recalibrate_org_state(
+    org_id: int, previous_factor: float, effective_sample_rate: float, target_sample_rate: float
+) -> None:
+    logger.info(
+        "dynamic_sampling.recalibrate_org_state",
+        extra={
+            "org_id": org_id,
+            "previous_factor": previous_factor,
+            "effective_sample_rate": effective_sample_rate,
+            "target_sample_rate": target_sample_rate,
+            "target_effective_ratio": target_sample_rate / effective_sample_rate,
+        },
+    )
+
+
+def log_action_if(name: str, extra: Dict[str, Any], block: Callable[[], bool]):
+    if block():
+        logger.info(
+            f"dynamic_sampling.{name}",
+            extra=extra,
+        )

@@ -13,14 +13,13 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
@@ -283,7 +282,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request: Request):
+    def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -374,10 +373,10 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
-    def get_activity(self, request: Request, event):
+    def get_activity(self, request: HttpRequest, event):
         raise NotImplementedError
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 

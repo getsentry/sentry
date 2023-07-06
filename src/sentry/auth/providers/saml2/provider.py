@@ -6,12 +6,11 @@ from django.contrib.auth import logout
 from django.http import HttpResponse, HttpResponseServerError
 from django.urls import reverse
 from django.utils.decorators import method_decorator
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
 from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
@@ -48,7 +47,7 @@ def get_provider(organization_slug):
 
 
 class SAML2LoginView(AuthView):
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         if "SAMLResponse" in request.POST:
             return helper.next_step()
 
@@ -117,7 +116,7 @@ class SAML2AcceptACSView(BaseView):
 
 class SAML2ACSView(AuthView):
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: Request, helper) -> Response:
+    def dispatch(self, request: Request, helper) -> HttpResponse:
         provider = helper.provider
 
         # If we're authenticating during the setup pipeline the provider will

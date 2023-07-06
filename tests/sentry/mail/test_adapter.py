@@ -8,6 +8,7 @@ from unittest import mock
 import pytz
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 
@@ -15,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -112,7 +113,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user2,
+            user_id=user2.id,
             project=project,
         )
 
@@ -127,7 +128,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user4,
+            user_id=user4.id,
         )
 
         # add a specific setting for a different provider
@@ -135,7 +136,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user4,
+            user_id=user4.id,
         )
 
         assert user4 not in self.adapter.get_sendable_user_objects(project)
@@ -143,14 +144,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
         NotificationSetting.objects.remove_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
-            user=user4,
+            user_id=user4.id,
         )
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user4,
+            user_id=user4.id,
         )
 
         assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
@@ -183,7 +184,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert isinstance(msg.alternatives[0][0], str)
         assert "my rule" in msg.alternatives[0][0]
 
     def test_simple_snooze(self):
@@ -260,13 +263,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
     def test_simple_notification_generic(self):
         """Test that an issue that is neither error nor performance type renders a generic email template"""
-        event = self.store_event(
+        orig_event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        event = orig_event.for_group(orig_event.groups[0])
         occurrence = IssueOccurrence(
-            self.project.id,
             uuid.uuid4().hex,
+            self.project.id,
             uuid.uuid4().hex,
             ["some-fingerprint"],
             "something bad happened",
@@ -278,7 +281,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -286,7 +289,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -297,6 +300,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == f"[Sentry] BAR-1 - {occurrence.issue_title}"
         checked_values = [
             "Issue Data",
@@ -308,16 +312,17 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Value 3",
         ]
         for checked_value in checked_values:
+            assert isinstance(msg.alternatives[0][0], str)
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
 
     def test_simple_notification_generic_no_evidence(self):
         """Test that an issue with no evidence that is neither error nor performance type renders a generic email template"""
-        event = self.store_event(
+        orig_event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        event = event.for_group(event.groups[0])
+        event = orig_event.for_group(orig_event.groups[0])
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
             self.project.id,
@@ -328,7 +333,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -336,7 +341,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -347,7 +352,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - something bad happened"
+        assert isinstance(msg.alternatives[0][0], str)
         assert "Issue Data" not in msg.alternatives[0][0]
 
     def test_simple_notification_perf(self):
@@ -361,6 +368,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - N+1 Query"
         checked_values = [
             "Transaction Name",
@@ -372,6 +380,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
         ]
         for checked_value in checked_values:
+            assert isinstance(msg.alternatives[0][0], str)
             assert (
                 checked_value in msg.alternatives[0][0]
             ), f"{checked_value} not present in message"
@@ -413,7 +422,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -455,7 +464,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user,
+            user_id=user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -507,7 +516,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -542,8 +551,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         from django.template.defaultfilters import date
 
         timestamp = datetime.now(tz=pytz.utc)
-        local_timestamp = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
-        local_timestamp = date(local_timestamp, "N j, Y, g:i:s a e")
+        local_timestamp_s = timezone.localtime(timestamp, pytz.timezone("Europe/Vienna"))
+        local_timestamp = date(local_timestamp_s, "N j, Y, g:i:s a e")
 
         UserOption.objects.create(user=self.user, key="timezone", value="Europe/Vienna")
 
@@ -560,6 +569,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert local_timestamp in str(msg.alternatives)
 
     def test_notify_with_suspect_commits(self):
@@ -610,6 +620,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         GroupRelease.objects.create(
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
@@ -662,6 +673,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) >= 1
 
         msg = mail.outbox[-1]
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert isinstance(msg.alternatives[0][0], str)
         assert (
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             in msg.alternatives[0][0]
@@ -683,6 +696,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) >= 1
 
         msg = mail.outbox[-1]
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert isinstance(msg.alternatives[0][0], str)
         assert (
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             not in msg.alternatives[0][0]
@@ -703,6 +718,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert len(mail.outbox) >= 1
 
         msg = mail.outbox[-1]
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert isinstance(msg.alternatives[0][0], str)
         assert (
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             not in msg.alternatives[0][0]
@@ -796,7 +813,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user2,
+            user_id=user2.id,
             project=project,
         )
 
@@ -831,7 +848,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -892,7 +909,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -1042,7 +1059,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         """
@@ -1131,6 +1148,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         # Header is based on the group substatus
+        assert event.group is not None
         event.group.substatus = GroupSubStatus.REGRESSED
         event.group.save()
 
@@ -1143,7 +1161,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
+        assert isinstance(msg.alternatives[0][0], str)
         assert "Regressed issue" in msg.alternatives[0][0]
 
 
@@ -1455,7 +1475,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         activity = Activity.objects.create(
             project=self.project,
@@ -1480,7 +1500,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         activity = Activity.objects.create(
@@ -1507,7 +1527,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         activity = Activity.objects.create(
@@ -1549,7 +1569,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         with self.tasks():
@@ -1560,8 +1580,10 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
 
         # email includes issue metadata
+        assert isinstance(msg.alternatives[0][0], str)
         assert "group-header" in msg.alternatives[0][0]
         assert "enhanced privacy" not in msg.body
 
@@ -1578,7 +1600,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         report = self.create_report()
@@ -1591,8 +1613,10 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 1
         msg = mail.outbox[0]
+        assert isinstance(msg, EmailMultiAlternatives)
 
         # email does not include issue metadata
+        assert isinstance(msg.alternatives[0][0], str)
         assert "group-header" not in msg.alternatives[0][0]
         assert "enhanced privacy" in msg.body
 

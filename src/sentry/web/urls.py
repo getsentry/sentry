@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 
 from django.conf import settings
-from django.conf.urls import include, url
+from django.conf.urls import include
 from django.http import HttpResponse
-from django.urls import URLPattern, URLResolver
+from django.urls import URLPattern, URLResolver, re_path
 from django.views.generic import RedirectView
 
 from sentry.auth.providers.saml2.provider import SAML2AcceptACSView, SAML2MetadataView, SAML2SLSView
@@ -74,7 +74,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
     # Serve FileSystemStorage files in development. In production this
     # would typically be handled by some static server.
     urlpatterns += [
-        url(
+        re_path(
             rf"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
@@ -85,7 +85,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
 if settings.DEBUG:
     # Special favicon in debug mode
     urlpatterns += [
-        url(
+        re_path(
             r"^_static/[^/]+/[^/]+/images/favicon\.(ico|png)$",
             generic.dev_favicon,
             name="sentry-dev-favicon",
@@ -93,73 +93,73 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
-    url(
+    re_path(
         r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
         api.crossdomain_xml,
         name="sentry-api-crossdomain-xml",
     ),
     # Frontend client config
-    url(
+    re_path(
         r"^api/client-config/?$",
         api.ClientConfigView.as_view(),
         name="sentry-api-client-config",
     ),
     # Forbidden Relay endpoint
-    url(
+    re_path(
         r"^api/relay/.*$",
         api.not_found,
         name="sentry-api-internal-relay",
     ),
     # We do not want to have webpack assets served under a versioned URL, as these assets have
     # a filecontent-based hash in its filenames so that it can be cached long term
-    url(
+    re_path(
         r"^_static/dist/(?P<module>[^/]+)/(?P<path>.*)$",
         generic.frontend_app_static_media,
         name="sentry-frontend-app-media",
     ),
     # The static version is either a 10 digit timestamp, a sha1, or md5 hash
-    url(
+    re_path(
         r"^_static/(?:(?P<version>\d{10}|[a-f0-9]{32,40})/)?(?P<module>[^/]+)/(?P<path>.*)$",
         generic.static_media,
         name="sentry-media",
     ),
     # Javascript SDK Loader
-    url(
+    re_path(
         r"^js-sdk-loader/(?P<public_key>[^/\.]+)(?:(?P<minified>\.min))?\.js$",
         JavaScriptSdkLoader.as_view(),
         name="sentry-js-sdk-loader",
     ),
     # Versioned API
-    url(
+    re_path(
         r"^api/0/",
         include("sentry.api.urls"),
     ),
     # Legacy unversioned endpoints
-    url(
+    re_path(
         r"^api/hooks/mailgun/inbound/",
         MailgunInboundWebhookView.as_view(),
         name="sentry-mailgun-inbound-hook",
     ),
-    url(
+    re_path(
         r"^api/hooks/release/(?P<plugin_id>[^/]+)/(?P<project_id>[^/]+)/(?P<signature>[^/]+)/",
         ReleaseWebhookView.as_view(),
         name="sentry-release-hook",
     ),
-    url(
+    re_path(
         r"^api/embed/error-page/$",
         ErrorPageEmbedView.as_view(),
         name="sentry-error-page-embed",
     ),
     # OAuth
-    url(
+    re_path(
         r"^oauth/",
         include(
             [
-                url(
+                re_path(
                     r"^authorize/$",
                     OAuthAuthorizeView.as_view(),
                 ),
-                url(
+                re_path(
                     r"^token/$",
                     OAuthTokenView.as_view(),
                 ),
@@ -167,21 +167,21 @@ urlpatterns += [
         ),
     ),
     # SAML
-    url(
+    re_path(
         r"^saml/",
         include(
             [
-                url(
+                re_path(
                     r"^acs/(?P<organization_slug>[^/]+)/$",
                     SAML2AcceptACSView.as_view(),
                     name="sentry-auth-organization-saml-acs",
                 ),
-                url(
+                re_path(
                     r"^sls/(?P<organization_slug>[^/]+)/$",
                     SAML2SLSView.as_view(),
                     name="sentry-auth-organization-saml-sls",
                 ),
-                url(
+                re_path(
                     r"^metadata/(?P<organization_slug>[^/]+)/$",
                     SAML2MetadataView.as_view(),
                     name="sentry-auth-organization-saml-metadata",
@@ -190,56 +190,56 @@ urlpatterns += [
         ),
     ),
     # Auth
-    url(
+    re_path(
         r"^auth/",
         include(
             [
-                url(
+                re_path(
                     r"^login/$",
                     AuthLoginView.as_view(),
                     name="sentry-login",
                 ),
-                url(
+                re_path(
                     r"^login/(?P<organization_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-organization",
                 ),
-                url(
+                re_path(
                     r"^link/(?P<organization_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-link-identity",
                 ),
-                url(
+                re_path(
                     r"^2fa/$",
                     TwoFactorAuthView.as_view(),
                     name="sentry-2fa-dialog",
                 ),
-                url(
+                re_path(
                     r"^2fa/u2fappid\.json$",
                     u2f_appid,
                     name="sentry-u2f-app-id",
                 ),
-                url(
+                re_path(
                     r"^sso/$",
                     AuthProviderLoginView.as_view(),
                     name="sentry-auth-sso",
-                ),
-                url(
+                ),  # OAuth Pipeline for SSO redirect URI
+                re_path(
                     r"^logout/$",
                     AuthLogoutView.as_view(),
                     name="sentry-logout",
                 ),
-                url(
+                re_path(
                     r"^reactivate/$",
                     ReactivateAccountView.as_view(),
                     name="sentry-reactivate-account",
                 ),
-                url(
+                re_path(
                     r"^register/$",
                     AuthLoginView.as_view(),
                     name="sentry-register",
                 ),
-                url(
+                re_path(
                     r"^close/$",
                     AuthCloseView.as_view(),
                     name="sentry-auth-close",
@@ -247,149 +247,149 @@ urlpatterns += [
             ]
         ),
     ),
-    url(
+    re_path(
         r"^login-redirect/$",
         accounts.login_redirect,
         name="sentry-login-redirect",
     ),
     # Account
-    url(
+    re_path(
         r"^account/",
         include(
             [
-                url(
+                re_path(
                     r"^sudo/$",
                     SudoView.as_view(),
                     name="sentry-sudo",
                 ),
-                url(
+                re_path(
                     r"^confirm-email/$",
                     accounts.start_confirm_email,
                     name="sentry-account-confirm-email-send",
                 ),
-                url(
+                re_path(
                     r"^authorizations/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-authorizations", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^confirm-email/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.confirm_email,
                     name="sentry-account-confirm-email",
                 ),
-                url(
+                re_path(
                     r"^user-confirm/(?P<key>[^\/]+)/$",
                     AccountConfirmationView.as_view(),
                     name="sentry-idp-email-verification",
                 ),
-                url(
+                re_path(
                     r"^recover/$",
                     accounts.recover,
                     name="sentry-account-recover",
                 ),
-                url(
+                re_path(
                     r"^recover/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.recover_confirm,
                     name="sentry-account-recover-confirm",
                 ),
-                url(
+                re_path(
                     r"^password/confirm/(?P<user_id>[\d]+)/(?P<hash>[0-9a-zA-Z]+)/$",
                     accounts.set_password_confirm,
                     name="sentry-account-set-password-confirm",
                 ),
-                url(
+                re_path(
                     r"^settings/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
-                url(
+                re_path(
                     r"^settings/2fa/",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-security", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/avatar/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-avatar", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/appearance/$",
                     RedirectView.as_view(pattern_name="sentry-account-settings", permanent=False),
                 ),
-                url(
+                re_path(
                     r"^settings/identities/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-identities", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/subscriptions/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-subscriptions", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/identities/associate/(?P<organization_slug>[^\/]+)/(?P<provider_key>[^\/]+)/(?P<external_id>[^\/]+)/$",
                     AccountIdentityAssociateView.as_view(),
                     name="sentry-account-associate-identity",
                 ),
-                url(
+                re_path(
                     r"^settings/security/",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-security", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/emails/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-emails", permanent=False
                     ),
                 ),
                 # Project Wizard
-                url(
+                re_path(
                     r"^settings/wizard/(?P<wizard_hash>[^\/]+)/$",
                     SetupWizardView.as_view(),
                     name="sentry-project-wizard-fetch",
                 ),
                 # compatibility
-                url(
+                re_path(
                     r"^settings/notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,
                 ),
-                url(
+                re_path(
                     r"^settings/notifications/",
                     RedirectView.as_view(
                         pattern_name="sentry-account-settings-notifications", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^notifications/unsubscribe/(?P<project_id>\d+)/$",
                     accounts.email_unsubscribe_project,
                     name="sentry-account-email-unsubscribe-project",
                 ),
-                url(
+                re_path(
                     r"^notifications/unsubscribe/issue/(?P<issue_id>\d+)/$",
                     UnsubscribeIssueNotificationsView.as_view(),
                     name="sentry-account-email-unsubscribe-issue",
                 ),
-                url(
+                re_path(
                     r"^notifications/unsubscribe/incident/(?P<incident_id>\d+)/$",
                     UnsubscribeIncidentNotificationsView.as_view(),
                     name="sentry-account-email-unsubscribe-incident",
                 ),
-                url(
+                re_path(
                     r"^remove/$",
                     RedirectView.as_view(
                         pattern_name="sentry-account-close-account", permanent=False
                     ),
                 ),
-                url(
+                re_path(
                     r"^settings/social/",
                     include("social_auth.urls"),
                 ),
-                url(
+                re_path(
                     r"^",
                     generic_react_page_view,
                 ),
@@ -397,538 +397,538 @@ urlpatterns += [
         ),
     ),
     # Onboarding
-    url(
+    re_path(
         r"^onboarding/",
         generic_react_page_view,
     ),
     # Admin
-    url(
+    re_path(
         r"^manage/",
         react_page_view,
         name="sentry-admin-overview",
     ),
     # Legacy Redirects
-    url(
+    re_path(
         r"^docs/?$",
         RedirectView.as_view(url="https://docs.sentry.io/", permanent=False),
         name="sentry-docs-redirect",
     ),
-    url(
+    re_path(
         r"^docs/api/?$",
         RedirectView.as_view(url="https://docs.sentry.io/api/", permanent=False),
         name="sentry-api-docs-redirect",
     ),
-    url(
+    re_path(
         r"^api/$",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
     ),
-    url(
+    re_path(
         r"^api/applications/$",
         RedirectView.as_view(pattern_name="sentry-account-api-applications", permanent=False),
     ),
-    url(
+    re_path(
         r"^api/new-token/$",
         RedirectView.as_view(pattern_name="sentry-account-api-new-auth-token", permanent=False),
     ),
-    url(
+    re_path(
         r"^api/[^0]+/",
         RedirectView.as_view(pattern_name="sentry-api", permanent=False),
     ),
-    url(
+    re_path(
         r"^out/$",
         OutView.as_view(),
     ),
-    url(
+    re_path(
         r"^accept-transfer/$",
         react_page_view,
         name="sentry-accept-project-transfer",
     ),
-    url(
+    re_path(
         r"^accept/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-accept-invite",
     ),
-    url(
+    re_path(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-organization-accept-invite",
     ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view
-    url(
+    re_path(
         r"^settings/",
         include(
             [
-                url(
+                re_path(
                     r"^account/$",
                     generic_react_page_view,
                     name="sentry-account-settings",
                 ),
-                url(
+                re_path(
                     r"^account/authorizations/$",
                     generic_react_page_view,
                     name="sentry-account-settings-authorizations",
                 ),
-                url(
+                re_path(
                     r"^account/security/",
                     generic_react_page_view,
                     name="sentry-account-settings-security",
                 ),
-                url(
+                re_path(
                     r"^account/avatar/$",
                     generic_react_page_view,
                     name="sentry-account-settings-avatar",
                 ),
-                url(
+                re_path(
                     r"^account/identities/$",
                     generic_react_page_view,
                     name="sentry-account-settings-identities",
                 ),
-                url(
+                re_path(
                     r"^account/subscriptions/$",
                     generic_react_page_view,
                     name="sentry-account-settings-subscriptions",
                 ),
-                url(
+                re_path(
                     r"^account/notifications/",
                     generic_react_page_view,
                     name="sentry-account-settings-notifications",
                 ),
-                url(
+                re_path(
                     r"^account/emails/$",
                     generic_react_page_view,
                     name="sentry-account-settings-emails",
                 ),
-                url(
+                re_path(
                     r"^account/api/applications/$",
                     generic_react_page_view,
                     name="sentry-account-api-applications",
                 ),
-                url(
+                re_path(
                     r"^account/api/auth-tokens/new-token/$",
                     generic_react_page_view,
                     name="sentry-account-api-new-auth-token",
                 ),
-                url(
+                re_path(
                     r"^account/api/",
                     generic_react_page_view,
                     name="sentry-api",
                 ),
-                url(
+                re_path(
                     r"^account/close-account/$",
                     generic_react_page_view,
                     name="sentry-account-close-account",
                 ),
-                url(
+                re_path(
                     r"^account/",
                     generic_react_page_view,
                     name="sentry-account-settings-generic",
                 ),
-                url(
+                re_path(
                     r"^organization/auth/configure/$",
                     OrganizationAuthSettingsView.as_view(),
                     name="sentry-customer-domain-organization-auth-provider-settings",
                 ),
-                url(
+                re_path(
                     r"^organization/",
                     react_page_view,
                     name="sentry-customer-domain-organization-settings",
                 ),
-                url(
+                re_path(
                     r"^projects/",
                     react_page_view,
                     name="sentry-customer-domain-projects-settings",
                 ),
-                url(
+                re_path(
                     r"^teams/",
                     react_page_view,
                     name="sentry-customer-domain-teams-settings",
                 ),
-                url(
+                re_path(
                     r"^members/",
                     react_page_view,
                     name="sentry-customer-domain-members-settings",
                 ),
-                url(
+                re_path(
                     r"^security-and-privacy/",
                     react_page_view,
                     name="sentry-customer-domain-security-and-privacy-settings",
                 ),
-                url(
+                re_path(
                     r"^auth/",
                     react_page_view,
                     name="sentry-customer-domain-auth-settings",
                 ),
-                url(
+                re_path(
                     r"^audit-log/",
                     react_page_view,
                     name="sentry-customer-domain-audit-log-settings",
                 ),
-                url(
+                re_path(
                     r"^relay/",
                     react_page_view,
                     name="sentry-customer-domain-relay-settings",
                 ),
-                url(
+                re_path(
                     r"^repos/",
                     react_page_view,
                     name="sentry-customer-domain-repos-settings",
                 ),
-                url(
+                re_path(
                     r"^integrations/",
                     react_page_view,
                     name="sentry-customer-domain-integrations-settings",
                 ),
-                url(
+                re_path(
                     r"^developer-settings/",
                     react_page_view,
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
-                url(
+                re_path(
                     r"^document-integrations/",
                     react_page_view,
                     name="sentry-customer-domain-document-integrations-settings",
                 ),
-                url(
+                re_path(
                     r"^sentry-apps/",
                     react_page_view,
                     name="sentry-customer-domain-sentry-apps-settings",
                 ),
-                url(
+                re_path(
                     r"^billing/",
                     react_page_view,
                     name="sentry-customer-domain-billing-settings",
                 ),
-                url(
+                re_path(
                     r"^subscription/",
                     react_page_view,
                     name="sentry-customer-domain-subscription-settings",
                 ),
-                url(
+                re_path(
                     r"^spike-protection/",
                     react_page_view,
                     name="sentry-customer-domain-spike-protection-settings",
                 ),
-                url(
+                re_path(
                     r"^legal/",
                     react_page_view,
                     name="sentry-customer-domain-legal-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/teams/$",
                     react_page_view,
                     name="sentry-organization-teams",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     react_page_view,
                     name="sentry-organization-members",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-member-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/auth/$",
                     react_page_view,
                     name="sentry-organization-auth-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-sub-page-settings",
                 ),
-                url(
+                re_path(
                     r"^",
                     react_page_view,
                 ),
             ]
         ),
     ),
-    url(
+    re_path(
         r"^extensions/external-install/(?P<provider_id>\w+)/(?P<installation_id>\w+)/$",
         react_page_view,
         name="integration-installation",
     ),
     # Issues
-    url(
+    re_path(
         r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-customer-domain-sentry-group-tag-export",
     ),
-    url(
+    re_path(
         r"^issues/",
         react_page_view,
         name="issues",
     ),
     # Alerts
-    url(
+    re_path(
         r"^alerts/",
         react_page_view,
         name="alerts",
     ),
     # Performance
-    url(
+    re_path(
         r"^performance/",
         react_page_view,
         name="performance",
     ),
     # Starfish
-    url(
+    re_path(
         r"^starfish/",
         react_page_view,
         name="starfish",
     ),
     # Profiling
-    url(
+    re_path(
         r"^profiling/",
         react_page_view,
         name="profiling",
     ),
     # Projects
-    url(
+    re_path(
         r"^projects/",
         react_page_view,
         name="projects",
     ),
-    url(
+    re_path(
         r"^projects/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-details",
     ),
     # Dashboards
-    url(
+    re_path(
         r"^dashboard/",
         react_page_view,
         name="dashboard",
     ),
-    url(
+    re_path(
         r"^dashboards/",
         react_page_view,
         name="dashboards",
     ),
     # Discover
-    url(
+    re_path(
         r"^discover/",
         react_page_view,
         name="discover",
     ),
     # Request to join an organization
-    url(
+    re_path(
         r"^join-request/",
         GenericReactPageView.as_view(auth_required=False),
         name="join-request",
     ),
     # Activity
-    url(
+    re_path(
         r"^activity/",
         react_page_view,
         name="activity",
     ),
     # Stats
-    url(
+    re_path(
         r"^stats/",
         react_page_view,
         name="stats",
     ),
     # Replays
-    url(
+    re_path(
         r"^replays/",
         react_page_view,
         name="replays",
     ),
     # Crons
-    url(
+    re_path(
         r"^crons/",
         react_page_view,
         name="crons",
     ),
     # Releases
-    url(
+    re_path(
         r"^releases/",
         react_page_view,
         name="releases",
     ),
     # User Feedback
-    url(
+    re_path(
         r"^user-feedback/",
         react_page_view,
         name="user-feedback",
     ),
     # Data Export
-    url(
+    re_path(
         r"^data-export/",
         react_page_view,
         name="data-export",
     ),
     # Disabled Member
-    url(
+    re_path(
         r"^disabled-member/",
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
     ),
     # Newest performance issue
-    url(
+    re_path(
         r"^newest-(?P<issue_type>[\w_-]+)-issue/$",
         NewestIssueView.as_view(),
         name="sentry-customer-domain-organization-newest-issue",
     ),
     # Restore organization
-    url(
+    re_path(
         r"^restore/",
         RestoreOrganizationView.as_view(),
         name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
     # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
-    url(
+    re_path(
         r"^getting-started/(?P<project_slug>[\w_-]+)/",
         react_page_view,
         name="project-getting-started",
     ),
     # Organizations
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/$",
         react_page_view,
         name="sentry-organization-home",
     ),
-    url(
+    re_path(
         r"^organizations/",
         include(
             [
-                url(
+                re_path(
                     r"^new/$",
                     generic_react_page_view,
                     name="sentry-organization-create",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-index",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/issues/$",
                     react_page_view,
                     name="sentry-organization-issue-list",
                 ),
-                url(
+                re_path(
                     # See src.sentry.models.group.Group.get_absolute_url if this changes
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<issue_id>\d+)/$",
                     react_page_view,
                     name="sentry-organization-issue-detail",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/$",
                     react_page_view,
                     name="sentry-organization-event-detail",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/data-export/(?P<data_export_id>\d+)/$",
                     react_page_view,
                     name="sentry-data-export-details",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-project-details",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
                     ProjectEventRedirect.as_view(),
                     name="sentry-project-event-redirect",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/api-keys/$",
                     react_page_view,
                     name="sentry-organization-api-keys",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/api-keys/(?P<key_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-api-key-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/auth/configure/$",
                     OrganizationAuthSettingsView.as_view(),
                     name="sentry-organization-auth-provider-settings",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/integrations/(?P<provider_id>[\w_-]+)/setup/$",
                     OrganizationIntegrationSetupView.as_view(),
                     name="sentry-organization-integrations-setup",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/members/$",
                     RedirectView.as_view(
                         pattern_name="sentry-organization-members", permanent=False
                     ),
                     name="sentry-organization-members-old",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/members/(?P<member_id>\d+)/$",
                     RedirectView.as_view(
                         pattern_name="sentry-organization-member-settings", permanent=False
                     ),
                     name="sentry-organization-member-settings-old",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/performance/$",
                     react_page_view,
                     name="sentry-organization-performance",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/performance/summary/$",
                     react_page_view,
                     name="sentry-organization-performance-summary",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/stats/$",
                     react_page_view,
                     name="sentry-organization-stats",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/replays/$",
                     react_page_view,
                     name="sentry-organization-replays",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/replays/(?P<replay_id>[\w_-]+)/$",
                     react_page_view,
                     name="sentry-organization-replay-details",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/disabled-member/$",
                     DisabledMemberView.as_view(),
                     name="sentry-organization-disabled-member",
                 ),
-                url(
+                re_path(
                     r"^(?P<organization_slug>[^/]+)/newest-(?P<issue_type>[\w_-]+)-issue/$",
                     NewestIssueView.as_view(),
                     name="sentry-organization-newest-issue",
                 ),
                 # need to force these to React and ensure organization_slug is captured
-                url(
+                re_path(
                     r"^(?P<organization_slug>[\w_-]+)/(?P<sub_page>[\w_-]+)/",
                     react_page_view,
                     name="sentry-organization-sub-page",
@@ -937,59 +937,59 @@ urlpatterns += [
         ),
     ),
     # Settings - Projects
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/settings/$",
         RedirectView.as_view(pattern_name="sentry-manage-project", permanent=False),
     ),
-    url(
+    re_path(
         r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
         react_page_view,
         name="sentry-manage-project",
     ),
     # Avatars
-    url(
+    re_path(
         r"^avatar/(?P<avatar_id>[^\/]+)/$",
         UserAvatarPhotoView.as_view(),
         name="sentry-user-avatar-url",
     ),
-    url(
+    re_path(
         r"^organization-avatar/(?P<avatar_id>[^\/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
     ),
-    url(
+    re_path(
         r"^project-avatar/(?P<avatar_id>[^\/]+)/$",
         ProjectAvatarPhotoView.as_view(),
         name="sentry-project-avatar-url",
     ),
-    url(
+    re_path(
         r"^team-avatar/(?P<avatar_id>[^\/]+)/$",
         TeamAvatarPhotoView.as_view(),
         name="sentry-team-avatar-url",
     ),
-    url(
+    re_path(
         r"^sentry-app-avatar/(?P<avatar_id>[^\/]+)/$",
         SentryAppAvatarPhotoView.as_view(),
         name="sentry-app-avatar-url",
     ),
-    url(
+    re_path(
         r"^doc-integration-avatar/(?P<avatar_id>[^\/]+)/$",
         DocIntegrationAvatarPhotoView.as_view(),
         name="sentry-doc-integration-avatar-url",
     ),
     # Serve chartcuterie configuration module
-    url(
+    re_path(
         r"^_chartcuterie-config.js$",
         serve_chartcuterie_config,
         name="sentry-chartcuterie-config",
     ),
     # Generic
-    url(
+    re_path(
         r"^$",
         HomeView.as_view(),
         name="sentry",
     ),
-    url(
+    re_path(
         r"^robots\.txt$",
         api.robots_txt,
         name="sentry-api-robots-txt",
@@ -1000,12 +1000,12 @@ urlpatterns += [
     # A side effect of this is it may cause a bad redirect when logging in
     # since this gets stored in session as the last viewed page.
     # See: https://github.com/getsentry/sentry/issues/2195
-    url(
+    re_path(
         r"favicon\.ico$",
         lambda r: HttpResponse(status=404),
     ),
     # crossdomain.xml
-    url(
+    re_path(
         r"^crossdomain\.xml$",
         lambda r: HttpResponse(status=404),
     ),
@@ -1013,131 +1013,131 @@ urlpatterns += [
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
     # assets for the time being
-    url(
+    re_path(
         r"^extensions/",
         include(
             [
-                url(
+                re_path(
                     r"^(?P<provider_id>[\w_-]+)/setup/$",
                     PipelineAdvancerView.as_view(),
                     name="sentry-extension-setup",
-                ),
-                url(
+                ),  # OAuth Pipeline for integration redirect URI
+                re_path(
                     r"^jira/",
                     include("sentry.integrations.jira.urls"),
                 ),
-                url(
+                re_path(
                     r"^jira-server/",
                     include("sentry.integrations.jira_server.urls"),
                 ),
-                url(
+                re_path(
                     r"^slack/",
                     include("sentry.integrations.slack.urls"),
                 ),
-                url(
+                re_path(
                     r"^github/",
                     include("sentry.integrations.github.urls"),
                 ),
-                url(
+                re_path(
                     r"^github-enterprise/",
                     include("sentry.integrations.github_enterprise.urls"),
                 ),
-                url(
+                re_path(
                     r"^gitlab/",
                     include("sentry.integrations.gitlab.urls"),
                 ),
-                url(
+                re_path(
                     r"^vsts/",
                     include("sentry.integrations.vsts.urls"),
                 ),
-                url(
+                re_path(
                     r"^bitbucket/",
                     include("sentry.integrations.bitbucket.urls"),
                 ),
-                url(
+                re_path(
                     r"^bitbucket-server/",
                     include("sentry.integrations.bitbucket_server.urls"),
                 ),
-                url(
+                re_path(
                     r"^vercel/",
                     include("sentry.integrations.vercel.urls"),
                 ),
-                url(
+                re_path(
                     r"^msteams/",
                     include("sentry.integrations.msteams.urls"),
                 ),
             ]
         ),
     ),
-    url(
+    re_path(
         r"^plugins/",
         include("sentry.plugins.base.urls"),
     ),
     # Generic API
-    url(
+    re_path(
         r"^share/(?:group|issue)/(?P<share_id>[\w_-]+)/$",
         SharedGroupDetailsView.as_view(auth_required=False),
         name="sentry-group-shared",
     ),
-    url(
+    re_path(
         r"^join-request/(?P<organization_slug>[\w_-]+)/$",
         GenericReactPageView.as_view(auth_required=False),
         name="sentry-join-request",
     ),
     # Keep named URL for for things using reverse
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/issues/(?P<short_id>[\w_-]+)/$",
         react_page_view,
         name="sentry-short-id",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/issues/(?P<group_id>\d+)/$",
         react_page_view,
         name="sentry-group",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id>[\w-]+)/$",
         react_page_view,
         name="sentry-group-event",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_id>[\w_-]+)/$",
         react_page_view,
         name="sentry-stream",
     ),
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/(?P<incident_id>\d+)/$",
         react_page_view,
         name="sentry-metric-alert",
     ),
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-metric-alert-details",
     ),
-    url(
+    re_path(
         r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
         GroupTagExportView.as_view(),
         name="sentry-group-tag-export",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/issues/(?P<group_id>\d+)/actions/(?P<slug>[\w_-]+)/",
         GroupPluginActionView.as_view(),
         name="sentry-group-plugin-action",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[\w_-]+)/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",
         ProjectEventRedirect.as_view(),
         name="sentry-project-event-redirect",
     ),
     # Legacy
     # This triggers a false positive for the urls.W002 Django warning
-    url(
+    re_path(
         r"^.*/$",
         react_page_view,
     ),

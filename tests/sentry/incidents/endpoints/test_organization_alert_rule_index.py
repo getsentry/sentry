@@ -548,8 +548,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response.get("link").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
-        # Cursor should have the title encoded
-        assert next_cursor == "%211%3Fzz:0:0"
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {

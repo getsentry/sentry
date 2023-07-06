@@ -12,7 +12,7 @@ from sentry.apidocs.constants import (
     RESPONSE_ALREADY_REPORTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, MonitorParams
@@ -47,7 +47,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(

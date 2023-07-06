@@ -22,7 +22,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle_1 = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now()
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now(),
+            date_last_modified=datetime.now(),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -31,7 +34,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         )
 
         artifact_bundle_2 = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=1)
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now() + timedelta(hours=1),
+            date_last_modified=datetime.now() + timedelta(hours=1),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -46,7 +52,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
         )
 
         artifact_bundle_3 = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=2)
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now() + timedelta(hours=2),
+            # We also test with the date set to None.
+            date_last_modified=None,
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -58,6 +68,13 @@ class ArtifactBundlesEndpointTest(APITestCase):
             release_name="v2.0",
             artifact_bundle=artifact_bundle_3,
         )
+        debug_id_3 = "71574374-54a1-42fb-943d-4a31677a084c"
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id_3,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            artifact_bundle=artifact_bundle_3,
+        )
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
@@ -69,7 +86,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default, we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
@@ -79,6 +95,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": None,
                     }
                 ],
+                "dateModified": None,
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
             },
@@ -90,23 +107,24 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     }
                 ],
+                "dateModified": "2023-03-15T01:00:00Z",
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
             },
             {
                 "bundleId": str(artifact_bundle_1.bundle_id),
                 "associations": [],
+                "dateModified": "2023-03-15T00:00:00Z",
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
             },
         ]
 
-        # We test the search with a full bundle id.
+        # We test the search with bundle id.
         self.login_as(user=self.user)
         response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
@@ -116,17 +134,17 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     }
                 ],
+                "dateModified": "2023-03-15T01:00:00Z",
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
             },
         ]
 
-        # We test the search with the upper case release.
+        # We test the search with release.
         self.login_as(user=self.user)
-        response = self.client.get(url + "?query=V2.0")
+        response = self.client.get(url + "?query=v2.0")
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_3.bundle_id),
@@ -136,17 +154,17 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": None,
                     }
                 ],
+                "dateModified": None,
                 "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
             },
         ]
 
-        # We test the search with the upper case dist.
+        # We test the search with dist.
         self.login_as(user=self.user)
         response = self.client.get(url + "?query=android")
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle_2.bundle_id),
@@ -156,7 +174,28 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "android",
                     }
                 ],
+                "dateModified": "2023-03-15T01:00:00Z",
                 "date": "2023-03-15T01:00:00Z",
+                "fileCount": 2,
+            },
+        ]
+
+        # We test the search with debug id.
+        self.login_as(user=self.user)
+        response = self.client.get(url + f"?query={debug_id_3}")
+
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle_3.bundle_id),
+                "associations": [
+                    {
+                        "release": "v2.0",
+                        "dist": None,
+                    }
+                ],
+                "dateModified": None,
+                "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
             },
         ]
@@ -165,7 +204,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now()
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now(),
+            date_last_modified=datetime.now(),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -183,11 +225,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
                 "associations": [],
+                "dateModified": "2023-03-15T00:00:00Z",
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
             }
@@ -197,7 +239,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
 
         artifact_bundle = self.create_artifact_bundle(
-            self.organization, artifact_count=2, date_uploaded=datetime.now()
+            self.organization,
+            artifact_count=2,
+            date_uploaded=datetime.now(),
+            date_last_modified=datetime.now(),
         )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -239,7 +284,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        # By default we return the most recent bundle.
         assert response.data == [
             {
                 "bundleId": str(artifact_bundle.bundle_id),
@@ -261,6 +305,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "ios",
                     },
                 ],
+                "dateModified": "2023-03-15T00:00:00Z",
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
             },
@@ -293,6 +338,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                         "dist": "ios",
                     },
                 ],
+                "dateModified": "2023-03-15T00:00:00Z",
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
             },
@@ -348,6 +394,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 self.organization,
                 artifact_count=2,
                 date_uploaded=datetime.now() + timedelta(hours=index),
+                date_last_modified=datetime.now() + timedelta(hours=index),
             )
             bundle_ids.append(str(artifact_bundle.bundle_id))
             ProjectArtifactBundle.objects.create(
@@ -372,11 +419,21 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
 
         self.login_as(user=self.user)
+        response = self.client.get(url + "?sortBy=date_modified")
+        assert response.status_code == 200, response.content
+        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids
+
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?sortBy=-date_modified")
+        assert response.status_code == 200, response.content
+        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
+
+        self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=bundleId")
         assert response.status_code == 400
         assert (
             response.data["detail"]["message"]
-            == "You can either sort via 'date_added' or '-date_added'"
+            == "You can either sort via 'date_added' or 'date_modified'"
         )
 
     def test_delete_artifact_bundle_with_single_project_connected(self):

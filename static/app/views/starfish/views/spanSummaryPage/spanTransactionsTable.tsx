@@ -14,9 +14,14 @@ import Pagination from 'sentry/components/pagination';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {
+  renderHeadCell,
+  SORTABLE_FIELDS,
+} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {
   SpanTransactionMetrics,
@@ -33,11 +38,16 @@ type Row = {
 };
 
 type Props = {
+  sort: ValidSort;
   span: Pick<IndexedSpan, 'group'>;
   endpoint?: string;
   endpointMethod?: string;
   onClickTransaction?: (row: Row) => void;
   openSidebar?: boolean;
+};
+
+type ValidSort = Sort & {
+  field: keyof Row;
 };
 
 export type TableColumnHeader = GridColumnHeader<keyof Row['metrics']>;
@@ -48,16 +58,20 @@ export function SpanTransactionsTable({
   onClickTransaction,
   endpoint,
   endpointMethod,
+  sort,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
 
   const {
-    data: spanTransactionMetrics,
+    data: spanTransactionMetrics = [],
     meta,
     isLoading,
     pageLinks,
-  } = useSpanTransactionMetrics(span, endpoint ? [endpoint] : undefined);
+  } = useSpanTransactionMetrics(span, {
+    transactions: endpoint ? [endpoint] : undefined,
+    sorts: [sort],
+  });
 
   const spanTransactionsWithMetrics = spanTransactionMetrics.map(row => {
     return {
@@ -99,17 +113,22 @@ export function SpanTransactionsTable({
 
   return (
     <Fragment>
-      <GridEditable
-        isLoading={isLoading}
-        data={spanTransactionsWithMetrics}
-        columnOrder={COLUMN_ORDER}
-        columnSortBy={[]}
-        grid={{
-          renderHeadCell: col => renderHeadCell({column: col}),
-          renderBodyCell,
-        }}
-        location={location}
-      />
+      <VisuallyCompleteWithData
+        id="SpanSummary.SpanTransactionsTable"
+        hasData={spanTransactionMetrics.length > 0}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={spanTransactionsWithMetrics}
+          columnOrder={COLUMN_ORDER}
+          columnSortBy={[]}
+          grid={{
+            renderHeadCell: col => renderHeadCell({column: col, sort, location}),
+            renderBodyCell,
+          }}
+          location={location}
+        />
+      </VisuallyCompleteWithData>
       <Footer>
         {endpoint && (
           <Button
@@ -145,9 +164,10 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   return (
     <Fragment>
       <Link
-        to={`/starfish/${extractRoute(location)}/span/${encodeURIComponent(
+        to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${encodeURIComponent(
           span.group
         )}?${qs.stringify({
+          ...location.query,
           endpoint,
           endpointMethod,
           transaction: row.transaction,
@@ -202,3 +222,7 @@ const StyledPagination = styled(Pagination)`
   margin-top: 0;
   margin-left: auto;
 `;
+
+export function isAValidSort(sort: Sort): sort is ValidSort {
+  return SORTABLE_FIELDS.has(sort.field);
+}

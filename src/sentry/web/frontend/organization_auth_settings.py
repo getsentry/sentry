@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.models import F
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import audit_log, features, roles
@@ -205,7 +205,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
         return self.respond("sentry/organization-auth-provider-settings.html", context)
 
     @transaction.atomic
-    def handle(self, request: Request, organization: RpcOrganization) -> Response:
+    def handle(self, request: Request, organization: RpcOrganization) -> HttpResponse:
         try:
             auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
