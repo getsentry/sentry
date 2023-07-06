@@ -12,6 +12,7 @@ from sentry.utils import json
 
 class GetChannelIdTest(TestCase):
     def add_list_response(self, list_type, channels, result_name="channels"):
+        self.resp = responses.mock
         self.resp.add(
             method=responses.GET,
             url="https://slack.com/api/%s.list" % list_type,
@@ -23,10 +24,12 @@ class GetChannelIdTest(TestCase):
 
 class GetChannelIdBotTest(GetChannelIdTest):
     def setUp(self):
+
         self.resp = responses.mock
         self.resp.__enter__()
 
         self.integration = install_slack(self.event.project.organization)
+
         self.add_list_response(
             "conversations",
             [
@@ -108,14 +111,12 @@ class GetChannelIdErrorBotTest(GetChannelIdTest):
 
 
 class GetChannelIdFasterTest(GetChannelIdTest):
-    @with_feature("organizations:slack-use-new-lookup")
     def setUp(self):
         self.resp = responses.mock
         self.resp.__enter__()
 
         self.integration = install_slack(self.event.project.organization)
 
-    @with_feature("organizations:slack-use-new-lookup")
     def tearDown(self):
         self.resp.__exit__(None, None, None)
 
