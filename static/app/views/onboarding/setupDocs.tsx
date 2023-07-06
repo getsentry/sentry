@@ -50,7 +50,7 @@ export function DocWithProductSelection({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
-  const products = useMemo(
+  const products = useMemo<PRODUCT[]>(
     () => (location.query.product ?? []) as PRODUCT[],
     [location.query.product]
   );

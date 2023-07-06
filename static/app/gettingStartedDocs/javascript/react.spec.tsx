@@ -35,7 +35,6 @@ describe('GettingStartedWithReact', function () {
       ).toBeInTheDocument();
     }
 
-    // Snapshot
     expect(container).toSnapshot();
   });
 
