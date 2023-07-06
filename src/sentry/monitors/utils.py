@@ -68,9 +68,9 @@ def fetch_associated_groups(
 
     dataset = Dataset.Events
 
-    # add an hour on each end to be safe
-    query_start = start - timedelta(hours=1)
-    query_end = end + timedelta(hours=1)
+    # add 30 minutes on each end to be safe
+    query_start = start - timedelta(minutes=30)
+    query_end = end + timedelta(minutes=30)
 
     cols = [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
     cols.append(Columns.TRACE_ID.value.event_name)
@@ -121,9 +121,9 @@ def fetch_associated_groups(
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     if "error" not in result:
         for event in result["data"]:
-            event_name = Columns.TRACE_ID.value.event_name
-            assert event_name is not None
-            trace_groups[event[event_name]].append(event["group_id"])
+            trace_id_event_name = Columns.TRACE_ID.value.event_name
+            assert trace_id_event_name is not None
+            trace_groups[event[trace_id_event_name]].append(event["group_id"])
 
     return trace_groups
 

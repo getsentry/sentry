@@ -157,7 +157,7 @@ class MonitorCheckInSerializer(Serializer):
 
             attrs = {
                 item: {
-                    "groupIds": trace_groups.get(item.trace_id.hex) if item.trace_id else [],
+                    "groupIds": trace_groups.get(item.trace_id.hex, []) if item.trace_id else [],
                 }
                 for item in item_list
             }
