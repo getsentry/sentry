@@ -123,9 +123,6 @@ def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None)
                         user_id=user.id,
                     )
                     for group in groups
-                    if not features.has(
-                        "organizations:remove-mark-reviewed", group.project.organization
-                    )
                 ]
             )
 
