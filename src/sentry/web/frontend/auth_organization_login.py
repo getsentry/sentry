@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
@@ -48,9 +48,9 @@ class AuthOrganizationLoginView(AuthLoginView):
 
     @never_cache
     @transaction.atomic
-    def handle(self, request: HttpRequest, organization_slug_or_id) -> HttpResponse:
-        org_context = organization_service.get_organization_by_slug_or_id(
-            identifier=organization_slug_or_id, only_visible=True
+    def handle(self, request: Request, organization_slug) -> HttpResponse:
+        org_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=True
         )
         if org_context is None:
             return self.redirect(reverse("sentry-login"))
