@@ -39,6 +39,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: performanceConfig,
+  [IssueCategory.CRON]: performanceConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {

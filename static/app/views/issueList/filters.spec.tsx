@@ -4,21 +4,20 @@ import IssueListFilters from 'sentry/views/issueList/filters';
 
 describe('IssueListFilters', () => {
   const onSearch = jest.fn();
-  const savedSearch = TestStubs.Search({
-    id: '789',
-    query: 'is:unresolved TypeError',
-    sort: 'date',
-    name: 'Unresolved TypeErrors',
-    projectId: 1,
-  });
-
-  MockApiClient.addMockResponse({
-    method: 'GET',
-    url: '/organizations/org-slug/searches/',
-    body: [savedSearch],
-  });
-
   const baseQuery = 'is:unresolved';
+
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/searches/',
+      body: [],
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    MockApiClient.clearMockResponses();
+  });
 
   it('should search the correct category when the IssueCategoryFilter dropdown is used', async () => {
     render(<IssueListFilters query={baseQuery} onSearch={onSearch} />);
@@ -69,5 +68,16 @@ describe('IssueListFilters', () => {
 
     rerender(<IssueListFilters query="" onSearch={onSearch} />);
     expect(filterDropdown).toHaveTextContent('All Categories');
+  });
+
+  it('should filter by cron monitors', async () => {
+    render(<IssueListFilters query="" onSearch={onSearch} />, {
+      organization: TestStubs.Organization({features: ['issue-platform']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Categories'}));
+    await userEvent.click(screen.getByRole('option', {name: /Crons/}));
+
+    expect(onSearch).toHaveBeenCalledWith('issue.category:cron');
   });
 });

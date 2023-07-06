@@ -300,6 +300,7 @@ function BaseGroupRow({
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
     [IssueCategory.PROFILE]: t('Profile Events'),
+    [IssueCategory.CRON]: t('Cron Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
