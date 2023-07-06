@@ -102,6 +102,13 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
+        title: t('Issue Category'),
+        desc: t('Error or performance issues.'),
+        value: 'issue.category:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Assignee'),
         desc: t('Filter by team or member.'),
         value: 'assigned_or_suggested:',
@@ -119,13 +126,6 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         title: t('Level'),
         desc: t('Filter by fatal, error, etc.'),
         value: 'level:',
-      },
-      {
-        type: ItemType.RECOMMENDED,
-        kind: FieldKind.FIELD,
-        title: t('Device'),
-        desc: t('Filter events by device.'),
-        value: 'device.',
       },
       {
         type: ItemType.RECOMMENDED,
