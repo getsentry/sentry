@@ -117,7 +117,6 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "customers",
         "de",
         "debug",
-        "demo",
         "devinfra",
         "docs",
         "enterprise",
