@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {space} from 'sentry/styles/space';
@@ -46,15 +45,8 @@ function getSegmentLabel(moduleName: ModuleName) {
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
   const {selection} = usePageFilters();
-  const location = useLocation();
 
-  const eventView = getEventView(
-    moduleName,
-    location,
-    selection,
-    appliedFilters,
-    spanCategory
-  );
+  const eventView = getEventView(moduleName, selection, appliedFilters, spanCategory);
 
   const {isLoading} = useSpansQuery({
     eventView,
@@ -96,8 +88,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
 
 function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery({
@@ -148,8 +139,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
 
 function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const pageFilters = usePageFilters();
-  const location = useLocation();
-  const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
+  const eventView = getEventView(moduleName, pageFilters.selection, filters);
 
   const label = `p95(${SPAN_SELF_TIME})`;
 
@@ -237,14 +227,13 @@ const SPAN_FILTER_KEYS = ['span_operation', 'domain', 'action'];
 
 const getEventView = (
   moduleName: ModuleName,
-  location: Location,
   pageFilters: PageFilters,
   appliedFilters: AppliedFilters,
   spanCategory?: string
 ) => {
   const query = buildDiscoverQueryConditions(moduleName, appliedFilters, spanCategory);
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [''],
@@ -254,7 +243,7 @@ const getEventView = (
       interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },
-    location
+    pageFilters
   );
 };
 

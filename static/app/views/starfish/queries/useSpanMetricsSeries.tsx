@@ -1,4 +1,3 @@
-import {Location} from 'history';
 import keyBy from 'lodash/keyBy';
 
 import {getInterval} from 'sentry/components/charts/utils';
@@ -6,7 +5,6 @@ import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -26,11 +24,10 @@ export const useSpanMetricsSeries = (
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
-  const location = useLocation();
   const pageFilters = usePageFilters();
 
   const eventView = span
-    ? getEventView(span, location, pageFilters.selection, yAxis, queryFilters)
+    ? getEventView(span, pageFilters.selection, yAxis, queryFilters)
     : undefined;
 
   // TODO: Add referrer
@@ -57,14 +54,13 @@ export const useSpanMetricsSeries = (
 
 function getEventView(
   span: {group: string},
-  location: Location,
   pageFilters: PageFilters,
   yAxis: string[],
   queryFilters?: SpanSummaryQueryFilters
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       query: `span.group:${cleanGroupId}${
@@ -82,6 +78,6 @@ function getEventView(
       interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },
-    location
+    pageFilters
   );
 }

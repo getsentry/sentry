@@ -1,7 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
@@ -70,7 +69,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      location,
+      selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -84,7 +83,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      location,
+      selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -101,7 +100,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     isError,
   } = useEventsStatsQuery({
     eventView: getEventView(
-      location,
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
@@ -204,7 +202,6 @@ const StyledPanel = styled(Panel)`
 `;
 
 const getEventView = (
-  location: Location,
   pageFilters: PageFilters,
   query: string,
   groups: string[],
@@ -216,7 +213,7 @@ const getEventView = (
       ? `p95(${SPAN_SELF_TIME})`
       : `sum(${SPAN_SELF_TIME})`;
 
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
@@ -228,16 +225,16 @@ const getEventView = (
       topEvents: groups.length > 0 ? '4' : undefined,
       interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
     },
-    location
+    pageFilters
   );
 };
 
 const getCumulativeTimeEventView = (
-  location: Location,
+  pageFilters: PageFilters,
   query: string,
   groups: string[]
 ) => {
-  return EventView.fromNewQueryWithLocation(
+  return EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
@@ -247,6 +244,6 @@ const getCumulativeTimeEventView = (
       version: 2,
       topEvents: groups.length > 0 ? '4' : undefined,
     },
-    location
+    pageFilters
   );
 };

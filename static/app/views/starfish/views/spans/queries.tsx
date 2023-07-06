@@ -4,13 +4,11 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const useErrorRateQuery = (queryString: string) => {
-  const location = useLocation();
-  const pageFilter = usePageFilters();
+  const pageFilters = usePageFilters();
 
   const discoverQuery: NewQuery = {
     id: undefined,
@@ -20,11 +18,14 @@ export const useErrorRateQuery = (queryString: string) => {
     version: 1,
     topEvents: '5',
     dataset: DiscoverDatasets.SPANS_METRICS,
-    interval: getInterval(pageFilter.selection.datetime, 'low'),
+    interval: getInterval(pageFilters.selection.datetime, 'low'),
     yAxis: ['http_error_count()'],
   };
 
-  const eventView = EventView.fromNewQueryWithLocation(discoverQuery, location);
+  const eventView = EventView.fromNewQueryWithPageFilters(
+    discoverQuery,
+    pageFilters.selection
+  );
 
   const result = useSpansQuery<{'http_error_count()': number; interval: number}[]>({
     eventView,

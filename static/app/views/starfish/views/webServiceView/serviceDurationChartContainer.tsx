@@ -10,7 +10,6 @@ import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -27,13 +26,12 @@ type Props = {
 };
 
 export function ServiceDurationChartContainer({transaction, transactionMethod}: Props) {
-  const location = useLocation();
-  const pageFilter = usePageFilters();
-  const {selection} = pageFilter;
+  const pageFilters = usePageFilters();
+  const {selection} = pageFilters;
 
   const [selectedSeries, setSelectedSeries] = useState('Overall');
 
-  const serviceEventView = EventView.fromNewQueryWithLocation(
+  const serviceEventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`p95(transaction.duration)`],
@@ -45,7 +43,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
       version: 2,
       interval: getInterval(selection.datetime, 'low'),
     },
-    location
+    selection
   );
 
   const {
@@ -69,7 +67,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
       }) ?? [],
   };
 
-  const categoryEventView = EventView.fromNewQueryWithLocation(
+  const categoryEventView = EventView.fromNewQueryWithPageFilters(
     {
       name: '',
       fields: [`p95(${SPAN_SELF_TIME})`, `sum(${SPAN_SELF_TIME})`, 'span.category'],
@@ -83,7 +81,7 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
       topEvents: '4',
       interval: getInterval(selection.datetime, 'low'),
     },
-    location
+    selection
   );
 
   const {
