@@ -165,7 +165,13 @@ def simulate_on_commit(request: Any):
     """
 
     from django.conf import settings
+    from django.db import transaction
+    from django.test import TestCase as DjangoTestCase
 
+    request_node_cls = request.node.cls
+    is_django_test_case = request_node_cls is not None and issubclass(
+        request_node_cls, DjangoTestCase
+    )
     simulated_transaction_watermarks.state = {}
 
     _old_atomic_exit = transaction.Atomic.__exit__
@@ -196,12 +202,9 @@ def simulate_on_commit(request: Any):
         _old_transaction_on_commit(func, using)
         maybe_flush_commit_hooks(transaction.get_connection(using))
 
-    for db_name in settings.DATABASES:
-        simulated_transaction_watermarks.state[
-            db_name
-        ] = simulated_transaction_watermarks.get_transaction_depth(
-            transaction.get_connection(db_name)
-        )
+    if is_django_test_case:
+        for db_name in settings.DATABASES:
+            simulated_transaction_watermarks.state[db_name] = 2
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)

@@ -27,7 +27,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.db.postgres.transactions import (
+    django_test_transaction_water_mark,
+    in_test_assert_no_transaction,
+)
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
@@ -198,7 +201,7 @@ class OutboxBase(Model):
 
     def save(self, **kwds: Any):
         if _outbox_context.flushing_enabled:
-            self.drain_shard()
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
@@ -270,33 +273,32 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
-        def _inner() -> None:
-            # When we are flushing in a local context, we don't care about outboxes created concurrently --
-            # at best our logic depends on previously created outboxes.
-            latest_shard_row: OutboxBase | None = None
-            if not flush_all:
-                latest_shard_row = self.selected_messages_in_shard().last()
-                # If we're not flushing all possible shards, and we don't see any immediately values,
-                # drop.
-                if latest_shard_row is None:
-                    return
+        in_test_assert_no_transaction(
+            "drain_shard should only be called outside of any active transaction!"
+        )
+        # When we are flushing in a local context, we don't care about outboxes created concurrently --
+        # at best our logic depends on previously created outboxes.
+        latest_shard_row: OutboxBase | None = None
+        if not flush_all:
+            latest_shard_row = self.selected_messages_in_shard().last()
+            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # drop.
+            if latest_shard_row is None:
+                return
 
-            shard_row: OutboxBase | None
-            while True:
-                with self.process_shard(latest_shard_row) as shard_row:
-                    if shard_row is None:
-                        break
-
-                    if _test_processing_barrier:
-                        _test_processing_barrier.wait()
-
-                    shard_row.process()
+        shard_row: OutboxBase | None
+        while True:
+            with self.process_shard(latest_shard_row) as shard_row:
+                if shard_row is None:
+                    break
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-        # Ensure that processing only occurs at a 'top level' transaction.
-        transaction.on_commit(_inner, using=router.db_for_write(type(self)))
+                shard_row.process()
+
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
 
 
 # Outboxes bound from region silo -> control silo
