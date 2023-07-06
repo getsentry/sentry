@@ -247,7 +247,6 @@ const getEventView = (
       yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },

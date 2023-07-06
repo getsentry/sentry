@@ -2,8 +2,8 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import {FieldFromConfig} from 'sentry/components/forms';
 import {SelectAsyncControlProps} from 'sentry/components/forms/controls/selectAsyncControl';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';

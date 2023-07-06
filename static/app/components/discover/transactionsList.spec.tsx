@@ -1,5 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  RenderResult,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import TransactionsList from 'sentry/components/discover/transactionsList';
 import {t} from 'sentry/locale';
@@ -10,7 +16,7 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 function WrapperComponent(props) {
   return (
     <OrganizationContext.Provider value={props.organization}>
-      <MEPSettingProvider _isMEPEnabled={false}>
+      <MEPSettingProvider>
         <TransactionsList {...props} />
       </MEPSettingProvider>
     </OrganizationContext.Provider>
@@ -296,7 +302,7 @@ describe('TransactionsList', function () {
     });
 
     it('allows users to change the sort in the dropdown', async function () {
-      let component = null;
+      let component: RenderResult | null = null;
 
       const handleDropdown = value => {
         const selected = options.find(option => option.value === value);
@@ -414,8 +420,7 @@ describe('TransactionsList', function () {
           selected={options[0]}
           options={options}
           handleDropdownChange={handleDropdownChange}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();

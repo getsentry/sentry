@@ -1,14 +1,22 @@
+import shuffle from 'lodash/shuffle';
+
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {NewQuery, SavedQuery} from 'sentry/types';
 import EventView, {
   isAPIPayloadSimilar,
+  MetaType,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
+import {Column} from 'sentry/utils/discover/fields';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
+import {AggregationKey, WebVital} from 'sentry/utils/fields';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
 const generateFields = fields =>
   fields.map(field => ({
@@ -21,9 +29,26 @@ const generateSorts = sorts =>
     kind: 'desc',
   }));
 
+const REQUIRED_CONSTRUCTOR_PROPS = {
+  createdBy: undefined,
+  end: undefined,
+  environment: [],
+  fields: [],
+  name: undefined,
+  project: [],
+  query: '',
+  start: undefined,
+  team: [],
+  sorts: [],
+  statsPeriod: undefined,
+  topEvents: undefined,
+  id: undefined,
+  display: undefined,
+};
+
 describe('EventView constructor', function () {
   it('instantiates default values', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView(REQUIRED_CONSTRUCTOR_PROPS);
 
     expect(eventView).toMatchObject({
       id: undefined,
@@ -44,7 +69,7 @@ describe('EventView constructor', function () {
 
 describe('EventView.fromLocation()', function () {
   it('maps query strings', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '42',
         name: 'best query',
@@ -52,7 +77,7 @@ describe('EventView.fromLocation()', function () {
         widths: ['123', '456'],
         sort: ['title', '-count'],
         query: 'event.type:transaction',
-        project: [123],
+        project: ['123'],
         team: ['myteams', '1', '2'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
@@ -62,7 +87,7 @@ describe('EventView.fromLocation()', function () {
         display: 'previous',
         dataset: DiscoverDatasets.DISCOVER,
       },
-    };
+    });
 
     const eventView = EventView.fromLocation(location);
 
@@ -73,7 +98,7 @@ describe('EventView.fromLocation()', function () {
         {field: 'count()', width: 123},
         {field: 'id', width: 456},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:transaction',
       project: [123],
       team: ['myteams', 1, 2],
@@ -88,7 +113,7 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('includes first valid statsPeriod', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '42',
         name: 'best query',
@@ -96,13 +121,13 @@ describe('EventView.fromLocation()', function () {
         widths: ['123', '456'],
         sort: ['title', '-count'],
         query: 'event.type:transaction',
-        project: [123],
+        project: ['123'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         statsPeriod: ['invalid', '28d'],
         environment: ['staging'],
       },
-    };
+    });
 
     const eventView = EventView.fromLocation(location);
 
@@ -113,7 +138,7 @@ describe('EventView.fromLocation()', function () {
         {field: 'count()', width: 123},
         {field: 'id', width: 456},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:transaction',
       project: [123],
       start: undefined,
@@ -124,7 +149,7 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('includes start and end', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '42',
         name: 'best query',
@@ -132,12 +157,12 @@ describe('EventView.fromLocation()', function () {
         widths: ['123', '456'],
         sort: ['title', '-count'],
         query: 'event.type:transaction',
-        project: [123],
+        project: ['123'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         environment: ['staging'],
       },
-    };
+    });
 
     const eventView = EventView.fromLocation(location);
 
@@ -148,7 +173,7 @@ describe('EventView.fromLocation()', function () {
         {field: 'count()', width: 123},
         {field: 'id', width: 456},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:transaction',
       project: [123],
       start: '2019-10-01T00:00:00.000',
@@ -158,9 +183,9 @@ describe('EventView.fromLocation()', function () {
   });
 
   it('generates event view when there are no query strings', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {},
-    };
+    });
 
     const eventView = EventView.fromLocation(location);
 
@@ -182,7 +207,7 @@ describe('EventView.fromLocation()', function () {
 
 describe('EventView.fromSavedQuery()', function () {
   it('maps basic properties of saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -196,6 +221,9 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -243,19 +271,18 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('maps saved query with no conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count',
       name: 'foo bar',
       fields: ['release', 'count()'],
-      widths: [111, 222],
+      widths: ['111', '222'],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       environment: ['dev', 'production'],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T06:13:17.632096Z',
       id: '5',
       projects: [1],
-      yAxis: 'count()',
+      yAxis: ['count()'],
     };
 
     const eventView = EventView.fromSavedQuery(saved);
@@ -267,7 +294,7 @@ describe('EventView.fromSavedQuery()', function () {
         {field: 'release', width: 111},
         {field: 'count()', width: 222},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: '',
       project: [1],
       environment: ['dev', 'production'],
@@ -278,12 +305,17 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('maps properties from v2 saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
+      id: '42',
+      projects: [123],
       name: 'best query',
       fields: ['count()', 'title'],
       range: '14d',
       start: '',
       end: '',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
     expect(eventView.fields).toEqual([
@@ -297,7 +329,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries are equal when start and end datetime differ in format', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -306,7 +338,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -338,7 +369,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries are not equal when datetime selection are invalid', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -347,7 +378,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -374,7 +404,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('saved queries with undefined yAxis are defaulted to count() when comparing with isEqualTo', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -383,7 +413,6 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
@@ -393,14 +422,14 @@ describe('EventView.fromSavedQuery()', function () {
 
     const eventView2 = EventView.fromSavedQuery({
       ...saved,
-      yAxis: 'count()',
+      yAxis: ['count()'],
     });
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
 
   it('uses the first yAxis from the SavedQuery', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -415,6 +444,9 @@ describe('EventView.fromSavedQuery()', function () {
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
       yAxis: ['count()'],
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      version: 2,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -440,13 +472,19 @@ describe('EventView.fromSavedQuery()', function () {
   });
 
   it('preserves utc with start/end', function () {
-    const saved = {
+    const saved: SavedQuery = {
+      id: '42',
+      version: 2,
+      projects: [123],
       name: 'best query',
       query: 'event.type:transaction',
       fields: ['count()', 'title'],
       start: '2019-10-20T21:02:51+0000',
       end: '2019-10-23T19:27:04+0000',
       utc: 'true',
+
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -466,7 +504,7 @@ describe('EventView.fromSavedQuery()', function () {
 });
 
 describe('EventView.fromNewQueryWithLocation()', function () {
-  const prebuiltQuery = {
+  const prebuiltQuery: NewQuery = {
     id: undefined,
     name: 'All Events',
     query: '',
@@ -477,11 +515,11 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   };
 
   it('maps basic properties of a prebuilt query', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '99d',
       },
-    };
+    });
 
     const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
 
@@ -508,13 +546,13 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   });
 
   it('merges global selection values', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '99d',
         project: ['456'],
         environment: ['prod'],
       },
-    };
+    });
 
     const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
 
@@ -540,15 +578,15 @@ describe('EventView.fromNewQueryWithLocation()', function () {
   });
 
   it('new query takes precedence over global selection values', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '99d',
         project: ['456'],
         environment: ['prod'],
       },
-    };
+    });
 
-    const prebuiltQuery2 = {
+    const prebuiltQuery2: NewQuery = {
       ...prebuiltQuery,
       range: '42d',
       projects: [987],
@@ -579,16 +617,16 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
     // also test start and end
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         project: ['456'],
         environment: ['prod'],
       },
-    };
+    });
 
-    const prebuiltQuery3 = {
+    const prebuiltQuery3: NewQuery = {
       ...prebuiltQuery,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -622,7 +660,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
 
 describe('EventView.fromSavedQueryOrLocation()', function () {
   it('maps basic properties of saved query', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -635,16 +673,19 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '14d',
         project: ['123'],
         team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
-    };
+    });
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     expect(eventView).toMatchObject({
@@ -668,15 +709,15 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       dataset: DiscoverDatasets.DISCOVER,
     });
 
-    const savedQuery2 = {...saved, range: undefined};
-    const location2 = {
+    const savedQuery2: SavedQuery = {...saved, range: undefined};
+    const location2 = TestStubs.location({
       query: {
         project: ['123'],
         environment: ['staging'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
       },
-    };
+    });
 
     const eventView2 = EventView.fromSavedQueryOrLocation(savedQuery2, location2);
 
@@ -698,7 +739,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('overrides saved query params with location params', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -711,15 +752,18 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       dataset: DiscoverDatasets.DISCOVER,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '42',
         statsPeriod: '7d',
         project: ['3'],
       },
-    };
+    });
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     expect(eventView).toMatchObject({
@@ -744,27 +788,27 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('maps saved query with no conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count',
       name: 'foo bar',
       fields: ['release', 'count()'],
-      widths: [111, 222],
+      widths: ['111', '222'],
       dateCreated: '2019-10-30T06:13:17.632078Z',
       query: '',
       environment: [],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T06:13:17.632096Z',
+      projects: [123],
       id: '5',
-      yAxis: 'count()',
+      yAxis: ['count()'],
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '5',
-        project: [1],
+        project: ['1'],
       },
-    };
+    });
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
@@ -775,7 +819,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
         {field: 'release', width: 111},
         {field: 'count()', width: 222},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: '',
       project: [1],
       yAxis: 'count()',
@@ -785,7 +829,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('maps query with cleared conditions', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -797,14 +841,17 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '42',
         statsPeriod: '7d',
       },
-    };
+    });
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     expect(eventView).toMatchObject({
@@ -825,13 +872,13 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       display: 'previous',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '42',
         statsPeriod: '7d',
         query: '',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView2).toMatchObject({
@@ -854,7 +901,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('event views are equal when start and end datetime differ in format', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -862,58 +909,58 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       dateCreated: '2019-10-30T05:10:23.718937Z',
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
+      projects: [123],
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51+0000',
         end: '2019-10-23T19:27:04+0000',
       },
-    };
+    });
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
         end: '2019-10-23T19:27:04Z',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
 
-    const location3 = {
+    const location3 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51Z',
         end: '2019-10-23T19:27:04+0000',
       },
-    };
+    });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
     expect(eventView.isEqualTo(eventView3)).toBe(true);
 
-    const location4 = {
+    const location4 = TestStubs.location({
       query: {
         id: '3',
         start: '2019-10-20T21:02:51+0000',
         end: '2019-10-23T19:27:04Z',
       },
-    };
+    });
     const eventView4 = EventView.fromSavedQueryOrLocation(saved, location4);
 
     expect(eventView.isEqualTo(eventView4)).toBe(true);
   });
 
   it('event views are not equal when datetime selection are invalid', function () {
-    const saved = {
+    const saved: SavedQuery = {
       orderby: '-count_timestamp',
       end: '2019-10-23T19:27:04+0000',
       name: 'release query',
@@ -922,40 +969,39 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['dev', 'production'],
       start: '2019-10-20T21:02:51+0000',
       version: 2,
-      createdBy: '1',
       dateUpdated: '2019-10-30T07:25:58.291917Z',
       id: '3',
       projects: [1],
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         id: '3',
         end: '2019-10-23T19:27:04+0000',
         start: '2019-10-20T21:02:51+0000',
       },
-    };
+    });
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         id: '3',
         end: '2019-10-23T19:27:04+0000',
         start: '',
       },
-    };
+    });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
-    const location3 = {
+    const location3 = TestStubs.location({
       query: {
         id: '3',
         end: '',
         start: '2019-10-20T21:02:51+0000',
       },
-    };
+    });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
@@ -965,7 +1011,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('uses the first yAxis from the SavedQuery', function () {
-    const saved = {
+    const saved: SavedQuery = {
       id: '42',
       name: 'best query',
       fields: ['count()', 'id'],
@@ -978,16 +1024,19 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       display: 'previous',
       yAxis: ['count()', 'failure_count()'],
+      dateCreated: '2019-10-30T05:10:23.718937Z',
+      dateUpdated: '2019-10-30T07:25:58.291917Z',
+      version: 2,
     };
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         statsPeriod: '14d',
         project: ['123'],
         team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
-    };
+    });
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     expect(eventView).toMatchObject({
@@ -1011,14 +1060,17 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
   });
 
   it('filters out invalid teams', function () {
-    const eventView = EventView.fromSavedQueryOrLocation(undefined, {
-      query: {
-        statsPeriod: '14d',
-        project: ['123'],
-        team: ['myteams', '1', 'unassigned'],
-        environment: ['staging'],
-      },
-    });
+    const eventView = EventView.fromSavedQueryOrLocation(
+      undefined,
+      TestStubs.location({
+        query: {
+          statsPeriod: '14d',
+          project: ['123'],
+          team: ['myteams', '1', 'unassigned'],
+          environment: ['staging'],
+        },
+      })
+    );
 
     expect(eventView.team).toEqual(['myteams', 1]);
   });
@@ -1027,12 +1079,13 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
 describe('EventView.generateQueryStringObject()', function () {
   it('skips empty values', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['id', 'title']),
       sorts: [],
       project: [],
-      environment: '',
+      environment: [],
       statsPeriod: '',
-      start: null,
+      start: undefined,
       end: undefined,
       yAxis: undefined,
       display: 'previous',
@@ -1055,14 +1108,15 @@ describe('EventView.generateQueryStringObject()', function () {
   });
 
   it('generates query string object', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [
         {field: 'count()', width: 123},
         {field: 'project.id', width: 456},
       ],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -1098,6 +1152,7 @@ describe('EventView.generateQueryStringObject()', function () {
 
   it('encodes fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
     });
@@ -1107,11 +1162,14 @@ describe('EventView.generateQueryStringObject()', function () {
 
   it('returns a copy of data preventing mutation', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'id'}, {field: 'title'}],
       sorts: [],
     });
     const query = eventView.generateQueryStringObject();
-    query.field.push('newthing');
+    if (Array.isArray(query.field)) {
+      query.field.push('newthing');
+    }
 
     // Getting the query again should return the original values.
     const secondQuery = eventView.generateQueryStringObject();
@@ -1124,7 +1182,8 @@ describe('EventView.generateQueryStringObject()', function () {
 describe('EventView.getEventsAPIPayload()', function () {
   it('generates the API payload', function () {
     const eventView = new EventView({
-      id: 34,
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+      id: '34',
       name: 'amazing query',
       fields: generateFields(['id']),
       sorts: generateSorts(['id']),
@@ -1135,7 +1194,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       display: 'releases',
     });
 
-    expect(eventView.getEventsAPIPayload({})).toEqual({
+    expect(eventView.getEventsAPIPayload(TestStubs.location())).toEqual({
       field: ['id'],
       per_page: 50,
       sort: '-id',
@@ -1148,55 +1207,59 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('does not append query conditions in location', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['id']),
       sorts: [],
       query: 'event.type:csp',
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         query: 'TypeError',
       },
-    };
+    });
     expect(eventView.getEventsAPIPayload(location).query).toEqual('event.type:csp');
   });
 
   it('only includes at most one sort key', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['count()', 'title']),
-      sorts: generateSorts(['title', 'count']),
+      sorts: generateSorts(['title', AggregationKey.COUNT]),
       query: 'event.type:csp',
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {},
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-title');
   });
 
   it('only includes sort keys that are defined in fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', 'count']),
+      sorts: generateSorts(['project', AggregationKey.COUNT]),
       query: 'event.type:csp',
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {},
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location).sort).toEqual('-count');
   });
 
   it('only includes relevant query strings', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', 'count']),
+      sorts: generateSorts(['project', AggregationKey.COUNT]),
       query: 'event.type:csp',
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         start: '2020-08-12 12:13:14',
         end: '2020-08-26 12:13:14',
@@ -1210,7 +1273,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         project: '1234',
         environment: ['staging'],
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: [],
@@ -1228,14 +1291,15 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes default coerced statsPeriod when omitted or is invalid', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', 'count']),
+      sorts: generateSorts(['project', AggregationKey.COUNT]),
       query: 'event.type:csp',
       project: [1234],
       environment: ['staging'],
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         start: '',
         end: '',
@@ -1244,7 +1308,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         statsPeriod: 'invalid',
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
@@ -1259,7 +1323,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         start: '',
         end: '',
@@ -1267,7 +1331,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         // statsPeriod is omitted here
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
@@ -1285,21 +1349,22 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes default coerced statsPeriod when either start or end is only provided', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', 'count']),
+      sorts: generateSorts(['project', AggregationKey.COUNT]),
       query: 'event.type:csp',
       project: [1234],
       environment: ['staging'],
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         start: '',
         utc: 'true',
         statsPeriod: 'invalid',
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       project: ['1234'],
@@ -1314,14 +1379,14 @@ describe('EventView.getEventsAPIPayload()', function () {
       cursor: 'some cursor',
     });
 
-    const location2 = {
+    const location2 = TestStubs.location({
       query: {
         end: '',
         utc: 'true',
         statsPeriod: 'invalid',
         cursor: 'some cursor',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
       project: ['1234'],
@@ -1339,8 +1404,9 @@ describe('EventView.getEventsAPIPayload()', function () {
 
   it('includes start and end', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:csp',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -1348,13 +1414,13 @@ describe('EventView.getEventsAPIPayload()', function () {
       project: [],
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
         period: '55d',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       field: ['title', 'count()'],
@@ -1371,7 +1437,7 @@ describe('EventView.getEventsAPIPayload()', function () {
   it("an eventview's date selection has higher precedence than the date selection in the query string", function () {
     const initialState = {
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:csp',
       environment: [],
       project: [],
@@ -1389,13 +1455,14 @@ describe('EventView.getEventsAPIPayload()', function () {
     // eventview's statsPeriod has highest precedence
 
     let eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       ...initialState,
       statsPeriod: '90d',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
     });
 
-    let location = {
+    let location = TestStubs.location({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
@@ -1403,7 +1470,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       ...output,
@@ -1413,12 +1480,13 @@ describe('EventView.getEventsAPIPayload()', function () {
     // eventview's start/end has higher precedence than the date selection in the query string
 
     eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       ...initialState,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
     });
 
-    location = {
+    location = TestStubs.location({
       query: {
         // these should not be part of the API payload
         statsPeriod: '55d',
@@ -1426,7 +1494,7 @@ describe('EventView.getEventsAPIPayload()', function () {
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       ...output,
@@ -1436,41 +1504,44 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     // the date selection in the query string should be applied as expected
 
-    eventView = new EventView(initialState);
+    eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+      ...initialState,
+    });
 
-    location = {
+    location = TestStubs.location({
       query: {
         statsPeriod: '55d',
         period: '30d',
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       ...output,
       statsPeriod: '55d',
     });
 
-    location = {
+    location = TestStubs.location({
       query: {
         period: '30d',
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       ...output,
       statsPeriod: '30d',
     });
 
-    location = {
+    location = TestStubs.location({
       query: {
         start: '2020-10-01T00:00:00',
         end: '2020-10-02T00:00:00',
       },
-    };
+    });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       ...output,
@@ -1483,12 +1554,13 @@ describe('EventView.getEventsAPIPayload()', function () {
 describe('EventView.getFacetsAPIPayload()', function () {
   it('only includes relevant query strings', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: generateFields(['title', 'count()']),
-      sorts: generateSorts(['project', 'count']),
+      sorts: generateSorts(['project', AggregationKey.COUNT]),
       query: 'event.type:csp',
     });
 
-    const location = {
+    const location = TestStubs.location({
       query: {
         start: '',
         end: '',
@@ -1503,7 +1575,7 @@ describe('EventView.getFacetsAPIPayload()', function () {
         environment: ['staging'],
         display: 'releases',
       },
-    };
+    });
 
     expect(eventView.getFacetsAPIPayload(location)).toEqual({
       project: [],
@@ -1517,14 +1589,15 @@ describe('EventView.getFacetsAPIPayload()', function () {
 });
 
 describe('EventView.toNewQuery()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', width: 123},
       {field: 'project.id', width: 456},
     ],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1561,7 +1634,7 @@ describe('EventView.toNewQuery()', function () {
   });
 
   it('omits query when query is an empty string', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
     };
 
@@ -1591,11 +1664,11 @@ describe('EventView.toNewQuery()', function () {
   });
 
   it('omits query when query is not defined', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
     };
 
-    delete modifiedState.query;
+    modifiedState.query = '';
 
     const eventView = new EventView(modifiedState);
 
@@ -1624,6 +1697,7 @@ describe('EventView.toNewQuery()', function () {
 describe('EventView.isValid()', function () {
   it('event view is valid when there is at least one field', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1634,6 +1708,7 @@ describe('EventView.isValid()', function () {
 
   it('event view is not valid when there are no fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -1646,6 +1721,7 @@ describe('EventView.isValid()', function () {
 describe('EventView.getWidths()', function () {
   it('returns widths', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [
         {field: 'count()', width: COL_WIDTH_UNDEFINED},
         {field: 'project.id', width: 2020},
@@ -1673,6 +1749,7 @@ describe('EventView.getWidths()', function () {
 describe('EventView.getFields()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1687,6 +1764,7 @@ describe('EventView.numOfColumns()', function () {
     // has columns
 
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
       sorts: [],
       project: [],
@@ -1697,6 +1775,7 @@ describe('EventView.numOfColumns()', function () {
     // has no columns
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -1709,12 +1788,14 @@ describe('EventView.numOfColumns()', function () {
 describe('EventView.getDays()', function () {
   it('returns the right number of days for statsPeriod', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       statsPeriod: '14d',
     });
 
     expect(eventView.getDays()).toBe(14);
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       statsPeriod: '12h',
     });
 
@@ -1723,6 +1804,7 @@ describe('EventView.getDays()', function () {
 
   it('returns the right number of days for start/end', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
     });
@@ -1730,6 +1812,7 @@ describe('EventView.getDays()', function () {
     expect(eventView.getDays()).toBe(1);
 
     const eventView2 = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       start: '2019-10-01T00:00:00',
       end: '2019-10-15T00:00:00',
     });
@@ -1739,11 +1822,12 @@ describe('EventView.getDays()', function () {
 
 describe('EventView.clone()', function () {
   it('returns a unique instance', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -1771,7 +1855,8 @@ describe('EventView.clone()', function () {
 });
 
 describe('EventView.withColumns()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
@@ -1780,7 +1865,7 @@ describe('EventView.withColumns()', function () {
       {field: 'failure_count()', width: 30},
     ],
     yAxis: 'failure_count()',
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1793,7 +1878,7 @@ describe('EventView.withColumns()', function () {
   it('adds new columns, and replaces existing ones', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'title'},
-      {kind: 'function', function: ['count', '']},
+      {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
       {kind: 'field', field: 'project.id'},
       {kind: 'field', field: 'culprit'},
     ]);
@@ -1810,10 +1895,10 @@ describe('EventView.withColumns()', function () {
   it('drops empty columns', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'issue'},
-      {kind: 'function', function: ['count', '']},
+      {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
       {kind: 'field', field: ''},
-      {kind: 'function', function: ['', '']},
-      {kind: 'function', function: ['', '', undefined]},
+      {kind: 'function', function: ['', '', undefined, undefined]},
+      {kind: 'function', function: ['', '', undefined, undefined]},
     ]);
     expect(newView.fields).toEqual([
       {field: 'issue', width: COL_WIDTH_UNDEFINED},
@@ -1823,7 +1908,7 @@ describe('EventView.withColumns()', function () {
 
   it('inherits widths from existing columns when names match', function () {
     const newView = eventView.withColumns([
-      {kind: 'function', function: ['count', '']},
+      {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
       {kind: 'field', field: 'project.id'},
       {kind: 'field', field: 'title'},
       {kind: 'field', field: 'time'},
@@ -1840,13 +1925,13 @@ describe('EventView.withColumns()', function () {
   it('retains sorts when sorted field is included', function () {
     const newView = eventView.withColumns([
       {kind: 'field', field: 'title'},
-      {kind: 'function', function: ['count', '']},
+      {kind: 'function', function: [AggregationKey.COUNT, '', undefined, undefined]},
     ]);
     expect(newView.fields).toEqual([
       {field: 'title', width: COL_WIDTH_UNDEFINED},
       {field: 'count()', width: COL_WIDTH_UNDEFINED},
     ]);
-    expect(newView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    expect(newView.sorts).toEqual([{field: AggregationKey.COUNT, kind: 'desc'}]);
   });
 
   it('updates sorts when sorted field is removed', function () {
@@ -1878,14 +1963,15 @@ describe('EventView.withColumns()', function () {
 });
 
 describe('EventView.withNewColumn()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [
       {field: 'count()', width: 30},
       {field: 'project.id', width: 99},
     ],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1896,7 +1982,7 @@ describe('EventView.withNewColumn()', function () {
 
   it('adds a field', function () {
     const eventView = new EventView(state);
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'field',
       field: 'title',
     };
@@ -1913,9 +1999,9 @@ describe('EventView.withNewColumn()', function () {
 
   it('adds an aggregate function with no arguments', function () {
     const eventView = new EventView(state);
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['count', ''],
+      function: [AggregationKey.COUNT, '', undefined, undefined],
     };
 
     const eventView2 = eventView.withNewColumn(newColumn);
@@ -1931,9 +2017,9 @@ describe('EventView.withNewColumn()', function () {
 
   it('add an aggregate function with field', function () {
     const eventView = new EventView(state);
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['avg', 'transaction.duration'],
+      function: [AggregationKey.AVG, 'transaction.duration', undefined, undefined],
     };
     const eventView2 = eventView.withNewColumn(newColumn);
     expect(eventView2 !== eventView).toBeTruthy();
@@ -1948,9 +2034,9 @@ describe('EventView.withNewColumn()', function () {
 
   it('add an aggregate function with field & refinement', function () {
     const eventView = new EventView(state);
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['percentile', 'transaction.duration', '0.5'],
+      function: [AggregationKey.PERCENTILE, 'transaction.duration', '0.5', undefined],
     };
     const updated = eventView.withNewColumn(newColumn);
     expect(updated.fields).toEqual([
@@ -1961,11 +2047,12 @@ describe('EventView.withNewColumn()', function () {
 });
 
 describe('EventView.withResizedColumn()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -1988,11 +2075,12 @@ describe('EventView.withResizedColumn()', function () {
 });
 
 describe('EventView.withUpdatedColumn()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2001,7 +2089,7 @@ describe('EventView.withUpdatedColumn()', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
@@ -2009,9 +2097,9 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column with no changes', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['count', ''],
+      function: [AggregationKey.COUNT, '', undefined, undefined],
     };
 
     const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
@@ -2023,7 +2111,7 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column to a field', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'field',
       field: 'title',
     };
@@ -2044,9 +2132,9 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column to an aggregate function with no arguments', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['count', ''],
+      function: [AggregationKey.COUNT, '', undefined, undefined],
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -2064,9 +2152,9 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column to an aggregate function with field', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['avg', 'transaction.duration'],
+      function: [AggregationKey.AVG, 'transaction.duration', undefined, undefined],
     };
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -2084,9 +2172,9 @@ describe('EventView.withUpdatedColumn()', function () {
   it('update a column to an aggregate function with field & refinement', function () {
     const eventView = new EventView(state);
 
-    const newColumn = {
+    const newColumn: Column = {
       kind: 'function',
-      function: ['percentile', 'transaction.duration', '0.5'],
+      function: [AggregationKey.PERCENTILE, 'transaction.duration', '0.5', undefined],
     };
 
     const newView = eventView.withUpdatedColumn(1, newColumn, meta);
@@ -2100,7 +2188,7 @@ describe('EventView.withUpdatedColumn()', function () {
     it('the sorted column is the only sorted column', function () {
       const eventView = new EventView(state);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'title',
       };
@@ -2119,14 +2207,14 @@ describe('EventView.withUpdatedColumn()', function () {
     });
 
     it('the sorted column occurs at least twice', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [...state.fields, {field: 'count()'}],
       };
 
       const eventView = new EventView(modifiedState);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'title',
       };
@@ -2155,7 +2243,7 @@ describe('EventView.withUpdatedColumn()', function () {
         fields: [{field: 'title'}, state.fields[1]],
       };
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'title',
       };
@@ -2163,17 +2251,14 @@ describe('EventView.withUpdatedColumn()', function () {
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
       expect(eventView2).toMatchObject(expected);
 
-      const eventView3 = eventView.withUpdatedColumn(0, newColumn);
+      const eventView3 = eventView.withUpdatedColumn(0, newColumn, undefined);
       expect(eventView3).toMatchObject(expected);
-
-      const eventView4 = eventView.withUpdatedColumn(0, newColumn, null);
-      expect(eventView4).toMatchObject(expected);
     });
   });
 
   describe('update a column to a non-sortable column', function () {
     it('default to a sortable column', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}, {field: 'title'}],
       };
@@ -2181,7 +2266,7 @@ describe('EventView.withUpdatedColumn()', function () {
       const eventView = new EventView(modifiedState);
 
       // this column is expected to be non-sortable
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'project.id',
       };
@@ -2202,7 +2287,7 @@ describe('EventView.withUpdatedColumn()', function () {
     });
 
     it('has no sort if there are no sortable columns', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}],
       };
@@ -2210,7 +2295,7 @@ describe('EventView.withUpdatedColumn()', function () {
       const eventView = new EventView(modifiedState);
 
       // this column is expected to be non-sortable
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'project.id',
       };
@@ -2233,11 +2318,12 @@ describe('EventView.withUpdatedColumn()', function () {
 });
 
 describe('EventView.withDeletedColumn()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2246,13 +2332,13 @@ describe('EventView.withDeletedColumn()', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
 
   it('returns itself when attempting to delete the last remaining column', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}],
     };
@@ -2287,11 +2373,8 @@ describe('EventView.withDeletedColumn()', function () {
       const eventView2 = eventView.withDeletedColumn(1, {});
       expect(eventView2).toMatchObject(expected);
 
-      const eventView3 = eventView.withDeletedColumn(1);
+      const eventView3 = eventView.withDeletedColumn(1, undefined);
       expect(eventView3).toMatchObject(expected);
-
-      const eventView4 = eventView.withDeletedColumn(1, null);
-      expect(eventView4).toMatchObject(expected);
     });
 
     it('has no remaining sortable column', function () {
@@ -2313,7 +2396,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('has a remaining sortable column', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [{field: 'count()'}, {field: 'project.id'}, {field: 'title'}],
       };
@@ -2335,7 +2418,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('sorted column occurs at least twice', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [...state.fields, state.fields[0]],
       };
@@ -2356,7 +2439,7 @@ describe('EventView.withDeletedColumn()', function () {
     });
 
     it('ensures there is at one auto-width column on deletion', function () {
-      const modifiedState = {
+      const modifiedState: ConstructorParameters<typeof EventView>[0] = {
         ...state,
         fields: [
           {field: 'id', width: 75},
@@ -2388,14 +2471,15 @@ describe('EventView.withDeletedColumn()', function () {
 describe('EventView.getSorts()', function () {
   it('returns fields', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       project: [],
     });
 
     expect(eventView.getSorts()).toEqual([
       {
-        key: 'count',
+        key: AggregationKey.COUNT,
         order: 'desc',
       },
     ]);
@@ -2405,6 +2489,7 @@ describe('EventView.getSorts()', function () {
 describe('EventView.getQuery()', function () {
   it('with query', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2421,6 +2506,7 @@ describe('EventView.getQuery()', function () {
 
   it('without query', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2438,6 +2524,7 @@ describe('EventView.getQuery()', function () {
 describe('EventView.getQueryWithAdditionalConditions', function () {
   it('with overlapping conditions', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [],
       sorts: [],
       project: [],
@@ -2453,11 +2540,12 @@ describe('EventView.getQueryWithAdditionalConditions', function () {
 });
 
 describe('EventView.sortForField()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2466,7 +2554,7 @@ describe('EventView.sortForField()', function () {
     environment: ['staging'],
   };
   const eventView = new EventView(state);
-  const meta = {count: 'integer'};
+  const meta: MetaType = {count: 'integer'};
 
   it('returns the sort when selected field is sorted', function () {
     const field = {
@@ -2476,7 +2564,7 @@ describe('EventView.sortForField()', function () {
     const actual = eventView.sortForField(field, meta);
 
     expect(actual).toEqual({
-      field: 'count',
+      field: AggregationKey.COUNT,
       kind: 'desc',
     });
   });
@@ -2499,11 +2587,12 @@ describe('EventView.sortForField()', function () {
 });
 
 describe('EventView.sortOnField()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2512,7 +2601,7 @@ describe('EventView.sortOnField()', function () {
     environment: ['staging'],
   };
 
-  const meta = {count: 'integer', title: 'string'};
+  const meta: MetaType = {count: 'integer', title: 'string'};
 
   it('returns itself when attempting to sort on un-sortable field', function () {
     const eventView = new EventView(state);
@@ -2536,7 +2625,7 @@ describe('EventView.sortOnField()', function () {
 
     const nextState = {
       ...state,
-      sorts: [{field: 'count', kind: 'asc'}],
+      sorts: [{field: AggregationKey.COUNT, kind: 'asc'}],
     };
 
     expect(eventView2).toMatchObject(nextState);
@@ -2551,18 +2640,18 @@ describe('EventView.sortOnField()', function () {
     const eventView2 = eventView.sortOnField(field, meta, 'asc');
     expect(eventView2).toMatchObject({
       ...state,
-      sorts: [{field: 'count', kind: 'asc'}],
+      sorts: [{field: AggregationKey.COUNT, kind: 'asc'}],
     });
 
     const eventView3 = eventView.sortOnField(field, meta, 'desc');
     expect(eventView3).toMatchObject({
       ...state,
-      sorts: [{field: 'count', kind: 'desc'}],
+      sorts: [{field: AggregationKey.COUNT, kind: 'desc'}],
     });
   });
 
   it('supports function format on equation sorts', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
       sorts: [{field: 'equation|count() + 100', kind: 'desc'}],
@@ -2573,7 +2662,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('supports index format on equation sorts', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [{field: 'count()'}, {field: 'equation|count() + 100'}],
       sorts: [{field: 'equation[0]', kind: 'desc'}],
@@ -2584,7 +2673,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('sort on new field', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [...state.fields, {field: 'title'}],
     };
@@ -2625,7 +2714,7 @@ describe('EventView.sortOnField()', function () {
   });
 
   it('sorts on a field using function format', function () {
-    const modifiedState = {
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
       ...state,
       fields: [...state.fields, {field: 'count()'}],
     };
@@ -2645,6 +2734,7 @@ describe('EventView.sortOnField()', function () {
 describe('EventView.withSorts()', function () {
   it('returns a clone', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'event.type'}],
     });
     const updated = eventView.withSorts([{kind: 'desc', field: 'event.type'}]);
@@ -2653,6 +2743,7 @@ describe('EventView.withSorts()', function () {
 
   it('only accepts sorting on fields in the view', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'event.type'}],
     });
     const updated = eventView.withSorts([
@@ -2664,6 +2755,7 @@ describe('EventView.withSorts()', function () {
 
   it('accepts aggregate field sorts', function () {
     const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'p50()'}],
     });
     const updated = eventView.withSorts([
@@ -2676,11 +2768,12 @@ describe('EventView.withSorts()', function () {
 
 describe('EventView.isEqualTo()', function () {
   it('should be true when equal', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -2706,11 +2799,12 @@ describe('EventView.isEqualTo()', function () {
   });
 
   it('should be true when datetime are equal but differ in format', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-20T21:02:51+0000',
@@ -2729,11 +2823,12 @@ describe('EventView.isEqualTo()', function () {
   });
 
   it('should be false when not equal', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -2749,7 +2844,7 @@ describe('EventView.isEqualTo()', function () {
       id: '12',
       name: 'new query',
       fields: [{field: 'project.id'}, {field: 'count()'}],
-      sorts: [{field: 'count', kind: 'asc'}],
+      sorts: [{field: AggregationKey.COUNT, kind: 'asc'}],
       query: 'event.type:transaction',
       project: [24],
       start: '2019-09-01T00:00:00',
@@ -2769,11 +2864,12 @@ describe('EventView.isEqualTo()', function () {
   });
 
   it('undefined display type equals default display type', function () {
-    const state = {
+    const state: ConstructorParameters<typeof EventView>[0] = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       id: '1234',
       name: 'best query',
       fields: [{field: 'count()'}, {field: 'project.id'}],
-      sorts: generateSorts(['count']),
+      sorts: generateSorts([AggregationKey.COUNT]),
       query: 'event.type:error',
       project: [42],
       start: '2019-10-01T00:00:00',
@@ -2791,6 +2887,7 @@ describe('EventView.isEqualTo()', function () {
 describe('EventView.getResultsViewUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -2801,15 +2898,17 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
 
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2844,6 +2943,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 describe('EventView.getResultsViewShortUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -2854,15 +2954,17 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
 
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2905,6 +3007,7 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -2915,15 +3018,17 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   afterEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       customerDomain: null,
     };
   });
 
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -2934,9 +3039,9 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
-  const showTransactions = 'p99';
-  const breakdown = 'http';
-  const webVital = 'measurements.lcp';
+  const showTransactions = EventsDisplayFilterName.P99;
+  const breakdown = SpanOperationBreakdownFilter.HTTP;
+  const webVital = WebVital.LCP;
 
   it('generates a URL with non-customer domain context', function () {
     window.__initialData.customerDomain = null;
@@ -2978,7 +3083,9 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
 describe('EventView.getPageFilters()', function () {
   it('return default global selection', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.getPageFilters()).toMatchObject({
       projects: [],
@@ -2997,6 +3104,7 @@ describe('EventView.getPageFilters()', function () {
 
   it('returns global selection query', function () {
     const state2 = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       project: [42],
       start: 'start',
       end: 'end',
@@ -3024,7 +3132,9 @@ describe('EventView.getPageFilters()', function () {
 
 describe('EventView.getPageFiltersQuery()', function () {
   it('return default global selection query', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.getPageFiltersQuery()).toMatchObject({
       project: [],
@@ -3041,6 +3151,7 @@ describe('EventView.getPageFiltersQuery()', function () {
 
   it('returns global selection query', function () {
     const state2 = {
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       project: [42],
       start: 'start',
       end: 'end',
@@ -3050,14 +3161,12 @@ describe('EventView.getPageFiltersQuery()', function () {
 
     const eventView = new EventView(state2);
 
-    expect(eventView.getPageFiltersQuery()).toMatchObject({
-      ...state2,
-
-      // when generating the query, it converts numbers to strings
+    expect(eventView.getPageFiltersQuery()).toEqual({
+      end: 'end',
+      start: 'start',
+      statsPeriod: '42d',
+      environment: ['prod'],
       project: ['42'],
-
-      // event views currently do not support the utc option,
-      // see comment in EventView.getPageFilters
       utc: 'true',
     });
   });
@@ -3065,7 +3174,9 @@ describe('EventView.getPageFiltersQuery()', function () {
 
 describe('EventView.generateBlankQueryStringObject()', function () {
   it('should return blank values', function () {
-    const eventView = new EventView({});
+    const eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
+    });
 
     expect(eventView.generateBlankQueryStringObject()).toEqual({
       id: undefined,
@@ -3085,7 +3196,8 @@ describe('EventView.generateBlankQueryStringObject()', function () {
 });
 
 describe('EventView.getYAxisOptions()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3146,7 +3258,8 @@ describe('EventView.getYAxisOptions()', function () {
 });
 
 describe('EventView.getYAxis()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3192,7 +3305,8 @@ describe('EventView.getYAxis()', function () {
 });
 
 describe('EventView.getDisplayOptions()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3237,7 +3351,8 @@ describe('EventView.getDisplayOptions()', function () {
 });
 
 describe('EventView.getDisplayMode()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [],
     sorts: [],
     query: '',
@@ -3310,9 +3425,10 @@ describe('EventView.getDisplayMode()', function () {
     const eventView = new EventView({
       ...state,
       // the period being less than 24h will disable the DAILY mode
+      statsPeriod: undefined,
       start: '2020-04-01T12:13:14',
       end: '2020-04-02T12:10:14',
-      display: DisplayModes.TOP5DAILY,
+      display: DisplayModes.DAILYTOP5,
     });
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
@@ -3320,7 +3436,8 @@ describe('EventView.getDisplayMode()', function () {
 });
 
 describe('EventView.getAggregateFields()', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     fields: [
       {field: 'title'},
       {field: 'count()'},
@@ -3350,6 +3467,7 @@ describe('EventView.getAggregateFields()', function () {
 describe('EventView.hasAggregateField', function () {
   it('ensures an eventview has an aggregate field', function () {
     let eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'foobar'}],
       sorts: [],
       query: '',
@@ -3360,6 +3478,7 @@ describe('EventView.hasAggregateField', function () {
     expect(eventView.hasAggregateField()).toBe(false);
 
     eventView = new EventView({
+      ...REQUIRED_CONSTRUCTOR_PROPS,
       fields: [{field: 'count(foo.bar.is-Enterprise_42)'}],
       sorts: [],
       query: '',
@@ -3372,11 +3491,12 @@ describe('EventView.hasAggregateField', function () {
 });
 
 describe('isAPIPayloadSimilar', function () {
-  const state = {
+  const state: ConstructorParameters<typeof EventView>[0] = {
+    ...REQUIRED_CONSTRUCTOR_PROPS,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()'}, {field: 'project.id'}],
-    sorts: generateSorts(['count']),
+    sorts: generateSorts([AggregationKey.COUNT]),
     query: 'event.type:error',
     project: [42],
     start: '2019-10-01T00:00:00',
@@ -3385,7 +3505,7 @@ describe('isAPIPayloadSimilar', function () {
     environment: ['staging'],
   };
 
-  const meta = {
+  const meta: MetaType = {
     count: 'integer',
     title: 'string',
   };
@@ -3393,7 +3513,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getEventsAPIPayload', function () {
     it('is not similar when relevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
-      const location = {
+      const location = TestStubs.location({
         query: {
           project: 'project',
           environment: 'environment',
@@ -3403,10 +3523,10 @@ describe('isAPIPayloadSimilar', function () {
           statsPeriod: 'statsPeriod',
           cursor: 'cursor',
         },
-      };
+      });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3416,14 +3536,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when irrelevant query string keys are present in the Location object', function () {
       const thisEventView = new EventView(state);
-      const location = {
+      const location = TestStubs.location({
         query: {
           bestCountry: 'canada',
         },
-      };
+      });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3433,11 +3553,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3447,12 +3567,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a new column is added', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherEventView = thisEventView.clone();
-      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
-      const otherLocation = {};
+      const otherEventView = new EventView({
+        ...state,
+        fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
+      });
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3462,16 +3584,16 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is updated with no changes', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'function',
-        function: ['count', ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3481,16 +3603,16 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced field', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'field',
         field: 'title',
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3500,16 +3622,16 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced aggregation', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'function',
-        function: ['avg', ''],
+        function: [AggregationKey.AVG, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3519,16 +3641,16 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is renamed', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'function',
-        function: ['count', ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3538,11 +3660,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is deleted', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3552,12 +3674,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      state.fields.reverse();
-      const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherEventView = new EventView({...state, fields: shuffle(state.fields)});
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3575,7 +3696,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3585,7 +3706,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3603,7 +3724,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3613,7 +3734,7 @@ describe('isAPIPayloadSimilar', function () {
         equationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3625,7 +3746,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getFacetsAPIPayload', function () {
     it('only includes relevant parameters', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const results = thisEventView.getFacetsAPIPayload(location);
       const expected = {
         query: state.query,
@@ -3639,16 +3760,16 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
-      const newColumn = {
+      const newColumn: Column = {
         kind: 'function',
-        function: ['count', ''],
+        function: [AggregationKey.COUNT, '', undefined, undefined],
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = {};
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3657,12 +3778,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a columns are different', function () {
       const thisEventView = new EventView(state);
-      const location = {};
+      const location = TestStubs.location({});
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
-      const otherEventView = thisEventView.clone();
-      otherEventView.fields.push({field: 'title', width: COL_WIDTH_UNDEFINED});
-      const otherLocation = {};
+      const otherEventView = new EventView({
+        ...state,
+        fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
+      });
+      const otherLocation = TestStubs.location({});
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3673,7 +3796,7 @@ describe('isAPIPayloadSimilar', function () {
 
 describe('pickRelevantLocationQueryStrings', function () {
   it('picks relevant query strings', function () {
-    const location = {
+    const location = TestStubs.location({
       query: {
         project: 'project',
         environment: 'environment',
@@ -3686,7 +3809,7 @@ describe('pickRelevantLocationQueryStrings', function () {
         // irrelevant query strings
         bestCountry: 'canada',
       },
-    };
+    });
 
     const actual = pickRelevantLocationQueryStrings(location);
 

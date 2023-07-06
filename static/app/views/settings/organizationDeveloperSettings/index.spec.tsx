@@ -26,13 +26,25 @@ describe('Organization Developer Settings', function () {
     MockApiClient.clearMockResponses();
   });
 
+  const router = TestStubs.router();
+
   describe('when no Apps exist', () => {
     it('displays empty state', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/sentry-apps/`,
         body: [],
       });
-      const {container} = render(<OrganizationDeveloperSettings organization={org} />);
+      const {container} = render(
+        <OrganizationDeveloperSettings
+          organization={org}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          location={router.location}
+          routes={router.routes}
+        />
+      );
       await waitFor(() => {
         expect(
           screen.getByText('No internal integrations have been created yet.')
@@ -51,7 +63,18 @@ describe('Organization Developer Settings', function () {
     });
 
     it('internal integrations list is empty', () => {
-      render(<OrganizationDeveloperSettings organization={org} />, {organization: org});
+      render(
+        <OrganizationDeveloperSettings
+          organization={org}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          location={router.location}
+          routes={router.routes}
+        />,
+        {organization: org}
+      );
       expect(
         screen.getByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
@@ -61,7 +84,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: org}
       );
@@ -78,7 +106,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />
       );
 
@@ -108,7 +141,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />
       );
 
@@ -170,7 +208,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />
       );
       expect(screen.getByText('published')).toBeInTheDocument();
@@ -180,7 +223,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />
       );
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
@@ -191,7 +239,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={org}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />
       );
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
@@ -210,13 +263,33 @@ describe('Organization Developer Settings', function () {
     });
 
     it('allows deleting', async () => {
-      render(<OrganizationDeveloperSettings organization={org} />);
+      render(
+        <OrganizationDeveloperSettings
+          organization={org}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          location={router.location}
+          routes={router.routes}
+        />
+      );
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
     it('publish button does not exist', () => {
-      render(<OrganizationDeveloperSettings organization={org} />);
+      render(
+        <OrganizationDeveloperSettings
+          organization={org}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          location={router.location}
+          routes={router.routes}
+        />
+      );
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });
   });
@@ -233,7 +306,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={newOrg}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: newOrg}
       );
@@ -245,7 +323,12 @@ describe('Organization Developer Settings', function () {
       render(
         <OrganizationDeveloperSettings
           organization={newOrg}
-          location={{query: {type: 'public'}}}
+          router={router}
+          route={router.routes[0]}
+          params={router.params}
+          routeParams={router.params}
+          routes={router.routes}
+          location={{...router.location, query: {type: 'public'}}}
         />,
         {organization: newOrg}
       );

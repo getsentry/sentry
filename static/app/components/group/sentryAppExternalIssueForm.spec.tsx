@@ -33,12 +33,13 @@ describe('SentryAppExternalIssueForm', () => {
     it('can create a new issue', async () => {
       render(
         <SentryAppExternalIssueForm
+          event={TestStubs.Event()}
+          onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
-          api={new MockApiClient()}
         />
       );
 
@@ -83,12 +84,13 @@ describe('SentryAppExternalIssueForm', () => {
     it('renders prepopulated defaults', () => {
       render(
         <SentryAppExternalIssueForm
+          event={TestStubs.Event()}
+          onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
           config={component.schema.create}
           action="create"
-          api={new MockApiClient()}
         />
       );
       expect(screen.getByRole('textbox', {name: 'Title'})).toHaveValue(`${group.title}`);
@@ -106,12 +108,13 @@ describe('SentryAppExternalIssueForm', () => {
     it('can link an issue', async () => {
       render(
         <SentryAppExternalIssueForm
+          event={TestStubs.Event()}
+          onSubmitSuccess={jest.fn()}
           group={group}
           sentryAppInstallation={sentryAppInstallation}
           appName={sentryApp.name}
           config={component.schema.link}
           action="link"
-          api={new MockApiClient()}
         />
       );
 
@@ -167,12 +170,13 @@ describe('SentryAppExternalIssueForm Async Field', () => {
 
     render(
       <SentryAppExternalIssueForm
+        event={TestStubs.Event()}
+        onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
-        api={new MockApiClient()}
       />
     );
 
@@ -232,12 +236,13 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
 
     render(
       <SentryAppExternalIssueForm
+        event={TestStubs.Event()}
+        onSubmitSuccess={jest.fn()}
         group={group}
         sentryAppInstallation={sentryAppInstallation}
         appName={sentryApp.name}
         config={component.schema.create}
         action="create"
-        api={new MockApiClient()}
       />
     );
 
