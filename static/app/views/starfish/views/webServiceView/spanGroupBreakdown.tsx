@@ -144,7 +144,9 @@ export function SpanGroupBreakdown({
             }
             tooltipFormatterOptions={{
               valueFormatter: value =>
-                tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+                dataDisplayType === DataDisplayType.PERCENTAGE
+                  ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
+                  : tooltipFormatterUsingAggregateOutputType(value, 'duration'),
             }}
             onLegendSelectChanged={event => {
               trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
