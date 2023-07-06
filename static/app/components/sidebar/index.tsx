@@ -233,8 +233,8 @@ function Sidebar({location, organization}: Props) {
       <SidebarAccordion
         {...sidebarItemProps}
         icon={<IconStar />}
-        aria-label={t('Starfish')}
-        label={<GuideAnchor target="starfish">{t('Starfish')}</GuideAnchor>}
+        aria-label={t('New Performance')}
+        label={<GuideAnchor target="starfish">{t('New Performance')}</GuideAnchor>}
         to={`/organizations/${organization.slug}/starfish/`}
         id="starfish"
         exact
