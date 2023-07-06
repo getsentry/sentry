@@ -184,7 +184,7 @@ class AlertRuleNotification(ProjectNotification):
             context.update(
                 {
                     "replay_id": replay_id,
-                    "issue_replays_url": get_issue_replay_link(self.group, self.organization),
+                    "issue_replays_url": get_issue_replay_link(self.group, sentry_query_params),
                 }
             )
 

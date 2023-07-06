@@ -162,7 +162,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-
+        group.has_replays = lambda: random.choice((True, False))
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -452,7 +452,7 @@ def alert(request):
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
             "replay_id": replay_id,
-            "issue_replays_url": get_issue_replay_link(group, event),
+            "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },
     ).render(request)
 
@@ -569,6 +569,7 @@ def digest(request):
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
+    context["show_replay_links"] = True
     context["snooze_alert"] = True
     context["snooze_alert_urls"] = {
         rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details

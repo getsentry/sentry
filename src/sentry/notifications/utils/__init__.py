@@ -202,8 +202,8 @@ def get_integration_link(organization: Organization, integration_slug: str) -> s
     )
 
 
-def get_issue_replay_link(group: Group, referrer: str = ""):
-    return str(group.get_absolute_url() + (f"/replays/?referrer={referrer}"))
+def get_issue_replay_link(group: Group, sentry_query_params: str = ""):
+    return str(group.get_absolute_url() + "replays/" + sentry_query_params)
 
 
 @dataclass
