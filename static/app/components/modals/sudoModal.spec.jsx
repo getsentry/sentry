@@ -1,7 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import App from 'sentry/views/app';
 
@@ -18,22 +17,22 @@ describe('Sudo Modal', function () {
       },
     };
 
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
       url: '/internal/health/',
       body: {
         problems: [],
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [TestStubs.Organization()],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 401,
@@ -44,7 +43,7 @@ describe('Sudo Modal', function () {
         },
       },
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/authenticators/',
       body: [],
     });
@@ -67,7 +66,6 @@ describe('Sudo Modal', function () {
       </App>
     );
 
-    const api = new Client();
     const successCb = jest.fn();
     const errorCb = jest.fn();
 
@@ -75,7 +73,7 @@ describe('Sudo Modal', function () {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
-    api.request('/organizations/org-slug/', {
+    new MockApiClient().request('/organizations/org-slug/', {
       method: 'DELETE',
       success: successCb,
       error: errorCb,
@@ -89,13 +87,13 @@ describe('Sudo Modal', function () {
     expect(errorCb).not.toHaveBeenCalled();
 
     // Clear mocks and allow DELETE
-    Client.clearMockResponses();
-    const orgDeleteMock = Client.addMockResponse({
+    MockApiClient.clearMockResponses();
+    const orgDeleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 200,
     });
-    const sudoMock = Client.addMockResponse({
+    const sudoMock = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'PUT',
       statusCode: 200,
@@ -145,13 +143,11 @@ describe('Sudo Modal', function () {
       </App>
     );
 
-    const api = new Client();
-
     // No Modal
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired` and trigger the the modal to open
-    api.requestPromise('/organizations/org-slug/', {method: 'DELETE'});
+    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

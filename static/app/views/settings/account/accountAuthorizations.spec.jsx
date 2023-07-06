@@ -1,15 +1,14 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
 
 describe('AccountAuthorizations', function () {
   beforeEach(function () {
-    Client.clearMockResponses();
+    MockApiClient.clearMockResponses();
   });
 
   it('renders empty', function () {
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/api-authorizations/',
       method: 'GET',
       body: [],
