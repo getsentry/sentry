@@ -220,7 +220,7 @@
     "lint": "yarn eslint static/app tests/js  --ext .js,.jsx,.ts,.tsx",
     "lint:css": "yarn stylelint 'static/app/**/*.[jt]sx'",
     "dev": "(yarn check --verify-tree || yarn install --check-files) && sentry devserver",
-    "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 yarn webpack serve",
+    "dev-ui": "SENTRY_UI_DEV_ONLY=1 SENTRY_WEBPACK_PROXY_PORT=7999 rspack serve",
     "dev-acceptance": "NO_DEV_SERVER=1 NODE_ENV=development yarn webpack --watch",
     "webpack-profile": "NO_TS_FORK=1 yarn -s webpack --profile --json > stats.json",
     "install-api-docs": "cd api-docs && yarn install",
