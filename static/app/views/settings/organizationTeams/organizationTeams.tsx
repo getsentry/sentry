@@ -99,14 +99,12 @@ function OrganizationTeams({
       <Panel>
         <PanelHeader>{t('Your Teams')}</PanelHeader>
         <PanelBody>
-          {features.has('team-roles') && (
-            <RoleOverwritePanelAlert
-              orgRole={orgRole}
-              orgRoleList={orgRoleList}
-              teamRoleList={teamRoleList}
-              isSelf
-            />
-          )}
+          <RoleOverwritePanelAlert
+            orgRole={orgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+            isSelf
+          />
           {initiallyLoaded ? (
             <AllTeamsList
               organization={organization}

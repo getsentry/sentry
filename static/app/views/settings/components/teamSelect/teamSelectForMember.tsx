@@ -80,7 +80,7 @@ function TeamSelect({
 
     return (
       <React.Fragment>
-        {organization.features.includes('team-roles') && effectiveOrgRole && (
+        {effectiveOrgRole && (
           <RoleOverwritePanelAlert
             orgRole={effectiveOrgRole?.id}
             orgRoleList={orgRoleList}
@@ -164,18 +164,16 @@ function TeamRow({
 
       <TeamOrgRole>{orgRoleFromTeam}</TeamOrgRole>
 
-      {organization.features.includes('team-roles') && (
-        <RoleSelectWrapper>
-          <TeamRoleSelect
-            disabled={disabled}
-            size="xs"
-            organization={organization}
-            team={team}
-            member={member}
-            onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
-          />
-        </RoleSelectWrapper>
-      )}
+      <RoleSelectWrapper>
+        <TeamRoleSelect
+          disabled={disabled}
+          size="xs"
+          organization={organization}
+          team={team}
+          member={member}
+          onChangeTeamRole={newRole => onChangeTeamRole(team.slug, newRole)}
+        />
+      </RoleSelectWrapper>
 
       <Button
         size="xs"
