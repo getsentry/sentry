@@ -35,7 +35,8 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
         label: t('Require Email Verification'),
         help: t('Require and enforce email address verification for all members'),
-        visible: ({features}) => features.has('required-email-verification'),
+        visible: ({organization}) =>
+          organization.features.includes('required-email-verification'),
         confirm: {
           true: t(
             'This will remove all members whose email addresses are not verified from your organization. It will also send them an email to verify their address and reinstate their access and settings. Do you want to continue?'
@@ -87,7 +88,7 @@ const formGroups: JsonFormObject[] = [
         help: t(
           'Store native crash reports such as Minidumps for improved processing and download in issue details'
         ),
-        visible: ({features}) => features.has('event-attachments'),
+        visible: ({organization}) => organization.features.includes('event-attachments'),
         // HACK: some organization can have limit of stored crash reports a number that's not in the options (legacy reasons),
         // we therefore display it in a placeholder
         placeholder: ({value}) => formatStoreCrashReports(value),

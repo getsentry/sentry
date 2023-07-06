@@ -74,7 +74,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
     const access = new Set(organization.access);
     const features = new Set(organization.features);
 
-    const navigationObjects = features.has('org-auth-tokens')
+    const navigationObjects = organization.features.includes('org-auth-tokens')
       ? organizationNavigationWithAuthTokens
       : navigationConfiguration;
 

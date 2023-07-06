@@ -64,13 +64,13 @@ function GroupHeaderTabs({
     groupIds: group.id,
     organization,
   })[group.id];
-  const projectFeatures = new Set(project ? project.features : []);
-  const organizationFeatures = new Set(organization ? organization.features : []);
+  const projectFeatures = project.features ?? [];
+  const features = organization.features ?? [];
 
-  const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
-  const hasSimilarView = projectFeatures.has('similarity-view');
-  const hasEventAttachments = organizationFeatures.has('event-attachments');
-  const hasReplaySupport = organizationFeatures.has('session-replay');
+  const hasGroupingTreeUI = features.includes('grouping-tree-ui');
+  const hasSimilarView = projectFeatures.includes('similarity-view');
+  const hasEventAttachments = features.includes('event-attachments');
+  const hasReplaySupport = features.includes('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
 

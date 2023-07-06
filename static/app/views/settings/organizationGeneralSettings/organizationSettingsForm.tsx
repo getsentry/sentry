@@ -115,7 +115,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         name: 'githubPRBot',
         type: 'boolean',
         label: t('Enable Pull Request Bot'),
-        visible: ({features}) => features.has('pr-comment-bot'),
+        visible: ({organization: org}) => org.features.includes('pr-comment-bot'),
         help: (
           <Fragment>
             {t(

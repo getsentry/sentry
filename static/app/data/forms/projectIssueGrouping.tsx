@@ -44,7 +44,7 @@ const groupingConfigField: Field = {
       </GroupingConfigItem>,
     ]),
   help: t('Sets the grouping algorithm to be used for new events.'),
-  visible: ({features}) => features.has('set-grouping-config'),
+  visible: ({organization}) => organization.features.includes('set-grouping-config'),
 };
 
 export const fields: Record<string, Field> = {
