@@ -54,6 +54,7 @@ import {
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -453,11 +454,11 @@ class MetricChart extends PureComponent<Props, State> {
     );
   }
 
-  renderEmpty() {
+  renderEmpty(placeholderText = '') {
     return (
       <ChartPanel>
         <PanelBody withPadding>
-          <Placeholder height="200px" />
+          <Placeholder height="200px">{placeholderText}</Placeholder>
         </PanelBody>
       </ChartPanel>
     );
@@ -500,6 +501,12 @@ class MetricChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery: false,
     });
+
+    if (isOnDemandMetricAlert(rule.query)) {
+      return this.renderEmpty(
+        t('Alert rule contains a field for which we have no data available.')
+      );
+    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest

@@ -76,6 +76,7 @@ type Props = {
   triggers: Trigger[];
   comparisonDelta?: number;
   header?: React.ReactNode;
+  isOnDemandMetricAlert?: boolean;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -275,6 +276,7 @@ class TriggersChart extends PureComponent<Props, State> {
       timeWindow,
       aggregate,
       comparisonType,
+      isOnDemandMetricAlert,
     } = this.props;
     const {statsPeriod, totalCount} = this.state;
     const statsPeriodOptions = this.availableTimePeriods[timeWindow];
@@ -291,20 +293,13 @@ class TriggersChart extends PureComponent<Props, State> {
         {isLoading && !error ? (
           <ChartPlaceholder />
         ) : error ? (
-          <ChartErrorWrapper>
-            <PanelAlert type="error">
-              {!orgFeatures.includes('alert-allow-indexed') && !isQueryValid
-                ? t(
-                    'Your filter conditions contain an unsupported field - please review.'
-                  )
-                : typeof errorMessage === 'string'
-                ? errorMessage
-                : t('An error occurred while fetching data')}
-            </PanelAlert>
-            <StyledErrorPanel>
-              <IconWarning color="gray500" size="lg" />
-            </StyledErrorPanel>
-          </ChartErrorWrapper>
+          <ErrorChart
+            isAllowIndexed={orgFeatures.includes('alert-allow-indexed')}
+            errorMessage={errorMessage}
+            isQueryValid={isQueryValid}
+          />
+        ) : isOnDemandMetricAlert ? (
+          <WarningChart />
         ) : (
           <ThresholdsChart
             period={statsPeriod}
@@ -496,3 +491,36 @@ const StyledErrorPanel = styled(ErrorPanel)`
 const ChartErrorWrapper = styled('div')`
   margin-top: ${space(2)};
 `;
+
+function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
+  return (
+    <ChartErrorWrapper>
+      <PanelAlert type="error">
+        {!isAllowIndexed && !isQueryValid
+          ? t('Your filter conditions contain an unsupported field - please review.')
+          : typeof errorMessage === 'string'
+          ? errorMessage
+          : t('An error occurred while fetching data')}
+      </PanelAlert>
+
+      <StyledErrorPanel>
+        <IconWarning color="gray500" size="lg" />
+      </StyledErrorPanel>
+    </ChartErrorWrapper>
+  );
+}
+
+function WarningChart() {
+  return (
+    <ChartErrorWrapper>
+      <PanelAlert type="warning">
+        {t(
+          'Your filter conditions contain a field for which we have no previous data. We will start collecting this metric once the alert is saved.'
+        )}
+      </PanelAlert>
+      <StyledErrorPanel>
+        <IconWarning color="gray500" size="lg" />
+      </StyledErrorPanel>
+    </ChartErrorWrapper>
+  );
+}
