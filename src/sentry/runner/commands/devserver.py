@@ -90,6 +90,11 @@ def _get_daemon(name: str) -> tuple[str, list[str]]:
     default=False,
     help="This enables running sentry with pure separation of the frontend and backend",
 )
+@click.option(
+    "--client-hostname",
+    default="localhost",
+    help="The hostname that clients will use. Useful for ngrok workflows eg `--client-hostname=alice.ngrok.io`",
+)
 @click.argument(
     "bind", default=None, metavar="ADDRESS", envvar="SENTRY_DEVSERVER_BIND", required=False
 )
@@ -108,6 +113,7 @@ def devserver(
     debug_server: bool,
     dev_consumer: bool,
     bind: str | None,
+    client_hostname: str,
 ) -> NoReturn:
     "Starts a lightweight web server for development."
     if bind is None:
@@ -127,9 +133,10 @@ def devserver(
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
     # Configure URL prefixes for customer-domains.
-    os.environ["SENTRY_SYSTEM_URL_PREFIX"] = f"http://localhost:{port}"
-    os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
-    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
+    client_host = f"{client_hostname}:{port}"
+    os.environ["SENTRY_SYSTEM_URL_PREFIX"] = f"http://{client_host}"
+    os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = client_host
+    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.{client_host}"
     os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
 
     from django.conf import settings
