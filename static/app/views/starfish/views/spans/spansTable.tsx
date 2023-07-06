@@ -66,6 +66,8 @@ export const SORTABLE_FIELDS = new Set([
   'sps_percent_change()',
   'time_spent_percentage()',
   'time_spent_percentage(local)',
+  'http_error_count()',
+  'http_error_count_percent_change()',
 ]);
 
 export default function SpansTable({
