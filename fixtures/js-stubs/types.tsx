@@ -115,6 +115,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  ReleaseCounts: SimpleStub;
   Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;
