@@ -1,12 +1,11 @@
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
@@ -24,10 +23,8 @@ export function SpanOperationSelector({
 }: Props) {
   // TODO: This only returns the top 25 operations. It should either load them all, or paginate, or allow searching
   //
-  const {selection} = usePageFilters();
-
   const location = useLocation();
-  const eventView = getEventView(moduleName, selection, spanCategory);
+  const eventView = getEventView(location, moduleName, spanCategory);
 
   const {data: operations} = useSpansQuery<[{'span.op': string}]>({
     eventView,
@@ -60,11 +57,7 @@ export function SpanOperationSelector({
   );
 }
 
-function getEventView(
-  moduleName: ModuleName,
-  pageFilters: PageFilters,
-  spanCategory?: string
-) {
+function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const queryConditions: string[] = [];
   if (moduleName) {
     queryConditions.push(`span.module:${moduleName}`);
@@ -81,16 +74,15 @@ function getEventView(
       queryConditions.push(`span.category:${spanCategory}`);
     }
   }
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: ['span.op', 'count()'],
-    orderby: '-count',
-    query: queryConditions.join(' '),
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    projects: [1],
-    version: 2,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: ['span.op', 'count()'],
+      orderby: '-count',
+      query: queryConditions.join(' '),
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      version: 2,
+    },
+    location
+  );
 }
