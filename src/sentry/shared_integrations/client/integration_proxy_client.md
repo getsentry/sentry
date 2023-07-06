@@ -22,8 +22,8 @@ Ensuring an integration proxies its requests can be done with three steps:
 1. Replace the `ApiClient` base class with `IntegrationProxyClient`
 
 ```diff
-+ class ExampleApiClient(ApiClient):
-- class ExampleApiClient(IntegrationProxyClient):
+- class ExampleApiClient(ApiClient):
++ class ExampleApiClient(IntegrationProxyClient):
 ```
 
 2. Ensure all instances of the client pass in an `org_integration_id` on `__init__`.

@@ -22,7 +22,6 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     {
       fields: ['id', 'timestamp', 'project.name', 'transaction.duration'],
       name: 'Transactions',
-      projects: [1],
       version: 2,
       query: `id:[${eventIDs.join(',')}]`,
     },
