@@ -23,7 +23,7 @@ class InstanceID(NamedTuple):
     pk: int
 
     def pretty(self) -> str:
-        return f'InstanceID(model: "{self.model}", pk: {self.pk})'
+        return f"InstanceID(model: {self.model!r}, pk: {self.pk})"
 
 
 class ComparatorFinding(NamedTuple):
@@ -34,7 +34,7 @@ class ComparatorFinding(NamedTuple):
     reason: str = ""
 
     def pretty(self) -> str:
-        return f'Finding(\n\tname: "{self.name}",\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)'
+        return f"Finding(\n\tname: {self.name!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
 
 
 class ComparatorFindings:
