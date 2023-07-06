@@ -38,7 +38,7 @@ function ImportDashboardFromFileModal({
   }
 
   const handleFileChange = e => {
-    if (e.target.files) {
+    if (e.target.files.length) {
       const fileToUpload = e.target.files[0];
       if (validateFile(fileToUpload)) {
         const fileReader = new FileReader();
