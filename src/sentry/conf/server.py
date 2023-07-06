@@ -3453,12 +3453,13 @@ if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
 if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
+    region_port = os.environ.get("SENTRY_BACKEND_PORT", "8010")
     SENTRY_REGION_CONFIG = [
         {
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://us.localhost:8010",
+            "address": f"http://us.localhost:{region_port}",
             "api_token": "dev-region-silo-token",
         }
     ]
