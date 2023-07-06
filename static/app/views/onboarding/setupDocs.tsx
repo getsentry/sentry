@@ -11,6 +11,10 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
+import {
+  migratedDocs,
+  SdkDocumentation,
+} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
 import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -38,7 +42,7 @@ export function DocWithProductSelection({
   location,
   projectSlug,
   newOrg,
-  currentPlatform,
+  currentPlatform: currentPlatformKey,
 }: {
   currentPlatform: PlatformKey;
   location: Location;
@@ -46,17 +50,21 @@ export function DocWithProductSelection({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
+  const products = useMemo(
+    () => (location.query.product ?? []) as PRODUCT[],
+    [location.query.product]
+  );
+
   const loadPlatform = useMemo(() => {
-    const products = location.query.product ?? [];
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
+      ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
       : products.includes(PRODUCT.PERFORMANCE_MONITORING)
-      ? `${currentPlatform}-with-error-monitoring-and-performance`
+      ? `${currentPlatformKey}-with-error-monitoring-and-performance`
       : products.includes(PRODUCT.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-and-replay`
-      : `${currentPlatform}-with-error-monitoring`;
-  }, [location.query.product, currentPlatform]);
+      ? `${currentPlatformKey}-with-error-monitoring-and-replay`
+      : `${currentPlatformKey}-with-error-monitoring`;
+  }, [currentPlatformKey, products]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<OnboardingPlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -66,48 +74,67 @@ export function DocWithProductSelection({
     }
   );
 
-  const platformName = platforms.find(p => p.id === currentPlatform)?.name ?? '';
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const platformName = currentPlatform?.name ?? '';
 
   return (
     <Fragment>
       {newOrg && (
         <SetupIntroduction
           stepHeaderText={t('Configure %s SDK', platformName)}
-          platform={currentPlatform}
+          platform={currentPlatformKey}
         />
       )}
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-      />
-      {isLoading ? (
-        <LoadingIndicator />
-      ) : isError ? (
-        <LoadingError
-          message={t('Failed to load documentation for the %s platform.', platformName)}
-          onRetry={refetch}
+      {currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+        <SdkDocumentation
+          platform={currentPlatform}
+          orgSlug={organization.slug}
+          projectSlug={projectSlug}
+          activeProductSelection={products}
+          newOrg={newOrg}
         />
       ) : (
-        getDynamicText({
-          value: (
-            <DocsWrapper>
-              <DocumentationWrapper
-                dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
-              />
-              <MissingExampleWarning
-                platform={currentPlatform}
-                platformDocs={{
-                  html: data?.html ?? '',
-                  link: data?.link ?? '',
-                }}
-              />
-            </DocsWrapper>
-          ),
-          fixed: (
-            <Alert type="warning">
-              Platform documentation is not rendered in for tests in CI
-            </Alert>
-          ),
-        })
+        <Fragment>
+          <ProductSelection
+            defaultSelectedProducts={[
+              PRODUCT.PERFORMANCE_MONITORING,
+              PRODUCT.SESSION_REPLAY,
+            ]}
+          />
+          {isLoading ? (
+            <LoadingIndicator />
+          ) : isError ? (
+            <LoadingError
+              message={t(
+                'Failed to load documentation for the %s platform.',
+                platformName
+              )}
+              onRetry={refetch}
+            />
+          ) : (
+            getDynamicText({
+              value: (
+                <DocsWrapper>
+                  <DocumentationWrapper
+                    dangerouslySetInnerHTML={{__html: data?.html ?? ''}}
+                  />
+                  <MissingExampleWarning
+                    platform={currentPlatformKey}
+                    platformDocs={{
+                      html: data?.html ?? '',
+                      link: data?.link ?? '',
+                    }}
+                  />
+                </DocsWrapper>
+              ),
+              fixed: (
+                <Alert type="warning">
+                  Platform documentation is not rendered in for tests in CI
+                </Alert>
+              ),
+            })
+          )}
+        </Fragment>
       )}
     </Fragment>
   );

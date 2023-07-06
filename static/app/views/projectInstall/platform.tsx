@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -17,6 +17,11 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
+import {
+  migratedDocs,
+  SdkDocumentation,
+} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
+import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
@@ -136,6 +141,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     ? projects.find(proj => proj.slug === params.projectId)
     : undefined;
 
+  const products = useMemo(
+    () => (location.query.product ?? []) as PRODUCT[],
+    [location.query.product]
+  );
+
   const {
     data: projectAlertRules,
     isLoading: projectAlertRulesIsLoading,
@@ -195,9 +205,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
   // but the purpose of the feature is to make the product selection feature in documents available to all users
   // and guide them to upgrade to a plan if one of the products is not available on their current plan.
-  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
-    'getting-started-doc-with-product-selection'
-  );
+  const gettingStartedDocWithProductSelection = true;
 
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -218,10 +226,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     // if the project is older than one hour, we don't delete it
     recentCreatedProject.olderThanOneHour === false;
 
-  const currentPlatform = project?.platform ?? 'other';
-  const platformIntegration = platforms.find(p => p.id === currentPlatform);
+  const currentPlatformKey = project?.platform ?? 'other';
+  const platformIntegration = platforms.find(p => p.id === currentPlatformKey);
   const platform: Platform = {
-    key: currentPlatform as PlatformKey,
+    key: currentPlatformKey as PlatformKey,
     id: platformIntegration?.id,
     name: platformIntegration?.name,
     link: platformIntegration?.link,
@@ -306,6 +314,8 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     gettingStartedDocWithProductSelection &&
     (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
 
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+
   return (
     <Fragment>
       {!isSelfHosted && showDocsWithProductSelection && (
@@ -352,27 +362,38 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Button>
         </ButtonBar>
       </StyledPageHeader>
+      {currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+        <SdkDocumentation
+          platform={currentPlatform}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+          activeProductSelection={products}
+        />
+      ) : (
+        <Fragment>
+          {isSelfHosted ? (
+            <SetUpGeneralSdkDoc
+              organization={organization}
+              projectSlug={project.slug}
+              platform={platform}
+            />
+          ) : showDocsWithProductSelection ? (
+            <DocWithProductSelection
+              project={project}
+              location={location}
+              currentPlatform={platform.key}
+            />
+          ) : (
+            <SetUpSdkDocHook
+              organization={organization}
+              project={project}
+              location={location}
+              platform={platform}
+            />
+          )}
+        </Fragment>
+      )}
       <div>
-        {isSelfHosted ? (
-          <SetUpGeneralSdkDoc
-            organization={organization}
-            projectSlug={project.slug}
-            platform={platform}
-          />
-        ) : showDocsWithProductSelection ? (
-          <DocWithProductSelection
-            project={project}
-            location={location}
-            currentPlatform={platform.key}
-          />
-        ) : (
-          <SetUpSdkDocHook
-            organization={organization}
-            project={project}
-            location={location}
-            platform={platform}
-          />
-        )}
         {isGettingStarted && showPerformancePrompt && (
           <Feature
             features={['performance-view']}
