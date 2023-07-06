@@ -191,9 +191,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin_without_margin(
-                    monitor_environment.last_checkin
-                )
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             date_added, timeout_at = timezone.now(), None
             status = getattr(CheckInStatus, result["status"].upper())

@@ -36,12 +36,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -53,12 +53,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -74,14 +74,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -93,7 +93,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
