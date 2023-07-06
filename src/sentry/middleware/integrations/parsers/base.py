@@ -11,7 +11,7 @@ from rest_framework import status
 
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier, outbox_context
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.silo import SiloLimit, SiloMode
@@ -115,13 +115,12 @@ class BaseRequestParser(abc.ABC):
         Responds to the webhook provider with a 202 Accepted status.
         """
         if len(regions) > 0:
-            with outbox_context():
-                for outbox in ControlOutbox.for_webhook_update(
-                    webhook_identifier=self.webhook_identifier,
-                    region_names=[region.name for region in regions],
-                    request=self.request,
-                ):
-                    outbox.save()
+            for outbox in ControlOutbox.for_webhook_update(
+                webhook_identifier=self.webhook_identifier,
+                region_names=[region.name for region in regions],
+                request=self.request,
+            ):
+                outbox.save()
 
         return HttpResponse(status=status.HTTP_202_ACCEPTED)
 

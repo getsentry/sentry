@@ -10,14 +10,17 @@ urlpatterns = [
     url(
         r"^descriptor/$",
         BitbucketDescriptorEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-descriptor",
     ),
     url(
         r"^installed/$",
         BitbucketInstalledEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-installed",
     ),
     url(
         r"^uninstalled/$",
         BitbucketUninstalledEndpoint.as_view(),
+        name="sentry-extensions-bitbucket-uninstalled",
     ),
     url(
         r"^organizations/(?P<organization_id>[^\/]+)/webhook/$",

@@ -6,7 +6,7 @@ from sentry.integrations.bitbucket import BitbucketWebhookEndpoint
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.types.region import get_region_by_name
+from sentry.types.region import RegionResolutionError, get_region_by_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,18 +24,22 @@ class BitbucketRequestParser(BaseRequestParser):
             logger.info("no_organization_id", extra=logging_extra)
             return self.get_response_from_control_silo()
 
-        mapping: OrganizationMapping = OrganizationMapping.objects.get(
-            organization_id=organization_id
-        )
-        if not mapping:
+        try:
+            mapping: OrganizationMapping = OrganizationMapping.objects.get(
+                organization_id=organization_id
+            )
+        except OrganizationMapping.DoesNotExist as e:
+            logging_extra["error"] = e
             logging_extra["organization_id"] = organization_id
-            logger.info("no_mapping", extra=logging_extra)
+            logger.error("no_mapping", extra=logging_extra)
             return self.get_response_from_control_silo()
 
-        region = get_region_by_name(mapping.region_name)
-        if not region:
+        try:
+            region = get_region_by_name(mapping.region_name)
+        except RegionResolutionError as e:
+            logging_extra["error"] = e
             logging_extra["mapping_id"] = mapping.id
-            logger.info("no_region", extra=logging_extra)
+            logger.error("no_region", extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_outbox_creation(regions=[region])
 
