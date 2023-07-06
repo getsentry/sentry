@@ -14,6 +14,7 @@ from sentry.testutils.helpers.api_gateway import (
     verify_request_body,
     verify_request_headers,
 )
+from sentry.testutils.helpers.response import close_streaming_response
 from sentry.utils import json
 
 
@@ -22,7 +23,7 @@ class ProxyTestCase(ApiGatewayTestCase):
     def test_simple(self):
         request = RequestFactory().get("http://sentry.io/get")
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
         assert resp.status_code == 200
         assert resp_json["proxy"]
         assert resp.has_header("test")
@@ -32,7 +33,7 @@ class ProxyTestCase(ApiGatewayTestCase):
 
         request = RequestFactory().get("http://sentry.io/error")
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
         assert resp.status_code == 400
         assert resp_json["proxy"]
         assert resp.has_header("test")
@@ -48,7 +49,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().get(f"http://sentry.io/echo?{query_param_str}")
 
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         # parse_qs returns everything in a list, including single arguments
@@ -74,7 +75,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/post", data=request_body, content_type="application/json"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -94,7 +95,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/put", data=request_body, content_type="application/json"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -114,7 +115,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/patch", data=request_body, content_type="application/json"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -134,7 +135,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/head", data=request_body, content_type="application/json"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -154,7 +155,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/delete", data=request_body, content_type="application/json"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -179,7 +180,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             "http://sentry.io/post", data=request_body, format="multipart"
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -201,7 +202,7 @@ class ProxyTestCase(ApiGatewayTestCase):
             content_type="application/x-www-form-urlencoded",
         )
         resp = proxy_request(request, self.organization.slug)
-        resp_json = json.loads(b"".join(resp.streaming_content))
+        resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]

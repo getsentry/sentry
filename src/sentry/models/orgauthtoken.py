@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.conf.server import SENTRY_SCOPES
 from sentry.db.models import (
@@ -38,7 +38,7 @@ class OrgAuthToken(Model):
         validators=[validate_scope_list],
     )
 
-    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete="SET_NULL")
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now, null=False)
     date_last_used = models.DateTimeField(null=True, blank=True)
     project_last_used_id = HybridCloudForeignKey(
@@ -55,7 +55,7 @@ class OrgAuthToken(Model):
     __repr__ = sane_repr("organization_id", "token_hashed")
 
     def __str__(self):
-        return force_text(self.token_hashed)
+        return force_str(self.token_hashed)
 
     def get_audit_log_data(self):
         return {"name": self.name, "scopes": self.get_scopes()}

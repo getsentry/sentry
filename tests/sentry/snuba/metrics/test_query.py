@@ -23,6 +23,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class MetricsQueryBuilder:
@@ -223,7 +224,7 @@ def test_validate_order_by():
         )
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_order_by_field_in_select():
     create_default_projects()
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
@@ -247,7 +248,7 @@ def test_validate_order_by_field_in_select():
     MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_order_by_field_in_select_with_different_alias():
     create_default_projects()
     ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
@@ -270,7 +271,7 @@ def test_validate_order_by_field_in_select_with_different_alias():
         )
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_orderby_columns_not_specified_in_select():
     create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
@@ -293,7 +294,7 @@ def test_validate_multiple_orderby_columns_not_specified_in_select():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_order_by_fields_from_multiple_entities():
     """
     The example should fail because session crash free rate is generated from
@@ -323,7 +324,7 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     """
     This example should fail because session crash free rate is generated from
@@ -352,7 +353,7 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_many_order_by_fields_are_in_select():
     """
     Validate no exception is raised when all orderBy fields are presented the select
@@ -455,7 +456,7 @@ def test_validate_distribution_functions_in_orderby():
     MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])

@@ -8,7 +8,7 @@ from django.db import transaction
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.template.context_processors import csrf
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
@@ -243,7 +243,7 @@ def email_unsubscribe_project(request, project_id):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=request.user,
+                user_id=request.user.id,
                 project=project,
             )
         return HttpResponseRedirect(auth.get_login_url())

@@ -10,7 +10,6 @@ import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {HTTPTimingIntegration} from 'sentry/utils/performanceForSentry/integrations';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -45,11 +44,7 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Function) {
-  const extraTracePropagationTargets = SPA_DSN
-    ? SPA_MODE_TRACE_PROPAGATION_TARGETS
-    : [...sentryConfig?.tracePropagationTargets];
-
+function getSentryIntegrations(routes?: Function) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -67,12 +62,11 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
         : {}),
       _experiments: {
         enableInteractions: true,
+        enableHTTPTimings: true,
         onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
-      tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     }),
     new Sentry.BrowserProfilingIntegration(),
-    new HTTPTimingIntegration(),
   ];
 
   return integrations;
@@ -87,6 +81,9 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
 export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
+  const extraTracePropagationTargets = SPA_DSN
+    ? SPA_MODE_TRACE_PROPAGATION_TARGETS
+    : [...sentryConfig?.tracePropagationTargets];
 
   Sentry.init({
     ...sentryConfig,
@@ -102,10 +99,11 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.allowUrls,
-    integrations: getSentryIntegrations(sentryConfig, routes),
+    integrations: getSentryIntegrations(routes),
     tracesSampleRate,
     // @ts-expect-error not part of browser SDK types yet
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
+    tracePropagationTargets: ['localhost', /^\//, ...extraTracePropagationTargets],
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
         return tracesSampleRate / 100;

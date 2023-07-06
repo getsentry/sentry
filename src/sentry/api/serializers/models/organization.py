@@ -30,6 +30,7 @@ from sentry.api.serializers.models.role import (
     TeamRoleSerializer,
 )
 from sentry.api.serializers.models.team import TeamSerializerResponse
+from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.app import env
 from sentry.auth.access import Access
@@ -169,31 +170,6 @@ class TrustedRelaySerializer(serializers.Serializer):
             )
 
         return {"public_key": public_key, "name": key_name, "description": description}
-
-
-class _Status(TypedDict):
-    id: str
-    name: str
-
-
-class _Links(TypedDict):
-    organizationUrl: str
-    regionUrl: str
-
-
-class OrganizationSerializerResponse(TypedDict):
-    id: str
-    slug: str
-    status: _Status
-    name: str
-    dateCreated: datetime
-    isEarlyAdopter: bool
-    require2FA: bool
-    requireEmailVerification: bool
-    avatar: Any  # TODO replace with Avatar
-    features: Any  # TODO
-    links: _Links
-    hasAuthProvider: bool
 
 
 class ControlSiloOrganizationSerializerResponse(TypedDict):
@@ -560,7 +536,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         ).count()
         context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
-        context["isDynamicallySampled"] = sample_rate is not None and sample_rate < 1.0
+        context["isDynamicallySampled"] = (
+            features.has("organizations:dynamic-sampling", obj)
+            and sample_rate is not None
+            and sample_rate < 1.0
+        )
 
         return context
 

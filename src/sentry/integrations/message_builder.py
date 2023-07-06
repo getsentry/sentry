@@ -5,10 +5,8 @@ from typing import Any, Callable, Mapping, Sequence
 
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.slack.message_builder import SLACK_URL_FORMAT
-from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project, Rule, Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.utils import get_matched_problem, get_span_evidence_value_problem
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
@@ -47,8 +45,6 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
         group = getattr(obj, "group", obj)
         if isinstance(obj, GroupEvent) and obj.occurrence is not None:
             title = obj.occurrence.issue_title
-        elif group.issue_category == GroupCategory.PERFORMANCE:
-            title = group.issue_type.description
         else:
             event = group.get_latest_event()
             if event is not None and event.occurrence is not None:
@@ -69,7 +65,9 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if rule_id:
-        other_params["rule_id"] = rule_id
+        other_params["alert_rule_id"] = rule_id
+        # hard code for issue alerts
+        other_params["alert_type"] = "issue"
 
     if event and link_to_event:
         url = group.get_absolute_url(
@@ -103,9 +101,6 @@ def build_attachment_text(group: Group, event: GroupEvent | None = None) -> Any 
             return important.value
     elif ev_type == "error":
         return ev_metadata.get("value") or ev_metadata.get("function")
-    elif ev_type == "transaction":
-        problem = get_matched_problem(event)
-        return get_span_evidence_value_problem(problem)
 
     return None
 

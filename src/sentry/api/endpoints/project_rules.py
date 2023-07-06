@@ -75,15 +75,21 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         if "filters" in data:
             conditions.extend(data["filters"])
 
+        new_rule_is_slow = False
+        for condition in conditions:
+            if is_condition_slow(condition):
+                new_rule_is_slow = True
+                break
+
         rules = Rule.objects.filter(project=project, status=RuleStatus.ACTIVE)
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:
                 if is_condition_slow(condition):
                     slow_rules += 1
-                break
+                    break
 
-        if slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
+        if new_rule_is_slow and slow_rules >= settings.MAX_SLOW_CONDITION_ISSUE_ALERTS:
             return Response(
                 {
                     "conditions": [
@@ -92,7 +98,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS:
+        if (
+            not new_rule_is_slow
+            and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS
+        ):
             return Response(
                 {
                     "conditions": [

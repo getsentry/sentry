@@ -35,14 +35,7 @@ class UserSocialIdentityDetailsEndpoint(UserEndpoint):
 
         # stop this from bubbling up errors to social-auth's middleware
         # XXX(dcramer): IM SO MAD ABOUT THIS
-        try:
-            backend.disconnect(user, identity_id)
-        except Exception as exc:
-            import sys
-
-            exc_tb = sys.exc_info()[2]
-            raise exc.with_traceback(exc_tb)
-            del exc_tb
+        backend.disconnect(user, identity_id)
 
         # XXX(dcramer): we experienced an issue where the identity still existed,
         # and given that this is a cheap query, lets error hard in that case

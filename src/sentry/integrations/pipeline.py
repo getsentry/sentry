@@ -11,7 +11,7 @@ import logging
 
 from django.db import IntegrityError
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus

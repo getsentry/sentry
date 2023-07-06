@@ -9,6 +9,7 @@ from typing import Any, TypeVar
 import click
 from django.conf import settings
 
+from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import metrics, warnings
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
@@ -374,6 +375,8 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     monkeypatch_django_migrations()
 
+    patch_silo_aware_atomic()
+
     apply_legacy_settings(settings)
 
     bind_cache_to_option_store()
@@ -453,24 +456,13 @@ def validate_options(settings: Any) -> None:
 
 
 def validate_regions(settings: Any) -> None:
-    from sentry.types.region import Region, RegionCategory
-    from sentry.utils import json
+    from sentry.types.region import load_from_config
 
     region_config = getattr(settings, "SENTRY_REGION_CONFIG", None)
     if not region_config:
         return
 
-    if isinstance(region_config, str):
-        parsed = []
-        config_values = json.loads(region_config)
-        for config_value in config_values:
-            config_value["category"] = RegionCategory[config_value["category"]]
-            parsed.append(Region(**config_value))
-
-        settings.SENTRY_REGION_CONFIG = parsed
-    else:
-        for region in region_config:
-            region.validate()
+    load_from_config(region_config).validate_all()
 
 
 import django.db.models.base

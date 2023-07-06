@@ -7,18 +7,23 @@ from datetime import datetime
 from os import path
 from typing import List, Optional, Set, Tuple
 
+import sentry_sdk
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
-from sentry import analytics, options
+from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.artifactbundle import (
+    INDEXING_THRESHOLD,
+    NULL_STRING,
     ArtifactBundle,
+    ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -328,6 +333,8 @@ def _bind_or_create_artifact_bundle(
             bundle_id=bundle_id or uuid.uuid4().hex,
             file=archive_file,
             artifact_count=artifact_count,
+            # By default, a bundle is not indexed.
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
             # "date_added" and "date_uploaded" will have the same value, but they will diverge once renewal is performed
             # by other parts of Sentry. Renewal is required since we want to expire unused bundles after ~90 days.
             date_added=date_added,
@@ -361,8 +368,73 @@ def _bind_or_create_artifact_bundle(
         return existing_artifact_bundle, False
 
 
+def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot: datetime):
+    # We collect how many times we tried to perform indexing.
+    metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
+
+    # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to prevent
+    # the case in which concurrent updates on the database will lead to problems. For example if we have a threshold
+    # of 1, and we have two uploads happening concurrently and the database will contain two associations even when
+    # the assembling of the first upload is running this query, we will have the first upload task see 2 associations
+    # , thus it will trigger the indexing. The same will also happen for the second upload but in reality we just
+    # want the second upload to perform indexing.
+    #
+    # This date implementation might still lead to issues, more specifically in the case in which the
+    # "date_last_modified" is the same but the probability of that happening is so low that it's a negligible
+    # detail for now, as long as the indexing is idempotent.
+    associated_bundles = list(
+        ArtifactBundle.objects.filter(
+            organization_id=org_id,
+            # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this
+            # async job, we want to use the `<=` condition for time, effectively saying give me all the bundles that
+            # were created now or in the past.
+            date_last_modified__lte=date_snapshot,
+            releaseartifactbundle__release_name=release,
+            releaseartifactbundle__dist_name=dist,
+        )
+    )
+
+    # In case we didn't surpass the threshold, indexing will not happen.
+    if len(associated_bundles) <= INDEXING_THRESHOLD:
+        return
+
+    # We collect how many times we run indexing.
+    metrics.incr("tasks.assemble.artifact_bundle.start_indexing")
+
+    # We want to measure how much time it takes to perform indexing.
+    with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
+        # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
+        # async if we see a performance degradation of assembling.
+        try:
+            # We only want to get the bundles that are not indexed. Keep in mind that this query is concurrency unsafe
+            # since in the meanwhile the bundles might be modified and the modification will not be reflected in the
+            # objects that we are iterating here.
+            #
+            # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing function
+            # no consistency issues should arise.
+            bundles_to_index = [
+                associated_bundle
+                for associated_bundle in associated_bundles
+                if associated_bundle.indexing_state == ArtifactBundleIndexingState.NOT_INDEXED.value
+            ]
+
+            # We want to index only if we have bundles to index.
+            if len(bundles_to_index) > 0:
+                index_artifact_bundles_for_release(
+                    organization_id=org_id,
+                    artifact_bundles=bundles_to_index,
+                    release=release,
+                    dist=dist,
+                )
+        except Exception as e:
+            # We want to capture any exception happening during indexing, since it's crucial to understand if
+            # the system is behaving well because the database can easily end up in an inconsistent state.
+            metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
+            sentry_sdk.capture_exception(e)
+
+
 def _create_artifact_bundle(
-    version: Optional[str],
+    release: Optional[str],
     dist: Optional[str],
     org_id: int,
     project_ids: Optional[List[int]],
@@ -370,7 +442,9 @@ def _create_artifact_bundle(
     artifact_count: int,
 ) -> None:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+        # We want to measure how much time it takes to extract debug ids from manifest.
+        with metrics.timer("tasks.assemble.artifact_bundle.extract_debug_ids"):
+            bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
         analytics.record(
             "artifactbundle.manifest_extracted",
@@ -381,11 +455,18 @@ def _create_artifact_bundle(
 
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.
-        if len(debug_ids_with_types) > 0 or version:
-            now = timezone.now()
+        if len(debug_ids_with_types) > 0 or release:
+            # We take a snapshot in time in order to have consistent values in the database.
+            date_snapshot = timezone.now()
+
             # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
             # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
-            new_date_added = {"date_added": now}
+            new_date_added = {"date_added": date_snapshot}
+
+            # Since dist is non-nullable in the db, but we actually use a sentinel value to represent nullability, here
+            # we have to do the conversion in case it is "None".
+            dist = dist or NULL_STRING
+            release = release or NULL_STRING
 
             # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
             # state after all of these updates.
@@ -400,20 +481,20 @@ def _create_artifact_bundle(
             ):
                 artifact_bundle, created = _bind_or_create_artifact_bundle(
                     bundle_id=bundle_id,
-                    date_added=now,
+                    date_added=date_snapshot,
                     org_id=org_id,
                     archive_file=archive_file,
                     artifact_count=artifact_count,
                 )
 
                 # If a release version is passed, we want to create the weak association between a bundle and a release.
-                if version:
+                if release:
                     ReleaseArtifactBundle.objects.create_or_update(
                         organization_id=org_id,
-                        release_name=version,
+                        release_name=release,
                         # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                         # tables.
-                        dist_name=dist or "",
+                        dist_name=dist,
                         artifact_bundle=artifact_bundle,
                         values=new_date_added,
                         defaults=new_date_added,
@@ -437,6 +518,27 @@ def _create_artifact_bundle(
                         values=new_date_added,
                         defaults=new_date_added,
                     )
+
+            try:
+                organization = Organization.objects.get_from_cache(id=org_id)
+            except Organization.DoesNotExist:
+                organization = None
+
+            # If we don't have a release set, we don't want to run indexing, since we need at least the release for
+            # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
+            # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
+            # not support them, some files were not injected...).
+            if (
+                organization is not None
+                and release
+                and features.has(
+                    "organizations:sourcemaps-bundle-indexing", organization, actor=None
+                )
+            ):
+                # After we committed the transaction we want to try and run indexing.
+                _index_bundle_if_needed(
+                    org_id=org_id, release=release, dist=dist, date_snapshot=date_snapshot
+                )
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
@@ -484,8 +586,14 @@ def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, 
     # contents.
     version = version or archive.manifest.get("release")
     dist = dist or archive.manifest.get("dist")
+
     _create_artifact_bundle(
-        version, dist, organization.id, project_ids, bundle, archive.artifact_count
+        release=version,
+        dist=dist,
+        org_id=organization.id,
+        project_ids=project_ids,
+        archive_file=bundle,
+        artifact_count=archive.artifact_count,
     )
 
 
@@ -547,13 +655,14 @@ def assemble_artifacts(
 
         with archive:
             if upload_as_artifact_bundle:
-                handle_assemble_for_artifact_bundle(
-                    bundle, archive, organization, version, dist, project_ids
-                )
+                with metrics.timer("tasks.assemble.artifact_bundle"):
+                    handle_assemble_for_artifact_bundle(
+                        bundle, archive, organization, version, dist, project_ids
+                    )
             else:
-                handle_assemble_for_release_file(bundle, archive, organization, version)
+                with metrics.timer("tasks.assemble.release_bundle"):
+                    handle_assemble_for_release_file(bundle, archive, organization, version)
 
-            # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=archive.artifact_count)
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
