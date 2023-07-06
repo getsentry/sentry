@@ -8,8 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.mixins import ServerlessMixin
+from sentry.models import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 
 ACTIONS = ["enable", "disable", "updateVersion"]
@@ -25,17 +25,17 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
     def get(
         self,
         request: Request,
-        organization_context: RpcUserOrganizationContext,
+        organization: Organization,
         integration_id: int,
         **kwds: Any,
     ) -> Response:
         """
         Get the list of repository project path configs in an integration
         """
-        integration = self.get_integration(organization_context.organization.id, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if not isinstance(install, ServerlessMixin):
@@ -51,13 +51,13 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(RegionOrganizationInteg
     def post(
         self,
         request: Request,
-        organization_context: RpcUserOrganizationContext,
+        organization: Organization,
         integration_id: int,
         **kwds: Any,
     ) -> Response:
-        integration = self.get_integration(organization_context.organization.id, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if not isinstance(install, ServerlessMixin):

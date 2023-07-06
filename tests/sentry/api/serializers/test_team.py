@@ -5,7 +5,6 @@ from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProje
 from sentry.app import env
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test, region_silo_test
 
@@ -362,7 +361,7 @@ class TeamSCIMSerializerTest(TestCase):
         self.create_team(organization=organization, members=[user, user2])
         # create a 2nd team to confirm we aren't duping data
 
-        result = serialize(serialize_rpc_team(team), user, TeamSCIMSerializer(expand=["members"]))
+        result = serialize(team, user, TeamSCIMSerializer(expand=["members"]))
         assert result == {
             "displayName": team.name,
             "id": str(team.id),
@@ -378,7 +377,7 @@ class TeamSCIMSerializerTest(TestCase):
         user = self.create_user(username="foo")
         organization = self.create_organization(owner=user)
         team = self.create_team(organization=organization, members=[user])
-        result = serialize(serialize_rpc_team(team), user, TeamSCIMSerializer())
+        result = serialize(team, user, TeamSCIMSerializer())
         assert result == {
             "displayName": team.name,
             "id": str(team.id),

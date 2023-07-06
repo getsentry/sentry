@@ -8,8 +8,8 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.models import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -24,7 +24,7 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
     def get(
         self,
         request: Request,
-        organization_context: RpcUserOrganizationContext,
+        organization: Organization,
         integration_id: int,
         **kwds: Any,
     ) -> Response:
@@ -38,14 +38,14 @@ class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndp
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization_context.organization.id, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}
             return self.respond(context)
 
         install = integration_service.get_installation(
-            integration=integration, organization_id=organization_context.organization.id
+            integration=integration, organization_id=organization.id
         )
 
         if isinstance(install, RepositoryMixin):
