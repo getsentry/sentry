@@ -23,7 +23,7 @@ import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import CountCell from 'sentry/views/starfish/components/tableCells/countCell';
+import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';

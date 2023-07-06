@@ -9,7 +9,7 @@ type Props = {
   >;
 };
 
-export default function DurationCell({count, containerProps}: Props) {
+export function CountCell({count, containerProps}: Props) {
   return (
     <NumberContainer {...containerProps}>
       {formatAbbreviatedNumber(count)}
