@@ -15,11 +15,8 @@ type HelperProps =
   | 'xAxis'
   | 'utc';
 
-export interface XAxisProps extends Pick<BaseChartProps, HelperProps> {
-  theme: Theme;
-  addSecondsToTimeFormat?: boolean;
-  truncate?: number | boolean;
-}
+export type XAxisProps = BaseChartProps['xAxis'] &
+  Pick<BaseChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
 function XAxis({
   isGroupedByDate,
