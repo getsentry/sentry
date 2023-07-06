@@ -10,7 +10,6 @@ import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {HTTPTimingIntegration} from 'sentry/utils/performanceForSentry/integrations';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -63,11 +62,11 @@ function getSentryIntegrations(routes?: Function) {
         : {}),
       _experiments: {
         enableInteractions: true,
+        enableHTTPTimings: true,
         onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
     }),
     new Sentry.BrowserProfilingIntegration(),
-    new HTTPTimingIntegration(),
   ];
 
   return integrations;
