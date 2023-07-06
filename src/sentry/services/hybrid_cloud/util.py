@@ -25,7 +25,7 @@ class FunctionSiloLimit(SiloLimit):
                 f"Called {original_method.__name__} in "
                 f"{current_mode} mode. This function is available only in: {mode_str}"
             )
-            raise ValueError(message)
+            raise self.AvailabilityError(message)
         return original_method
 
     def __call__(self, decorated_obj: Any) -> Any:
