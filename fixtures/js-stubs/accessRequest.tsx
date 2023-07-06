@@ -10,11 +10,6 @@ export function AccessRequest(
     id: '123',
     member: Member(),
     team: Team(),
-    requester: params.requester ?? {
-      email: 'requester@email.com',
-      name: 'requester',
-      username: 'requester_username',
-    },
     ...params,
   };
 }
