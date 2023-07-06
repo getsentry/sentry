@@ -248,7 +248,7 @@ export function datasetSupportedTags(
       [Dataset.METRICS]: SESSION_SUPPORTED_TAGS,
       [Dataset.GENERIC_METRICS]: org.features.includes('alert-allow-indexed')
         ? undefined
-        : TRANSACTION_SUPPORTED_TAGS,
+        : transactionSupportedTags(org),
       [Dataset.SESSIONS]: SESSION_SUPPORTED_TAGS,
     },
     value => {

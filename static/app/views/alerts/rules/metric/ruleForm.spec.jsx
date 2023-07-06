@@ -335,6 +335,47 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('saves a valid on demand metric rule', async () => {
+      const validOnDemandMetricRule = TestStubs.MetricRule({
+        query: 'transaction.duration:<1s',
+      });
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: validOnDemandMetricRule.id,
+        rule: {
+          ...validOnDemandMetricRule,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      expect(onSubmitSuccess).toHaveBeenCalled();
+    });
+
+    it('shows errors for an invalid on demand metric rule', async () => {
+      const invalidOnDemandMetricRule = TestStubs.MetricRule({
+        aggregate: 'percentile()',
+        query: 'transaction.duration:<1s',
+      });
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: invalidOnDemandMetricRule.id,
+        rule: {
+          ...invalidOnDemandMetricRule,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      expect(onSubmitSuccess).not.toHaveBeenCalled();
+    });
   });
 
   describe('Slack async lookup', () => {
