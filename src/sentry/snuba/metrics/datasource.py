@@ -485,7 +485,7 @@ def get_tags(
                 metric_mris=metrics,
                 column="tags.key",
                 referrer="snuba.metrics.meta.get_tags",
-                use_case_key=use_case_id,
+                use_case_id=use_case_id,
             )
         else:
             tags, _ = _fetch_tags_or_values_for_metrics(
