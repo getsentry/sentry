@@ -55,6 +55,12 @@ export function DocWithProductSelection({
     [location.query.product]
   );
 
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const platformName = currentPlatform?.name ?? '';
+
+  const loadLocalSdkDocumentation =
+    currentPlatform && migratedDocs.includes(currentPlatformKey);
+
   const loadPlatform = useMemo(() => {
     return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
       products.includes(PRODUCT.SESSION_REPLAY)
@@ -70,12 +76,13 @@ export function DocWithProductSelection({
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
     {
       staleTime: Infinity,
-      enabled: !!projectSlug && !!organization.slug && !!loadPlatform,
+      enabled:
+        !!projectSlug &&
+        !!organization.slug &&
+        !!loadPlatform &&
+        !loadLocalSdkDocumentation,
     }
   );
-
-  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
-  const platformName = currentPlatform?.name ?? '';
 
   return (
     <Fragment>
@@ -85,7 +92,7 @@ export function DocWithProductSelection({
           platform={currentPlatformKey}
         />
       )}
-      {currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+      {loadLocalSdkDocumentation ? (
         <SdkDocumentation
           platform={currentPlatform}
           orgSlug={organization.slug}
