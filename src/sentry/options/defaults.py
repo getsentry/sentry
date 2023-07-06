@@ -1004,7 +1004,7 @@ register(
 
 register(
     "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # per-organization limits on the number of timeseries that can be observed in
