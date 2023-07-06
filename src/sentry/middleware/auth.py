@@ -55,8 +55,8 @@ class AuthenticationMiddleware(MiddlewareMixin):
     @property
     def impl(self) -> Any:
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-            return RequestAuthenticationMiddleware()
-        return HybridCloudAuthenticationMiddleware()
+            return RequestAuthenticationMiddleware(self.get_response)
+        return HybridCloudAuthenticationMiddleware(self.get_response)
 
     def process_request(self, request: Request):
         return self.impl.process_request(request)

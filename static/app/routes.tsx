@@ -532,11 +532,7 @@ function buildRoutes() {
             component={make(() => import('sentry/views/settings/projectSourceMaps'))}
           />
         </Route>
-        <Route
-          path=":name/"
-          name={t('Archive')}
-          component={make(() => import('sentry/views/settings/projectSourceMaps/detail'))}
-        />
+        <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
       <Route
         path="processing-issues/"
@@ -1668,12 +1664,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
-      />
-      <Route
-        path="failure-detail/:slug/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
-        )}
       />
       <Route path="endpoint-overview/">
         <IndexRoute

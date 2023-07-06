@@ -105,7 +105,7 @@ def check_monitors(current_datetime=None):
                 minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
             )
             # Check against date_updated to allow monitors to run for longer as
-            # long as they continute to send heart beats updating the checkin
+            # long as they continue to send heart beats updating the checkin
             if checkin.date_updated > current_datetime - timeout:
                 continue
 
@@ -114,9 +114,7 @@ def check_monitors(current_datetime=None):
                 "monitor_environment.checkin-timeout",
                 extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
             )
-            affected = MonitorCheckIn.objects.filter(
-                id=checkin.id, status=CheckInStatus.IN_PROGRESS
-            ).update(status=CheckInStatus.TIMEOUT)
+            affected = checkin.update(status=CheckInStatus.TIMEOUT)
             if not affected:
                 continue
 

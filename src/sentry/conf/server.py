@@ -109,6 +109,7 @@ SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -708,6 +709,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.weekly_reports",
@@ -851,6 +853,7 @@ CELERY_QUEUES_REGION = [
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
     Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
+    Queue("recap_servers", routing_key="recap_servers"),
 ]
 
 from celery.schedules import crontab
@@ -1097,6 +1100,12 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.integrations.github_comment_reactions",
         "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
     },
+    "poll_recap_servers": {
+        "task": "sentry.tasks.poll_recap_servers",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
@@ -1326,6 +1335,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1344,8 +1355,6 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the new issue states and substates
-    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1584,8 +1593,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -1647,8 +1654,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable specifying inbound filter for health check calls.
-    "organizations:health-check-filter": False,
+    # Enable indexing of artifact bundles for sourcemaps.
+    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1662,6 +1669,8 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable functionality for recap server polling.
+    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
@@ -1871,7 +1880,9 @@ SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
 SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
-SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
+SENTRY_EVENT_PROCESSING_STORE = (
+    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+)
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
@@ -2334,6 +2345,13 @@ SENTRY_RELAY_PORT = 7899
 # it as a worker, and devservices will run Kafka.
 SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
 
+SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
+
+# To use RabbitMQ as a Celery tasks broker
+# BROKER_URL = "amqp://guest:guest@localhost:5672/sentry"
+# more info https://develop.sentry.dev/services/queue/
+SENTRY_DEV_USE_RABBITMQ = bool(os.getenv("SENTRY_DEV_USE_RABBITMQ", False))
+
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -2414,6 +2432,23 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "64mb",
             ],
             "volumes": {"redis": {"bind": "/data"}},
+        }
+    ),
+    "redis-cluster": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
+            "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
+            "volumes": {"redis-cluster": {"bind": "/redis-data"}},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
+        }
+    ),
+    "rabbitmq": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
+            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
         }
     ),
     "postgres": lambda settings, options: (
@@ -3505,10 +3540,13 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# The project ID for SDK Crash Detection to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
+
+# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
+SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"

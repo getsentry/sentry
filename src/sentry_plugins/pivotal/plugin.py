@@ -1,7 +1,7 @@
 from urllib.parse import urlencode
 
 import requests
-from django.conf.urls import url
+from django.urls import re_path
 from django.utils.encoding import force_str
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,7 +50,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )

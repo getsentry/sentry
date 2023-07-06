@@ -63,6 +63,8 @@ export const SORTABLE_FIELDS = new Set([
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
+  'http_error_count()',
+  'http_error_count_percent_change()',
 ]);
 
 export default function SpansTable({
@@ -97,12 +99,15 @@ export default function SpansTable({
     });
   };
 
+  const shouldTrackVCD = Boolean(endpoint);
+
   return (
     <Fragment>
       <VisuallyCompleteWithData
         id="SpansTable"
         hasData={data.length > 0}
         isLoading={isLoading}
+        disabled={shouldTrackVCD}
       >
         <GridEditable
           isLoading={isLoading}
@@ -138,6 +143,7 @@ function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'span.description') {
     const queryString = {
+      ...location.query,
       endpoint,
       endpointMethod,
     };
