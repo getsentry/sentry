@@ -197,6 +197,8 @@
   color: '8D5494'
 - name: 'Product Area: Issues'
   color: '8D5494'
+- name: 'Product Area: Issues - Source Maps'
+  color: '8D5494'
 - name: 'Product Area: Issues - Suggested Fix'
   color: '8D5494'
 - name: 'Product Area: Projects'
