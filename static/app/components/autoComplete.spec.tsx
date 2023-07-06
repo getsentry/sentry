@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AutoComplete from 'sentry/components/autoComplete';
+import AutoComplete, {AutoCompleteProps} from 'sentry/components/autoComplete';
 
 const items = [
   {
@@ -23,7 +23,7 @@ const items = [
  */
 describe('AutoComplete', function () {
   let input;
-  let autoCompleteState = [];
+  let autoCompleteState: any[] = [];
   const mocks = {
     onSelect: jest.fn(),
     onClose: jest.fn(),
@@ -45,7 +45,7 @@ describe('AutoComplete', function () {
     return <li {...props} />;
   }
 
-  const createComponent = props => (
+  const createComponent = (props: Partial<AutoCompleteProps<any>>) => (
     <AutoComplete {...mocks} itemToString={item => item.name} {...props}>
       {injectedProps => {
         const {
@@ -69,7 +69,7 @@ describe('AutoComplete', function () {
 
         return (
           <div {...getRootProps()}>
-            <input placeholder="autocomplete" {...getInputProps()} />
+            <input placeholder="autocomplete" {...getInputProps({})} />
 
             {isOpen && (
               <div {...getMenuProps()} data-test-id="test-autocomplete">
@@ -98,7 +98,7 @@ describe('AutoComplete', function () {
     </AutoComplete>
   );
 
-  const createWrapper = props => {
+  const createWrapper = (props?: any) => {
     const wrapper = render(createComponent(props));
     input = screen.getByPlaceholderText('autocomplete');
     return wrapper;
