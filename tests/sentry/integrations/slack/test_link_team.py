@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 import responses
 from django.db.models import QuerySet
-from requests import Response
+from django.http.response import HttpResponseBase
 from rest_framework import status
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
@@ -24,6 +24,8 @@ from sentry.utils import json
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
+    url: str
+
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -51,14 +53,14 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             content_type="application/json",
         )
 
-    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> Response:
+    def get_success_response(self, data: Optional[Mapping[str, Any]] = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
-        kwargs = dict(content_type="application/x-www-form-urlencoded")
-
         if data is not None:
-            response = self.client.post(self.url, urlencode(data), **kwargs)
+            response = self.client.post(
+                self.url, urlencode(data), content_type="application/x-www-form-urlencoded"
+            )
         else:
-            response = self.client.get(self.url, **kwargs)
+            response = self.client.get(self.url, content_type="application/x-www-form-urlencoded")
         assert response.status_code == status.HTTP_200_OK
         return response
 
