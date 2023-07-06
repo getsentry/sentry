@@ -28,7 +28,6 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import {Wrapper} from 'sentry/views/discover/table/quickContext/styles';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';
@@ -163,8 +162,6 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
-    const {organization, api, location} = this.props;
-
     return (
       <StyledActions>
         <SearchBar
@@ -180,20 +177,6 @@ class ManageDashboards extends AsyncView<Props, State> {
           onChange={opt => this.handleSortChange(opt.value)}
           position="bottom-end"
         />
-        <Feature features={['dashboards-import']}>
-          <Wrapper>
-            <Button
-              onClick={() => {
-                openImportDashboardFromFileModal({organization, api, location});
-              }}
-              size="sm"
-              priority="primary"
-              icon={<IconAdd isCircled />}
-            >
-              {t('Import Dashboard from JSON')}
-            </Button>
-          </Wrapper>
-        </Feature>
       </StyledActions>
     );
   }
@@ -296,7 +279,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderBody() {
     const {showTemplates} = this.state;
-    const {organization} = this.props;
+    const {organization, api, location} = this.props;
 
     return (
       <Feature
@@ -341,6 +324,22 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
+                    <Feature features={['dashboards-import']}>
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
                   </ButtonBar>
                 </Layout.HeaderActions>
               </Layout.Header>

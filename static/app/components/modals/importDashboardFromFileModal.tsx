@@ -15,6 +15,7 @@ import {
 } from 'sentry/views/dashboards/layoutUtils';
 import {Wrapper} from 'sentry/views/discover/table/quickContext/styles';
 
+// Internal feature - no specs written.
 function ImportDashboardFromFileModal({
   Header,
   Body,
@@ -27,9 +28,10 @@ function ImportDashboardFromFileModal({
   const [validated, setValidated] = useState(false);
 
   function validateFile(fileToUpload) {
-    if (!(fileToUpload.type === 'application/json')) {
-      addErrorMessage('The uploaded file must be JSON');
+    if (!fileToUpload || !(fileToUpload.type === 'application/json')) {
+      addErrorMessage('You must upload a JSON file');
       setValidated(false);
+      setDashboardData('');
       return false;
     }
 
@@ -38,20 +40,18 @@ function ImportDashboardFromFileModal({
   }
 
   const handleFileChange = e => {
-    if (e.target.files.length) {
-      const fileToUpload = e.target.files[0];
-      if (validateFile(fileToUpload)) {
-        const fileReader = new FileReader();
-        fileReader.readAsText(fileToUpload, 'UTF-8');
-        fileReader.onload = event => {
-          const target = event.target;
-          if (target) {
-            const parsed = JSON.parse(target.result);
-            const formatted = JSON.stringify(parsed, null, '\t');
-            setDashboardData(formatted);
-          }
-        };
-      }
+    const fileToUpload = e.target.files[0];
+    if (validateFile(fileToUpload)) {
+      const fileReader = new FileReader();
+      fileReader.readAsText(fileToUpload, 'UTF-8');
+      fileReader.onload = event => {
+        const target = event.target;
+        if (target && typeof target.result === 'string') {
+          const parsed = JSON.parse(target.result);
+          const formatted = JSON.stringify(parsed, null, '\t');
+          setDashboardData(formatted);
+        }
+      };
     }
   };
 
