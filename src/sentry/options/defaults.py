@@ -911,7 +911,7 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register(
-    "sentry-metrics.performance.index-tag-values", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
