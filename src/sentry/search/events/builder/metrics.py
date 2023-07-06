@@ -39,8 +39,8 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
-from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY, OndemandMetricSpec
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query

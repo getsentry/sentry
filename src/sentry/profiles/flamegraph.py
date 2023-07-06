@@ -75,7 +75,7 @@ def get_span_intervals(
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("transaction_id"), Op.IN, transaction_ids),
-            Condition(Column("group"), Op.EQ, span_group),
+            Condition(Column("group_raw"), Op.EQ, span_group),
             Condition(Column("timestamp"), Op.GTE, params["start"]),
             Condition(Column("timestamp"), Op.LT, params["end"]),
         ],

@@ -93,10 +93,15 @@ class SiloRouter:
             if active_mode == silo_mode:
                 return "default"
 
-            raise SiloConnectionUnavailableError(
-                f"Cannot resolve table {table} in {silo_mode}. "
-                f"Application silo mode is {active_mode} and simulated silos are not enabled."
-            )
+            # If we're in tests raise an error, otherwise return 'no decision'
+            # so that django skips migration operations that won't work.
+            if "pytest" in sys.modules:
+                raise SiloConnectionUnavailableError(
+                    f"Cannot resolve table {table} in {silo_mode}. "
+                    f"Application silo mode is {active_mode} and simulated silos are not enabled."
+                )
+            else:
+                return None
 
     def _find_model(self, table: str, app_label: str) -> Optional[Model]:
         # Use django's model inventory to find our table and what silo it is on.

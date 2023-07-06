@@ -18,8 +18,12 @@ from sentry.db.models import (
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
 
+# Sentinel values used to represent a null state in the database. This is done since the `NULL` type in the db is
+# always different from `NULL`.
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
+# Number of bundles that have to be associated to a release/dist pair before indexing takes place.
+INDEXING_THRESHOLD = 1
 
 
 class SourceFileType(Enum):
@@ -250,6 +254,9 @@ class ArtifactBundleArchive:
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def get_files(self) -> Dict[str, dict]:
+        return self.manifest.get("files", {})
 
     def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
         file_path, info = self._entries_by_url[url]
