@@ -306,6 +306,18 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="true"; cursor="1492107369532:0:0"'
         )
 
+    def test_enforces_protocol(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/")
+        request.META["HTTP_X_FORWARDED_PROTO"] = "https"
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
     def test_unicode_path(self):
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
