@@ -163,6 +163,7 @@ control_silo_test = SiloModeTest(SiloMode.CONTROL, SiloMode.MONOLITH)
 region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
 
+@contextmanager
 def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
