@@ -12,7 +12,10 @@ import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWr
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -48,12 +51,12 @@ export function DocWithProductSelection({
 }) {
   const loadPlatform = useMemo(() => {
     const products = location.query.product ?? [];
-    return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-      products.includes(PRODUCT.SESSION_REPLAY)
+    return products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+      products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
-      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      : products.includes(ProductSolution.PERFORMANCE_MONITORING)
       ? `${currentPlatform}-with-error-monitoring-and-performance`
-      : products.includes(PRODUCT.SESSION_REPLAY)
+      : products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatform}-with-error-monitoring-and-replay`
       : `${currentPlatform}-with-error-monitoring`;
   }, [location.query.product, currentPlatform]);
@@ -77,7 +80,10 @@ export function DocWithProductSelection({
         />
       )}
       <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+        defaultSelectedProducts={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
       />
       {isLoading ? (
         <LoadingIndicator />
