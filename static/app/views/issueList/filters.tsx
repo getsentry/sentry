@@ -5,22 +5,26 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
 import IssueCategoryFilter from 'sentry/views/issueList/issueCategoryFilter';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface Props {
   onSearch: (query: string) => void;
+  organization: Organization;
   query: string;
 }
 
-function IssueListFilters({query, onSearch}: Props) {
+function IssueListFilters({organization, query, onSearch}: Props) {
   return (
     <SearchContainer>
       <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
-        <IssueCategoryFilter query={query} onSearch={onSearch} />
+        {organization.features.includes('issue-search-shortcuts') ? null : (
+          <IssueCategoryFilter query={query} onSearch={onSearch} />
+        )}
       </StyledPageFilterBar>
 
       <IssueSearchWithSavedSearches {...{query, onSearch}} />
