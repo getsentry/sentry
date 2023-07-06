@@ -25,7 +25,7 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 
 @region_silo_test
 @pytest.mark.django_db
-class ConsecutiveDbDetectorTest(TestCase):
+class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
     def setUp(self):
         super().setUp()
         self._settings = get_detection_settings()
@@ -120,6 +120,14 @@ class ConsecutiveDbDetectorTest(TestCase):
             "sdk": {"name": "sentry.javascript.browser"},
         }
         problems = self.find_problems(event)
+        assert problems == []
+
+    def test_does_not_detect_consecutive_http_issue_with_low_count(self):
+        spans = [  # count less than threshold
+            create_span("http.client", 20, "GET /api/0/organizations/endpoint1", "hash1"),
+        ]
+
+        problems = self.find_problems(create_event(spans))
         assert problems == []
 
     def test_detects_consecutive_http_issue_with_low_duration(self):
