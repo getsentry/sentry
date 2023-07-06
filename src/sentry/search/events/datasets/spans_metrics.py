@@ -379,13 +379,9 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             params={},
             snuba_params=self.builder.params,
             query=self.builder.query if scope == "local" else None,
+            groupby_columns=self.builder.groupby_columns,
             selected_columns=["sum(span.self_time)"],
         )
-
-        total_query.columns += self.builder.resolve_groupby()
-
-        if scope == "local":
-            total_query.where = self.builder.where
 
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value
