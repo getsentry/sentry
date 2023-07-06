@@ -1265,7 +1265,6 @@ module = [
     "tests.sentry.integrations.slack.notifications.test_unassigned",
     "tests.sentry.integrations.slack.test_client",
     "tests.sentry.integrations.slack.test_integration",
-    "tests.sentry.integrations.slack.test_link_team",
     "tests.sentry.integrations.slack.test_message_builder",
     "tests.sentry.integrations.slack.test_notifications",
     "tests.sentry.integrations.slack.test_notify_action",
