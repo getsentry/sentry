@@ -8,6 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -28,7 +29,8 @@ def get_use_case_id(request: Request) -> UseCaseID:
     """
 
     try:
-        return UseCaseID(request.GET.get("useCase", "sessions"))
+        use_case_param = request.GET.get("useCase", "sessions")
+        return string_to_use_case_id(use_case_param)
     except ValueError:
         raise ParseError(
             detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
