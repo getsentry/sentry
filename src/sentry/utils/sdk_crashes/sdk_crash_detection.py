@@ -65,6 +65,9 @@ class SDKCrashDetection:
                 },
             )
 
+            # So Sentry can tell how many projects are impacted by this SDK crash
+            set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
+
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 
         return None
