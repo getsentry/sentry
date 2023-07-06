@@ -220,13 +220,23 @@ type EventsRequestPartialProps = {
   yAxis?: string | string[];
 };
 
-type TimeAggregationProps =
-  | {includeTimeAggregation: true; timeAggregationSeriesName: string}
-  | {includeTimeAggregation?: false; timeAggregationSeriesName?: undefined};
+interface EventsRequestPropsWithTimeAggregation
+  extends DefaultProps,
+    EventsRequestPartialProps {
+  includeTimeAggregation: true;
+  timeAggregationSeriesName: string;
+}
 
-export type EventsRequestProps = DefaultProps &
-  TimeAggregationProps &
-  EventsRequestPartialProps;
+interface EventsRequestPropsWithoutTimeAggregation
+  extends DefaultProps,
+    EventsRequestPartialProps {
+  includeTimeAggregation?: false;
+  timeAggregationSeriesName?: undefined;
+}
+
+export type EventsRequestProps =
+  | EventsRequestPropsWithTimeAggregation
+  | EventsRequestPropsWithoutTimeAggregation;
 
 type EventsRequestState = {
   errored: boolean;

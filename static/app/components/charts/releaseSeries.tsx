@@ -61,7 +61,7 @@ function getOrganizationReleases(
   }) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
-type Props = WithRouterProps & {
+export interface ReleaseSeriesProps extends WithRouterProps {
   api: Client;
   children: (s: State) => React.ReactNode;
   end: DateString;
@@ -79,14 +79,14 @@ type Props = WithRouterProps & {
   releases?: ReleaseMetaBasic[] | null;
   tooltip?: Exclude<Parameters<typeof MarkLine>[0], undefined>['tooltip'];
   utc?: boolean | null;
-};
+}
 
 type State = {
   releaseSeries: Series[];
   releases: ReleaseMetaBasic[] | null;
 };
 
-class ReleaseSeries extends Component<Props, State> {
+class ReleaseSeries extends Component<ReleaseSeriesProps, State> {
   state: State = {
     releases: null,
     releaseSeries: [],

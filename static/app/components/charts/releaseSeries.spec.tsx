@@ -1,6 +1,7 @@
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import ReleaseSeries, {ReleaseSeriesProps} from 'sentry/components/charts/releaseSeries';
+import {lightTheme} from 'sentry/utils/theme';
 
 describe('ReleaseSeries', function () {
   const renderFunc = jest.fn(() => null);
@@ -22,9 +23,28 @@ describe('ReleaseSeries', function () {
     });
   });
 
+  const router = TestStubs.router();
+  const baseSeriesProps: ReleaseSeriesProps = {
+    api: new MockApiClient(),
+    organization: TestStubs.Organization(),
+    period: '14d',
+    start: null,
+    end: null,
+    utc: false,
+    projects: [],
+    query: '',
+    environments: [],
+    children: renderFunc,
+    params: router.params,
+    routes: router.routes,
+    router,
+    location: router.location,
+    theme: lightTheme,
+  };
+
   it('does not fetch releases if releases is truthy', function () {
     render(
-      <ReleaseSeries organization={organization} releases={[]}>
+      <ReleaseSeries {...baseSeriesProps} organization={organization} releases={[]}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -33,7 +53,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases if no releases passed through props', async function () {
-    render(<ReleaseSeries>{renderFunc}</ReleaseSeries>);
+    render(<ReleaseSeries {...baseSeriesProps}>{renderFunc}</ReleaseSeries>);
 
     expect(releasesMock).toHaveBeenCalled();
 
@@ -47,34 +67,8 @@ describe('ReleaseSeries', function () {
   });
 
   it('fetches releases with project conditions', async function () {
-    render(<ReleaseSeries projects={[1, 2]}>{renderFunc}</ReleaseSeries>);
-
-    await waitFor(() =>
-      expect(releasesMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {project: [1, 2]},
-        })
-      )
-    );
-  });
-
-  it('fetches releases with environment conditions', async function () {
-    render(<ReleaseSeries environments={['dev', 'test']}>{renderFunc}</ReleaseSeries>);
-
-    await waitFor(() =>
-      expect(releasesMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {environment: ['dev', 'test']},
-        })
-      )
-    );
-  });
-
-  it('fetches releases with start and end date strings', async function () {
     render(
-      <ReleaseSeries start="2020-01-01" end="2020-01-31">
+      <ReleaseSeries {...baseSeriesProps} projects={[1, 2]}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -83,7 +77,44 @@ describe('ReleaseSeries', function () {
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: {start: '2020-01-01T00:00:00', end: '2020-01-31T00:00:00'},
+          query: expect.objectContaining({project: [1, 2]}),
+        })
+      )
+    );
+  });
+
+  it('fetches releases with environment conditions', async function () {
+    render(
+      <ReleaseSeries {...baseSeriesProps} environments={['dev', 'test']}>
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await waitFor(() =>
+      expect(releasesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({environment: ['dev', 'test']}),
+        })
+      )
+    );
+  });
+
+  it('fetches releases with start and end date strings', async function () {
+    render(
+      <ReleaseSeries {...baseSeriesProps} start="2020-01-01" end="2020-01-31">
+        {renderFunc}
+      </ReleaseSeries>
+    );
+
+    await waitFor(() =>
+      expect(releasesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: '2020-01-01T00:00:00',
+            end: '2020-01-31T00:00:00',
+          }),
         })
       )
     );
@@ -93,7 +124,7 @@ describe('ReleaseSeries', function () {
     const start = new Date(Date.UTC(2020, 0, 1, 12, 13, 14));
     const end = new Date(Date.UTC(2020, 0, 31, 14, 15, 16));
     render(
-      <ReleaseSeries start={start} end={end}>
+      <ReleaseSeries {...baseSeriesProps} start={start} end={end}>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -102,27 +133,38 @@ describe('ReleaseSeries', function () {
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: {start: '2020-01-01T12:13:14', end: '2020-01-31T14:15:16'},
+          query: expect.objectContaining({
+            start: '2020-01-01T12:13:14',
+            end: '2020-01-31T14:15:16',
+          }),
         })
       )
     );
   });
 
   it('fetches releases with period', async function () {
-    render(<ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>);
+    render(
+      <ReleaseSeries {...baseSeriesProps} period="14d">
+        {renderFunc}
+      </ReleaseSeries>
+    );
 
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: {statsPeriod: '14d'},
+          query: expect.objectContaining({statsPeriod: '14d'}),
         })
       )
     );
   });
 
   it('fetches on property updates', function () {
-    const wrapper = render(<ReleaseSeries period="14d">{renderFunc}</ReleaseSeries>);
+    const wrapper = render(
+      <ReleaseSeries {...baseSeriesProps} period="14d">
+        {renderFunc}
+      </ReleaseSeries>
+    );
 
     const cases = [
       {period: '7d'},
@@ -132,7 +174,11 @@ describe('ReleaseSeries', function () {
     for (const scenario of cases) {
       releasesMock.mockReset();
 
-      wrapper.rerender(<ReleaseSeries {...scenario}>{renderFunc}</ReleaseSeries>);
+      wrapper.rerender(
+        <ReleaseSeries {...baseSeriesProps} {...scenario}>
+          {renderFunc}
+        </ReleaseSeries>
+      );
 
       expect(releasesMock).toHaveBeenCalled();
     }
@@ -142,7 +188,7 @@ describe('ReleaseSeries', function () {
     const originalPeriod = '14d';
     const updatedPeriod = '7d';
     const wrapper = render(
-      <ReleaseSeries period={originalPeriod} memoized>
+      <ReleaseSeries {...baseSeriesProps} period={originalPeriod} memoized>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -150,7 +196,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledTimes(1);
 
     wrapper.rerender(
-      <ReleaseSeries period={updatedPeriod} memoized>
+      <ReleaseSeries {...baseSeriesProps} period={updatedPeriod} memoized>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -158,7 +204,7 @@ describe('ReleaseSeries', function () {
     expect(releasesMock).toHaveBeenCalledTimes(2);
 
     wrapper.rerender(
-      <ReleaseSeries period={originalPeriod} memoized>
+      <ReleaseSeries {...baseSeriesProps} period={originalPeriod} memoized>
         {renderFunc}
       </ReleaseSeries>
     );
@@ -167,7 +213,7 @@ describe('ReleaseSeries', function () {
   });
 
   it('generates an eCharts `markLine` series from releases', async function () {
-    render(<ReleaseSeries>{renderFunc}</ReleaseSeries>);
+    render(<ReleaseSeries {...baseSeriesProps}>{renderFunc}</ReleaseSeries>);
 
     await waitFor(() =>
       expect(renderFunc).toHaveBeenCalledWith(
@@ -197,7 +243,10 @@ describe('ReleaseSeries', function () {
       date: '2020-03-24T00:00:00Z',
     });
     const wrapper = render(
-      <ReleaseSeries emphasizeReleases={['sentry-android-shop@1.2.0']}>
+      <ReleaseSeries
+        {...baseSeriesProps}
+        emphasizeReleases={['sentry-android-shop@1.2.0']}
+      >
         {renderFunc}
       </ReleaseSeries>
     );
@@ -240,7 +289,10 @@ describe('ReleaseSeries', function () {
     );
 
     wrapper.rerender(
-      <ReleaseSeries emphasizeReleases={['sentry-android-shop@1.2.1']}>
+      <ReleaseSeries
+        {...baseSeriesProps}
+        emphasizeReleases={['sentry-android-shop@1.2.1']}
+      >
         {renderFunc}
       </ReleaseSeries>
     );
