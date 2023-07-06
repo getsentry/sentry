@@ -257,6 +257,7 @@ default_manager.add("organizations:ds-sliding-window", OrganizationFeature, Feat
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:slack-use-new-lookup", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sourcemaps-bundle-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
