@@ -1,0 +1,41 @@
+from sentry.models import (
+    GroupRuleStatus,
+    Rule,
+    RuleActivity,
+    RuleActivityType,
+    RuleFireHistory,
+    RuleStatus,
+    ScheduledDeletion,
+)
+from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
+
+
+@region_silo_test
+class DeleteRuleTest(TestCase):
+    def test_simple(self):
+        project = self.create_project()
+        rule = self.create_project_rule(project)
+        rule_fire_history = RuleFireHistory.objects.create(
+            project=rule.project,
+            rule=rule,
+            group=self.group,
+        )
+        group_rule_status = GroupRuleStatus.objects.create(
+            rule=rule, group=self.group, project=rule.project
+        )
+        rule_activity = RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
+
+        deletion = ScheduledDeletion.schedule(rule, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
+        assert not Rule.objects.filter(
+            id=rule.id, project=project, status=RuleStatus.PENDING_DELETION
+        ).exists()
+        assert not GroupRuleStatus.objects.filter(id=group_rule_status.id).exists()
+        assert not RuleFireHistory.objects.filter(id=rule_fire_history.id).exists()
+        assert not RuleActivity.objects.filter(id=rule_activity.id).exists()
