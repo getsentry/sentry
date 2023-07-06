@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-import io
 import os
 from difflib import unified_diff
 from pathlib import Path
 from typing import NewType
 
+from click.testing import CliRunner
 from freezegun import freeze_time
 from pydantic import FilePath, PositiveInt
 
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.runner.commands.backup import exec_export, exec_import
+from sentry.runner.commands.backup import export, import_
 from sentry.utils import json
 from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
 from sentry.utils.pytest.fixtures import django_db_all
@@ -135,25 +135,30 @@ def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
 
 
 def import_then_export(
-    backup_json_file_path: FilePath, silent: bool = True
+    tmp_path: FilePath, backup_json_file_path: FilePath
 ) -> tuple[JSONData, JSONData, ComparatorFindings]:
-    """Test helper that originally imported data correctly matches actual outputted data, and
-    produces a list of reasons why not when it doesn't"""
+    """Test helper that validates that the originally imported data correctly matches actual
+    outputted data, and produces a list of reasons why not when it doesn't"""
 
     with open(backup_json_file_path) as backup_file:
-        contents = backup_file.read()
-        instream = io.StringIO(contents)
-        input = json.loads(instream.getvalue())
-        with in_test_psql_role_override("postgres"):
-            exec_import(instream)
+        input = json.loads(backup_file.read())
 
-    outstream = io.StringIO()
-    exec_export(outstream, silent, indent=INDENT, exclude=None)
-    output = json.loads(outstream.getvalue())
+    with in_test_psql_role_override("postgres"):
+        rv = CliRunner().invoke(import_, [str(backup_json_file_path)])
+        assert rv.exit_code == 0, rv.output
+
+    tmp_json_file_path = str(tmp_path.joinpath("tmp_test_file.json"))
+    rv = CliRunner().invoke(
+        export, [tmp_json_file_path], obj={"silent": True, "indent": INDENT, "exclude": None}
+    )
+    assert rv.exit_code == 0, rv.output
+
+    with open(tmp_json_file_path) as tmp_file:
+        output = json.loads(tmp_file.read())
     return input, output, validate(input, output)
 
 
 @django_db_all
 @freeze_time("2023-06-22T23:00:00.123Z")
-def test_fresh_install():
-    import_then_export(FIXTURE_PATH / "fresh-install.json")
+def test_fresh_install(tmp_path):
+    import_then_export(tmp_path, FIXTURE_PATH / "fresh-install.json")

@@ -16,12 +16,6 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 def import_(src):
     """CLI command wrapping the `exec_import` functionality."""
 
-    exec_import(src)
-
-
-def exec_import(src):
-    """Imports data from a Sentry export."""
-
     try:
         with transaction.atomic():
             for obj in serializers.deserialize("json", src, stream=True, use_natural_keys=True):
@@ -152,12 +146,6 @@ def sort_dependencies():
 @configuration
 def export(dest, silent, indent, exclude):
     """CLI command wrapping the `exec_export` functionality."""
-
-    exec_export(dest, silent, indent, exclude)
-
-
-def exec_export(dest, silent, indent, exclude):
-    """Exports core metadata for the Sentry installation."""
 
     if exclude is None:
         exclude = ()
