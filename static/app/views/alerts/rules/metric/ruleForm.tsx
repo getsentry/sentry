@@ -36,7 +36,10 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {isValidOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {
+  isOnDemandMetricAlert,
+  isValidOnDemandMetricAlert,
+} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
@@ -127,15 +130,12 @@ const determineAlertDataset = (
     return selectedDataset;
   }
 
-  if (
-    selectedDataset !== Dataset.TRANSACTIONS ||
-    !query.includes('transaction.duration')
-  ) {
-    return selectedDataset;
+  if (isOnDemandMetricAlert(query) && selectedDataset === Dataset.TRANSACTIONS) {
+    // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
+    return Dataset.GENERIC_METRICS;
   }
 
-  // for on-demand metrics extraction we want to override the dataset and use performance metrics instead
-  return Dataset.GENERIC_METRICS;
+  return selectedDataset;
 };
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
