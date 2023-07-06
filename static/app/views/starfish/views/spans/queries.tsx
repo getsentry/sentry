@@ -15,7 +15,6 @@ export const useErrorRateQuery = (queryString: string) => {
   const discoverQuery: NewQuery = {
     id: undefined,
     name: 'HTTP Module - HTTP error rate',
-    projects: [1],
     fields: ['http_error_count()'],
     query: queryString,
     version: 1,

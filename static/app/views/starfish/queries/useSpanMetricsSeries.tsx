@@ -80,7 +80,6 @@ function getEventView(
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, 'low'),
-      projects: [1],
       version: 2,
     },
     location

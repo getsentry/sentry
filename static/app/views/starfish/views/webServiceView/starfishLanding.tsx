@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   PageErrorAlert,
@@ -21,7 +21,6 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
   router: InjectedRouter;
   selection: PageFilters;
   withStaticFilters: boolean;

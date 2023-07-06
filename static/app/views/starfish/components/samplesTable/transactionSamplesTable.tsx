@@ -68,7 +68,6 @@ export function TransactionSamplesTable({queryConditions, sampleFilter}: Props) 
     id: undefined,
     name: 'Endpoint Overview Samples',
     query: query.formatString(),
-    projects: [1],
     fields: [],
     dataset: DiscoverDatasets.DISCOVER,
     version: 2,
