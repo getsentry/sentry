@@ -8,11 +8,11 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import {CheckInStatus, MonitorConfig, ScheduleType} from 'sentry/views/monitors/types';
 
 export function makeMonitorListQueryKey(organization: Organization, location: Location) {
-  const {query, project, environment} = location.query;
+  const {query, project, environment, cursor} = location.query;
 
   return [
     `/organizations/${organization.slug}/monitors/`,
-    {query: {query, project, environment, includeNew: true, per_page: 20}},
+    {query: {cursor, query, project, environment, includeNew: true, per_page: 20}},
   ] as const;
 }
 
