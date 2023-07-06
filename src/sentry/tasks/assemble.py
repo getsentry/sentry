@@ -418,11 +418,6 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
                 if associated_bundle.indexing_state == ArtifactBundleIndexingState.NOT_INDEXED.value
             ]
 
-            # We collect how many bundles we are going to index.
-            metrics.incr(
-                "tasks.assemble.artifact_bundle.bundles_to_index", amount=len(bundles_to_index)
-            )
-
             # We want to index only if we have bundles to index.
             if len(bundles_to_index) > 0:
                 index_artifact_bundles_for_release(
