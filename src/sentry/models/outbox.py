@@ -198,7 +198,7 @@ class OutboxBase(Model):
 
     def save(self, **kwds: Any):
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard())
+            self.drain_shard()
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
@@ -270,29 +270,33 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
-        # When we are flushing in a local context, we don't care about outboxes created concurrently --
-        # at best our logic depends on previously created outboxes.
-        latest_shard_row: OutboxBase | None = None
-        if not flush_all:
-            latest_shard_row = self.selected_messages_in_shard().last()
-            # If we're not flushing all possible shards, and we don't see any immediately values,
-            # drop.
-            if latest_shard_row is None:
-                return
+        def _innner() -> None:
+            # When we are flushing in a local context, we don't care about outboxes created concurrently --
+            # at best our logic depends on previously created outboxes.
+            latest_shard_row: OutboxBase | None = None
+            if not flush_all:
+                latest_shard_row = self.selected_messages_in_shard().last()
+                # If we're not flushing all possible shards, and we don't see any immediately values,
+                # drop.
+                if latest_shard_row is None:
+                    return
 
-        shard_row: OutboxBase | None
-        while True:
-            with self.process_shard(latest_shard_row) as shard_row:
-                if shard_row is None:
-                    break
+            shard_row: OutboxBase | None
+            while True:
+                with self.process_shard(latest_shard_row) as shard_row:
+                    if shard_row is None:
+                        break
+
+                    if _test_processing_barrier:
+                        _test_processing_barrier.wait()
+
+                    shard_row.process()
 
                 if _test_processing_barrier:
                     _test_processing_barrier.wait()
 
-                shard_row.process()
-
-            if _test_processing_barrier:
-                _test_processing_barrier.wait()
+        # Ensure that processing only occurs at a 'top level' transaction.
+        transaction.on_commit(_innner, using=router.db_for_write(type(self)))
 
 
 # Outboxes bound from region silo -> control silo
@@ -468,7 +472,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres"), inner:
+        with in_test_psql_role_override("postgres", using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield

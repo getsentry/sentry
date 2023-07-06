@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 import pytest
 from django.test import override_settings
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.auth import AuthService
@@ -46,15 +45,14 @@ class RpcServiceTest(TestCase):
 
         user = self.create_user()
         organization = self.create_organization()
-        with in_test_psql_role_override("postgres"):
-            OrganizationMapping.objects.update_or_create(
-                organization_id=organization.id,
-                defaults={
-                    "slug": organization.slug,
-                    "name": organization.name,
-                    "region_name": target_region.name,
-                },
-            )
+        OrganizationMapping.objects.update_or_create(
+            organization_id=organization.id,
+            defaults={
+                "slug": organization.slug,
+                "name": organization.name,
+                "region_name": target_region.name,
+            },
+        )
 
         serial_user = RpcUser(id=user.id)
         serial_org = serialize_rpc_organization(organization)

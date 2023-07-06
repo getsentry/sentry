@@ -19,8 +19,9 @@ from sentry.models import (
     Repository,
 )
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
@@ -505,7 +506,7 @@ class ProjectReleaseCreateTest(APITestCase):
         )
 
         # test right org, wrong permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             bad_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
@@ -523,7 +524,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             wrong_org_token_str = generate_token(org2.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
@@ -541,7 +542,7 @@ class ProjectReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test right org, right permissions level
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,

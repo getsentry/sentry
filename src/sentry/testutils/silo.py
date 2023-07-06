@@ -4,7 +4,7 @@ import functools
 import inspect
 import sys
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
@@ -164,28 +164,32 @@ region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
 
 @contextmanager
-def exempt_from_silo_limits() -> Generator[None, None, None]:
-    """Exempt test setup code from silo mode checks.
+def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+    """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
+    test code in a special silo context.
 
-    This can be used to decorate functions that are used exclusively in setting
-    up test cases, so that those functions don't produce false exceptions from
-    writing to tables that wouldn't be allowed in a certain SiloModeTest case.
+    In monolith mode, this context manager has no effect.
+    This context manager, should never be run outside of test contexts.  In fact, it depends on test code that will
+    not exist in production!
 
-    It can also be used as a context manager to enclose setup code within a test
-    method. Such setup code would ideally be moved to the test class's `setUp`
-    method or a helper function where possible, but this is available as a
-    kludge when that's too inconvenient. For example:
+    When run in either Region or Control silo modes, it forces the settings.SILO_MODE to the desired_silo.
+    Notably, this won't be thread safe, so again, only use this in factories and test cases, not code, or you'll
+    have a nightmare when your (threaded) acceptance tests bleed together and do whacky things :o)
 
-    ```
-    @SiloModeTest(SiloMode.REGION)
-    class MyTest(TestCase):
-        def test_something(self):
-            with exempt_from_mode_limits():
-                org = self.create_organization()  # would be wrong if under test
-            do_something(org)  # the actual code under test
-    ```
+    Use this in combination with factories or test setup code to create models that don't correspond with your
+    given test mode.
     """
-    with override_settings(SILO_MODE=SiloMode.MONOLITH):
+    # Only swapping the silo mode if we are already in a silo mode.
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        desired_silo = SiloMode.MONOLITH
+
+    others: Mapping[str, Any] = (
+        dict(SENTRY_REGION="na")
+        if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION")
+        else {}
+    )
+
+    with override_settings(SILO_MODE=desired_silo, **others):
         yield
 
 

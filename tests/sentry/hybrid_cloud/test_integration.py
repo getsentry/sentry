@@ -18,12 +18,12 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
     serialize_organization_integration,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 class BaseIntegrationServiceTest(TestCase):
-    @exempt_from_silo_limits()
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -35,9 +35,10 @@ class BaseIntegrationServiceTest(TestCase):
             status=ObjectStatus.ACTIVE,
             metadata={"meta": "data"},
         )
-        self.org_integration1 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration1.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration1 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration1.id
+            )
         self.integration2 = self.create_integration(
             organization=self.organization,
             name="Github",
@@ -45,18 +46,20 @@ class BaseIntegrationServiceTest(TestCase):
             external_id="github:1",
             oi_params={"config": {"oi_conf": "data"}, "status": ObjectStatus.PENDING_DELETION},
         )
-        self.org_integration2 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration2.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration2 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration2.id
+            )
         self.integration3 = self.create_integration(
             organization=self.organization,
             name="Example",
             provider="example",
             external_id="example:2",
         )
-        self.org_integration3 = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration3.id
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration3 = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration3.id
+            )
         self.integrations = [self.integration1, self.integration2, self.integration3]
         self.org_integrations = [
             self.org_integration1,
@@ -243,7 +246,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_get_organization_context(self):
         new_org = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = self.integration3.add_organization(new_org)
 
         result_integration, result_org_integration = integration_service.get_organization_context(

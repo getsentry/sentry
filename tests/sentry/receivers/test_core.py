@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import router
 from django.test.utils import override_settings
 
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -11,7 +12,7 @@ class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_simple(self):
         user, _ = User.objects.get_or_create(is_superuser=True, defaults={"username": "test"})
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
             OrganizationMapping.objects.all().delete()
         Team.objects.filter(slug="sentry").delete()
@@ -40,7 +41,7 @@ class CreateDefaultProjectsTest(TestCase):
     @override_settings(SENTRY_PROJECT=1)
     def test_without_user(self):
         User.objects.filter(is_superuser=True).delete()
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Team)):
             Team.objects.filter(slug="sentry").delete()
             Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
 
@@ -68,7 +69,7 @@ class CreateDefaultProjectsTest(TestCase):
     def test_no_sentry_project(self):
         with self.settings(SENTRY_PROJECT=None):
             User.objects.filter(is_superuser=True).delete()
-            with in_test_psql_role_override("postgres"):
+            with in_test_psql_role_override("postgres", using=router.db_for_write(Team)):
                 Team.objects.filter(slug="sentry").delete()
                 Project.objects.filter(id=DEFAULT_SENTRY_PROJECT_ID).delete()
 

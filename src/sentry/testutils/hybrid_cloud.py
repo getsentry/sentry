@@ -10,7 +10,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
 from sentry.silo import SiloMode
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class use_real_service:
@@ -92,7 +92,7 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
 
 
 class HybridCloudTestMixin:
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
         org_member.refresh_from_db()
         org_member_mapping_query = OrganizationMemberMapping.objects.filter(
@@ -108,15 +108,6 @@ class HybridCloudTestMixin:
         # only either user_id or email should have a value, but not both.
         assert (email is None and user_id) or (email and user_id is None)
 
-        assert (
-            OrganizationMember.objects.filter(
-                organization_id=org_member.organization_id,
-                user_id=user_id,
-                email=email,
-            ).count()
-            == 1
-        )
-
         assert org_member_mapping.role == org_member.role
         if org_member.inviter_id:
             assert org_member_mapping.inviter_id == org_member.inviter_id
@@ -127,7 +118,7 @@ class HybridCloudTestMixin:
             for key, expected_value in expected.items():
                 assert getattr(org_member_mapping, key) == expected_value
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping_not_exists(self, org_member: OrganizationMember):
         email = org_member.email
         user_id = org_member.user_id
@@ -162,31 +153,32 @@ def simulate_on_commit(request: Any):
     from django.test import TestCase as DjangoTestCase
 
     request_node_cls = request.node.cls
+    is_django_test_case = request_node_cls is not None and issubclass(
+        request_node_cls, DjangoTestCase
+    )
     simulated_transaction_watermarks.state = {}
-
-    if request_node_cls is None or not issubclass(request_node_cls, DjangoTestCase):
-        yield
-        return
 
     _old_atomic_exit = transaction.Atomic.__exit__
     _old_transaction_on_commit = transaction.on_commit
 
     def maybe_flush_commit_hooks(connection):
-        if (
-            connection.in_atomic_block
-            and len(connection.savepoint_ids)
-            <= simulated_transaction_watermarks.state[connection.alias or "default"]
-            and not connection.closed_in_transaction
-            and not connection.needs_rollback
-        ):
-            old_validate = connection.validate_no_atomic_block
-            connection.validate_no_atomic_block = lambda: None
-            try:
-                connection.run_and_clear_commit_hooks()
-            finally:
-                connection.validate_no_atomic_block = old_validate
-        elif not connection.in_atomic_block or not connection.savepoint_ids:
-            assert not connection.run_on_commit, "Incidental run_on_commits detected!"
+        if connection.closed_in_transaction or connection.needs_rollback:
+            return
+
+        watermark = simulated_transaction_watermarks.state.get(connection.alias or "default", -1)
+        if watermark < 0 and connection.in_atomic_block:
+            return
+        if watermark >= 0 and not connection.in_atomic_block:
+            return
+        if len(connection.savepoint_ids) > watermark:
+            return
+
+        old_validate = connection.validate_no_atomic_block
+        connection.validate_no_atomic_block = lambda: None
+        try:
+            connection.run_and_clear_commit_hooks()
+        finally:
+            connection.validate_no_atomic_block = old_validate
 
     def new_atomic_exit(self, exc_type, *args, **kwds):
         _old_atomic_exit(self, exc_type, *args, **kwds)
@@ -199,19 +191,19 @@ def simulate_on_commit(request: Any):
         _old_transaction_on_commit(func, using)
         maybe_flush_commit_hooks(transaction.get_connection(using))
 
+    # django tests start inside two transactions
+    if is_django_test_case:
+        for db_name in settings.DATABASES:
+            simulated_transaction_watermarks.state[db_name] = 1
+
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
     transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
     transaction.on_commit = new_atomic_on_commit
     setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
-
-    # django tests start inside two transactions
-    for db_name in settings.DATABASES:
-        simulated_transaction_watermarks.state[db_name] = 1
     try:
         yield
     finally:
         transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
         transaction.on_commit = _old_transaction_on_commit
-        simulated_transaction_watermarks.state.clear()
         delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")

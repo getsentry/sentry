@@ -1,6 +1,8 @@
 from functools import cached_property
 from unittest.mock import patch
 
+from django.db import router
+
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed, transaction_processed
@@ -84,7 +86,7 @@ class RecordFirstTransactionTest(TestCase):
         )
 
     def test_analytics_event_no_owner(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(organization=self.organization, role="owner").delete()
         assert not self.project.flags.has_transactions
         event = self.store_event(

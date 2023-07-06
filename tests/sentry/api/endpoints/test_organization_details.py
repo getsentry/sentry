@@ -6,6 +6,7 @@ import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
+from django.db import router
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -31,9 +32,10 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -137,7 +139,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # make sure options are not cached the first time to get predictable number of database queries
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             sentry_options.delete("system.rate-limit")
             sentry_options.delete("store.symbolicate-event-lpq-always")
             sentry_options.delete("store.symbolicate-event-lpq-never")
@@ -197,7 +199,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -241,7 +243,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
@@ -788,7 +790,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
@@ -890,7 +892,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
@@ -929,7 +931,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert org_mapping.status == OrganizationStatus.PENDING_DELETION
 
     def test_organization_does_not_exist(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Organization)):
             Organization.objects.all().delete()
 
         self.get_error_response("nonexistent-slug", status_code=404)

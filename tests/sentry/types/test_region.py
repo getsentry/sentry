@@ -1,5 +1,6 @@
 import pytest
 from django.conf import settings
+from django.db import router
 from django.test import override_settings
 
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -57,7 +58,9 @@ class RegionMappingTest(TestCase):
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
         ]
         mapping = OrganizationMapping.objects.get(slug=self.organization.slug)
-        with override_regions(regions), in_test_psql_role_override("postgres"):
+        with override_regions(regions), in_test_psql_role_override(
+            "postgres", using=router.db_for_write(OrganizationMapping)
+        ):
             mapping.update(region_name="az")
             with pytest.raises(RegionResolutionError):
                 # Region does not exist
@@ -105,7 +108,7 @@ class RegionMappingTest(TestCase):
         organization_mapping.region_name = "na"
         organization_mapping.idempotency_key = "test"
 
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
             organization_mapping.save()
 
         region_config = [

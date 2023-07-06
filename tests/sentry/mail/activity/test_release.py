@@ -9,8 +9,9 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.testutils.cases import ActivityTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
@@ -185,7 +186,7 @@ class ReleaseTestCase(ActivityTestCase):
         user6 = self.create_user()
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSetting.objects.update_settings(
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.DEPLOY,

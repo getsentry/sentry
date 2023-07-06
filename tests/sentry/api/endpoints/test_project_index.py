@@ -1,3 +1,4 @@
+from django.db import router
 from django.urls import reverse
 from rest_framework import status
 
@@ -29,7 +30,7 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["organization"]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user(is_superuser=True)
@@ -45,7 +46,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user(is_superuser=False)
@@ -61,7 +62,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_status_filter(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user()
@@ -81,7 +82,7 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project2.id)
 
     def test_query_filter(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user()
@@ -100,7 +101,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_slug_query(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user()
@@ -119,7 +120,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_dsn_filter(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user()
@@ -139,7 +140,7 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_id_query(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Project)):
             Project.objects.all().delete()
 
         user = self.create_user()

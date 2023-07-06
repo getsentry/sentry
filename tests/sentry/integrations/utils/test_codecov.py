@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.db import router
 
 from sentry import options
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -26,7 +27,7 @@ class TestCodecovIntegration(APITestCase):
         options.set("codecov.client-secret", "supersecrettoken")
 
     def test_no_github_integration(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(Integration)):
             Integration.objects.all().delete()
 
         has_integration, error = has_codecov_integration(self.organization)

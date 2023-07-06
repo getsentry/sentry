@@ -5,7 +5,7 @@
 
 from typing import Optional
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import outbox_context
@@ -61,7 +61,6 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
 
                 assert existing
                 apply_update(existing)
-                return serialize_org_member_mapping(existing)
         except IntegrityError as e:
             # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
             # This is "safe" since the upsert here should be a no-op.
@@ -101,5 +100,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            with in_test_psql_role_override("postgres"):
+            with in_test_psql_role_override(
+                "postgres", using=router.db_for_write(OrganizationMemberMapping)
+            ):
                 org_member_map.delete()

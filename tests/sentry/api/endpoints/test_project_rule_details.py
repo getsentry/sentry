@@ -12,9 +12,10 @@ from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -27,7 +28,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None

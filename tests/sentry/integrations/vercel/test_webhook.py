@@ -22,9 +22,10 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -211,7 +212,7 @@ class VercelReleasesTest(APITestCase):
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
             json={},
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.project.delete()
 
         with override_options({"vercel.client-secret": SECRET}):

@@ -7,7 +7,8 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -116,7 +117,7 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
 
     def test_push_event_multiple_organizations_one_missing_repo(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             # Create a repo on the primary organization
             repo = self.create_repo("getsentry/sentry")
 
@@ -139,7 +140,7 @@ class WebhookTest(GitLabTestCase):
             assert commit.repository_id == repo.id
 
     def test_push_event_multiple_organizations(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             # Create a repo on the primary organization
             repo = self.create_repo("getsentry/sentry")
 

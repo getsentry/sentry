@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import router
 from django.db.models import F
 from django.test import override_settings
 from django.urls import reverse
@@ -23,7 +24,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
@@ -55,7 +56,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
@@ -156,30 +157,28 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            with in_test_psql_role_override("postgres"):
-                self.create_organization_mapping(
-                    organization_id=101010,
-                    slug="abcslug",
-                    name="The Thing",
-                    idempotency_key="",
-                    region_name="some-region",
-                )
+            self.create_organization_mapping(
+                organization_id=101010,
+                slug="abcslug",
+                name="The Thing",
+                idempotency_key="",
+                region_name="some-region",
+            )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()
 
             self.login_as(self.user)
 
-            with exempt_from_silo_limits(), outbox_context(flush=False):
+            with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            with in_test_psql_role_override("postgres"):
-                OrganizationMemberMapping.objects.create(
-                    organization_id=101010, organizationmember_id=om.id
-                )
-                OrganizationMemberMapping.objects.create(
-                    organization_id=self.organization.id, organizationmember_id=om.id
-                )
+            OrganizationMemberMapping.objects.create(
+                organization_id=101010, organizationmember_id=om.id
+            )
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
 
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
@@ -195,14 +194,13 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
         self.login_as(self.user)
 
-        with exempt_from_silo_limits(), outbox_context(flush=False):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        with in_test_psql_role_override("postgres"):
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
-            )
+        OrganizationMemberMapping.objects.create(
+            organization_id=self.organization.id, organizationmember_id=om.id
+        )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
             resp = self.client.get(
@@ -257,7 +255,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -277,7 +275,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with exempt_from_silo_limits(), in_test_psql_role_override("postgres"):
+        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override(
+            "postgres", using=router.db_for_write(OrganizationMember)
+        ):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )
@@ -286,7 +286,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
@@ -305,7 +305,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
         assert om.is_pending
@@ -328,7 +328,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -344,7 +344,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 path = self._get_path(url, [om2.id, om2.token])
                 resp = self.client.post(path)
                 assert resp.status_code == 400
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
@@ -371,7 +371,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id

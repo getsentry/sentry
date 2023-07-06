@@ -4,8 +4,10 @@ import contextlib
 import functools
 from typing import Any
 
+from django.test import override_settings
+
+from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
-from sentry.testutils.silo import exempt_from_silo_limits
 
 
 @contextlib.contextmanager
@@ -28,6 +30,6 @@ def outbox_runner(wrapped: Any | None = None) -> Any:
     yield
     from sentry.testutils.helpers.task_runner import TaskRunner
 
-    with TaskRunner(), exempt_from_silo_limits():
+    with TaskRunner(), override_settings(SILO_MODE=SiloMode.MONOLITH):
         while enqueue_outbox_jobs():
             pass

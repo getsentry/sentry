@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from django.db import router
 
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organization import Organization
@@ -12,7 +13,7 @@ from sentry.testutils.factories import Factories
 
 @pytest.fixture(autouse=True)
 def role_override():
-    with in_test_psql_role_override("postgres"):
+    with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
         yield
 
 

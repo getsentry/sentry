@@ -4,6 +4,7 @@ from time import time
 from unittest import mock
 
 import pytz
+from django.db import router
 from django.urls import reverse
 
 from sentry import audit_log
@@ -1202,7 +1203,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")
@@ -1229,7 +1230,7 @@ class CopyProjectSettingsTest(APITestCase):
         team = self.create_team(members=[user])
         project = self.create_project(teams=[team], fire_project_created=True)
 
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(
                 user_id=user.id, organization=self.organization
             ).update(role="admin")

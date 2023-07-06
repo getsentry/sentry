@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.auth import login
 
 
@@ -44,13 +44,13 @@ class AuthenticationMiddlewareTestCase(TestCase):
 
     def test_process_request_user(self):
         request = self.request
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert login(request, self.user)
         with outbox_runner():
             self.middleware.process_request(request)
             # Force the user object to materialize
             request.user.id  # noqa
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
 
         assert request.user.is_authenticated
@@ -61,7 +61,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         self.middleware.process_request(request)
@@ -73,7 +73,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         del request.session["_nonce"]
@@ -84,7 +84,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         user = self.user
         user.session_nonce = "xxx"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             user.save()
             assert login(request, user)
         request.session["_nonce"] = "gtfo"
@@ -92,7 +92,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
 
     def test_process_request_valid_authtoken(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         request = self.make_request(method="GET")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token.token}"
@@ -109,7 +109,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.auth is None
 
     def test_process_request_valid_apikey(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             apikey = ApiKey.objects.create(
                 organization_id=self.organization.id, allowed_origins="*"
             )
@@ -141,7 +141,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         }
         request = self.request
         request.META["REMOTE_ADDR"] = "8.8.8.8"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert login(request, self.user)
 
         with outbox_runner():
@@ -151,7 +151,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.id == self.user.id
         assert mock_geo_by_addr.call_count == 1
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             userip = UserIP.objects.get(user=self.user)
         assert userip.ip_address == "8.8.8.8"
         assert userip.country_code == "US"

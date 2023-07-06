@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
 
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.dispatch import Signal
 
 from sentry import roles
@@ -459,7 +459,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                     pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMember)):
             # Flags are not replicated -- these updates are safe without outbox application.
             OrganizationMember.objects.filter(
                 organization_id=organization_id,
@@ -474,7 +474,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to
         # OrganizationMember objects produces outboxes.  In this case, it is safe to do the update directly because
         # the attribute we are changing never needs to produce an outbox.
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMember)):
             OrganizationMember.objects.filter(user_id=user.id).update(
                 user_is_active=user.is_active, user_email=user.email
             )

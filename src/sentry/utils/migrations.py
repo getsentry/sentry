@@ -1,3 +1,4 @@
+from django.db import router
 from django.db.models import F
 
 from sentry.db.postgres.roles import in_test_psql_role_override
@@ -15,5 +16,5 @@ def clear_flag(Model, flag_name, flag_attr_name="flags"):
             update_kwargs = {
                 flag_attr_name: F(flag_attr_name).bitand(~getattr(Model, flag_attr_name)[flag_name])
             }
-            with in_test_psql_role_override("postgres"):
+            with in_test_psql_role_override("postgres", using=router.db_for_write(Model)):
                 Model.objects.filter(id=item.id).update(**update_kwargs)

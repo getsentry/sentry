@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import contextlib
 import sys
 import threading
 
+from django.conf import settings
 from django.db import transaction
+
+from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
 
 
 @contextlib.contextmanager
-def django_test_transaction_water_mark(using: str = "default"):
+def django_test_transaction_water_mark(using: str | None = None):
     """
     Hybrid cloud outbox flushing depends heavily on transaction.on_commit logic, but our tests do not follow
     production in terms of isolation (TestCase users two outer transactions, and stubbed RPCs cannot simulate
@@ -22,21 +27,20 @@ def django_test_transaction_water_mark(using: str = "default"):
 
     from sentry.testutils import hybrid_cloud
 
-    # No need to manage the watermark unless conftest has configured a watermark
-    if using not in hybrid_cloud.simulated_transaction_watermarks.state:
-        yield
-        return
+    using = determine_using_by_silo_mode(using)
 
     connection = transaction.get_connection(using)
 
-    prev = hybrid_cloud.simulated_transaction_watermarks.state[using]
-    hybrid_cloud.simulated_transaction_watermarks.state[using] = len(connection.savepoint_ids)
+    prev = hybrid_cloud.simulated_transaction_watermarks.state.get(using, -1)
+    hybrid_cloud.simulated_transaction_watermarks.state[using] = (
+        len(connection.savepoint_ids) if connection.in_atomic_block else -1
+    )
     try:
         connection.maybe_flush_commit_hooks()
         yield
     finally:
         hybrid_cloud.simulated_transaction_watermarks.state[using] = min(
-            len(connection.savepoint_ids), prev
+            len(connection.savepoint_ids) if connection.in_atomic_block else -1, prev
         )
 
 
@@ -80,6 +84,10 @@ def in_test_assert_no_transaction(msg: str):
 
     from sentry.testutils import hybrid_cloud
 
-    for using, watermark in hybrid_cloud.simulated_transaction_watermarks.state.items():
+    for using in settings.DATABASES:
         conn = transaction.get_connection(using)
-        assert len(conn.savepoint_ids) <= watermark, msg
+        watermark = hybrid_cloud.simulated_transaction_watermarks.state.get(using, -1)
+        if watermark < 0:
+            assert not conn.in_atomic_block, msg
+        else:
+            assert len(conn.savepoint_ids) <= watermark, msg

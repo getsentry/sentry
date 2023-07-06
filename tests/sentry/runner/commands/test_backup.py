@@ -1,8 +1,9 @@
 import pytest
 from click.testing import CliRunner
-from django.db import IntegrityError
+from django.db import IntegrityError, router
 
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import Organization, User
 from sentry.runner.commands.backup import export, import_
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
@@ -18,7 +19,9 @@ def backup_json_filename(tmp_path):
 
 @django_db_all
 def test_import(backup_json_filename):
-    with in_test_psql_role_override("postgres"):
+    with in_test_psql_role_override(
+        "postgres", using=router.db_for_write(Organization)
+    ), in_test_psql_role_override("postgres", using=router.db_for_write(User)):
         rv = CliRunner().invoke(import_, backup_json_filename)
     assert rv.exit_code == 0, rv.output
 
@@ -35,7 +38,9 @@ def test_import_duplicate_key(backup_json_filename):
     with open(backup_json_filename, "w") as backup_file:
         backup_file.write(json.dumps(contents))
 
-    with in_test_psql_role_override("postgres"):
+    with in_test_psql_role_override(
+        "postgres", using=router.db_for_write(Organization)
+    ), in_test_psql_role_override("postgres", using=router.db_for_write(User)):
         rv = CliRunner().invoke(import_, backup_json_filename)
     assert (
         rv.output
