@@ -140,10 +140,16 @@ def get_channel_id_with_timeout(
                 # Slack limits the response of `<list_type>.list` to 1000 channels
                 items = client.get(endpoint, params=dict(payload, cursor=cursor, limit=1000))
             except ApiRateLimitedError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                logger.info(
+                    f"rule.slack.{list_type}_list_rate_limited",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 raise e
             except ApiError as e:
-                logger.info(f"rule.slack.{list_type}_list_rate_limited", extra={"error": str(e)})
+                logger.info(
+                    f"rule.slack.{list_type}_list_other_error",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 return prefix, None, False
 
             if not isinstance(items, dict):
@@ -221,10 +227,16 @@ def get_channel_id_with_timeout_new(
             try:
                 items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
             except ApiRateLimitedError as e:
-                logger.info("rule.slack.user_list_rate_limited", extra={"error": str(e)})
+                logger.info(
+                    "rule.slack.user_list_rate_limited",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 raise e
             except ApiError as e:
-                logger.info("rule.slack.user_list_api_error", extra={"error": str(e)})
+                logger.info(
+                    "rule.slack.user_list_other_error",
+                    extra={"error": str(e), "integration_id": integration.id},
+                )
                 return prefix, None, False
 
             if not isinstance(items, dict):
