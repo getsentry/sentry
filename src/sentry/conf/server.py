@@ -109,6 +109,7 @@ SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -1354,8 +1355,6 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the new issue states and substates
-    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1655,6 +1654,8 @@ SENTRY_FEATURES = {
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable indexing of artifact bundles for sourcemaps.
+    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

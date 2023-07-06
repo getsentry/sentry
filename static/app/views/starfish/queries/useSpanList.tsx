@@ -103,7 +103,6 @@ function getEventView(
         'http_error_count_percent_change()',
       ],
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     omit(location, 'span.category', 'http.method')
