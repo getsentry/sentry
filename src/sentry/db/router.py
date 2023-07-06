@@ -12,7 +12,7 @@ from sentry.silo.base import SiloLimit, SiloMode
 logger = logging.getLogger(__name__)
 
 
-class SiloConnectionUnavailableError(Exception):
+class SiloConnectionUnavailableError(ValueError):
     pass
 
 
