@@ -1,7 +1,5 @@
-from django.http import HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
 
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import is_valid_redirect
@@ -10,7 +8,7 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 
 class AuthOrganizationIdentifierLoginView(AuthOrganizationLoginView):
     @never_cache
-    def handle(self, request: Request, organization_id) -> HttpResponse:
+    def handle(self, request, organization_id):
         organization_context = organization_service.get_organization_by_id(
             id=organization_id,
         )

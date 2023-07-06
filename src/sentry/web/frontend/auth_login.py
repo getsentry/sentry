@@ -4,7 +4,7 @@ from typing import Optional
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.http import HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
@@ -303,7 +303,7 @@ class AuthLoginView(BaseView):
         return self.redirect_to_org(request)
 
     @never_cache
-    def handle(self, request: Request, *args, **kwargs) -> Response:
+    def handle(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         return super().handle(request, *args, **kwargs)
 
     # XXX(dcramer): OAuth provider hooks this view
