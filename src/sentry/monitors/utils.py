@@ -110,12 +110,15 @@ def fetch_associated_groups(
             limit=Limit(DEFAULT_LIMIT),
             offset=Offset(DEFAULT_OFFSET),
         ),
-        tenant_ids={"organization_id": organization_id},
+        tenant_ids={
+            "referrer": "api.serializer.checkins.trace-ids",
+            "organization_id": organization_id,
+        },
     )
 
     trace_groups: Dict[str, List[int]] = defaultdict(list)
 
-    result = raw_snql_query(snql_request, "api.organization-events", use_cache=False)
+    result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     if "error" not in result:
         for event in result["data"]:
             event_name = Columns.TRACE_ID.value.event_name
