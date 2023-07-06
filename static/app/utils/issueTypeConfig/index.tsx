@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types';
+import cronConfig from 'sentry/utils/issueTypeConfig/cronConfig';
 import errorConfig from 'sentry/utils/issueTypeConfig/errorConfig';
 import performanceConfig from 'sentry/utils/issueTypeConfig/performanceConfig';
 import {
@@ -39,7 +40,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: performanceConfig,
-  [IssueCategory.CRON]: performanceConfig,
+  [IssueCategory.CRON]: cronConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
