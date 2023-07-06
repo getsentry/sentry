@@ -11,7 +11,11 @@ def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
     if instance.id is None:
         return
 
-    member = OrganizationMember.objects.get(id=instance.id)
+    try:
+        member = OrganizationMember.objects.get(id=instance.id)
+    except OrganizationMember.DoesNotExist:
+        return
+
     # member is the last owner and the update will remove the last owner
     assert not (
         member.is_only_owner()
@@ -24,7 +28,11 @@ def prevent_removing_last_owner_team(instance: Team, **kwargs):
     if instance.id is None:
         return
 
-    team = Team.objects.get(id=instance.id)
+    try:
+        team = Team.objects.get(id=instance.id)
+    except Team.DoesNotExist:
+        return
+
     organization = Organization.objects.get_from_cache(id=team.organization_id)
     top_role = organization_roles.get_top_dog().id
 
