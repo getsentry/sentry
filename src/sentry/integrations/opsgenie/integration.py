@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping, MutableMapping, Sequence
 
-# from django import forms
+from django import forms
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
@@ -56,8 +56,43 @@ metadata = IntegrationMetadata(
 )
 
 
+class InstallationForm(forms.Form):
+    base_url = forms.CharField(
+        label=_("Base URL"),
+        help_text=_("Either https://api.opsgenie.com/ or https://api.eu.opsgenie.com/"),
+        widget=forms.TextInput(attrs={"placeholder": "https://api.opsgenie.com/"}),
+    )
+    api_key = forms.CharField(
+        label=("Opsgenie API Key"),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": _("5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737")
+            }
+        ),
+    )
+
+
 class InstallationConfigView(PipelineView):
-    pass
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+        if "goback" in request.GET:
+            pipeline.state.step_index = 0
+            return pipeline.current_step()
+        if request.method == "POST":
+            form = InstallationForm(request.POST)
+            if form.is_valid():
+                form_data = form.cleaned_data
+
+                pipeline.bind_state("installation_data", form_data)
+
+                return pipeline.next_step()
+        else:
+            form = InstallationForm()
+
+        return render_to_response(
+            template="sentry/integrations/opsgenie-config.html",
+            context={"form": form},
+            request=request,
+        )
 
 
 class InstallationGuideView(PipelineView):
@@ -101,7 +136,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     # requires_feature_flag = True  # limited release
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [InstallationGuideView()]
+        return [InstallationGuideView(), InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """
