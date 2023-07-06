@@ -151,7 +151,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         group_id = "test-consumer"
 
         consumer = get_ingest_consumer(
-            consumer_type=ConsumerType.Events,
+            consumer_type=ConsumerType.Attachments,
             group_id=group_id,
             auto_offset_reset="earliest",
             strict_offset_reset=False,
