@@ -5,7 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
@@ -35,7 +35,6 @@ type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  projects: Project[];
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
