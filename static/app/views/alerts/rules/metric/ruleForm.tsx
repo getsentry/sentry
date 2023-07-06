@@ -136,7 +136,7 @@ function determineAlertDataset(
   }
 
   return selectedDataset;
-};
+}
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
   form = new FormModel();
