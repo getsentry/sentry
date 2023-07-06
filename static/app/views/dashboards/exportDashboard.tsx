@@ -1,32 +1,44 @@
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+
 const delete_properties = ['createdBy', 'dateCreated', 'id', 'dashboardId', 'widgetId'];
 
 async function exportDashboard() {
-  const params = getAPIParams();
-  const api_url = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
-  const response = await fetch(api_url);
-  const jsonData = await response.json();
-  const normalized = normalize_data(jsonData);
-  normalized.projects = [];
-  downloadObjectAsJson(normalized, 'dashboard');
+  try {
+    const structure = {
+      base_url: null,
+      dashboard_id: null,
+    };
+
+    const params = getAPIParams(structure);
+    const api_url = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
+    const response = await fetch(api_url);
+    const jsonData = await response.json();
+    const normalized = normalize_data(jsonData);
+    normalized.projects = [];
+
+    downloadObjectAsJson(normalized, 'dashboard');
+  } catch (error) {
+    addErrorMessage(
+      'Could not export dashboard. Please wait or try again with a different dashboard'
+    );
+  }
 }
 
-function getAPIParams() {
+function getAPIParams(structure) {
   const url = window.location.href;
   const regex = {
     base_url: /(\/\/)(.*?)(\/)/,
     dashboard_id: /(dashboard\/)(.*?)(\/)/,
-    org_slug: /(\/\/)(.*?)(.sentry.io\/)/,
   };
-  const response = {};
 
   for (const attr in regex) {
     const match = url.match(regex[attr]);
     if (match?.length) {
-      response[attr] = match.length >= 3 ? match[2] : null;
+      structure[attr] = match.length >= 3 ? match[2] : null;
     }
   }
 
-  return response;
+  return structure;
 }
 
 function normalize_data(source) {
