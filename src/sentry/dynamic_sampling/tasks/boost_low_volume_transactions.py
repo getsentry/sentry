@@ -290,10 +290,11 @@ def get_orgs_with_project_counts(
         last_result = last_result[first_idx:]
         if not more_results:
             break
-    if len(last_result) > 0:
-        yield [org_id for org_id, _ in last_result]
     else:
         log_query_timeout(query="get_orgs_with_project_counts", offset=offset)
+
+    if len(last_result) > 0:
+        yield [org_id for org_id, _ in last_result]
 
 
 def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTransactionsTotals]:
