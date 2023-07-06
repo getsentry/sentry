@@ -18,17 +18,35 @@ class AuthOrganizationIdentifierLoginTest(TestCase):
 
     def test_redirect_for_logged_in_user(self):
         self.login_as(self.user)
-        response = self.client.get(self.path)
-        assert response.status_code == 302
-        self.assertRedirects(response, "/issues/")
+        response = self.client.get(self.path, follow=True)
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            (f"/organizations/{self.organization.slug}/issues/", 302),
+        ]
 
     def test_redirect_for_logged_out_user(self):
-        response = self.client.get(self.path)
-        assert response.status_code == 302
-        self.assertRedirects(response, f"/auth/login/{self.organization.slug}/")
+        response = self.client.get(self.path, follow=True)
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            (f"/auth/login/{self.organization.slug}/", 302),
+        ]
 
     def test_with_next_uri(self):
         self.login_as(self.user)
-        response = self.client.post(self.path + "?next=/projects/")
-        assert response.status_code == 302
-        self.assertRedirects(response, "/projects/")
+        response = self.client.get(self.path + "?next=/projects/", follow=True)
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            ("/projects/", 302),
+        ]
+
+    def test_subdomain_precedence(self):
+        another_org = self.create_organization(name="another org")
+        response = self.client.get(
+            reverse("sentry-auth-organization-id", args=[another_org.id]),
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            (f"/auth/login/{self.organization.slug}/", 302),
+        ]

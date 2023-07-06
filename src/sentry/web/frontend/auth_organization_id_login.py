@@ -1,6 +1,7 @@
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
+from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.auth import is_valid_redirect
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
@@ -9,6 +10,9 @@ from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginVie
 class AuthOrganizationIdentifierLoginView(AuthOrganizationLoginView):
     @never_cache
     def handle(self, request, organization_id):
+        if request.subdomain is not None:
+            return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
+
         organization_context = organization_service.get_organization_by_id(
             id=organization_id,
         )
@@ -20,7 +24,7 @@ class AuthOrganizationIdentifierLoginView(AuthOrganizationLoginView):
             next_uri = self.get_next_uri(request)
             if is_valid_redirect(next_uri, allowed_hosts=(request.get_host())):
                 return self.redirect(next_uri)
-            return self.redirect(reverse("issues"))
+            return self.redirect(Organization.get_url(slug=organization_context.organization.slug))
 
         return self.redirect(
             reverse("sentry-auth-organization", args=[organization_context.organization.slug])
