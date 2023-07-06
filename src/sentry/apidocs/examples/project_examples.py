@@ -488,7 +488,7 @@ def project_with_team(extra_team: bool = False):
             "name": "Prime Mover",
             "slug": "prime-mover",
         },
-        "teams": teams[:1] if not extra_team else teams,
+        "teams": teams if extra_team else teams[:1],
     }
 
 
@@ -544,7 +544,7 @@ class ProjectExamples:
     ADD_TEAM_TO_PROJECT = [
         OpenApiExample(
             "Give a Team Access to a Project",
-            value=project_with_team(),
+            value=project_with_team(extra_team=True),
             status_codes=["201"],
             response_only=True,
         ),
@@ -553,7 +553,7 @@ class ProjectExamples:
     DELETE_TEAM_FROM_PROJECT = [
         OpenApiExample(
             "Revoke a Team's Access to a Project",
-            value=project_with_team(extra_team=True),
+            value=project_with_team(),
             status_codes=["200"],
             response_only=True,
         ),
