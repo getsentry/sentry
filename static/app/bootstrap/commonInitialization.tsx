@@ -5,6 +5,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {Config} from 'sentry/types';
 
 export function commonInitialization(config: Config) {
+  console.log({env: NODE_ENV});
   if (NODE_ENV === 'development') {
     import(/* webpackMode: "eager" */ 'sentry/utils/silence-react-unsafe-warnings');
     if (UI_DEV_ENABLE_PROFILING) {

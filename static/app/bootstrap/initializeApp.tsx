@@ -12,6 +12,7 @@ import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
 export function initializeApp(config: Config) {
+  debugger;
   commonInitialization(config);
   initializeSdk(config, {routes});
 

@@ -167,6 +167,7 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.19.6",
     "@pmmmwh/react-refresh-webpack-plugin": "0.5.10",
+    "@rspack/cli": "^0.2.3",
     "@sentry/jest-environment": "^4.0.0",
     "@styled/typescript-styled-plugin": "^1.0.0",
     "@testing-library/jest-dom": "^5.16.5",

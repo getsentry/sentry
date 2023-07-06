@@ -74,10 +74,10 @@ async function app() {
   const bootstrapImport = import('sentry/bootstrap');
 
   const {bootstrap} = await bootstrapImport;
-  const config = await bootstrap();
-
-  const {initializeMain} = await initalizeMainImport;
-  initializeMain(config);
+  bootstrap().then(async config => {
+    const {initializeMain} = await initalizeMainImport;
+    initializeMain(config);
+  });
 }
 
 app();

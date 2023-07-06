@@ -3,4 +3,4 @@ async function integrationPipeline() {
   init();
 }
 
-integrationPipeline();
+// integrationPipeline();

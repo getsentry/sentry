@@ -21,16 +21,16 @@ export function displayDeployPreviewAlert() {
     <ExternalLink href={`${repoUrl}/tree/${branch}`}>{branch}</ExternalLink>
   );
 
-  AlertStore.addAlert({
-    id: 'deploy-preview',
-    message: tct(
-      'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
-      {commitLink, branchLink}
-    ),
-    type: 'warning',
-    neverExpire: true,
-    noDuplicates: true,
-  });
+  // AlertStore.addAlert({
+  //   id: 'deploy-preview',
+  //   message: tct(
+  //     'You are viewing a frontend deploy preview of [commitLink] ([branchLink])',
+  //     {commitLink, branchLink}
+  //   ),
+  //   type: 'warning',
+  //   neverExpire: true,
+  //   noDuplicates: true,
+  // });
 }
 
 export function displayExperimentalSpaAlert() {
@@ -38,14 +38,14 @@ export function displayExperimentalSpaAlert() {
     return;
   }
 
-  AlertStore.addAlert({
-    id: 'develop-proxy',
-    message: t(
-      'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
-    ),
-    type: 'warning',
-    opaque: true,
-    neverExpire: true,
-    noDuplicates: true,
-  });
+  // AlertStore.addAlert({
+  //   id: 'develop-proxy',
+  //   message: t(
+  //     'You are developing against production Sentry API, please BE CAREFUL, as your changes will affect production data.'
+  //   ),
+  //   type: 'warning',
+  //   opaque: true,
+  //   neverExpire: true,
+  //   noDuplicates: true,
+  // });
 }

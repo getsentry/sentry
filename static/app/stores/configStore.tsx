@@ -40,6 +40,7 @@ const storeConfig: ConfigStoreDefinition = {
   },
 
   loadInitialData(config): void {
+    debugger;
     const shouldUseDarkMode = config.user?.options.theme === 'dark';
 
     this.config = {

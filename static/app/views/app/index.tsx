@@ -125,7 +125,7 @@ function App({children, params}: Props) {
 
     // The app is running in deploy preview mode
     if (DEPLOY_PREVIEW_CONFIG) {
-      displayDeployPreviewAlert();
+      // displayDeployPreviewAlert();
     }
 
     // The app is running in local SPA mode
