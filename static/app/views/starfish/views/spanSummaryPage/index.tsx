@@ -57,7 +57,9 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter = endpoint ? {transactionName: endpoint} : undefined;
+  const queryFilter = endpoint
+    ? {transactionName: endpoint, 'transaction.method': transactionMethod}
+    : undefined;
   const sort =
     fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
