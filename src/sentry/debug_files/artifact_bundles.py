@@ -137,7 +137,12 @@ def index_artifact_bundles_for_release(
         try:
             # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
             # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(ArtifactBundle),
+                    router.db_for_write(ArtifactBundleIndex),
+                )
+            ):
                 # Since we use read committed isolation, the value we read here can change after query execution, but
                 # we have this check in place for analytics purposes.
                 is_bundle_not_indexed = ArtifactBundle.objects.filter(
