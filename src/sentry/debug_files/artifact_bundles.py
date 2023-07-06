@@ -158,6 +158,7 @@ def index_artifact_bundles_for_release(
             metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
+            metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
             sentry_sdk.capture_exception(e)
 
 

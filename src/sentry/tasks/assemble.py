@@ -429,7 +429,7 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
         except Exception as e:
             # We want to capture any exception happening during indexing, since it's crucial to understand if
             # the system is behaving well because the database can easily end up in an inconsistent state.
-            metrics.incr("tasks.assemble.artifact_bundle.indexing_error")
+            metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
             sentry_sdk.capture_exception(e)
 
 
