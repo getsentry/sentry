@@ -2093,8 +2093,6 @@ SENTRY_SCOPES = {
     "openid",
     "profile",
     "email",
-    "address",
-    "phone",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2133,12 +2131,10 @@ SENTRY_SCOPE_SETS = (
     (
         (
             "profile",
-            "Read users personal information like name, profile, gender, birthday, timezone etc. Requires openid scope.",
+            "Read users personal information like name, , avatar, date of joining etc. Requires openid scope.",
         ),
     ),
     (("email", "Read users email address. Requires openid scope."),),
-    (("address", "Read users address. Requires openid scope."),),
-    (("phone", "Read users phone number. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"

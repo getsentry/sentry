@@ -231,7 +231,7 @@ class OAuthTokenCodeTest(TestCase):
             user=self.user,
             application=self.application,
             redirect_uri="https://example.com",
-            scope_list=["openid", "profile", "email", "address", "phone"],
+            scope_list=["openid", "profile", "email"],
         )
         resp = self.client.post(
             self.path,
@@ -247,7 +247,7 @@ class OAuthTokenCodeTest(TestCase):
         data = json.loads(resp.content)
         token = ApiToken.objects.get(token=data["access_token"])
 
-        assert token.get_scopes() == ["openid", "profile", "email", "address", "phone"]
+        assert token.get_scopes() == ["openid", "profile", "email"]
         assert data["refresh_token"] == token.refresh_token
         assert data["access_token"] == token.token
         assert isinstance(data["expires_in"], int)

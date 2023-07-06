@@ -57,8 +57,6 @@ class ApiGrant(Model):
                 "openid": bool,
                 "profile": bool,
                 "email": bool,
-                "address": bool,
-                "phone": bool,
             },
         )
     )
