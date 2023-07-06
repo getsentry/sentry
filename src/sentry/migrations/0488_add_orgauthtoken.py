@@ -66,7 +66,10 @@ class Migration(CheckedMigration):
                 (
                     "created_by",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        blank=True, null=True, on_delete="SET_NULL", to=settings.AUTH_USER_MODEL
+                        blank=True,
+                        null=True,
+                        on_delete=models.SET_NULL,
+                        to=settings.AUTH_USER_MODEL,
                     ),
                 ),
             ],

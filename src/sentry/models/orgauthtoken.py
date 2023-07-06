@@ -38,7 +38,7 @@ class OrgAuthToken(Model):
         validators=[validate_scope_list],
     )
 
-    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete="SET_NULL")
+    created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now, null=False)
     date_last_used = models.DateTimeField(null=True, blank=True)
     project_last_used_id = HybridCloudForeignKey(
