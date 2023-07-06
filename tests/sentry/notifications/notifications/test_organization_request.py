@@ -1,4 +1,4 @@
-from sentry.models import NotificationSetting, OrganizationMember
+from sentry.models import NotificationSetting, OrganizationMemberMapping
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
@@ -12,7 +12,7 @@ from sentry.types.integrations import ExternalProviders
 
 class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
     def determine_member_recipients(self):
-        return OrganizationMember.objects.filter(organization=self.organization)
+        return OrganizationMemberMapping.objects.filter(organization_id=self.organization.id)
 
 
 class DummyRequestNotification(OrganizationRequestNotification):
@@ -21,7 +21,7 @@ class DummyRequestNotification(OrganizationRequestNotification):
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
