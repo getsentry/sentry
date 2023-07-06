@@ -14,9 +14,20 @@ describe('AccountAuthorizations', function () {
       body: [],
     });
 
-    const wrapper = render(<AccountAuthorizations />, {
-      context: TestStubs.routerContext(),
-    });
+    const router = TestStubs.router({});
+    const wrapper = render(
+      <AccountAuthorizations
+        location={TestStubs.location()}
+        routeParams={router.params}
+        params={router.params}
+        routes={router.routes}
+        route={router.routes[0]}
+        router={router}
+      />,
+      {
+        context: TestStubs.routerContext(),
+      }
+    );
 
     expect(wrapper.container).toSnapshot();
   });

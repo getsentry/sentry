@@ -7,7 +7,26 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Tags} from 'sentry/views/discover/tags';
+
+// There seem to be no types for this, but it's essentially what is passed to the
+// EventView constructor
+const commonQueryConditions = {
+  additionalConditions: new MutableSearch([]),
+  display: '',
+  start: '',
+  end: '',
+  id: '',
+  name: '',
+  project: [1],
+  environment: [],
+  topEvents: '',
+  yAxis: '',
+  createdBy: TestStubs.User(),
+  team: TestStubs.Team(),
+  statsPeriod: '14d',
+};
 
 describe('Tags', function () {
   function generateUrl(key, value) {
@@ -53,6 +72,7 @@ describe('Tags', function () {
       fields: [],
       sorts: [],
       query: 'event.type:csp',
+      ...commonQueryConditions,
     });
 
     render(
@@ -61,8 +81,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        selection={{projects: [], environments: [], datetime: {}}}
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -82,6 +101,7 @@ describe('Tags', function () {
       fields: [],
       sorts: [],
       query: 'event.type:csp',
+      ...commonQueryConditions,
     });
 
     const initialData = initializeOrg({
@@ -97,7 +117,6 @@ describe('Tags', function () {
         api={new MockApiClient()}
         organization={org}
         totalValues={30}
-        selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
         confirmedQuery={false}
@@ -125,6 +144,7 @@ describe('Tags', function () {
       fields: [],
       sorts: [],
       query: 'event.type:csp',
+      ...commonQueryConditions,
     });
 
     render(
@@ -133,8 +153,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        selection={{projects: [], environments: [], datetime: {}}}
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />
@@ -161,6 +180,7 @@ describe('Tags', function () {
       fields: [],
       sorts: [],
       query: '',
+      ...commonQueryConditions,
     });
 
     render(
@@ -169,7 +189,6 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        selection={{projects: [], environments: [], datetime: {}}}
         location={initialData.router.location}
         generateUrl={generateUrl}
         confirmedQuery={false}
@@ -225,6 +244,7 @@ describe('Tags', function () {
       fields: [],
       sorts: [],
       query: '',
+      ...commonQueryConditions,
     });
 
     render(
@@ -233,8 +253,7 @@ describe('Tags', function () {
         api={new MockApiClient()}
         totalValues={30}
         organization={org}
-        selection={{projects: [], environments: [], datetime: {}}}
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         generateUrl={generateUrl}
         confirmedQuery={false}
       />

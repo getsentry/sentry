@@ -12,7 +12,7 @@ describe('IntegrationListDirectory', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization: org, routerContext} = initializeOrg();
+  const {organization: org, routerContext, router} = initializeOrg();
 
   describe('Renders view', function () {
     beforeEach(() => {
@@ -36,8 +36,18 @@ describe('IntegrationListDirectory', function () {
 
     it('shows installed integrations at the top in order of weight', function () {
       render(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
-        {context: routerContext}
+        <IntegrationListDirectory
+          params={{orgId: org.slug}}
+          location={router.location}
+          router={router}
+          route={router.routes[0]}
+          routes={router.routes}
+          routeParams={{orgId: org.slug}}
+          hideHeader={false}
+        />,
+        {
+          context: routerContext,
+        }
       );
 
       expect(screen.getByRole('textbox', {name: 'Filter'})).toBeInTheDocument();
@@ -55,7 +65,15 @@ describe('IntegrationListDirectory', function () {
 
     it('does not show legacy plugin that has a First Party Integration if not installed', function () {
       render(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
+        <IntegrationListDirectory
+          params={{orgId: org.slug}}
+          location={router.location}
+          router={router}
+          route={router.routes[0]}
+          routes={router.routes}
+          routeParams={{orgId: org.slug}}
+          hideHeader={false}
+        />,
         {context: routerContext}
       );
 
@@ -64,7 +82,15 @@ describe('IntegrationListDirectory', function () {
 
     it('shows legacy plugin that has a First Party Integration if installed', function () {
       render(
-        <IntegrationListDirectory params={{orgId: org.slug}} location={{search: ''}} />,
+        <IntegrationListDirectory
+          params={{orgId: org.slug}}
+          location={router.location}
+          router={router}
+          route={router.routes[0]}
+          routes={router.routes}
+          routeParams={{orgId: org.slug}}
+          hideHeader={false}
+        />,
         {context: routerContext}
       );
 

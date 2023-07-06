@@ -1,24 +1,29 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import {
+  QuickTraceQueryChildrenProps,
+  TraceMeta,
+} from 'sentry/utils/performance/quickTrace/types';
 import QuickTraceMeta from 'sentry/views/performance/transactionDetails/quickTraceMeta';
 
 describe('QuickTraceMeta', function () {
   const routerContext = TestStubs.routerContext();
   const location = routerContext.context.location;
-  const organization = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.Project({platform: 'javascript'});
   const event = TestStubs.Event({contexts: {trace: {trace_id: 'a'.repeat(32)}}});
-  const emptyQuickTrace = {
+  const emptyQuickTrace: QuickTraceQueryChildrenProps = {
     isLoading: false,
     error: null,
     trace: [],
     type: 'empty',
     currentEvent: null,
   };
-  const emptyTraceMeta = {
+  const emptyTraceMeta: TraceMeta = {
     projects: 0,
     transactions: 0,
     errors: 0,
+    performance_issues: 0,
   };
 
   it('renders basic UI', function () {
@@ -26,7 +31,6 @@ describe('QuickTraceMeta', function () {
       <QuickTraceMeta
         event={event}
         project={project}
-        organization={organization}
         location={location}
         quickTrace={emptyQuickTrace}
         traceMeta={emptyTraceMeta}
@@ -48,7 +52,6 @@ describe('QuickTraceMeta', function () {
       <QuickTraceMeta
         event={event}
         project={project}
-        organization={organization}
         location={location}
         quickTrace={{
           ...emptyQuickTrace,
@@ -74,11 +77,10 @@ describe('QuickTraceMeta', function () {
       <QuickTraceMeta
         event={event}
         project={project}
-        organization={organization}
         location={location}
         quickTrace={{
           ...emptyQuickTrace,
-          error: 'something bad',
+          error: new QueryError('something bad'),
         }}
         traceMeta={emptyTraceMeta}
         anchor="left"
@@ -100,7 +102,6 @@ describe('QuickTraceMeta', function () {
       <QuickTraceMeta
         event={newEvent}
         project={project}
-        organization={organization}
         location={location}
         quickTrace={emptyQuickTrace}
         traceMeta={emptyTraceMeta}
@@ -117,12 +118,10 @@ describe('QuickTraceMeta', function () {
 
   it('renders missing trace with hover card when feature disabled', async function () {
     const newEvent = TestStubs.Event();
-    const newOrg = TestStubs.Organization();
     render(
       <QuickTraceMeta
         event={newEvent}
         project={project}
-        organization={newOrg}
         location={location}
         quickTrace={emptyQuickTrace}
         traceMeta={emptyTraceMeta}
@@ -137,7 +136,12 @@ describe('QuickTraceMeta', function () {
     expect(screen.getByTestId('quick-trace-body')).toHaveTextContent('Missing Trace');
     const qtFooter = screen.getByTestId('quick-trace-footer');
     expect(qtFooter).toHaveTextContent('Read the docs');
-    await userEvent.hover(qtFooter.firstChild);
+
+    const child = qtFooter.firstChild;
+    if (!child) {
+      throw new Error('child is null');
+    }
+    await userEvent.hover(child as HTMLElement);
     expect(
       await screen.findByText('Requires performance monitoring.')
     ).toBeInTheDocument();
@@ -150,7 +154,6 @@ describe('QuickTraceMeta', function () {
       <QuickTraceMeta
         event={newEvent}
         project={newProject}
-        organization={organization}
         location={location}
         quickTrace={emptyQuickTrace}
         traceMeta={emptyTraceMeta}

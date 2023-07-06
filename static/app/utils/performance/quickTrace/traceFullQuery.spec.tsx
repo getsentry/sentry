@@ -42,7 +42,6 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullQuery
-        api={new MockApiClient()}
         traceId={traceId}
         eventId={eventId}
         location={location}
@@ -65,7 +64,6 @@ describe('TraceFullQuery', function () {
     });
     render(
       <TraceFullDetailedQuery
-        api={new MockApiClient()}
         traceId={traceId}
         eventId={eventId}
         location={location}

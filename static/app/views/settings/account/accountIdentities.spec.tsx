@@ -10,6 +10,7 @@ import AccountIdentities from 'sentry/views/settings/account/accountIdentities';
 const ENDPOINT = '/users/me/user-identities/';
 
 describe('AccountIdentities', function () {
+  const router = TestStubs.router();
   beforeEach(function () {
     MockApiClient.clearMockResponses();
   });
@@ -21,7 +22,16 @@ describe('AccountIdentities', function () {
       body: [],
     });
 
-    const {container} = render(<AccountIdentities />);
+    const {container} = render(
+      <AccountIdentities
+        route={router.routes[0]}
+        routeParams={router.params}
+        location={router.location}
+        params={router.params}
+        router={router}
+        routes={router.routes}
+      />
+    );
     expect(container).toSnapshot();
   });
 
@@ -43,7 +53,16 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    const {container} = render(<AccountIdentities />);
+    const {container} = render(
+      <AccountIdentities
+        route={router.routes[0]}
+        routeParams={router.params}
+        location={router.location}
+        params={router.params}
+        router={router}
+        routes={router.routes}
+      />
+    );
     expect(container).toSnapshot();
   });
 
@@ -65,7 +84,16 @@ describe('AccountIdentities', function () {
       ],
     });
 
-    render(<AccountIdentities />);
+    render(
+      <AccountIdentities
+        route={router.routes[0]}
+        routeParams={router.params}
+        location={router.location}
+        params={router.params}
+        router={router}
+        routes={router.routes}
+      />
+    );
 
     const disconnectRequest = {
       url: `${ENDPOINT}social-identity/1/`,

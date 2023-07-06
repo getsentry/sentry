@@ -5,6 +5,7 @@ import OrganizationRepositoriesContainer from 'sentry/views/settings/organizatio
 describe('OrganizationRepositoriesContainer', function () {
   const context = TestStubs.routerContext();
   const organization = TestStubs.Organization();
+  const router = TestStubs.router();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -24,7 +25,15 @@ describe('OrganizationRepositoriesContainer', function () {
 
     it('is loading when initially rendering', function () {
       const wrapper = render(
-        <OrganizationRepositoriesContainer organization={organization} />,
+        <OrganizationRepositoriesContainer
+          router={router}
+          routes={router.routes}
+          params={router.params}
+          routeParams={router.params}
+          route={router.routes[0]}
+          location={router.location}
+          organization={organization}
+        />,
         {
           context,
         }

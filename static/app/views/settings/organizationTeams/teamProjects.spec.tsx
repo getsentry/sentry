@@ -26,6 +26,16 @@ describe('OrganizationTeamProjects', function () {
     projects: [project, project2],
   });
 
+  const router = TestStubs.router();
+  const routerProps = {
+    router,
+    routes: router.routes,
+    params: router.params,
+    routeParams: router.params,
+    route: router.routes[0],
+    location: router.location,
+  };
+
   beforeEach(function () {
     team = TestStubs.Team({slug: 'team-slug'});
 
@@ -62,11 +72,12 @@ describe('OrganizationTeamProjects', function () {
   it('fetches linked and unlinked projects', function () {
     render(
       <OrganizationTeamProjects
+        {...routerProps}
         api={new MockApiClient()}
         organization={organization}
         team={team}
-        params={{orgId: 'org-slug', teamId: team.slug}}
-        location={{query: {}}}
+        params={{teamId: team.slug}}
+        location={{...routerProps.location, query: {}}}
       />,
       {context: routerContext}
     );
@@ -80,11 +91,12 @@ describe('OrganizationTeamProjects', function () {
   it('Should render', async function () {
     const {container} = render(
       <OrganizationTeamProjects
+        {...routerProps}
         api={new MockApiClient()}
         organization={organization}
         team={team}
-        params={{orgId: 'org-slug', teamId: team.slug}}
-        location={{query: {}}}
+        params={{teamId: team.slug}}
+        location={{...routerProps.location, query: {}}}
       />,
       {context: routerContext}
     );
@@ -96,11 +108,12 @@ describe('OrganizationTeamProjects', function () {
   it('Should allow bookmarking', async function () {
     render(
       <OrganizationTeamProjects
+        {...routerProps}
         api={new MockApiClient()}
         organization={organization}
         team={team}
-        params={{orgId: 'org-slug', teamId: team.slug}}
-        location={{query: {}}}
+        params={{teamId: team.slug}}
+        location={{...routerProps.location, query: {}}}
       />,
       {context: routerContext}
     );
@@ -119,11 +132,12 @@ describe('OrganizationTeamProjects', function () {
   it('Should allow adding and removing projects', async function () {
     render(
       <OrganizationTeamProjects
+        {...routerProps}
         api={new MockApiClient()}
         organization={organization}
         team={team}
-        params={{orgId: 'org-slug', teamId: team.slug}}
-        location={{query: {}}}
+        params={{teamId: team.slug}}
+        location={{...routerProps.location, query: {}}}
       />,
       {context: routerContext}
     );
@@ -146,11 +160,12 @@ describe('OrganizationTeamProjects', function () {
   it('handles filtering unlinked projects', async function () {
     render(
       <OrganizationTeamProjects
+        {...routerProps}
         api={new MockApiClient()}
         organization={organization}
         team={team}
-        params={{orgId: 'org-slug', teamId: team.slug}}
-        location={{query: {}}}
+        params={{teamId: team.slug}}
+        location={{...routerProps.location, query: {}}}
       />,
       {context: routerContext}
     );

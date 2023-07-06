@@ -63,13 +63,7 @@ describe('TraceLiteQuery', function () {
 
   it('fetches data on mount and passes the event id', function () {
     render(
-      <QuickTraceQuery
-        event={event}
-        api={new MockApiClient()}
-        location={location}
-        orgSlug="test-org"
-        statsPeriod="24h"
-      >
+      <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
       </QuickTraceQuery>
     );
@@ -80,14 +74,7 @@ describe('TraceLiteQuery', function () {
 
   it('doesnt fetch meta when not needed', function () {
     render(
-      <QuickTraceQuery
-        withMeta={false}
-        event={event}
-        api={new MockApiClient()}
-        location={location}
-        orgSlug="test-org"
-        statsPeriod="24h"
-      >
+      <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
       </QuickTraceQuery>
     );
@@ -99,14 +86,7 @@ describe('TraceLiteQuery', function () {
 
   it('uses lite results when it cannot find current event in full results', async function () {
     render(
-      <QuickTraceQuery
-        withMeta={false}
-        event={event}
-        api={new MockApiClient()}
-        location={location}
-        orgSlug="test-org"
-        statsPeriod="24h"
-      >
+      <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
       </QuickTraceQuery>
     );
@@ -135,14 +115,7 @@ describe('TraceLiteQuery', function () {
     event.contexts.trace.trace_id = `0${traceId}`;
 
     render(
-      <QuickTraceQuery
-        withMeta={false}
-        event={event}
-        api={new MockApiClient()}
-        location={location}
-        orgSlug="test-org"
-        statsPeriod="24h"
-      >
+      <QuickTraceQuery event={event} location={location} orgSlug="test-org">
         {renderQuickTrace}
       </QuickTraceQuery>
     );

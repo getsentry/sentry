@@ -27,7 +27,7 @@ import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -38,19 +38,19 @@ type RouteParams = {
   teamId: string;
 };
 
-type Props = {
+interface Props extends RouteComponentProps<RouteParams, {}> {
   api: Client;
   config: Config;
   organization: Organization;
   team: Team;
-} & RouteComponentProps<RouteParams, {}>;
+}
 
-type State = {
+interface State extends AsyncViewState {
   dropdownBusy: boolean;
   error: boolean;
   orgMembers: Member[];
   teamMembers: TeamMember[];
-} & AsyncView['state'];
+}
 
 class TeamMembers extends AsyncView<Props, State> {
   getDefaultState() {

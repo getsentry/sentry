@@ -34,7 +34,14 @@ describe('TeamMembers', () => {
     });
 
     render(
-      <TeamDetails params={routerContext.context.router.params}>
+      <TeamDetails
+        params={routerContext.context.router.params}
+        route={routerContext.context.router.routes[0]}
+        routes={routerContext.context.router.routes}
+        router={routerContext.context.router}
+        location={routerContext.context.router.location}
+        routeParams={routerContext.context.router.routeParams}
+      >
         <div data-test-id="test" />
       </TeamDetails>,
       {
@@ -57,7 +64,14 @@ describe('TeamMembers', () => {
       },
     });
     render(
-      <TeamDetails params={routerContext.context.router.params}>
+      <TeamDetails
+        params={routerContext.context.router.params}
+        route={routerContext.context.router.routes[0]}
+        routes={routerContext.context.router.routes}
+        router={routerContext.context.router}
+        location={routerContext.context.router.location}
+        routeParams={routerContext.context.router.routeParams}
+      >
         <div data-test-id="test" />
       </TeamDetails>,
       {

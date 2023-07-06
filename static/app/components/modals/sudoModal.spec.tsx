@@ -10,6 +10,7 @@ describe('Sudo Modal', function () {
 
   beforeEach(function () {
     window.__initialData = {
+      ...window.__initialData,
       links: {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://albertos-apples.sentry.io',

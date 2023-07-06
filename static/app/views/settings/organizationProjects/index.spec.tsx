@@ -9,6 +9,7 @@ describe('OrganizationProjects', function () {
   let statsGetMock;
   let projectsPutMock;
   const routerContext = TestStubs.routerContext();
+  const router = TestStubs.router();
 
   beforeEach(function () {
     project = TestStubs.Project();
@@ -35,7 +36,16 @@ describe('OrganizationProjects', function () {
   });
 
   it('should render the projects in the store', async function () {
-    const {container} = render(<OrganizationProjectsContainer location={{query: {}}} />);
+    const {container} = render(
+      <OrganizationProjectsContainer
+        router={router}
+        routes={router.routes}
+        params={router.params}
+        routeParams={router.params}
+        route={router.routes[0]}
+        location={{...router.location, query: {}}}
+      />
+    );
 
     expect(container).toSnapshot();
 
@@ -58,9 +68,19 @@ describe('OrganizationProjects', function () {
       url: `/organizations/${org.slug}/projects/`,
       body: [],
     });
-    render(<OrganizationProjectsContainer location={{query: {}}} />, {
-      context: routerContext,
-    });
+    render(
+      <OrganizationProjectsContainer
+        router={router}
+        routes={router.routes}
+        params={router.params}
+        routeParams={router.params}
+        route={router.routes[0]}
+        location={{...router.location, query: {}}}
+      />,
+      {
+        context: routerContext,
+      }
+    );
 
     const searchBox = screen.getByRole('textbox');
 

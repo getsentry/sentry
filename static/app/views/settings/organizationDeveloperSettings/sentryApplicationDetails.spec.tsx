@@ -13,6 +13,8 @@ describe('Sentry Application Details', function () {
 
   const maskedValue = '*'.repeat(64);
 
+  const router = TestStubs.router();
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
 
@@ -22,7 +24,14 @@ describe('Sentry Application Details', function () {
   describe('Creating a new public Sentry App', () => {
     function renderComponent() {
       return render(
-        <SentryApplicationDetails route={{path: 'new-public/'}} params={{}} />,
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{path: 'new-public/'}}
+          params={{}}
+        />,
         {context: TestStubs.routerContext([{organization: org}])}
       );
     }
@@ -79,7 +88,7 @@ describe('Sentry Application Details', function () {
         'https://webhook.com/setup'
       );
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}), '');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
       await userEvent.paste('{}');
       await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
 
@@ -126,7 +135,14 @@ describe('Sentry Application Details', function () {
   describe('Creating a new internal Sentry App', () => {
     function renderComponent() {
       return render(
-        <SentryApplicationDetails route={{path: 'new-internal/'}} params={{}} />,
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={{path: 'new-internal/'}}
+          params={{}}
+        />,
         {context: TestStubs.routerContext([{organization: org}])}
       );
     }
@@ -153,9 +169,19 @@ describe('Sentry Application Details', function () {
 
   describe('Renders public app', function () {
     function renderComponent() {
-      return render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
@@ -207,9 +233,19 @@ describe('Sentry Application Details', function () {
 
   describe('Renders for internal apps', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
@@ -268,9 +304,19 @@ describe('Sentry Application Details', function () {
 
   describe('Renders masked values', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
@@ -307,9 +353,19 @@ describe('Sentry Application Details', function () {
 
   describe('Editing internal app tokens', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
@@ -367,16 +423,26 @@ describe('Sentry Application Details', function () {
       renderComponent();
 
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
-      await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}), '');
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}));
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
     });
   });
 
   describe('Editing an existing public Sentry App', () => {
     function renderComponent() {
-      return render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      return render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
@@ -458,9 +524,19 @@ describe('Sentry Application Details', function () {
 
   describe('Editing an existing public Sentry App with a scope error', () => {
     function renderComponent() {
-      render(<SentryApplicationDetails params={{appSlug: sentryApp.slug}} />, {
-        context: TestStubs.routerContext([{organization: org}]),
-      });
+      render(
+        <SentryApplicationDetails
+          router={router}
+          location={router.location}
+          routes={router.routes}
+          routeParams={{}}
+          route={router.routes[0]}
+          params={{appSlug: sentryApp.slug}}
+        />,
+        {
+          context: TestStubs.routerContext([{organization: org}]),
+        }
+      );
     }
 
     beforeEach(() => {
