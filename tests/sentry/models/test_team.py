@@ -72,6 +72,17 @@ class TeamTest(TestCase):
         assert team.id < 1_000_000_000
         assert Team.objects.filter(id=team.id).exists()
 
+    def test_cannot_demote_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(AssertionError):
+            team = self.create_team(self.organization, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.org_role = "manager"
+            team.save()
+
 
 class TransferTest(TestCase):
     def test_simple(self):
@@ -201,3 +212,13 @@ class TeamDeletionTest(TestCase):
             type=NotificationSettingTypes.ISSUE_ALERTS,
             team_id=team_id,
         ).exists()
+
+    def test_cannot_delete_last_owner_team(self):
+        org = self.create_organization()
+
+        with pytest.raises(AssertionError):
+            team = self.create_team(self.organization, org_role="owner")
+            self.create_member(
+                organization=org, role="member", user=self.create_user(), teams=[team]
+            )
+            team.delete()
