@@ -39,7 +39,8 @@ const issueTypeConfig: Config = {
   [IssueCategory.ERROR]: errorConfig,
   [IssueCategory.PERFORMANCE]: performanceConfig,
   [IssueCategory.PROFILE]: performanceConfig,
-  [IssueCategory.CRON]: performanceConfig,
+  // TODO(crons): We may need a custom config similar to performance
+  [IssueCategory.CRON]: errorConfig,
 };
 
 const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
