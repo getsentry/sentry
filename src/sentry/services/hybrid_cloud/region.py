@@ -106,11 +106,11 @@ class RequireSingleOrganization(RegionResolution):
 
     def resolve(self, arguments: ArgumentDict) -> Region:
         if not settings.SENTRY_SINGLE_ORGANIZATION:
-            raise Exception("Can't access default organization except in single-org environment")
+            raise Exception("Method is available only in single-org environment")
 
         all_org_mappings = list(self.organization_mapping_manager.all()[:2])
         if len(all_org_mappings) != 1:
-            raise Exception("Can't resolve to a single region")
+            raise Exception("Expected to find a single org while in single-org mode")
 
         (single_org_mapping,) = all_org_mappings
         return self._resolve_from_mapping(single_org_mapping)
