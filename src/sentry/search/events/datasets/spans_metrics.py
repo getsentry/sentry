@@ -378,6 +378,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
+            query=self.builder.query if scope == "local" else None,
             selected_columns=["sum(span.self_time)"],
         )
 
