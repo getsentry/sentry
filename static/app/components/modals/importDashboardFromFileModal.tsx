@@ -115,7 +115,7 @@ function ImportDashboardFromFileModal({
           <CodeSnippet language="json">{dashboardData}</CodeSnippet>
         </Fragment>
       )}
-    </div>
+    </Fragment>
   );
 }
 
