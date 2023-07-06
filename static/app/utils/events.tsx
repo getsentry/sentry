@@ -446,6 +446,8 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     has_source_maps: event ? eventHasSourceMaps(event) : false,
     has_trace: event ? hasTrace(event) : false,
     has_commit: !!event?.release?.lastCommit,
+    has_next_event: event ? defined(event.nextEventID) : false,
+    has_previous_event: event ? defined(event.previousEventID) : false,
     is_symbolicated: event ? eventIsSymbolicated(event) : false,
     event_errors: event ? getEventErrorString(event) : '',
     frames_with_sourcemaps_percent: framesWithSourcemapsPercent,
