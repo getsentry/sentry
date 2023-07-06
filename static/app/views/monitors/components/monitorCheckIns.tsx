@@ -72,10 +72,6 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
   const generateDownloadUrl = (checkin: CheckIn) =>
     `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
-  const renderDateTime = (date: string, timezone?: string) => (
-    <DateTime date={date} forcedTimezone={timezone} timeZone={!!timezone} timeOnly />
-  );
-
   const emptyCell = <Text>{'\u2014'}</Text>;
 
   return (
@@ -105,12 +101,19 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
               <div>
                 {monitor.config.timezone ? (
                   <Tooltip
-                    title={renderDateTime(checkIn.dateCreated, monitor.config.timezone)}
+                    title={
+                      <DateTime
+                        date={checkIn.dateCreated}
+                        forcedTimezone={monitor.config.timezone}
+                        timeZone
+                        timeOnly
+                      />
+                    }
                   >
-                    {renderDateTime(checkIn.dateCreated)}
+                    {<DateTime date={checkIn.dateCreated} timeOnly />}
                   </Tooltip>
                 ) : (
-                  renderDateTime(checkIn.dateCreated)
+                  <DateTime date={checkIn.dateCreated} timeOnly />
                 )}
               </div>
             ) : (
