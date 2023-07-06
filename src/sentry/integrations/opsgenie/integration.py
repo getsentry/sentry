@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from django.utils.translation import gettext_lazy as _
 
@@ -52,7 +52,15 @@ metadata = IntegrationMetadata(
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    pass
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        """
+        "config": [
+            {"team_name": team 1, "integration_key": team 1 API key, "id": team 1 ID},
+            {"team_name": team 2, "integration_key": team 2 API key, "id": team 2 ID}.
+            ...
+        ]
+        """
+        return super().update_organization_config(data)
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
@@ -61,10 +69,16 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # limited release
+    # requires_feature_flag = True  # limited release
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return super().get_pipeline_views()
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
-        return super().build_integration(state)
+        """
+        "metadata": {
+            "api_key": org-level API key
+            "base_url": should be https://api.opsgenie.com/ or https://api.eu.opsgenie.com/
+        }
+        """
+        return {}
