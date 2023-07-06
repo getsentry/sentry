@@ -88,9 +88,15 @@ export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'child
     ...props,
   });
 
-  const pageLinks = res.response?.getResponseHeader('Link') ?? undefined;
+  let pageLinks: string | undefined;
 
-  return {...res, pageLinks};
+  if (typeof res.response?.getResponseHeader === 'function') {
+    pageLinks = res.response?.getResponseHeader('Link') ?? undefined;
+  }
+
+  // console.log({pageLinks, ...res});
+
+  return {pageLinks, ...res};
 }
 
 export default DiscoverQuery;

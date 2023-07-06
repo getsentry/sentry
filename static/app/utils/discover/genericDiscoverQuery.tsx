@@ -1,6 +1,7 @@
 import {Component, useContext} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Location} from 'history';
+import moment from 'moment';
 
 import {EventQuery} from 'sentry/actionCreators/events';
 import {Client, ResponseMeta} from 'sentry/api';
@@ -414,6 +415,21 @@ function getPayload<T, P>(props: Props<T, P>) {
   return payload;
 }
 
+const getDateComponentCacheKey = (statsPeriod: string | undefined): string => {
+  if (!statsPeriod) {
+    return '';
+  }
+  const unit = statsPeriod.slice(-1);
+  // If the unit is in days, then the cache invalidates after an hour, otherwise 5 minutes
+  const date = moment();
+  date.set({second: 0, millisecond: 0});
+  if (unit === 'd') {
+    return date.endOf('hour').format();
+  }
+  const remainder = 5 - (date.minute() % 5);
+  return date.add(remainder, 'minutes').format();
+};
+
 export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const api = useApi();
   const {orgSlug, route, options} = props;
@@ -421,7 +437,7 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   const apiPayload = getPayload<T, P>(props);
 
   const res = useQuery<[T, string | undefined, ResponseMeta<T> | undefined], QueryError>(
-    [route, apiPayload],
+    [route, apiPayload, getDateComponentCacheKey(apiPayload.statsPeriod)],
     () =>
       doDiscoverQuery<T>(api, url, apiPayload, {
         queryBatching: props.queryBatching,
