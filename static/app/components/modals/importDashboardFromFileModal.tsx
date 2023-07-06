@@ -86,7 +86,7 @@ function ImportDashboardFromFileModal({
   };
 
   return (
-    <div>
+    <Fragment>
       <Header closeButton>
         <h4>{t('Import Dashboard from JSON File')}</h4>
       </Header>
