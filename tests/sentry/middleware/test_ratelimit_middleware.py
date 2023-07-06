@@ -3,10 +3,9 @@ from functools import cached_property
 from time import sleep, time
 from unittest.mock import patch
 
-from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from freezegun import freeze_time
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -325,10 +324,12 @@ class CallableRateLimitConfigEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
-    url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
-    url(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
-    url(
+    re_path(
+        r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"
+    ),
+    re_path(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+    re_path(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
+    re_path(
         r"^/callable-config$",
         CallableRateLimitConfigEndpoint.as_view(),
         name="callable-config-endpoint",

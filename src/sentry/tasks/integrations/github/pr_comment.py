@@ -43,8 +43,6 @@ This pull request has been deployed and Sentry has observed the following issues
 
 {issue_list}
 
-Have questions? Reach out to us in the #proj-github-pr-comments channel.
-
 <sub>Did you find this useful? React with a 👍 or 👎</sub>"""
 
 SINGLE_ISSUE_TEMPLATE = "- ‼️ **{title}** `{subtitle}` [View Issue]({url})"
