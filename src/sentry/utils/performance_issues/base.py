@@ -34,6 +34,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
+    N_PLUS_ONE_API_CALLS_EXTENDED = "n_plus_one_api_calls_ext"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
     LARGE_HTTP_PAYLOAD = "large_http_payload"
@@ -49,6 +50,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
+    DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: PerformanceNPlusOneAPICallsGroupType,
     DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
     DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
