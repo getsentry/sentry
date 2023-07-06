@@ -26,6 +26,7 @@ _SNUBA_TO_RELAY_FIELDS = {
     "contexts[geo.country_code]": "event.geo.country_code",
     "http_method": "event.http.method",
     "release": "event.release",
+    "transaction_name": "event.transaction",
     "transaction_op": "event.transaction.op",
     "transaction_status": "event.transaction.status",
     "duration": "event.duration",
