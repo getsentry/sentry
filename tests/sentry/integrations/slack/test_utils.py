@@ -141,7 +141,6 @@ class GetChannelIdFasterTest(GetChannelIdTest):
             self.organization, self.integration, channel
         )
 
-    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_channel_selected_new(self):
         self.add_msg_response("m-c")
         self.resp.add(
@@ -153,7 +152,6 @@ class GetChannelIdFasterTest(GetChannelIdTest):
         )
         self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
 
-    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_private_channel_selected_new(self):
         self.add_msg_response("m-p-c")
         self.resp.add(
@@ -165,7 +163,6 @@ class GetChannelIdFasterTest(GetChannelIdTest):
         )
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
 
-    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_member_selected(self):
         self.add_msg_response("channel_not_found")
         self.add_list_response(
@@ -179,7 +176,6 @@ class GetChannelIdFasterTest(GetChannelIdTest):
         )
         self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
-    @with_feature("organizations:slack-use-new-lookup")
     def test_valid_member_selected_display_name(self):
         self.add_msg_response("channel_not_found")
         self.add_list_response(
