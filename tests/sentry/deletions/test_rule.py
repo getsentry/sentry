@@ -1,10 +1,10 @@
 from sentry.models import (
     GroupRuleStatus,
+    RegionScheduledDeletion,
     Rule,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
-    ScheduledDeletion,
 )
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.tasks.deletion.scheduled import run_deletion
@@ -27,7 +27,7 @@ class DeleteRuleTest(TestCase):
         )
         rule_activity = RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
 
-        deletion = ScheduledDeletion.schedule(rule, days=0)
+        deletion = RegionScheduledDeletion.schedule(rule, days=0)
         deletion.update(in_progress=True)
 
         with self.tasks():

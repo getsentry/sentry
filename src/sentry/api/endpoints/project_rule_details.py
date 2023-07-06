@@ -14,10 +14,10 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRule
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
     RuleStatus,
-    ScheduledDeletion,
     SentryAppComponent,
     Team,
     User,
@@ -207,7 +207,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
-        scheduled = ScheduledDeletion.schedule(rule, days=0, actor=request.user)
+        scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
