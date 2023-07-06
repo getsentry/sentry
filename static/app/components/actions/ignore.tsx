@@ -230,7 +230,11 @@ function IgnoreActions({
           priority="primary"
           size="xs"
           onClick={() =>
-            onUpdate({status: ResolutionStatus.UNRESOLVED, statusDetails: {}})
+            onUpdate({
+              status: ResolutionStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: GroupSubstatus.ONGOING,
+            })
           }
           aria-label={t('Unignore')}
         />
