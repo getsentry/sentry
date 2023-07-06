@@ -209,7 +209,6 @@ export type SavedQueryVersions = 1 | 2;
 export interface NewQuery {
   fields: Readonly<string[]>;
   name: string;
-  projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
@@ -220,6 +219,7 @@ export interface NewQuery {
   id?: string;
   interval?: string;
   orderby?: string;
+  projects?: Readonly<number[]>;
   query?: string;
   range?: string;
   start?: string | Date;
