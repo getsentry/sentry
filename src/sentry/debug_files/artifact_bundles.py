@@ -151,14 +151,14 @@ def index_artifact_bundles_for_release(
 
                 # Now we index the urls in the bundle.
                 _index_urls_in_bundle(artifact_bundle, release, dist, date_added, urls)
+
+            # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
+            # there and wait for auto-expiration.
+            metrics.incr("artifact_bundle_indexing.bundles_indexed")
+            metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             sentry_sdk.capture_exception(e)
-
-        # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
-        # there and wait for auto-expiration.
-        metrics.incr("artifact_bundle_indexing.bundles_indexed")
-        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
 
 
 def _index_urls_in_bundle(
