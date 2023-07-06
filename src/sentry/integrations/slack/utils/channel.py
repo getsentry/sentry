@@ -67,8 +67,7 @@ def get_channel_id(
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
 
-    new_lookup = features.has("organizations:slack-use-new-lookup", organization)
-    if new_lookup:
+    if features.has("organizations:slack-use-new-lookup", organization):
         return get_channel_id_with_timeout_new(integration, channel_name, timeout)
     return get_channel_id_with_timeout(integration, channel_name, timeout)
 
@@ -186,7 +185,7 @@ def get_channel_id_with_timeout_new(
     timeout: int,
 ) -> Tuple[str, Optional[str], bool]:
     """
-    Fetches the internal slack id of a channel.
+    Fetches the internal slack id of a channel using scheduled message.
     :param integration: The slack integration
     :param name: The name of the channel
     :param timeout: Our self-imposed time limit.
@@ -214,7 +213,6 @@ def get_channel_id_with_timeout_new(
         prefix = "#"
     except ApiError as e:
         if str(e) != "channel_not_found":
-            # return prefix, None, False
             raise e
         # Check if user
         while True:
@@ -226,7 +224,7 @@ def get_channel_id_with_timeout_new(
                 logger.info("rule.slack.user_list_rate_limited", extra={"error": str(e)})
                 raise e
             except ApiError as e:
-                logger.info("rule.slack.user_list_rate_limited", extra={"error": str(e)})
+                logger.info("rule.slack.user_list_api_error", extra={"error": str(e)})
                 return prefix, None, False
 
             if not isinstance(items, dict):
@@ -273,7 +271,7 @@ def check_for_channel(
         "/chat.scheduleMessage",
         data={
             "channel": name,
-            "text": "Sentry looking for channel",
+            "text": "Sentry is verifying your channel is accessible for sending you alert rule notifications",
             "post_at": int(time.time() + 500),
         },
     )

@@ -1649,7 +1649,7 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
-    # slack lookup
+    # Enables slack channel lookup via schedule message
     "organizations:slack-use-new-lookup": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
