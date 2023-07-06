@@ -1259,6 +1259,31 @@ register(
     default=1000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
+register(
+    "performance.issues.db_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.file_io_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.uncompressed_asset.size_threshold",
+    default=500 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # 512 kilo bytes
+register(
+    "performance.issues.uncompressed_asset.duration_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.consecutive_db.min_time_saved_threshold",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
