@@ -178,7 +178,7 @@ class PerformanceDetectionTest(TestCase):
         )
         assert not configured_settings[DetectorType.UNCOMPRESSED_ASSETS]["detection_enabled"]
 
-    def test_project_options_overrides_default__threshold_settings(self):
+    def test_project_options_overrides_default_threshold_settings(self):
 
         default_settings = get_detection_settings(self.project)
 
