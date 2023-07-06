@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
 
 import {
   searchFrameFzf,

@@ -10,7 +10,7 @@ import {
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
-import ProfilesAndTransactionProvider from 'sentry/views/profiling/profilesProvider';
+import ProfilesAndTransactionProvider from 'sentry/domains/profiling/providers/profilesProvider';
 
 jest.mock('sentry/utils/useParams', () => ({
   useParams: jest.fn(),

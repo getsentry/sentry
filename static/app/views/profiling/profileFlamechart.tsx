@@ -5,29 +5,31 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
-import {DeepPartial} from 'sentry/types/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {ProfileGroupTypeProvider} from 'sentry/domains/profiling/providers/profileGroupTypeProvider';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
   FlamegraphState,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
+} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContext';
+import {FlamegraphStateProvider} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContextProvider';
 import {
   decodeFlamegraphStateFromQueryParams,
   FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
   FlamegraphStateLocalStorageSync,
   FlamegraphStateQueryParamSync,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+} from 'sentry/domains/profiling/hooks/flamegraphQueryParamSync';
+import {FlamegraphThemeProvider} from 'sentry/domains/profiling/providers/flamegraphThemeProvider';
+import {useCurrentProjectFromRouteParam} from 'sentry/domains/profiling/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {t} from 'sentry/locale';
+import {DeepPartial} from 'sentry/types/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
-import {useProfiles, useProfileTransaction} from './profilesProvider';
+import {
+  useProfiles,
+  useProfileTransaction,
+} from '../../domains/profiling/providers/profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
@@ -109,31 +111,6 @@ function ProfileFlamegraph(): React.ReactElement {
         </ProfileGroupTypeProvider>
       </FlamegraphStateProvider>
     </SentryDocumentTitle>
-  );
-}
-
-// This only exists because we need to call useFlamegraphPreferences
-// to get the type of visualization that the user is looking at and
-// we cannot do it in the component above as it is not a child of the
-// FlamegraphStateProvider.
-function ProfileGroupTypeProvider({
-  children,
-  input,
-  traceID,
-}: {
-  children: React.ReactNode;
-  input: Profiling.ProfileInput | null;
-  traceID: string;
-}) {
-  const preferences = useFlamegraphPreferences();
-  return (
-    <ProfileGroupProvider
-      input={input}
-      traceID={traceID}
-      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
-    >
-      {children}
-    </ProfileGroupProvider>
   );
 }
 

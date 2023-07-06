@@ -3,22 +3,25 @@ import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconInfo} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import type {FlamegraphSearch as FlamegraphSearchResults} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphSearch';
+import {memoizeByReference} from 'sentry/domains/profiling/utils/profile/utils';
+import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {useFlamegraphSearch} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
-} from 'sentry/utils/profiling/flamegraphFrame';
-import {fzf} from 'sentry/utils/profiling/fzf/fzf';
-import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {parseRegExp} from 'sentry/utils/profiling/validators/regExp';
+} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {fzf} from 'sentry/domains/profiling/utils/profiling/fzf/fzf';
+import {
+  SpanChart,
+  SpanChartNode,
+} from 'sentry/domains/profiling/utils/profiling/spanChart';
+import {parseRegExp} from 'sentry/domains/profiling/utils/validators/regExp';
+import {IconChevron, IconInfo} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 export function searchFrameFzf(
   frame: FlamegraphFrame,

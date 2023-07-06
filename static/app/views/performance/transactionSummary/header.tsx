@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
-import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/domains/profiling/utils/profiling/platforms';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 

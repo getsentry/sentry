@@ -1,9 +1,9 @@
 import {useCallback} from 'react';
 
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {getTranslationMatrixFromPhysicalSpace} from 'sentry/utils/profiling/gl/utils';
+import {getTranslationMatrixFromPhysicalSpace} from 'sentry/domains/profiling/utils/gl/utils';
+import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
 
 export function useCanvasScroll(
   canvas: FlamegraphCanvas | null,

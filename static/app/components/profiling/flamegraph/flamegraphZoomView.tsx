@@ -5,41 +5,41 @@ import {vec2} from 'gl-matrix';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
-import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {handleFlamegraphKeyboardNavigation} from 'sentry/utils/profiling/flamegraph/flamegraphKeyboardNavigation';
-import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
-import {
-  useDispatchFlamegraphState,
-  useFlamegraphState,
-} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {
-  FlamegraphFrame,
-  getFlamegraphFrameSearchId,
-} from 'sentry/utils/profiling/flamegraphFrame';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {FlamegraphSearchResult} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphSearch';
+import {useProfileGroup} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {FlamegraphRenderer} from 'sentry/domains/profiling/renderers/flamegraphRenderer';
+import {FlamegraphTextRenderer} from 'sentry/domains/profiling/renderers/flamegraphTextRenderer';
+import {GridRenderer} from 'sentry/domains/profiling/renderers/gridRenderer';
+import {SampleTickRenderer} from 'sentry/domains/profiling/renderers/sampleTickRenderer';
+import {SelectedFrameRenderer} from 'sentry/domains/profiling/renderers/selectedFrameRenderer';
 import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-} from 'sentry/utils/profiling/gl/utils';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
-import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
-import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
-import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {DifferentialFlamegraph} from 'sentry/domains/profiling/utils/profiling/differentialFlamegraph';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {handleFlamegraphKeyboardNavigation} from 'sentry/domains/profiling/utils/profiling/flamegraph/flamegraphKeyboardNavigation';
+import {useFlamegraphSearch} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {
+  useDispatchFlamegraphState,
+  useFlamegraphState,
+} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameSearchId,
+} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {useContextMenu} from 'sentry/domains/profiling/utils/profiling/hooks/useContextMenu';
+import {useInternalFlamegraphDebugMode} from 'sentry/domains/profiling/utils/profiling/hooks/useInternalFlamegraphDebugMode';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {t} from 'sentry/locale';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

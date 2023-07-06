@@ -8,8 +8,8 @@ import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/funct
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
-import {formatSort} from 'sentry/utils/profiling/hooks/utils';
+import {useProfileFunctions} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileFunctions';
+import {formatSort} from 'sentry/domains/profiling/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';

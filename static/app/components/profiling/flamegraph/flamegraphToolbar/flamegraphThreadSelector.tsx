@@ -2,14 +2,14 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {FlamegraphState} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContext';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
+import {Profile} from 'sentry/domains/profiling/utils/profile/profile';
+import {makeFormatter} from 'sentry/domains/profiling/utils/units/units';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 export interface FlamegraphThreadSelectorProps {
   onThreadIdChange: (threadId: Profile['threadId']) => void;

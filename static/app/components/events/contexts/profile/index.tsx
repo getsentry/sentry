@@ -2,11 +2,11 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {generateProfileFlamechartRoute} from 'sentry/domains/profiling/utils/routes';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {Event, ProfileContext, ProfileContextKey} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 

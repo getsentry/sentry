@@ -1,9 +1,9 @@
 import {Location} from 'history';
 
 import {Button, ButtonProps} from 'sentry/components/button';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/domains/profiling/utils/routes';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {useTransactionProfileId} from './transactionProfileIdProvider';

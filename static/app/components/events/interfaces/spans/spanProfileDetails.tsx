@@ -6,6 +6,12 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
 import {Tooltip} from 'sentry/components/tooltip';
+import {useProfileGroup} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {CallTreeNode} from 'sentry/domains/profiling/models/callTreeNode';
+import {Profile} from 'sentry/domains/profiling/utils/profile/profile';
+import {Frame as ProfilingFrame} from 'sentry/domains/profiling/utils/profiling/frame';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/domains/profiling/utils/routes';
+import {formatTo} from 'sentry/domains/profiling/utils/units/units';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,14 +19,8 @@ import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/eve
 import {StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {Frame as ProfilingFrame} from 'sentry/utils/profiling/frame';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
-import {formatTo} from 'sentry/utils/profiling/units/units';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {SpanType} from './types';
 

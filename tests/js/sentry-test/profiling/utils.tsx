@@ -1,6 +1,6 @@
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {EventedProfile} from 'sentry/domains/profiling/utils/profile/eventedProfile';
+import {createFrameIndex} from 'sentry/domains/profiling/utils/profile/utils';
 
 export const makeContextMock = (
   partialMock: Partial<WebGLRenderingContext> = {}

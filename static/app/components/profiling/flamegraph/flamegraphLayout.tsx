@@ -1,13 +1,13 @@
 import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {FlamegraphTheme} from 'sentry/domains/profiling/constants/flamegraphTheme';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,

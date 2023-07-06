@@ -22,6 +22,11 @@ import {TransactionToProfileButton} from 'sentry/components/profiling/transactio
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {Tooltip} from 'sentry/components/tooltip';
+import {ProfileGroupProvider} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {
+  ProfileContext,
+  ProfilesProvider,
+} from 'sentry/domains/profiling/providers/profilesProvider';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -39,8 +44,6 @@ import withRouteAnalytics, {
   WithRouteAnalyticsProps,
 } from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 import {getSelectedProjectPlatforms} from '../utils';

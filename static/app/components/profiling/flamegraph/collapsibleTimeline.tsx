@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 
 interface CollapsibleTimelineProps {
   children: React.ReactNode;

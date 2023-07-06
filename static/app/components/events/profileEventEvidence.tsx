@@ -1,12 +1,12 @@
 import {Button} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/domains/profiling/utils/routes';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type ProfileEvidenceProps = {event: Event; projectSlug: string};

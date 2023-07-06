@@ -4,22 +4,25 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {useProfileTransaction} from 'sentry/domains/profiling/providers/profilesProvider';
+import {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {filterFlamegraphTree} from 'sentry/domains/profiling/utils/profiling/filterFlamegraphTree';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
+import {invertCallTree} from 'sentry/domains/profiling/utils/profile/utils';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';

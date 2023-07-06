@@ -7,15 +7,18 @@ import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
 } from 'sentry/components/profiling/profilingBreadcrumbs';
+import {useProfiles} from 'sentry/domains/profiling/providers/profilesProvider';
+import {
+  isSchema,
+  isSentrySampledProfile,
+} from 'sentry/domains/profiling/utils/guards/profile';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
-import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 function getTransactionName(input: Profiling.ProfileInput): string {
   if (isSchema(input)) {

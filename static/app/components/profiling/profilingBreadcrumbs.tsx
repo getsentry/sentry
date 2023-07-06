@@ -3,13 +3,13 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import _Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
-import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,
   generateProfilingRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
+} from 'sentry/domains/profiling/utils/routes';
+import {t} from 'sentry/locale';
+import {Organization, Project} from 'sentry/types';
 
 export interface ProfilingBreadcrumbsProps {
   organization: Organization;

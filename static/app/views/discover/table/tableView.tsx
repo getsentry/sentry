@@ -14,6 +14,7 @@ import Link from 'sentry/components/links/link';
 import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
 import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
+import {generateProfileFlamechartRoute} from 'sentry/domains/profiling/utils/routes';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -42,7 +43,6 @@ import {
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';

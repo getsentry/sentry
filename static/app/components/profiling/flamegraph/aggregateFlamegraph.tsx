@@ -14,32 +14,32 @@ import {Button} from 'sentry/components/button';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {Flex} from 'sentry/components/profiling/flex';
 import SwitchButton from 'sentry/components/switchButton';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
 import {
   useFlamegraphTheme,
   useMutateFlamegraphTheme,
-} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {useProfileGroup} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {FlamegraphRendererWebGL} from 'sentry/domains/profiling/renderers/flamegraphRendererWebGL';
 import {
   computeConfigViewWithStrategy,
   useResizeCanvasObserver,
-} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {Flamegraph as FlamegraphModel} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {useFlamegraphProfiles} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 

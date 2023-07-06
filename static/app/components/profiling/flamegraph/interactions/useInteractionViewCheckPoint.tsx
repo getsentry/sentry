@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import usePrevious from 'sentry/utils/usePrevious';
 
 export function useInteractionViewCheckPoint({

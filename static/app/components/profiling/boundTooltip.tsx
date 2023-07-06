@@ -2,11 +2,11 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {space} from 'sentry/styles/space';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {Rect} from 'sentry/utils/profiling/speedscope';
 import theme from 'sentry/utils/theme';
 
 function computeBestTooltipPlacement(

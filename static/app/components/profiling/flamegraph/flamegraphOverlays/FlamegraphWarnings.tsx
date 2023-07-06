@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {t} from 'sentry/locale';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+import {useProfiles} from 'sentry/domains/profiling/providers/profilesProvider';
 
 interface FlamegraphWarningProps {
   flamegraph: Flamegraph;

@@ -31,20 +31,23 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
-import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
+import {useProfileEvents} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
+import {useProfileFilters} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileFilters';
+import {
+  formatError,
+  formatSort,
+} from 'sentry/domains/profiling/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
-import {LandingWidgetSelector} from './landing/landingWidgetSelector';
-import {ProfileCharts} from './landing/profileCharts';
-import {ProfilesChartWidget} from './landing/profilesChartWidget';
-import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
-import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
+import {LandingWidgetSelector} from '../../domains/profiling/components/landingWidgetSelector';
+import {ProfilingOnboardingPanel} from '../../domains/profiling/components/profilingOnboardingPanel';
+import {ProfileCharts} from '../../domains/profiling/components/profileCharts';
+import {ProfilesChartWidget} from '../../domains/profiling/components/profilesChartWidget';
+import {ProfilingSlowestTransactionsPanel} from '../../domains/profiling/components/profilingSlowestTransactionsPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';
 const RIGHT_WIDGET_CURSOR = 'rightCursor';

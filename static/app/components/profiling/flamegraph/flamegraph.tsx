@@ -24,45 +24,51 @@ import {
 } from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
-import {EntryType, EventTransaction} from 'sentry/types';
-import {EntrySpans} from 'sentry/types/event';
-import {defined} from 'sentry/utils';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphSearch';
+import {useProfileGroup} from 'sentry/domains/profiling/providers/profileGroupProvider';
 import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+  useProfileTransaction,
+  useSetProfiles,
+} from 'sentry/domains/profiling/providers/profilesProvider';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
   useResizeCanvasObserver,
-} from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {SpanTree} from 'sentry/utils/profiling/spanTree';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {Flamegraph as FlamegraphModel} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {useFlamegraphProfiles} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useFlamegraphSearch} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {useFlamegraphZoomPosition} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
+import {
+  SpanChart,
+  SpanChartNode,
+} from 'sentry/domains/profiling/utils/profiling/spanChart';
+import {SpanTree} from 'sentry/domains/profiling/utils/profiling/spanTree';
+import {UIFrames} from 'sentry/domains/profiling/utils/profiling/uiFrames';
+import {FlamegraphRendererWebGL} from 'sentry/domains/profiling/renderers/flamegraphRendererWebGL';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {
+  formatTo,
+  ProfilingFormatterUnit,
+} from 'sentry/domains/profiling/utils/units/units';
+import {EntryType, EventTransaction} from 'sentry/types';
+import {EntrySpans} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-import {
-  useProfileTransaction,
-  useSetProfiles,
-} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';

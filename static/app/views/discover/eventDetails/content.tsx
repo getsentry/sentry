@@ -20,6 +20,11 @@ import {TransactionProfileIdProvider} from 'sentry/components/profiling/transact
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
+import {ProfileGroupProvider} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {
+  ProfileContext,
+  ProfilesProvider,
+} from 'sentry/domains/profiling/providers/profilesProvider';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -43,8 +48,6 @@ import {
 import Projects from 'sentry/utils/projects';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import DiscoverBreadcrumb from '../breadcrumb';
 import {generateTitle, getExpandedResults} from '../utils';

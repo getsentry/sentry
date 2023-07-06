@@ -1,8 +1,8 @@
 import {computePreviewConfigView} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {SampledProfile} from 'sentry/domains/profiling/utils/profile/sampledProfile';
+import {createFrameIndex} from 'sentry/domains/profiling/utils/profile/utils';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 
 describe('computePreviewConfigView', function () {
   it('uses early exit with 0', function () {

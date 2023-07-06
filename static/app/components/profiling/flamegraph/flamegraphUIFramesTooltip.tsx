@@ -3,13 +3,13 @@ import * as React from 'react';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
+import {UIFramesRenderer} from 'sentry/domains/profiling/renderers/uiFramesRenderer';
+import {toRGBAString} from 'sentry/domains/profiling/utils/colors/utils';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {UIFrames} from 'sentry/domains/profiling/utils/profiling/uiFrames';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {t} from 'sentry/locale';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {toRGBAString} from 'sentry/utils/profiling/colors/utils';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {
   FlamegraphTooltipColorIndicator,

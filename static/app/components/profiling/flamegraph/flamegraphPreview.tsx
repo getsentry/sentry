@@ -3,21 +3,21 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
-import {defined} from 'sentry/utils';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {FlamegraphRenderer2D} from 'sentry/domains/profiling/renderers/flamegraphRenderer2D';
+import {FlamegraphTextRenderer} from 'sentry/domains/profiling/renderers/flamegraphTextRenderer';
+import {useResizeCanvasObserver} from 'sentry/domains/profiling/utils/gl/utils';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
-import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {formatTo} from 'sentry/utils/profiling/units/units';
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {Flamegraph as FlamegraphModel} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {formatTo} from 'sentry/domains/profiling/utils/units/units';
+import {defined} from 'sentry/utils';
 
 interface FlamegraphPreviewProps {
   flamegraph: FlamegraphModel;

@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {t} from 'sentry/locale';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 
 export interface FlamegraphViewSelectMenuProps {
   onSortingChange: (sorting: FlamegraphViewSelectMenuProps['sorting']) => void;

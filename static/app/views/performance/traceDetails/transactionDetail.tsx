@@ -19,6 +19,7 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
+import {generateProfileFlamechartRoute} from 'sentry/domains/profiling/utils/routes';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -29,7 +30,6 @@ import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {CustomProfiler} from 'sentry/utils/performanceForSentry';
-import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';

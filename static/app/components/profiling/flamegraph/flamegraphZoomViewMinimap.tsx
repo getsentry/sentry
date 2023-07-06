@@ -2,23 +2,23 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {FlamegraphRendererWebGL} from 'sentry/domains/profiling/renderers/flamegraphRendererWebGL';
+import {PositionIndicatorRenderer} from 'sentry/domains/profiling/renderers/positionIndicatorRenderer';
 import {
   getConfigSpaceTranslationBetweenVectors,
   getMinimapCanvasCursor,
   getPhysicalSpacePositionFromOffset,
-} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
-import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

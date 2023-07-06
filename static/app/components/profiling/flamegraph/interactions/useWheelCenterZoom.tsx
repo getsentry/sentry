@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
 import {vec2} from 'gl-matrix';
 
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {getCenterScaleMatrixFromMousePosition} from 'sentry/utils/profiling/gl/utils';
+import {getCenterScaleMatrixFromMousePosition} from 'sentry/domains/profiling/utils/gl/utils';
+import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
 
 export function useWheelCenterZoom(
   canvas: FlamegraphCanvas | null,

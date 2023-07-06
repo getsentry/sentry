@@ -2,22 +2,22 @@ import {CSSProperties, Fragment, useCallback, useEffect, useMemo, useState} from
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {useProfiles} from 'sentry/domains/profiling/providers/profilesProvider';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-} from 'sentry/utils/profiling/gl/utils';
-import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {UIFrameNode, UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {UIFrameNode, UIFrames} from 'sentry/domains/profiling/utils/profiling/uiFrames';
+import {UIFramesRenderer} from 'sentry/domains/profiling/renderers/uiFramesRenderer';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {t} from 'sentry/locale';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

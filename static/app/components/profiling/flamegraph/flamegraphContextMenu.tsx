@@ -12,23 +12,23 @@ import {
   ProfilingContextMenuItemCheckbox,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {
+  FlamegraphColorCodings,
+  FlamegraphSorting,
+  FlamegraphViewOptions,
+} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {useContextMenu} from 'sentry/domains/profiling/utils/profiling/hooks/useContextMenu';
+import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/domains/profiling/utils/routes';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  FlamegraphColorCodings,
-  FlamegraphSorting,
-  FlamegraphViewOptions,
-} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';

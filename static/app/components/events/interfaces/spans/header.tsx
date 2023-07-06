@@ -26,7 +26,7 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
-import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
+import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,

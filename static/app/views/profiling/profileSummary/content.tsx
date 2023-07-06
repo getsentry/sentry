@@ -10,13 +10,13 @@ import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFla
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
+import {ProfileCharts} from 'sentry/domains/profiling/components/profileCharts';
+import {useProfileEvents} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
+import {formatSort} from 'sentry/domains/profiling/utils/profiling/hooks/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
   location: Location;

@@ -11,25 +11,28 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
-import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
-import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
+import {useProfileTransaction} from 'sentry/domains/profiling/providers/profilesProvider';
+import {SelectedFrameRenderer} from 'sentry/domains/profiling/renderers/selectedFrameRenderer';
+import {SpanChartRenderer2D} from 'sentry/domains/profiling/renderers/spansRenderer';
+import {SpansTextRenderer} from 'sentry/domains/profiling/renderers/spansTextRenderer';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-} from 'sentry/utils/profiling/gl/utils';
-import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
-import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
-import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
+} from 'sentry/domains/profiling/utils/gl/utils';
+import {
+  CanvasPoolManager,
+  useCanvasScheduler,
+} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {useFlamegraphSearch} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {
+  SpanChart,
+  SpanChartNode,
+} from 'sentry/domains/profiling/utils/profiling/spanChart';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
+import {t} from 'sentry/locale';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';

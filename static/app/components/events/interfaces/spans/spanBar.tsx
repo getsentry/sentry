@@ -56,7 +56,7 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
-import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
+import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,

@@ -2007,7 +2007,9 @@ function buildRoutes() {
       />
       <Route
         path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+        component={make(
+          () => import('sentry/domains/profiling/providers/profilesProvider')
+        )}
       >
         <Route
           path="flamechart/"

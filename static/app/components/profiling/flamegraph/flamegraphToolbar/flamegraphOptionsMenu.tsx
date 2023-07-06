@@ -2,12 +2,12 @@ import {Fragment, useCallback} from 'react';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
+import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
-import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 
 interface FlamegraphOptionsMenuProps {
   canvasPoolManager: CanvasPoolManager;

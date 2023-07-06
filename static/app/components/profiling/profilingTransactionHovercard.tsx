@@ -9,16 +9,16 @@ import {
   FunctionsMiniGridLoading,
 } from 'sentry/components/profiling/functionsMiniGrid';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
+import {useProfilingTransactionQuickSummary} from 'sentry/domains/profiling/utils/profiling/hooks/useProfilingTransactionQuickSummary';
+import {
+  generateProfileFlamechartRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
+} from 'sentry/domains/profiling/utils/routes';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
-import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
-import {
-  generateProfileFlamechartRouteWithQuery,
-  generateProfileSummaryRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {Button} from '../button';

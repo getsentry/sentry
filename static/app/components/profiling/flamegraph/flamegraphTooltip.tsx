@@ -3,18 +3,18 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
+import {CallTreeNode} from 'sentry/domains/profiling/models/callTreeNode';
+import {FlamegraphRenderer} from 'sentry/domains/profiling/renderers/flamegraphRenderer';
+import {formatColorForFrame} from 'sentry/domains/profiling/utils/gl/utils';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
-import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,

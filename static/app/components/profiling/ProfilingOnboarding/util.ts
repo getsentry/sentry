@@ -1,11 +1,11 @@
 import partition from 'lodash/partition';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Project} from 'sentry/types/project';
 import {
   getDocsPlatformSDKForPlatform,
   SupportedProfilingPlatformSDK,
-} from 'sentry/utils/profiling/platforms';
+} from 'sentry/domains/profiling/utils/profiling/platforms';
+import {Project} from 'sentry/types/project';
 
 export const profilingOnboardingDocKeys = [
   '0-alert',

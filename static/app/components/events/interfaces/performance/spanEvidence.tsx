@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
+import {ProfilesProvider} from 'sentry/domains/profiling/profiling/profilesProvider';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,7 +14,6 @@ import {
   Organization,
 } from 'sentry/types';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 import {projectDetectorSettingsId} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 import TraceView from '../spans/traceView';

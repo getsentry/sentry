@@ -6,14 +6,14 @@ import {Panel} from 'sentry/components/panels';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {useAggregateFlamegraphQuery} from 'sentry/domains/profiling/hooks/useAggregateFlamegraphQuery';
+import {FlamegraphStateProvider} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContextProvider';
+import {ProfileGroupProvider} from 'sentry/domains/profiling/providers/profileGroupProvider';
+import {FlamegraphThemeProvider} from 'sentry/domains/profiling/providers/flamegraphThemeProvider';
+import {Frame} from 'sentry/domains/profiling/utils/profiling/frame';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
-import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {Frame} from 'sentry/utils/profiling/frame';
-import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(

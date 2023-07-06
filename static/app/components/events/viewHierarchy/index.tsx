@@ -12,8 +12,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+} from 'sentry/domains/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeRenderedRow} from 'sentry/domains/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';

@@ -1,8 +1,8 @@
 import {createContext, useContext, useEffect, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {useProfileEvents} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
 import {PageFilters} from 'sentry/types';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const TransactionProfileContext = createContext<string | null | undefined>(undefined);

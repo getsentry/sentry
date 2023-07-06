@@ -2,13 +2,16 @@ import {useMemo} from 'react';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
+import {SpanChartRenderer2D} from 'sentry/domains/profiling/renderers/spansRenderer';
+import {formatColorForSpan} from 'sentry/domains/profiling/utils/gl/utils';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
+import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
+import {
+  SpanChart,
+  SpanChartNode,
+} from 'sentry/domains/profiling/utils/profiling/spanChart';
+import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {t} from 'sentry/locale';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {formatColorForSpan} from 'sentry/utils/profiling/gl/utils';
-import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {
   FlamegraphTooltipColorIndicator,

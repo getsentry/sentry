@@ -1,6 +1,6 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as useProfileEventsModule from 'sentry/utils/profiling/hooks/useProfileEvents';
+import * as useProfileEventsModule from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
 import * as useApiModule from 'sentry/utils/useApi';
 
 import * as TransactionProfileIdProviderModule from './transactionProfileIdProvider';
