@@ -401,9 +401,6 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
     # We collect how many times we run indexing.
     metrics.incr("tasks.assemble.artifact_bundle.start_indexing")
 
-    # We collect how many bundles we are going to index.
-    metrics.incr("tasks.assemble.artifact_bundle.bundles_to_index", amount=len(associated_bundles))
-
     # We want to measure how much time it takes to perform indexing.
     with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
         # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
@@ -420,6 +417,11 @@ def _index_bundle_if_needed(org_id: int, release: str, dist: str, date_snapshot:
                 for associated_bundle in associated_bundles
                 if associated_bundle.indexing_state == ArtifactBundleIndexingState.NOT_INDEXED.value
             ]
+
+            # We collect how many bundles we are going to index.
+            metrics.incr(
+                "tasks.assemble.artifact_bundle.bundles_to_index", amount=len(bundles_to_index)
+            )
 
             # We want to index only if we have bundles to index.
             if len(bundles_to_index) > 0:

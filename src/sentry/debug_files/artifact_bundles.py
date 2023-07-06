@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import DefaultDict, Dict, List, Set
 
+import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, router
 from django.db.models import Q
@@ -132,75 +133,86 @@ def index_artifact_bundles_for_release(
     # irrespectively if we have urls to add for that bundle.
     for artifact_bundle in artifact_bundles:
         urls = urls_by_bundle.get(artifact_bundle, set())
-        # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
-        # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-        with atomic_transaction(
-            using=(
-                router.db_for_write(ArtifactBundleIndex),
-                router.db_for_write(ArtifactBundle),
-            )
-        ):
-            is_bundle_not_indexed = ArtifactBundle.objects.filter(
-                id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value
-            ).exists()
-            # If the bundle was already indexed, we will skip insertion into the database.
-            if not is_bundle_not_indexed:
-                metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
-                continue
 
-            for url in urls:
-                key = {
-                    "organization_id": artifact_bundle.organization_id,
-                    "release_name": release,
-                    "dist_name": dist,
-                    "url": url,
-                }
-                value = {
-                    "date_last_modified": artifact_bundle.date_last_modified,
-                    "date_added": date_added,
-                    "artifact_bundle_id": artifact_bundle.id,
-                }
-                # Also here we want to perform the comparison by falling back to id in case of equal dates.
-                condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
-                    date_last_modified=artifact_bundle.date_last_modified,
-                    artifact_bundle_id__lt=artifact_bundle.id,
-                )
+        try:
+            # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
+            # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
+            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
+                # Since we use read committed isolation, the value we read here can change after query execution, but
+                # we have this check in place for analytics purposes.
+                is_bundle_not_indexed = ArtifactBundle.objects.filter(
+                    id=artifact_bundle.id,
+                    indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+                ).exists()
+                # If the bundle was already indexed, we will skip insertion into the database.
+                if not is_bundle_not_indexed:
+                    metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
+                    continue
 
-                # NOTE:
-                # Ideally, we would want a single atomic query for this upsert.
-                # This would be possible with postgres using:
-                # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
-                # However, writing raw SQL would be too error-prone.
-                # The builtin `update_or_create` functionality is also not up for the task,
-                # as it does not support an additional update condition,
-                # and would do even more queries, so we split this up into two separate queries:
-                # - Try to update a matching row.
-                # - Otherwise, try to insert it.
-                # - Ignore any key conflicts. This happens if the row exists, but does not match the `condition`.
-                did_update = ArtifactBundleIndex.objects.filter(
-                    condition,
-                    **key,
-                ).update(**value)
-                # The `did_update` result will be 0 in case:
-                # 1. There is no value in the index
-                # 2. There is a value but has higher timestamp or bundle id
-                # We don't distinguish between them and since we don't, we might end up with duplicates into the
-                # database and since we don't have uniqueness constraints (partitioning doesn't support them), we must
-                # de-duplicate on the reading side.
-                if not did_update:
-                    try:
-                        ArtifactBundleIndex.objects.create(
-                            **key,
-                            **value,
-                        )
-                    except IntegrityError:
-                        pass
-
-            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
-            )
+                # Now we index the urls in the bundle.
+                _index_urls_in_bundle(artifact_bundle, release, dist, date_added, urls)
+        except Exception as e:
+            # We want to catch the error and continue execution, since we can try to index the other bundles.
+            sentry_sdk.capture_exception(e)
 
         # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
         # there and wait for auto-expiration.
         metrics.incr("artifact_bundle_indexing.bundles_indexed")
         metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
+
+
+def _index_urls_in_bundle(
+    artifact_bundle: ArtifactBundle, release: str, dist: str, date_added: datetime, urls: Set[str]
+):
+    for url in urls:
+        key = {
+            "organization_id": artifact_bundle.organization_id,
+            "release_name": release,
+            "dist_name": dist,
+            "url": url,
+        }
+        value = {
+            "date_last_modified": artifact_bundle.date_last_modified,
+            "date_added": date_added,
+            "artifact_bundle_id": artifact_bundle.id,
+        }
+        # Also here we want to perform the comparison by falling back to id in case of equal dates.
+        condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
+            date_last_modified=artifact_bundle.date_last_modified,
+            artifact_bundle_id__lt=artifact_bundle.id,
+        )
+
+        # NOTE:
+        # Ideally, we would want a single atomic query for this upsert.
+        # This would be possible with postgres using:
+        # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
+        # However, writing raw SQL would be too error-prone.
+        # The builtin `update_or_create` functionality is also not up for the task,
+        # as it does not support an additional update condition,
+        # and would do even more queries, so we split this up into two separate queries:
+        # - Try to update a matching row.
+        # - Otherwise, try to insert it.
+        # - Ignore any key conflicts. This happens if the row exists, but does not match the `condition`.
+        did_update = ArtifactBundleIndex.objects.filter(
+            condition,
+            **key,
+        ).update(**value)
+        # The `did_update` result will be 0 in case:
+        # 1. There is no value in the index
+        # 2. There is a value but has higher timestamp or bundle id
+        # We don't distinguish between them and since we don't, we might end up with duplicates into the
+        # database and since we don't have uniqueness constraints (partitioning doesn't support them), we must
+        # de-duplicate on the reading side.
+        if not did_update:
+            try:
+                ArtifactBundleIndex.objects.create(
+                    **key,
+                    **value,
+                )
+            except IntegrityError:
+                pass
+
+    # We have to mark the bundle as indexed now.
+    ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
+        indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+    )
