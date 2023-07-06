@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-# import logging
+import logging
 from typing import Any, Mapping, Sequence
 
-# from django import forms
 from django.utils.translation import gettext_lazy as _
 
-# from sentry import options
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
@@ -14,9 +12,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-
-# from sentry.models import Integration, OrganizationIntegration
 from sentry.pipeline import PipelineView
+
+logger = logging.getLogger("sentry.integrations.opsgenie")
 
 DESCRIPTION = """
 Trigger alerts in Opsgenie from Sentry.
@@ -42,14 +40,13 @@ FEATURES = [
     ),
 ]
 
-# need to add feature flag?
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Integration%20Problem",
-    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/opsgenie",  # currently incorrect, as it hasn't been merged
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/opsgenie",
     aspects={},
 )
 
@@ -64,7 +61,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    # requires_feature_flag = True  # limited release
+    requires_feature_flag = True  # limited release
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return super().get_pipeline_views()
