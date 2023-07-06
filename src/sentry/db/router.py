@@ -12,6 +12,10 @@ from sentry.silo.base import SiloLimit, SiloMode
 logger = logging.getLogger(__name__)
 
 
+class SiloConnectionUnavailableError(Exception):
+    pass
+
+
 class SiloRouter:
     """
     Django database router for multi-region deployments.
@@ -75,7 +79,7 @@ class SiloRouter:
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
-    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str):
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str:
         # XXX This method has an override in getsentry for region silo primary splits.
         active_mode = SiloMode.get_current_mode()
 
@@ -89,7 +93,7 @@ class SiloRouter:
             if active_mode == silo_mode:
                 return "default"
 
-            raise ValueError(
+            raise SiloConnectionUnavailableError(
                 f"Cannot resolve table {table} in {silo_mode}. "
                 f"Application silo mode is {active_mode} and simulated silos are not enabled."
             )
