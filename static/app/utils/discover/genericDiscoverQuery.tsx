@@ -423,7 +423,7 @@ const getDateComponentCacheKey = (statsPeriod: string | undefined): string => {
   // If the unit is in days, then the cache invalidates after an hour, otherwise 5 minutes
   const date = moment();
   date.set({second: 0, millisecond: 0});
-  if (unit === 'd') {
+  if (unit === 'd' || unit === 'm' || unit === 'w') {
     return date.endOf('hour').format();
   }
   const remainder = 5 - (date.minute() % 5);
