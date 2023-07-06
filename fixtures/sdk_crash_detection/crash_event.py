@@ -1,4 +1,4 @@
-from typing import Any, Collection, Dict, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, MutableMapping, Sequence
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
@@ -15,7 +15,7 @@ IN_APP_FRAME = {
 }
 
 
-def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
+def get_sentry_frame(function: str, in_app: bool = False) -> MutableMapping[str, Any]:
     return {
         "function": function,
         "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
@@ -24,7 +24,9 @@ def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
     }
 
 
-def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Mapping[str, Any]]:
+def get_frames(
+    function: str, sentry_frame_in_app: bool = False
+) -> Sequence[MutableMapping[str, Any]]:
     frames = [
         get_sentry_frame(function, sentry_frame_in_app),
         {
@@ -35,6 +37,9 @@ def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Map
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
         },
+        get_sentry_frame(
+            "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2", False
+        ),
         IN_APP_FRAME,
         {
             "function": "-[UIViewController _setViewAppearState:isAnimating:]",
@@ -173,6 +178,7 @@ def get_crash_event_with_frames(
                 "boot_time": "2023-02-01T05:21:23Z",
                 "timezone": "PST",
                 "type": "device",
+                "simulator": True,
             },
             "os": {
                 "name": "iOS",
@@ -226,7 +232,7 @@ def get_crash_event_with_frames(
         "environment": "test-app",
         "sdk": {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
             "integrations": [
                 "Crash",
                 "PerformanceTracking",

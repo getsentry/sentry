@@ -26,8 +26,8 @@ import {SpanDescription} from 'sentry/views/starfish/components/spanDescription'
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMeta, useSpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
+import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -66,23 +66,15 @@ function SpanSummaryPage({params, location}: Props) {
     queryFilter['transaction.method'] = endpointMethod;
   }
 
-  const {data: spanMetas, isLoading: isSpanMetaLoading} = useSpanMeta(
-    groupId,
-    queryFilter,
-    'span-summary-page-span-meta'
-  );
-  // TODO: Span meta might in theory return more than one row! In that case, we
-  // need to indicate in the UI that more than one set of meta corresponds to
-  // the span group
-  const span = {
-    group: groupId,
-    ...spanMetas?.[0],
-  };
-
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, isLoading: isSpanMetricsLoading} = useSpanMetrics(
     {group: groupId},
     queryFilter,
     [
+      'span.op',
+      'span.description',
+      'span.action',
+      'span.domain',
+      'count()',
       'sps()',
       `sum(${SPAN_SELF_TIME})`,
       `p95(${SPAN_SELF_TIME})`,
@@ -90,6 +82,8 @@ function SpanSummaryPage({params, location}: Props) {
     ],
     'span-summary-page-metrics'
   );
+
+  const span = Object.assign({group: groupId}, spanMetrics as SpanMetrics & SpanMeta);
 
   const {isLoading: areSpanMetricsSeriesLoading, data: spanMetricsSeriesData} =
     useSpanMetricsSeries(
@@ -138,11 +132,11 @@ function SpanSummaryPage({params, location}: Props) {
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
-              {!isSpanMetaLoading && <Breadcrumbs crumbs={crumbs} />}
+              {!isSpanMetricsLoading && <Breadcrumbs crumbs={crumbs} />}
               <Layout.Title>
                 {endpointMethod && endpoint
                   ? `${endpointMethod} ${endpoint}`
-                  : !isSpanMetaLoading && title}
+                  : !isSpanMetricsLoading && title}
               </Layout.Title>
             </Layout.HeaderContent>
           </Layout.Header>
@@ -190,7 +184,7 @@ function SpanSummaryPage({params, location}: Props) {
                       <DescriptionPanelBody>
                         <DescriptionContainer>
                           <DescriptionTitle>{spanDescriptionCardTitle}</DescriptionTitle>
-                          <SpanDescription spanMeta={spanMetas?.[0]} />
+                          <SpanDescription spanMeta={span} />
                         </DescriptionContainer>
                       </DescriptionPanelBody>
                     </Panel>

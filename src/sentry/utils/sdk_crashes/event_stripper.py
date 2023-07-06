@@ -38,7 +38,9 @@ EVENT_DATA_ALLOWLIST = {
         "values": {
             "stacktrace": {
                 "frames": {
-                    "filename": Allow.SIMPLE_TYPE,
+                    "filename": Allow.NEVER.with_explanation(
+                        "The filename path could contain the app name."
+                    ),
                     "function": Allow.SIMPLE_TYPE,
                     "raw_function": Allow.SIMPLE_TYPE,
                     "module": Allow.SIMPLE_TYPE,
@@ -80,6 +82,7 @@ EVENT_DATA_ALLOWLIST = {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
+            "simulator": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
@@ -93,19 +96,24 @@ EVENT_DATA_ALLOWLIST = {
 def strip_event_data(
     event_data: NodeData, sdk_crash_detector: SDKCrashDetector
 ) -> Mapping[str, Any]:
-    new_event_data = _strip_event_data_with_allowlist(event_data, EVENT_DATA_ALLOWLIST)
 
-    if (new_event_data is None) or (new_event_data == {}):
+    frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
+    if not frames:
         return {}
 
-    frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
+    # We strip the frames first because applying the allowlist removes fields that are needed
+    # for deciding wether to keep a frame or not.
+    stripped_frames = _strip_frames(frames, sdk_crash_detector)
 
-    if frames is not None:
-        stripped_frames = _strip_frames(frames, sdk_crash_detector)
+    event_data_copy = dict(event_data)
+    event_data_copy["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
-        new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+    stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 
-    return new_event_data
+    if not stripped_event_data:
+        return {}
+
+    return stripped_event_data
 
 
 def _strip_event_data_with_allowlist(
@@ -151,26 +159,22 @@ def _strip_frames(
     We need to adapt this logic once we support other platforms.
     """
 
-    def is_system_library(frame: Mapping[str, Any]) -> bool:
-        fields_containing_paths = {"package", "module", "abs_path"}
-        system_library_paths = {"/System/Library/", "/usr/lib/system/"}
-
-        for field in fields_containing_paths:
-            for path in system_library_paths:
-                if frame.get(field, "").startswith(path):
-                    return True
-
-        return False
-
     def strip_frame(frame: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         if sdk_crash_detector.is_sdk_frame(frame):
             frame["in_app"] = True
+
+            # The path field usually contains the name of the application, which we can't keep.
+            for field in sdk_crash_detector.fields_containing_paths:
+                if frame.get(field):
+                    frame[field] = "Sentry.framework"
         else:
             frame["in_app"] = False
+
         return frame
 
     return [
         strip_frame(frame)
         for frame in frames
-        if sdk_crash_detector.is_sdk_frame(frame) or is_system_library(frame)
+        if sdk_crash_detector.is_sdk_frame(frame)
+        or sdk_crash_detector.is_system_library_frame(frame)
     ]

@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import pick from 'lodash/pick';
 
-import {FieldFromConfig} from 'sentry/components/forms';
+import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import {Field} from 'sentry/components/forms/types';
