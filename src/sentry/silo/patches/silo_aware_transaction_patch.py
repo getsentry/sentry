@@ -36,9 +36,9 @@ def siloed_get_connection(using: Optional[str] = None) -> BaseDatabaseWrapper:
     return _default_get_connection(using=using)
 
 
-def siloed_on_commit(cb: Callable[..., Any], using: Optional[str] = None) -> None:
+def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> None:
     using = determine_using_by_silo_mode(using)
-    return _default_on_commit(cb, using)
+    return _default_on_commit(func, using)
 
 
 def determine_using_by_silo_mode(using):
@@ -82,5 +82,5 @@ def patch_silo_aware_atomic():
     _default_get_connection = transaction.get_connection
 
     transaction.atomic = siloed_atomic  # type:ignore
-    transaction.on_commit = siloed_on_commit  # type:ignore
-    transaction.get_connection = siloed_get_connection  # type:ignore
+    transaction.on_commit = siloed_on_commit
+    transaction.get_connection = siloed_get_connection
