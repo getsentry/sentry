@@ -175,7 +175,7 @@ def simulate_on_commit(request: Any):
         if connection.closed_in_transaction or connection.needs_rollback:
             return
 
-        if simulated_transaction_watermarks.connection_above_watermark(connection):
+        if simulated_transaction_watermarks.connection_above_watermark(connection=connection):
             return
 
         old_validate = connection.validate_no_atomic_block
