@@ -15,6 +15,7 @@ def reset_cache() -> Generator[None, None, None]:
     # https://github.com/python/mypy/issues/5107
     assets._frontend_versions.cache_clear()  # type: ignore[attr-defined]
     yield
+    assets._frontend_versions.cache_clear()  # type: ignore[attr-defined]
 
 
 @pytest.fixture
