@@ -1,8 +1,10 @@
 import selectEvent from 'react-select-event';
+import styled from '@emotion/styled';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
@@ -19,17 +21,20 @@ describe('CustomResolutionModal', () => {
     MockApiClient.clearMockResponses();
   });
 
+  const wrapper = styled(p => p.children);
+
   it('can select a version', async () => {
     const onSelected = jest.fn();
     render(
       <CustomResolutionModal
-        Header={p => p.children}
-        Body={p => p.children}
-        Footer={p => p.children}
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
         orgSlug="org-slug"
         projectSlug="project-slug"
         onSelected={onSelected}
         closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
       />
     );
     expect(releasesMock).toHaveBeenCalled();
@@ -49,12 +54,14 @@ describe('CustomResolutionModal', () => {
     ConfigStore.set('user', user);
     render(
       <CustomResolutionModal
-        Header={p => p.children}
-        Body={p => p.children}
-        Footer={p => p.children}
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
         orgSlug="org-slug"
         projectSlug="project-slug"
+        onSelected={jest.fn()}
         closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
       />
     );
     expect(releasesMock).toHaveBeenCalled();
