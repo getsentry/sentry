@@ -1,12 +1,12 @@
 import {useMemo} from 'react';
 
-import {Project} from 'sentry/types';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {
   useProfileEvents,
   UseProfileEventsOptions,
 } from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
 import {useProfileFunctions} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileFunctions';
+import {Project} from 'sentry/types';
+import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 

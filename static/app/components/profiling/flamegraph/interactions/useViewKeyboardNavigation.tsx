@@ -1,12 +1,12 @@
 import {useEffect, useRef} from 'react';
 import {vec2} from 'gl-matrix';
 
-import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
 import {
   getCenterScaleMatrixFromConfigPosition,
   getTranslationMatrixFromConfigSpace,
 } from 'sentry/domains/profiling/utils/gl/utils';
+import {CanvasPoolManager} from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
+import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
 
 const KEYDOWN_LISTENER_OPTIONS: AddEventListenerOptions & EventListenerOptions = {
   passive: true,

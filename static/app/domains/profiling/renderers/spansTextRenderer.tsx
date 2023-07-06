@@ -1,6 +1,7 @@
 import {mat3} from 'gl-matrix';
 
 import {FlamegraphSearch} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphSearch';
+import {TextRenderer} from 'sentry/domains/profiling/renderers/textRenderer';
 import {
   computeHighlightedBounds,
   ELLIPSIS,
@@ -13,7 +14,6 @@ import {
   SpanChart,
   SpanChartNode,
 } from 'sentry/domains/profiling/utils/profiling/spanChart';
-import {TextRenderer} from 'sentry/domains/profiling/renderers/textRenderer';
 
 import {FlamegraphTheme} from '../constants/flamegraphTheme';
 import {findRangeBinarySearch, Rect, trimTextCenter} from '../utils/speedscope';

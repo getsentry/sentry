@@ -1,11 +1,11 @@
 import {forwardRef, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {IconSettings, IconUser} from 'sentry/icons';
-import {space} from 'sentry/styles/space';
+import {VirtualizedTreeNode} from 'sentry/domains/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
-import {VirtualizedTreeNode} from 'sentry/domains/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {IconSettings, IconUser} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 
 import {FrameCallersTableCell} from './flamegraphDrawer';
 

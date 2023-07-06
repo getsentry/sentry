@@ -1,5 +1,6 @@
-import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {relativeChange} from '../units/units';
+
+import {ColorChannels, FlamegraphTheme} from './flamegraph/flamegraphTheme';
 import {Flamegraph} from './flamegraph';
 import {FlamegraphFrame} from './flamegraphFrame';
 

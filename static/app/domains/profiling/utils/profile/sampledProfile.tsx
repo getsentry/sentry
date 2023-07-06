@@ -1,6 +1,7 @@
 import {CallTreeNode} from 'sentry/domains/profiling/models/callTreeNode';
 
 import {Frame} from '../frame';
+
 import {Profile} from './profile';
 import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
 

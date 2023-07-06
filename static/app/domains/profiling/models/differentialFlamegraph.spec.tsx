@@ -1,8 +1,8 @@
-import {DifferentialFlamegraph} from 'sentry/domains/profiling/utils/profiling/differentialFlamegraph';
-import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/domains/profiling/constants/flamegraphTheme';
 import {EventedProfile} from 'sentry/domains/profiling/utils/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/domains/profiling/utils/profile/utils';
+import {DifferentialFlamegraph} from 'sentry/domains/profiling/utils/profiling/differentialFlamegraph';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 
 const makeEvent = (times: number, frame: number): Profiling.Event[] => {
   return new Array(times * 2).fill(0).map((_, i) => {

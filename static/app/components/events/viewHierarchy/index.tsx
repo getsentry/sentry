@@ -4,16 +4,16 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
 import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
-import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/domains/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeRenderedRow} from 'sentry/domains/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';

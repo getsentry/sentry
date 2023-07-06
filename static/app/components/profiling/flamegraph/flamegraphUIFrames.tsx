@@ -4,6 +4,7 @@ import {vec2} from 'gl-matrix';
 
 import {useFlamegraphTheme} from 'sentry/domains/profiling/hooks/useFlamegraphTheme';
 import {useProfiles} from 'sentry/domains/profiling/providers/profilesProvider';
+import {UIFramesRenderer} from 'sentry/domains/profiling/renderers/uiFramesRenderer';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -15,7 +16,6 @@ import {
 import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
 import {UIFrameNode, UIFrames} from 'sentry/domains/profiling/utils/profiling/uiFrames';
-import {UIFramesRenderer} from 'sentry/domains/profiling/renderers/uiFramesRenderer';
 import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {t} from 'sentry/locale';
 

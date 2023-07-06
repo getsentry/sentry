@@ -20,13 +20,13 @@ import {
   rectOfContent,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
+import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
-import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,

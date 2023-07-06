@@ -7,8 +7,8 @@ import {
   ProfilingContextMenuItem,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {t} from 'sentry/locale';
 import {useContextMenu} from 'sentry/domains/profiling/utils/profiling/hooks/useContextMenu';
+import {t} from 'sentry/locale';
 
 interface FlamegraphTreeContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;

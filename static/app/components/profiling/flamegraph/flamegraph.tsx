@@ -32,12 +32,14 @@ import {
   useProfileTransaction,
   useSetProfiles,
 } from 'sentry/domains/profiling/providers/profilesProvider';
+import {FlamegraphRendererWebGL} from 'sentry/domains/profiling/renderers/flamegraphRendererWebGL';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
   useResizeCanvasObserver,
 } from 'sentry/domains/profiling/utils/gl/utils';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -50,14 +52,12 @@ import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profili
 import {useFlamegraphZoomPosition} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {FlamegraphCanvas} from 'sentry/domains/profiling/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
-import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
 import {
   SpanChart,
   SpanChartNode,
 } from 'sentry/domains/profiling/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/domains/profiling/utils/profiling/spanTree';
 import {UIFrames} from 'sentry/domains/profiling/utils/profiling/uiFrames';
-import {FlamegraphRendererWebGL} from 'sentry/domains/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 import {
   formatTo,

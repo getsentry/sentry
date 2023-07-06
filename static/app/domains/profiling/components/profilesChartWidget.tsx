@@ -3,11 +3,11 @@ import {useTheme} from '@emotion/react';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
+import {useProfileEventsStats} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEventsStats';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {useProfileEventsStats} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEventsStats';
 import useRouter from 'sentry/utils/useRouter';
 
 import {

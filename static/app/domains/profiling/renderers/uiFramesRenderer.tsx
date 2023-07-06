@@ -3,6 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {FlamegraphTheme} from 'sentry/domains/profiling/constants/flamegraphTheme';
 import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 
+import {UIFrameNode, UIFrames} from '../uiFrames';
 import {
   createAndBindBuffer,
   createProgram,
@@ -15,7 +16,6 @@ import {
   resizeCanvasToDisplaySize,
   upperBound,
 } from '../utils/gl/utils';
-import {UIFrameNode, UIFrames} from '../uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
 

@@ -5,18 +5,18 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {ExportProfileButton} from 'sentry/components/profiling/exportProfileButton';
 import {useFlamegraphPreferences} from 'sentry/domains/profiling/hooks/useFlamegraphPreferences';
+import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useProfileTransaction} from 'sentry/domains/profiling/providers/profilesProvider';
+import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
+import {invertCallTree} from 'sentry/domains/profiling/utils/profile/utils';
 import {
   CanvasPoolManager,
   CanvasScheduler,
 } from 'sentry/domains/profiling/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/domains/profiling/utils/profiling/filterFlamegraphTree';
 import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
-import {FlamegraphPreferences} from 'sentry/domains/profiling/providers/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/domains/profiling/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
-import {ProfileGroup} from 'sentry/domains/profiling/utils/profile/importProfile';
-import {invertCallTree} from 'sentry/domains/profiling/utils/profile/utils';
 import {IconPanel} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

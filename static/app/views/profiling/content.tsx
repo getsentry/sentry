@@ -26,17 +26,17 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {t} from 'sentry/locale';
-import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/domains/profiling/utils/profiling/hooks/useProfileFilters';
 import {
   formatError,
   formatSort,
 } from 'sentry/domains/profiling/utils/profiling/hooks/utils';
+import {t} from 'sentry/locale';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -44,9 +44,9 @@ import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from '../../domains/profiling/components/landingWidgetSelector';
-import {ProfilingOnboardingPanel} from '../../domains/profiling/components/profilingOnboardingPanel';
 import {ProfileCharts} from '../../domains/profiling/components/profileCharts';
 import {ProfilesChartWidget} from '../../domains/profiling/components/profilesChartWidget';
+import {ProfilingOnboardingPanel} from '../../domains/profiling/components/profilingOnboardingPanel';
 import {ProfilingSlowestTransactionsPanel} from '../../domains/profiling/components/profilingSlowestTransactionsPanel';
 
 const LEFT_WIDGET_CURSOR = 'leftCursor';

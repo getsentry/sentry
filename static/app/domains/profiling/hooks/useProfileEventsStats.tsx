@@ -2,9 +2,9 @@ import {useQuery} from '@tanstack/react-query';
 
 import {ResponseMeta} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {makeFormatTo} from 'sentry/domains/profiling/utils/units/units';
 import {EventsStatsSeries} from 'sentry/types';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {makeFormatTo} from 'sentry/domains/profiling/utils/units/units';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

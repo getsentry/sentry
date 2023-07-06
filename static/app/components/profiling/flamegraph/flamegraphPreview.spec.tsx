@@ -1,7 +1,7 @@
 import {computePreviewConfigView} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
-import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import {SampledProfile} from 'sentry/domains/profiling/utils/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/domains/profiling/utils/profile/utils';
+import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import {Rect} from 'sentry/domains/profiling/utils/speedscope';
 
 describe('computePreviewConfigView', function () {

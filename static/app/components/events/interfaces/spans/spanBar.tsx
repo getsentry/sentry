@@ -41,6 +41,7 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
+import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -56,7 +57,6 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
-import {ProfileContext} from 'sentry/domains/profiling/providers/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,

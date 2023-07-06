@@ -3,9 +3,12 @@ import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
+import {
+  useVirtualizedTree,
+  UseVirtualizedTreeProps,
+} from 'sentry/domains/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeNode} from 'sentry/domains/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTreeRenderedRow} from 'sentry/domains/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {
   CanvasPoolManager,
   CanvasScheduler,
@@ -13,12 +16,9 @@ import {
 import {Flamegraph} from 'sentry/domains/profiling/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/domains/profiling/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/domains/profiling/utils/profiling/hooks/useContextMenu';
-import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/domains/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/domains/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {VirtualizedTreeRenderedRow} from 'sentry/domains/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {IconArrow} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 import {FrameCallersTableCell} from './flamegraphDrawer';
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';

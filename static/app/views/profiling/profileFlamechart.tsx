@@ -5,19 +5,19 @@ import * as qs from 'query-string';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {ProfileGroupTypeProvider} from 'sentry/domains/profiling/providers/profileGroupTypeProvider';
-import {
-  DEFAULT_FLAMEGRAPH_STATE,
-  FlamegraphState,
-} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContext';
-import {FlamegraphStateProvider} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContextProvider';
 import {
   decodeFlamegraphStateFromQueryParams,
   FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
   FlamegraphStateLocalStorageSync,
   FlamegraphStateQueryParamSync,
 } from 'sentry/domains/profiling/hooks/flamegraphQueryParamSync';
+import {
+  DEFAULT_FLAMEGRAPH_STATE,
+  FlamegraphState,
+} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContext';
+import {FlamegraphStateProvider} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/domains/profiling/providers/flamegraphThemeProvider';
+import {ProfileGroupTypeProvider} from 'sentry/domains/profiling/providers/profileGroupTypeProvider';
 import {useCurrentProjectFromRouteParam} from 'sentry/domains/profiling/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';

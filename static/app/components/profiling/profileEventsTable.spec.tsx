@@ -2,9 +2,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
+import {EventsResults} from 'sentry/domains/profiling/types/types';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
-import {EventsResults} from 'sentry/domains/profiling/types/types';
 
 function customEncodeURIComponent(str) {
   return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {

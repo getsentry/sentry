@@ -1,6 +1,6 @@
 import {CallTreeNode} from 'sentry/domains/profiling/models/callTreeNode';
-import {Frame} from 'sentry/domains/profiling/utils/profiling/frame';
 import {Profile} from 'sentry/domains/profiling/utils/profile/profile';
+import {Frame} from 'sentry/domains/profiling/utils/profiling/frame';
 
 // Test utils to keep the tests code dry
 export const f = (name: string, key: number, in_app: boolean = true) =>

@@ -4,6 +4,7 @@ import {mat3} from 'gl-matrix';
 import {CanvasView} from 'sentry/domains/profiling/utils/profiling/canvasView';
 
 import {FlamegraphFrame} from '../models/flamegraphFrame';
+
 import {SpanChartNode} from './spanChart';
 import {Rect} from './speedscope';
 import {UIFrameNode} from './uiFrames';
