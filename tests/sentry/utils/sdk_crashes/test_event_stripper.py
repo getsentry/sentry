@@ -5,6 +5,7 @@ from fixtures.sdk_crash_detection.crash_event import (
     get_crash_event_with_frames,
     get_frames,
 )
+from sentry.db.models import NodeData
 from sentry.testutils import TestCase
 from sentry.testutils.cases import BaseTestCase
 from sentry.testutils.silo import region_silo_test
@@ -65,6 +66,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
                 "family": "iOS",
                 "model": "iPhone14,8",
                 "arch": "arm64e",
+                "simulator": True,
             },
         }
 
@@ -78,7 +80,7 @@ class EventStripperTestMixin(BaseEventStripperMixin):
 
         assert stripped_event_data.get("sdk") == {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
         }
 
     def test_strip_event_data_strips_value_if_not_simple_type(self):
@@ -256,15 +258,23 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             stripped_event_data, "exception", "values", -1, "stacktrace", "frames"
         )
 
-        assert len(stripped_frames) == 9
+        assert len(stripped_frames) == 10
 
-        cocoa_sdk_frame = stripped_frames[-1]
-        assert cocoa_sdk_frame == {
-            "function": "SentryCrashMonitor_CPPException.cpp",
-            "package": "Sentry.framework",
-            "in_app": True,
-            "image_addr": "0x100304000",
-        }
+        cocoa_sdk_frames = stripped_frames[-2:]
+        assert cocoa_sdk_frames == [
+            {
+                "function": "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2",
+                "package": "Sentry.framework",
+                "in_app": True,
+                "image_addr": "0x100304000",
+            },
+            {
+                "function": "SentryCrashMonitor_CPPException.cpp",
+                "package": "Sentry.framework",
+                "in_app": True,
+                "image_addr": "0x100304000",
+            },
+        ]
 
     def test_strip_frames_sdk_frames(self):
         frames = get_frames("SentryCrashMonitor_CPPException.cpp", sentry_frame_in_app=False)
@@ -296,6 +306,24 @@ class EventStripperTestMixin(BaseEventStripperMixin):
             "in_app": True,
             "image_addr": "0x100304000",
         }
+
+    def test_strip_event_without_data_returns_empty_dict(self):
+        stripped_event_data = strip_event_data(NodeData({}), CocoaSDKCrashDetector())
+
+        assert stripped_event_data == {}
+
+    def test_strip_event_without_frames_returns_empty_dict(self):
+        event_data = get_crash_event_with_frames([])
+        set_path(event_data, "exception", value=None)
+
+        event = self.create_event(
+            data=event_data,
+            project_id=self.project.id,
+        )
+
+        stripped_event_data = strip_event_data(event.data, CocoaSDKCrashDetector())
+
+        assert stripped_event_data == {}
 
 
 @region_silo_test

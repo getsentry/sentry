@@ -37,6 +37,9 @@ def get_frames(
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
         },
+        get_sentry_frame(
+            "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2", False
+        ),
         IN_APP_FRAME,
         {
             "function": "-[UIViewController _setViewAppearState:isAnimating:]",
@@ -175,6 +178,7 @@ def get_crash_event_with_frames(
                 "boot_time": "2023-02-01T05:21:23Z",
                 "timezone": "PST",
                 "type": "device",
+                "simulator": True,
             },
             "os": {
                 "name": "iOS",
@@ -228,7 +232,7 @@ def get_crash_event_with_frames(
         "environment": "test-app",
         "sdk": {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
             "integrations": [
                 "Crash",
                 "PerformanceTracking",
