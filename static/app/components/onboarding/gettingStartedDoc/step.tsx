@@ -16,9 +16,21 @@ export const StepTitle = {
 };
 
 export type StepProps = {
+  /**
+   * The code snippet to display
+   */
   code: string;
+  /**
+   * A brief description of the step
+   */
   description: React.ReactNode;
+  /**
+   * The language of the selected platform (python, javascript, etc)
+   */
   language: string;
+  /**
+   * The step type (install, configure, verify). The list can grow as we add more steps
+   */
   type: StepType;
 };
 
