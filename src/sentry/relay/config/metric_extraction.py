@@ -12,7 +12,7 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.snuba.metrics.metric_extraction import (
+from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpec,
     OndemandMetricSpec,
