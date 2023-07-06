@@ -27,7 +27,6 @@ import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
-import {AggregationKey} from 'sentry/utils/fields';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
@@ -37,6 +36,7 @@ import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
+import {isValidOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
@@ -521,20 +521,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     this.setState({query, isQueryValid});
   };
 
-  validateCustomAlert() {
-    const {aggregate, query} = this.state;
-
-    if (!query.includes('transaction.duration')) {
-      return false;
-    }
-
-    const unsupportedAggregates = [
-      AggregationKey.PERCENTILE,
-      AggregationKey.APDEX,
-      AggregationKey.FAILURE_RATE,
-    ];
-
-    return !unsupportedAggregates.some(agg => aggregate.includes(agg));
+  validateOnDemandMetricAlert() {
+    return isValidOnDemandMetricAlert(this.state.aggregate, this.state.query);
   }
 
   handleSubmit = async (
@@ -550,7 +538,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     // Validate Triggers
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
-    const validCustomAlert = this.validateCustomAlert();
+    const validOnDemandAlert = this.validateOnDemandMetricAlert();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -569,9 +557,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       return;
     }
 
-    if (!validCustomAlert) {
+    if (!validOnDemandAlert) {
       addErrorMessage(
-        t('%s is not supported for custom metrics alerts', this.state.aggregate)
+        t('%s is not supported for on-demand metric alerts', this.state.aggregate)
       );
       return;
     }
