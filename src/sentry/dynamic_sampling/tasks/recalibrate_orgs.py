@@ -217,7 +217,9 @@ def get_active_orgs(
         if not more_results:
             return
     else:
-        log_query_timeout(query="get_active_orgs", offset=offset)
+        log_query_timeout(
+            query="get_active_orgs", offset=offset, timeout_seconds=RECALIBRATE_ORGS_MAX_SECONDS
+        )
 
 
 def fetch_org_volumes(
