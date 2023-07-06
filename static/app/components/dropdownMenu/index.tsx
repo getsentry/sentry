@@ -80,7 +80,7 @@ interface DropdownMenuProps
   /**
    * Title for the current menu.
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactChild;
   /**
    * Whether the menu should always be wider than the trigger. If true (default), then
    * the menu will have a min width equal to the trigger's width.

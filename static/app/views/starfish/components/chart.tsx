@@ -31,6 +31,7 @@ import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
 import {
   EChartClickHandler,
+  EChartDataZoomHandler,
   EChartEventHandler,
   EChartHighlightHandler,
   EChartMouseOutHandler,
@@ -88,6 +89,7 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onDataZoom?: EChartDataZoomHandler;
   onHighlight?: EChartHighlightHandler;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
@@ -177,6 +179,7 @@ function Chart({
   tooltipFormatterOptions = {},
   errored,
   onLegendSelectChanged,
+  onDataZoom,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -383,7 +386,14 @@ function Chart({
         : series;
 
     return (
-      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc}
+        onDataZoom={onDataZoom}
+      >
         {zoomRenderProps => {
           if (isLineChart) {
             return (

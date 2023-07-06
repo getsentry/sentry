@@ -122,17 +122,13 @@ function ActionSet({
         });
       },
     },
-    ...(hasEscalatingIssuesUi
-      ? []
-      : [
-          {
-            key: 'mark-reviewed',
-            label: t('Mark Reviewed'),
-            hidden: !nestMergeAndReview,
-            disabled: !canMarkReviewed,
-            onAction: () => onUpdate({inbox: false}),
-          },
-        ]),
+    {
+      key: 'mark-reviewed',
+      label: t('Mark Reviewed'),
+      hidden: !nestMergeAndReview,
+      disabled: !canMarkReviewed,
+      onAction: () => onUpdate({inbox: false}),
+    },
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
@@ -272,7 +268,7 @@ function ActionSet({
           disabled={ignoreDisabled}
         />
       )}
-      {!nestMergeAndReview && !hasEscalatingIssuesUi && (
+      {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (

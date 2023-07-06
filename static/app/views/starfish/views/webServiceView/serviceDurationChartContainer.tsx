@@ -10,6 +10,7 @@ import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
@@ -26,26 +27,26 @@ type Props = {
 };
 
 export function ServiceDurationChartContainer({transaction, transactionMethod}: Props) {
+  const location = useLocation();
   const pageFilter = usePageFilters();
   const {selection} = pageFilter;
 
   const [selectedSeries, setSelectedSeries] = useState('Overall');
 
-  const serviceEventView = EventView.fromSavedQuery({
-    name: '',
-    fields: [`p95(transaction.duration)`],
-    yAxis: [`p95(transaction.duration)`],
-    query: `transaction.op:http.server ${
-      transaction ? `transaction:${transaction}` : ''
-    } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
-    dataset: DiscoverDatasets.METRICS,
-    start: selection.datetime.start ?? undefined,
-    end: selection.datetime.end ?? undefined,
-    range: selection.datetime.period ?? undefined,
-    projects: selection.projects,
-    version: 2,
-    interval: getInterval(selection.datetime, 'low'),
-  });
+  const serviceEventView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`p95(transaction.duration)`],
+      yAxis: [`p95(transaction.duration)`],
+      query: `transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `http.method:${transactionMethod}` : ''}`,
+      dataset: DiscoverDatasets.METRICS,
+      version: 2,
+      interval: getInterval(selection.datetime, 'low'),
+    },
+    location
+  );
 
   const {
     isLoading: isServiceDurationLoading,
@@ -68,23 +69,22 @@ export function ServiceDurationChartContainer({transaction, transactionMethod}: 
       }) ?? [],
   };
 
-  const categoryEventView = EventView.fromSavedQuery({
-    name: '',
-    fields: [`p95(${SPAN_SELF_TIME})`, `sum(${SPAN_SELF_TIME})`, 'span.category'],
-    yAxis: [`p95(${SPAN_SELF_TIME})`],
-    query: `transaction.op:http.server ${
-      transaction ? `transaction:${transaction}` : ''
-    } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: selection.datetime.start ?? undefined,
-    end: selection.datetime.end ?? undefined,
-    range: selection.datetime.period ?? undefined,
-    orderby: '-sum_span_self_time',
-    projects: selection.projects,
-    version: 2,
-    topEvents: '4',
-    interval: getInterval(selection.datetime, 'low'),
-  });
+  const categoryEventView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`p95(${SPAN_SELF_TIME})`, `sum(${SPAN_SELF_TIME})`, 'span.category'],
+      yAxis: [`p95(${SPAN_SELF_TIME})`],
+      query: `transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+      topEvents: '4',
+      interval: getInterval(selection.datetime, 'low'),
+    },
+    location
+  );
 
   const {
     isLoading: isCategoryDurationLoading,

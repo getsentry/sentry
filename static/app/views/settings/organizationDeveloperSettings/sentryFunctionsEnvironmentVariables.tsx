@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {TextField} from 'sentry/components/forms';
+import TextField from 'sentry/components/forms/fields/textField';
 import {PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
