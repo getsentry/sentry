@@ -1,6 +1,7 @@
 from time import time
 
 from sentry.exceptions import InvalidIdentity
+from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client import BaseApiClient
 
 
@@ -16,6 +17,7 @@ class ApiClient(BaseApiClient):
 
 
 class OAuth2RefreshMixin:
+    @control_silo_function
     def check_auth(self, *args, **kwargs):
         """
         Checks if auth is expired and if so refreshes it

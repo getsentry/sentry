@@ -5,7 +5,6 @@ import jsonschema
 from django.db import models
 from django.utils import timezone
 
-from sentry import features
 from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_only_model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -89,12 +88,6 @@ def add_group_to_inbox(group, reason, reason_details=None):
 
 
 def remove_group_from_inbox(group, action=None, user=None, referrer=None):
-    # The MARK_REVIEWED feature is going away as part of the issue states project
-    if action == GroupInboxRemoveAction.MARK_REVIEWED and features.has(
-        "organizations:remove-mark-reviewed", group.project.organization
-    ):
-        return
-
     try:
         group_inbox = GroupInbox.objects.get(group=group)
         group_inbox.delete()
