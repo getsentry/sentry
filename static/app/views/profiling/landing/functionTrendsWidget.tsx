@@ -216,7 +216,7 @@ function FunctionTrendsEntry({
 
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -242,7 +242,7 @@ function FunctionTrendsEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -427,6 +427,11 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

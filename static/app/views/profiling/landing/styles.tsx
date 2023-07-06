@@ -54,8 +54,6 @@ export const Accordion = styled('ul')`
   padding: ${space(1)} 0 0 0;
   margin: 0;
   list-style-type: none;
-  display: flex;
-  flex-direction: column;
   flex: 1 1 auto;
 `;
 
