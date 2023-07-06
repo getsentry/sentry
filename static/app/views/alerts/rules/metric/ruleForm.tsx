@@ -121,11 +121,11 @@ type State = {
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
-const determineAlertDataset = (
+function determineAlertDataset(
   org: Organization,
   selectedDataset: Dataset,
   query: string
-) => {
+) {
   if (!org.features.includes('on-demand-metrics-extraction')) {
     return selectedDataset;
   }
