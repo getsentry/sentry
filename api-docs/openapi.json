@@ -123,9 +123,6 @@
     "/api/0/projects/": {
       "$ref": "paths/projects/index.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/": {
-      "$ref": "paths/projects/details.json"
-    },
     "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/": {
       "$ref": "paths/projects/dsyms.json"
     },

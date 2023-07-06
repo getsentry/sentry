@@ -120,7 +120,7 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.TEAM_SLUG,
-            GlobalParams.name("The name of the project.", required=True),
+            GlobalParams.name("The name for the project.", required=True),
             GlobalParams.slug(
                 "Optional slug for the project. If not provided a slug is generated from the name."
             ),

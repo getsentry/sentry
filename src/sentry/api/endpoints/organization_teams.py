@@ -160,7 +160,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         operation_id="Create a New Team",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.name("The name of the team.", required=True),
+            GlobalParams.name("The name for the team.", required=True),
             GlobalParams.slug(
                 "Optional slug for the team. If not provided a slug is generated from the name."
             ),
