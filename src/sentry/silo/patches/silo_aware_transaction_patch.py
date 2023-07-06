@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional, Type
 
 from django import get_version
 from django.db import router, transaction
@@ -9,9 +9,21 @@ _default_atomic_impl = transaction.atomic
 _default_on_commit = transaction.on_commit
 _default_get_connection = transaction.get_connection
 
+if TYPE_CHECKING:
+    from sentry.db.models import Model
+
 
 class MismatchedSiloTransactionError(Exception):
     pass
+
+
+def _get_db_for_model_if_available(model: Type["Model"]) -> Optional[str]:
+    from sentry.db.router import SiloConnectionUnavailableError
+
+    try:
+        return router.db_for_write(model)
+    except SiloConnectionUnavailableError:
+        return None
 
 
 def siloed_atomic(using: Optional[str] = None, savepoint: bool = True) -> Atomic:
@@ -34,28 +46,24 @@ def determine_using_by_silo_mode(using):
     from sentry.silo import SiloMode
 
     current_silo_mode = SiloMode.get_current_mode()
+    control_db = _get_db_for_model_if_available(ControlOutbox)
+    region_db = _get_db_for_model_if_available(RegionOutbox)
+
     if not using:
-        model_to_route_to = RegionOutbox if current_silo_mode == SiloMode.REGION else ControlOutbox
-        using = router.db_for_write(model_to_route_to)
-    both_silos_route_to_same_db = router.db_for_write(ControlOutbox) == router.db_for_write(
-        RegionOutbox
-    )
+        using = region_db if current_silo_mode == SiloMode.REGION else control_db
+
+    both_silos_route_to_same_db = control_db == region_db
+
     if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
         pass
-    elif (
-        using == router.db_for_write(ControlOutbox)
-        and SiloMode.get_current_mode() != SiloMode.CONTROL
-    ):
+    elif using == control_db and current_silo_mode != SiloMode.CONTROL:
         raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) in Control Mode"
+            f"Cannot use transaction.atomic({using}) except in Control Mode"
         )
 
-    elif (
-        using == router.db_for_write(RegionOutbox)
-        and SiloMode.get_current_mode() != SiloMode.REGION
-    ):
+    elif using == region_db and current_silo_mode != SiloMode.REGION:
         raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) in Region Mode"
+            f"Cannot use transaction.atomic({using}) except in Region Mode"
         )
     return using
 
