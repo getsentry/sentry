@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from django.conf import settings
+
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.types.region import Region, get_region_by_name
@@ -92,6 +94,26 @@ class ByOrganizationIdAttribute(RegionResolution):
         organization_id = getattr(argument, self.attribute_name)
         mapping = self.organization_mapping_manager.get(organization_id=organization_id)
         return self._resolve_from_mapping(mapping)
+
+
+class RequireSingleOrganization(RegionResolution):
+    """Resolve to the only region in a single-organization environment.
+
+    Calling a service method with this resolution strategy will cause an error if the
+    environment is not configured with the "single organization" or has more than one
+    region.
+    """
+
+    def resolve(self, arguments: ArgumentDict) -> Region:
+        if not settings.SENTRY_SINGLE_ORGANIZATION:
+            raise Exception("Can't access default organization except in single-org environment")
+
+        all_org_mappings = list(self.organization_mapping_manager.all()[:2])
+        if len(all_org_mappings) != 1:
+            raise Exception("Can't resolve to a single region")
+
+        (single_org_mapping,) = all_org_mappings
+        return self._resolve_from_mapping(single_org_mapping)
 
 
 class UnimplementedRegionResolution(RegionResolution):
