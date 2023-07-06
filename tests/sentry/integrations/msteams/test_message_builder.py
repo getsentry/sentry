@@ -327,7 +327,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_message_builder_with_escalating_issues(self):
-        with self.feature("organizations:escalating-issues"):
+        with self.feature("organizations:escalating-issues-msteams"):
             self.event1.data["metadata"].update({"value": "some error"})
             self.group1.data["metadata"].update({"value": "some error"})
             self.event1.data["type"] = self.group1.data["type"] = "error"
@@ -460,7 +460,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Stop Ignoring" == ignore_action["title"]
 
     def test_archived_issue_message(self):
-        with self.feature("organizations:escalating-issues"):
+        with self.feature("organizations:escalating-issues-msteams"):
             self.group1.status = GroupStatus.IGNORED
             self.group1.substatus = GroupSubStatus.UNTIL_ESCALATING
 
