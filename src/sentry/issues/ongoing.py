@@ -2,14 +2,7 @@ from typing import Any, List, Mapping, Optional
 
 from django.db.models.signals import post_save
 
-from sentry.models import (
-    Activity,
-    Group,
-    GroupStatus,
-    bulk_remove_groups_from_inbox,
-    record_group_history_from_activity_type,
-    remove_group_from_inbox,
-)
+from sentry.models import Group, GroupStatus, bulk_remove_groups_from_inbox
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
@@ -46,14 +39,4 @@ def bulk_transition_group_to_ongoing(
             instance=group,
             created=False,
             update_fields=["status", "substatus"],
-        )
-
-        remove_group_from_inbox(group)
-
-        Activity.objects.create_group_activity(
-            group, ActivityType.AUTO_SET_ONGOING, data=activity_data, send_notification=False
-        )
-
-        record_group_history_from_activity_type(
-            group, activity_type=ActivityType.AUTO_SET_ONGOING.value, actor=None
         )
