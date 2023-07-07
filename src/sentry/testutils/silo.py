@@ -12,7 +12,7 @@ from django.conf import settings
 from django.db import connections, router
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
-from django.db.models.signals import post_migrate
+from django.db.models.signals import post_migrate, pre_migrate
 from django.db.transaction import get_connection
 from django.test import override_settings
 
@@ -312,9 +312,16 @@ def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     )
 
 
+# Ensures that before we migrate the database, we aren't stuck in a bad role that takes control of test db tables.
+def reset_postges_role(app_config: Any, using: str, **kwargs: Any):
+    with get_connection(using).cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
+
+
 # Listen to django's migration signal so that we're not trapped inside
 # test method transactions.
 post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
+pre_migrate.connect(reset_postges_role, dispatch_uid="reset_postgres_role", weak=False)
 
 
 def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:
