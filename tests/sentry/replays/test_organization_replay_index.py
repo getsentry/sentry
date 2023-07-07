@@ -1170,10 +1170,3 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             assert response.status_code == 200
             response = self.client.get(self.url + "?field=browser&field=count_urls")
             assert response.status_code == 200
-
-
-@region_silo_test
-@apply_feature_flag_on_cls("organizations:global-views")
-class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
-    # run the same tests except with the subquery optimization applied
-    pass
