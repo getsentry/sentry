@@ -10,7 +10,6 @@ import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
@@ -394,10 +393,9 @@ class SqlFormatEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
 
-        if features.has("organizations:sql-format", obj.project.organization, actor=user):
-            with sentry_sdk.start_span(op="serialize", description="Format SQL"):
-                result = self._format_breadcrumb_messages(result, obj, user)
-                result = self._format_db_spans(result, obj, user)
+        with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+            result = self._format_breadcrumb_messages(result, obj, user)
+            result = self._format_db_spans(result, obj, user)
 
         return result
 
