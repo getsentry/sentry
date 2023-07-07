@@ -11,6 +11,12 @@ from fixtures.vsts import WORK_ITEM_UNASSIGNED, WORK_ITEM_UPDATED, WORK_ITEM_UPD
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.vsts import VstsRequestParser
 from sentry.models import Integration
+from sentry.models.outbox import (
+    ControlOutbox,
+    OutboxCategory,
+    OutboxScope,
+    WebhookProviderIdentifier,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -70,6 +76,8 @@ class VstsRequestParserTest(TestCase):
 
         # Non-webhook urls
         with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo:
             parser.request = self.factory.get(
@@ -77,6 +85,7 @@ class VstsRequestParserTest(TestCase):
             )
             parser.get_response()
             assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
 
             parser.request = self.factory.get(
                 reverse(
@@ -119,3 +128,44 @@ class VstsRequestParserTest(TestCase):
         parser = VstsRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration is None
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_webhook_outbox_creation(self):
+        request = self.factory.post(
+            self.path,
+            data=WORK_ITEM_UPDATED,
+            format="json",
+            HTTP_SHARED_SECRET=self.shared_secret,
+        )
+        parser = VstsRequestParser(request=request, response_handler=self.get_response)
+
+        assert ControlOutbox.objects.count() == 0
+        with mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            parser.get_response()
+
+            assert ControlOutbox.objects.count() == 1
+            outbox = ControlOutbox.objects.first()
+            expected_payload = {
+                "method": "POST",
+                "path": self.path,
+                "uri": f"http://testserver{self.path}",
+                "headers": {
+                    "Shared-Secret": self.shared_secret,
+                    "Content-Length": "4652",
+                    "Content-Type": "application/json",
+                    "Cookie": "",
+                },
+                "body": request.body.decode(encoding="utf-8"),
+            }
+            assert outbox.payload == expected_payload
+            assert outbox == ControlOutbox(
+                id=outbox.id,
+                shard_scope=OutboxScope.WEBHOOK_SCOPE,
+                shard_identifier=WebhookProviderIdentifier.VSTS,
+                object_identifier=1,
+                category=OutboxCategory.WEBHOOK_PROXY,
+                region_name=self.region.name,
+                payload=expected_payload,
+            )
