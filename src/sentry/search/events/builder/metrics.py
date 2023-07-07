@@ -72,10 +72,9 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
-        self.dataset = dataset
 
         self._on_demand_spec = self._resolve_on_demand_spec(
-            kwargs.get("selected_columns", []), kwargs.get("query", "")
+            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
         )
 
         if granularity is not None:
@@ -95,10 +94,10 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def _resolve_on_demand_spec(
-        self, selected_cols: List[Optional[str]], query: str
+        self, dataset: Dataset, selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
         field = selected_cols[0] if selected_cols else None
-        if not self.is_performance or not self.is_alerts_query or not field:
+        if dataset is not Dataset.PerformanceMetrics or not self.is_alerts_query or not field:
             return None
         try:
             return OndemandMetricSpec.parse(field, query)
@@ -192,6 +191,7 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
+        # on-demand metrics require metrics layer behavior
         if self.use_metrics_layer or self._on_demand_spec:
             if col in ["project_id", "timestamp"]:
                 return col
