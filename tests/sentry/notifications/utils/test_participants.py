@@ -1,6 +1,8 @@
+from datetime import timedelta
 from typing import Iterable, Mapping, Optional, Sequence, Set, Union
 
 import pytest
+from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.models import NotificationSetting, Project, ProjectOwnership, Team, User
@@ -931,3 +933,21 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
         assert notified_users.issubset(expected_notified_users)
+
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_fallthrough_recipients_active_member_ordering(self):
+        present = timezone.now()
+
+        self.user.last_active = present - timedelta(days=1)
+        self.user.save()
+
+        self.user2.last_active = present - timedelta(days=10)
+        self.user2.save()
+
+        recipients = list(
+            get_fallthrough_recipients(self.project, FallthroughChoiceType.ACTIVE_MEMBERS)
+        )
+
+        assert len(recipients) == 2
+        assert recipients[0].id == self.user.id
+        assert recipients[1].id == self.user2.id
