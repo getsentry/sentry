@@ -23,7 +23,7 @@ function StarfishContainer({organization, children}: Props) {
   const router = useRouter();
   const {slug} = organization;
   const projectId =
-    slug === 'sentry' ? '1' : slug === 'cramer' ? '4504120414765056' : null;
+    slug === 'sentry' ? '1' : slug === 'peated' ? '4504120414765056' : null;
   useEffect(() => {
     if (projectId && location.query.project !== projectId) {
       router.replace({
