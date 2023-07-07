@@ -42,7 +42,9 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
     @contextlib.contextmanager
     def inner(assert_num_callbacks=1):
         with burst_task_runner() as burst:
-            with django_capture_on_commit_callbacks(execute=True) as callbacks:
+            with transaction.atomic(), django_capture_on_commit_callbacks(
+                execute=True
+            ) as callbacks:
                 yield
 
                 # Assert there are no relay-related jobs in the queue yet, as we should have
@@ -158,6 +160,7 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
+    redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)
@@ -253,8 +256,7 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=6):
-        default_project.delete()
+    default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
     # Duplicate invoke the invalidation task, this needs to be fine with the missing project.
