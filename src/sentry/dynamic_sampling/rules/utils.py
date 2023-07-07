@@ -192,8 +192,8 @@ def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) ->
     return {bias["id"] for bias in users_biases if bias["active"]}
 
 
-def get_supported_biases_ids() -> Set[str]:
-    return {bias["id"] for bias in DEFAULT_BIASES}
+def get_supported_biases_ids() -> List[str]:
+    return sorted({bias["id"] for bias in DEFAULT_BIASES})
 
 
 def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:

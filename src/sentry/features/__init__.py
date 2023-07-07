@@ -222,9 +222,9 @@ default_manager.add("organizations:discover-query", OrganizationFeature, Feature
 default_manager.add("organizations:dynamic-sampling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:escalating-issues-experiment-group", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:issue-states", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:remove-mark-reviewed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:event-attachments", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:global-views", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:getting-started-doc-with-product-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -255,8 +255,10 @@ default_manager.add("organizations:codecov-integration", OrganizationFeature, Fe
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-sliding-window", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-sliding-window-org", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:pr-comment-bot", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:slack-use-new-lookup", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:sourcemaps-bundle-indexing", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature, FeatureHandlerStrategy.INTERNAL)

@@ -3,7 +3,7 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -13,13 +13,10 @@ from sentry.web.frontend.auth_login import AuthLoginView
 logger = logging.getLogger("sentry.api")
 
 
-from rest_framework.request import Request
-
-
 class OAuthAuthorizeView(AuthLoginView):
     auth_required = False
 
-    def get_next_uri(self, request: Request):
+    def get_next_uri(self, request: HttpRequest):
         return request.get_full_path()
 
     def redirect_response(self, response_type, redirect_uri, params):
@@ -67,11 +64,11 @@ class OAuthAuthorizeView(AuthLoginView):
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
-    def respond_login(self, request: Request, context, application, **kwargs):
+    def respond_login(self, request: HttpRequest, context, application, **kwargs):
         context["banner"] = f"Connect Sentry to {application.name}"
         return self.respond("sentry/login.html", context)
 
-    def get(self, request: Request, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, **kwargs) -> HttpResponse:
         response_type = request.GET.get("response_type")
         client_id = request.GET.get("client_id")
         redirect_uri = request.GET.get("redirect_uri")
@@ -207,7 +204,7 @@ class OAuthAuthorizeView(AuthLoginView):
         }
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def post(self, request: Request, **kwargs) -> HttpResponse:
+    def post(self, request: HttpRequest, **kwargs) -> HttpResponse:
         try:
             payload = request.session["oa2"]
         except KeyError:
@@ -271,7 +268,7 @@ class OAuthAuthorizeView(AuthLoginView):
         else:
             raise NotImplementedError
 
-    def approve(self, request: Request, application, **params):
+    def approve(self, request: HttpRequest, application, **params):
         try:
             with transaction.atomic():
                 ApiAuthorization.objects.create(

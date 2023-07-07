@@ -77,9 +77,7 @@ def check_monitors(current_datetime=None):
             monitor = monitor_environment.monitor
             expected_time = None
             if monitor_environment.last_checkin:
-                expected_time = monitor.get_next_scheduled_checkin_without_margin(
-                    monitor_environment.last_checkin
-                )
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
             # add missed checkin
             checkin = MonitorCheckIn.objects.create(
@@ -114,9 +112,7 @@ def check_monitors(current_datetime=None):
                 "monitor_environment.checkin-timeout",
                 extra={"monitor_environment_id": monitor_environment.id, "checkin_id": checkin.id},
             )
-            affected = MonitorCheckIn.objects.filter(
-                id=checkin.id, status=CheckInStatus.IN_PROGRESS
-            ).update(status=CheckInStatus.TIMEOUT)
+            affected = checkin.update(status=CheckInStatus.TIMEOUT)
             if not affected:
                 continue
 

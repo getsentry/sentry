@@ -164,6 +164,36 @@ region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
 
 @contextmanager
+def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+    """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
+    test code in a special silo context.
+    In monolith mode, this context manager has no effect.
+    This context manager, should never be run outside of test contexts.  In fact, it depends on test code that will
+    not exist in production!
+    When run in either Region or Control silo modes, it forces the settings.SILO_MODE to the desired_silo.
+    Notably, this won't be thread safe, so again, only use this in factories and test cases, not code, or you'll
+    have a nightmare when your (threaded) acceptance tests bleed together and do whacky things :o)
+    Use this in combination with factories or test setup code to create models that don't correspond with your
+    given test mode.
+    """
+    # Only swapping the silo mode if we are already in a silo mode.
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        desired_silo = SiloMode.MONOLITH
+
+    overrides: MutableMapping[str, Any] = {}
+    if desired_silo != SiloMode.get_current_mode():
+        overrides["SILO_MODE"] = desired_silo
+    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
+        overrides["SENTRY_REGION"] = "na"
+
+    if overrides:
+        with override_settings(**overrides):
+            yield
+    else:
+        yield
+
+
+@contextmanager
 def exempt_from_silo_limits() -> Generator[None, None, None]:
     """Exempt test setup code from silo mode checks.
 
