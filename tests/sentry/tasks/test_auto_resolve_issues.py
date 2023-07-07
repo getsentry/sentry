@@ -10,11 +10,14 @@ from sentry.testutils import TestCase
 
 
 class ScheduleAutoResolutionTest(TestCase):
-    def test_task_persistent_name(self):
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_task_persistent_name(self, mock_backend):
+        mock_backend.get_size.return_value = 0
         assert schedule_auto_resolution.name == "sentry.tasks.schedule_auto_resolution"
 
+    @patch("sentry.tasks.auto_ongoing_issues.backend")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
-    def test_simple(self, mock_kick_off_status_syncs):
+    def test_simple(self, mock_kick_off_status_syncs, mock_backend):
         project = self.create_project()
         project2 = self.create_project()
         project3 = self.create_project()
@@ -42,6 +45,8 @@ class ScheduleAutoResolutionTest(TestCase):
             status=GroupStatus.UNRESOLVED,
             last_seen=timezone.now() - timedelta(days=1),
         )
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_resolution()

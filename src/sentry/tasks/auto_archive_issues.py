@@ -19,6 +19,7 @@ from sentry.models import (
     record_group_history_from_activity_type,
     remove_group_from_inbox,
 )
+from sentry.tasks.auto_ongoing_issues import skip_if_queue_has_items
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -37,6 +38,7 @@ ITERATOR_CHUNK = 10_000
 )
 @retry
 @monitor(monitor_slug="auto-archive-job-monitor")
+@skip_if_queue_has_items
 def run_auto_archive() -> None:
     """
     Automatically transition issues that are ongoing for 14 days to archived until escalating.
@@ -64,6 +66,7 @@ def run_auto_archive() -> None:
     soft_time_limit=20 * 60,
 )
 @retry
+@skip_if_queue_has_items
 def run_auto_archive_for_project(project_ids: List[int]) -> None:
     now = datetime.now(tz=pytz.UTC)
     fourteen_days_ago = now - timedelta(days=14)

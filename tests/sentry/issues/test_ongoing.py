@@ -1,4 +1,4 @@
-from sentry.issues.ongoing import transition_group_to_ongoing
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models import Activity, GroupHistory, GroupHistoryStatus, GroupStatus
 from sentry.testutils import TestCase
 from sentry.types.activity import ActivityType
@@ -9,7 +9,7 @@ class TransitionNewToOngoingTest(TestCase):
     def test_new_to_ongoing(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
 
-        transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, group)
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group])
         assert Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).exists()
@@ -20,7 +20,7 @@ class TransitionNewToOngoingTest(TestCase):
     def test_regressed_to_ongoing(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.REGRESSED)
 
-        transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, group)
+        bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.REGRESSED, [group])
         assert Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).exists()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from sentry import features
-from sentry.issues.ongoing import transition_group_to_ongoing
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models import Group, GroupStatus, Project, User
 from sentry.models.groupinbox import (
     GroupInboxReason,
@@ -51,10 +51,10 @@ def update_inbox(
                 and group.substatus != GroupSubStatus.ONGOING
                 and group.status == GroupStatus.UNRESOLVED
             ):
-                transition_group_to_ongoing(
+                bulk_transition_group_to_ongoing(
                     group.status,
                     group.substatus,
-                    group,
+                    [group],
                     activity_data={"manually": True},
                 )
 
