@@ -29,7 +29,6 @@ from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_o
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
     UserFilterArgs,
-    UserOrderBy,
     UserSerializeType,
     UserUpdateArgs,
 )
@@ -185,10 +184,6 @@ class DatabaseBackedUserService(UserService):
                     query = query.filter(authenticator__isnull=True)
                 else:
                     query = query.filter(authenticator__isnull=False, authenticator__type__in=at)
-
-            order_by = filters.get("order_by")
-            if order_by == UserOrderBy.LAST_ACTIVE_DESC:
-                query = query.order_by("-last_active")
 
             return list(query)
 

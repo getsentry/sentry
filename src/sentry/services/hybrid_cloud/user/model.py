@@ -123,10 +123,6 @@ class UserSerializeType(IntEnum):  # annoying
     SELF_DETAILED = 2
 
 
-class UserOrderBy(IntEnum):
-    LAST_ACTIVE_DESC = 0
-
-
 class UserFilterArgs(TypedDict, total=False):
     user_ids: List[int]
     is_active: bool
@@ -135,7 +131,6 @@ class UserFilterArgs(TypedDict, total=False):
     email_verified: bool
     query: str
     authenticator_types: Optional[List[int]]
-    order_by: Optional[UserOrderBy]
 
 
 class UserUpdateArgs(TypedDict, total=False):
