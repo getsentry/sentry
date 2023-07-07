@@ -35,7 +35,7 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 
-# Maps from Discover's nomenclature to event protocol paths.
+# Maps from Discover's field names to event protocol paths.
 # See Relay's ``FieldValueProvider`` for supported fields.
 _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level fields
@@ -68,9 +68,8 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     # "http.method": None,
 }
 
-CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
-
-_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
+# Maps from Discover's syntax to Relay rule condition operators.
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     "=": "eq",
     "!=": "eq",  # combined with external negation
     "<": "lt",
@@ -79,6 +78,8 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
     ">=": "gte",
 }
 
+# Maps plain Discover functions to metric aggregation functions. Derived metrics
+# are not part of this mapping.
 _SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
     "count": "sum",
     "avg": "avg",
@@ -87,34 +88,23 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
     "p75": "p75",
     "p95": "p95",
     "p99": "p99",
-    # not supported yet
-    "percentile": None,
-    "failure_rate": None,
-    "apdex": None,
-    "eps": None,
-    "epm": None,
-    "tps": None,
-    "tpm": None,
+    # generic percentile is not supported by metrics layer.
 }
 
-# TODO(ogi): support count_if
+# Mapping to infer metric type from Discover function.
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
+    # TODO(ogi): support count_if
     "avg": "d",
     "max": "d",
     "p50": "d",
     "p75": "d",
     "p95": "d",
     "p99": "d",
-    # not supported yet
-    "percentile": None,
-    "failure_rate": None,
-    "apdex": None,
-    "eps": None,
-    "epm": None,
-    "tps": None,
-    "tpm": None,
 }
+
+# Operators used in ``ComparingRuleCondition``.
+CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 
 class ComparingRuleCondition(TypedDict):
@@ -247,7 +237,16 @@ class OndemandMetricSpec:
 
 
 def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str, MetricOperationType]:
+    """
+    Extracts the field name, metric type and metric operation from a Discover
+    function call.
+
+    This does not support derived metrics such as ``apdex`` and aggregates with
+    filters (``count_if``).
+    """
     name, arguments, _alias = fields.parse_function(aggregate)
+
+    # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
 
     metric_type = _AGGREGATE_TO_METRIC_TYPE.get(name)
     metric_op = _SEARCH_TO_METRIC_AGGREGATES.get(name)
@@ -262,6 +261,11 @@ def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str, MetricOpera
 
 
 def _map_field_name(search_key: str) -> str:
+    """
+    Maps a the name of a field in a search query to the event protocol path.
+
+    Raises an exception if the field is not supported.
+    """
     # Map known fields using a static mapping.
     if field := _SEARCH_TO_PROTOCOL_FIELDS.get(search_key):
         return field
@@ -285,14 +289,24 @@ T = TypeVar("T")
 
 
 class SearchQueryConverter:
-    """A converter from search query token stream to rule conditions."""
+    """
+    A converter from search query token stream to rule conditions.
+
+    Pass a token stream obtained from `parse_search_query` to the constructor.
+    The converter can be used exactly once.
+    """
 
     def __init__(self, tokens: Sequence[QueryToken]):
         self._tokens = tokens
         self._position = 0
 
     def convert(self) -> RuleCondition:
-        """Converts the token stream into a rule condition."""
+        """
+        Converts the token stream into a rule condition.
+
+        This function can raise an exception if the token stream is structurally
+        invalid or contains fields that are not supported by the rule engine.
+        """
 
         condition = self._expr()
         if self._position < len(self._tokens):
@@ -300,12 +314,23 @@ class SearchQueryConverter:
         return condition
 
     def _peek(self) -> Optional[QueryToken]:
+        """Returns the next token without consuming it."""
+
         if self._position < len(self._tokens):
             return self._tokens[self._position]
         else:
             return None
 
     def _consume(self, pattern: Union[str, Type[T]]) -> Optional[T]:
+        """
+        Consumes the next token if it matches the given pattern.
+
+        The pattern can be:
+         - a literal string, in which case the token must be equal to the string
+         - a type, in which case the token must be an instance of the type
+
+        Returns the token if it matches, or ``None`` otherwise.
+        """
         token = self._peek()
 
         if isinstance(pattern, str) and token != pattern:
@@ -330,8 +355,8 @@ class SearchQueryConverter:
     def _term(self) -> RuleCondition:
         factors = [self._factor()]
 
-        while not self._peek() in ("OR", None):
-            self._consume("AND")  # AND is optional and implicit.
+        while self._peek() not in ("OR", None):
+            self._consume("AND")  # AND is optional and implicit, ignore if present.
             factors.append(self._factor())
 
         if len(factors) == 1:
