@@ -46,16 +46,14 @@ const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95'];
 export function MetricsTable(props: MetricsTableProps) {
   const {trendFunction, transaction, trendView, organization, location, isLoading} =
     props;
-  let p50: TableDataRow | undefined;
-  let p95: TableDataRow | undefined;
-
-  if (trendFunction === TrendFunctionField.P50) {
-    p50 = getTrendsRowData(transaction, TrendFunctionField.P50);
-  }
-
-  if (trendFunction === TrendFunctionField.P95) {
-    p95 = getTrendsRowData(transaction, TrendFunctionField.P95);
-  }
+  const p50 =
+    trendFunction === TrendFunctionField.P50
+      ? getTrendsRowData(transaction, TrendFunctionField.P50)
+      : undefined;
+  const p95 =
+    trendFunction === TrendFunctionField.P95
+      ? getTrendsRowData(transaction, TrendFunctionField.P95)
+      : undefined;
 
   const breakpoint = transaction.breakpoint;
 
@@ -346,7 +344,7 @@ function getQueryParams(
     dataset,
     sort: undefined,
     query: {
-      query: 'event.type:' + query + ' transaction:' + transactionName,
+      query: `event.type: ${query} transaction: ${transactionName}`,
       statsPeriod: undefined,
       start: startTime,
       end: endTime,

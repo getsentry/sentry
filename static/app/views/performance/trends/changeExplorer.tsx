@@ -110,7 +110,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
     <React.Fragment>
       <Header transaction={transaction} trendChangeType={trendChangeType} />
       <ExplorerContainer>
-        <ExplorerContainer flex>
+        <ExplorerContainer style={{display: 'flex'}}>
           <InfoItem
             label={
               trendChangeType === TrendChangeType.REGRESSION
@@ -158,8 +158,8 @@ function ExplorerBody(props: ExplorerBodyProps) {
 function InfoItem({label, value}: {label: string; value: string}) {
   return (
     <ExplorerContainer style={{marginRight: space(4), float: 'left'}}>
-      <Strong>{label}</Strong>
-      <LargeText>{value}</LargeText>
+      <InfoLabel>{label}</InfoLabel>
+      <InfoText>{value}</InfoText>
     </ExplorerContainer>
   );
 }
@@ -217,10 +217,10 @@ const TransactionName = styled('h4')`
   margin-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
 `;
-const Strong = styled('strong')`
+const InfoLabel = styled('strong')`
   color: ${p => p.theme.gray300};
 `;
-const LargeText = styled('h3')`
+const InfoText = styled('h3')`
   font-weight: normal;
 `;
 const GraphPanel = styled('div')`
@@ -231,13 +231,7 @@ const GraphPanel = styled('div')`
   display: block;
 `;
 
-type DivProps = {
-  flex?: boolean;
-};
-
-const ExplorerContainer = styled('div')<DivProps>`
-  display: ${p => (p.flex ? 'flex' : 'block')};
-`;
+const ExplorerContainer = styled('div')``;
 
 type TextProps = {
   align?: string;

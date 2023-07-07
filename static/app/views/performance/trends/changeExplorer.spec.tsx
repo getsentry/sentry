@@ -18,13 +18,6 @@ import {
 } from 'sentry/views/performance/trends/types';
 import {TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
 
-jest.mock(
-  'sentry/utils/getDynamicComponent',
-  () =>
-    ({fixed}) =>
-      fixed
-);
-
 async function waitForMockCall(mock: any) {
   await waitFor(() => {
     expect(mock).toHaveBeenCalled();
@@ -115,15 +108,16 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(eventsMockBefore);
-    await new Promise(r => setTimeout(r, 500));
 
-    expect(screen.getByTestId('pce-header')).toBeInTheDocument();
-    expect(screen.getByTestId('pce-graph')).toBeInTheDocument();
-    expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
-    expect(screen.getAllByTestId('pce-metrics-chart-row-metric')).toHaveLength(4);
-    expect(screen.getAllByTestId('pce-metrics-chart-row-before')).toHaveLength(4);
-    expect(screen.getAllByTestId('pce-metrics-chart-row-after')).toHaveLength(4);
-    expect(screen.getAllByTestId('pce-metrics-chart-row-change')).toHaveLength(4);
+    await waitFor(() => {
+      expect(screen.getByTestId('pce-header')).toBeInTheDocument();
+      expect(screen.getByTestId('pce-graph')).toBeInTheDocument();
+      expect(screen.getByTestId('grid-editable')).toBeInTheDocument();
+      expect(screen.getAllByTestId('pce-metrics-chart-row-metric')).toHaveLength(4);
+      expect(screen.getAllByTestId('pce-metrics-chart-row-before')).toHaveLength(4);
+      expect(screen.getAllByTestId('pce-metrics-chart-row-after')).toHaveLength(4);
+      expect(screen.getAllByTestId('pce-metrics-chart-row-change')).toHaveLength(4);
+    });
   });
 
   it('shows correct change notation for no change', async () => {
@@ -141,10 +135,11 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(eventsMockBefore);
-    await new Promise(r => setTimeout(r, 500));
 
-    expect(screen.getAllByText('3.7 ps')).toHaveLength(2);
-    expect(screen.getAllByTestId('pce-metrics-text-change')[0].innerHTML).toContain('-');
+    await waitFor(() => {
+      expect(screen.getAllByText('3.7 ps')).toHaveLength(2);
+      expect(screen.getAllByTestId('pce-metrics-text-change')[0]).toHaveTextContent('-');
+    });
   });
 
   it('shows correct change notation for positive change', async () => {
@@ -162,17 +157,18 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(eventsMockBefore);
-    await new Promise(r => setTimeout(r, 500));
 
-    expect(screen.getAllByTestId('pce-metrics-text-before')[1].innerHTML).toEqual(
-      '78.3 ms'
-    );
-    expect(screen.getAllByTestId('pce-metrics-text-after')[1].innerHTML).toEqual(
-      '110.5 ms'
-    );
-    expect(screen.getAllByTestId('pce-metrics-text-change')[1].innerHTML).toContain(
-      '+41.2%'
-    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId('pce-metrics-text-before')[1]).toHaveTextContent(
+        '78.3 ms'
+      );
+      expect(screen.getAllByTestId('pce-metrics-text-after')[1]).toHaveTextContent(
+        '110.5 ms'
+      );
+      expect(screen.getAllByTestId('pce-metrics-text-change')[1]).toHaveTextContent(
+        '+41.2%'
+      );
+    });
   });
 
   it('shows correct change notation for negative change', async () => {
@@ -196,17 +192,18 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(eventsMockBefore);
-    await new Promise(r => setTimeout(r, 500));
 
-    expect(screen.getAllByTestId('pce-metrics-text-after')[1].innerHTML).toEqual(
-      '78.3 ms'
-    );
-    expect(screen.getAllByTestId('pce-metrics-text-before')[1].innerHTML).toEqual(
-      '110.5 ms'
-    );
-    expect(screen.getAllByTestId('pce-metrics-text-change')[1].innerHTML).toContain(
-      '-41.2%'
-    );
+    await waitFor(() => {
+      expect(screen.getAllByTestId('pce-metrics-text-after')[1]).toHaveTextContent(
+        '78.3 ms'
+      );
+      expect(screen.getAllByTestId('pce-metrics-text-before')[1]).toHaveTextContent(
+        '110.5 ms'
+      );
+      expect(screen.getAllByTestId('pce-metrics-text-change')[1]).toHaveTextContent(
+        '-41.2%'
+      );
+    });
   });
 
   it('shows correct change notation for no results', async () => {
@@ -252,11 +249,12 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     );
 
     await waitForMockCall(nullEventsMock);
-    await new Promise(r => setTimeout(r, 500));
 
-    expect(screen.getAllByTestId('pce-metrics-text-after')[0].innerHTML).toEqual('-');
-    expect(screen.getAllByTestId('pce-metrics-text-before')[0].innerHTML).toEqual('-');
-    expect(screen.getAllByTestId('pce-metrics-text-change')[0].innerHTML).toContain('-');
+    await waitFor(() => {
+      expect(screen.getAllByTestId('pce-metrics-text-after')[0]).toHaveTextContent('-');
+      expect(screen.getAllByTestId('pce-metrics-text-before')[0]).toHaveTextContent('-');
+      expect(screen.getAllByTestId('pce-metrics-text-change')[0]).toHaveTextContent('-');
+    });
   });
 
   it('returns correct null formatting for change column', () => {
@@ -283,7 +281,9 @@ describe('Performance > Trends > Performance Change Explorer', function () {
       </React.Fragment>
     );
 
-    expect(screen.getAllByText('-')).toHaveLength(3);
+    expect(screen.getAllByTestId('pce-metrics-text-change')[0]).toHaveTextContent('-');
+    expect(screen.getAllByTestId('pce-metrics-text-change')[1]).toHaveTextContent('-');
+    expect(screen.getAllByTestId('pce-metrics-text-change')[2]).toHaveTextContent('-');
   });
 
   it('returns correct positive formatting for change column', () => {
