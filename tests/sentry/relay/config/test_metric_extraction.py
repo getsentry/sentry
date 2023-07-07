@@ -131,12 +131,19 @@ def test_nested_conditions():
 
 
 def test_wildcard_condition():
-    alert = create_alert("release.version:1.*")
+    # transaction.duration is required for convert_query_to_metric
+    alert = create_alert("release.version:1.* transaction.duration:1s")
     metric = convert_query_to_metric(alert.snuba_query)
 
     expected = {
         "category": "transaction",
-        "condition": {"name": "event.release.version.short", "op": "glob", "value": ["1.*"]},
+        "condition": {
+            "op": "and",
+            "inner": [
+                {"name": "event.release.version.short", "op": "glob", "value": ["1.*"]},
+                {"name": "event.duration", "op": "eq", "value": 1000.0},
+            ],
+        },
         "field": "event.measurements.fp",
         "mri": "d:transactions/on_demand@none",
         "tags": [{"key": "query_hash", "value": ANY}],
