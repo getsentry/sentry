@@ -45,7 +45,7 @@ const otherPlatform = {
 
 const platformIntegrations: PlatformIntegration[] = [
   ...(integrationDocsPlatforms.platforms.filter(
-    platform => !migratedDocs.includes(platform.id)
+    platform => platform.id !== 'javascript'
   ) ?? []),
   migratedJavascriptPlatforms,
   otherPlatform,
