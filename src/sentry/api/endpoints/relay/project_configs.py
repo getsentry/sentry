@@ -49,7 +49,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Relay unauthorized for full config information", 403)
 
         version = request.GET.get("version") or "1"
-        global_requested = request.GET.get("global")
 
         set_tag("relay_protocol_version", version)
 
@@ -59,6 +58,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             res = self._post_or_schedule_by_key(request)
             metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
             metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
+
+            global_requested = request.GET.get("global")
 
             if global_requested:
                 res["global"] = {
