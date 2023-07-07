@@ -292,14 +292,14 @@ class TriggersChart extends PureComponent<Props, State> {
         <TransparentLoadingMask visible={isReloading} />
         {isLoading && !error ? (
           <ChartPlaceholder />
+        ) : isOnDemandMetricAlert ? (
+          <WarningChart />
         ) : error ? (
           <ErrorChart
             isAllowIndexed={orgFeatures.includes('alert-allow-indexed')}
             errorMessage={errorMessage}
             isQueryValid={isQueryValid}
           />
-        ) : isOnDemandMetricAlert ? (
-          <WarningChart />
         ) : (
           <ThresholdsChart
             period={statsPeriod}
@@ -485,7 +485,9 @@ const ChartPlaceholder = styled(Placeholder)`
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
+  /* Height and margin should with the alert should match up placeholer height of (184px) */
   padding: ${space(2)};
+  height: 119px;
 `;
 
 const ChartErrorWrapper = styled('div')`

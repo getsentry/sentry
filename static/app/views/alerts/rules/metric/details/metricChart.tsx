@@ -504,7 +504,9 @@ class MetricChart extends PureComponent<Props, State> {
 
     if (isOnDemandMetricAlert(rule.query)) {
       return this.renderEmpty(
-        t('Alert rule contains a field for which we have no data available.')
+        t(
+          'Alert rule contains a field for which we have no previous data. We started collecting this metric when the alert was created and will be able to display it soon.'
+        )
       );
     }
 
