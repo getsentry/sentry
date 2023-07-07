@@ -4,9 +4,11 @@ import logging
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.http import HttpResponse
+from django.contrib import messages
+from django.http import HttpResponse, HttpResponseRedirect
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -15,9 +17,12 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.pipeline import PipelineView
+from sentry.pipeline import Pipeline, PipelineView
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
+
+from .client import OpsgenieProxySetupClient
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -54,6 +59,23 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/opsgenie",
     aspects={},
 )
+
+
+class OpsgenieFinishedView(PipelineView):
+    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+        response = pipeline.finish_pipeline()
+
+        integration = getattr(pipeline, "integration", None)
+        if not integration:
+            return response
+
+        messages.add_message(request, messages.SUCCESS, "VSTS Extension installed.")
+
+        return HttpResponseRedirect(
+            absolute_uri(
+                f"/settings/{pipeline.organization.slug}/integrations/opsgenie/{integration.id}/"
+            )
+        )
 
 
 class InstallationForm(forms.Form):
@@ -135,14 +157,41 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
     # requires_feature_flag = True  # limited release
 
+    def get_account_info(self, base_url, api_key):
+        client = OpsgenieProxySetupClient(base_url=base_url, api_key=api_key)
+        try:
+            resp = client.get_account()
+            return resp.json
+        except ApiError as e:
+            logger.info(
+                "opsgenie.installation.get-account-info-failure",
+                extra={
+                    "base_url": base_url,
+                    "error_message": str(e),
+                    "error_status": e.code,
+                },
+            )
+            raise IntegrationError("The requested Opsgenie account could not be found.")
+
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [InstallationGuideView(), InstallationConfigView()]
+        return [InstallationGuideView(), InstallationConfigView(), OpsgenieFinishedView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """
+        "external_id": account subdomain
+            - make API call to get this info?
         "metadata": {
             "api_key": org-level API key
             "base_url": should be https://api.opsgenie.com/ or https://api.eu.opsgenie.com/
         }
         """
-        return {}
+        api_key = state["installation_data"]["api_key"]
+        base_url = state["installation_data"]["base_url"]
+
+        account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
+
+        return {
+            "name": account.get("name"),
+            "external_id": account.get("name"),
+            "metadata": {"api_key": api_key, "base_url": base_url},
+        }
