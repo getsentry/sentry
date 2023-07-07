@@ -9,7 +9,7 @@ from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 
-from ...services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from .utils import build_user_choice
 
 
