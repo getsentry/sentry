@@ -1,32 +1,35 @@
+import styled from '@emotion/styled';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {createTeam} from 'sentry/actionCreators/teams';
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import CreateTeamModal from 'sentry/components/modals/createTeamModal';
 
 jest.mock('sentry/actionCreators/teams', () => ({
-  createTeam: jest.fn((...args) => new Promise(resolve => resolve(...args))),
+  createTeam: jest.fn((...args: any[]) => new Promise(resolve => resolve(args))),
 }));
 
 describe('CreateTeamModal', function () {
   const org = TestStubs.Organization();
   const closeModal = jest.fn();
   const onClose = jest.fn();
-  const onSuccess = jest.fn();
 
   beforeEach(function () {
     onClose.mockReset();
-    onSuccess.mockReset();
   });
 
   it('calls createTeam action creator on submit', async function () {
+    const styledWrapper = styled(c => c.children);
     render(
       <CreateTeamModal
-        Body={p => p.children}
-        Header={p => p.children}
+        Body={styledWrapper()}
+        Footer={styledWrapper()}
+        Header={p => <span>{p.children}</span>}
         organization={org}
         closeModal={closeModal}
         onClose={onClose}
-        onSuccess={onSuccess}
+        CloseButton={makeCloseButton(() => {})}
       />
     );
 
@@ -36,6 +39,5 @@ describe('CreateTeamModal', function () {
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
     expect(onClose).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
-    expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 });

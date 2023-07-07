@@ -1,16 +1,18 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventVitals from 'sentry/components/events/eventVitals';
+import {Event} from 'sentry/types';
 
-function makeEvent(measurements = {}, sdk = {version: '5.27.3'}) {
+function makeEvent(measurements = {}, sdk = {version: '5.27.3'}): Event {
   const formattedMeasurements = {};
   for (const [name, value] of Object.entries(measurements)) {
     formattedMeasurements[name] = {value};
   }
-  const event = {measurements: formattedMeasurements};
+  const event = TestStubs.Event({measurements: formattedMeasurements});
   if (sdk !== null) {
     event.sdk = sdk;
   }
+
   return event;
 }
 

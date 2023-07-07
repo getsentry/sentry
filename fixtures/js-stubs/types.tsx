@@ -65,6 +65,7 @@ type TestStubFixtures = {
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
+  Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;
