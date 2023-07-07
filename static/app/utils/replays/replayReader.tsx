@@ -251,15 +251,16 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(frame =>
-        [
-          'replay.init',
-          'ui.click',
-          'replay.mutations',
-          'ui.slowClickDetected',
-          'ui.multiClick',
-          'navigation',
-        ].includes(frame.category)
+      ...this._sortedBreadcrumbFrames.filter(
+        frame =>
+          [
+            'replay.init',
+            'ui.click',
+            'replay.mutations',
+            'ui.slowClickDetected',
+            'navigation',
+          ].includes(frame.category) ||
+          (frame.category === 'ui.multiClick' && frame.data.clickCount >= 3)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(

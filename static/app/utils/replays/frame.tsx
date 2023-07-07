@@ -29,7 +29,7 @@ export function getColor(frame: ReplayFrame): Color {
           ? 'red300'
           : 'yellow300';
       case 'ui.multiClick':
-        return 'yellow300';
+        return 'red300';
       case 'replay.mutations':
         return 'yellow300';
       case 'ui.click':
@@ -78,7 +78,7 @@ export function getBreadcrumbType(frame: ReplayFrame): BreadcrumbType {
           ? BreadcrumbType.ERROR
           : BreadcrumbType.WARNING;
       case 'ui.multiClick':
-        return BreadcrumbType.WARNING;
+        return BreadcrumbType.ERROR;
       case 'replay.mutations':
         return BreadcrumbType.WARNING;
       case 'ui.click':
@@ -132,7 +132,7 @@ export function getTitle(frame: ReplayFrame): ReactNode {
           ? 'Dead Click'
           : 'Slow Click';
       case 'ui.multiClick':
-        return 'Multi-Click';
+        return 'Rage Click';
       case 'replay.mutations':
         return 'Replay';
       case 'ui.click':
@@ -199,7 +199,7 @@ export function getDescription(frame: ReplayFrame): ReactNode {
       }
       case 'ui.multiClick':
         const multiClickFrame = frame as MultiClickFrame;
-        return tct('Clicked [clickCount] on [selector]', {
+        return tct('Rage clicked [clickCount] times on [selector]', {
           clickCount: multiClickFrame.data.clickCount,
           selector: stringifyNodeAttributes(multiClickFrame.data.node),
         });
