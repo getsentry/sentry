@@ -12,6 +12,10 @@ from sentry.silo.base import SiloLimit, SiloMode
 logger = logging.getLogger(__name__)
 
 
+class SiloConnectionUnavailableError(ValueError):
+    pass
+
+
 class SiloRouter:
     """
     Django database router for multi-region deployments.
@@ -75,7 +79,7 @@ class SiloRouter:
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
-    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str):
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str:
         # XXX This method has an override in getsentry for region silo primary splits.
         active_mode = SiloMode.get_current_mode()
 
@@ -89,10 +93,15 @@ class SiloRouter:
             if active_mode == silo_mode:
                 return "default"
 
-            raise ValueError(
-                f"Cannot resolve table {table} in {silo_mode}. "
-                f"Application silo mode is {active_mode} and simulated silos are not enabled."
-            )
+            # If we're in tests raise an error, otherwise return 'no decision'
+            # so that django skips migration operations that won't work.
+            if "pytest" in sys.modules:
+                raise SiloConnectionUnavailableError(
+                    f"Cannot resolve table {table} in {silo_mode}. "
+                    f"Application silo mode is {active_mode} and simulated silos are not enabled."
+                )
+            else:
+                return None
 
     def _find_model(self, table: str, app_label: str) -> Optional[Model]:
         # Use django's model inventory to find our table and what silo it is on.
