@@ -11,7 +11,7 @@ def migrate_monitor_slugs(apps, schema_editor):
 
     MAX_SLUG_LENGTH = 50
 
-    for monitor in RangeQuerySetWrapperWithProgressBar(Monitor.objects.filter()):
+    for monitor in RangeQuerySetWrapperWithProgressBar(Monitor.objects.all()):
         monitor_slug = monitor.slug
         slugified = slugify(monitor_slug)[:MAX_SLUG_LENGTH].strip("-")
 
