@@ -789,7 +789,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.archive.close()
+        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
@@ -818,7 +818,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.archive.close()
+        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
@@ -860,7 +860,7 @@ class ArtifactBundleIndexingTest(TestCase):
             release=release,
             dist=dist,
         )
-        post_assembler.archive.close()
+        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_bundles_already_indexed(self, index_artifact_bundles_for_release):
@@ -895,7 +895,7 @@ class ArtifactBundleIndexingTest(TestCase):
         )
 
         index_artifact_bundles_for_release.assert_not_called()
-        post_assembler.archive.close()
+        post_assembler.close()
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_newer_bundle_already_stored(
@@ -947,4 +947,4 @@ class ArtifactBundleIndexingTest(TestCase):
             release=release,
             dist=dist,
         )
-        post_assembler.archive.close()
+        post_assembler.close()

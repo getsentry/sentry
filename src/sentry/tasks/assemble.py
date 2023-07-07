@@ -260,13 +260,24 @@ class AssembleArtifactsError(Exception):
 class PostAssembler(ABC):
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
+        self._validate_assemble_result()
 
     def _validate_assemble_result(self):
         if self.assemble_result.bundle is None or self.assemble_result.temp_file is None:
             raise AssembleArtifactsError("the assemble result has invalid bundle or temporary file")
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
     @abstractmethod
     def _validate_bundle(self):
+        pass
+
+    @abstractmethod
+    def close(self):
         pass
 
     @abstractmethod
@@ -294,10 +305,12 @@ class ReleaseBundlePostAssembler(PostAssembler):
             self.assemble_result.bundle.delete()
             raise AssembleArtifactsError("the release bundle is invalid")
 
+    def close(self):
+        self.archive.close()
+
     def post_assemble(self):
         with metrics.timer("tasks.assemble.release_bundle"):
-            with self.archive:
-                self._create_release_file()
+            self._create_release_file()
 
     def _create_release_file(self):
         manifest = self.archive.manifest
@@ -432,10 +445,12 @@ class ArtifactBundlePostAssembler(PostAssembler):
             self.assemble_result.bundle.delete()
             raise AssembleArtifactsError("the artifact bundle is invalid")
 
+    def close(self):
+        self.archive.close()
+
     def post_assemble(self):
         with metrics.timer("tasks.assemble.artifact_bundle"):
-            with self.archive:
-                self._create_artifact_bundle()
+            self._create_artifact_bundle()
 
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
@@ -741,17 +756,16 @@ def assemble_artifacts(
             return
 
         # We first want to prepare the post assembler which will take care of validating the archive.
-        post_assembler = prepare_post_assembler(
+        with prepare_post_assembler(
             assemble_result=assemble_result,
             organization=organization,
             release=version,
             dist=dist,
             project_ids=project_ids,
             upload_as_artifact_bundle=upload_as_artifact_bundle,
-        )
-
-        # Once the archive is valid, the post assembler can run the post assembling job.
-        post_assembler.post_assemble()
+        ) as post_assembler:
+            # Once the archive is valid, the post assembler can run the post assembling job.
+            post_assembler.post_assemble()
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception as e:
