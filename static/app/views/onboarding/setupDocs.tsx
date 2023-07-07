@@ -67,13 +67,13 @@ export function DocWithProductSelection({
   const loadPlatform = useMemo(() => {
     return products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
       products.includes(ProductSolution.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
+      ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
       : products.includes(ProductSolution.PERFORMANCE_MONITORING)
-      ? `${currentPlatform}-with-error-monitoring-and-performance`
+      ? `${currentPlatformKey}-with-error-monitoring-and-performance`
       : products.includes(ProductSolution.SESSION_REPLAY)
-      ? `${currentPlatform}-with-error-monitoring-and-replay`
-      : `${currentPlatform}-with-error-monitoring`;
-  }, [products, currentPlatform]);
+      ? `${currentPlatformKey}-with-error-monitoring-and-replay`
+      : `${currentPlatformKey}-with-error-monitoring`;
+  }, [products, currentPlatformKey]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<OnboardingPlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],

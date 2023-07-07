@@ -1,6 +1,6 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 
 // Configuration Start
@@ -110,7 +110,7 @@ export const nextSteps = [
 // Configuration End
 
 type Props = {
-  activeProductSelection: PRODUCT[];
+  activeProductSelection: ProductSolution[];
   dsn: string;
   newOrg?: boolean;
 };
@@ -124,18 +124,20 @@ export default function GettingStartedWithReact({
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
 
-  if (activeProductSelection.includes(PRODUCT.PERFORMANCE_MONITORING)) {
+  if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
-      step => step.id !== PRODUCT.PERFORMANCE_MONITORING
+      step => step.id !== ProductSolution.PERFORMANCE_MONITORING
     );
   }
 
-  if (activeProductSelection.includes(PRODUCT.SESSION_REPLAY)) {
+  if (activeProductSelection.includes(ProductSolution.SESSION_REPLAY)) {
     integrations.push(replayIntegration.trim());
     otherConfigs.push(replayOtherConfig.trim());
-    nextStepDocs = nextStepDocs.filter(step => step.id !== PRODUCT.SESSION_REPLAY);
+    nextStepDocs = nextStepDocs.filter(
+      step => step.id !== ProductSolution.SESSION_REPLAY
+    );
   }
 
   let sentryInitContent: string[] = [`dsn: "${dsn}",`];
