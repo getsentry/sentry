@@ -10,6 +10,7 @@
 
 export * from './auth';
 export * from './core';
+export * from './debugFiles';
 export * from './event';
 export * from './group';
 export * from './integrations';
