@@ -1,5 +1,5 @@
-import XAxis from 'sentry/components/charts/components/xAxis';
-import theme from 'sentry/utils/theme';
+import XAxis, {XAxisProps} from 'sentry/components/charts/components/xAxis';
+import {lightTheme} from 'sentry/utils/theme';
 
 jest.mock('moment', () => {
   const moment = jest.requireActual('moment-timezone');
@@ -10,9 +10,9 @@ jest.mock('moment', () => {
 describe('Chart XAxis', function () {
   let axisLabelFormatter;
   let xAxisObj;
-  const props = {
+  const props: XAxisProps = {
     isGroupedByDate: true,
-    theme,
+    theme: lightTheme,
   };
   const timestamp = 1531094400000;
 

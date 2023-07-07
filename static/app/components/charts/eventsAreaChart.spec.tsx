@@ -38,10 +38,11 @@ describe('EventsChart with legend', function () {
     render(
       <EventsChart
         api={new MockApiClient()}
-        location={{query: {}}}
         organization={organization}
-        project={[]}
-        environment={[]}
+        projects={[]}
+        environments={[]}
+        yAxis="count()"
+        query=""
         period="14d"
         start={null}
         end={null}
@@ -50,8 +51,9 @@ describe('EventsChart with legend', function () {
         showLegend
       />
     );
-
     expect(await screen.findByTestId('area-chart')).toBeInTheDocument();
-    expect(BaseChart.mock.calls[0][0].legend).toHaveProperty('data');
+    expect(
+      (BaseChart as jest.MockedFunction<any>).mock.calls[0][0].legend
+    ).toHaveProperty('data');
   });
 });

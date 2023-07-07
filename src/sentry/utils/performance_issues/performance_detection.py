@@ -14,6 +14,9 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
+    ConsecutiveHTTPSpanDetectorExtended,
+)
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsDetectorExtended,
 )
@@ -292,6 +295,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
+        DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
+            # time saved by running all queries in parallel
+            "min_time_saved": 500,
+            "consecutive_count_threshold": 2,
+            "max_duration_between_spans": 1000,  # ms
+        },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
@@ -309,6 +318,7 @@ def _detect_performance_problems(
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
+        ConsecutiveHTTPSpanDetectorExtended(detection_settings, data),
         DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),

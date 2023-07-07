@@ -845,6 +845,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
+        isOnDemandMetricAlert={isOnDemandMetricAlert(query)}
         header={
           <ChartHeader>
             <AlertName>{AlertWizardAlertNames[alertType]}</AlertName>

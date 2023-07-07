@@ -1351,6 +1351,8 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow in MS Teams
+    "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
@@ -1470,14 +1472,10 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable SQL formatting for breadcrumb items and performance spans
-    "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable prefetching of issues from the issue list when hovered
-    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1650,6 +1648,8 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
+    # Enables slack channel lookup via schedule message
+    "organizations:slack-use-new-lookup": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
