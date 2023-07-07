@@ -422,7 +422,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
         notify(provider, notification, participants, shared_context, extra_context)
 
 
-def get_replay_id(event: Event) -> str | None:
+def get_replay_id(event: Event | GroupEvent) -> str | None:
     tags_replay_id = event.get_tag("replayId")
     if (
         isinstance(event, GroupEvent)
