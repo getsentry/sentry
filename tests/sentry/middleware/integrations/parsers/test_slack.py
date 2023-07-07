@@ -1,21 +1,14 @@
-from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.test import RequestFactory, override_settings
+from django.test import RequestFactory
 from django.urls import reverse
 
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.base import RegionResult
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
-from sentry.silo.base import SiloMode
+from sentry.models.outbox import ControlOutbox
 from sentry.silo.client import SiloClientError
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
