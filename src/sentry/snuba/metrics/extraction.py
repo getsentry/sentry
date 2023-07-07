@@ -1,20 +1,32 @@
 import hashlib
 import logging
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+)
 
-from snuba_sdk import BooleanCondition, Column, Condition
 from typing_extensions import NotRequired
 
+from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
 from sentry.snuba.models import SnubaQuery
+from sentry.utils.snuba import resolve_column
 
 logger = logging.getLogger(__name__)
 
 # Name component of MRIs used for custom alert metrics.
-# TODO: Move to a common module.
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
@@ -22,60 +34,93 @@ QUERY_HASH_KEY = "query_hash"
 # TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
-_SNUBA_TO_RELAY_FIELDS = {
-    "contexts[geo.country_code]": "event.geo.country_code",
-    "http_method": "event.http.method",
+
+# Maps from Discover's nomenclature to event protocol paths.
+# See Relay's ``FieldValueProvider`` for supported fields.
+_SEARCH_TO_PROTOCOL_FIELDS = {
+    # Top-level fields
     "release": "event.release",
-    "transaction_op": "event.transaction.op",
-    "transaction_status": "event.transaction.status",
-    "duration": "event.duration",
-    "measurements[cls]": "event.measurements.cls",
-    "measurements[fcp]": "event.measurements.fcp",
-    "measurements[fid]": "event.measurements.fid",
-    "measurements[fp]": "event.measurements.fp",
-    "measurements[lcp]": "event.measurements.lcp",
-    "measurements[ttfb]": "event.measurements.ttfb",
-    "measurements[ttfb.requesttime]": "event.measurements.ttfb.requesttime",
-    # TODO(ogi): Support fields whose resolution returns a function
-    # "browser.name": "event.browser.name",
-    # "http.status_code": "event.http.status_code",
-    # "os.name": "event.os.name",
+    "dist": "event.dist",
+    "environment": "event.environment",
+    "transaction": "event.transaction",
+    "platform": "event.platform",
+    # User
+    "user.email": "event.user.email",
+    "user.id": "event.user.id",
+    "user.ip_address": "event.user.ip_address",
+    "user.name": "event.user.name",
+    "user.segment": "event.user.segment",
+    # Subset of context fields
+    "device.name": "event.contexts.device.name",
+    "device.family": "event.contexts.device.family",
+    "os.name": "event.contexts.os.name",
+    "os.version": "event.contexts.os.version",
+    "transaction.op": "event.contexts.trace.op",
+    # Computed fields
+    "transaction.duration": "event.duration",
+    "release.build": "event.release.build",
+    "release.package": "event.release.package",
+    "release.version": "event.release.version.short",
+    # Tags, measurements, and breakdowns are mapped by the converter
+    # TODO: Required but yet unsupported by Relay
+    # "geo.country_code": None,
+    # "transaction.status": None,
+    # "http.method": None,
 }
 
-_SNUBA_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
+CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
+
+_SEARCH_TO_RELAY_OPERATORS: Dict[str, CompareOp] = {
+    "=": "eq",
+    "!=": "eq",  # combined with external negation
+    "<": "lt",
+    "<=": "lte",
+    ">": "gt",
+    ">=": "gte",
+}
+
+_SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
     "count": "sum",
     "avg": "avg",
-    "quantile(0.50)": "p50",
-    "quantile(0.75)": "p75",
-    "quantile(0.95)": "p95",
-    "quantile(0.99)": "p99",
     "max": "max",
+    "p50": "p50",
+    "p75": "p75",
+    "p95": "p95",
+    "p99": "p99",
     # not supported yet
     "percentile": None,
     "failure_rate": None,
     "apdex": None,
+    "eps": None,
+    "epm": None,
+    "tps": None,
+    "tpm": None,
 }
 
 # TODO(ogi): support count_if
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
     "avg": "d",
-    "quantile(0.50)": "d",
-    "quantile(0.75)": "d",
-    "quantile(0.95)": "d",
-    "quantile(0.99)": "d",
     "max": "d",
+    "p50": "d",
+    "p75": "d",
+    "p95": "d",
+    "p99": "d",
     # not supported yet
     "percentile": None,
     "failure_rate": None,
     "apdex": None,
+    "eps": None,
+    "epm": None,
+    "tps": None,
+    "tpm": None,
 }
 
 
 class ComparingRuleCondition(TypedDict):
     """RuleCondition that compares a named field to a reference value."""
 
-    op: Literal["eq", "gt", "gte", "lt", "lte", "glob"]
+    op: CompareOp
     name: str
     value: Any
 
@@ -196,69 +241,134 @@ class OndemandMetricSpec:
     def condition(self) -> RuleCondition:
         """Returns a condition that should be fulfilled for the on-demand metric to be extracted."""
 
-        where, having = _get_query_builder().resolve_conditions(self._query, False)
-
-        assert where, "Query should not use on demand metrics"
-        assert not having, "Having conditions are not supported"
-
-        where = [c for c in (_convert_condition(c) for c in where) if c is not None]
-
-        if len(where) == 1:
-            return where[0]
-        else:
-            return {"op": "and", "inner": where}
+        tokens = parse_search_query(self._query)
+        assert tokens, "This query should not use on demand metrics"
+        return SearchQueryConverter(tokens).convert()
 
 
 def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str, MetricOperationType]:
-    select = _get_query_builder().resolve_column(aggregate, False)
+    name, arguments, _alias = fields.parse_function(aggregate)
 
-    metric_type = _AGGREGATE_TO_METRIC_TYPE.get(select.function)
-    metric_op = _SNUBA_TO_METRIC_AGGREGATES.get(select.function)
-    assert metric_type and metric_op, f"Unsupported aggregate function {select.function}"
+    metric_type = _AGGREGATE_TO_METRIC_TYPE.get(name)
+    metric_op = _SEARCH_TO_METRIC_AGGREGATES.get(name)
+    assert metric_type and metric_op, f"Unsupported aggregate function {name}"
 
     if metric_type == "c":
-        assert not select.parameters, "Count should not have parameters"
+        assert not arguments, "`count()` does not support arguments"
         return None, metric_type, metric_op
     else:
-        assert len(select.parameters) == 1, "Only one parameter is supported"
-
-        name = select.parameters[0].name
-        assert name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {name}"
-
-        return _SNUBA_TO_RELAY_FIELDS[name], metric_type, metric_op
+        assert len(arguments) == 1, "Only one parameter is supported"
+        return _map_field_name(arguments[0]), metric_type, metric_op
 
 
-def _convert_condition(condition: Union[Condition, BooleanCondition]) -> Optional[RuleCondition]:
-    if isinstance(condition, BooleanCondition):
-        return cast(
-            RuleCondition,
-            {
-                "op": condition.op.name.lower(),
-                "inner": [_convert_condition(c) for c in condition.conditions],
-            },
-        )
+def _map_field_name(search_key: str) -> str:
+    # Map known fields using a static mapping.
+    if field := _SEARCH_TO_PROTOCOL_FIELDS.get(search_key):
+        return field
 
-    assert isinstance(condition, Condition), f"Unsupported condition type {type(condition)}"
+    # Measurements support generic access.
+    if search_key.startswith("measurements."):
+        return f"event.{search_key}"
 
-    # TODO: Currently we do not support function conditions like count_if
-    if not isinstance(condition.lhs, Column):
-        return None
+    # Run a schema-aware check for tags. Always use the resolver output,
+    # since it accounts for passing `tags[foo]` as key.
+    resolved = (resolve_column(Dataset.Transactions))(search_key)
+    if resolved.startswith("tags["):
+        return f"event.tags.{resolved[5:-1]}"
 
-    assert condition.lhs.name in _SNUBA_TO_RELAY_FIELDS, f"Unsupported field {condition.lhs.name}"
-
-    return {
-        "op": condition.op.name.lower(),
-        "name": _SNUBA_TO_RELAY_FIELDS[condition.lhs.name],
-        "value": condition.rhs,
-    }
+    raise ValueError(f"Unsupported query field {search_key}")
 
 
-def _get_query_builder():
-    # TODO: Find a way to perform resolve_column and resolve_conditions without instantiating a QueryBuilder
-    from sentry.search.events.builder import QueryBuilder
+QueryOp = Literal["AND", "OR"]
+QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+T = TypeVar("T")
 
-    return QueryBuilder(
-        dataset=Dataset.Transactions,
-        # start and end parameters are required, but not used
-        params={"start": datetime.now(), "end": datetime.now()},
-    )
+
+class SearchQueryConverter:
+    """A converter from search query token stream to rule conditions."""
+
+    def __init__(self, tokens: Sequence[QueryToken]):
+        self._tokens = tokens
+        self._position = 0
+
+    def convert(self) -> RuleCondition:
+        """Converts the token stream into a rule condition."""
+
+        condition = self._expr()
+        if self._position < len(self._tokens):
+            raise ValueError("Unexpected trailing tokens")
+        return condition
+
+    def _peek(self) -> Optional[QueryToken]:
+        if self._position < len(self._tokens):
+            return self._tokens[self._position]
+        else:
+            return None
+
+    def _consume(self, pattern: Union[str, Type[T]]) -> Optional[T]:
+        token = self._peek()
+
+        if isinstance(pattern, str) and token != pattern:
+            return None
+        elif isinstance(pattern, type) and not isinstance(token, pattern):
+            return None
+
+        self._position += 1
+        return cast(T, token)
+
+    def _expr(self) -> RuleCondition:
+        terms = [self._term()]
+
+        while self._consume("OR") is not None:
+            terms.append(self._term())
+
+        if len(terms) == 1:
+            return terms[0]
+        else:
+            return {"op": "or", "inner": terms}
+
+    def _term(self) -> RuleCondition:
+        factors = [self._factor()]
+
+        while not self._peek() in ("OR", None):
+            self._consume("AND")  # AND is optional and implicit.
+            factors.append(self._factor())
+
+        if len(factors) == 1:
+            return factors[0]
+        else:
+            return {"op": "and", "inner": factors}
+
+    def _factor(self) -> RuleCondition:
+        if filt := self._consume(SearchFilter):
+            return self._filter(filt)
+        elif paren := self._consume(ParenExpression):
+            return SearchQueryConverter(paren.children).convert()
+        elif token := self._peek():
+            raise ValueError(f"Unexpected token {token}")
+        else:
+            raise ValueError("Unexpected end of query")
+
+    def _filter(self, token: SearchFilter) -> RuleCondition:
+        operator = _SEARCH_TO_RELAY_OPERATORS.get(token.operator)
+        if not operator:
+            raise ValueError(f"Unsupported operator {token.operator}")
+
+        value = token.value.raw_value
+        if operator == "eq" and isinstance(value, str) and "*" in value:
+            condition: RuleCondition = {
+                "op": "glob",
+                "name": _map_field_name(token.key.name),
+                "value": [value],
+            }
+        else:
+            condition = {
+                "op": operator,
+                "name": _map_field_name(token.key.name),
+                "value": value,  # Already contains a correctly typed value.
+            }
+
+        if token.operator == "!=":
+            condition = {"op": "not", "inner": condition}
+
+        return condition

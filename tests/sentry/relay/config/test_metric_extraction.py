@@ -90,7 +90,7 @@ def test_and_boolean_condition():
         "category": "transaction",
         "condition": {
             "inner": [
-                {"name": "event.release", "op": "in", "value": ["foo"]},
+                {"name": "event.release", "op": "eq", "value": "foo"},
                 {"name": "event.duration", "op": "lt", "value": 10000.0},
             ],
             "op": "and",
@@ -103,23 +103,40 @@ def test_and_boolean_condition():
     assert metric == expected
 
 
-def test_complex_and_condition():
-    query = "geo.country_code:=AT http.method:=GET release:=a transaction.op:=b transaction.status:=aborted transaction.duration:>1s"
+def test_nested_conditions():
+    query = "(release:=a OR transaction.op:=b) transaction.duration:>1s"
     metric = convert_query_to_metric(create_alert(query).snuba_query)
 
     expected = {
         "category": "transaction",
         "condition": {
+            "op": "and",
             "inner": [
-                {"name": "event.geo.country_code", "op": "eq", "value": "AT"},
-                {"name": "event.http.method", "op": "eq", "value": "GET"},
-                {"name": "event.release", "op": "in", "value": ["a"]},
-                {"name": "event.transaction.op", "op": "eq", "value": "b"},
-                {"name": "event.transaction.status", "op": "eq", "value": 10},
+                {
+                    "op": "or",
+                    "inner": [
+                        {"name": "event.release", "op": "eq", "value": "a"},
+                        {"name": "event.contexts.trace.op", "op": "eq", "value": "b"},
+                    ],
+                },
                 {"name": "event.duration", "op": "gt", "value": 1000.0},
             ],
-            "op": "and",
         },
+        "field": "event.measurements.fp",
+        "mri": "d:transactions/on_demand@none",
+        "tags": [{"key": "query_hash", "value": ANY}],
+    }
+
+    assert metric == expected
+
+
+def test_wildcard_condition():
+    alert = create_alert("release.version:1.*")
+    metric = convert_query_to_metric(alert.snuba_query)
+
+    expected = {
+        "category": "transaction",
+        "condition": {"name": "event.release.version.short", "op": "glob", "value": ["1.*"]},
         "field": "event.measurements.fp",
         "mri": "d:transactions/on_demand@none",
         "tags": [{"key": "query_hash", "value": ANY}],
