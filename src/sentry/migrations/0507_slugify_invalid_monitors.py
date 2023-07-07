@@ -20,8 +20,8 @@ def migrate_monitor_slugs(apps, schema_editor):
         if monitor_slug == slugified:
             continue
 
-        monitor.slug = slugified
         try:
+            monitor.slug = slugified
             monitor.save()
         except IntegrityError:
             # If there is a collision, delete the old monitor as the new one is receiving all check-ins
