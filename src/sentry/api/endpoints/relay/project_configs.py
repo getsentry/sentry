@@ -61,17 +61,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
             metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
 
             if global_requested:
-                global_config = {
+                res["global"] = {
                     "measurements": res["measurements"],
                     "metricsConditionalTagging": res["metricsConditionalTagging"],
                 }
-            else:
-                global_config = None
 
             del res["measurements"]
             del res["metricsConditionalTagging"]
-
-            res["global"] = global_config
 
             return Response(res, status=200)
         elif self._should_use_v3(version, request):
