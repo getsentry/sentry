@@ -86,6 +86,10 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
     queryConditions.push('!span.action:""');
   }
 
+  if (![ModuleName.ALL, ModuleName.NONE].includes(moduleName)) {
+    queryConditions.push(`span.module:${moduleName}`);
+  }
+
   if (moduleName === ModuleName.DB) {
     queryConditions.push('!span.op:db.redis');
   }
