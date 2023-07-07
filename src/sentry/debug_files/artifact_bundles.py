@@ -102,7 +102,8 @@ def _index_urls_in_bundle(
                         # value:
                         artifact_bundle_id=artifact_bundle.id,
                         # metadata:
-                        date_last_modified=artifact_bundle.date_last_modified,
+                        date_last_modified=artifact_bundle.date_last_modified
+                        or artifact_bundle.date_added,
                         date_added=artifact_bundle.date_added,
                     )
                 )
