@@ -8,11 +8,9 @@ import set from 'lodash/set';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
 import {BarChart, BarChartProps, BarChartSeries} from './barChart';
-import type BaseChart from './baseChart';
+import type {BaseChartProps} from './baseChart';
 
-type ChartProps = React.ComponentProps<typeof BaseChart>;
-
-interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> {
+interface Props extends Omit<BaseChartProps, 'css' | 'colors' | 'series' | 'height'> {
   /**
    * Chart height
    */
@@ -97,7 +95,7 @@ function MiniBarChart({
   grid,
   ...props
 }: Props) {
-  const {ref: _ref, ...barChartProps} = props;
+  const {...barChartProps} = props;
   const theme = useTheme();
   const colorList = Array.isArray(colors)
     ? colors
