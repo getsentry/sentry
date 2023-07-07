@@ -119,6 +119,7 @@ class MsTeamsRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
+
             assert ControlOutbox.objects.count() == 1
             outbox = ControlOutbox.objects.first()
             expected_payload: Any = {
