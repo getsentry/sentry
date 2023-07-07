@@ -49,6 +49,7 @@ export function useTransactions(eventIDs: string[], referrer = 'use-transactions
     return {
       isFetching: false,
       isLoading: false,
+      error: null,
       data: [],
     };
   }

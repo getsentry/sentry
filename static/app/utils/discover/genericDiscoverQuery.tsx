@@ -205,22 +205,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       return this.props.parseError(error);
     }
 
-    if (!error) {
-      return null;
-    }
-
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return new QueryError(detail, error);
-    }
-
-    const message = detail?.message;
-    if (typeof message === 'string') {
-      return new QueryError(message, error);
-    }
-
-    const unknownError = new QueryError(t('An unknown error occurred.'), error);
-    return unknownError;
+    return parseError(error);
   };
 
   fetchData = async () => {
@@ -432,9 +417,28 @@ export function useGenericDiscoverQuery<T, P>(props: Props<T, P>) {
   return {
     ...res,
     data: res.data?.[0] ?? undefined,
+    error: parseError(res.error),
     statusCode: res.data?.[1] ?? undefined,
     response: res.data?.[2] ?? undefined,
   };
 }
+
+const parseError = (error: any): QueryError | null => {
+  if (!error) {
+    return null;
+  }
+
+  const detail = error.responseJSON?.detail;
+  if (typeof detail === 'string') {
+    return new QueryError(detail, error);
+  }
+
+  const message = detail?.message;
+  if (typeof message === 'string') {
+    return new QueryError(message, error);
+  }
+
+  return new QueryError(t('An unknown error occurred.'), error);
+};
 
 export default GenericDiscoverQuery;

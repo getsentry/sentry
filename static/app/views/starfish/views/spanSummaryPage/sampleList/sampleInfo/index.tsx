@@ -1,5 +1,6 @@
 import {CSSProperties} from 'react';
 
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
@@ -17,8 +18,9 @@ type Props = {
 
 function SampleInfo(props: Props) {
   const {groupId, transactionName, transactionMethod} = props;
+  const {setPageError} = usePageError();
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, error} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [
@@ -33,6 +35,10 @@ function SampleInfo(props: Props) {
   const style: CSSProperties = {
     textAlign: 'left',
   };
+
+  if (error) {
+    setPageError(error.message);
+  }
 
   return (
     <BlockContainer>
