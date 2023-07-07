@@ -738,6 +738,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_ongoing_issues",
     "sentry.tasks.auto_archive_issues",
     "sentry.tasks.check_am2_compatibility",
+    "sentry.dynamic_sampling.tasks.performance_timing",
 )
 
 default_exchange = Exchange("default", type="direct")
