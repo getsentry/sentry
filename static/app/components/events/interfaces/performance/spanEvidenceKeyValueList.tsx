@@ -16,7 +16,7 @@ import {
   EntryType,
   Event,
   EventTransaction,
-  getPerformanceIssueTypeFromOccurenceType,
+  getIssueTypeFromOccurenceType,
   IssueType,
   KeyValueListData,
   KeyValueListDataItem,
@@ -61,8 +61,7 @@ export function SpanEvidenceKeyValueList({
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   const issueType =
-    event.perfProblem?.issueType ??
-    getPerformanceIssueTypeFromOccurenceType(event.occurrence?.type);
+    event.perfProblem?.issueType ?? getIssueTypeFromOccurenceType(event.occurrence?.type);
 
   if (!issueType || !spanInfo) {
     return (

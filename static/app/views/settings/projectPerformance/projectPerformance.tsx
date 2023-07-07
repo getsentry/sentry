@@ -809,7 +809,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
-                  <div>
+                  <div id={projectDetectorSettingsId}>
                     <StyledPanelHeader>
                       {t('Performance Issues - Detector Threshold Settings')}
                     </StyledPanelHeader>
@@ -818,7 +818,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
                       collapsible
                       initiallyCollapsed
                     />
-                    <StyledPanelFooter id={projectDetectorSettingsId}>
+                    <StyledPanelFooter>
                       <Actions>
                         <Confirm
                           message={t(

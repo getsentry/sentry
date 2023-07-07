@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
   EventTransaction,
-  getPerformanceIssueTypeFromOccurenceType,
+  getIssueTypeFromOccurenceType,
   IssueType,
   Organization,
 } from 'sentry/types';
@@ -43,7 +43,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const hasProfilingFeature = organization.features.includes('profiling');
 
-  const issueType = getPerformanceIssueTypeFromOccurenceType(event.occurrence?.type);
+  const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
   const hasConfigurableThresholds =
     issueType &&
     ![
