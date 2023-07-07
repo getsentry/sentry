@@ -260,7 +260,7 @@ def get_helpful_event_for_environments(
         all_conditions.extend(conditions)
 
     end = group.last_seen + timedelta(minutes=1)
-    start = end - timedelta(days=14)
+    start = end - timedelta(days=7)
 
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
