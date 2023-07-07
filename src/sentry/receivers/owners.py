@@ -6,6 +6,12 @@ from sentry.models.team import Team
 from sentry.roles import organization_roles
 
 
+def _assert_org_has_owner_not_from_team(organization, top_role):
+    assert organization.member_set.filter(
+        role=top_role
+    ).exists(), "An organization must have at least one owner"
+
+
 def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
     # if a member is being created
     if instance.id is None:
@@ -23,7 +29,7 @@ def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs):
     ), "An organization must have at least one owner"
 
 
-def prevent_removing_last_owner_team(instance: Team, **kwargs):
+def prevent_demoting_last_owner_team(instance: Team, **kwargs):
     # if a team is being created
     if instance.id is None:
         return
@@ -40,10 +46,18 @@ def prevent_removing_last_owner_team(instance: Team, **kwargs):
 
     # demoting last owner team
     if len(all_owner_teams) == 1 and team.org_role == top_role and instance.org_role != top_role:
-        # organization must have at least one owner who does not have their role from a team
-        assert team.member_set.filter(
-            role=top_role
-        ).exists(), "An organization must have at least one owner"
+        _assert_org_has_owner_not_from_team(organization, top_role)
+
+
+def prevent_removing_last_owner_team(instance: Team, **kwargs):
+    organization = Organization.objects.get_from_cache(id=instance.organization_id)
+    top_role = organization_roles.get_top_dog().id
+
+    all_owner_teams = organization.get_teams_with_org_roles(roles=[top_role])
+
+    # removing last owner team
+    if len(all_owner_teams) == 1:
+        _assert_org_has_owner_not_from_team(organization, top_role)
 
 
 pre_save.connect(
@@ -53,7 +67,7 @@ pre_save.connect(
     weak=False,
 )
 pre_save.connect(
-    prevent_removing_last_owner_team,
+    prevent_demoting_last_owner_team,
     sender=Team,
     dispatch_uid="prevent_demoting_last_owner_team",
     weak=False,
