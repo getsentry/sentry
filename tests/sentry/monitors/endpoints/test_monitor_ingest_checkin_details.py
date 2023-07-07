@@ -81,7 +81,7 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
             assert checkin.status == CheckInStatus.IN_PROGRESS
             assert checkin.date_updated > checkin.date_added
-            timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+            timeout_at = checkin.date_updated.replace(second=0, microsecond=0) + timedelta(
                 minutes=TIMEOUT
             )
             assert checkin.timeout_at == timeout_at
