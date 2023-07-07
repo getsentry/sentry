@@ -17,12 +17,14 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
+    InvalidRegionalSlugTargetException,
     Organization,
     OrganizationMember,
     OrganizationOption,
     User,
     UserOption,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -35,6 +37,9 @@ from sentry.utils.audit import create_system_audit_entry
 @region_silo_test(stable=True)
 class OrganizationTest(TestCase, HybridCloudTestMixin):
     def test_slugify_on_new_orgs(self):
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            return
+
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
         assert org.slug == "downtown-canada"
 
@@ -42,12 +47,31 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org.slug = "---downtown_canada---"
         org.save()
         org.refresh_from_db()
-        assert org.slug == "---downtown_canada---"
+        assert org.slug.startswith("downtown-canada")
 
         org = Organization.objects.create(name="---foo_bar---")
         assert org.slug == "foo-bar"
 
+    def test_slugify_on_new_orgs_in_region_silo(self):
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            return
+
+        org = Organization.objects.create(name="name", slug="---downtown_canada---")
+        assert org.slug == "r-na-downtown-canada"
+
+        # Only slugify on new instances of Organization
+        org.slug = "---downtown_canada---"
+        org.save()
+        org.refresh_from_db()
+        assert org.slug.startswith("r-na-downtown-canada")
+
+        org = Organization.objects.create(name="---foo_bar---")
+        assert org.slug == "r-na-foo-bar"
+
     def test_slugify_long_org_names(self):
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            return
+
         # Org name is longer than allowed org slug, and should be trimmed when slugified.
         org = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
         assert org.slug == "stove-electrical-and-catering"
@@ -57,6 +81,30 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert org2.slug.startswith("stove-electrical-and-cateri-")
         assert len(org2.slug) > len("stove-electrical-and-cateri-")
         assert org.slug != org2.slug
+
+    def test_slugify_long_org_names_within_region(self):
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            return
+
+        org = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org.slug == "r-na-stove-electrical-and-cate"
+
+        # Ensure org slugs are unique
+        org2 = Organization.objects.create(name="Stove, Electrical, and Catering Stuff")
+        assert org2.slug.startswith("r-na-stove-electrical-and-")
+        assert len(org2.slug) > len("r-na-stove-electrical-and-")
+        assert org.slug != org2.slug
+
+    def test_slugify_on_slug_update_in_region_silo(self):
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            return
+
+        org = Organization.objects.create(name="santry")
+        assert org.slug == "r-na-santry"
+
+        org.slug = "Sand Tree"
+        org.save()
+        assert org.slug == "r-na-sand-tree"
 
     def test_get_default_owner(self):
         user = self.create_user("foo@example.com")
@@ -420,6 +468,43 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         assert url == "http://acme.testserver/issues/?project=123#ref"
 
 
+@region_silo_test(stable=True)
+class OrganizationUpdateOverrideTest(TestCase):
+    def test_slug_change_on_org_update_in_monolith_mode(self):
+        if SiloMode.get_current_mode() != SiloMode.MONOLITH:
+            return
+
+        org = self.create_organization(name="santry", slug="santry_slug")
+        assert org.slug == "santry-slug"
+        update_params = dict(slug="new santry")
+        org.update(**update_params)
+        assert org.slug == "new-santry"
+        org.refresh_from_db()
+        assert org.slug == "new-santry"
+
+    def test_slug_change_on_org_update_in_region_silo(self):
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            return
+
+        org = Organization.objects.create(name="santry", slug="santry_slug")
+        assert org.slug == "r-na-santry-slug"
+        update_params = dict(slug="new santry")
+        org.update(**update_params)
+        assert org.slug == "r-na-new-santry"
+        org.refresh_from_db()
+        assert org.slug == "r-na-new-santry"
+
+    def test_slug_provided_but_matching_for_update(self):
+        org = self.create_organization(name="santry", slug="santry_slug")
+        update_params = dict(slug=org.slug)
+        org_pre_update = Organization.objects.get(id=org.id)
+        org.update(**update_params)
+
+        assert org.slug == org_pre_update.slug
+        org.refresh_from_db()
+        assert org.slug == org_pre_update.slug
+
+
 @region_silo_test
 class OrganizationDeletionTest(TestCase):
     def test_cannot_delete_with_queryset(self):
@@ -447,3 +532,62 @@ class OrganizationDeletionTest(TestCase):
 
         # Ensure they are all now gone.
         assert not UserOption.objects.filter(organization_id=org_id).exists()
+
+
+@region_silo_test(stable=True)
+class TestOrganizationRegionalSlugGeneration(TestCase):
+    def test_normal_slug_in_region_mode(self):
+        slug = Organization.generate_regional_slug(slugify_target="Hello World")
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert slug == "r-na-hello-world"
+        else:
+            assert slug == "hello-world"
+
+    def test_slug_with_only_region_prefix(self):
+        slug = Organization.generate_regional_slug(
+            slugify_target="r-na", truncate_region_prefix_collisions=True
+        )
+
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert slug == "r-na-r-na"
+        else:
+            # Ensure that we've replaced "r-na" itself as it should be reserved
+            assert "r-na" not in slug
+
+    def test_slug_with_region_prefix_and_no_truncation(self):
+        with pytest.raises(InvalidRegionalSlugTargetException):
+            Organization.generate_regional_slug(
+                slugify_target="r-na-santry", truncate_region_prefix_collisions=False
+            )
+
+    def test_slug_with_region_prefix_and_truncation(self):
+        slug = Organization.generate_regional_slug(
+            slugify_target="r-de-santry", truncate_region_prefix_collisions=True
+        )
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert slug == "r-na-santry"
+        else:
+            assert slug == "santry"
+
+    def test_slug_with_nested_prefixes_only_with_truncation(self):
+        slug = Organization.generate_regional_slug(slugify_target="r-de-r na r_ja_r-us")
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert slug == "r-na-r-us"
+        else:
+            assert "r-us" not in slug
+            assert "r-de" not in slug
+            assert "r-ja" not in slug
+            assert "r-na" not in slug
+
+    def test_slug_with_nested_prefixes_only_without_truncation(self):
+        with pytest.raises(InvalidRegionalSlugTargetException):
+            Organization.generate_regional_slug(
+                slugify_target="r-de-r-na-r-us", truncate_region_prefix_collisions=False
+            )
+
+    def test_slug_with_sequence_that_resolves_to_region_prefix(self):
+        with pytest.raises(InvalidRegionalSlugTargetException):
+            Organization.generate_regional_slug(
+                slugify_target="r de sluggy", truncate_region_prefix_collisions=False
+            )

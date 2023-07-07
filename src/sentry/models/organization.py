@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import IntEnum
+from re import match, split
 from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
@@ -39,6 +40,7 @@ from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
+from sentry.types.region import get_local_region
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -157,6 +159,13 @@ class OrganizationManager(BaseManager):
         return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
 
 
+class InvalidRegionalSlugTargetException(Exception):
+    pass
+
+
+region_prefix_regex = r"^(r[-|_|\s][a-zA-Z]{2}[-|_|\s])+(.*)"
+
+
 @region_silo_only_model
 class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin):
     """
@@ -241,11 +250,11 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             slugify_target = self.name
         elif not self.id:
             slugify_target = self.slug
+        elif (Organization.objects.get(id=self.id)).slug != self.slug:
+            slugify_target = self.slug
+
         if slugify_target is not None:
-            lock = locks.get("slug:organization", duration=5, name="organization_slug")
-            with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
-                slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
+            self.slug = Organization.generate_regional_slug(slugify_target=slugify_target)
 
         # Run the save + outbox queueing in a transaction to ensure the control-silo is notified
         # when a change is made to the organization model.
@@ -264,6 +273,15 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     @override
     def update(self, *args, **kwargs):
         with outbox_context(transaction.atomic()):
+            if slugify_target := kwargs.get("slug"):
+                latest_org_data = Organization.objects.get(id=self.id)
+
+                if latest_org_data.slug != slugify_target:
+                    generated_slug = Organization.generate_regional_slug(
+                        slugify_target=slugify_target, truncate_region_prefix_collisions=False
+                    )
+                    kwargs["slug"] = generated_slug
+
             results = super().update(*args, **kwargs)
             Organization.outbox_for_update(self.id).save()
             return results
@@ -271,6 +289,46 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
     @classmethod
     def reserve_snowflake_id(cls):
         return generate_snowflake_id(cls.snowflake_redis_key)
+
+    # Used to generate Organization specific slugs with a region prefix if one
+    # is required. If the slug is prefixed with any character combination
+    # resulting in it starting with `r-XX-`, this sequence will be truncated
+    # by default in order to prevent a collision with any future regions.
+    @classmethod
+    def generate_regional_slug(
+        cls, slugify_target: str, truncate_region_prefix_collisions: bool = True
+    ) -> str:
+        sanitized_slug_target = slugify_target.lower().replace("_", "-").strip("-")
+        starts_with_region_prefix = match(region_prefix_regex, sanitized_slug_target)
+
+        if starts_with_region_prefix and truncate_region_prefix_collisions:
+            region_mod_split = split(region_prefix_regex, sanitized_slug_target)
+            sanitized_slug_target = region_mod_split[2]
+
+        elif starts_with_region_prefix:
+            raise InvalidRegionalSlugTargetException(
+                "Cannot slugify a slug that contains a region prefix"
+            )
+
+        if not sanitized_slug_target:
+            raise InvalidRegionalSlugTargetException(
+                "Slugify target specified either empty or only contains region prefixes"
+            )
+
+        local_region = get_local_region()
+        if local_region.name != settings.SENTRY_MONOLITH_REGION:
+            sanitized_slug_target = f"r-{local_region.name}-{sanitized_slug_target}"
+
+        # Because slugification is currently tied to model instances, we're just creating a dummy
+        # org to generate a slug
+        slug_generator_org = cls()
+
+        lock = locks.get("slug:organization", duration=5, name="organization_slug")
+        with TimedRetryPolicy(10)(lock.acquire):
+            slugify_instance(
+                slug_generator_org, sanitized_slug_target, reserved=RESERVED_ORGANIZATION_SLUGS
+            )
+        return slug_generator_org.slug
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
