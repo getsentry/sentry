@@ -8,6 +8,12 @@ from django.urls import reverse
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
+from sentry.models.outbox import (
+    ControlOutbox,
+    OutboxCategory,
+    OutboxScope,
+    WebhookProviderIdentifier,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -45,12 +51,15 @@ class GithubRequestParserTest(TestCase):
 
         # No regions identified
         with mock.patch.object(
+            parser, "get_response_from_outbox_creation"
+        ) as get_response_from_outbox_creation, mock.patch.object(
             parser, "get_response_from_control_silo"
         ) as get_response_from_control_silo, mock.patch.object(
             parser, "get_regions_from_organizations", return_value=[]
         ):
             parser.get_response()
             assert get_response_from_control_silo.called
+            assert not get_response_from_outbox_creation.called
 
         # Regions found
         with mock.patch.object(
@@ -69,3 +78,36 @@ class GithubRequestParserTest(TestCase):
         parser = GithubRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()
         assert integration == self.integration
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_webhook_outbox_creation(self):
+        request = self.factory.post(
+            self.path, data={"installation": {"id": "github:1"}}, content_type="application/json"
+        )
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+
+        assert ControlOutbox.objects.count() == 0
+        with mock.patch.object(
+            parser, "get_regions_from_organizations", return_value=[self.region]
+        ):
+            parser.get_response()
+
+            assert ControlOutbox.objects.count() == 1
+            outbox = ControlOutbox.objects.first()
+            expected_payload: Any = {
+                "method": "POST",
+                "path": self.path,
+                "uri": f"http://testserver{self.path}",
+                "headers": {
+                    "Content-Length": "36",
+                    "Content-Type": "application/json",
+                    "Cookie": "",
+                },
+                "body": request.body.decode(encoding="utf-8"),
+            }
+            assert outbox.payload == expected_payload
+            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
+            assert outbox.shard_identifier == WebhookProviderIdentifier.GITHUB
+            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
+            assert outbox.region_name == self.region.name
+            assert outbox.payload == expected_payload
