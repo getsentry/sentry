@@ -9,12 +9,12 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useRouter from 'sentry/utils/useRouter';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {useChartSortPageBySpansHandler} from 'sentry/views/starfish/utils/useChartSortPageBySpansHandler';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/views/spans/queries';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -141,7 +141,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       tooltipFormatterOptions={{
         valueFormatter: value => formatThroughput(value),
       }}
-      onDataZoom={useSortPageByHandler('-sps()')}
+      onDataZoom={useChartSortPageBySpansHandler('-sps()')}
     />
   );
 }
@@ -190,7 +190,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
-      onDataZoom={useSortPageByHandler('-p95(span.self_time)')}
+      onDataZoom={useChartSortPageBySpansHandler('-p95(span.self_time)')}
     />
   );
 }
@@ -228,7 +228,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[ERRORS_COLOR]}
-      onDataZoom={useSortPageByHandler('-http_error_count()')}
+      onDataZoom={useChartSortPageBySpansHandler('-http_error_count()')}
     />
   );
 }
@@ -288,27 +288,6 @@ const buildDiscoverQueryConditions = (
 
   return result.join(' ');
 };
-
-function useSortPageByHandler(sort: string) {
-  const router = useRouter();
-  const location = useLocation();
-  return (_, chartRef) => {
-    // This is kind of jank but we need to check if the chart is hovered because
-    // onDataZoom is fired for all charts when one chart is zoomed.
-    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
-      element => {
-        return element.classList.contains('echarts-for-react');
-      }
-    );
-    const echartElement = document.querySelector(`[_echarts_instance_="${chartRef.id}"]`);
-    if (hoveredEchartElement === echartElement) {
-      router.replace({
-        pathname: location.pathname,
-        query: {...location.query, spansSort: sort},
-      });
-    }
-  };
-}
 
 const ChartsContainer = styled('div')`
   display: flex;
