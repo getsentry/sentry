@@ -44,10 +44,6 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
-  'replay.details-viewed': {
-    referrer: undefined | string;
-    user_email: string;
-  };
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
@@ -105,7 +101,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-resized-panel': 'Resized Replay Details Panel',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
-  'replay.details-viewed': 'Viewed Replay Details',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
