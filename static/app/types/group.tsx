@@ -78,7 +78,7 @@ export enum IssueType {
   PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
 }
 
-export const getIssueTypeFromOccurenceType = (
+export const getPerformanceIssueTypeFromOccurenceType = (
   typeId: number | undefined
 ): IssueType | null => {
   const occurrenceTypeToIssueIdMap = {
