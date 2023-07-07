@@ -161,7 +161,6 @@ class DatabaseBackedUserService(UserService):
             self,
             query: BaseQuerySet,
             filters: UserFilterArgs,
-            order_by: Optional[UserOrderBy] = None,
         ) -> List[User]:
             if "user_ids" in filters:
                 query = query.filter(id__in=filters["user_ids"])
