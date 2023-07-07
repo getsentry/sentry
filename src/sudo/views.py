@@ -36,7 +36,7 @@ class SudoView(View):
 
     form_class = SudoForm
     template_name = "sudo/sudo.html"
-    extra_context = None
+    extra_context: dict[str, str] | None = None
 
     def handle_sudo(self, request, redirect_to, context):
         return request.method == "POST" and context["form"].is_valid()
@@ -88,16 +88,18 @@ def redirect_to_sudo(next_url: str, sudo_url: str | None = None) -> HttpResponse
     Redirects the user to the login page, passing the given 'next' page
     """
     if sudo_url is None:
-        sudo_url = URL
+        sudo_obj = URL
+    else:
+        sudo_obj = sudo_url
 
     try:
         # django 1.10 and greater can't resolve the string 'sudo.views.sudo' to a URL
         # https://docs.djangoproject.com/en/1.10/releases/1.10/#removed-features-1-10
-        sudo_url = import_string(sudo_url)
+        sudo_obj = import_string(sudo_obj)
     except (ImportError, ImproperlyConfigured):
         pass  # wasn't a dotted path
 
-    sudo_url_parts = list(urlparse(resolve_url(sudo_url)))
+    sudo_url_parts = list(urlparse(resolve_url(sudo_obj)))
 
     querystring = QueryDict(sudo_url_parts[4], mutable=True)
     querystring[REDIRECT_FIELD_NAME] = next_url

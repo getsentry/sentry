@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, ReactNode, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import {Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,6 +9,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -22,8 +23,10 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import type {TrendType} from 'sentry/utils/profiling/hooks/types';
 import {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -45,13 +48,17 @@ const CURSOR_NAME = 'fnTrendCursor';
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
+  header?: ReactNode;
   userQuery?: string;
+  widgetHeight?: string;
 }
 
 export function FunctionTrendsWidget({
-  userQuery,
+  header,
   trendFunction,
   trendType,
+  widgetHeight,
+  userQuery,
 }: FunctionTrendsWidgetProps) {
   const location = useLocation();
 
@@ -86,8 +93,9 @@ export function FunctionTrendsWidget({
   const isError = trendsQuery.isError;
 
   return (
-    <WidgetContainer>
+    <WidgetContainer height={widgetHeight}>
       <FunctionTrendsWidgetHeader
+        header={header}
         handleCursor={handleCursor}
         pageLinks={trendsQuery.getResponseHeader?.('Link') ?? null}
         trendType={trendType}
@@ -130,12 +138,14 @@ export function FunctionTrendsWidget({
 
 interface FunctionTrendsWidgetHeaderProps {
   handleCursor: CursorHandler;
+  header: ReactNode;
   pageLinks: string | null;
   trendType: TrendType;
 }
 
 function FunctionTrendsWidgetHeader({
   handleCursor,
+  header,
   pageLinks,
   trendType,
 }: FunctionTrendsWidgetHeaderProps) {
@@ -143,7 +153,9 @@ function FunctionTrendsWidgetHeader({
     case 'regression':
       return (
         <HeaderContainer>
-          <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
+          {header ?? (
+            <HeaderTitleLegend>{t('Most Regressed Functions')}</HeaderTitleLegend>
+          )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
           <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>
@@ -151,7 +163,9 @@ function FunctionTrendsWidgetHeader({
     case 'improvement':
       return (
         <HeaderContainer>
-          <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
+          {header ?? (
+            <HeaderTitleLegend>{t('Most Improved Functions')}</HeaderTitleLegend>
+          )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
           <StyledPagination pageLinks={pageLinks} size="xs" onCursor={handleCursor} />
         </HeaderContainer>
@@ -174,20 +188,41 @@ function FunctionTrendsEntry({
   setExpanded,
   trendFunction,
 }: FunctionTrendsEntryProps) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === func.project);
 
+  let functionName = <Fragment>{func.function}</Fragment>;
+
+  if (project && func['examples()'].length > 0) {
+    const target = generateProfileFlamechartRouteWithQuery({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      profileId: func['examples()'][0],
+      query: {
+        frameName: func.function as string,
+        framePackage: func.package as string,
+      },
+    });
+
+    functionName = <Link to={target}>{functionName}</Link>;
+  }
+
+  functionName = (
+    <FunctionName>
+      <Tooltip title={func.package}>{functionName}</Tooltip>
+    </FunctionName>
+  );
+
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
-        <FunctionName>
-          <Tooltip title={func.package}>{func.function}</Tooltip>
-        </FunctionName>
+        {functionName}
         <Tooltip
           title={tct('Appeared [count] times.', {
             count: <Count value={func['count()']} />,
@@ -207,7 +242,7 @@ function FunctionTrendsEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -392,6 +427,11 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

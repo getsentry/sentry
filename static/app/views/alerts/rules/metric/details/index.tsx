@@ -1,6 +1,8 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -58,8 +60,15 @@ class MetricAlertDetails extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const prevQuery = pick(prevProps.location.query, ['start', 'end', 'period', 'alert']);
+    const nextQuery = pick(this.props.location.query, [
+      'start',
+      'end',
+      'period',
+      'alert',
+    ]);
     if (
-      prevProps.location.search !== this.props.location.search ||
+      !isEqual(prevQuery, nextQuery) ||
       prevProps.organization.slug !== this.props.organization.slug ||
       prevProps.params.ruleId !== this.props.params.ruleId
     ) {

@@ -2,7 +2,7 @@ from enum import Enum
 
 from django.core.cache import cache
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 
 from sentry import options

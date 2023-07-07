@@ -7,7 +7,6 @@ __all__ = (
     "get_operation_with_public_name",
 )
 
-
 from enum import Enum
 from typing import Dict, List, Optional, Tuple, Union, cast
 

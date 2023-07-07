@@ -24,6 +24,7 @@ class FilterStatKeys:
     CORS = "cors"
     DISCARDED_HASH = "discarded-hash"  # Not replicated in Relay
     CRASH_REPORT_LIMIT = "crash-report-limit"  # Not replicated in Relay
+    HEALTH_CHECK = "filtered-transaction"  # Ignore health-check transactions
 
 
 FILTER_STAT_KEYS_TO_VALUES = {
@@ -37,6 +38,7 @@ FILTER_STAT_KEYS_TO_VALUES = {
     FilterStatKeys.INVALID_CSP: TSDBModel.project_total_received_invalid_csp,
     FilterStatKeys.CORS: TSDBModel.project_total_received_cors,
     FilterStatKeys.DISCARDED_HASH: TSDBModel.project_total_received_discarded,
+    FilterStatKeys.HEALTH_CHECK: TSDBModel.project_total_healthcheck,
 }
 
 
@@ -46,7 +48,7 @@ class FilterTypes:
 
 
 def get_filter_key(flt):
-    return to_camel_case_name(flt.id.replace("-", "_"))
+    return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
 def get_all_filter_specs():
@@ -58,12 +60,15 @@ def get_all_filter_specs():
 
     :return: list of registered event filters
     """
-    return (
+    filters = [
         _localhost_filter,
         _browser_extensions_filter,
         _legacy_browsers_filter,
         _web_crawlers_filter,
-    )
+        _healthcheck_filter,
+    ]
+
+    return tuple(filters)  # returning tuple for backwards compatibility
 
 
 def set_filter_state(filter_id, project, state):
@@ -163,9 +168,15 @@ class _FilterSpec:
     """
     Data associated with a filter, it defines its name, id, default enable state and how its  state is serialized
     in the database
+
+    id: the id of the filter
+    name: name of the filter
+    description: short description
+    serializer_cls: class for filter serialization
+    config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None):
+    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
         self.id = id
         self.name = name
         self.description = description
@@ -173,6 +184,11 @@ class _FilterSpec:
             self.serializer_cls = _FilterSerializer
         else:
             self.serializer_cls = serializer_cls
+
+        if config_name is None:
+            self.config_name = id
+        else:
+            self.config_name = config_name
 
 
 def _get_filter_settings(project_config, flt):
@@ -229,4 +245,13 @@ _web_crawlers_filter = _FilterSpec(
     name="Filter out known web crawlers",
     description="Some crawlers may execute pages in incompatible ways which then cause errors that"
     " are unlikely to be seen by a normal user.",
+)
+
+
+_healthcheck_filter = _FilterSpec(
+    id=FilterStatKeys.HEALTH_CHECK,
+    name="Filter out health check transactions",
+    description="Filter transactions that match most common naming patterns for health checks.",
+    serializer_cls=None,
+    config_name="ignoreTransactions",
 )

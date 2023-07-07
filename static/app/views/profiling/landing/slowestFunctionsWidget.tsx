@@ -1,4 +1,4 @@
-import {CSSProperties, Fragment, useCallback, useMemo, useState} from 'react';
+import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -41,10 +41,16 @@ const MAX_FUNCTIONS = 3;
 const CURSOR_NAME = 'slowFnCursor';
 
 interface SlowestFunctionsWidgetProps {
+  header?: ReactNode;
   userQuery?: string;
+  widgetHeight?: string;
 }
 
-export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps) {
+export function SlowestFunctionsWidget({
+  header,
+  userQuery,
+  widgetHeight,
+}: SlowestFunctionsWidgetProps) {
   const location = useLocation();
 
   const [expandedIndex, setExpandedIndex] = useState(0);
@@ -99,9 +105,9 @@ export function SlowestFunctionsWidget({userQuery}: SlowestFunctionsWidgetProps)
   const isError = functionsQuery.isError || totalsQuery.isError;
 
   return (
-    <WidgetContainer>
+    <WidgetContainer height={widgetHeight}>
       <HeaderContainer>
-        <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>
+        {header ?? <HeaderTitleLegend>{t('Suspect Functions')}</HeaderTitleLegend>}
         <Subtitle>{t('Slowest functions by total time spent.')}</Subtitle>
         <StyledPagination
           pageLinks={functionsQuery.getResponseHeader?.('Link') ?? null}
@@ -199,7 +205,7 @@ function SlowestFunctionEntry({
 
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -226,7 +232,7 @@ function SlowestFunctionEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <Fragment>
           {functionTransactionsQuery.isError && (
@@ -319,6 +325,11 @@ const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
 
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+`;
+
 const FunctionName = styled(TextOverflow)`
   flex: 1 1 auto;
 `;
@@ -326,8 +337,9 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 65% 10% 25%;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-rows: 18px auto auto auto auto auto;
+  column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};
 `;
 

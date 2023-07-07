@@ -25,11 +25,23 @@ export const SORTABLE_FIELDS = new Set([
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
+  'time_spent_percentage(local)',
+  'http_error_count()',
+  'http_error_count_percent_change()',
 ]);
 
 export const renderHeadCell = ({column, location, sort}: Options) => {
   const {key, name} = column;
   const alignment = getAlignment(key);
+
+  let newSortDirection: Sort['kind'] = 'desc';
+  if (sort?.field === column.key) {
+    if (sort.kind === 'desc') {
+      newSortDirection = 'asc';
+    }
+  }
+
+  const newSort = `${newSortDirection === 'desc' ? '-' : ''}${key}`;
 
   return (
     <SortLink
@@ -42,7 +54,7 @@ export const renderHeadCell = ({column, location, sort}: Options) => {
           ...location,
           query: {
             ...location?.query,
-            [QueryParameterNames.SORT]: `-${key}`,
+            [QueryParameterNames.SORT]: newSort,
           },
         };
       }}

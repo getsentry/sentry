@@ -82,6 +82,7 @@ interface GuideStoreDefinition extends CommonStoreDefinition<GuideStoreState> {
 
   closeGuide(dismissed?: boolean): void;
   fetchSucceeded(data: GuidesServerData): void;
+  init(): void;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;

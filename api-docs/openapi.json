@@ -123,9 +123,6 @@
     "/api/0/projects/": {
       "$ref": "paths/projects/index.json"
     },
-    "/api/0/projects/{organization_slug}/{project_slug}/": {
-      "$ref": "paths/projects/details.json"
-    },
     "/api/0/projects/{organization_slug}/{project_slug}/files/dsyms/": {
       "$ref": "paths/projects/dsyms.json"
     },
@@ -140,9 +137,6 @@
     },
     "/api/0/projects/{organization_slug}/{project_slug}/user-feedback/": {
       "$ref": "paths/projects/user-feedback.json"
-    },
-    "/api/0/projects/{organization_slug}/{project_slug}/keys/{key_id}/": {
-      "$ref": "paths/projects/key-details.json"
     },
     "/api/0/projects/{organization_slug}/{project_slug}/hooks/": {
       "$ref": "paths/projects/service-hooks.json"

@@ -103,7 +103,6 @@ function getEventView(
         'http_error_count_percent_change()',
       ],
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     omit(location, 'span.category', 'http.method')
@@ -130,11 +129,25 @@ function buildEventViewQuery(
     .map(key => {
       const value = query[key];
       const isArray = Array.isArray(value);
+
+      if (key === '!span.category' && isArray && value.includes('db')) {
+        // When omitting database spans, explicitly allow `db.redis` spans, because
+        // we're not including those spans in the database category
+        const categoriesAsideFromDatabase = value.filter(v => v !== 'db');
+        return `(!span.category:db OR span.op:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
+          ','
+        )}]`;
+      }
+
       return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
   }
 
   if (defined(spanCategory)) {

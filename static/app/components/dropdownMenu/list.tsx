@@ -57,7 +57,7 @@ export interface DropdownMenuListProps
   /*
    * Title to display on top of the menu
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactChild;
   /**
    * Minimum menu width
    */

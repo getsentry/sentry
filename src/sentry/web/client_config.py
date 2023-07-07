@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
@@ -71,8 +73,7 @@ def _get_statuspage():
     return {"id": id, "api_host": settings.STATUS_PAGE_API_HOST}
 
 
-def _get_public_dsn():
-
+def _get_public_dsn() -> str | None:
     if settings.SENTRY_FRONTEND_DSN:
         return settings.SENTRY_FRONTEND_DSN
 

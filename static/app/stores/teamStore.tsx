@@ -26,6 +26,7 @@ interface TeamStoreDefinition extends CommonStoreDefinition<State> {
   onRemoveSuccess(slug: string): void;
   onUpdateSuccess(itemId: string, response: Team): void;
   reset(): void;
+  setTeams(teams: Team[], hasMore?: boolean | null, cursor?: string | null): void;
 
   state: State;
 }
