@@ -1,6 +1,7 @@
 import logging
 import time
 from logging import INFO
+from typing import Optional
 
 from sentry.utils import metrics
 
@@ -13,8 +14,8 @@ class Timer:
 
     def __init__(self, name: str = "default", logger_name=None):
         self.name = name
-        self.elapsed = 0
-        self.started = None
+        self.elapsed: float = 0
+        self.started: Optional[float] = None
 
         if logger_name:
             self.logger = logging.getLogger(logger_name)
@@ -29,7 +30,7 @@ class Timer:
         self.stop()
         return False
 
-    def name(self) -> str:
+    def get_name(self) -> str:
         return self.name
 
     def start(self) -> float:
@@ -43,12 +44,12 @@ class Timer:
         self.started = None
         return self.current()
 
-    def current(self) -> float():
+    def current(self) -> float:
         if self.started:
             return self.elapsed + time.monotonic() - self.started
         return self.elapsed
 
-    def reset(self) -> float():
+    def reset(self) -> float:
         self.elapsed = 0
         self.started = None
         return 0
