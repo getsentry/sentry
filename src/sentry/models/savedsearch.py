@@ -68,7 +68,7 @@ class SavedSearch(Model):
 
     # Global searches exist for ALL organizations. A savedsearch marked with
     # is_global does NOT have an associated organization_id
-    is_global = models.NullBooleanField(null=True, default=False, db_index=True)
+    is_global = models.BooleanField(null=True, default=False, db_index=True)
 
     # Creator of the saved search. When visibility is
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the
