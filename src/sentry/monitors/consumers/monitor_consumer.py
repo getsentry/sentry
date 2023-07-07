@@ -145,7 +145,10 @@ def _process_message(wrapper: Dict) -> None:
         return
 
     def update_existing_check_in(
-        existing_check_in: MonitorCheckIn, updated_status: CheckInStatus, updated_duration: float
+        existing_check_in: MonitorCheckIn,
+        updated_status: CheckInStatus,
+        updated_duration: float,
+        new_date_updated: datetime,
     ):
         if (
             existing_check_in.project_id != project_id
@@ -189,10 +192,18 @@ def _process_message(wrapper: Dict) -> None:
             logger.debug("check-in implicit duration is invalid: %s", project.organization_id)
             return
 
-        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status)
+        # update date_added for heartbeat
+        date_updated = existing_check_in.date_updated
+        if updated_status == CheckInStatus.IN_PROGRESS:
+            date_updated = new_date_updated
+
+        updated_timeout_at = get_new_timeout_at(existing_check_in, updated_status, new_date_updated)
 
         existing_check_in.update(
-            status=updated_status, duration=updated_duration, timeout_at=updated_timeout_at
+            status=updated_status,
+            duration=updated_duration,
+            date_updated=date_updated,
+            timeout_at=updated_timeout_at,
         )
 
         return
@@ -284,7 +295,7 @@ def _process_message(wrapper: Dict) -> None:
                         guid=check_in_id,
                     )
 
-                update_existing_check_in(check_in, status, validated_params["duration"])
+                update_existing_check_in(check_in, status, validated_params["duration"], start_time)
 
             except MonitorCheckIn.DoesNotExist:
                 # Infer the original start time of the check-in from the duration.
@@ -328,7 +339,7 @@ def _process_message(wrapper: Dict) -> None:
                             guid=guid,
                         )
                         if not created:
-                            update_existing_check_in(check_in, status, duration)
+                            update_existing_check_in(check_in, status, duration, start_time)
                         else:
                             signal_first_checkin(project, monitor)
 

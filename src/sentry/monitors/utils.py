@@ -44,8 +44,10 @@ def get_timeout_at(
 
 
 # Generates a timeout_at value for existing check-ins that are being updated
-def get_new_timeout_at(checkin: MonitorCheckIn, new_status: CheckInStatus) -> Optional[datetime]:
-    return get_timeout_at(checkin.monitor.get_validated_config(), new_status, checkin.date_added)
+def get_new_timeout_at(
+    checkin: MonitorCheckIn, new_status: CheckInStatus, date_updated: datetime
+) -> Optional[datetime]:
+    return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
 
 
 # Used to check valid implicit durations for closing check-ins without a duration specified

@@ -102,7 +102,9 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
             params["duration"] = duration
 
-        params["timeout_at"] = get_new_timeout_at(checkin, params.get("status", checkin.status))
+        params["timeout_at"] = get_new_timeout_at(
+            checkin, params.get("status", checkin.status), params["date_updated"]
+        )
 
         # TODO(rjo100): will need to remove this when environment is ensured
         monitor_environment = checkin.monitor_environment
