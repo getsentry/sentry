@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, Mapping
 
-from django.http import HttpRequest
 from django.utils.crypto import constant_time_compare
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -24,7 +24,7 @@ PROVIDER_KEY = "vsts"
 
 
 class VstsWebhookMixin:
-    def get_external_id(self, request: HttpRequest) -> str:
+    def get_external_id(self, request: Request) -> str:
         data = request.data
         external_id = data["resourceContainers"]["collection"]["id"]
         return str(external_id)
@@ -35,7 +35,7 @@ class WorkItemWebhook(Endpoint, VstsWebhookMixin):
     authentication_classes = ()
     permission_classes = ()
 
-    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
+    def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         try:
             data = request.data
             event_type = data["eventType"]
@@ -67,9 +67,7 @@ class WorkItemWebhook(Endpoint, VstsWebhookMixin):
         return self.respond()
 
 
-def check_webhook_secret(
-    request: HttpRequest, integration: RpcIntegration, event_type: str
-) -> bool:
+def check_webhook_secret(request: Request, integration: RpcIntegration, event_type: str) -> bool:
     integration_secret = integration.metadata.get("subscription", {}).get("secret")
     webhook_payload_secret = request.META.get("HTTP_SHARED_SECRET")
 

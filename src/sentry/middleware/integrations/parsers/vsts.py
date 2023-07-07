@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from typing import cast
 
 from django.http import HttpResponse
+from rest_framework.request import Request
 
 from sentry.integrations.vsts.webhooks import VstsWebhookMixin, WorkItemWebhook
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
@@ -22,7 +24,7 @@ class VstsRequestParser(BaseRequestParser, VstsWebhookMixin):
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         try:
-            external_id = self.get_external_id(request=self.request)
+            external_id = self.get_external_id(request=cast(Request, self.request))
         except Exception:
             return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()

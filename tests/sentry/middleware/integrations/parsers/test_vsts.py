@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -36,7 +37,7 @@ class VstsRequestParserTest(TestCase):
 
     def set_workitem_state(self, old_value, new_value):
         work_item = deepcopy(WORK_ITEM_UPDATED_STATUS)
-        state = work_item["resource"]["fields"]["System.State"]
+        state = work_item["resource"]["fields"]["System.State"]  # type: ignore
 
         if old_value is None:
             del state["oldValue"]
@@ -147,7 +148,7 @@ class VstsRequestParserTest(TestCase):
 
             assert ControlOutbox.objects.count() == 1
             outbox = ControlOutbox.objects.first()
-            expected_payload = {
+            expected_payload: Any = {
                 "method": "POST",
                 "path": self.path,
                 "uri": f"http://testserver{self.path}",
