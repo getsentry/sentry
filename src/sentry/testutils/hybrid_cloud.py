@@ -149,7 +149,7 @@ class SimulatedTransactionWatermarks(threading.local):
     ) -> bool:
         if connection is None:
             connection = transaction.get_connection(using)
-        return self.get_transaction_depth(connection) > self.state.get(using, 0)
+        return self.get_transaction_depth(connection) > self.state.get(connection.alias, 0)
 
 
 simulated_transaction_watermarks = SimulatedTransactionWatermarks()
@@ -204,6 +204,11 @@ def simulate_on_commit(request: Any):
 
     if is_django_test_case:
         for db_name in settings.DATABASES:
+            # This value happens to match the number of outer transactions in
+            # a django test case.  Unfortunately, the timing of when setup is called
+            # vs when that final outer transaction is added makes it impossible to
+            # sample the value directly -- we just have to specify it here.
+            # That said, there are tests that would fail if this number were wrong.
             simulated_transaction_watermarks.state[db_name] = 2
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)

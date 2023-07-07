@@ -7,8 +7,6 @@ import threading
 from django.conf import settings
 from django.db import transaction
 
-from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
-
 
 @contextlib.contextmanager
 def django_test_transaction_water_mark(using: str | None = None):
@@ -25,9 +23,14 @@ def django_test_transaction_water_mark(using: str | None = None):
         yield
         return
 
-    from sentry.testutils import hybrid_cloud
+    if using is None:
+        with contextlib.ExitStack() as stack:
+            for db_name in settings.DATABASES:
+                stack.enter_context(django_test_transaction_water_mark(db_name))
+            yield
+        return
 
-    using = determine_using_by_silo_mode(using)
+    from sentry.testutils import hybrid_cloud
 
     connection = transaction.get_connection(using)
 
