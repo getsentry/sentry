@@ -1,5 +1,3 @@
-import {RouteComponentProps} from 'react-router';
-
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -11,18 +9,17 @@ import {space} from 'sentry/styles/space';
 import {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewProps, AsyncViewState} from 'sentry/views/asyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 
-type Props = {
+interface Props extends AsyncViewProps {
   organization: Organization;
-} & RouteComponentProps<{}, {}> &
-  AsyncView['props'];
+}
 
-type State = {
+interface State extends AsyncViewState {
   activity: Activity[];
-} & AsyncView['state'];
+}
 
 class OrganizationActivity extends AsyncView<Props, State> {
   getTitle() {
