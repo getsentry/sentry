@@ -620,5 +620,5 @@ const StyledPanelBody = styled(PanelBody)`
 const TriggerChartPlaceholder = styled(Placeholder)`
   height: 200px;
   text-align: center;
-  padding: 20px;
+  padding: ${space(3)};
 `;
