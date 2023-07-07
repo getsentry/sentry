@@ -240,6 +240,7 @@ const GridStatusFloat = styled('div')`
   align-items: center;
   width: 100%;
   height: ${GRID_STATUS_MESSAGE_HEIGHT}px;
+  overflow: hidden;
 
   z-index: ${Z_INDEX_GRID_STATUS};
   background: ${p => p.theme.background};
@@ -266,12 +267,7 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    let height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
-
-    if (numOfRows >= 1) {
-      // account for border-bottom height
-      height += numOfRows;
-    }
+    const height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
 
     return height;
   }}px;
