@@ -1,8 +1,8 @@
-const {useProjectCreationAccess} = require('./useProjectCreationAccess');
-
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import * as useExperiment from 'sentry/utils/useExperiment';
+
+import {useProjectCreationAccess} from './useProjectCreationAccess';
 
 describe('ProjectCreationAccess', function () {
   const organization = TestStubs.Organization();

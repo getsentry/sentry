@@ -8,7 +8,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {getItem, setItem} from 'sentry/utils/localStorage';
+import localStorage from 'sentry/utils/localStorage';
 
 const changeQuery = (routerContext, query) => ({
   ...routerContext,
@@ -24,11 +24,6 @@ const changeQuery = (routerContext, query) => ({
   },
 });
 
-jest.mock('sentry/utils/localStorage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-}));
-
 function renderComponent(component, routerContext, organization) {
   return render(component, {context: routerContext, organization});
 }
@@ -38,11 +33,11 @@ describe('PageFiltersContainer', function () {
     organization: {features: ['global-views']},
     projects: [
       {
-        id: 2,
+        id: '2',
         slug: 'project-2',
       },
       {
-        id: 3,
+        id: '3',
         slug: 'project-3',
         environments: ['prod', 'staging'],
       },
@@ -65,7 +60,8 @@ describe('PageFiltersContainer', function () {
     OrganizationStore.onUpdate(organization);
     OrganizationsStore.addOrReplace(organization);
 
-    getItem.mockImplementation(() => null);
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => null);
+
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -77,18 +73,9 @@ describe('PageFiltersContainer', function () {
     PageFiltersStore.reset();
   });
 
-  it('does not update router if there is custom routing', function () {
-    renderComponent(
-      <PageFiltersContainer hasCustomRouting />,
-      routerContext,
-      organization
-    );
-    expect(router.push).not.toHaveBeenCalled();
-  });
-
   it('does not update router if org in URL params is different than org in context/props', function () {
     renderComponent(
-      <PageFiltersContainer hasCustomRouting />,
+      <PageFiltersContainer />,
       {
         ...routerContext,
         context: {
@@ -109,7 +96,7 @@ describe('PageFiltersContainer', function () {
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
     renderComponent(
-      <PageFiltersContainer params={{orgId: organization.slug}} />,
+      <PageFiltersContainer />,
       changeQuery(routerContext, {statsPeriod: '7d'}),
       organization
     );
@@ -231,15 +218,11 @@ describe('PageFiltersContainer', function () {
       organization
     );
 
-    [
-      globalActions.updateDateTime,
-      globalActions.updateProjects,
-      globalActions.updateEnvironments,
-    ].forEach(mock => mock.mockClear());
+    (globalActions.updateDateTime as jest.Mock).mockClear();
+    (globalActions.updateProjects as jest.Mock).mockClear();
+    (globalActions.updateEnvironments as jest.Mock).mockClear();
 
-    rerender(<PageFiltersContainer />, {
-      context: changeQuery(routerContext, {statsPeriod: '7d'}),
-    });
+    rerender(<PageFiltersContainer />);
 
     await waitFor(() => {
       expect(globalActions.updateDateTime).not.toHaveBeenCalled();
@@ -266,7 +249,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('loads from local storage when no URL parameters and filters are pinned', function () {
-    getItem.mockImplementation(() =>
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [3],
         environments: ['staging'],
@@ -305,9 +288,11 @@ describe('PageFiltersContainer', function () {
   });
 
   it('does not load from local storage when there are URL params', function () {
-    getItem.mockImplementation(() =>
-      JSON.stringify({projects: [3], environments: ['staging']})
-    );
+    jest
+      .spyOn(localStorage, 'getItem')
+      .mockImplementation(() =>
+        JSON.stringify({projects: [3], environments: ['staging']})
+      );
 
     const initializationObj = initializeOrg({
       organization: {
@@ -384,7 +369,7 @@ describe('PageFiltersContainer', function () {
   });
 
   it('updates store with desynced values when url params do not match local storage', async function () {
-    getItem.mockImplementation(() =>
+    jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() =>
       JSON.stringify({
         projects: [1],
         pinnedFilters: ['projects'],
@@ -408,7 +393,7 @@ describe('PageFiltersContainer', function () {
     OrganizationStore.onUpdate(initializationObj.organization);
 
     renderComponent(
-      <PageFiltersContainer hideGlobalHeader />,
+      <PageFiltersContainer />,
       initializationObj.routerContext,
       initializationObj.organization
     );
@@ -437,6 +422,8 @@ describe('PageFiltersContainer', function () {
       },
     });
 
+    const spy = jest.spyOn(Storage.prototype, 'setItem');
+
     renderComponent(
       <PageFiltersContainer disablePersistence />,
       initializationObj.routerContext,
@@ -455,7 +442,7 @@ describe('PageFiltersContainer', function () {
     expect(PageFiltersStore.getState().selection.projects).toEqual([1]);
 
     // But local storage wasn't updated
-    expect(setItem).not.toHaveBeenCalled();
+    expect(spy).not.toHaveBeenCalled();
   });
 
   /**
@@ -632,8 +619,8 @@ describe('PageFiltersContainer', function () {
     const initialData = initializeOrg({
       organization: {features: ['global-views']},
       projects: [
-        {id: 1, slug: 'staging-project', environments: ['staging']},
-        {id: 2, slug: 'prod-project', environments: ['prod']},
+        {id: '1', slug: 'staging-project', environments: ['staging']},
+        {id: '2', slug: 'prod-project', environments: ['prod']},
       ],
       router: {
         location: {pathname: '/test', query: {}},
@@ -654,7 +641,6 @@ describe('PageFiltersContainer', function () {
         <PageFiltersContainer
           shouldForceProject
           forceProject={initialData.projects[0]}
-          showIssueStreamLink
         />,
         initialData.routerContext,
         initialData.organization
@@ -671,7 +657,7 @@ describe('PageFiltersContainer', function () {
   describe('skipInitializeUrlParams', function () {
     const initialData = initializeOrg({
       organization,
-      projects: [{id: 1, slug: 'staging-project', environments: ['staging']}],
+      projects: [{id: '1', slug: 'staging-project', environments: ['staging']}],
       router: {
         location: {pathname: '/test', query: {}},
       },
@@ -691,7 +677,6 @@ describe('PageFiltersContainer', function () {
           skipInitializeUrlParams
           shouldForceProject
           forceProject={initialData.projects[0]}
-          showIssueStreamLink
         />,
         initialData.routerContext,
         initialData.organization
@@ -708,9 +693,9 @@ describe('PageFiltersContainer', function () {
     describe('without existing URL params', function () {
       const initialData = initializeOrg({
         projects: [
-          {id: 0, slug: 'random project', isMember: true},
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
+          {id: '0', slug: 'random project', isMember: true},
+          {id: '1', slug: 'staging-project', environments: ['staging']},
+          {id: '2', slug: 'prod-project', environments: ['prod']},
         ],
         router: {
           location: {pathname: '/test', query: {}},
@@ -727,7 +712,7 @@ describe('PageFiltersContainer', function () {
         );
       }
 
-      function renderForNonGlobalView(props) {
+      function renderForNonGlobalView(props = {}) {
         const result = renderComponent(
           getComponentForNonGlobalView(props),
           initialData.routerContext,
@@ -743,8 +728,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        initialData.router.push.mockClear();
-        initialData.router.replace.mockClear();
+        (initialData.router.push as jest.Mock).mockClear();
+        (initialData.router.replace as jest.Mock).mockClear();
       });
 
       it('uses first project in org projects when mounting', function () {
@@ -805,9 +790,9 @@ describe('PageFiltersContainer', function () {
     describe('with existing URL params', function () {
       const initialData = initializeOrg({
         projects: [
-          {id: 0, slug: 'random project', isMember: true},
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
+          {id: '0', slug: 'random project', isMember: true},
+          {id: '1', slug: 'staging-project', environments: ['staging']},
+          {id: '2', slug: 'prod-project', environments: ['prod']},
         ],
         router: {
           location: {pathname: '/test', query: {statsPeriod: '90d'}},
@@ -817,15 +802,14 @@ describe('PageFiltersContainer', function () {
 
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
-        initialData.router.push.mockClear();
-        initialData.router.replace.mockClear();
+        (initialData.router.push as jest.Mock).mockClear();
+        (initialData.router.replace as jest.Mock).mockClear();
       });
 
       it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
         renderComponent(
           <PageFiltersContainer
-            params={{orgId: initialData.organization.slug}}
             shouldForceProject
             forceProject={initialData.projects[1]}
           />,
@@ -846,9 +830,9 @@ describe('PageFiltersContainer', function () {
       const initialData = initializeOrg({
         organization: {features: ['global-views']},
         projects: [
-          {id: 0, slug: 'random project', isMember: true},
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
+          {id: '0', slug: 'random project', isMember: true},
+          {id: '1', slug: 'staging-project', environments: ['staging']},
+          {id: '2', slug: 'prod-project', environments: ['prod']},
         ],
         router: {
           location: {pathname: '/test', query: {}},
@@ -865,7 +849,7 @@ describe('PageFiltersContainer', function () {
         );
       }
 
-      function renderForGlobalView(props, ctx) {
+      function renderForGlobalView(props = {}, ctx = {}) {
         const result = renderComponent(
           getComponentForGlobalView(props),
           {
@@ -884,8 +868,8 @@ describe('PageFiltersContainer', function () {
       beforeEach(function () {
         ProjectsStore.loadInitialData(initialData.projects);
 
-        initialData.router.push.mockClear();
-        initialData.router.replace.mockClear();
+        (initialData.router.push as jest.Mock).mockClear();
+        (initialData.router.replace as jest.Mock).mockClear();
       });
 
       it('does not use first project in org projects when mounting (and without localStorage data)', function () {

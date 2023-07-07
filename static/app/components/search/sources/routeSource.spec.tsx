@@ -8,9 +8,9 @@ describe('RouteSource', function () {
   it('can find a route', async function () {
     const mock = jest.fn().mockReturnValue(null);
 
-    const {organization, project} = initializeOrg();
+    const {organization, project, routerProps} = initializeOrg();
     render(
-      <RouteSource query="password" {...{organization, project}}>
+      <RouteSource query="password" {...{organization, project}} {...routerProps}>
         {mock}
       </RouteSource>
     );
@@ -30,7 +30,7 @@ describe('RouteSource', function () {
 
   it('can load links via hooks', async function () {
     const mock = jest.fn().mockReturnValue(null);
-    const {organization, project} = initializeOrg();
+    const {organization, project, routerProps} = initializeOrg();
     HookStore.add('settings:organization-navigation-config', () => {
       return {
         name: 'Usage & Billing',
@@ -44,7 +44,7 @@ describe('RouteSource', function () {
     });
 
     render(
-      <RouteSource query="Spike" {...{organization, project}}>
+      <RouteSource query="Spike" {...{organization, project}} {...routerProps}>
         {mock}
       </RouteSource>
     );
@@ -63,9 +63,9 @@ describe('RouteSource', function () {
 
   it('does not find any form field', function () {
     const mock = jest.fn().mockReturnValue(null);
-    const {organization, project} = initializeOrg();
+    const {organization, project, routerProps} = initializeOrg();
     render(
-      <RouteSource query="invalid" {...{organization, project}}>
+      <RouteSource query="invalid" {...{organization, project}} {...routerProps}>
         {mock}
       </RouteSource>
     );
