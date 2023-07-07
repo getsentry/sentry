@@ -6,7 +6,7 @@ import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 
-const migratedPlatforms = {
+const migratedJavascriptPlatforms = {
   id: 'javascript',
   name: 'Browser JavaScript',
   integrations: [
@@ -37,7 +37,7 @@ const otherPlatform = {
 
 const platformIntegrations: PlatformIntegration[] = [
   ...integrationDocsPlatforms.platforms,
-  migratedPlatforms,
+  migratedJavascriptPlatforms,
   otherPlatform,
 ]
   .map(platform => {
