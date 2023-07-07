@@ -8,6 +8,7 @@ from sentry.db.postgres.transactions import (
 )
 from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.silo import all_silo_test
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class CaseMixin:
@@ -57,3 +58,15 @@ class TestDjangoTestCaseTransactions(CaseMixin, TestCase):
 @all_silo_test(stable=True)
 class TestDjangoTransactionTestCaseTransactions(CaseMixin, TransactionTestCase):
     pass
+
+
+class TestPytestDjangoDbAll(CaseMixin):
+    @all_silo_test(stable=True)
+    @django_db_all
+    def test_in_test_assert_no_transaction(self):
+        super().test_in_test_assert_no_transaction()
+
+    @all_silo_test(stable=True)
+    @django_db_all
+    def test_transaction_on_commit(self):
+        super().test_transaction_on_commit()
