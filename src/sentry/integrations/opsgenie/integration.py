@@ -5,7 +5,7 @@ from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -69,9 +69,9 @@ class OpsgenieFinishedView(PipelineView):
         if not integration:
             return response
 
-        messages.add_message(request, messages.SUCCESS, "VSTS Extension installed.")
+        messages.add_message(request, messages.SUCCESS, "Opsgenie integration installed.")
 
-        return HttpResponseRedirect(
+        return self.redirect(
             absolute_uri(
                 f"/settings/{pipeline.organization.slug}/integrations/opsgenie/{integration.id}/"
             )
