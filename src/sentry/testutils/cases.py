@@ -245,8 +245,11 @@ class BaseTestCase(Fixtures):
         is_superuser=False,
         path="/",
         secure_scheme=False,
+        subdomain=None,
     ) -> HttpRequest:
         request = HttpRequest()
+        if subdomain:
+            setattr(request, "subdomain", subdomain)
         if method:
             request.method = method
         request.path = path
