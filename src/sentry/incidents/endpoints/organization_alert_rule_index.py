@@ -96,7 +96,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                         .order_by("-date_started")
                         .values("id")[:1]
                     ),
-                    Value("-1"),
+                    Value(-1),
                 )
             )
 
