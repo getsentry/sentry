@@ -255,7 +255,10 @@ const ProductButtonInner = styled('div')`
 `;
 
 const Divider = styled('hr')`
-  border-top-color: ${p => p.theme.border};
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;
 
 const TooltipDescription = styled('div')`

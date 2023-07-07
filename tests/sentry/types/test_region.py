@@ -5,7 +5,7 @@ from django.test import override_settings
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
+from sentry.silo import SiloLimit, SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import (
@@ -129,5 +129,5 @@ class RegionMappingTest(TestCase):
             assert actual_regions == {"na"}
 
         with override_settings(SILO_MODE=SiloMode.REGION):
-            with pytest.raises(ValueError):
+            with pytest.raises(SiloLimit.AvailabilityError):
                 find_regions_for_user(user_id=user.id)

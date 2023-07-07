@@ -37,30 +37,30 @@ function renderMockRequests({
     body: [],
   });
 
-  if (project.slug === 'javascript-react') {
+  if (project.slug === 'javascript-vue') {
     const products = location?.query.product ?? [];
     if (
       products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
       products.includes(ProductSolution.SESSION_REPLAY)
     ) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-performance-and-replay/`,
-        body: {html: 'javascript-react-with-error-monitoring-performance-and-replay'},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-performance-and-replay/`,
+        body: {html: 'javascript-vue-with-error-monitoring-performance-and-replay'},
       });
     } else if (products.includes(ProductSolution.PERFORMANCE_MONITORING)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-performance/`,
-        body: {html: 'javascript-react-with-error-monitoring-and-performance'},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-and-performance/`,
+        body: {html: 'javascript-vue-with-error-monitoring-and-performance'},
       });
     } else if (products.includes(ProductSolution.SESSION_REPLAY)) {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring-and-replay/`,
-        body: {html: 'javascript-react-with-error-monitoring-and-replay'},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-and-replay/`,
+        body: {html: 'javascript-vue-with-error-monitoring-and-replay'},
       });
     } else {
       MockApiClient.addMockResponse({
-        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-react-with-error-monitoring/`,
-        body: {html: 'javascript-react-with-error-monitoring'},
+        url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring/`,
+        body: {html: 'javascript-vue-with-error-monitoring'},
       });
     }
   } else {
@@ -136,8 +136,8 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
+            slug: 'javascript-vue',
+            platform: 'javascript-vue',
           },
         ],
       });
@@ -173,13 +173,13 @@ describe('Onboarding Setup Docs', function () {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Configure React SDK'})
+        await screen.findByRole('heading', {name: 'Configure Vue SDK'})
       ).toBeInTheDocument();
 
       // Render variation of docs - default (all checked)
       expect(
         await screen.findByText(
-          'javascript-react-with-error-monitoring-performance-and-replay'
+          'javascript-vue-with-error-monitoring-performance-and-replay'
         )
       ).toBeInTheDocument();
     });
@@ -194,8 +194,8 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
+            slug: 'javascript-vue',
+            platform: 'javascript-vue',
           },
         ],
       });
@@ -232,7 +232,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and performance doc
       expect(
-        await screen.findByText('javascript-react-with-error-monitoring-and-performance')
+        await screen.findByText('javascript-vue-with-error-monitoring-and-performance')
       ).toBeInTheDocument();
     });
 
@@ -246,8 +246,8 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
+            slug: 'javascript-vue',
+            platform: 'javascript-vue',
           },
         ],
       });
@@ -284,7 +284,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring and replay doc
       expect(
-        await screen.findByText('javascript-react-with-error-monitoring-and-replay')
+        await screen.findByText('javascript-vue-with-error-monitoring-and-replay')
       ).toBeInTheDocument();
     });
 
@@ -298,8 +298,8 @@ describe('Onboarding Setup Docs', function () {
         projects: [
           {
             ...initializeOrg().project,
-            slug: 'javascript-react',
-            platform: 'javascript-react',
+            slug: 'javascript-vue',
+            platform: 'javascript-vue',
           },
         ],
       });
@@ -336,7 +336,7 @@ describe('Onboarding Setup Docs', function () {
 
       // Render variation of docs - error monitoring doc
       expect(
-        await screen.findByText('javascript-react-with-error-monitoring')
+        await screen.findByText('javascript-vue-with-error-monitoring')
       ).toBeInTheDocument();
     });
   });
