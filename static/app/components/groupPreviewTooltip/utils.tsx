@@ -45,9 +45,6 @@ export function usePreviewEvent<T = Event>({
   query?: string;
 }) {
   const organization = useOrganization();
-  const hasPrefetchIssueFeature = organization.features.includes(
-    'issue-list-prefetch-issue-on-hover'
-  );
   const hasMostHelpfulEventFeature = organization.features.includes(
     'issue-details-most-helpful-event'
   );
@@ -60,7 +57,6 @@ export function usePreviewEvent<T = Event>({
       `/issues/${groupId}/events/${eventType}/`,
       {
         query: getGroupEventDetailsQueryData({
-          stacktraceOnly: !hasPrefetchIssueFeature,
           query: hasMostHelpfulEventFeature ? query : undefined,
         }),
       },
@@ -72,7 +68,7 @@ export function usePreviewEvent<T = Event>({
   useApiQuery([`/issues/${groupId}/`, {query: getGroupDetailsQueryData()}], {
     staleTime: 30000,
     cacheTime: 30000,
-    enabled: defined(groupId) && hasPrefetchIssueFeature,
+    enabled: defined(groupId),
   });
 
   return eventQuery;
