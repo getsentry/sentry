@@ -197,7 +197,9 @@ describe('OrganizationTeams', function () {
       },
     });
     const orgId = organization.slug;
-    const accessRequest = TestStubs.AccessRequest();
+    const accessRequest = TestStubs.AccessRequest({
+      requester: {},
+    });
     const requester = TestStubs.User({
       id: '9',
       username: 'requester@example.com',
