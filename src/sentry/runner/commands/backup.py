@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from io import StringIO
 
 import click
@@ -14,7 +16,7 @@ EXCLUDED_APPS = frozenset(("auth", "contenttypes"))
 @click.argument("src", type=click.File("rb"))
 @configuration
 def import_(src):
-    "Imports data from a Sentry export."
+    """CLI command wrapping the `exec_import` functionality."""
 
     try:
         with transaction.atomic():
@@ -51,7 +53,9 @@ def sort_dependencies():
     """
     from django.apps import apps
 
-    from sentry.models import Actor, Team, User
+    from sentry.models.actor import Actor
+    from sentry.models.team import Team
+    from sentry.models.user import User
 
     # Process the list of models, and get the list of dependencies
     model_dependencies = []
@@ -145,7 +149,7 @@ def sort_dependencies():
 @click.option("--exclude", default=None, help="Models to exclude from export.", metavar="MODELS")
 @configuration
 def export(dest, silent, indent, exclude):
-    "Exports core metadata for the Sentry installation."
+    """CLI command wrapping the `exec_export` functionality."""
 
     if exclude is None:
         exclude = ()
