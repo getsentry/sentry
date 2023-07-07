@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+from unittest.mock import call, patch
 
 from django.urls import reverse
 from django.utils import timezone
@@ -22,6 +23,10 @@ CREATE_USER_POST_DATA = {
 }
 
 
+def merge_dictionaries(dict1, dict2):
+    return {**dict1, **dict2}
+
+
 @control_silo_test
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
@@ -41,7 +46,8 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert response.status_code == 200, response.content
         assert response.data == correct_get_data
 
-    def test_post_users_successful(self):
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_post_users_successful(self, mock_metrics):
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         with outbox_runner():
             response = self.client.post(url, CREATE_USER_POST_DATA)
@@ -69,6 +75,54 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
         assert member.flags["idp:provisioned"]
         assert not member.flags["idp:role-restricted"]
         assert member.role == self.organization.default_role
+        mock_metrics.incr.assert_called_with(
+            "sentry.scim.member.provision",
+            tags={"organization": self.organization},
+        )
+
+    @patch("sentry.scim.endpoints.members.metrics")
+    def test_update_role_metric_called_when_role_specified(self, mock_metrics):
+        url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
+        with outbox_runner():
+            response = self.client.post(
+                url, merge_dictionaries(CREATE_USER_POST_DATA, {"sentryOrgRole": "member"})
+            )
+        assert response.status_code == 201, response.content
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email="test.user@okta.local"
+        )
+        self.assert_org_member_mapping(org_member=member)
+        correct_post_data = {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": str(member.id),
+            "userName": "test.user@okta.local",
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "active": True,
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "meta": {"resourceType": "User"},
+            "sentryOrgRole": "member",
+        }
+
+        assert AuditLogEntry.objects.filter(
+            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
+        ).exists()
+        assert correct_post_data == response.data
+        assert member.email == "test.user@okta.local"
+        assert member.flags["idp:provisioned"]
+        assert member.flags["idp:role-restricted"]
+        assert member.role == self.organization.default_role
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "sentry.scim.member.provision",
+                    tags={"organization": self.organization},
+                ),
+                call(
+                    "sentry.scim.member.update_role",
+                    tags={"organization": self.organization},
+                ),
+            ],
+        )
 
     def test_post_users_successful_existing_invite(self):
         member = self.create_member(

@@ -32,7 +32,7 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.db.models import Func
 from django.db.models.signals import post_save
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from pytz import UTC
 
 from sentry import (
@@ -129,6 +129,7 @@ from sentry.tasks.commits import fetch_commits
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json, metrics
@@ -138,10 +139,8 @@ from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
-    detect_performance_problems,
-)
+from sentry.utils.performance_issues.performance_detection import detect_performance_problems
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 
 if TYPE_CHECKING:
@@ -231,7 +230,7 @@ def get_max_crashreports(
     model: Union[Project, Organization], allow_none: bool = False
 ) -> Optional[int]:
     value = model.get_option("sentry:store_crash_reports")
-    return convert_crashreport_count(value, allow_none=allow_none)  # type: ignore
+    return convert_crashreport_count(value, allow_none=allow_none)
 
 
 def crashreports_exceeded(current_count: int, max_count: int) -> bool:
@@ -249,13 +248,13 @@ def get_stored_crashreports(cache_key: Optional[str], event: Event, max_crashrep
 
     cached_reports = cache.get(cache_key, None)
     if cached_reports is not None and cached_reports >= max_crashreports:
-        return cached_reports  # type: ignore
+        return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
     # We don't need the actual number, but just whether it's more or equal to
     # the currently allowed maximum.
     query = EventAttachment.objects.filter(group_id=event.group_id, type__in=CRASH_REPORT_TYPES)
-    return query[:max_crashreports].count()  # type: ignore
+    return query[:max_crashreports].count()
 
 
 class HashDiscarded(Exception):
@@ -267,8 +266,8 @@ class HashDiscarded(Exception):
         self.tombstone_id = tombstone_id
 
 
-class ScoreClause(Func):  # type: ignore
-    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):  # type: ignore
+class ScoreClause(Func):
+    def __init__(self, group=None, last_seen=None, times_seen=None, *args, **kwargs):
         self.group = group
         self.last_seen = last_seen
         self.times_seen = times_seen
@@ -277,12 +276,12 @@ class ScoreClause(Func):  # type: ignore
             self.times_seen = self.times_seen.rhs.value
         super().__init__(*args, **kwargs)
 
-    def __int__(self):  # type: ignore
+    def __int__(self):
         # Calculate the score manually when coercing to an int.
         # This is used within create_or_update and friends
         return self.group.get_score() if self.group else 0
 
-    def as_sql(self, compiler, connection, function=None, template=None):  # type: ignore
+    def as_sql(self, compiler, connection, function=None, template=None):
         has_values = self.last_seen is not None and self.times_seen is not None
         if has_values:
             sql = "log(times_seen + %d) * 600 + %d" % (
@@ -444,6 +443,7 @@ class EventManager:
 
             return jobs[0]["event"]
 
+        # Only error events from this point onward
         with metrics.timer("event_manager.save.organization.get_from_cache"):
             project.set_cached_field_value(
                 "organization", Organization.objects.get_from_cache(id=project.organization_id)
@@ -455,6 +455,9 @@ class EventManager:
 
         with sentry_sdk.start_span(op="event_manager.save.pull_out_data"):
             _pull_out_data(jobs, projects)
+
+        # This metric can be used to track how many error events there are per platform
+        metrics.incr("save_event.error", tags={"platform": job["event"].platform or "unknown"})
 
         with sentry_sdk.start_span(op="event_manager.save.get_or_create_release_many"):
             _get_or_create_release_many(jobs, projects)
@@ -484,7 +487,10 @@ class EventManager:
             secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
             secondary_grouping_expiry = project.get_option("sentry:secondary_grouping_expiry")
             if secondary_grouping_config and (secondary_grouping_expiry or 0) >= time.time():
-                with metrics.timer("event_manager.secondary_grouping"):
+                with sentry_sdk.start_span(
+                    op="event_manager",
+                    description="event_manager.save.calculate_event_grouping",
+                ), metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
                     secondary_grouping_config = loader.get_config_dict(project)
@@ -510,9 +516,10 @@ class EventManager:
                     job["event"].data.data, project
                 )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
-            "event_manager.calculate_event_grouping"
-        ):
+        with sentry_sdk.start_span(
+            op="event_manager",
+            description="event_manager.save.calculate_event_grouping",
+        ), metrics.timer("event_manager.calculate_event_grouping"):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
         # Because this logic is not complex enough we want to special case the situation where we
@@ -766,7 +773,7 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
         transaction_name = data.get("transaction")
         if transaction_name:
-            transaction_name = force_text(transaction_name)
+            transaction_name = force_str(transaction_name)
         job["transaction"] = transaction_name
 
         key_id = None if data is None else data.get("key_id")
@@ -916,11 +923,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
                 # Dynamic Sampling - Boosting latest release functionality
                 if (
-                    options.get("dynamic-sampling:boost-latest-release")
-                    and features.has(
+                    features.has(
                         "organizations:dynamic-sampling", projects[project_id].organization
                     )
-                    and options.get("dynamic-sampling:enabled-biases")
                     and data.get("type") == "transaction"
                 ):
                     with sentry_sdk.start_span(
@@ -960,7 +965,7 @@ def _get_environment_from_transaction(data: EventDict) -> Optional[str]:
     if environment == "":
         environment = None
 
-    return environment  # type:ignore
+    return environment
 
 
 @metrics.wraps("save_event.get_event_user_many")
@@ -1181,17 +1186,17 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
         incrs = []
         frequencies = []
         records = []
-        incrs.append((tsdb.models.project, job["project_id"]))
+        incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
         release = job["release"]
         environment = job["environment"]
         user = job["user"]
 
         for group_info in job["groups"]:
-            incrs.append((tsdb.models.group, group_info.group.id))
+            incrs.append((TSDBModel.group, group_info.group.id))
             frequencies.append(
                 (
-                    tsdb.models.frequent_environments_by_group,
+                    TSDBModel.frequent_environments_by_group,
                     {group_info.group.id: {environment.id: 1}},
                 )
             )
@@ -1199,21 +1204,21 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             if group_info.group_release:
                 frequencies.append(
                     (
-                        tsdb.models.frequent_releases_by_group,
+                        TSDBModel.frequent_releases_by_group,
                         {group_info.group.id: {group_info.group_release.id: 1}},
                     )
                 )
             if user:
                 records.append(
-                    (tsdb.models.users_affected_by_group, group_info.group.id, (user.tag_value,))
+                    (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
                 )
 
         if release:
-            incrs.append((tsdb.models.release, release.id))
+            incrs.append((TSDBModel.release, release.id))
 
         if user:
             project_id = job["project_id"]
-            records.append((tsdb.models.users_affected_by_project, project_id, (user.tag_value,)))
+            records.append((TSDBModel.users_affected_by_project, project_id, (user.tag_value,)))
 
         if incrs:
             tsdb.incr_multi(incrs, timestamp=event.datetime, environment_id=environment.id)
@@ -1281,7 +1286,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
                 if gi is not None
             ]
 
-        eventstream.insert(
+        eventstream.backend.insert(
             event=job["event"],
             is_new=is_new,
             is_regression=is_regression,
@@ -1319,7 +1324,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
 def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
     event_id = data.get("event_id")
 
-    return eventstore.create_event(
+    return eventstore.backend.create_event(
         project_id=project_id,
         event_id=event_id,
         group_id=None,
@@ -1437,7 +1442,7 @@ def materialize_metadata(
 def get_culprit(data: Mapping[str, Any]) -> str:
     """Helper to calculate the default culprit"""
     return str(
-        force_text(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
+        force_str(data.get("culprit") or data.get("transaction") or generate_culprit(data) or "")
     )
 
 
@@ -2236,7 +2241,7 @@ def _calculate_event_grouping(
             hashes = event.get_hashes()
 
     hashes.write_to_event(event.data)
-    return cast(CalculatedHashes, hashes)
+    return hashes
 
 
 @metrics.wraps("save_event.calculate_span_grouping")

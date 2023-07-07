@@ -3,7 +3,7 @@ import logging
 import struct
 from datetime import timedelta
 from threading import Lock
-from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple, cast
+from typing import Any, Iterator, Mapping, Optional, Sequence, Tuple
 
 from django.utils import timezone
 from google.api_core import exceptions, retry
@@ -150,7 +150,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             if cell.timestamp < timezone.now():
                 return None
 
-        value = cast(bytes, cell.value)
+        value = cell.value
 
         if self.flags_column in columns:
             flags = self.Flags(self.flags_struct.unpack(columns[self.flags_column][0].value)[0])

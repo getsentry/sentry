@@ -8,9 +8,6 @@ const tags = TestStubs.Tags();
 
 function init(tagKey) {
   return initializeOrg({
-    organization: {},
-    project: undefined,
-    projects: undefined,
     router: {
       location: {
         query: {},

@@ -1,13 +1,13 @@
 import {
   initializeData as _initializeData,
-  initializeDataSettings,
+  InitializeDataSettings,
 } from 'sentry-test/performance/initializePerformanceData';
 import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionAnomalies from 'sentry/views/performance/transactionSummary/transactionAnomalies';
 
-const initializeData = (settings: initializeDataSettings) => {
+const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
 
   act(() => void ProjectsStore.loadInitialData(data.organization.projects));

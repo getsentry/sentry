@@ -15,10 +15,10 @@ from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, ScheduledDeletion
@@ -38,15 +38,15 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         responses={
             200: inline_sentry_response_serializer("Monitor", MonitorSerializerResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, organization, project, monitor) -> Response:
@@ -66,8 +66,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Update a monitor",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorValidator,
         responses={
@@ -75,7 +75,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(self, request: Request, organization, project, monitor) -> Response:
@@ -145,16 +145,16 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
     @extend_schema(
         operation_id="Delete a monitor or monitor environments",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
-            GLOBAL_PARAMS.ENVIRONMENT,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ENVIRONMENT,
         ],
         request=MonitorValidator,
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(self, request: Request, organization, project, monitor) -> Response:
@@ -190,7 +190,10 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                     ]
                 )
                 event = audit_log.get_event_id("MONITOR_REMOVE")
-                alert_rule_id = monitor_objects.first().config.get("alert_rule_id")
+
+                # Mark rule for deletion if present and monitor is being deleted
+                monitor = monitor_objects.first()
+                alert_rule_id = monitor.config.get("alert_rule_id") if monitor else None
                 if alert_rule_id:
                     rule = (
                         Rule.objects.filter(

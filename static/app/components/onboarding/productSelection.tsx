@@ -7,29 +7,75 @@ import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export enum PRODUCT {
+export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
 }
 
-type Props = {
-  defaultSelectedProducts?: PRODUCT[];
+export type DisabledProduct = {
+  product: ProductSolution;
+  reason: string;
+  onClick?: () => void;
+};
+
+type ProductProps = {
+  checked: boolean;
+  disabled: boolean;
+  label: string;
+  onClick?: () => void;
+  permanentDisabled?: boolean;
+};
+
+function Product({disabled, permanentDisabled, checked, label, onClick}: ProductProps) {
+  const ProductWrapper = permanentDisabled
+    ? PermanentDisabledProductWrapper
+    : disabled
+    ? DisabledProductWrapper
+    : ProductButtonWrapper;
+
+  return (
+    <ProductWrapper
+      onClick={onClick}
+      disabled={onClick ?? permanentDisabled ? false : disabled}
+      priority={permanentDisabled || checked ? 'primary' : 'default'}
+      aria-label={label}
+    >
+      <ProductButtonInner>
+        <Checkbox
+          checked={checked}
+          disabled={permanentDisabled ? false : disabled}
+          aria-label={label}
+          size="xs"
+          readOnly
+        />
+        <span>{label}</span>
+        <IconQuestion size="xs" color="subText" />
+      </ProductButtonInner>
+    </ProductWrapper>
+  );
+}
+
+export type ProductSelectionProps = {
+  defaultSelectedProducts?: ProductSolution[];
+  disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
   skipLazyLoader?: () => void;
 };
 
 export function ProductSelection({
   defaultSelectedProducts,
+  disabledProducts,
   lazyLoader,
   skipLazyLoader,
-}: Props) {
+}: ProductSelectionProps) {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
 
@@ -49,7 +95,7 @@ export function ProductSelection({
   }, [router]);
 
   const handleClickProduct = useCallback(
-    (product: PRODUCT) => {
+    (product: ProductSolution) => {
       router.replace({
         pathname: router.location.pathname,
         query: {
@@ -62,6 +108,15 @@ export function ProductSelection({
     },
     [router, products]
   );
+
+  const performanceProductDisabled = disabledProducts?.find(
+    disabledProduct => disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
+  );
+
+  const sessionReplayProductDisabled = disabledProducts?.find(
+    disabledProduct => disabledProduct.product === ProductSolution.SESSION_REPLAY
+  );
+
   return (
     <Fragment>
       <TextBlock>
@@ -76,63 +131,59 @@ export function ProductSelection({
       </TextBlock>
       <Products>
         <Tooltip title={t("Let's admit it, we all have errors.")}>
-          <Product
-            disabled
-            data-test-id={`product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`}
-          >
-            <Checkbox checked readOnly size="xs" disabled />
-            <div>{t('Error Monitoring')}</div>
-          </Product>
+          <Product disabled checked permanentDisabled label={t('Error Monitoring')} />
         </Tooltip>
         <Tooltip
           title={
-            <TooltipDescription>
-              {t(
-                'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
-              )}
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
-                {t('Read the Docs')}
-              </ExternalLink>
-            </TooltipDescription>
+            performanceProductDisabled?.reason ?? (
+              <TooltipDescription>
+                {t(
+                  'Automatic performance issue detection with context like who it impacts and the release, line of code, or function causing the slowdown.'
+                )}
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/performance/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </TooltipDescription>
+            )
           }
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
-            data-test-id={`product-${PRODUCT.PERFORMANCE_MONITORING}`}
-          >
-            <Checkbox
-              checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
-              size="xs"
-              readOnly
-            />
-            {t('Performance Monitoring')}
-          </Product>
+            onClick={
+              performanceProductDisabled
+                ? performanceProductDisabled?.onClick
+                : () => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)
+            }
+            disabled={!!performanceProductDisabled}
+            checked={products.includes(ProductSolution.PERFORMANCE_MONITORING)}
+            label={t('Performance Monitoring')}
+          />
         </Tooltip>
         <Tooltip
           title={
-            <TooltipDescription>
-              {t(
-                'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
-              )}
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
-                {t('Read the Docs')}
-              </ExternalLink>
-            </TooltipDescription>
+            sessionReplayProductDisabled?.reason ?? (
+              <TooltipDescription>
+                {t(
+                  'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
+                )}
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/session-replay/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </TooltipDescription>
+            )
           }
           isHoverable
         >
           <Product
-            onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
-            data-test-id={`product-${PRODUCT.SESSION_REPLAY}`}
-          >
-            <Checkbox
-              checked={products.includes(PRODUCT.SESSION_REPLAY)}
-              size="xs"
-              readOnly
-            />
-            {t('Session Replay')}
-          </Product>
+            onClick={
+              sessionReplayProductDisabled
+                ? sessionReplayProductDisabled?.onClick
+                : () => handleClickProduct(ProductSolution.SESSION_REPLAY)
+            }
+            disabled={!!sessionReplayProductDisabled}
+            checked={products.includes(ProductSolution.SESSION_REPLAY)}
+            label={t('Session Replay')}
+          />
         </Tooltip>
       </Products>
       {lazyLoader && (
@@ -159,27 +210,55 @@ const Products = styled('div')`
   gap: ${space(1)};
 `;
 
-const Product = styled('div')<{disabled?: boolean}>`
+const ProductButtonWrapper = styled(Button)`
+  ${p =>
+    p.priority === 'primary' &&
+    css`
+      &,
+      :hover {
+        background: ${p.theme.purple100};
+        color: ${p.theme.purple300};
+      }
+    `}
+`;
+
+const DisabledProductWrapper = styled(Button)`
+  && {
+    cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+    input {
+      cursor: ${p =>
+        p.disabled || p.priority === 'default' ? 'not-allowed' : 'pointer'};
+    }
+  }
+`;
+
+const PermanentDisabledProductWrapper = styled(Button)`
+  && {
+    &,
+    :hover {
+      background: ${p => p.theme.purple100};
+      color: ${p => p.theme.purple300};
+      opacity: 0.5;
+      cursor: not-allowed;
+      input {
+        cursor: not-allowed;
+      }
+    }
+  }
+`;
+
+const ProductButtonInner = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   gap: ${space(1)};
   align-items: center;
-  ${p => p.theme.buttonPadding.xs};
-  background: ${p => p.theme.purple100};
-  border: 1px solid ${p => p.theme.purple300};
-  border-radius: 6px;
-  cursor: pointer;
-  ${p =>
-    p.disabled &&
-    css`
-      > *:not(:last-child) {
-        opacity: 0.5;
-      }
-    `};
 `;
 
 const Divider = styled('hr')`
-  border-top-color: ${p => p.theme.border};
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;
 
 const TooltipDescription = styled('div')`

@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from typing import Any
 
 from botocore.exceptions import ClientError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
-from sentry.api.serializers import serialize
-from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -17,8 +18,11 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import ServerlessMixin
-from sentry.models import OrganizationIntegration, Project
+from sentry.models import Integration, OrganizationIntegration, User
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.project import project_service
+from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client
@@ -225,7 +229,12 @@ class AwsLambdaIntegrationProvider(IntegrationProvider):
         }
         return integration
 
-    def post_install(self, integration, organization, extra):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         default_project_id = extra["default_project_id"]
         OrganizationIntegration.objects.filter(
             organization_id=organization.id, integration=integration
@@ -240,9 +249,7 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             return pipeline.next_step()
 
         organization = pipeline.organization
-        projects = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE
-        ).order_by("slug")
+        projects = organization.projects
 
         # if only one project, automatically use that
         if len(projects) == 1:
@@ -250,7 +257,11 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             pipeline.bind_state("project_id", projects[0].id)
             return pipeline.next_step()
 
-        serialized_projects = [serialize(x, request.user) for x in projects]
+        projects = sorted(projects, key=lambda p: p.slug)
+        serialized_projects = project_service.serialize_many(
+            organization_id=organization.id,
+            filter=dict(project_ids=[p.id for p in projects]),
+        )
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )
@@ -261,7 +272,12 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         curr_step = 0 if pipeline.fetch_state("skipped_project_select") else 1
 
         def render_response(error=None):
-            serialized_organization = serialize(pipeline.organization, request.user)
+            serialized_organization = organization_service.serialize_organization(
+                id=pipeline.organization.id,
+                as_user=serialize_rpc_user(request.user)
+                if isinstance(request.user, User)
+                else None,
+            )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {
                 "baseCloudformationUrl": "https://console.aws.amazon.com/cloudformation/home#/stacks/create/review",

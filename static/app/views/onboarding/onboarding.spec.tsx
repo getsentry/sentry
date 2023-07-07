@@ -22,7 +22,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -30,14 +30,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -54,7 +47,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -62,14 +55,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -93,7 +79,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -146,14 +132,7 @@ describe('Onboarding', function () {
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -165,10 +144,10 @@ describe('Onboarding', function () {
   });
 
   it('renders SDK data removal modal when going back', async function () {
-    const reactProject: Project = TestStubs.Project({
-      platform: 'javascript-react',
+    const vueProject: Project = TestStubs.Project({
+      platform: 'javascript-vue',
       id: '2',
-      slug: 'javascript-react-slug',
+      slug: 'javascript-vue-slug',
       firstTransactionEvent: false,
       firstEvent: false,
       hasReplays: false,
@@ -179,7 +158,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -189,17 +168,17 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
+      url: `/projects/${organization.slug}/${vueProject.slug}/docs/javascript-vue-with-error-monitoring/`,
       body: null,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${vueProject.slug}/`,
+      body: [vueProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
+      url: `/projects/${organization.slug}/${vueProject.slug}/issues/`,
       body: [],
     });
 
@@ -207,7 +186,7 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...reactProject,
+          ...vueProject,
           firstError: false,
           firstTransaction: false,
           hasReplays: false,
@@ -221,28 +200,21 @@ describe('Onboarding', function () {
       <OnboardingContextProvider
         value={{
           selectedSDK: {
-            key: reactProject.slug as PlatformKey,
+            key: vueProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
           },
           projects: {
-            [reactProject.id]: {
-              slug: reactProject.slug,
+            [vueProject.id]: {
+              slug: vueProject.slug,
               status: OnboardingProjectStatus.WAITING,
               firstIssueId: undefined,
             },
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -251,7 +223,7 @@ describe('Onboarding', function () {
     );
 
     // Await for the docs to be loaded
-    await screen.findByText('Configure React SDK');
+    await screen.findByText('Configure Vue SDK');
 
     renderGlobalModal();
 
@@ -268,17 +240,17 @@ describe('Onboarding', function () {
   });
 
   it('does not render SDK data removal modal when going back', async function () {
-    const reactProject: Project = TestStubs.Project({
-      platform: 'javascript-react',
+    const vueProject: Project = TestStubs.Project({
+      platform: 'javascript-vue',
       id: '2',
-      slug: 'javascript-react-slug',
+      slug: 'javascript-vue-slug',
     });
 
     const routeParams = {
       step: 'setup-docs',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-project-deletion-on-back-click'],
       },
@@ -288,17 +260,17 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
+      url: `/projects/${organization.slug}/${vueProject.slug}/docs/javascript-vue-with-error-monitoring/`,
       body: null,
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${vueProject.slug}/`,
+      body: [vueProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
+      url: `/projects/${organization.slug}/${vueProject.slug}/issues/`,
       body: [],
     });
 
@@ -306,7 +278,7 @@ describe('Onboarding', function () {
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {
         return {
-          ...reactProject,
+          ...vueProject,
           firstError: false,
           firstTransaction: false,
           hasReplays: false,
@@ -320,28 +292,21 @@ describe('Onboarding', function () {
       <OnboardingContextProvider
         value={{
           selectedSDK: {
-            key: reactProject.slug as PlatformKey,
+            key: vueProject.slug as PlatformKey,
             type: 'framework',
             language: 'javascript',
             category: 'browser',
           },
           projects: {
-            [reactProject.id]: {
-              slug: reactProject.slug,
+            [vueProject.id]: {
+              slug: vueProject.slug,
               status: OnboardingProjectStatus.WAITING,
               firstIssueId: undefined,
             },
           },
         }}
       >
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -350,7 +315,7 @@ describe('Onboarding', function () {
     );
 
     // Await for the docs to be loaded
-    await screen.findByText('Configure React SDK');
+    await screen.findByText('Configure Vue SDK');
 
     renderGlobalModal();
 
@@ -368,7 +333,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -379,14 +344,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -414,7 +372,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {router, route, routerContext, organization} = initializeOrg({
+    const {routerProps, routerContext, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -425,14 +383,7 @@ describe('Onboarding', function () {
 
     render(
       <OnboardingContextProvider>
-        <Onboarding
-          router={router}
-          location={router.location}
-          params={routeParams}
-          routes={router.routes}
-          routeParams={router.params}
-          route={route}
-        />
+        <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
         context: routerContext,
@@ -441,7 +392,7 @@ describe('Onboarding', function () {
     );
 
     // Select the React platform
-    await userEvent.click(screen.getByTestId('platform-javascript-react'));
+    await userEvent.click(screen.getByTestId('platform-javascript-vue'));
 
     // Click on 'configure SDK' button
     await userEvent.click(screen.getByRole('button', {name: 'Configure SDK'}));

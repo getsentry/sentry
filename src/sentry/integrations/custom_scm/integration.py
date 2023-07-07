@@ -3,9 +3,9 @@ from __future__ import annotations
 from uuid import uuid4
 
 from django import forms
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
 from sentry.integrations import (
@@ -18,6 +18,7 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.repository import repository_service
 from sentry.web.helpers import render_to_response
 
 from .repository import CustomSCMRepositoryProvider
@@ -76,10 +77,10 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
         Used to get any repositories that are not already tied
         to an integration.
         """
-        repos = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=self.organization_id,
-            provider__isnull=True,
-            integration_id__isnull=True,
+            has_provider=False,
+            has_integration=False,
             status=ObjectStatus.ACTIVE,
         )
         return [{"name": repo.name, "identifier": str(repo.id)} for repo in repos]
@@ -106,7 +107,7 @@ class InstallationForm(forms.Form):
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if request.method == "POST":
             form = InstallationForm(request.POST)
             if form.is_valid():

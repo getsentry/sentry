@@ -24,6 +24,7 @@ from sentry.tasks.unmerge import (
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
 from sentry.utils.dates import to_timestamp
 
@@ -256,9 +257,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         with self.tasks():
-            eventstream_state = eventstream.start_merge(project.id, [merge_source.id], source.id)
+            eventstream_state = eventstream.backend.start_merge(
+                project.id, [merge_source.id], source.id
+            )
             merge_groups.delay([merge_source.id], source.id)
-            eventstream.end_merge(eventstream_state)
+            eventstream.backend.end_merge(eventstream_state)
 
         assert {
             (gtv.value, gtv.times_seen)
@@ -364,7 +367,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         rollup_duration = 3600
 
         time_series = tsdb.get_range(
-            tsdb.models.group,
+            TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
@@ -373,7 +376,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         environment_time_series = tsdb.get_range(
-            tsdb.models.group,
+            TSDBModel.group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
@@ -433,7 +436,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         time_series = tsdb.get_distinct_counts_series(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
@@ -442,7 +445,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         environment_time_series = tsdb.get_distinct_counts_series(
-            tsdb.models.users_affected_by_group,
+            TSDBModel.users_affected_by_group,
             [source.id, destination.id],
             now - timedelta(seconds=rollup_duration),
             time_from_now(17),
@@ -509,7 +512,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         time_series = strip_zeroes(
             tsdb.get_frequency_series(
-                tsdb.models.frequent_releases_by_group,
+                TSDBModel.frequent_releases_by_group,
                 items,
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),
@@ -544,7 +547,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         time_series = strip_zeroes(
             tsdb.get_frequency_series(
-                tsdb.models.frequent_environments_by_group,
+                TSDBModel.frequent_environments_by_group,
                 items,
                 now - timedelta(seconds=rollup_duration),
                 time_from_now(17),

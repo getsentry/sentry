@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 import re
+from typing import Any
 
 import sentry_sdk
 
-from sentry.eventstore.models import Event
 from sentry.lang.java.utils import deobfuscation_template
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
@@ -28,7 +30,7 @@ def has_dart_symbols_file(data):
     return get_path(images, 0, "type") == "dart_symbols"
 
 
-def get_dart_symbols_images(event: Event):
+def get_dart_symbols_images(event: dict[str, Any]) -> set[str]:
     return {
         str(image["uuid"]).lower()
         for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=())
@@ -72,7 +74,7 @@ def generate_dart_symbols_map(uuid: str, project: Project):
     return obfuscated_to_deobfuscated_name_map
 
 
-def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
+def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
     """
     Deobfuscates a view hierarchy in-place.
 

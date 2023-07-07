@@ -8,7 +8,6 @@ from sentry.constants import SentryAppInstallationStatus
 from sentry.models import Activity, Commit, GroupAssignee, GroupLink, Release, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
-from sentry.testutils.helpers.faux import faux
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
@@ -41,7 +40,7 @@ class TestIssueWorkflowNotifications(APITestCase):
     def test_notify_after_basic_resolved(self, delay):
         self.update_issue()
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -57,7 +56,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             {"statusDetails": {"inCommit": {"repository": repo.name, "commit": commit.key}}}
         )
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -70,7 +69,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         self.update_issue({"statusDetails": {"inRelease": release.version}})
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -83,7 +82,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         self.update_issue({"statusDetails": {"inRelease": "latest"}})
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -96,7 +95,7 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         self.update_issue({"statusDetails": {"inNextRelease": True}})
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -133,7 +132,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             ]
         )
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="resolved",
@@ -144,7 +143,7 @@ class TestIssueWorkflowNotifications(APITestCase):
     def test_notify_after_issue_ignored(self, delay):
         self.update_issue({"status": "ignored"})
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="ignored",
@@ -191,7 +190,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {"resolution_type": "now"}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -209,7 +208,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {"resolution_type": "in_commit"}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -224,7 +223,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {"resolution_type": "in_release"}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -240,7 +239,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {"resolution_type": "in_release"}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -257,7 +256,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
 
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -294,7 +293,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
                 ]
             )
             sub_data = {"resolution_type": "with_commit"}
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.resolved",
                 self.issue.id,
@@ -308,7 +307,7 @@ class TestIssueWorkflowNotificationsSentryFunctions(APITestCase):
             sub_data = {}
             with exempt_from_silo_limits():
                 sub_data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "issue.ignored",
                 self.issue.id,
@@ -357,7 +356,7 @@ class TestIssueAssigned(APITestCase):
     def test_after_issue_assigned(self, delay):
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="assigned",
@@ -378,7 +377,7 @@ class TestIssueAssigned(APITestCase):
         new_assignee = self.create_user(name="Berry", email="berry@example.com")
         GroupAssignee.objects.assign(self.issue, new_assignee, self.user)
 
-        assert faux(delay).called_with(
+        delay.assert_called_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="assigned",
@@ -400,7 +399,7 @@ class TestIssueAssigned(APITestCase):
 
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
 
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="assigned",
@@ -442,7 +441,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             }
         }
         sub_data["user"] = serialize(self.user, UserSerializer())
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
@@ -464,7 +463,7 @@ class TestIssueAssignedSentryFunctions(APITestCase):
             }
         }
         sub_data["user"] = serialize(self.user, UserSerializer())
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             self.sentryFunction.external_id,
             "issue.assigned",
             self.issue.id,
@@ -499,7 +498,7 @@ class TestComments(APITestCase):
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="comment.created",
@@ -518,7 +517,7 @@ class TestComments(APITestCase):
             "comment": "goodbye cruel world",
             "project_slug": self.project.slug,
         }
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="comment.updated",
@@ -536,7 +535,7 @@ class TestComments(APITestCase):
             "comment": "hello world",
             "project_slug": self.project.slug,
         }
-        assert faux(delay).called_with(
+        delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
             type="comment.deleted",
@@ -578,7 +577,7 @@ class TestCommentsSentryFunctions(APITestCase):
             }
             with exempt_from_silo_limits():
                 data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.created",
                 self.issue.id,
@@ -600,7 +599,7 @@ class TestCommentsSentryFunctions(APITestCase):
             }
             with exempt_from_silo_limits():
                 data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.updated",
                 self.issue.id,
@@ -620,7 +619,7 @@ class TestCommentsSentryFunctions(APITestCase):
             }
             with exempt_from_silo_limits():
                 data["user"] = serialize(self.user)
-            assert faux(delay).called_with(
+            delay.assert_called_once_with(
                 self.sentryFunction.external_id,
                 "comment.deleted",
                 self.issue.id,

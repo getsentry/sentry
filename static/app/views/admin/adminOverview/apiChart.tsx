@@ -33,11 +33,11 @@ type State = {
 class ApiChart extends Component<Props, State> {
   state: State = initialState;
 
-  componentWillMount() {
+  UNSAFE_componentWillMount() {
     this.fetchData();
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props) {
     if (this.props.since !== nextProps.since) {
       this.setState(initialState, this.fetchData);
     }

@@ -3,12 +3,12 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, Sequence
 
+from django.http import HttpResponse
 from django.utils.text import slugify
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, options
 from sentry.api.utils import generate_organization_url
@@ -23,9 +23,10 @@ from sentry.integrations import (
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.integrations.utils.code_mapping import RepoTree
-from sentry.models import Integration, Organization, OrganizationIntegration, Repository
+from sentry.models import Integration, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -171,12 +172,12 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         # "https://github.com/octokit/octokit.rb/blob/master/README.md"
         return f"https://github.com/{repo.name}/blob/{branch}/{filepath}"
 
-    def get_unmigratable_repositories(self) -> Sequence[Repository]:
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
         accessible_repos = self.get_repositories()
         accessible_repo_names = [r["identifier"] for r in accessible_repos]
 
-        existing_repos = Repository.objects.filter(
-            organization_id=self.organization_id, provider="github"
+        existing_repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["github"]
         )
 
         return [repo for repo in existing_repos if repo.name not in accessible_repo_names]
@@ -261,7 +262,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             }
 
 
-class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
+class GitHubIntegrationProvider(IntegrationProvider):
     key = "github"
     name = "GitHub"
     metadata = metadata
@@ -286,19 +287,19 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
     def post_install(
         self,
         integration: Integration,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["github", "integrations:github"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["github", "integrations:github"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }
@@ -355,7 +356,7 @@ class GitHubInstallationRedirect(PipelineView):
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
 
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         if "reinstall_id" in request.GET:
             pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 

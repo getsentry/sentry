@@ -22,7 +22,7 @@ class UserTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
 
         organizations = user.get_orgs()
@@ -57,7 +57,7 @@ class UserTest(TestCase, HybridCloudTestMixin):
         user = self.create_user()
         org = self.create_organization(owner=user)
         team = self.create_team(organization=org)
-        member = OrganizationMember.objects.get(user=user, organization=org)
+        member = OrganizationMember.objects.get(user_id=user.id, organization=org)
         OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
         project = self.create_project(teams=[team], name="name")
 
@@ -136,7 +136,7 @@ class UserMergeToTest(TestCase, HybridCloudTestMixin):
 
         assert OrganizationMember.objects.filter(user_id=from_user.id).exists()
 
-        member = OrganizationMember.objects.get(user=to_user)
+        member = OrganizationMember.objects.get(user_id=to_user.id)
 
         assert member.role == "owner"
         assert list(member.teams.all().order_by("pk")) == [team_1, team_2, team_3]

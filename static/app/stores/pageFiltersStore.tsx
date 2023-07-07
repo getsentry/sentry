@@ -127,6 +127,12 @@ const storeConfig: PageFiltersStoreDefinition = {
       return;
     }
 
+    if (this.desyncedFilters.has('projects')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('projects');
+      this.desyncedFilters = newDesyncedFilters;
+    }
+
     this.selection = {
       ...this.selection,
       projects,
@@ -140,6 +146,12 @@ const storeConfig: PageFiltersStoreDefinition = {
       return;
     }
 
+    if (this.desyncedFilters.has('datetime')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('datetime');
+      this.desyncedFilters = newDesyncedFilters;
+    }
+
     this.selection = {
       ...this.selection,
       datetime,
@@ -150,6 +162,12 @@ const storeConfig: PageFiltersStoreDefinition = {
   updateEnvironments(environments) {
     if (isEqual(this.selection.environments, environments)) {
       return;
+    }
+
+    if (this.desyncedFilters.has('environments')) {
+      const newDesyncedFilters = new Set(this.desyncedFilters);
+      newDesyncedFilters.delete('environments');
+      this.desyncedFilters = newDesyncedFilters;
     }
 
     this.selection = {

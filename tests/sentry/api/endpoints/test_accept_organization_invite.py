@@ -5,7 +5,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
@@ -15,6 +15,7 @@ from sentry.models import (
     OrganizationMapping,
     OrganizationMember,
     OrganizationMemberMapping,
+    outbox_context,
 )
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
@@ -155,28 +156,30 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            self.create_organization_mapping(
-                organization_id=101010,
-                slug="abcslug",
-                name="The Thing",
-                idempotency_key="",
-                region_name="some-region",
-            )
+            with in_test_psql_role_override("postgres"):
+                self.create_organization_mapping(
+                    organization_id=101010,
+                    slug="abcslug",
+                    name="The Thing",
+                    idempotency_key="",
+                    region_name="some-region",
+                )
             self._require_2fa_for_organization()
             assert not self.user.has_2fa()
 
             self.login_as(self.user)
 
-            with exempt_from_silo_limits():
+            with exempt_from_silo_limits(), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            OrganizationMemberMapping.objects.create(
-                organization_id=101010, organizationmember_id=om.id
-            )
-            OrganizationMemberMapping.objects.create(
-                organization_id=self.organization.id, organizationmember_id=om.id
-            )
+            with in_test_psql_role_override("postgres"):
+                OrganizationMemberMapping.objects.create(
+                    organization_id=101010, organizationmember_id=om.id
+                )
+                OrganizationMemberMapping.objects.create(
+                    organization_id=self.organization.id, organizationmember_id=om.id
+                )
 
             for path in self._get_paths([om.id, om.token]):
                 resp = self.client.get(path)
@@ -192,13 +195,14 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
         self.login_as(self.user)
 
-        with exempt_from_silo_limits():
+        with exempt_from_silo_limits(), outbox_context(flush=False):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        OrganizationMemberMapping.objects.create(
-            organization_id=self.organization.id, organizationmember_id=om.id
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMemberMapping.objects.create(
+                organization_id=self.organization.id, organizationmember_id=om.id
+            )
 
         with override_settings(SILO_MODE=SiloMode.CONTROL, SENTRY_MONOLITH_REGION="something-else"):
             resp = self.client.get(
@@ -256,7 +260,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
@@ -327,7 +331,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             om2 = Factories.create_member(
                 email="newuser3@example.com",
@@ -370,7 +374,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             with exempt_from_silo_limits():
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
-            assert om.user == user
+            assert om.user_id == user.id
 
             ale = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")

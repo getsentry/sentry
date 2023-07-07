@@ -23,7 +23,7 @@ class RetrySkipTimeout(urllib3.Retry):
     read timeout. Retrying after a timeout adds useless load to Snuba.
     """
 
-    def increment(  # type: ignore
+    def increment(
         self, method=None, url=None, response=None, error=None, _pool=None, _stacktrace=None
     ):
         """
@@ -104,7 +104,7 @@ def get_from_profiling_service(
             data = json.dumps(json_data).encode("utf-8")
         set_measurement("payload.size", len(data), unit="byte")
         kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
-    return _profiling_pool.urlopen(  # type: ignore
+    return _profiling_pool.urlopen(
         method,
         path,
         **kwargs,

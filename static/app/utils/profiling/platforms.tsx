@@ -5,10 +5,10 @@ export const supportedProfilingPlatforms = profiling;
 export const supportedProfilingPlatformSDKs = [
   'android',
   'apple-ios',
+  'go',
   'node',
   'python',
   'php',
-  'rust',
   'php',
   'php-laravel',
   'php-symfony2',
@@ -36,6 +36,12 @@ export function getDocsPlatformSDKForPlatform(
   if (platform === 'apple-ios') {
     return 'apple-ios';
   }
+
+  // Go
+  if (platform === 'go') {
+    return 'go';
+  }
+
   // Javascript
   if (platform.startsWith('node')) {
     return 'node';
@@ -53,11 +59,6 @@ export function getDocsPlatformSDKForPlatform(
   // Python
   if (platform.startsWith('python')) {
     return 'python';
-  }
-
-  // Rust
-  if (platform === 'rust') {
-    return 'rust';
   }
 
   // PHP

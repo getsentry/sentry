@@ -150,9 +150,24 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
-  lockReason?: string | null;
+  heldLocks?: Record<string, Lock> | null;
   name?: string | null;
   state?: string | null;
+}
+
+export type Lock = {
+  type: LockType;
+  address?: string | null;
+  class_name?: string | null;
+  package_name?: string | null;
+  thread_id?: number | null;
+};
+
+export enum LockType {
+  LOCKED = 1,
+  WAITING = 2,
+  SLEEPING = 4,
+  BLOCKED = 8,
 }
 
 export type Frame = {
@@ -176,6 +191,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
@@ -317,22 +333,35 @@ type EntryMessage = {
   type: EntryType.MESSAGE;
 };
 
-export type EntryRequest = {
+export interface EntryRequestDataDefault {
+  apiTarget: null;
+  method: string;
+  url: string;
+  cookies?: [key: string, value: string][];
+  data?: string | null | Record<string, any> | [key: string, value: any][];
+  env?: Record<string, string>;
+  fragment?: string | null;
+  headers?: [key: string, value: string][];
+  inferredContentType?:
+    | null
+    | 'application/json'
+    | 'application/x-www-form-urlencoded'
+    | 'multipart/form-data';
+  query?: [key: string, value: string][] | string;
+}
+
+export interface EntryRequestDataGraphQl
+  extends Omit<EntryRequestDataDefault, 'apiTarget' | 'data'> {
+  apiTarget: 'graphql';
   data: {
-    method: string;
-    url: string;
-    cookies?: [key: string, value: string][];
-    data?: string | null | Record<string, any> | [key: string, value: any][];
-    env?: Record<string, string>;
-    fragment?: string | null;
-    headers?: [key: string, value: string][];
-    inferredContentType?:
-      | null
-      | 'application/json'
-      | 'application/x-www-form-urlencoded'
-      | 'multipart/form-data';
-    query?: [key: string, value: string][] | string;
+    query: string;
+    variables: Record<string, string | number | null>;
+    operationName?: string;
   };
+}
+
+export type EntryRequest = {
+  data: EntryRequestDataDefault | EntryRequestDataGraphQl;
   type: EntryType.REQUEST;
 };
 
@@ -601,6 +630,11 @@ export interface BrowserContext {
   version: string;
 }
 
+export interface ResponseContext {
+  data: unknown;
+  type: 'response';
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
@@ -614,7 +648,9 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  profile?: ProfileContext;
   replay?: ReplayContext;
+  response?: ResponseContext;
   runtime?: RuntimeContext;
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;

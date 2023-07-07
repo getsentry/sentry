@@ -16,7 +16,7 @@ from . import ProjectCodeOwnerSerializer, ProjectCodeOwnersMixin
 
 
 @region_silo_endpoint
-class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # type: ignore
+class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):
     def add_owner_id_to_schema(self, codeowner: ProjectCodeOwners, project: Project) -> None:
         if not hasattr(codeowner, "schema") or (
             codeowner.schema

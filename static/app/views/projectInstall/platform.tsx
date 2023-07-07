@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -15,7 +15,13 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {DocWithProductSelection} from 'sentry/components/onboarding/docWithProductSelection';
 import {Footer} from 'sentry/components/onboarding/footer';
+import {
+  migratedDocs,
+  SdkDocumentation,
+} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
@@ -40,8 +46,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
 // in this case, the default is rendered inside the hook
-const SetUpSdkDoc = HookOrDefault({
+const SetUpSdkDocHook = HookOrDefault({
   hookName: 'component:set-up-sdk-doc',
+});
+
+const ProductUnavailableCTAHook = HookOrDefault({
+  hookName: 'component:product-unavailable-cta',
 });
 
 type Props = RouteComponentProps<{projectId: string}, {}>;
@@ -131,6 +141,11 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     ? projects.find(proj => proj.slug === params.projectId)
     : undefined;
 
+  const products = useMemo(
+    () => (location.query.product ?? []) as ProductSolution[],
+    [location.query.product]
+  );
+
   const {
     data: projectAlertRules,
     isLoading: projectAlertRulesIsLoading,
@@ -187,6 +202,13 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     'onboarding-project-deletion-on-back-click'
   );
 
+  // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
+  // but the purpose of the feature is to make the product selection feature in documents available to all users
+  // and guide them to upgrade to a plan if one of the products is not available on their current plan.
+  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
+    'getting-started-doc-with-product-selection'
+  );
+
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug: project?.slug,
@@ -206,10 +228,10 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     // if the project is older than one hour, we don't delete it
     recentCreatedProject.olderThanOneHour === false;
 
-  const currentPlatform = project?.platform ?? 'other';
-  const platformIntegration = platforms.find(p => p.id === currentPlatform);
+  const currentPlatformKey = project?.platform ?? 'other';
+  const platformIntegration = platforms.find(p => p.id === currentPlatformKey);
   const platform: Platform = {
-    key: currentPlatform as PlatformKey,
+    key: currentPlatformKey as PlatformKey,
     id: platformIntegration?.id,
     name: platformIntegration?.name,
     link: platformIntegration?.link,
@@ -258,7 +280,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           project_id: recentCreatedProject.id,
         });
       } catch (error) {
-        handleXhrErrorResponse(t('Unable to delete project in project creation'), error);
+        handleXhrErrorResponse('Unable to delete project in project creation', error);
         // we don't give the user any feedback regarding this error as this shall be silent
       }
     }
@@ -290,8 +312,17 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const showPerformancePrompt = performancePlatforms.includes(platform.id as PlatformKey);
   const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
 
+  const showDocsWithProductSelection =
+    gettingStartedDocWithProductSelection &&
+    (platform.key === 'javascript' || !!platform.key.match('^javascript-([A-Za-z]+)$'));
+
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+
   return (
     <Fragment>
+      {!isSelfHosted && showDocsWithProductSelection && (
+        <ProductUnavailableCTAHook organization={organization} />
+      )}
       <StyledPageHeader>
         <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
@@ -333,22 +364,38 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
           </Button>
         </ButtonBar>
       </StyledPageHeader>
+      {currentPlatform && migratedDocs.includes(currentPlatformKey) ? (
+        <SdkDocumentation
+          platform={currentPlatform}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+          activeProductSelection={products}
+        />
+      ) : (
+        <Fragment>
+          {isSelfHosted ? (
+            <SetUpGeneralSdkDoc
+              organization={organization}
+              projectSlug={project.slug}
+              platform={platform}
+            />
+          ) : showDocsWithProductSelection ? (
+            <DocWithProductSelection
+              project={project}
+              location={location}
+              currentPlatform={platform.key}
+            />
+          ) : (
+            <SetUpSdkDocHook
+              organization={organization}
+              project={project}
+              location={location}
+              platform={platform}
+            />
+          )}
+        </Fragment>
+      )}
       <div>
-        {isSelfHosted ? (
-          <SetUpGeneralSdkDoc
-            organization={organization}
-            projectSlug={project.slug}
-            platform={platform}
-          />
-        ) : (
-          <SetUpSdkDoc
-            organization={organization}
-            project={project}
-            location={location}
-            platform={platform}
-          />
-        )}
-
         {isGettingStarted && showPerformancePrompt && (
           <Feature
             features={['performance-view']}

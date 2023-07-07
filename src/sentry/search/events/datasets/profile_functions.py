@@ -9,6 +9,7 @@ from snuba_sdk import Condition, Direction, Op, OrderBy
 from snuba_sdk.function import Function, Identifier, Lambda
 
 from sentry.api.event_search import SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import builder
 from sentry.search.events.constants import EQUALITY_OPERATORS, PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases
@@ -17,10 +18,10 @@ from sentry.search.events.fields import (
     ColumnArg,
     Combinator,
     InvalidFunctionArgument,
-    InvalidSearchQuery,
     NumberRange,
     NumericColumn,
     SnQLFunction,
+    SnQLStringArg,
     with_default,
 )
 from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
@@ -84,8 +85,17 @@ COLUMNS = [
 
 COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
+AGG_STATE_COLUMNS = [
+    "count",
+    "percentiles",
+    "avg",
+    "sum",
+    "min",
+    "max",
+]
 
-class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
+
+class ProfileFunctionColumnArg(ColumnArg):
     def normalize(
         self, value: str, params: ParamsType, combinator: Optional[Combinator]
     ) -> NormalizedArg:
@@ -98,7 +108,7 @@ class ProfileFunctionColumnArg(ColumnArg):  # type: ignore
         return value
 
 
-class ProfileFunctionNumericColumn(NumericColumn):  # type: ignore
+class ProfileFunctionNumericColumn(NumericColumn):
     def _normalize(self, value: str) -> str:
         column = COLUMN_MAP.get(value)
 
@@ -142,10 +152,23 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], Optional[WhereType]]]:
         return {
+            "fingerprint": self._fingerprint_filter_converter,
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
+
+    def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        try:
+            return Condition(
+                self.builder.column("fingerprint"),
+                Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
+                int(search_filter.value.value),
+            )
+        except ValueError:
+            raise InvalidSearchQuery(
+                "Invalid value for fingerprint condition. Accepted values are numeric."
+            )
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         value = search_filter.value.value
@@ -314,6 +337,25 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
                     redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "slope",
+                    required_args=[SnQLStringArg("column", allowed_strings=AGG_STATE_COLUMNS)],
+                    snql_aggregate=lambda args, alias: Function(
+                        "tupleElement",
+                        [
+                            Function(
+                                "simpleLinearRegression",
+                                [
+                                    Function("toUInt32", [SnQLColumn("timestamp")]),
+                                    Function("finalizeAggregation", [SnQLColumn(args["column"])]),
+                                ],
+                            ),
+                            1,
+                        ],
+                        alias,
+                    ),
+                    default_result_type="number",
                 ),
             ]
         }

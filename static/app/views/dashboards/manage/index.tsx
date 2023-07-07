@@ -4,6 +4,7 @@ import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
@@ -56,7 +57,6 @@ type State = {
   dashboards: DashboardListItem[] | null;
   dashboardsPageLinks: string;
   showTemplates: boolean;
-  starfishResult?: null;
 } & AsyncView['state'];
 
 class ManageDashboards extends AsyncView<Props, State> {
@@ -82,13 +82,6 @@ class ManageDashboards extends AsyncView<Props, State> {
         },
       ],
     ];
-    if (organization.features.includes('starfish-test-endpoint')) {
-      endpoints.push([
-        'starfishResult',
-        `/organizations/${organization.slug}/events-starfish/`,
-        {query: {statsPeriod: '7d'}},
-      ]);
-    }
     return endpoints;
   }
 
@@ -169,7 +162,6 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderActions() {
     const activeSort = this.getActiveSort();
-
     return (
       <StyledActions>
         <SearchBar
@@ -287,7 +279,7 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   renderBody() {
     const {showTemplates} = this.state;
-    const {organization} = this.props;
+    const {organization, api, location} = this.props;
 
     return (
       <Feature
@@ -332,6 +324,22 @@ class ManageDashboards extends AsyncView<Props, State> {
                     >
                       {t('Create Dashboard')}
                     </Button>
+                    <Feature features={['dashboards-import']}>
+                      <Button
+                        onClick={() => {
+                          openImportDashboardFromFileModal({
+                            organization,
+                            api,
+                            location,
+                          });
+                        }}
+                        size="sm"
+                        priority="primary"
+                        icon={<IconAdd isCircled />}
+                      >
+                        {t('Import Dashboard from JSON')}
+                      </Button>
+                    </Feature>
                   </ButtonBar>
                 </Layout.HeaderActions>
               </Layout.Header>

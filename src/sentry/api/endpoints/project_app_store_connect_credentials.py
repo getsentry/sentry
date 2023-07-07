@@ -66,7 +66,7 @@ logger = logging.getLogger(__name__)
 MULTIPLE_SOURCES_FEATURE_NAME = "organizations:app-store-connect-multiple"
 
 
-class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -80,7 +80,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
 
 
 @region_silo_endpoint
-class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
+class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -180,7 +180,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
         return Response(result, status=200)
 
 
-class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -195,7 +195,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
 
 
 @region_silo_endpoint
-class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -250,7 +250,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         return Response({"id": validated_config.id}, status=200)
 
 
-class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -269,7 +269,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
 
 
 @region_silo_endpoint
-class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -331,7 +331,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
 
 
 @region_silo_endpoint
-class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
+class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     """Triggers an immediate check for new App Store Connect builds.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/refresh/``
@@ -381,7 +381,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
 
 
 @region_silo_endpoint
-class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
+class AppStoreConnectStatusEndpoint(ProjectEndpoint):
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 

@@ -2,7 +2,7 @@ import logging
 from functools import reduce
 from operator import or_
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -60,11 +60,11 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             tokens = tokenize_query(query)
             for key, value in tokens.items():
                 if key == "query":
-                    value = " ".join(value)
+                    value_str = " ".join(value)
                     queryset = queryset.filter(
-                        Q(title__icontains=value)
-                        | Q(message__icontains=value)
-                        | Q(link__icontains=value)
+                        Q(title__icontains=value_str)
+                        | Q(message__icontains=value_str)
+                        | Q(link__icontains=value_str)
                     )
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
@@ -134,7 +134,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
             for broadcast in unseen_queryset:
                 try:
-                    with transaction.atomic():
+                    with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                         BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
                 except IntegrityError:
                     pass
@@ -151,7 +151,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         result = validator.validated_data
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(Broadcast)):
             broadcast = Broadcast.objects.create(
                 title=result["title"],
                 message=result["message"],
@@ -171,7 +171,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
 
         if result.get("hasSeen"):
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(BroadcastSeen)):
                     BroadcastSeen.objects.create(broadcast=broadcast, user_id=request.user.id)
             except IntegrityError:
                 pass

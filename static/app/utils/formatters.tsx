@@ -298,3 +298,7 @@ export function formatAbbreviatedNumber(number: number | string) {
 
   return number.toLocaleString();
 }
+
+export function formatRate(value: number, rateUnit?: string) {
+  return `${value}/${rateUnit ?? 's'}`;
+}

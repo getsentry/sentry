@@ -15,7 +15,7 @@ __all__ = [
 import abc
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, FrozenSet, Iterable, Mapping, Set, cast
+from typing import Any, Collection, FrozenSet, Iterable, Mapping, Optional, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -64,7 +64,7 @@ def get_permissions_for_user(user_id: int) -> FrozenSet[str]:
 
 def has_role_in_organization(role: str, organization: Organization, user_id: int) -> bool:
     query = OrganizationMember.objects.filter(
-        user__is_active=True,
+        user_is_active=True,
         user_id=user_id,
         organization_id=organization.id,
     )
@@ -152,12 +152,12 @@ class Access(abc.ABC):
     # TODO(cathy): remove this
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
-            return cast(OrganizationRole, organization_roles.get(self.role))
+            return organization_roles.get(self.role)
         return None
 
     def get_organization_roles(self) -> Iterable[OrganizationRole]:
         if self.roles is not None:
-            return [cast(OrganizationRole, organization_roles.get(r)) for r in self.roles]
+            return [organization_roles.get(r) for r in self.roles]
         return []
 
     @abc.abstractmethod
@@ -1009,7 +1009,7 @@ from_user_and_api_user_org_context = from_user_and_rpc_user_org_context
 
 
 def from_request(
-    request: Any, organization: Organization = None, scopes: Iterable[str] | None = None
+    request: Any, organization: Optional[Organization] = None, scopes: Iterable[str] | None = None
 ) -> Access:
     is_superuser = is_active_superuser(request)
 

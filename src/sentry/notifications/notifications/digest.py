@@ -5,7 +5,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -106,9 +105,7 @@ class DigestNotification(ProjectNotification):
 
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
 
-        snooze_alert = (
-            features.has("organizations:mute-alerts", self.organization) and len(rule_details) > 0
-        )
+        snooze_alert = len(rule_details) > 0
         snooze_alert_urls = {
             rule.id: f"{rule.status_url}{sentry_query_params}&{urlencode({'mute': '1'})}"
             for rule in rule_details

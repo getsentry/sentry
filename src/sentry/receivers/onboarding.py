@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 
@@ -14,7 +16,9 @@ from sentry.models import (
     Project,
 )
 from sentry.onboarding_tasks import try_mark_onboarding_complete
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
@@ -275,36 +279,37 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
 
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
-    if OrganizationOnboardingTask.objects.record(
+    OrganizationOnboardingTask.objects.record(
         organization_id=member.organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         user_id=user.id if user else None,
         status=OnboardingTaskStatus.PENDING,
         data={"invited_member_id": member.id},
-    ):
-        analytics.record(
-            "member.invited",
-            invited_member_id=member.id,
-            inviter_user_id=user.id if user else None,
-            organization_id=member.organization_id,
-            referrer=kwargs.get("referrer"),
-        )
+    )
+
+    analytics.record(
+        "member.invited",
+        invited_member_id=member.id,
+        inviter_user_id=user.id if user else None,
+        organization_id=member.organization_id,
+        referrer=kwargs.get("referrer"),
+    )
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization_id: int, **kwargs):
+def record_member_joined(organization_id: int, organization_member_id: int, **kwargs):
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
-        organization_id=member.organization_id,
+        organization_id=organization_id,
         task=OnboardingTask.INVITE_MEMBER,
         status=OnboardingTaskStatus.PENDING,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
             "date_completed": timezone.now(),
-            "data": {"invited_member_id": member.id},
+            "data": {"invited_member_id": organization_member_id},
         },
     )
     if created or rows_affected:
-        try_mark_onboarding_complete(member.organization_id)
+        try_mark_onboarding_complete(organization_id)
 
 
 def record_release_received(project, event, **kwargs):
@@ -534,10 +539,17 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
-    # TODO(Leander): This function must be executed on region after being prompted by control
+def record_integration_added(
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs
+):
+    integration: RpcIntegration | None = integration_service.get_integration(
+        integration_id=integration_id
+    )
+    if integration is None:
+        return
+
     task = OrganizationOnboardingTask.objects.filter(
-        organization_id=organization.id,
+        organization_id=organization_id,
         task=OnboardingTask.INTEGRATIONS,
     ).first()
 
@@ -548,12 +560,12 @@ def record_integration_added(integration, organization, user, **kwargs):
         task.data["providers"] = providers
         if task.status != OnboardingTaskStatus.COMPLETE:
             task.status = OnboardingTaskStatus.COMPLETE
-            task.user = user
+            task.user_id = user_id
             task.date_completed = timezone.now()
         task.save()
     else:
         task = OrganizationOnboardingTask.objects.create(
-            organization_id=organization.id,
+            organization_id=organization_id,
             task=OnboardingTask.INTEGRATIONS,
             status=OnboardingTaskStatus.COMPLETE,
             data={"providers": [integration.provider]},

@@ -11,18 +11,13 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SentryAppDetailsModal from 'sentry/components/modals/sentryAppDetailsModal';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
+import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import AsyncView from 'sentry/views/asyncView';
 
 import {OrganizationContext} from '../organizationContext';
-
-function generateBaseUrl() {
-  const baseUrl = ConfigStore.get('links').sentryUrl || '';
-  return baseUrl + '/api/0';
-}
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
@@ -36,7 +31,7 @@ type State = AsyncView['state'] & {
 
 export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
   disableErrorReport = false;
-  controlSiloApi = new Client({baseUrl: generateBaseUrl()});
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
   getDefaultState() {
     const state = super.getDefaultState();

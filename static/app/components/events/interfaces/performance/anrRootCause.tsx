@@ -4,12 +4,17 @@ import isNil from 'lodash/isNil';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {analyzeFramesForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
+import {StackTraceContent} from 'sentry/components/events/interfaces/crashContent/stackTrace';
+import NoStackTraceMessage from 'sentry/components/events/interfaces/noStackTraceMessage';
+import getThreadStacktrace from 'sentry/components/events/interfaces/threads/threadSelector/getThreadStacktrace';
+import {getThreadById, inferPlatform} from 'sentry/components/events/interfaces/utils';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import ShortId from 'sentry/components/group/inboxBadges/shortId';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Organization} from 'sentry/types';
+import {Event, Organization, StackView} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
@@ -38,7 +43,7 @@ export function AnrRootCause({event, organization}: Props) {
     trackAnalytics('issue_group_details.anr_root_cause_detected', {
       organization,
       group: event?.groupID,
-      culprit: anrCulprit?.culprit,
+      culprit: typeof anrCulprit?.culprit === 'string' ? anrCulprit?.culprit : 'lock',
     });
   }, [anrCulprit?.culprit, organization, event?.groupID]);
 
@@ -66,6 +71,46 @@ export function AnrRootCause({event, organization}: Props) {
       : t(
           'Suspect Root Cause identifies potential Performance Issues that may be contributing to this ANR.'
         );
+
+  function renderAnrCulprit() {
+    if (!defined(anrCulprit)) {
+      return undefined;
+    }
+
+    if (typeof anrCulprit.culprit === 'string') {
+      return <Fragment>{anrCulprit.resources}</Fragment>;
+    }
+
+    const {address, thread_id} = anrCulprit.culprit;
+    if (!defined(thread_id)) {
+      return <Fragment>{anrCulprit.resources}</Fragment>;
+    }
+
+    const culpritThread = getThreadById(event, thread_id);
+    const stackTrace = getThreadStacktrace(false, culpritThread);
+    const platform = inferPlatform(event, culpritThread);
+
+    return (
+      <Fragment>
+        {anrCulprit?.resources}
+        <StackTraceWrapper>
+          {defined(stackTrace) ? (
+            <StackTraceContent
+              stacktrace={stackTrace}
+              stackView={StackView.FULL}
+              newestFirst
+              event={event}
+              platform={platform}
+              hasHierarchicalGrouping={false}
+              lockAddress={address ?? undefined}
+            />
+          ) : (
+            <NoStackTraceMessage />
+          )}
+        </StackTraceWrapper>
+      </Fragment>
+    );
+  }
 
   return (
     <EventDataSection
@@ -103,7 +148,7 @@ export function AnrRootCause({event, organization}: Props) {
           </IssueSummary>
         );
       })}
-      {organization.features.includes('anr-analyze-frames') && anrCulprit?.resources}
+      {organization.features.includes('anr-analyze-frames') && renderAnrCulprit()}
     </EventDataSection>
   );
 }
@@ -135,4 +180,8 @@ const TitleWithLink = styled(GlobalSelectionLink)`
 const Title = styled('div')`
   line-height: 1;
   margin-bottom: ${space(0.5)};
+`;
+
+const StackTraceWrapper = styled('div')`
+  margin-top: ${space(2)};
 `;

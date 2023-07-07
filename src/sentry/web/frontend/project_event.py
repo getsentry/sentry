@@ -14,7 +14,7 @@ class ProjectEventRedirect(ProjectView):
         """
         Given a client event id and project, redirects to the event page
         """
-        event = eventstore.get_event_by_id(project.id, client_event_id)
+        event = eventstore.backend.get_event_by_id(project.id, client_event_id)
 
         if event is None:
             raise Http404

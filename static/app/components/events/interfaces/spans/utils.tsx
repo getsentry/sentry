@@ -861,7 +861,10 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
     };
   }
 
-  const newTimestamps = startStrings.reduce(
+  const newTimestamps = startStrings.reduce<{
+    end: string[];
+    start: string[];
+  }>(
     (acc, startString, index) => {
       if (startString.length > endStrings[index].length) {
         acc.start.push(startString);
@@ -881,10 +884,7 @@ export function getFormattedTimeRangeWithLeadingAndTrailingZero(
       acc.end.push(endStrings[index]);
       return acc;
     },
-    {start: [], end: []} as {
-      end: string[];
-      start: string[];
-    }
+    {start: [], end: []}
   );
 
   return {

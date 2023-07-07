@@ -240,7 +240,7 @@ def _add_hash(
     last_seen,
     latest_event_id,
 ):
-    event = eventstore.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
+    event = eventstore.backend.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
 
     tree = {
         "parentId": parent_hash,
@@ -301,7 +301,7 @@ def _render_trees(group: Group, user):
     # or 1 otherwise.
     find_hash_expr = _construct_arraymax(
         [1]
-        + [  # type: ignore
+        + [
             Function("indexOf", [Column("hierarchical_hashes"), hash])
             for hash in materialized_hashes
         ]

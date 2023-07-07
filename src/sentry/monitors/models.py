@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import jsonschema
 import pytz
@@ -67,6 +67,8 @@ MONITOR_CONFIG = {
     "required": ["checkin_margin", "max_runtime", "schedule"],
     "additionalProperties": False,
 }
+
+MAX_SLUG_LENGTH = 50
 
 
 class MonitorLimitsExceeded(Exception):
@@ -262,7 +264,7 @@ class Monitor(Model):
                     self,
                     self.name,
                     organization_id=self.organization_id,
-                    max_length=50,
+                    max_length=MAX_SLUG_LENGTH,
                 )
         return super().save(*args, **kwargs)
 
@@ -272,7 +274,7 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin_without_margin(self, last_checkin):
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
         next_checkin = get_next_schedule(
@@ -280,8 +282,8 @@ class Monitor(Model):
         )
         return next_checkin
 
-    def get_next_scheduled_checkin(self, last_checkin):
-        next_checkin = self.get_next_scheduled_checkin_without_margin(last_checkin)
+    def get_next_scheduled_checkin_with_margin(self, last_checkin):
+        next_checkin = self.get_next_scheduled_checkin(last_checkin)
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def update_config(self, config_payload, validated_config):
@@ -326,7 +328,7 @@ class Monitor(Model):
         alert_rule = self.get_alert_rule()
         if alert_rule:
             data = alert_rule.data
-            alert_rule_data = {}
+            alert_rule_data: Dict[str, Optional[Any]] = dict()
 
             # Build up alert target data
             targets = []
@@ -340,6 +342,15 @@ class Monitor(Model):
                         }
                     )
             alert_rule_data["targets"] = targets
+
+            environment, alert_rule_environment_id = None, alert_rule.environment_id
+            if alert_rule_environment_id:
+                try:
+                    environment = Environment.objects.get(id=alert_rule_environment_id).name
+                except Environment.DoesNotExist:
+                    pass
+
+            alert_rule_data["environment"] = environment
 
             return alert_rule_data
 
@@ -380,6 +391,7 @@ class MonitorCheckIn(Model):
     # The time that we mark an in_progress check-in as timeout. date_added + max_runtime
     timeout_at = models.DateTimeField(null=True)
     monitor_config = JSONField(null=True)
+    trace_id = UUIDField(null=True)
 
     objects = BaseManager(cache_fields=("guid",))
 
@@ -388,6 +400,7 @@ class MonitorCheckIn(Model):
         db_table = "sentry_monitorcheckin"
         indexes = [
             models.Index(fields=["monitor", "date_added", "status"]),
+            models.Index(fields=["timeout_at", "status"]),
         ]
 
     __repr__ = sane_repr("guid", "project_id", "status")
@@ -486,7 +499,7 @@ class MonitorEnvironment(Model):
                 Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
             )
             .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
+                next_checkin=self.monitor.get_next_scheduled_checkin_with_margin(next_checkin_base),
                 status=new_status,
                 last_checkin=last_checkin,
             )
@@ -498,7 +511,6 @@ class MonitorEnvironment(Model):
         if self.monitor.status == ObjectStatus.DISABLED:
             return True
 
-        group_type, level = get_group_type_and_level(reason)
         current_timestamp = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         use_issue_platform = False
@@ -506,41 +518,50 @@ class MonitorEnvironment(Model):
             organization = Organization.objects.get(id=self.monitor.organization_id)
             use_issue_platform = features.has(
                 "organizations:issue-platform", organization=organization
-            ) and features.has("organizations:crons-issue-platform", organization=organization)
+            )
         except Organization.DoesNotExist:
             pass
 
         if use_issue_platform:
+            from sentry.grouping.utils import hash_from_values
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
+
+            occurrence_data = get_occurrence_data(reason)
 
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
                 resource_id=None,
                 project_id=self.monitor.project_id,
                 event_id=uuid.uuid4().hex,
-                fingerprint=[f"monitor-{str(self.monitor.guid)}-{reason}"],
-                type=group_type,
-                issue_title=f"Monitor failure: {self.monitor.name} ({reason})",
+                fingerprint=[
+                    hash_from_values(["monitor", str(self.monitor.guid), occurrence_data["reason"]])
+                ],
+                type=occurrence_data["group_type"],
+                issue_title=f"Monitor failure: {self.monitor.name}",
                 subtitle="",
                 evidence_display=[
-                    IssueEvidence(name="Failure reason", value=reason, important=True),
+                    IssueEvidence(
+                        name="Failure reason", value=occurrence_data["reason"], important=True
+                    ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
                         name="Last check-in", value=last_checkin.isoformat(), important=False
                     ),
                 ],
                 evidence_data={},
-                culprit="",
+                culprit=occurrence_data["reason"],
                 detection_time=current_timestamp,
-                level=level,
+                level=occurrence_data["level"],
             )
 
             produce_occurrence_to_kafka(
                 occurrence,
                 {
+                    "contexts": {"monitor": get_monitor_environment_context(self)},
                     "environment": self.environment.name,
                     "event_id": occurrence.event_id,
+                    "fingerprint": ["monitor", str(self.monitor.guid), occurrence_data["reason"]],
                     "platform": "other",
                     "project_id": self.monitor.project_id,
                     "received": current_timestamp.isoformat(),
@@ -582,7 +603,7 @@ class MonitorEnvironment(Model):
     def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
         params = {
             "last_checkin": ts,
-            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+            "next_checkin": self.monitor.get_next_scheduled_checkin_with_margin(ts),
         }
         if checkin.status == CheckInStatus.OK and self.monitor.status != ObjectStatus.DISABLED:
             params["status"] = MonitorStatus.OK
@@ -590,13 +611,13 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_group_type_and_level(reason: str):
+def get_occurrence_data(reason: str):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        return MonitorCheckInMissed, "warning"
+        return {"group_type": MonitorCheckInMissed, "level": "warning", "reason": "missed_checkin"}
     elif reason == MonitorFailure.DURATION:
-        return MonitorCheckInTimeout, "error"
+        return {"group_type": MonitorCheckInTimeout, "level": "error", "reason": "duration"}
 
-    return MonitorCheckInFailure, "error"
+    return {"group_type": MonitorCheckInFailure, "level": "error", "reason": "error"}
 
 
 @receiver(pre_save, sender=MonitorEnvironment)

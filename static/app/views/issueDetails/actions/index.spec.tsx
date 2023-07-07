@@ -300,7 +300,7 @@ describe('GroupActions', function () {
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues-ui']};
+    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',

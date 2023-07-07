@@ -133,6 +133,10 @@ class OrganizationTeamsListTest(APITestCase):
         team2 = self.create_team(organization=self.organization, name="bar")
         self.login_as(user=self.user)
 
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:undefined"
+        response = self.client.get(path)
+        assert response.status_code == 400, response.content
+
         path = f"/api/0/organizations/{self.organization.slug}/teams/?query=id:{team1.id}"
         response = self.client.get(path)
         assert response.status_code == 200, response.content
@@ -194,7 +198,9 @@ class OrganizationTeamsCreateTest(APITestCase):
         assert not team.idp_provisioned
         assert team.organization == self.organization
 
-        member = OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        member = OrganizationMember.objects.get(
+            user_id=self.user.id, organization=self.organization
+        )
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=member, team=team, is_active=True

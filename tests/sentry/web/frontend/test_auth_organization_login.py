@@ -1,21 +1,22 @@
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 from django.test import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
-    Organization,
     OrganizationMember,
     OrganizationOption,
     OrganizationStatus,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -42,7 +43,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/organization-login.html")
 
         assert resp.context["login_form"]
-        assert resp.context["organization"] == self.organization
+        assert resp.context["organization"] == serialize_rpc_organization(self.organization)
         assert "provider_key" not in resp.context
         assert resp.context["join_request_link"]
 
@@ -101,7 +102,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not user.is_managed
         assert user.flags.newsletter_consent_prompt
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -135,7 +136,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
@@ -170,7 +171,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
             assert user == auth_identity.user
 
-            member = OrganizationMember.objects.get(organization=self.organization, user=user)
+            member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
             assert getattr(member.flags, "sso:linked")
             assert not getattr(member.flags, "sso:invalid")
             assert getattr(member.flags, "member-limit:restricted")
@@ -180,7 +181,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=auth_provider, user_id=user.id, ident="foo@example.com"
+        )
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -199,7 +202,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=auth_provider, user_id=user.id, ident="foo@example.com"
+        )
         next = f"/organizations/{self.organization.slug}/releases/"
         resp = self.client.post(self.path + "?next=" + next, {"init": True})
         assert resp.status_code == 200
@@ -217,7 +222,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=auth_provider, user_id=user.id, ident="foo@example.com"
+        )
 
         next = f"/organizations/{self.organization.slug}/releases/"
         resp = self.client.post(
@@ -237,7 +244,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
-        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+        AuthIdentity.objects.create(
+            auth_provider=auth_provider, user_id=user.id, ident="foo@example.com"
+        )
 
         next = "http://example.com"
 
@@ -289,7 +298,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # unset following new user creation
         assert not new_user.flags.newsletter_consent_prompt
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=new_user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -341,7 +350,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=org1, user=user)
+        member = OrganizationMember.objects.get(organization=org1, user_id=user.id)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
@@ -383,7 +392,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -450,7 +459,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -500,7 +509,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -518,7 +527,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user("bar@example.com", is_active=False)
 
         auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider, user=user, ident="adfadsf@example.com"
+            auth_provider=auth_provider, user_id=user.id, ident="adfadsf@example.com"
         )
 
         resp = self.client.post(self.path, {"init": True})
@@ -551,7 +560,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user != user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=new_user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -578,7 +587,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
 
         # they must be a member for the auto merge to happen
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         # user needs to be logged in
         self.login_as(user)
@@ -609,7 +618,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=new_user)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=new_user.id)
 
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
@@ -632,7 +641,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="bar@example.com")
 
         # they must be a member for the auto merge to happen
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         # user needs to be logged in
         self.login_as(user)
@@ -665,7 +674,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         user = self.create_user("bar@example.com", is_managed=False, password="")
         assert not user.has_usable_password()
         UserEmail.objects.filter(user=user, email="bar@example.com").update(is_verified=False)
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -739,7 +748,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         identity2 = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user2, ident="adfadsf@example.com"
         )
-        member2 = self.create_member(user=user2, organization=self.organization)
+        member2 = self.create_member(user_id=user2.id, organization=self.organization)
 
         # user needs to be logged in
         self.login_as(user)
@@ -767,7 +776,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert identity2.ident == "adfadsf@example.com"
         assert identity2.user == user
 
-        member1 = OrganizationMember.objects.get(user=user, organization=self.organization)
+        member1 = OrganizationMember.objects.get(user_id=user.id, organization=self.organization)
         assert getattr(member1.flags, "sso:linked")
         assert not getattr(member1.flags, "sso:invalid")
         assert not getattr(member1.flags, "member-limit:restricted")
@@ -811,7 +820,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         )
         user = self.create_user("bar@example.com")
         member = self.create_member(email="bar@example.com", organization=self.organization)
-        member.user = None
+        member.user_id = None
         member.save()
         self.login_as(user)
         resp = self.client.post(self.path, {"init": True})
@@ -835,7 +844,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
         assert user == auth_identity.user
 
-        test_member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        test_member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=user.id
+        )
         assert member.id == test_member.id
         assert getattr(test_member.flags, "sso:linked")
         assert not getattr(test_member.flags, "sso:invalid")
@@ -845,11 +856,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     @with_feature({"organizations:create": False})
     def test_basic_auth_flow_as_invited_user(self):
         user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.email = "foor@example.com"
-        member.user = None
-        member.save()
+        self.create_member(organization=self.organization, email="foor@example.com")
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
@@ -865,11 +872,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_basic_auth_flow_as_invited_user_not_single_org_mode(self):
         user = self.create_user("u2@example.com")
-        self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.email = "u2@example.com"
-        member.user = None
-        member.save()
+        self.create_member(organization=self.organization, email="u2@example.com")
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
         )
@@ -879,7 +882,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     @with_feature({"organizations:create": False})
     def test_basic_auth_flow_as_user_with_confirmed_membership(self):
         user = self.create_user("foor@example.com")
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
@@ -953,10 +956,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         RecoveryCodeInterface().enroll(user)
         TotpInterface().enroll(user)
 
-        self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
         member.email = "foor@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
 
         resp = self.client.post(
@@ -971,10 +974,10 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         RecoveryCodeInterface().enroll(user)
         TotpInterface().enroll(user)
 
-        self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
+        member = OrganizationMember.objects.get(organization=self.organization, user_id=user.id)
         member.email = "foor@example.com"
-        member.user = None
+        member.user_id = None
         member.save()
 
         resp = self.client.post(
@@ -1017,7 +1020,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         RecoveryCodeInterface().enroll(user)
         TotpInterface().enroll(user)
 
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
@@ -1031,7 +1034,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         RecoveryCodeInterface().enroll(user)
         TotpInterface().enroll(user)
 
-        self.create_member(organization=self.organization, user=user)
+        self.create_member(organization=self.organization, user_id=user.id)
 
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
@@ -1051,9 +1054,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.status_code == 200
 
     def test_org_not_visible(self):
-        Organization.objects.filter(id=self.organization.id).update(
-            status=OrganizationStatus.DELETION_IN_PROGRESS
-        )
+        self.organization.update(status=OrganizationStatus.DELETION_IN_PROGRESS)
 
         resp = self.client.get(self.path, follow=True)
         assert resp.status_code == 200
@@ -1077,7 +1078,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_sends_email(self, email):
         assert not self.user.has_usable_password()
-        self.create_member(organization=self.organization, user=self.user)
+        self.create_member(organization=self.organization, user_id=self.user.id)
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -1115,7 +1116,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     def test_flow_verify_without_org_membership(self, email):
         assert not self.user.has_usable_password()
         assert not OrganizationMember.objects.filter(
-            organization=self.organization, user=self.user
+            organization=self.organization, user_id=self.user.id
         ).exists()
 
         resp = self.client.post(self.path, {"init": True})
@@ -1149,13 +1150,13 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
 
         # Check that OrganizationMember was created as a side effect
         assert OrganizationMember.objects.filter(
-            organization=self.organization, user=self.user
+            organization=self.organization, user_id=self.user.id
         ).exists()
 
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_login_success(self, email):
         assert not self.user.has_usable_password()
-        self.create_member(organization=self.organization, user=self.user)
+        self.create_member(organization=self.organization, user_id=self.user.id)
 
         resp = self.client.post(self.path, {"init": True})
 
@@ -1189,7 +1190,9 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         auth_identity = AuthIdentity.objects.get(auth_provider=self.auth_provider)
         assert self.user == auth_identity.user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=self.user)
+        member = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
@@ -1197,7 +1200,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
     @mock.patch("sentry.auth.idpmigration.MessageBuilder")
     def test_flow_verify_and_link_without_password_need_2fa(self, email):
         assert not self.user.has_usable_password()
-        self.create_member(organization=self.organization, user=self.user)
+        self.create_member(organization=self.organization, user_id=self.user.id)
         TotpInterface().enroll(self.user)
         resp = self.client.post(self.path, {"init": True})
 

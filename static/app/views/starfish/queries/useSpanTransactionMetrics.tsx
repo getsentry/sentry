@@ -1,66 +1,88 @@
-import keyBy from 'lodash/keyBy';
-import moment from 'moment';
+import {Location} from 'history';
 
-import {useQuery} from 'sentry/utils/queryClient';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Span} from 'sentry/views/starfish/queries/types';
-import {HOST} from 'sentry/views/starfish/utils/constants';
-import {getDateFilters} from 'sentry/views/starfish/utils/dates';
-import {getDateQueryFilter} from 'sentry/views/starfish/utils/getDateQueryFilter';
+import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
-  p50: number;
-  p95: number;
-  spans_per_second: number;
+  'p50(span.self_time)': number;
+  'p95(span.self_time)': number;
+  'percentile_percent_change(span.self_time, 0.95)': number;
+  'sps()': number;
+  'sps_percent_change()': number;
   'sum(span.self_time)': number;
-  total_time: number;
+  'time_spent_percentage(local)': number;
   transaction: string;
+  transactionMethod: string;
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<Span, 'group_id'>,
-  transactions?: string[],
-  referrer = 'span-transaction-metrics'
+  span: Pick<IndexedSpan, 'group'>,
+  options: {sorts?: Sort[]; transactions?: string[]},
+  _referrer = 'span-transaction-metrics'
 ) => {
-  const pageFilters = usePageFilters();
-  const {startTime, endTime} = getDateFilters(pageFilters);
-  const dateFilters = getDateQueryFilter(startTime, endTime);
+  const location = useLocation();
 
-  const query =
-    span && transactions && transactions.length > 0
-      ? `
-    SELECT
-      transaction,
-      quantile(0.5)(exclusive_time) as p50,
-      quantile(0.5)(exclusive_time) as p95,
-      sum(exclusive_time) as "sum(span.self_time)",
-      sum(exclusive_time) as total_time,
-      divide(count(), ${
-        moment(endTime ?? undefined).unix() - moment(startTime).unix()
-      }) as spans_per_second
-    FROM spans_experimental_starfish
-    WHERE group_id = '${span.group_id}'
-    ${dateFilters}
-    AND transaction IN ('${transactions.join("','")}')
-    GROUP BY transaction
- `
-      : '';
+  const {transactions, sorts} = options;
 
-  const {isLoading, error, data} = useQuery<SpanTransactionMetrics[]>({
-    queryKey: [
-      'span-transactions-metrics',
-      span?.group_id,
-      transactions?.join(',') || '',
-      dateFilters,
-    ],
-    queryFn: () =>
-      fetch(`${HOST}/?query=${query}&referrer=${referrer}`).then(res => res.json()),
-    retry: false,
+  const eventView = getEventView(span, location, transactions ?? [], sorts);
+
+  return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
+    eventView,
     initialData: [],
-    enabled: Boolean(query),
+    enabled: Boolean(span),
+    referrer: _referrer,
   });
-
-  const parsedData = keyBy(data, 'transaction');
-
-  return {isLoading, error, data: parsedData};
 };
+
+function getEventView(
+  span: {group: string},
+  location: Location,
+  transactions: string[],
+  sorts?: Sort[]
+) {
+  const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
+
+  const search = new MutableSearch('');
+  search.addFilterValues('span.group', [cleanGroupId]);
+  search.addFilterValues('transaction.op', ['http.server']);
+
+  if (transactions.length > 0) {
+    search.addFilterValues('transaction', transactions);
+  }
+
+  const eventView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      query: search.formatString(),
+      fields: [
+        'transaction',
+        'transaction.method',
+        'sps()',
+        'sps_percent_change()',
+        `sum(${SPAN_SELF_TIME})`,
+        `p95(${SPAN_SELF_TIME})`,
+        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+        'time_spent_percentage(local)',
+        'transaction.op',
+      ],
+      orderby: '-time_spent_percentage_local',
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      version: 2,
+    },
+    location
+  );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
+}

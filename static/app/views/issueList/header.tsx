@@ -21,7 +21,15 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
-import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
+import {
+  CUSTOM_TAB_VALUE,
+  FOR_REVIEW_QUERIES,
+  getTabs,
+  IssueSortOptions,
+  Query,
+  QueryCounts,
+  TAB_MAX_COUNT,
+} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
@@ -84,6 +92,7 @@ function IssueListHeader({
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
+  const tabValues = new Set(visibleTabs.map(([val]) => val));
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
@@ -92,7 +101,6 @@ function IssueListHeader({
   const selectedProjects = projects.filter(({id}) =>
     selectedProjectIds.includes(Number(id))
   );
-
   const realtimeTitle = realtimeActive
     ? t('Pause real-time updates')
     : t('Enable real-time updates');
@@ -124,23 +132,29 @@ function IssueListHeader({
         </ButtonBar>
       </Layout.HeaderActions>
       <StyledGlobalEventProcessingAlert projects={selectedProjects} />
-      <StyledTabs selectedKey={query} onSelectionChange={() => {}}>
+      <StyledTabs value={tabValues.has(query) ? query : CUSTOM_TAB_VALUE}>
         <TabList hideBorder>
           {[
             ...visibleTabs.map(
-              ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
+              ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable, hidden}]) => {
                 const to = normalizeUrl({
                   query: {
                     ...queryParms,
                     query: tabQuery,
-                    sort:
-                      tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
+                    sort: FOR_REVIEW_QUERIES.includes(tabQuery || '')
+                      ? IssueSortOptions.INBOX
+                      : sortParam,
                   },
                   pathname: `/organizations/${organization.slug}/issues/`,
                 });
 
                 return (
-                  <TabList.Item key={tabQuery} to={to} textValue={queryName}>
+                  <TabList.Item
+                    key={tabQuery}
+                    to={to}
+                    textValue={queryName}
+                    hidden={hidden}
+                  >
                     <GuideAnchor
                       disabled={tabQuery !== Query.ARCHIVED}
                       target="issue_stream_archive_tab"

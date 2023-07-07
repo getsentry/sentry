@@ -6,10 +6,14 @@ import beautify from 'js-beautify';
 
 import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -19,18 +23,24 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {decodeList} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
+const ProductSelectionAvailabilityHook = HookOrDefault({
+  hookName: 'component:product-selection-availability',
+});
+
 export function SetupDocsLoader({
   organization,
   location,
   project,
   platform,
   close,
+  showDocsWithProductSelection,
 }: {
   close: () => void;
   location: Location;
   organization: Organization;
   platform: PlatformKey | null;
   project: Project;
+  showDocsWithProductSelection?: boolean;
 }) {
   const api = useApi();
   const currentPlatform = platform ?? project?.platform ?? 'other';
@@ -62,7 +72,7 @@ export function SetupDocsLoader({
   // This DOES NOT take into account any initial products that may already be set on the project key - they will always be overwritten!
   const handleUpdateSelectedProducts = useCallback(async () => {
     const productsQuery =
-      (location.query.product as PRODUCT | PRODUCT[] | undefined) ?? [];
+      (location.query.product as ProductSolution | ProductSolution[] | undefined) ?? [];
     const products = decodeList(productsQuery);
 
     const keyId = projectKey?.id;
@@ -80,10 +90,10 @@ export function SetupDocsLoader({
     products.forEach(product => {
       // eslint-disable-next-line default-case
       switch (product) {
-        case PRODUCT.PERFORMANCE_MONITORING:
+        case ProductSolution.PERFORMANCE_MONITORING:
           newDynamicSdkLoaderOptions.hasPerformance = true;
           break;
-        case PRODUCT.SESSION_REPLAY:
+        case ProductSolution.SESSION_REPLAY:
           newDynamicSdkLoaderOptions.hasReplay = true;
           break;
       }
@@ -133,11 +143,22 @@ export function SetupDocsLoader({
 
   return (
     <Fragment>
-      <ProductSelection
-        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
-        lazyLoader
-        skipLazyLoader={close}
-      />
+      {showDocsWithProductSelection ? (
+        <ProductSelectionAvailabilityHook
+          organization={organization}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      ) : (
+        <ProductSelection
+          defaultSelectedProducts={[
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
+          ]}
+          lazyLoader
+          skipLazyLoader={close}
+        />
+      )}
 
       {projectKeyUpdateError && (
         <LoadingError

@@ -17,7 +17,7 @@ class DummyBackend(Backend):
         maximum_delay: Optional[int] = None,
         timestamp: Optional[float] = None,
     ) -> bool:
-        pass
+        return False
 
     def enabled(self, project: "Project") -> bool:
         return False

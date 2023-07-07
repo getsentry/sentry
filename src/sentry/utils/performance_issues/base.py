@@ -6,11 +6,10 @@ import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Union, cast
+from typing import Any, ClassVar, Dict, List, Optional, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from sentry import options
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
@@ -35,8 +34,10 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES = "n_plus_one_db"
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
+    N_PLUS_ONE_API_CALLS_EXTENDED = "n_plus_one_api_calls_ext"
     CONSECUTIVE_DB_OP = "consecutive_db"
     CONSECUTIVE_HTTP_OP = "consecutive_http"
+    CONSECUTIVE_HTTP_OP_EXTENDED = "consecutive_http_ext"
     LARGE_HTTP_PAYLOAD = "large_http_payload"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
@@ -50,11 +51,13 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
     DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
+    DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: PerformanceNPlusOneAPICallsGroupType,
     DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
     DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: PerformanceConsecutiveHTTPQueriesGroupType,
     DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
     DetectorType.LARGE_HTTP_PAYLOAD: PerformanceLargeHTTPPayloadGroupType,
 }
@@ -82,9 +85,10 @@ class PerformanceDetector(ABC):
     Classes of this type have their visit functions called as the event is walked once and will store a performance issue if one is detected.
     """
 
-    type: DetectorType
+    type: ClassVar[DetectorType]
+    stored_problems: PerformanceProblemsMap
 
-    def __init__(self, settings: Dict[DetectorType, Any], event: Event):
+    def __init__(self, settings: Dict[DetectorType, Any], event: dict[str, Any]) -> None:
         self.settings = settings[self.settings_key]
         self._event = event
         self.init()
@@ -112,7 +116,7 @@ class PerformanceDetector(ABC):
                 return op, span_id, op_prefix, span_duration, setting
         return None
 
-    def event(self) -> Event:
+    def event(self) -> dict[str, Any]:
         return self._event
 
     @property
@@ -126,11 +130,6 @@ class PerformanceDetector(ABC):
 
     def on_complete(self) -> None:
         pass
-
-    @property
-    @abstractmethod
-    def stored_problems(self) -> PerformanceProblemsMap:
-        raise NotImplementedError
 
     def is_creation_allowed_for_system(self) -> bool:
         system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
@@ -158,7 +157,7 @@ class PerformanceDetector(ABC):
         return False  # Creation is off by default. Ideally, it should auto-generate the project option name, and check its value
 
     @classmethod
-    def is_event_eligible(cls, event, project: Project = None) -> bool:
+    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
         return True
 
 

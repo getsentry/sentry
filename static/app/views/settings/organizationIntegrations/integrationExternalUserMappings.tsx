@@ -74,7 +74,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   get mappings() {
     const {integration} = this.props;
     const {members} = this.state;
-    const externalUserMappings = members.reduce((acc, member) => {
+    const externalUserMappings = members.reduce<ExternalActorMapping[]>((acc, member) => {
       const {externalUsers, user} = member;
 
       acc.push(
@@ -83,7 +83,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
           .map(externalUser => ({...externalUser, sentryName: user?.name ?? member.name}))
       );
       return acc;
-    }, [] as ExternalActorMapping[]);
+    }, []);
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 

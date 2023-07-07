@@ -34,7 +34,7 @@ class FileWrapperWSGIHandler(WSGIHandler):
         response = super().__call__(environ, start_response)
         if hasattr(response, "streaming") and response.streaming:
             try:
-                response = environ["wsgi.file_wrapper"](response.streaming_content)
+                response = environ["wsgi.file_wrapper"](response.streaming_content)  # type: ignore[attr-defined]
             except KeyError:
                 # In our case, we're shipping with uwsgi, so it's safer to assume
                 # that wsgi.file_wrapper does exist. It'd be exceptional otherwise.

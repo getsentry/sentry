@@ -69,13 +69,13 @@ def test_value_matches():
     ]:
         assert _value_matches(
             "store.load-shed-group-creation-projects", conditions, {"project_id": 3}
-        )  # type: ignore
+        )
 
     assert _value_matches(
         "store.load-shed-group-creation-projects",
         [{"project_id": 3, "platform": None}],
         {"project_id": 3},
-    )  # type: ignore
+    )
 
     assert _value_matches(
         "store.load-shed-group-creation-projects",

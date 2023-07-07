@@ -97,8 +97,7 @@ class Create extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, organization, project, location, routes, members} =
-      this.props;
+    const {hasMetricAlerts, organization, project, location, members} = this.props;
     const {alertType} = this.state;
     const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
       location?.query ?? {};
@@ -128,10 +127,6 @@ class Create extends Component<Props, State> {
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}
               projectSlug={project.slug}
-              alertType={alertType}
-              routes={routes}
-              location={location}
-              canChangeProject
             />
             <Layout.Title>
               {wizardAlertType

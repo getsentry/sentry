@@ -13,7 +13,7 @@ import {
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
@@ -22,7 +22,6 @@ import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 type Props = {
   event: Event;
-  group: Group;
   location: Location;
   organization: Organization;
   quickTrace: undefined | QuickTraceQueryChildrenProps;

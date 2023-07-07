@@ -96,7 +96,7 @@ def _current_level_expr(group):
     # or 1 otherwise.
     find_hash_expr = _construct_arraymax(
         [1]
-        + [  # type: ignore
+        + [
             Function("indexOf", [Column("hierarchical_hashes"), hash])
             for hash in materialized_hashes
         ]

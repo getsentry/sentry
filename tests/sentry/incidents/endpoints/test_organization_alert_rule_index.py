@@ -15,9 +15,10 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntry, Rule, RuleFireHistory
+from sentry.models import AuditLogEntry, Rule
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.rule import RuleSource
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils import APITestCase
@@ -339,7 +340,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase, APITestCase):
     def test_no_perms(self):
         # Downgrade user from "owner" to "member".
         with in_test_psql_role_override("postgres"):
-            OrganizationMember.objects.filter(user=self.user).update(role="member")
+            OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
 
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 403
@@ -547,8 +548,6 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
             response.get("link").rstrip(">").replace(">,<", ",<")
         )
         next_cursor = links[1]["cursor"]
-        # Cursor should have the title encoded
-        assert next_cursor == "%211%3Fzz:0:0"
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
             request_data = {

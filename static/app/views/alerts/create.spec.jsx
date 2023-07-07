@@ -608,7 +608,7 @@ describe('ProjectAlertsCreate', function () {
 
   it('shows archived to escalating instead of ignored to unresolved', async () => {
     createWrapper({
-      organization: TestStubs.Organization({features: ['escalating-issues-ui']}),
+      organization: TestStubs.Organization({features: ['escalating-issues']}),
     });
     await selectEvent.select(screen.getByText('Add optional trigger...'), [
       'The issue changes state from archived to escalating',

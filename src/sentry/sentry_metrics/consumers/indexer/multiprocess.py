@@ -8,7 +8,6 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Commit, Message, Partition
 from confluent_kafka import Producer
-from django.conf import settings
 
 from sentry.utils import kafka_config, metrics
 
@@ -22,7 +21,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         commit_function: Commit,
         producer: Optional[AbstractProducer[KafkaPayload]] = None,
     ) -> None:
-        snuba_metrics = settings.KAFKA_TOPICS[output_topic]
+        snuba_metrics = kafka_config.get_topic_definition(output_topic)
         self.__producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 @region_silo_endpoint
-class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
+class GroupTagsEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
 
         # optional queryparam `key` can be used to get results

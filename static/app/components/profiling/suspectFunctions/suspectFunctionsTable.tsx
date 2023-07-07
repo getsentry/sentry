@@ -32,8 +32,8 @@ export function SuspectFunctionsTable({
   );
   const location = useLocation();
   const functionsCursor = useMemo(
-    () => decodeScalar(location.query.functionsCursor),
-    [location.query.functionsCursor]
+    () => decodeScalar(location.query[FUNCTIONS_CURSOR_NAME]),
+    [location.query]
   );
   const functionsSort = useMemo(
     () =>
@@ -98,11 +98,7 @@ export function SuspectFunctionsTable({
           onChange={({value}) => setFunctionType(value)}
         />
         <StyledPagination
-          pageLinks={
-            functionsQuery.isFetched
-              ? functionsQuery.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
+          pageLinks={functionsQuery.getResponseHeader?.('Link')}
           onCursor={handleFunctionsCursor}
           size="xs"
         />

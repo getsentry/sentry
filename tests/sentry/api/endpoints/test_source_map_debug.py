@@ -523,7 +523,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             data={
                 "event_id": "a" * 32,
                 "release": "my-release",
-                "dist": "my-dist",
+                "dist": None,
                 "exception": {
                     "values": [
                         {
@@ -547,10 +547,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         release = Release.objects.get(organization=self.organization, version=event.release)
         release.update(user_agent="test_user_agent")
 
-        dist = Distribution.objects.get(
-            organization_id=self.organization.id, name="my-dist", release_id=release.id
-        )
-
         file = File.objects.create(name="application.js", type="release.file")
         fileobj = ContentFile(b"a\na")
         file.putfile(fileobj)
@@ -560,7 +556,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             release_id=release.id,
             file=file,
             name="~/application.js",
-            dist_id=dist.id,
+            dist_id=None,
         )
 
         resp = self.get_success_response(
@@ -793,3 +789,44 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"][0]
         assert error["type"] == "no_user_agent_on_release"
         assert error["message"] == "The release is missing a user agent"
+
+    def test_not_part_of_pipeline(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "release": "my-release",
+                "dist": "my-dist",
+                "sdk": {
+                    "name": "sentry.javascript.browser",
+                    "version": "7.46.0",
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "https://example.com/application.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        resp = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            event.event_id,
+            frame_idx=0,
+            exception_idx=0,
+        )
+
+        error = resp.data["errors"][0]
+        assert error["type"] == "not_part_of_pipeline"
+        assert error["message"] == "Sentry is not part of your build pipeline"

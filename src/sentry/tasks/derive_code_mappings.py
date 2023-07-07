@@ -66,7 +66,7 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.derive_code_mappings.derive_code_mappings",
     queue="derive_code_mappings",
     default_retry_delay=60 * 10,

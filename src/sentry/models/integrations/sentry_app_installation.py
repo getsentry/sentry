@@ -17,13 +17,12 @@ from sentry.db.models import (
     control_silo_only_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
     from sentry.models import ApiToken, Project, SentryAppComponent
 
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 
 
 def default_uuid():
@@ -44,7 +43,7 @@ class SentryAppInstallationForProviderManager(ParanoidManager):
     def get_by_api_token(self, token_id: str) -> QuerySet:
         return self.filter(status=SentryAppInstallationStatus.INSTALLED, api_token_id=token_id)
 
-    def get_projects(self, token: ApiToken) -> QuerySet[Project]:  # pyright: ignore
+    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
         from sentry.models import Project, SentryAppInstallationToken
 
         try:
@@ -171,38 +170,31 @@ class SentryAppInstallation(ParanoidModel):
         return super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
-            for outbox in self.outboxes_for_update(
-                identifier=self.id,
-                org_id=self.organization_id,
-                api_application_id=self.api_application_id,
-            ):
+        with outbox_context(transaction.atomic(), flush=False):
+            for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().delete(**kwargs)
 
     @property
-    def api_application_id(self) -> int:
+    def api_application_id(self) -> int | None:
         from sentry.models import SentryApp
 
         try:
             return self.sentry_app.application_id
         except SentryApp.DoesNotExist:
-            # In the case of a bad relation, it's ok to just replicate this in a special ordering.
-            return 0
+            return None
 
-    @classmethod
-    def outboxes_for_update(
-        cls, identifier: int, org_id: int, api_application_id: int
-    ) -> List[ControlOutbox]:
+    def outboxes_for_update(self) -> List[ControlOutbox]:
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=api_application_id,
-                object_identifier=identifier,
+                # In the case of a bad relation, it's ok to just replicate this in a special ordering.
+                shard_identifier=self.api_application_id or 0,
+                object_identifier=self.id,
                 category=OutboxCategory.SENTRY_APP_INSTALLATION_UPDATE,
                 region_name=region_name,
             )
-            for region_name in find_regions_for_orgs([org_id])
+            for region_name in find_regions_for_orgs([self.organization_id])
         ]
 
     def prepare_sentry_app_components(self, component_type, project=None, values=None):

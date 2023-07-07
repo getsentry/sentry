@@ -4,8 +4,8 @@ from uuid import uuid4
 
 from django.db.models import F, Field, Model
 from django.db.models.expressions import BaseExpression, CombinedExpression, Value
-from django.template.defaultfilters import slugify
 from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 
 from sentry.db.exceptions import CannotResolveExpression
 

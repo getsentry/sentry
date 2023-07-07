@@ -15,7 +15,7 @@ type Props = {
 export function EventContexts({event, group}: Props) {
   const {user, contexts, sdk} = event;
 
-  const {feedback, ...otherContexts} = contexts ?? {};
+  const {feedback, response, ...otherContexts} = contexts ?? {};
 
   const usingOtel = useCallback(
     () => otherContexts.otel !== undefined,
@@ -33,6 +33,16 @@ export function EventContexts({event, group}: Props) {
 
   return (
     <Fragment>
+      {!objectIsEmpty(response) && (
+        <Chunk
+          key="response"
+          type="response"
+          alias="response"
+          group={group}
+          event={event}
+          value={response}
+        />
+      )}
       {!objectIsEmpty(feedback) && (
         <Chunk
           key="feedback"

@@ -10,12 +10,11 @@ from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.processing.strategies.transform import ParallelTransformStep
 from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
 
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
-    initialize_sentry_and_global_consumer_state,
+    initialize_subprocess_state,
 )
 from sentry.sentry_metrics.consumers.indexer.common import (
     BatchMessages,
@@ -29,6 +28,7 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
+from sentry.utils.arroyo import RunTaskWithMultiprocessing
 
 logger = logging.getLogger(__name__)
 
@@ -94,10 +94,24 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         processes: int,
         input_block_size: int,
         output_block_size: int,
-        config: MetricsIngestConfiguration,
-        slicing_router: Optional[SlicingRouter],
+        ingest_profile: str,
+        indexer_db: str,
     ):
-        self.__config = config
+        from sentry.sentry_metrics.configuration import (
+            IndexerStorage,
+            UseCaseKey,
+            get_ingest_config,
+            initialize_main_process_state,
+        )
+        from sentry.sentry_metrics.consumers.indexer.slicing_router import get_slicing_router
+
+        use_case = UseCaseKey(ingest_profile)
+        db_backend = IndexerStorage(indexer_db)
+        ingest_config = get_ingest_config(use_case, db_backend)
+        initialize_main_process_state(ingest_config)
+        slicing_router = get_slicing_router(ingest_config)
+
+        self.config = ingest_config
 
         # This is the size of the initial message batching the indexer does
         self.__max_msg_batch_size = max_msg_batch_size
@@ -120,14 +134,14 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
         producer = get_metrics_producer_strategy(
-            config=self.__config,
+            config=self.config,
             commit=commit,
             slicing_router=self.__slicing_router,
         )
-        parallel_strategy = ParallelTransformStep(
-            MessageProcessor(self.__config).process_messages,
-            Unbatcher(next_step=producer),
-            self.__processes,
+        parallel_strategy = RunTaskWithMultiprocessing(
+            function=MessageProcessor(self.config).process_messages,
+            next_step=Unbatcher(next_step=producer),
+            num_processes=self.__processes,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
             max_batch_time=self.__max_parallel_batch_time / 1000,
@@ -140,9 +154,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             # this module, and pass that function here, it would attempt to
             # pull in a bunch of modules that try to read django settings at
             # import time
-            initializer=functools.partial(
-                initialize_sentry_and_global_consumer_state, self.__config
-            ),
+            initializer=functools.partial(initialize_subprocess_state, self.config),
         )
 
         strategy = BatchMessages(
@@ -182,8 +194,8 @@ def get_parallel_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
-    indexer_profile: MetricsIngestConfiguration,
-    slicing_router: Optional[SlicingRouter],
+    ingest_profile: str,
+    indexer_db: str,
 ) -> StreamProcessor[KafkaPayload]:
     processing_factory = MetricsConsumerStrategyFactory(
         max_msg_batch_size=max_msg_batch_size,
@@ -193,20 +205,20 @@ def get_parallel_metrics_consumer(
         processes=processes,
         input_block_size=input_block_size,
         output_block_size=output_block_size,
-        config=indexer_profile,
-        slicing_router=slicing_router,
+        ingest_profile=ingest_profile,
+        indexer_db=indexer_db,
     )
 
     return StreamProcessor(
         KafkaConsumer(
             get_config(
-                indexer_profile.input_topic,
+                processing_factory.config.input_topic,
                 group_id,
                 auto_offset_reset=auto_offset_reset,
                 strict_offset_reset=strict_offset_reset,
             )
         ),
-        Topic(indexer_profile.input_topic),
+        Topic(processing_factory.config.input_topic),
         processing_factory,
         ONCE_PER_SECOND,
         # We drop any in flight messages in processing step prior to produce.

@@ -5,6 +5,8 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
+import type {Replay} from './replay';
+
 type SimpleStub<T = any> = () => T;
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -63,6 +65,7 @@ type TestStubFixtures = {
   EventsStats: OverridableStub;
   ExceptionWithMeta: OverridableStubList;
   ExceptionWithRawStackTrace: OverridableStub;
+  Frame: OverridableStub;
   GitHubIntegration: OverridableStub;
   GitHubIntegrationConfig: SimpleStub;
   GitHubIntegrationProvider: OverridableStub;
@@ -113,6 +116,7 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
+  Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;
   ReplayRRWebDivHelloWorld: OverridableStub;

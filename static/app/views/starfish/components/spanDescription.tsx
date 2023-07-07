@@ -1,24 +1,30 @@
 import styled from '@emotion/styled';
 
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
-import type {Span} from 'sentry/views/starfish/queries/types';
 import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
 
-export function SpanDescription({span}: {span: Span}) {
-  if (span.span_operation.startsWith('db')) {
-    return <DatabaseSpanDescription span={span} />;
+type SpanMeta = {
+  'span.action': string;
+  'span.description': string;
+  'span.domain': string;
+  'span.op': string;
+};
+
+export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
+  if (spanMeta['span.op'].startsWith('db')) {
+    return <DatabaseSpanDescription spanMeta={spanMeta} />;
   }
 
-  return <div>{span.description}</div>;
+  return <DescriptionWrapper>{spanMeta['span.description']}</DescriptionWrapper>;
 }
 
-function DatabaseSpanDescription({span}: {span: Span}) {
+function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
   return (
     <CodeWrapper>
       <FormattedCode>
-        {highlightSql(span.formatted_desc || span.description || '', {
-          action: span.action || '',
-          domain: span.domain || '',
+        {highlightSql(spanMeta['span.description'] || '', {
+          action: spanMeta['span.action'] || '',
+          domain: spanMeta['span.domain'] || '',
         })}
       </FormattedCode>
     </CodeWrapper>
@@ -27,4 +33,8 @@ function DatabaseSpanDescription({span}: {span: Span}) {
 
 const CodeWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const DescriptionWrapper = styled('div')`
+  word-break: break-word;
 `;

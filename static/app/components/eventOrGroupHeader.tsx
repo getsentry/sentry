@@ -68,7 +68,7 @@ function EventOrGroupHeader({
         )}
         {!hideIcons &&
           status === 'ignored' &&
-          !organization.features.includes('escalating-issues-ui') && (
+          !organization.features.includes('escalating-issues') && (
             <IconWrapper>
               <IconMute color="red400" />
             </IconWrapper>
@@ -86,6 +86,7 @@ function EventOrGroupHeader({
             hasSeen={hasSeen === undefined ? true : hasSeen}
             withStackTracePreview
             grouping={grouping}
+            query={query}
           />
         </ErrorBoundary>
       </Fragment>
@@ -95,10 +96,14 @@ function EventOrGroupHeader({
   function getTitle() {
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
+    const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
     const commonEleProps = {
       'data-test-id': status === 'resolved' ? 'resolved-issue' : null,
-      style: status === 'resolved' ? {textDecoration: 'line-through'} : undefined,
+      style:
+        status === 'resolved' && !hasEscalatingIssues
+          ? {textDecoration: 'line-through'}
+          : undefined,
     };
 
     if (isTombstone(data)) {
@@ -227,10 +232,10 @@ const GroupLevel = styled('div')<{level: Level}>`
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`
-  display: flex;
+  display: inline-flex;
 `;
 const TitleWithoutLink = styled('span')`
-  display: flex;
+  display: inline-flex;
 `;
 
 export default withOrganization(EventOrGroupHeader);

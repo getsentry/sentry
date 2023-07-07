@@ -7,8 +7,9 @@ local value = ARGV[1]
 local max_size = tonumber(ARGV[2])
 local ttl = ARGV[3]
 
+local existed = redis.call("EXISTS", key)
 local inserted = redis.call("SADD", key, value)
-if inserted then
+if inserted and existed then
     local current_size = redis.call("SCARD", key)
     local overflow = current_size - max_size
     if overflow > 0 then
@@ -19,3 +20,6 @@ if inserted then
 end
 
 redis.call("EXPIRE", key, ttl)
+
+local created = (existed == 0)
+return created

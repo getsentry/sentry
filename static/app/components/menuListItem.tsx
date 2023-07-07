@@ -4,7 +4,7 @@ import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
@@ -68,7 +68,7 @@ export type MenuListItemProps = {
   /**
    * Additional props to be passed into <Tooltip />.
    */
-  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title' | 'className'>;
   /*
    * Items to be added to the right of the label.
    */
@@ -323,7 +323,7 @@ const ContentWrap = styled('div')<{
     p.showDivider &&
     !p.isFocused &&
     `
-      ${MenuItemWrap}:not(:last-child) &::after {
+      li:not(:last-child) &::after {
         content: '';
         position: absolute;
         left: 0;

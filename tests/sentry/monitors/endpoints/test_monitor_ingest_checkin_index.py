@@ -1,11 +1,12 @@
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import quote as urlquote
 from uuid import UUID
 
 from django.conf import settings
 from django.test.utils import override_settings
 from django.urls import reverse
-from django.utils.http import urlquote
 from freezegun import freeze_time
 
 from sentry.constants import ObjectStatus
@@ -19,6 +20,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.monitors.tasks import TIMEOUT
 from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -81,8 +83,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
             # Confirm next check-in is populated with config and expected time
@@ -102,6 +105,41 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_id=str(tested_monitors[0].guid),
         )
 
+    def test_timeout_at(self):
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+            path = path_func(monitor.guid)
+
+            resp = self.client.post(path, {"status": "in_progress"}, **self.token_auth_headers)
+            assert resp.status_code == 201, resp.content
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.IN_PROGRESS
+            timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+                minutes=TIMEOUT
+            )
+            assert checkin.timeout_at == timeout_at
+
+            slug = "my-other-monitor"
+            path = path_func(slug)
+            resp = self.client.post(
+                path,
+                {
+                    "status": "in_progress",
+                    "monitor_config": {
+                        "schedule_type": "crontab",
+                        "schedule": "5 * * * *",
+                        "max_runtime": 5,
+                    },
+                },
+                **self.dsn_auth_headers,
+            )
+
+            checkin = MonitorCheckIn.objects.get(guid=resp.data["id"])
+            assert checkin.status == CheckInStatus.IN_PROGRESS
+            timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(minutes=5)
+            assert checkin.timeout_at == timeout_at
+
     def test_failing(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
@@ -116,8 +154,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
     def test_disabled(self):
@@ -137,8 +176,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             # is disabled
             assert monitor_environment.status == MonitorStatus.ERROR
             assert monitor_environment.last_checkin == checkin.date_added
-            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
-                checkin.date_added
+            assert (
+                monitor_environment.next_checkin
+                == monitor.get_next_scheduled_checkin_with_margin(checkin.date_added)
             )
 
     def test_pending_deletion(self):

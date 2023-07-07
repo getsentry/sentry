@@ -3,7 +3,7 @@ import {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {NewQuery, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -61,7 +61,6 @@ function generateGenericPerformanceEventView(
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method',
-    projects: [],
     fields,
     version: 2,
   };
@@ -95,7 +94,6 @@ function generateGenericPerformanceEventView(
 
 export function generatePerformanceEventView(
   location: Location,
-  _: Project[],
   {isTrends = false, withStaticFilters = false} = {},
   organization: Organization
 ) {
@@ -113,7 +111,6 @@ export function generatePerformanceEventView(
 
 export function generateWebServiceEventView(
   location: Location,
-  _: Project[],
   {withStaticFilters = false} = {},
   organization: Organization
 ) {
@@ -125,8 +122,11 @@ export function generateWebServiceEventView(
     'transaction',
     'http.method',
     'tps()',
+    'tps_percent_change()',
     'p95(transaction.duration)',
+    'percentile_percent_change(transaction.duration,0.95)',
     'http_error_count()',
+    'http_error_count_percent_change()',
     'time_spent_percentage()',
     'sum(transaction.duration)',
   ];
@@ -135,7 +135,6 @@ export function generateWebServiceEventView(
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method transaction.op:http.server',
-    projects: [],
     fields,
     version: 2,
     dataset: DiscoverDatasets.METRICS,

@@ -14,6 +14,7 @@ from sentry.db.models import (
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
+from sentry.services.hybrid_cloud.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
 
@@ -76,10 +77,14 @@ class AuditLogEntry(Model):
 
     def _apply_actor_label(self):
         if not self.actor_label:
-            assert self.actor or self.actor_key
-            if self.actor:
-                self.actor_label = self.actor.username
+            assert self.actor_id or self.actor_key
+            if self.actor_id:
+                # Fetch user by RPC service as
+                # Audit logs are often created in regions.
+                user = user_service.get_user(self.actor_id)
+                self.actor_label = user.username
             else:
+                # TODO(hybridcloud) This requires an RPC service.
                 self.actor_label = self.actor_key.key
 
     def as_event(self) -> AuditLogEvent:
@@ -87,20 +92,21 @@ class AuditLogEntry(Model):
         Serializes a potential audit log database entry as a hybrid cloud event that should be deserialized and
         loaded via `from_event` as faithfully as possible.
         """
-        self._apply_actor_label()
-        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        if self.actor_label is not None:
+            self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
         return AuditLogEvent(
             actor_label=self.actor_label,
             organization_id=int(
                 self.organization_id
             ),  # prefer raising NoneType here over actually passing through
             date_added=self.datetime or timezone.now(),
-            actor_user_id=self.actor and self.actor.id,
+            actor_user_id=self.actor_id and self.actor_id,
             target_object_id=self.target_object,
             ip_address=self.ip_address and str(self.ip_address),
             event_id=self.event and int(self.event),
             target_user_id=self.target_user_id,
             data=self.data,
+            actor_key_id=self.actor_key_id,
         )
 
     @classmethod
@@ -110,6 +116,18 @@ class AuditLogEntry(Model):
         could have been created from previous code versions -- the events are stored on an async queue for indefinite
         delivery and from possibly older code versions.
         """
+        from sentry.models.user import User
+
+        if event.actor_label:
+            label = event.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        else:
+            if event.actor_user_id:
+                try:
+                    label = User.objects.get(id=event.actor_user_id).username
+                except User.DoesNotExist:
+                    label = None
+            else:
+                label = None
         return AuditLogEntry(
             organization_id=event.organization_id,
             datetime=event.date_added,
@@ -118,8 +136,9 @@ class AuditLogEntry(Model):
             ip_address=event.ip_address,
             event=event.event_id,
             data=event.data,
-            actor_label=event.actor_label[:MAX_ACTOR_LABEL_LENGTH],
+            actor_label=label,
             target_user_id=event.target_user_id,
+            actor_key_id=event.actor_key_id,
         )
 
     def get_actor_name(self):

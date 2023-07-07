@@ -1,7 +1,7 @@
 import re
 from unittest.mock import patch
 
-from sentry.auth.authenticators import TotpInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -26,14 +26,19 @@ class OrganizationsListTest(OrganizationIndexTest):
 
     def test_show_all_with_superuser(self):
         org = self.organization  # force creation
+        org2 = self.create_organization()
         user = self.create_user(is_superuser=True)
         self.login_as(user=user, superuser=True)
 
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
-        assert response.data[0]["id"] == str(org.id)
+        assert {r["id"] for r in response.data} == {str(org.id), str(org2.id)}
 
     def test_show_all_without_superuser(self):
+        self.organization  # force creation
+        self.create_organization()
+        user = self.create_user()
+        self.login_as(user=user)
         response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 0
 
@@ -85,7 +90,7 @@ class OrganizationsListTest(OrganizationIndexTest):
         response = self.get_success_response(qs_params={"member": 1})
         assert len(response.data) == 2
 
-        om = OrganizationMember.objects.get(organization=org, user=self.user)
+        om = OrganizationMember.objects.get(organization=org, user_id=self.user.id)
         response = self.get_success_response(qs_params={"query": f"member_id:{om.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(org.id)
@@ -220,7 +225,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         response = self.get_success_response(name="org name")
 
         org_member = OrganizationMember.objects.get(
-            organization_id=response.data["id"], user=self.user
+            organization_id=response.data["id"], user_id=self.user.id
         )
         self.assert_org_member_mapping(org_member=org_member)
 

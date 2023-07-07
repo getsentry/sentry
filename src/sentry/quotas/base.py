@@ -1,6 +1,7 @@
-import typing
+from __future__ import annotations
+
 from enum import IntEnum, unique
-from typing import Optional, Tuple
+from typing import TYPE_CHECKING, Any, Optional, Tuple
 
 from django.conf import settings
 from django.core.cache import cache
@@ -10,7 +11,7 @@ from sentry.constants import DataCategory
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.services import Service
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from sentry.models import Project
 
 
@@ -168,7 +169,7 @@ class RateLimited(RateLimit):
         super().__init__(True, **kwargs)
 
 
-def _limit_from_settings(x):
+def _limit_from_settings(x: Any) -> int | None:
     """
     limit=0 (or any falsy value) in database means "no limit". Convert that to
     limit=None as limit=0 in code means "reject all".
@@ -365,7 +366,7 @@ class Quota(Service):
                 (DataCategory.SESSION,),
             ),
         ):
-            limit = 0
+            limit: int | None = 0
             abuse_window = global_abuse_window
             # compat_options were previously present in getsentry
             # for errors and transactions. The first one is the org
@@ -464,11 +465,11 @@ class Quota(Service):
         return (_limit_from_settings(options.get("system.rate-limit")), 60)
 
     def get_blended_sample_rate(
-        self, project: Optional["Project"] = None, organization_id: Optional[int] = None
+        self, project: Optional[Project] = None, organization_id: Optional[int] = None
     ) -> Optional[float]:
         """
         Returns the blended sample rate for an org based on the package that they are currently on. Returns ``None``
-        if the creation of a uniform rule with blended sample rate is not supported for that project or organization.
+        if the the organization doesn't have dynamic sampling.
 
         The reasoning for having two params as `Optional` is because this method was first designed to work with
         `Project` but due to requirements change the `Organization` was needed and since we can get the `Organization`

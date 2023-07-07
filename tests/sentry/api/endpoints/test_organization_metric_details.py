@@ -49,7 +49,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
     )
     def test_metric_details(self):
@@ -114,7 +114,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
 
     @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["foo.bar"], get_mri))
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(["foo.bar"], get_public_name_from_mri),
     )
     def test_metric_details_metric_does_not_have_data(self):
@@ -133,7 +133,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] "
+            == f"The following metrics ['{SessionMRI.CRASH_FREE_RATE.value}'] "
             f"do not exist in the dataset"
         )
 
@@ -190,7 +190,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(
             ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
         ),
@@ -227,7 +227,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(
             ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
         ),

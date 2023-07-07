@@ -47,7 +47,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: {
     resources: {
       description: t(
-        'A Consecutive HTTP issue occurs when X number of consecutive HTTP calls occur sequentially, each taking Y amount of time'
+        'A Consecutive HTTP issue occurs when at least 3 consecutive HTTP calls occur sequentially, each taking over 1000ms of time.'
       ),
       links: [
         {
@@ -63,7 +63,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('File IO operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: file IO on the Main Thread'),
+          text: t('Sentry Docs: File IO on the Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/file-main-thread-io/',
         },
       ],
@@ -75,7 +75,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t('Database operations on your main thread may lead to app hangs.'),
       links: [
         {
-          text: t('Sentry Docs: database on the Main Thread'),
+          text: t('Sentry Docs: Database on the Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/db-main-thread-io/',
         },
       ],
@@ -154,7 +154,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
   [IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD]: {
     resources: {
       description: t(
-        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold'
+        'A Large HTTP Payload issue occurs when an http payload size consistently exceeds a threshold of 500KB'
       ),
       links: [
         {
@@ -171,6 +171,62 @@ const performanceConfig: IssueCategoryConfigMapping = {
         'Uncompressed assets are asset spans that take over 500ms and are larger than 512kB which can usually be made faster with compression. Check that your server or CDN serving your assets is accepting the content encoding header from the browser and is returning them compressed.'
       ),
       links: [],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'File I/O can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('File I/O on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a JSON blob can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('JSON Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/json-decoding-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a compressed image (e.g. JPEG, PNG) into a bitmap can be a long running operation that blocks the main thread. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Image Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/image-decoding-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_REGEX_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Evaluating matches between strings and regular expressions (regex) can be long-running operations that may impact app responsiveness. This may result in app hangs and poor UI performance. To learn more, read our documentation:'
+      ),
+      links: [
+        {
+          text: t('Regex on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/regex-main-thread/',
+        },
+      ],
       linksByPlatform: {},
     },
   },

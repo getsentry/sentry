@@ -8,8 +8,9 @@ import pytz
 
 from sentry import features
 from sentry.db.models import Model
+from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Group, GroupSubStatus, UserOption
+from sentry.models import Group, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -31,6 +32,7 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.types.group import GroupSubStatus
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -46,6 +48,9 @@ def get_group_substatus_text(group: Group) -> str:
     elif group.substatus == GroupSubStatus.ONGOING:
         return "Ongoing issue"
     return "New Alert"
+
+
+GENERIC_TEMPLATE_NAME = "generic"
 
 
 class AlertRuleNotification(ProjectNotification):
@@ -71,11 +76,21 @@ class AlertRuleNotification(ProjectNotification):
         self.target_identifier = target_identifier
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
-        self.template_path = (
-            f"sentry/emails/{event.group.issue_category.name.lower()}"
-            if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
-            else "sentry/emails/generic"
-        )
+
+        if event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            # profile issues use the generic template for now
+            if (
+                isinstance(event, GroupEvent)
+                and event.occurrence
+                and event.occurrence.evidence_data.get("template_name") == "profile"
+            ):
+                email_template_name = GENERIC_TEMPLATE_NAME
+            else:
+                email_template_name = event.group.issue_category.name.lower()
+        else:
+            email_template_name = GENERIC_TEMPLATE_NAME
+
+        self.template_path = f"sentry/emails/{email_template_name}"
 
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
@@ -158,7 +173,15 @@ class AlertRuleNotification(ProjectNotification):
         if not enhanced_privacy:
             context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
 
-        if self.group.issue_category == GroupCategory.PERFORMANCE:
+        template_name = (
+            self.event.occurrence.evidence_data.get("template_name")
+            if isinstance(self.event, GroupEvent) and self.event.occurrence
+            else None
+        )
+
+        if self.group.issue_category == GroupCategory.PERFORMANCE and template_name != "profile":
+            # This can't use data from the occurrence at the moment, so we'll keep fetching the event
+            # and gathering span evidence.
             context.update(
                 {
                     "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],
@@ -166,13 +189,13 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        if features.has("organizations:mute-alerts", self.organization) and len(self.rules) > 0:
+        if len(self.rules) > 0:
             context["snooze_alert"] = True
             context[
                 "snooze_alert_url"
             ] = f"/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{self.rules[0].id}/details/{sentry_query_params}&{urlencode({'mute': '1'})}"
 
-        if getattr(self.event, "occurrence", None):
+        if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
             context["subtitle"] = self.event.occurrence.subtitle
             context["culprit"] = self.event.occurrence.culprit

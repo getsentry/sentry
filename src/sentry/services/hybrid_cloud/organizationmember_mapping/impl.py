@@ -5,9 +5,12 @@
 
 from typing import Optional
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import outbox_context
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.user import User
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
@@ -25,25 +28,58 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         organization_id: int,
         organizationmember_id: int,
         mapping: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
-        with transaction.atomic():
-            existing = self._find_organization_member(
-                organization_id=organization_id,
-                organizationmember_id=organizationmember_id,
-            )
-
-            if not existing:
-                existing = OrganizationMemberMapping.objects.create(organization_id=organization_id)
-
+    ) -> Optional[RpcOrganizationMemberMapping]:
+        def apply_update(existing: OrganizationMemberMapping) -> None:
+            adding_user = existing.user_id is None and mapping.user_id is not None
             existing.role = mapping.role
             existing.user_id = mapping.user_id
             existing.email = mapping.email
             existing.inviter_id = mapping.inviter_id
             existing.invite_status = mapping.invite_status
             existing.organizationmember_id = organizationmember_id
-
             existing.save()
-            return serialize_org_member_mapping(existing)
+
+            if adding_user:
+                try:
+                    user = existing.user
+                except User.DoesNotExist:
+                    return
+                for outbox in user.outboxes_for_update():
+                    outbox.save()
+
+        try:
+            with outbox_context(transaction.atomic()):
+                existing = self._find_organization_member(
+                    organization_id=organization_id,
+                    organizationmember_id=organizationmember_id,
+                )
+
+                if not existing:
+                    existing = OrganizationMemberMapping.objects.create(
+                        organization_id=organization_id
+                    )
+
+                assert existing
+                apply_update(existing)
+                return serialize_org_member_mapping(existing)
+        except IntegrityError as e:
+            # Stale user id, which will happen if a cascading deletion on the user has not reached the region.
+            # This is "safe" since the upsert here should be a no-op.
+            if "fk_auth_user" in str(e):
+                return None
+
+            existing = self._find_organization_member(
+                organization_id=organization_id,
+                organizationmember_id=organizationmember_id,
+            )
+
+            if existing is None:
+                raise e
+
+            with outbox_context(transaction.atomic()):
+                apply_update(existing)
+
+        return serialize_org_member_mapping(existing)
 
     def _find_organization_member(
         self,
@@ -65,7 +101,5 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
             organizationmember_id=organizationmember_id,
         )
         if org_member_map:
-            org_member_map.delete()
-
-    def close(self) -> None:
-        pass
+            with in_test_psql_role_override("postgres"):
+                org_member_map.delete()

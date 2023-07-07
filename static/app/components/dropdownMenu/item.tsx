@@ -43,6 +43,11 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   isSubmenu?: boolean;
   /**
+   * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
+   * to enable search & keyboard select.
+   */
+  label?: MenuListItemProps['label'];
+  /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
@@ -52,6 +57,11 @@ export interface MenuItemProps extends MenuListItemProps {
    * if `children` is defined and `isSubmenu` is true)
    */
   submenuTitle?: string;
+  /**
+   * A plain text version of the `label` prop if the label is not a string. Used for
+   * filtering and keyboard select (quick-focusing on options by typing the first letter).
+   */
+  textValue?: string;
   /**
    * Destination if this menu item is a link.
    */

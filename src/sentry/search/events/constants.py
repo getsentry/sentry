@@ -95,7 +95,7 @@ FUNCTION_PATTERN = re.compile(
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
 
-RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "date"}
+RESULT_TYPES = {"duration", "string", "number", "integer", "percentage", "percent_change", "date"}
 # event_search normalizes to bytes
 # based on https://getsentry.github.io/relay/relay_metrics/enum.InformationUnit.html
 SIZE_UNITS = {
@@ -226,6 +226,18 @@ FUNCTION_ALIASES = {
     "tps": "eps",
 }
 
+METRICS_FUNCTION_ALIASES = {
+    "tps_percent_change": "eps_percent_change",
+    "tpm_percent_change": "epm_percent_change",
+}
+
+SPAN_FUNCTION_ALIASES = {
+    "sps": "eps",
+    "spm": "epm",
+    "sps_percent_change": "eps_percent_change",
+    "spm_percent_change": "epm_percent_change",
+}
+
 # Mapping of public aliases back to the metrics identifier
 METRICS_MAP = {
     "measurements.app_start_cold": "d:transactions/measurements.app_start_cold@millisecond",
@@ -257,9 +269,11 @@ METRICS_MAP = {
     "user": "s:transactions/user@none",
 }
 SPAN_METRICS_MAP = {
-    "user": "s:transactions/span.user@none",
-    "span.duration": "d:transactions/span.duration@millisecond",
+    "user": "s:spans/user@none",
+    "span.self_time": "d:spans/exclusive_time@millisecond",
+    "span.duration": "d:spans/duration@millisecond",
 }
+SELF_TIME_LIGHT = "d:spans/exclusive_time_light@millisecond"
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
 
@@ -268,13 +282,16 @@ METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
-# These strings will be resolved by the indexer, but aren't available in the dataset
-METRIC_UNAVAILBLE_COLUMNS = {"os.name"}
 
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
+    if value.endswith("@millisecond") and value.startswith("d:")
+}
+SPAN_METRIC_DURATION_COLUMNS = {
+    key
+    for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
 }
 METRIC_PERCENTILES = {

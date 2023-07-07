@@ -3,7 +3,7 @@ __all__ = ("Stacktrace",)
 import math
 from typing import Optional
 
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import DataPath, Interface
@@ -154,6 +154,7 @@ class Frame(Interface):
             "trust",
             "vars",
             "snapshot",
+            "lock",
         ):
             data.setdefault(key, None)
 
@@ -184,6 +185,7 @@ class Frame(Interface):
                 "errors": self.errors or None,
                 "lineno": self.lineno,
                 "colno": self.colno,
+                "lock": self.lock,
             }
         )
 
@@ -213,6 +215,7 @@ class Frame(Interface):
             "inApp": self.in_app,
             "trust": self.trust,
             "errors": self.errors,
+            "lock": self.lock,
         }
         if not is_public:
             data["vars"] = self.vars
@@ -274,6 +277,7 @@ class Frame(Interface):
             "inApp": meta.get("in_app"),
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
+            "lock": meta.get("lock"),
         }
 
     def is_url(self):

@@ -1,7 +1,7 @@
 from typing import List, Union
 from urllib.parse import urlparse
 
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
 from rest_framework.exceptions import NotFound, ParseError
@@ -13,8 +13,8 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
-from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
 from sentry.models.releasefile import read_artifact_index
@@ -24,7 +24,11 @@ from sentry.utils.urls import non_standard_url_join
 # used to drive logic for when to show the "SDK out of date" error
 JS_VERSION_FOR_DEBUG_ID = "7.44.0"
 
-NO_DEBUG_ID_FRAMEWORKS = {"sentry.javascript.react-native", "sentry.javascript.remix"}
+NO_DEBUG_ID_FRAMEWORKS = {
+    "sentry.javascript.react-native",
+    "sentry.javascript.remix",
+    "sentry.javascript.nextjs",
+}
 
 
 class SourceMapProcessingIssueResponse(TypedDict):
@@ -45,18 +49,18 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Debug issues related to source maps for a given event",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            GLOBAL_PARAMS.PROJECT_SLUG,
-            EVENT_PARAMS.EVENT_ID,
-            EVENT_PARAMS.FRAME_IDX,
-            EVENT_PARAMS.EXCEPTION_IDX,
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            EventParams.EVENT_ID,
+            EventParams.FRAME_IDX,
+            EventParams.EXCEPTION_IDX,
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer("SourceMapDebug", SourceMapProcessingResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
@@ -77,7 +81,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         exception_idx = int(exception_idx)
 
-        event = eventstore.get_event_by_id(project.id, event_id)
+        event = eventstore.backend.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
@@ -125,7 +129,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 issue=SourceMapProcessingIssue.URL_NOT_VALID, data={"absPath": abs_path}
             )
 
-        # only check the release if it exists
+        # only check the release if it exists and we need it to resolve the release
         if release:
             release_artifacts = self._get_releasefiles(release, project.organization.id)
 
@@ -165,6 +169,12 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                     issue=SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND,
                     data={"filename": filename},
                 )
+
+        if can_use_debug_id:
+            # at this point we know the source maps aren't mapped but we can use a debug id
+            # however, we can't give them any advice other than to add Sentry to their build pipeline
+            # it's possible they tried to do this but failed but we won't know that
+            return self._create_response(issue=SourceMapProcessingIssue.NOT_PART_OF_PIPELINE)
 
         return self._create_response()
 
@@ -218,7 +228,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
     def _verify_dist_matches(self, release, event, artifact, filename):
         try:
             if event.dist is None and artifact.dist_id is None:
-                return
+                return True
             dist = Distribution.objects.get(release=release, name=event.dist)
         except Distribution.DoesNotExist:
             raise SourceMapException(
@@ -282,7 +292,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
             )
 
-        return force_text(sourcemap) if sourcemap is not None else None
+        return force_str(sourcemap) if sourcemap is not None else None
 
     def _unify_url(self, urlparts):
         return "~" + urlparts.path

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from sentry.utils import json
 
 
-class SecretField(serializers.Field):  # type: ignore
+class SecretField(serializers.Field):
     """
     A validator for a secret-containing field whose values are either a string or a magic object.
 
@@ -13,19 +13,19 @@ class SecretField(serializers.Field):  # type: ignore
     the server, i.e. they may be in the form of a magic object representing a redacted secret.
     """
 
-    def __init__(self, *args, **kwargs):  # type: ignore
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.string_field = serializers.CharField(min_length=1, max_length=512, *args, **kwargs)
         self.magic_object_field = serializers.DictField(
             child=serializers.BooleanField(required=True), allow_empty=False, *args, **kwargs
         )
 
-    def to_representation(self, obj):  # type: ignore
+    def to_representation(self, obj):
         if isinstance(obj, dict):
             return self.magic_object_field.to_representation(obj)
         return self.string_field.to_representation(obj)
 
-    def to_internal_value(self, data):  # type: ignore
+    def to_internal_value(self, data):
         if isinstance(data, dict):
             return self.magic_object_field.to_internal_value(data)
         self.string_field.run_validation(data)

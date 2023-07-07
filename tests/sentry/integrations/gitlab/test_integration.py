@@ -2,8 +2,12 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import responses
+from django.core.cache import cache
+from django.test import override_settings
 
+from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
+from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -12,11 +16,14 @@ from sentry.models import (
     OrganizationIntegration,
     Repository,
 )
+from sentry.silo.base import SiloMode
+from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.utils import json
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GitlabIntegrationTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
@@ -206,15 +213,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Get Sentry / Example Repo",
-            external_id=f"{instance}:{external_id}",
-            url="https://gitlab.example.com/getsentry/projects/example-repo",
-            config={"project_id": external_id, "path": "getsentry/example-repo"},
-            provider="integrations:gitlab",
-            integration_id=integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
         installation = integration.get_installation(self.organization.id)
 
         filepath = "README.md"
@@ -236,15 +244,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Get Sentry / Example Repo",
-            external_id=f"{instance}:{external_id}",
-            url="https://gitlab.example.com/getsentry/projects/example-repo",
-            config={"project_id": external_id, "path": "getsentry/example-repo"},
-            provider="integrations:gitlab",
-            integration_id=integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
         installation = integration.get_installation(self.organization.id)
 
         filepath = "README.md"
@@ -264,15 +273,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Get Sentry / Example Repo",
-            external_id=f"{instance}:{external_id}",
-            url="https://gitlab.example.com/getsentry/projects/example-repo",
-            config={"project_id": external_id, "path": "getsentry/example-repo"},
-            provider="integrations:gitlab",
-            integration_id=integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
         installation = integration.get_installation(self.organization.id)
 
         filepath = "README.md"
@@ -305,15 +315,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Get Sentry / Example Repo",
-            external_id=f"{instance}:{external_id}",
-            url="https://gitlab.example.com/getsentry/projects/example-repo",
-            config={"project_id": external_id, "path": "getsentry/example-repo"},
-            provider="integrations:gitlab",
-            integration_id=integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
         installation = integration.get_installation(self.organization.id)
 
         filepath = "README.md"
@@ -339,15 +350,16 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        repo = Repository.objects.create(
-            organization_id=self.organization.id,
-            name="Get Sentry / Example Repo",
-            external_id=f"{instance}:{external_id}",
-            url="https://gitlab.example.com/getsentry/projects/example-repo",
-            config={"project_id": external_id, "path": "getsentry/example-repo"},
-            provider="integrations:gitlab",
-            integration_id=integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="Get Sentry / Example Repo",
+                external_id=f"{instance}:{external_id}",
+                url="https://gitlab.example.com/getsentry/projects/example-repo",
+                config={"project_id": external_id, "path": "getsentry/example-repo"},
+                provider="integrations:gitlab",
+                integration_id=integration.id,
+            )
         installation = integration.get_installation(self.organization.id)
 
         filepath = "sentry/tasks.py"
@@ -451,7 +463,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         assert commit_context == commit_context_expected
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GitlabIntegrationInstanceTest(IntegrationTestCase):
     provider = GitlabIntegrationProvider
     config = {
@@ -569,3 +581,139 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
 
         installation = integration.get_installation(self.organization.id)
         assert installation.get_group_id() is None
+
+
+def assert_proxy_request(request, is_proxy=True):
+    assert (PROXY_BASE_PATH in request.url) == is_proxy
+    assert (PROXY_OI_HEADER in request.headers) == is_proxy
+    assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
+    # The following Gitlab headers don't appear in proxied requests
+    assert ("Authorization" in request.headers) != is_proxy
+    if is_proxy:
+        assert request.headers[PROXY_OI_HEADER] is not None
+
+
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
+class GitlabProxySetupClientTest(IntegrationTestCase):
+    provider = GitlabIntegrationProvider
+    base_url = "https://gitlab.example.com"
+    access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+    default_group_id = 4
+
+    @responses.activate
+    def test_integration_proxy_is_active(self):
+        response_payload = {
+            "id": self.default_group_id,
+            "full_name": "Cool",
+            "full_path": "cool-group",
+            "web_url": "https://gitlab.example.com/groups/cool-group",
+            "avatar_url": "https://gitlab.example.com/uploads/group/avatar/4/foo.jpg",
+        }
+        responses.add(
+            responses.GET,
+            "https://gitlab.example.com/api/v4/groups/cool-group",
+            json=response_payload,
+        )
+
+        responses.add(
+            responses.GET,
+            "http://controlserver/api/0/internal/integration-proxy/api/v4/groups/cool-group",
+            json=response_payload,
+        )
+
+        class GitlabProxySetupTestClient(GitlabProxySetupClient):
+            _use_proxy_url_for_tests = True
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            client = GitlabProxySetupTestClient(
+                base_url=self.base_url,
+                access_token=self.access_token,
+                verify_ssl=False,
+            )
+            client.get_group(group="cool-group")
+            request = responses.calls[0].request
+
+            assert "https://gitlab.example.com/api/v4/groups/cool-group" == request.url
+            assert client.base_url in request.url
+            assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            client = GitlabProxySetupTestClient(
+                base_url=self.base_url,
+                access_token=self.access_token,
+                verify_ssl=False,
+            )
+            client.get_group(group="cool-group")
+            request = responses.calls[0].request
+
+            assert "https://gitlab.example.com/api/v4/groups/cool-group" == request.url
+            assert client.base_url in request.url
+            assert_proxy_request(request, is_proxy=False)
+
+
+@override_settings(
+    SENTRY_SUBNET_SECRET="hush-hush-im-invisible",
+    SENTRY_CONTROL_ADDRESS="http://controlserver",
+)
+class GitlabProxyApiClientTest(GitLabTestCase):
+    @responses.activate
+    def test_integration_proxy_is_active(self):
+        gitlab_id = 123
+        commit = "a" * 40
+        responses.add(
+            method=responses.GET,
+            url=f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}",
+            json=json.loads(GET_COMMIT_RESPONSE),
+        )
+
+        class GitlabProxyApiTestClient(GitLabProxyApiClient):
+            _use_proxy_url_for_tests = True
+
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
+                == request.url
+            )
+            assert client.base_url in request.url
+            assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        cache.clear()
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"https://example.gitlab.com/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
+                == request.url
+            )
+            assert client.base_url in request.url
+            assert_proxy_request(request, is_proxy=False)
+
+        responses.calls.reset()
+        cache.clear()
+        with override_settings(SILO_MODE=SiloMode.REGION):
+            client = GitlabProxyApiTestClient(self.installation)
+            client.get_commit(gitlab_id, commit)
+            request = responses.calls[0].request
+
+            assert (
+                f"http://controlserver/api/0/internal/integration-proxy/api/v4/projects/{gitlab_id}/repository/commits/{commit}"
+                == request.url
+            )
+            assert client.base_url not in request.url
+            assert_proxy_request(request, is_proxy=True)

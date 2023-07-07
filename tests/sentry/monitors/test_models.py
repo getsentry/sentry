@@ -6,6 +6,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 from django.utils import timezone
 
+from sentry.grouping.utils import hash_from_values
 from sentry.issues.grouptype import (
     MonitorCheckInFailure,
     MonitorCheckInMissed,
@@ -35,12 +36,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -52,12 +53,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -73,14 +74,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -92,7 +93,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -158,6 +159,7 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -202,6 +204,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -246,6 +249,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -295,7 +299,6 @@ class MonitorEnvironmentTestCase(TestCase):
         ) == dict(event)
 
     @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -323,13 +326,13 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-unknown"],
-                "issue_title": f"Monitor failure: {monitor.name} (unknown)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "error"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
                 "evidence_display": [
-                    {"name": "Failure reason", "value": "unknown", "important": True},
+                    {"name": "Failure reason", "value": "error", "important": True},
                     {
                         "name": "Environment",
                         "value": monitor_environment.environment.name,
@@ -343,15 +346,26 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInFailure.type_id,
                 "level": "error",
-                "culprit": "",
+                "culprit": "error",
             },
         ) == dict(occurrence)
 
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "error"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,
@@ -363,7 +377,6 @@ class MonitorEnvironmentTestCase(TestCase):
         ) == dict(event)
 
     @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -392,8 +405,8 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-duration"],
-                "issue_title": f"Monitor failure: {monitor.name} (duration)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "duration"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
@@ -412,15 +425,26 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInTimeout.type_id,
                 "level": "error",
-                "culprit": "",
+                "culprit": "duration",
             },
         ) == dict(occurrence)
 
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "duration"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,
@@ -432,7 +456,6 @@ class MonitorEnvironmentTestCase(TestCase):
         ) == dict(event)
 
     @with_feature("organizations:issue-platform")
-    @with_feature("organizations:crons-issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -465,8 +488,8 @@ class MonitorEnvironmentTestCase(TestCase):
             occurrence,
             **{
                 "project_id": self.project.id,
-                "fingerprint": [f"monitor-{str(monitor.guid)}-missed_checkin"],
-                "issue_title": f"Monitor failure: {monitor.name} (missed_checkin)",
+                "fingerprint": [hash_from_values(["monitor", str(monitor.guid), "missed_checkin"])],
+                "issue_title": f"Monitor failure: {monitor.name}",
                 "subtitle": "",
                 "resource_id": None,
                 "evidence_data": {},
@@ -485,15 +508,26 @@ class MonitorEnvironmentTestCase(TestCase):
                 ],
                 "type": MonitorCheckInMissed.type_id,
                 "level": "warning",
-                "culprit": "",
+                "culprit": "missed_checkin",
             },
         ) == dict(occurrence)
 
         assert dict(
             event,
             **{
+                "contexts": {
+                    "monitor": {
+                        "status": "active",
+                        "type": "cron_job",
+                        "config": {"schedule_type": 2, "schedule": [1, "month"]},
+                        "id": str(monitor.guid),
+                        "name": monitor.name,
+                        "slug": monitor.slug,
+                    }
+                },
                 "environment": monitor_environment.environment.name,
                 "event_id": occurrence["event_id"],
+                "fingerprint": ["monitor", str(monitor.guid), "missed_checkin"],
                 "platform": "other",
                 "project_id": monitor.project_id,
                 "sdk": None,

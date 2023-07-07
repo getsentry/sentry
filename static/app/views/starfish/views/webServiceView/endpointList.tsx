@@ -16,7 +16,8 @@ import BaseSearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
@@ -30,22 +31,22 @@ import {TableColumn} from 'sentry/views/discover/table/types';
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TIME_SPENT_IN_SERVICE} from 'sentry/views/starfish/utils/generatePerformanceEventView';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 
 const COLUMN_TITLES = [
-  'Endpoint',
+  t('Endpoint'),
   DataTitles.throughput,
+  t('Change'),
   DataTitles.p95,
+  t('Change'),
   DataTitles.errorCount,
+  t('Change'),
   DataTitles.timeSpent,
 ];
 
 type Props = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
-  projects: Project[];
   setError: (msg: string | undefined) => void;
 };
 
@@ -90,13 +91,19 @@ function EndpointList({eventView, location, organization, setError}: Props) {
             organization.slug
           }/starfish/endpoint-overview/?${qs.stringify({
             endpoint: dataRow.transaction,
-            method: dataRow['http.method'],
+            'http.method': dataRow['http.method'],
             statsPeriod: eventView.statsPeriod,
             project: eventView.project,
             start: eventView.start,
             end: eventView.end,
           })}`}
           style={{display: `block`, width: `100%`}}
+          onClick={() => {
+            trackAnalytics('starfish.web_service_view.endpoint_list.endpoint.clicked', {
+              organization,
+              endpoint: dataRow.transaction,
+            });
+          }}
         >
           {prefix}
           {dataRow.transaction}
@@ -122,32 +129,10 @@ function EndpointList({eventView, location, organization, setError}: Props) {
       );
     }
 
+    // TODO: This can be removed if/when the backend returns this field's type
+    // as `"rate"` and its unit as `"1/second"
     if (field === 'tps()') {
-      return (
-        <NumberContainer>
-          <ThroughputCell throughputPerSecond={dataRow[field] as number} />
-        </NumberContainer>
-      );
-    }
-
-    if (
-      field.startsWith(
-        'equation|(percentile_range(transaction.duration,0.95,lessOrEquals,'
-      )
-    ) {
-      const deltaValue = dataRow[field] as number;
-      const trendDirection = deltaValue < 0 ? 'good' : deltaValue > 0 ? 'bad' : 'neutral';
-
-      return (
-        <NumberContainer>
-          <TrendingDuration trendDirection={trendDirection}>
-            {tct('[sign][delta]', {
-              sign: deltaValue >= 0 ? '+' : '-',
-              delta: formatPercentage(Math.abs(deltaValue), 2),
-            })}
-          </TrendingDuration>
-        </NumberContainer>
-      );
+      return <ThroughputCell throughputPerSecond={dataRow[field] as number} />;
     }
 
     if (field === 'project') {
@@ -237,6 +222,13 @@ function EndpointList({eventView, location, organization, setError}: Props) {
         direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => {
+          trackAnalytics('starfish.web_service_view.endpoint_list.header.clicked', {
+            organization,
+            direction: currentSortKind === 'desc' ? 'asc' : 'desc',
+            header: title || field.field,
+          });
+        }}
       />
     );
 
@@ -263,6 +255,11 @@ function EndpointList({eventView, location, organization, setError}: Props) {
     // Default to fuzzy finding for now
     clonedEventView.query += `transaction:*${query}*`;
     setEventView(clonedEventView);
+
+    trackAnalytics('starfish.web_service_view.endpoint_list.search', {
+      organization,
+      query,
+    });
   }
 
   const columnOrder = eventView
@@ -318,16 +315,6 @@ function EndpointList({eventView, location, organization, setError}: Props) {
 }
 
 export default EndpointList;
-
-const TrendingDuration = styled('div')<{trendDirection: 'good' | 'bad' | 'neutral'}>`
-  color: ${p =>
-    p.trendDirection === 'good'
-      ? p.theme.successText
-      : p.trendDirection === 'bad'
-      ? p.theme.errorText
-      : p.theme.subText};
-  float: right;
-`;
 
 const StyledSearchBar = styled(BaseSearchBar)`
   margin-bottom: ${space(2)};

@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -26,7 +26,6 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, Organization, Project} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -74,19 +73,6 @@ function GroupHeaderTabs({
   const hasReplaySupport = organizationFeatures.has('session-replay');
 
   const issueTypeConfig = getConfigForIssueType(group);
-
-  useEffect(() => {
-    if (!hasReplaySupport || typeof replaysCount === 'undefined') {
-      return;
-    }
-
-    trackAnalytics('replay.render-issues-detail-count', {
-      platform: project.platform!,
-      project_id: project.id,
-      count: replaysCount,
-      organization,
-    });
-  }, [hasReplaySupport, replaysCount, project, organization]);
 
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
@@ -190,7 +176,7 @@ function GroupHeader({
   project,
 }: Props) {
   const location = useLocation();
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const disabledTabs = useMemo(() => {
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');

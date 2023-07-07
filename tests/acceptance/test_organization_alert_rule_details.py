@@ -2,7 +2,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import Rule, RuleFireHistory
+from sentry.models import Rule
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.silo import region_silo_test
 

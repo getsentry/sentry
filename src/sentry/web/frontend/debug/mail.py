@@ -13,14 +13,13 @@ from unittest import mock
 from urllib.parse import urlencode
 
 import pytz
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
@@ -36,7 +35,6 @@ from sentry.models import (
     Activity,
     Group,
     GroupStatus,
-    GroupSubStatus,
     Organization,
     OrganizationMember,
     Project,
@@ -52,6 +50,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json, loremipsum
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder, inline_css
@@ -278,7 +277,7 @@ class MailPreview:
             traceback.print_exc()
             raise
 
-    def render(self, request: Request):
+    def render(self, request: HttpRequest):
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -369,10 +368,10 @@ class ActivityMailPreview:
 
 
 class ActivityMailDebugView(View):
-    def get_activity(self, request: Request, event):
+    def get_activity(self, request: HttpRequest, event):
         raise NotImplementedError
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="organization", name="My Company")
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
@@ -387,7 +386,7 @@ class ActivityMailDebugView(View):
         data = event_manager.get_data()
         event_type = get_event_type(data)
 
-        event = eventstore.create_event(
+        event = eventstore.backend.create_event(
             event_id="a" * 32, group_id=group.id, project_id=project.id, data=data.data
         )
 
@@ -490,7 +489,7 @@ def digest(request):
                 to_timestamp(group.first_seen), to_timestamp(group.last_seen)
             )
 
-            event = eventstore.create_event(
+            event = eventstore.backend.create_event(
                 event_id=uuid.uuid4().hex, group_id=group.id, project_id=project.id, data=data.data
             )
             records.append(

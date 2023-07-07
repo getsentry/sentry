@@ -195,7 +195,7 @@ def _do_preprocess_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event",
     queue="events.preprocess_event",
     time_limit=65,
@@ -221,7 +221,7 @@ def preprocess_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.preprocess_event_from_reprocessing",
     queue="events.reprocessing.preprocess_event",
     time_limit=65,
@@ -245,7 +245,7 @@ def preprocess_event_from_reprocessing(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.retry_process_event",
     queue="sleep",
     time_limit=(60 * 5) + 5,
@@ -444,7 +444,7 @@ def do_process_event(
     return _continue_to_save_event()
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event",
     queue="events.process_event",
     time_limit=65,
@@ -480,7 +480,7 @@ def process_event(
     )
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
     queue="events.reprocessing.process_event",
     time_limit=65,
@@ -799,7 +799,7 @@ def time_synthetic_monitoring_event(
     return True
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event",
     queue="events.save_event",
     time_limit=65,
@@ -816,7 +816,7 @@ def save_event(
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event_transaction",
     queue="events.save_event_transaction",
     time_limit=65,
@@ -833,7 +833,7 @@ def save_event_transaction(
     _do_save_event(cache_key, data, start_time, event_id, project_id, **kwargs)
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.tasks.store.save_event_attachments",
     queue="events.save_event_attachments",
     time_limit=65,

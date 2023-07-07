@@ -84,6 +84,10 @@ export interface TimeRangeSelectorProps
    */
   end?: DateString;
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -136,6 +140,7 @@ export function TimeRangeSelector({
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
+  maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
   menuWidth,
@@ -236,17 +241,21 @@ export function TimeRangeSelector({
     option => {
       // The absolute option was selected -> open absolute selector
       if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => ({
-          ...current,
-          // Update default values for absolute selector
-          start: defaultAbsolute?.start
+        setInternalValue(current => {
+          const defaultStart = defaultAbsolute?.start
             ? defaultAbsolute.start
             : getPeriodAgo(
                 'hours',
                 parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate(),
-          end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
-        }));
+              ).toDate();
+          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+          return {
+            ...current,
+            // Update default values for absolute selector
+            start: start ? getInternalDate(start, utc) : defaultStart,
+            end: end ? getInternalDate(end, utc) : defaultEnd,
+          };
+        });
         setShowAbsoluteSelector(true);
         return;
       }
@@ -254,7 +263,7 @@ export function TimeRangeSelector({
       setInternalValue(current => ({...current, relative: option.value}));
       onChange?.({relative: option.value, start: undefined, end: undefined});
     },
-    [defaultAbsolute, defaultPeriod, relative, onChange]
+    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
   );
 
   const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
@@ -339,7 +348,12 @@ export function TimeRangeSelector({
                       organization={organization}
                       showTimePicker
                       onChange={val => {
-                        val.hasDateRangeErrors && setHasDateRangeErrors(true);
+                        if (val.hasDateRangeErrors) {
+                          setHasDateRangeErrors(true);
+                          return;
+                        }
+
+                        setHasDateRangeErrors(false);
                         setInternalValue(cur => ({
                           ...cur,
                           relative: null,
@@ -376,6 +390,7 @@ export function TimeRangeSelector({
                         });
                       }}
                       maxPickableDays={maxPickableDays}
+                      maxDateRange={maxDateRange}
                     />
                   </AbsoluteDateRangeWrap>
                 )}

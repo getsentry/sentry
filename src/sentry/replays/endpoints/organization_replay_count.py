@@ -17,8 +17,8 @@ from sentry.models import Organization
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import Dataset
 
 MAX_REPLAY_COUNT = 51
 MAX_VALS_PROVIDED = {

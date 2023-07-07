@@ -29,7 +29,6 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
@@ -41,10 +40,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
+import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import {ProfileCharts} from './landing/profileCharts';
+import {ProfilesChartWidget} from './landing/profilesChartWidget';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
-import {SlowestFunctionsWidget} from './landing/slowestFunctionsWidget';
 import {ProfilingOnboardingPanel} from './profilingOnboardingPanel';
+
+const LEFT_WIDGET_CURSOR = 'leftCursor';
+const RIGHT_WIDGET_CURSOR = 'rightCursor';
+const CURSOR_PARAMS = [LEFT_WIDGET_CURSOR, RIGHT_WIDGET_CURSOR];
 
 interface ProfilingContentProps {
   location: Location;
@@ -161,11 +165,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
         }
       >
         <Layout.Page>
-          {isProfilingGA ? (
-            <ProfilingBetaAlertBanner organization={organization} />
-          ) : (
-            <ProfilingBetaEndAlertBanner organization={organization} />
-          )}
+          {isProfilingGA && <ProfilingBetaAlertBanner organization={organization} />}
           <Layout.Header>
             <Layout.HeaderContent>
               <Layout.Title>
@@ -193,9 +193,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
               )}
               <ActionBar>
                 <PageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter alignDropdown="left" />
+                  <ProjectPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
+                  <DatePageFilter
+                    alignDropdown="left"
+                    resetParamsOnChange={CURSOR_PARAMS}
+                  />
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar
@@ -266,21 +269,44 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )
               ) : (
                 <Fragment>
-                  <PanelsGrid>
-                    {organization.features.includes(
-                      'profiling-global-suspect-functions'
-                    ) ? (
-                      <SlowestFunctionsWidget />
-                    ) : (
+                  {organization.features.includes(
+                    'profiling-global-suspect-functions'
+                  ) ? (
+                    <Fragment>
+                      <ProfilesChartWidget
+                        chartHeight={100}
+                        referrer="api.profiling.landing-chart"
+                        userQuery={query}
+                        selection={selection}
+                      />
+                      <WidgetsContainer>
+                        <LandingWidgetSelector
+                          cursorName={LEFT_WIDGET_CURSOR}
+                          widgetHeight="340px"
+                          defaultWidget="slowest functions"
+                          query={query}
+                          storageKey="profiling-landing-widget-0"
+                        />
+                        <LandingWidgetSelector
+                          cursorName={RIGHT_WIDGET_CURSOR}
+                          widgetHeight="340px"
+                          defaultWidget="regressed functions"
+                          query={query}
+                          storageKey="profiling-landing-widget-1"
+                        />
+                      </WidgetsContainer>
+                    </Fragment>
+                  ) : (
+                    <PanelsGrid>
                       <ProfilingSlowestTransactionsPanel />
-                    )}
-                    <ProfileCharts
-                      referrer="api.profiling.landing-chart"
-                      query={query}
-                      selection={selection}
-                      hideCount
-                    />
-                  </PanelsGrid>
+                      <ProfileCharts
+                        referrer="api.profiling.landing-chart"
+                        query={query}
+                        selection={selection}
+                        hideCount
+                      />
+                    </PanelsGrid>
+                  )}
                   <ProfileEventsTable
                     columns={fields.slice()}
                     data={transactions.status === 'success' ? transactions.data : null}
@@ -307,21 +333,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
-  );
-}
-
-function ProfilingBetaEndAlertBanner({organization}: {organization: Organization}) {
-  // beta users will continue to have access
-  if (organization.features.includes('profiling-beta')) {
-    return null;
-  }
-
-  return (
-    <StyledAlert system type="info">
-      {t(
-        "The beta program for Profiling is now closed, but Profiling will become generally available soon. If you weren't part of the beta program, any Profiles sent during this time won't appear in your dashboard. Check out the What’s New tab for updates."
-      )}
-    </StyledAlert>
   );
 }
 
@@ -357,8 +368,13 @@ const PanelsGrid = styled('div')`
   }
 `;
 
-const StyledAlert = styled(Alert)`
-  margin: 0;
+const WidgetsContainer = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${space(2)};
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr;
+  }
 `;
 
 export default ProfilingContent;

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Literal, Optional, Union
 
 import pytest
+from drf_spectacular.plumbing import UnableToProceedError
 from drf_spectacular.utils import extend_schema_serializer
 from typing_extensions import TypedDict
 
@@ -34,6 +35,10 @@ class BasicSerializerResponse(BasicSerializerOptional):
     excluded: str
 
 
+class SerializerWithUnsupportedTypeDict(TypedDict):
+    a: list[int]
+
+
 class BasicSerializer(Serializer):
     def serialize() -> BasicSerializerResponse:
         return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
@@ -42,6 +47,11 @@ class BasicSerializer(Serializer):
 class FailSerializer(Serializer):
     def serialize():
         return {"a": 1, "b": "test", "c": True, "d": [1], "e": {"zz": "test"}}
+
+
+class SerializerWithUnsupportedType(Serializer):
+    def serialize() -> SerializerWithUnsupportedTypeDict:
+        return {"a": [3]}
 
 
 def test_sentry_response_serializer_extension():
@@ -96,4 +106,10 @@ def test_sentry_inline_response_serializer_extension():
 def test_sentry_fails_when_serializer_not_typed():
     seralizer_extension = SentryResponseSerializerExtension(FailSerializer)
     with pytest.raises(TypeError):
+        seralizer_extension.map_serializer(None, None)
+
+
+def test_sentry_fails_when_serializer_unsupported_type():
+    seralizer_extension = SentryResponseSerializerExtension(SerializerWithUnsupportedType)
+    with pytest.raises(UnableToProceedError):
         seralizer_extension.map_serializer(None, None)

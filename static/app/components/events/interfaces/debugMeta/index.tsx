@@ -191,8 +191,8 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       normalizeId(image.code_id).indexOf(idSearchTerm) === 0 ||
       normalizeId(image.debug_id).indexOf(idSearchTerm) === 0 ||
       // Any match for file paths
-      (image.code_file?.toLowerCase() || '').indexOf(searchTerm) >= 0 ||
-      (image.debug_file?.toLowerCase() || '').indexOf(searchTerm) >= 0
+      (image.code_file?.toLowerCase() || '').includes(searchTerm) ||
+      (image.debug_file?.toLowerCase() || '').includes(searchTerm)
     );
   }
 

@@ -1,6 +1,6 @@
 import responses
 
-from fixtures.integrations.mock_service import StubService
+from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Integration, Rule
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase

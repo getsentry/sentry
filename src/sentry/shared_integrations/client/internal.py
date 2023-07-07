@@ -11,7 +11,7 @@ from sentry.shared_integrations.track_response import TrackResponseMixin
 from sentry.utils import metrics
 
 
-class BaseInternalApiClient(ApiClient, TrackResponseMixin):  # type: ignore
+class BaseInternalApiClient(ApiClient, TrackResponseMixin):
     integration_type: str | None = None
 
     log_path: str | None = None

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.auto_enable_codecov.enable_for_org",
     queue="auto_enable_codecov",
     max_retries=0,
-)  # type: ignore
+)
 def enable_for_org(dry_run: bool = False) -> None:
     """
     Set the codecov_access flag to True for organizations with a valid Codecov integration.

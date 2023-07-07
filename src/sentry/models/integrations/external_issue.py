@@ -43,7 +43,7 @@ class ExternalIssueManager(BaseManager):
 
     def get_linked_issues(
         self, event: Event, integration: RpcIntegration
-    ) -> QuerySet[ExternalIssue]:  # pyright: ignore
+    ) -> QuerySet[ExternalIssue]:
         from sentry.models import GroupLink
 
         return self.filter(

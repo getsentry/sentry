@@ -550,7 +550,7 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.elements('[aria-label="Filter by operation"]')[0].click()
 
             # select django.middleware
-            self.browser.elements('[data-test-id="django.middleware"]')[0].click()
+            self.browser.elements('[data-test-id="django\\\\.middleware"]')[0].click()
 
             self.browser.snapshot("events-v2 - transactions event detail view - ops filtering")
 

@@ -1,18 +1,20 @@
-from typing import List
+from __future__ import annotations
+
+from typing import Any
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceDBMainThreadGroupType
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.detectors import DBMainThreadDetector
+from sentry.utils.performance_issues.detectors.io_main_thread_detector import DBMainThreadDetector
 from sentry.utils.performance_issues.performance_detection import (
-    PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
 )
+from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
 @region_silo_test
@@ -20,10 +22,10 @@ from sentry.utils.performance_issues.performance_detection import (
 class DBMainThreadDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.settings = get_detection_settings()
+        self._settings = get_detection_settings()
 
-    def find_problems(self, event: Event) -> List[PerformanceProblem]:
-        detector = DBMainThreadDetector(self.settings, event)
+    def find_problems(self, event: dict[str, Any]) -> list[PerformanceProblem]:
+        detector = DBMainThreadDetector(self._settings, event)
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
@@ -48,6 +50,27 @@ class DBMainThreadDetectorTest(TestCase):
                 evidence_display=[],
             )
         ]
+
+    def test_respects_project_option(self):
+        project = self.create_project()
+        event = get_event("db-on-main-thread")
+        event["project_id"] = project.id
+
+        settings = get_detection_settings(project.id)
+        detector = DBMainThreadDetector(settings, event)
+
+        assert detector.is_creation_allowed_for_project(project)
+
+        ProjectOption.objects.set_value(
+            project=project,
+            key="sentry:performance_issue_settings",
+            value={"db_on_main_thread_detection_enabled": False},
+        )
+
+        settings = get_detection_settings(project.id)
+        detector = DBMainThreadDetector(settings, event)
+
+        assert not detector.is_creation_allowed_for_project(project)
 
     def test_does_not_detect_db_main_thread(self):
         event = get_event("db-on-main-thread")

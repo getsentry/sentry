@@ -3,6 +3,7 @@ import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
@@ -333,4 +334,8 @@ export const isFunction = (value: any): value is Function => typeof value === 'f
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}
+
+export function generateBaseControlSiloUrl() {
+  return ConfigStore.get('links').sentryUrl || '';
 }

@@ -68,7 +68,7 @@ class IssueOccurrenceEndpoint(Endpoint):
         producer.produce(
             topic=topic,
             key=None,
-            value=json.dumps(dummy_occurrence, default=str),
+            value=json.dumps(dummy_occurrence),
         )
         producer.flush()
 

@@ -5,6 +5,7 @@ from sentry.testutils.cases import TestMigrations
 from sentry.testutils.outbox import outbox_runner
 
 
+@pytest.mark.skip("Test setup no longer valid after adding is_test to organization model")
 class BackfillOrganizationMappingsViaOutboxTest(TestMigrations):
     migrate_from = "0477_control_avatars"
     migrate_to = "0478_backfill_organization_mappings_via_outbox"

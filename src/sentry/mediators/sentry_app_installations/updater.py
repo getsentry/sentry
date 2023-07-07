@@ -1,13 +1,14 @@
 from sentry import analytics
 from sentry.constants import SentryAppInstallationStatus
-from sentry.mediators import Mediator, Param
-from sentry.mediators.param import if_param
+from sentry.mediators.mediator import Mediator
+from sentry.mediators.param import Param, if_param
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 
 
 class Updater(Mediator):
-    sentry_app_installation = Param("sentry.services.hybrid_cloud.app.RpcSentryAppInstallation")
-    status = Param((str,), required=False)
+    sentry_app_installation = Param(RpcSentryAppInstallation)
+    status = Param(str, required=False)
 
     def call(self):
         self._update_status()

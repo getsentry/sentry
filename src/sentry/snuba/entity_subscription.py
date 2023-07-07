@@ -41,7 +41,6 @@ from sentry.utils import metrics
 if TYPE_CHECKING:
     from sentry.search.events.builder import QueryBuilder
 
-
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
@@ -53,6 +52,7 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
     EntityKey.Events: "timestamp",
     EntityKey.Sessions: "started",
     EntityKey.Transactions: "finish_ts",
+    EntityKey.GenericMetricsCounters: "timestamp",
     EntityKey.GenericMetricsDistributions: "timestamp",
     EntityKey.GenericMetricsSets: "timestamp",
     EntityKey.MetricsCounters: "timestamp",
@@ -153,7 +153,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
     ) -> QueryBuilder:
-        pass
+        raise NotImplementedError
 
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):

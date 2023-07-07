@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
+from math import floor
 from typing import Any, List, Mapping, Optional, Sequence, Set, Tuple, TypedDict, cast
 
 import sentry_sdk
@@ -47,6 +48,7 @@ from sentry.issues.search import (
 from sentry.models import Environment, Group, Organization, Project
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.utils import validate_cdc_search_filters
+from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
@@ -65,20 +67,10 @@ class PrioritySortWeights(TypedDict):
 DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
     "log_level": 0,
     "has_stacktrace": 0,
-    "relative_volume": 0,
-    "event_halflife_hours": 4,
-    "issue_halflife_hours": 24 * 7,
-    "v2": False,
-    "norm": False,
-}
-
-V2_DEFAULT_PRIORITY_WEIGHTS: PrioritySortWeights = {
-    "log_level": 0,
-    "has_stacktrace": 0,
     "relative_volume": 1,
-    "event_halflife_hours": 12,
-    "issue_halflife_hours": 4,
-    "v2": False,
+    "event_halflife_hours": 4,
+    "issue_halflife_hours": 12,
+    "v2": True,
     "norm": False,
 }
 
@@ -163,8 +155,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def dataset(self) -> snuba.Dataset:
-        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+    def dataset(self) -> Dataset:
+        """This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
         raise NotImplementedError
 
     @property
@@ -258,9 +250,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
             if replace_better_priority_aggregation and alias == "better_priority":
-                aggregation = self.aggregation_defs[
-                    "better_priority_issue_platform"  # type:ignore[call-overload]
-                ]
+                aggregation = self.aggregation_defs["better_priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
                     aggregation = aggregation(start, end, aggregate_kwargs.get(alias, {}))
@@ -535,6 +525,8 @@ def better_priority_aggregation(
         ),
         "timestamp",
         True,
+        start,
+        end,
     )
 
 
@@ -559,11 +551,17 @@ def better_priority_issue_platform_aggregation(
         ),
         "client_timestamp",
         False,
+        start,
+        end,
     )
 
 
 def better_priority_aggregation_impl(
-    params: BetterPriorityParams, timestamp_column: str, use_stacktrace: bool
+    params: BetterPriorityParams,
+    timestamp_column: str,
+    use_stacktrace: bool,
+    start: datetime,
+    end: datetime,
 ) -> Sequence[str]:
     min_score = params.min_score
     max_pow = params.max_pow
@@ -636,15 +634,24 @@ def better_priority_aggregation_impl(
         # ln(h(x)) = [ln(1), ln(+inf)] = 0, 1, ~2.30, ~6.09,  ~13.81,     ~20.72, +inf
         aggregate_event_score = f"log(plus(1, sum(divide({event_agg_rank}, pow(2, divide({event_age_hours}, {event_halflife_hours}))))))"
 
-        event_count_60_mins = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 3600))"
-        avg_hourly_event_count_last_7_days = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), 604800))"  # 604800 = 3600 * 24 * 7
+        date_period = end - start
+
+        if date_period.days >= 7:
+            overall_event_count_seconds = 3600 * 24 * 7
+            recent_event_count_seconds = 3600
+        else:
+            overall_event_count_seconds = int(date_period.total_seconds())
+            recent_event_count_seconds = floor(overall_event_count_seconds * 0.01)
+
+        recent_event_count = (
+            f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {recent_event_count_seconds}))"
+        )
+        overall_event_count = f"countIf(lessOrEquals(minus(now(), {timestamp_column}), {overall_event_count_seconds}))"
 
         max_relative_volume_weight = 10
         if relative_volume_weight > max_relative_volume_weight:
             relative_volume_weight = max_relative_volume_weight
-        relative_volume_score = (
-            f"divide({event_count_60_mins}, plus({avg_hourly_event_count_last_7_days}, 1))"
-        )
+        relative_volume_score = f"divide({recent_event_count}, plus({overall_event_count}, 1))"
         scaled_relative_volume_score = f"divide(multiply({relative_volume_weight}, {relative_volume_score}), {max_relative_volume_weight})"
 
         if not params.normalize:
@@ -711,8 +718,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
     }
 
     @property
-    def dataset(self) -> snuba.Dataset:
-        return snuba.Dataset.Events
+    def dataset(self) -> Dataset:
+        return Dataset.Events
 
     def query(
         self,

@@ -1,7 +1,11 @@
+from typing import List
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +14,11 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.team import TeamSerializer
+from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.team_examples import TeamExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import (
     ExternalActor,
     OrganizationMember,
@@ -57,25 +65,36 @@ class TeamPostSerializer(serializers.Serializer):
         return attrs
 
 
+@extend_schema(tags=["Teams"])
 @region_silo_endpoint
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
+    public = {"GET", "POST"}
     permission_classes = (OrganizationTeamsPermission,)
 
     def team_serializer_for_post(self):
         # allow child routes to supply own serializer, used in SCIM teams route
         return TeamSerializer()
 
+    @extend_schema(
+        operation_id="List an Organization's Teams",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            TeamParams.DETAILED,
+            CursorQueryParam,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrgTeamResponse", List[TeamSerializerResponse]
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TeamExamples.LIST_ORG_TEAMS,
+    )
     def get(self, request: Request, organization) -> Response:
         """
-        List an Organization's Teams
-        ````````````````````````````
-
-        Return a list of teams bound to a organization.
-
-        :pparam string organization_slug: the slug of the organization for
-                                          which the teams should be listed.
-        :param string detailed: Specify "0" to return team details that do not include projects
-        :auth: required
+        Returns a list of teams bound to a organization.
         """
         # TODO(dcramer): this should be system-wide default for organization
         # based endpoints
@@ -114,6 +133,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 elif key == "slug":
                     queryset = queryset.filter(slug__in=value)
                 elif key == "id":
+                    try:
+                        value = [int(item) for item in value]
+                    except ValueError:
+                        raise ParseError(detail="Invalid id value")
                     queryset = queryset.filter(id__in=value)
                 else:
                     queryset = queryset.none()
@@ -133,21 +156,27 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     def should_add_creator_to_team(self, request: Request):
         return request.user.is_authenticated
 
+    @extend_schema(
+        operation_id="Create a New Team",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.name("The name for the team.", required=True),
+            GlobalParams.slug(
+                "Optional slug for the team. If not provided a slug is generated from the name."
+            ),
+        ],
+        request=TeamPostSerializer,
+        responses={
+            201: TeamSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: OpenApiResponse(description="A team with this slug already exists."),
+        },
+        examples=TeamExamples.CREATE_TEAM,
+    )
     def post(self, request: Request, organization, **kwargs) -> Response:
         """
-        Create a new Team
-        ``````````````````
-
-        Create a new team bound to an organization.  Only the name of the
-        team is needed to create it, the slug can be auto generated.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          team should be created for.
-        :param string name: the optional name of the team.
-        :param string slug: the optional slug for this team.  If
-                            not provided it will be auto generated from the
-                            name.
-        :auth: required
+        Create a new team bound to an organization.
         """
         serializer = TeamPostSerializer(data=request.data)
 

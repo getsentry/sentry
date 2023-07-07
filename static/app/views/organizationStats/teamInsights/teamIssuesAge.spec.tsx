@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamIssuesAge from 'sentry/views/organizationStats/teamInsights/teamIssuesAge';
 
 describe('TeamIssuesAge', () => {
-  it('should render graph with table of oldest issues', () => {
+  it('should render graph with table of oldest issues', async () => {
     const team = TestStubs.Team();
     const organization = TestStubs.Organization();
     const timeToResolutionApi = MockApiClient.addMockResponse({
@@ -27,7 +27,7 @@ describe('TeamIssuesAge', () => {
     render(<TeamIssuesAge organization={organization} teamSlug={team.slug} />);
 
     // Title
-    expect(screen.getByText('RequestError')).toBeInTheDocument();
+    expect(await screen.findByText('RequestError')).toBeInTheDocument();
     // Event count
     expect(screen.getByText('327k')).toBeInTheDocument();
     // User count

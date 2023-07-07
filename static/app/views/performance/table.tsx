@@ -12,10 +12,11 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconStar} from 'sentry/icons';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import DiscoverQuery, {
@@ -42,6 +43,7 @@ import {
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  getProject,
   getProjectID,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
@@ -64,6 +66,19 @@ type State = {
   transactionThresholdMetric: TransactionThresholdMetric | undefined;
   widths: number[];
 };
+
+function getProjectFirstEventGroup(project: Project): '14d' | '30d' | '>30d' {
+  const fourteen_days_ago = new Date(+new Date() - 12096e5);
+  const thirty_days_ago = new Date(+new Date() - 25920e5);
+  const firstEventDate = new Date(project?.firstEvent ?? '');
+  if (firstEventDate > fourteen_days_ago) {
+    return '14d';
+  }
+  if (firstEventDate > thirty_days_ago) {
+    return '30d';
+  }
+  return '>30d';
+}
 class _Table extends Component<Props, State> {
   state: State = {
     widths: [],
@@ -71,6 +86,55 @@ class _Table extends Component<Props, State> {
     transactionThreshold: undefined,
     transactionThresholdMetric: undefined,
   };
+
+  componentDidMount(): void {
+    const {organization} = this.props;
+    if (!this.tableMetricSet) {
+      this.tableMetricSet = true;
+      trackAnalytics('performance_views.landing.table.seen', {
+        organization,
+      });
+    }
+  }
+  unparameterizedMetricSet = false;
+  tableMetricSet = false;
+
+  sendUnparameterizedAnalytic(project: Project | undefined) {
+    const {organization, eventView} = this.props;
+    const statsPeriod = eventView.statsPeriod ?? 'other';
+    const projectMetadata = this.getProjectWithinMetadata(project);
+
+    trackAnalytics('performance_views.landing.table.unparameterized', {
+      organization,
+      first_event: projectMetadata.firstEventWithin,
+      sent_transaction: projectMetadata.sentTransaction,
+      single_project: projectMetadata.isSingleProject,
+      stats_period: statsPeriod,
+      hit_multi_project_cap: projectMetadata.isAtMultiCap,
+    });
+  }
+
+  /**
+   * Used for cluster warning and analytics.
+   */
+  getProjectWithinMetadata(project: Project | undefined) {
+    let firstEventWithin: 'none' | '14d' | '30d' | '>30d' = 'none';
+    if (!project) {
+      return {
+        isSingleProject: false,
+        firstEventWithin,
+        sentTransaction: false,
+        isAtMultiCap: false,
+      };
+    }
+    firstEventWithin = getProjectFirstEventGroup(project);
+    return {
+      isSingleProject: true,
+      firstEventWithin,
+      sentTransaction: project?.firstTransactionEvent ?? false,
+      isAtMultiCap: false,
+    };
+  }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
@@ -162,9 +226,11 @@ class _Table extends Component<Props, State> {
     ];
 
     const cellActions = withStaticFilters ? [] : allowActions;
+    const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
 
     if (field === 'transaction') {
-      const projectID = getProjectID(dataRow, projects);
+      const project = getProject(dataRow, projects);
+      const projectID = project?.id;
       const summaryView = eventView.clone();
       if (dataRow['http.method']) {
         summaryView.additionalConditions.setFilterValues('http.method', [
@@ -172,7 +238,10 @@ class _Table extends Component<Props, State> {
         ]);
       }
       summaryView.query = summaryView.getQueryWithAdditionalConditions();
-      const isUnparameterizedRow = dataRow.transaction === UNPARAMETERIZED_TRANSACTION;
+      if (isUnparameterizedRow && !this.unparameterizedMetricSet) {
+        this.sendUnparameterizedAnalytic(project);
+        this.unparameterizedMetricSet = true;
+      }
       const target = isUnparameterizedRow
         ? createUnnamedTransactionsDiscoverTarget({
             organization,
@@ -205,6 +274,29 @@ class _Table extends Component<Props, State> {
 
     if (field.startsWith('team_key_transaction')) {
       // don't display per cell actions for team_key_transaction
+
+      const project = getProject(dataRow, projects);
+      const projectMetadata = this.getProjectWithinMetadata(project);
+      if (isUnparameterizedRow) {
+        if (projectMetadata.firstEventWithin === '14d') {
+          return (
+            <Tooltip
+              title={t(
+                'Transactions are grouped together until we receive enough data to identify parameter patterns.'
+              )}
+            >
+              <UnparameterizedTooltipWrapper data-test-id="unparameterized-indicator">
+                <LoadingIndicator
+                  mini
+                  size={16}
+                  style={{margin: 0, width: 16, height: 16}}
+                />
+              </UnparameterizedTooltipWrapper>
+            </Tooltip>
+          );
+        }
+        return <span />;
+      }
       return rendered;
     }
 
@@ -477,6 +569,12 @@ function Table(props: Omit<Props, 'summaryConditions'> & {summaryConditions?: st
 // rows, which have 2px padding + 1px border.
 const TeamKeyTransactionWrapper = styled('div')`
   padding: 3px;
+`;
+
+const UnparameterizedTooltipWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
 export default Table;
