@@ -1,7 +1,7 @@
 import re
 
 from django.db import IntegrityError, transaction
-from django.db.models import Case, When
+from django.db.models import Case, IntegerField, When
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -80,7 +80,11 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         elif sort_by == "mydashboards":
             order_by = [
-                Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
+                Case(
+                    When(created_by_id=request.user.id, then=-1),
+                    default="created_by_id",
+                    output_field=IntegerField(),
+                ),
                 "-date_added",
             ]
 
