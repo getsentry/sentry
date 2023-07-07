@@ -726,12 +726,12 @@ def assemble_artifacts(
 
         # Assemble the chunks into a temporary file
         assemble_result = assemble_file(
-            assemble_task,
-            organization,
-            archive_filename,
-            checksum,
-            chunks,
-            file_type,
+            task=assemble_task,
+            org_or_project=organization,
+            name=archive_filename,
+            checksum=checksum,
+            chunks=chunks,
+            file_type=file_type,
         )
 
         # If not file has been created this means that the file failed to
@@ -742,7 +742,12 @@ def assemble_artifacts(
 
         # We first want to prepare the post assembler which will take care of validating the archive.
         post_assembler = prepare_post_assembler(
-            assemble_result, organization, version, dist, project_ids, upload_as_artifact_bundle
+            assemble_result=assemble_result,
+            organization=organization,
+            release=version,
+            dist=dist,
+            project_ids=project_ids,
+            upload_as_artifact_bundle=upload_as_artifact_bundle,
         )
 
         # Once the archive is valid, the post assembler can run the post assembling job.
