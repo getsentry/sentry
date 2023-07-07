@@ -1,3 +1,5 @@
+import {LocationDescriptorObject} from 'history';
+
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -18,14 +20,16 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
     datetime.period = DEFAULT_STATS_PERIOD;
     datetime.start = null;
     datetime.end = null;
+    const query: LocationDescriptorObject['query'] = {
+      ...location.query,
+      statsPeriod: DEFAULT_STATS_PERIOD,
+    };
+    delete query.start;
+    delete query.end;
+
     router.replace({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        statsPeriod: DEFAULT_STATS_PERIOD,
-        start: null,
-        end: null,
-      },
+      query,
     });
   }
 
