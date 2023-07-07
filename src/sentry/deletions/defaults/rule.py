@@ -7,9 +7,9 @@ class RuleDeletionTask(ModelDeletionTask):
         from sentry.models.rulefirehistory import RuleFireHistory
 
         return [
-            ModelRelation(GroupRuleStatus, {"rule": instance}),
-            ModelRelation(RuleFireHistory, {"rule": instance}),
-            ModelRelation(RuleActivity, {"rule": instance}),
+            ModelRelation(GroupRuleStatus, {"rule_id": instance.id}),
+            ModelRelation(RuleFireHistory, {"rule_id": instance.id}),
+            ModelRelation(RuleActivity, {"rule_id": instance.id}),
         ]
 
     def mark_deletion_in_progress(self, instance_list):

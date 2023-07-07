@@ -7,12 +7,12 @@ from sentry.models import (
     RuleStatus,
 )
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.tasks.deletion.scheduled import run_deletion
+from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test()
 class DeleteRuleTest(TestCase):
     def test_simple(self):
         project = self.create_project()
@@ -27,11 +27,10 @@ class DeleteRuleTest(TestCase):
         )
         rule_activity = RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
 
-        deletion = RegionScheduledDeletion.schedule(rule, days=0)
-        deletion.update(in_progress=True)
+        RegionScheduledDeletion.schedule(rule, days=0)
 
         with self.tasks():
-            run_deletion(deletion.id)
+            run_scheduled_deletions()
 
         assert not Rule.objects.filter(
             id=rule.id, project=project, status=RuleStatus.PENDING_DELETION
