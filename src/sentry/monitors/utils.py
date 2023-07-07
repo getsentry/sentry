@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from django.db import transaction
 from django.utils import timezone
@@ -46,7 +46,7 @@ def valid_duration(duration: Optional[int]) -> bool:
 # Returns serializer appropriate group_ids corresponding with check-in trace ids
 def fetch_associated_groups(
     trace_ids: List[str], organization_id: int, project_id: int, start: datetime, end
-) -> Dict[str, List[int]]:
+) -> Dict[str, Set[int]]:
     from snuba_sdk import (
         Column,
         Condition,
@@ -116,14 +116,14 @@ def fetch_associated_groups(
         },
     )
 
-    trace_groups: Dict[str, List[int]] = defaultdict(list)
+    trace_groups: Dict[str, Set[int]] = defaultdict(set)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
     if "error" not in result:
         for event in result["data"]:
             trace_id_event_name = Columns.TRACE_ID.value.event_name
             assert trace_id_event_name is not None
-            trace_groups[event[trace_id_event_name]].append(event["group_id"])
+            trace_groups[event[trace_id_event_name]].add(event["group_id"])
 
     return trace_groups
 
