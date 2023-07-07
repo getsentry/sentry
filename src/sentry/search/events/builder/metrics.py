@@ -39,7 +39,7 @@ from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
@@ -95,8 +95,11 @@ class MetricsQueryBuilder(QueryBuilder):
     def _resolve_on_demand_spec(
         self, selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
+        if not is_on_demand_query(self.dataset, query):
+            return None
+
         field = selected_cols[0] if selected_cols else None
-        if not self.is_performance or not self.is_alerts_query or not field:
+        if not self.is_alerts_query or not field:
             return None
         try:
             return OndemandMetricSpec(field, query)

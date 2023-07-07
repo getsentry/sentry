@@ -133,13 +133,16 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def is_on_demand_query(snuba_query: SnubaQuery) -> bool:
+def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
     """Returns ``True`` if the snuba query can't be supported by standard metrics."""
 
-    return (
-        snuba_query.dataset == Dataset.PerformanceMetrics.value
-        and "transaction.duration" in snuba_query.query
-    )
+    return is_on_demand_query(snuba_query.dataset, snuba_query.query)
+
+
+def is_on_demand_query(dataset: Dataset, query: str) -> bool:
+    """Returns ``True`` if the dataset and query combination can't be supported by standard metrics."""
+
+    return dataset is Dataset.PerformanceMetrics and "transaction.duration" in query
 
 
 class OndemandMetricSpec:
