@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
@@ -40,19 +40,19 @@ function renderMockRequests({
   if (project.slug === 'javascript-vue') {
     const products = location?.query.product ?? [];
     if (
-      products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-      products.includes(PRODUCT.SESSION_REPLAY)
+      products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+      products.includes(ProductSolution.SESSION_REPLAY)
     ) {
       MockApiClient.addMockResponse({
         url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-performance-and-replay/`,
         body: {html: 'javascript-vue-with-error-monitoring-performance-and-replay'},
       });
-    } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
+    } else if (products.includes(ProductSolution.PERFORMANCE_MONITORING)) {
       MockApiClient.addMockResponse({
         url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-and-performance/`,
         body: {html: 'javascript-vue-with-error-monitoring-and-performance'},
       });
-    } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
+    } else if (products.includes(ProductSolution.SESSION_REPLAY)) {
       MockApiClient.addMockResponse({
         url: `/projects/${orgSlug}/${project.slug}/docs/javascript-vue-with-error-monitoring-and-replay/`,
         body: {html: 'javascript-vue-with-error-monitoring-and-replay'},
@@ -115,7 +115,7 @@ describe('Onboarding Setup Docs', function () {
 
     expect(
       screen.queryByTestId(
-        `product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`
+        `product-${ProductSolution.ERROR_MONITORING}-${ProductSolution.PERFORMANCE_MONITORING}-${ProductSolution.SESSION_REPLAY}`
       )
     ).not.toBeInTheDocument();
   });
@@ -125,7 +125,12 @@ describe('Onboarding Setup Docs', function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         router: {
           location: {
-            query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
           },
         },
         projects: [
@@ -183,7 +188,7 @@ describe('Onboarding Setup Docs', function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         router: {
           location: {
-            query: {product: [PRODUCT.PERFORMANCE_MONITORING]},
+            query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
           },
         },
         projects: [
@@ -235,7 +240,7 @@ describe('Onboarding Setup Docs', function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         router: {
           location: {
-            query: {product: [PRODUCT.SESSION_REPLAY]},
+            query: {product: [ProductSolution.SESSION_REPLAY]},
           },
         },
         projects: [
@@ -341,7 +346,12 @@ describe('Onboarding Setup Docs', function () {
       const {router, route, routerContext, organization, project} = initializeOrg({
         router: {
           location: {
-            query: {product: [PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]},
+            query: {
+              product: [
+                ProductSolution.PERFORMANCE_MONITORING,
+                ProductSolution.SESSION_REPLAY,
+              ],
+            },
           },
         },
         projects: [
@@ -412,7 +422,7 @@ describe('Onboarding Setup Docs', function () {
 
       // update query in URL
       router.location.query = {
-        product: [PRODUCT.SESSION_REPLAY],
+        product: [ProductSolution.SESSION_REPLAY],
       };
       rerender(
         <OnboardingContextProvider>

@@ -21,7 +21,7 @@ import {
   migratedDocs,
   SdkDocumentation,
 } from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
@@ -142,7 +142,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     : undefined;
 
   const products = useMemo(
-    () => (location.query.product ?? []) as PRODUCT[],
+    () => (location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
 
