@@ -64,7 +64,7 @@ class Timer:
             extra = {}
 
         extra["time"] = self.current()
-        extra["timerName"] = (self.name,)
+        extra["timerName"] = self.name
 
         self.logger.log(level=level, msg=f"Timer::{self.name}", extra=extra)
 

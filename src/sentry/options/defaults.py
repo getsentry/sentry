@@ -1386,4 +1386,4 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL,
 )
-register("dynamic-sampling.timing.get_active_orgs_with_project_counts.num_orgs", default=True)
+register("dynamic-sampling.timing.get_active_orgs_with_project_counts.num_orgs", default=1000)

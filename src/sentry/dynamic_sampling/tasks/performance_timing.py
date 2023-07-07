@@ -47,15 +47,11 @@ def time_active_orgs_with_project_counts():
     t = Timer("get_active_orgs_with_projects_counts")
     t.start()
     org_count = 0
-    proj_count = 0
     for orgs in get_active_orgs_with_projects_counts(num_orgs):
         org_count += len(orgs)
-        for org_projects in orgs:
-            proj_count += org_projects
         t.log_current(
             extra={
                 "orgs": org_count,
-                "projects": proj_count,
                 "maxOrgsPerQuery": num_orgs,
             }
         )
