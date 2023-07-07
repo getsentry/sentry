@@ -161,7 +161,9 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             return False
         return True
 
-    def get_client(self) -> VstsApiClient:
+    def get_client(self, base_url: str | None = None) -> VstsApiClient:
+        if base_url is None:
+            base_url = self.instance
         if SiloMode.get_current_mode() != SiloMode.REGION:
             if self.default_identity is None:
                 self.default_identity = self.get_default_identity()
@@ -172,7 +174,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         if self.org_integration.default_auth_id is None:
             raise Exception("self.org_integration.default_auth_id is not defined")
         return VstsApiClient(
-            base_url=self.instance,
+            base_url=base_url,
             oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
             org_integration_id=self.org_integration.id,
             identity_id=self.org_integration.default_auth_id,
