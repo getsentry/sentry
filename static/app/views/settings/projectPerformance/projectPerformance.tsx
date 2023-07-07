@@ -49,6 +49,8 @@ export const allowedSizeValues: number[] = [
   2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
 ]; // 50kb to 10MB in bytes
 
+export const projectDetectorSettingsId = 'detector-threshold-settings';
+
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
 
 enum DetectorConfigAdmin {
@@ -807,7 +809,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
-                  <div>
+                  <div id={projectDetectorSettingsId}>
                     <StyledPanelHeader>
                       {t('Performance Issues - Detector Threshold Settings')}
                     </StyledPanelHeader>
