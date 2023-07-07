@@ -1002,7 +1002,6 @@ module = [
     "sentry.web.frontend.debug.debug_mfa_added_email",
     "sentry.web.frontend.debug.debug_mfa_removed_email",
     "sentry.web.frontend.debug.debug_new_processing_issues_email",
-    "sentry.web.frontend.debug.debug_onboarding_continuation_email",
     "sentry.web.frontend.debug.debug_organization_integration_request",
     "sentry.web.frontend.debug.debug_organization_invite_request",
     "sentry.web.frontend.debug.debug_organization_join_request",

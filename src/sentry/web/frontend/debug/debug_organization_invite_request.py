@@ -14,7 +14,7 @@ class DebugOrganizationInviteRequestEmailView(View):
         pending_member = OrganizationMember(
             email="test@gmail.com", organization=org, inviter_id=requester.id
         )
-        recipient = User(name="James Bond", actor_id=1)
+        recipient = User(name="James Bond")
         recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = InviteRequestNotification(pending_member, requester)
