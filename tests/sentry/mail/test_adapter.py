@@ -664,6 +664,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         msg = mail.outbox[-1]
 
         expected_url = f"/organizations/{organization.slug}/issues/{event.group.id}/replays/?referrer=issue_alert-email"
+
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert isinstance(msg.alternatives[0][0], str)
         assert expected_url in msg.alternatives[0][0]
 
     def test_slack_link(self):
