@@ -205,7 +205,9 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   // This is a feature flag that is currently only enabled for a subset of internal users until the feature is fully implemented,
   // but the purpose of the feature is to make the product selection feature in documents available to all users
   // and guide them to upgrade to a plan if one of the products is not available on their current plan.
-  const gettingStartedDocWithProductSelection = true;
+  const gettingStartedDocWithProductSelection = !!organization?.features.includes(
+    'getting-started-doc-with-product-selection'
+  );
 
   const recentCreatedProject = useRecentCreatedProject({
     orgSlug: organization.slug,
