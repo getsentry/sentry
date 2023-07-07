@@ -1,10 +1,10 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {AriaTabListProps, useTabList} from '@react-aria/tabs';
+import {AriaTabListOptions, useTabList} from '@react-aria/tabs';
 import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
-import {useTabListState} from '@react-stately/tabs';
+import {TabListStateOptions, useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
@@ -81,7 +81,9 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-interface TabListProps extends AriaTabListProps<TabListItemProps> {
+interface TabListProps
+  extends AriaTabListOptions<TabListItemProps>,
+    TabListStateOptions<TabListItemProps> {
   className?: string;
   hideBorder?: boolean;
   outerWrapStyles?: React.CSSProperties;
@@ -103,8 +105,8 @@ function BaseTabList({
     value,
     defaultValue,
     onChange,
-    orientation,
     disabled,
+    orientation = 'horizontal',
     keyboardActivation = 'manual',
     ...otherRootProps
   } = rootProps;
