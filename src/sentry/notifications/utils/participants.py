@@ -52,6 +52,7 @@ from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user.model import UserOrderBy
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.integrations import ExternalProviders
@@ -468,10 +469,9 @@ def get_fallthrough_recipients(
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         return user_service.get_many(
             filter={
-                "user_ids": project.member_set.order_by("-user__last_active").values_list(
-                    "user_id", flat=True
-                )
-            }
+                "user_ids": project.member_set.values_list("user_id", flat=True),
+                "order_by": UserOrderBy.LAST_ACTIVE_DESC,
+            },
         )[:FALLTHROUGH_NOTIFICATION_LIMIT]
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
