@@ -3,7 +3,7 @@ import re
 from typing import Any, List
 
 import sentry_sdk
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils.text import slugify
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
@@ -33,10 +33,11 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams, SCIMParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
+from ...signals import team_created
+from ...utils.snowflake import MaxSnowflakeRetryError
 from .constants import (
     SCIM_400_INTEGRITY_ERROR,
     SCIM_400_INVALID_FILTER,
@@ -186,13 +187,22 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            team = organization_service.create_team(
-                organization_id=organization.id,
-                slug=result["slug"],
-                name=result.get("name"),
-                idp_provisioned=result.get("idp_provisioned", False),
-            )
-            if team is None:
+            try:
+                with transaction.atomic(router.db_for_write(Team)):
+                    team = Team.objects.create(
+                        name=result.get("name") or result["slug"],
+                        slug=result["slug"],
+                        idp_provisioned=result.get("idp_provisioned", False),
+                        organization_id=organization.id,
+                    )
+
+                team_created.send_robust(
+                    organization_id=organization.id,
+                    user_id=request.user.id,
+                    team_id=team.id,
+                    sender=None,
+                )
+            except (IntegrityError, MaxSnowflakeRetryError):
                 return Response(
                     {
                         "non_field_errors": [CONFLICTING_SLUG_ERROR],
