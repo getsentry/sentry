@@ -93,20 +93,19 @@ def _index_urls_in_bundle(
         for info in archive.get_files().values():
             if url := info.get("url"):
                 urls_to_index.append(
-                    {
+                    ArtifactBundleIndex(
                         # key:
-                        "organization_id": organization_id,
-                        "release_name": release,
-                        "dist_name": dist,
-                        "url": url,
+                        organization_id=organization_id,
+                        release_name=release,
+                        dist_name=dist,
+                        url=url,
                         # value:
-                        "artifact_bundle_id": artifact_bundle.id,
+                        artifact_bundle_id=artifact_bundle.id,
                         # metadata:
-                        "date_last_modified": artifact_bundle.date_last_modified,
-                        "date_added": artifact_bundle.date_added,
-                    }
+                        date_last_modified=artifact_bundle.date_last_modified,
+                        date_added=artifact_bundle.date_added,
+                    )
                 )
-                urls_to_index.append(url)
     finally:
         archive.close()
 
