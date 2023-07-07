@@ -5,7 +5,7 @@ from sentry.testutils.cases import TestMigrations
 
 
 class MigrateSlugifyInvalidMonitorTest(TestMigrations):
-    migrate_from = "0506_slugify_invalid_monitors"
+    migrate_from = "0506_null_boolean_fields"
     migrate_to = "0507_slugify_invalid_monitors"
 
     def setup_before_migration(self, apps):

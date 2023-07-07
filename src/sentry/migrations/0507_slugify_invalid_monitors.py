@@ -37,7 +37,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0506_slugify_invalid_monitors"),
+        ("sentry", "0506_null_boolean_fields"),
     ]
 
     operations = [
