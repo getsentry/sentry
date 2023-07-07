@@ -458,7 +458,7 @@ class MetricChart extends PureComponent<Props, State> {
     return (
       <ChartPanel>
         <PanelBody withPadding>
-          <Placeholder height="200px">{placeholderText}</Placeholder>
+          <TriggerChartPlaceholder>{placeholderText}</TriggerChartPlaceholder>
         </PanelBody>
       </ChartPanel>
     );
@@ -615,4 +615,10 @@ const ValueItem = styled('div')`
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
+`;
+
+const TriggerChartPlaceholder = styled(Placeholder)`
+  height: 200px;
+  text-align: center;
+  padding: 20px;
 `;
