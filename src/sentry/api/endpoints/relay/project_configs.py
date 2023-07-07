@@ -60,13 +60,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
             metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
             metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
 
-            measurements = res["measurements"]
-            metricsConditionalTagging = res["metricsConditionalTagging"]
-
             if global_requested:
                 global_config = {
-                    "measurements": measurements,
-                    "metricsConditionalTagging": metricsConditionalTagging,
+                    "measurements": res["measurements"],
+                    "metricsConditionalTagging": res["metricsConditionalTagging"],
                 }
             else:
                 global_config = None
