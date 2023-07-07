@@ -17,6 +17,9 @@ from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
     ConsecutiveHTTPSpanDetectorExtended,
 )
+from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsDetectorExtended,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -264,6 +267,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
+        DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
+            "total_duration": 500,  # ms
+            "concurrency_threshold": 15,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+        },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
@@ -317,6 +326,7 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
+        NPlusOneAPICallsDetectorExtended(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),
