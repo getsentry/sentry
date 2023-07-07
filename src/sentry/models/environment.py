@@ -25,7 +25,7 @@ class EnvironmentProject(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     environment = FlexibleForeignKey("sentry.Environment")
-    is_hidden = models.NullBooleanField()
+    is_hidden = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

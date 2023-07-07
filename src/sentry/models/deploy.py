@@ -31,7 +31,7 @@ class Deploy(Model):
     date_started = models.DateTimeField(null=True, blank=True)
     name = models.CharField(max_length=64, null=True, blank=True)
     url = models.URLField(null=True, blank=True)
-    notified = models.NullBooleanField(null=True, db_index=True, default=False)
+    notified = models.BooleanField(null=True, db_index=True, default=False)
 
     class Meta:
         app_label = "sentry"

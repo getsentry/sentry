@@ -23,7 +23,7 @@ class AssistantActivity(Model):
     # Time the user dismissed the guide. If this is set, viewed_ts will be null.
     dismissed_ts = models.DateTimeField(null=True)
     # Whether the user found the guide useful.
-    useful = models.NullBooleanField(null=True)
+    useful = models.BooleanField(null=True)
 
     __repr__ = sane_repr("user", "guide_id", "viewed_ts", "dismissed_ts", "useful")
 
