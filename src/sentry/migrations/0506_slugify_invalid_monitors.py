@@ -12,12 +12,12 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 def migrate_monitor_slugs(apps, schema_editor):
     Monitor = apps.get_model("sentry", "Monitor")
 
-    slug_regex = re.compile("^[a-zA-Z/d_-]+")
+    slug_regex = re.compile("^[a-zA-Z\\d_-]+")
 
     for monitor in RangeQuerySetWrapperWithProgressBar(Monitor.objects.filter()):
         # Nothing to migrate if the monitor already has a valid slug
         monitor_slug = monitor.slug
-        if slug_regex.match(monitor.slug):
+        if slug_regex.match(monitor_slug):
             continue
 
         monitor.slug = slugify(monitor_slug)[:MAX_SLUG_LENGTH].strip("-")
