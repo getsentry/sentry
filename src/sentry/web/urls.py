@@ -16,6 +16,7 @@ from sentry.web.frontend.account_identity import AccountIdentityAssociateView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
+from sentry.web.frontend.auth_organization_id_login import AuthOrganizationIdentifierLoginView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.disabled_member_view import DisabledMemberView
@@ -203,6 +204,11 @@ urlpatterns += [
                     r"^login/(?P<organization_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-organization",
+                ),
+                re_path(
+                    r"^login/id/(?P<organization_id>[^/]+)/$",
+                    AuthOrganizationIdentifierLoginView.as_view(),
+                    name="sentry-auth-organization-id",
                 ),
                 re_path(
                     r"^link/(?P<organization_slug>[^/]+)/$",
