@@ -61,10 +61,10 @@ class JiraRequestParserTest(TestCase):
             ) as get_response_from_outbox_creation, patch.object(
                 parser, "get_response_from_control_silo"
             ) as mock_from_control:
+                assert not get_response_from_outbox_creation.called
                 assert not mock_from_control.called
                 parser.get_response()
                 assert mock_from_control.called
-                assert not get_response_from_outbox_creation.called
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_response_routing_to_region_sync(self):
