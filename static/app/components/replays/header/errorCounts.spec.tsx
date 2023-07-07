@@ -8,9 +8,7 @@ jest.mock('sentry/utils/useProjects');
 const mockUseProjects = useProjects as jest.MockedFunction<typeof useProjects>;
 
 const replayRecord = TestStubs.ReplayRecord();
-const organization = TestStubs.Organization({
-  features: 'session-replay-errors-tab',
-});
+const organization = TestStubs.Organization({});
 
 describe('ErrorCounts', () => {
   beforeEach(() => {

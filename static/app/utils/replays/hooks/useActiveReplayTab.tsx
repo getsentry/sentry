@@ -11,22 +11,12 @@ export enum TabKey {
   CONSOLE = 'console',
   DOM = 'dom',
   ERRORS = 'errors',
-  ISSUES = 'issues',
   MEMORY = 'memory',
   NETWORK = 'network',
   TRACE = 'trace',
 }
 
-function isReplayTab(tab: string, organization: Organization): tab is TabKey {
-  const hasErrorTab = organization.features.includes('session-replay-errors-tab');
-  if (tab === TabKey.ERRORS) {
-    // If the errors tab feature is enabled, then TabKey.ERRORS is valid.
-    return hasErrorTab;
-  }
-  if (tab === TabKey.ISSUES) {
-    // If the errors tab is enabled, then then Issues tab is invalid
-    return !hasErrorTab;
-  }
+function isReplayTab(tab: string, _organization: Organization): tab is TabKey {
   return Object.values<string>(TabKey).includes(tab);
 }
 
