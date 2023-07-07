@@ -16,7 +16,8 @@ from typing import (
 
 from typing_extensions import NotRequired
 
-from sentry.api.event_search import ParenExpression, SearchFilter, parse_search_query
+from sentry.api import event_search
+from sentry.api.event_search import ParenExpression, SearchFilter
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -214,7 +215,7 @@ class OndemandMetricSpec:
     def condition(self) -> RuleCondition:
         """Returns a condition that should be fulfilled for the on-demand metric to be extracted."""
 
-        tokens = parse_search_query(self._query)
+        tokens = event_search.parse_search_query(self._query)
         assert tokens, "This query should not use on demand metrics"
         return SearchQueryConverter(tokens).convert()
 
@@ -363,17 +364,19 @@ class SearchQueryConverter:
             raise ValueError(f"Unsupported operator {token.operator}")
 
         value = token.value.raw_value
-        if operator == "eq" and isinstance(value, str) and "*" in value:
+        if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
                 "name": _map_field_name(token.key.name),
                 "value": [value],
             }
         else:
+            if isinstance(value, str):
+                value = event_search.translate_escape_sequences(value)
             condition = {
                 "op": operator,
                 "name": _map_field_name(token.key.name),
-                "value": value,  # Already contains a correctly typed value.
+                "value": value,
             }
 
         if token.operator == "!=":
