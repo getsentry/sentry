@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
-import {MetricsChart} from 'sentry/views/performance/trends/changeExplorerUtils/metricsChart';
+import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {
   NormalizedTrendsTransaction,
@@ -143,7 +143,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
           {...props}
         />
       </GraphPanel>
-      <MetricsChart
+      <MetricsTable
         isLoading={isLoading}
         location={location}
         transaction={transaction}

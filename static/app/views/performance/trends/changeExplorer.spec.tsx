@@ -8,9 +8,9 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import {
   COLUMNS,
-  MetricsChart,
+  MetricsTable,
   renderBodyCell,
-} from 'sentry/views/performance/trends/changeExplorerUtils/metricsChart';
+} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {
   NormalizedTrendsTransaction,
   TrendChangeType,
@@ -130,7 +130,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     const data = initializeData();
 
     render(
-      <MetricsChart
+      <MetricsTable
         isLoading={false}
         location={data.location}
         trendFunction={TrendFunctionField.P50}
@@ -151,7 +151,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     const data = initializeData();
 
     render(
-      <MetricsChart
+      <MetricsTable
         isLoading={false}
         location={data.location}
         trendFunction={TrendFunctionField.P50}
@@ -185,7 +185,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     };
 
     render(
-      <MetricsChart
+      <MetricsTable
         isLoading={false}
         location={data.location}
         trendFunction={TrendFunctionField.P50}
@@ -241,7 +241,7 @@ describe('Performance > Trends > Performance Change Explorer', function () {
     });
 
     render(
-      <MetricsChart
+      <MetricsTable
         isLoading={false}
         location={data.location}
         trendFunction={TrendFunctionField.P50}

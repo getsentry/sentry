@@ -32,7 +32,7 @@ import {
   TrendView,
 } from 'sentry/views/performance/trends/types';
 
-type MetricsChartProps = {
+type MetricsTableProps = {
   isLoading: boolean;
   location: Location;
   organization: Organization;
@@ -41,36 +41,21 @@ type MetricsChartProps = {
   trendView: TrendView;
 };
 
-export function MetricsChart(props: MetricsChartProps) {
+const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95'];
+
+export function MetricsTable(props: MetricsTableProps) {
   const {trendFunction, transaction, trendView, organization, location, isLoading} =
     props;
-  let p50: TableDataRow[] = [];
-  let p95: TableDataRow[] = [];
-  let fieldsNeeded: AggregationKeyWithAlias[] = useMemo(() => ['tps'], []);
+  let p50: TableDataRow | undefined;
+  let p95: TableDataRow | undefined;
 
   if (trendFunction === TrendFunctionField.P50) {
     p50 = getTrendsRowData(transaction, TrendFunctionField.P50);
   }
 
-  fieldsNeeded = useMemo(
-    () =>
-      trendFunction !== TrendFunctionField.P50
-        ? [...fieldsNeeded, 'p50']
-        : [...fieldsNeeded],
-    [fieldsNeeded, trendFunction]
-  );
-
   if (trendFunction === TrendFunctionField.P95) {
     p95 = getTrendsRowData(transaction, TrendFunctionField.P95);
   }
-
-  fieldsNeeded = useMemo(
-    () =>
-      trendFunction !== TrendFunctionField.P95
-        ? [...fieldsNeeded, 'p95']
-        : [...fieldsNeeded],
-    [fieldsNeeded, trendFunction]
-  );
 
   const breakpoint = transaction.breakpoint;
 
@@ -79,146 +64,64 @@ export function MetricsChart(props: MetricsChartProps) {
   const breakpointTime = breakpoint ? new Date(breakpoint * 1000).toISOString() : '';
   const endTime = useMemo(() => moment().toISOString(), []);
 
-  const beforeLocation = {
-    ...location,
-    start: startTime,
-    end: breakpointTime,
-    statsPeriod: undefined,
-    dataset: DiscoverDatasets.METRICS,
-    sort: undefined,
-  };
-
-  const afterLocation = {
-    ...location,
-    start: breakpointTime,
-    end: endTime,
-    statsPeriod: undefined,
-    dataset: DiscoverDatasets.METRICS,
-    sort: undefined,
-  };
-
-  const beforeErrorsLocation = {
-    ...location,
-    start: startTime,
-    end: breakpointTime,
-    statsPeriod: undefined,
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
-    sort: undefined,
-    query: {
-      query: 'event.type:error transaction:' + transaction.transaction,
-      statsPeriod: undefined,
-      start: startTime,
-      end: breakpointTime,
-    },
-  };
-
-  const afterErrorsLocation = {
-    ...location,
-    start: breakpointTime,
-    end: endTime,
-    statsPeriod: undefined,
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
-    sort: undefined,
-    query: {
-      query: 'event.type:error transaction:' + transaction.transaction,
-      statsPeriod: undefined,
-      start: breakpointTime,
-      end: endTime,
-    },
-  };
-
-  const beforeEventView = getEventViewWithFields(
-    organization,
-    trendView,
-    startTime,
-    breakpointTime,
-    fieldsNeeded,
-    'transaction',
-    transaction.transaction,
-    false
+  const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery(
+    getQueryParams(
+      startTime,
+      breakpointTime,
+      fieldsNeeded,
+      'transaction',
+      DiscoverDatasets.METRICS,
+      organization,
+      trendView,
+      transaction.transaction,
+      location
+    )
   );
 
-  const afterEventView = getEventViewWithFields(
-    organization,
-    trendView,
-    breakpointTime,
-    endTime,
-    fieldsNeeded,
-    'transaction',
-    transaction.transaction,
-    false
+  const {data: afterBreakpoint, isLoading: isLoadingAfter} = useDiscoverQuery(
+    getQueryParams(
+      breakpointTime,
+      endTime,
+      fieldsNeeded,
+      'transaction',
+      DiscoverDatasets.METRICS,
+      organization,
+      trendView,
+      transaction.transaction,
+      location
+    )
   );
-
-  const beforeErrorsEventView = getEventViewWithFields(
-    organization,
-    trendView,
-    startTime,
-    breakpointTime,
-    ['count'],
-    'error',
-    transaction.transaction,
-    true
-  );
-
-  const afterErrorsEventView = getEventViewWithFields(
-    organization,
-    trendView,
-    breakpointTime,
-    endTime,
-    ['count'],
-    'error',
-    transaction.transaction,
-    true
-  );
-
-  const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery({
-    eventView: beforeEventView,
-    location: beforeLocation,
-    orgSlug: organization.slug,
-    transactionName: transaction.transaction,
-    transactionThresholdMetric: TransactionThresholdMetric.TRANSACTION_DURATION,
-    options: {
-      refetchOnWindowFocus: false,
-    },
-  });
-
-  const {data: afterBreakpoint, isLoading: isLoadingAfter} = useDiscoverQuery({
-    eventView: afterEventView,
-    location: afterLocation,
-    orgSlug: organization.slug,
-    transactionName: transaction.transaction,
-    transactionThresholdMetric: TransactionThresholdMetric.TRANSACTION_DURATION,
-    options: {
-      refetchOnWindowFocus: false,
-    },
-  });
 
   const {data: beforeBreakpointErrors, isLoading: isLoadingBeforeErrors} =
-    useDiscoverQuery({
-      eventView: beforeErrorsEventView,
-      location: beforeErrorsLocation,
-      orgSlug: organization.slug,
-      transactionName: transaction.transaction,
-      transactionThresholdMetric: TransactionThresholdMetric.TRANSACTION_DURATION,
-      options: {
-        refetchOnWindowFocus: false,
-      },
-    });
+    useDiscoverQuery(
+      getQueryParams(
+        startTime,
+        breakpointTime,
+        ['count'],
+        'error',
+        DiscoverDatasets.DISCOVER,
+        organization,
+        trendView,
+        transaction.transaction,
+        location
+      )
+    );
 
   const {data: afterBreakpointErrors, isLoading: isLoadingAfterErrors} = useDiscoverQuery(
-    {
-      eventView: afterErrorsEventView,
-      location: afterErrorsLocation,
-      orgSlug: organization.slug,
-      transactionName: transaction.transaction,
-      transactionThresholdMetric: TransactionThresholdMetric.TRANSACTION_DURATION,
-      options: {
-        refetchOnWindowFocus: false,
-      },
-    }
+    getQueryParams(
+      breakpointTime,
+      endTime,
+      ['count'],
+      'error',
+      DiscoverDatasets.DISCOVER,
+      organization,
+      trendView,
+      transaction.transaction,
+      location
+    )
   );
 
-  const throughput: TableDataRow[] = getEventsRowData(
+  const throughput: TableDataRow = getEventsRowData(
     'tps()',
     'Throughput',
     'ps',
@@ -228,29 +131,31 @@ export function MetricsChart(props: MetricsChartProps) {
     afterBreakpoint
   );
 
-  fieldsNeeded.includes('p50') &&
-    (p50 = getEventsRowData(
-      'p50()',
-      'P50',
-      'ms',
-      '-',
-      false,
-      beforeBreakpoint,
-      afterBreakpoint
-    ));
+  const p50Events = !p50
+    ? getEventsRowData(
+        'p50()',
+        'P50',
+        'ms',
+        '-',
+        false,
+        beforeBreakpoint,
+        afterBreakpoint
+      )
+    : p50;
 
-  fieldsNeeded.includes('p95') &&
-    (p95 = getEventsRowData(
-      'p95()',
-      'P95',
-      'ms',
-      '-',
-      false,
-      beforeBreakpoint,
-      afterBreakpoint
-    ));
+  const p95Events = !p95
+    ? getEventsRowData(
+        'p95()',
+        'P95',
+        'ms',
+        '-',
+        false,
+        beforeBreakpoint,
+        afterBreakpoint
+      )
+    : p95;
 
-  const errors: TableDataRow[] = getEventsRowData(
+  const errors: TableDataRow = getEventsRowData(
     'count()',
     'Errors',
     '',
@@ -264,7 +169,7 @@ export function MetricsChart(props: MetricsChartProps) {
 
   return (
     <GridEditable
-      data={[...throughput, ...p50, ...p95, ...errors]}
+      data={[throughput, p50Events, p95Events, errors]}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{
@@ -291,55 +196,49 @@ function getEventsRowData(
   wholeNumbers: boolean,
   beforeData?: TableData,
   afterData?: TableData
-): TableDataRow[] {
+): TableDataRow {
   if (beforeData?.data[0][field] && afterData?.data[0][field]) {
-    return [
-      {
-        metric: rowTitle,
-        before: !wholeNumbers
-          ? toFormattedNumber(beforeData.data[0][field], 1) + ' ' + suffix
-          : beforeData.data[0][field],
-        after: !wholeNumbers
-          ? toFormattedNumber(afterData.data[0][field], 1) + ' ' + suffix
-          : afterData.data[0][field],
-        change: formatPercentage(
-          percentChange(
-            beforeData.data[0][field] as number,
-            afterData.data[0][field] as number
-          ),
-          1
-        ),
-      },
-    ];
-  }
-  return [
-    {
+    return {
       metric: rowTitle,
-      before: nullValue,
-      after: nullValue,
-      change: '-',
-    },
-  ];
+      before: !wholeNumbers
+        ? toFormattedNumber(beforeData.data[0][field], 1) + ' ' + suffix
+        : beforeData.data[0][field],
+      after: !wholeNumbers
+        ? toFormattedNumber(afterData.data[0][field], 1) + ' ' + suffix
+        : afterData.data[0][field],
+      change: formatPercentage(
+        percentChange(
+          beforeData.data[0][field] as number,
+          afterData.data[0][field] as number
+        ),
+        1
+      ),
+    };
+  }
+  return {
+    metric: rowTitle,
+    before: nullValue,
+    after: nullValue,
+    change: '-',
+  };
 }
 
 function getTrendsRowData(
   aggregateData: TrendsTransaction | undefined,
   metric: TrendFunctionField
-): TableDataRow[] {
+): TableDataRow | undefined {
   if (aggregateData) {
-    return [
-      {
-        metric: metric.toString().toUpperCase(),
-        before: aggregateData?.aggregate_range_1.toFixed(1) + ' ms',
-        after: aggregateData?.aggregate_range_2.toFixed(1) + ' ms',
-        change:
-          aggregateData?.trend_percentage !== 1
-            ? formatPercentage(aggregateData?.trend_percentage! - 1, 1)
-            : '-',
-      },
-    ];
+    return {
+      metric: metric.toString().toUpperCase(),
+      before: aggregateData?.aggregate_range_1.toFixed(1) + ' ms',
+      after: aggregateData?.aggregate_range_2.toFixed(1) + ' ms',
+      change:
+        aggregateData?.trend_percentage !== 1
+          ? formatPercentage(aggregateData?.trend_percentage! - 1, 1)
+          : '-',
+    };
   }
-  return [];
+  return undefined;
 }
 
 function getEventViewWithFields(
@@ -350,17 +249,16 @@ function getEventViewWithFields(
   fields: AggregationKeyWithAlias[],
   eventType: string,
   transactionName: string,
-  errors: boolean
+  dataset: DiscoverDatasets
 ): EventView {
-  const newEventView = new EventView({
-    ...eventView,
-    start,
-    end,
-    statsPeriod: undefined,
-    dataset: errors ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.METRICS,
-    query: 'event.type:' + eventType + ' transaction:' + transactionName,
-    additionalConditions: new MutableSearch(''),
-  });
+  const newEventView = eventView.clone();
+  newEventView.start = start;
+  newEventView.end = end;
+  newEventView.statsPeriod = undefined;
+  newEventView.dataset = dataset;
+  newEventView.query = 'event.type:' + eventType + ' transaction:' + transactionName;
+  newEventView.additionalConditions = new MutableSearch('');
+
   const chartFields: QueryFieldValue[] = fields.map(field => {
     return {
       kind: 'function',
@@ -427,6 +325,55 @@ export function renderBodyCell(
       </ExplorerText>
     </Container>
   );
+}
+
+function getQueryParams(
+  startTime: string,
+  endTime: string,
+  fields: AggregationKeyWithAlias[],
+  query: string,
+  dataset: DiscoverDatasets,
+  organization: Organization,
+  eventView: EventView,
+  transactionName: string,
+  location: Location
+) {
+  const newLocation = {
+    ...location,
+    start: startTime,
+    end: endTime,
+    statsPeriod: undefined,
+    dataset,
+    sort: undefined,
+    query: {
+      query: 'event.type:' + query + ' transaction:' + transactionName,
+      statsPeriod: undefined,
+      start: startTime,
+      end: endTime,
+    },
+  };
+
+  const newEventView = getEventViewWithFields(
+    organization,
+    eventView,
+    startTime,
+    endTime,
+    fields,
+    query,
+    transactionName,
+    dataset
+  );
+
+  return {
+    eventView: newEventView,
+    location: newLocation,
+    orgSlug: organization.slug,
+    transactionName,
+    transactionThresholdMetric: TransactionThresholdMetric.TRANSACTION_DURATION,
+    options: {
+      refetchOnWindowFocus: false,
+    },
+  };
 }
 
 type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
