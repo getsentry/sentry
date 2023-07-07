@@ -1,6 +1,6 @@
-import datetime
 import logging
 import uuid
+from datetime import datetime, timedelta
 from typing import Dict, Mapping, Optional
 
 import msgpack
@@ -303,7 +303,7 @@ def _process_message(wrapper: Dict) -> None:
                 date_added = start_time
                 duration = validated_params["duration"]
                 if duration is not None:
-                    date_added -= datetime.timedelta(milliseconds=duration)
+                    date_added -= timedelta(milliseconds=duration)
 
                 expected_time = None
                 if monitor_environment.last_checkin:
