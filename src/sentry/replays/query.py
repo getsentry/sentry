@@ -22,7 +22,6 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
@@ -74,24 +73,24 @@ def query_replays_collection(
     paginators = make_pagination_values(limit, offset)
 
     # Attempt to eager return with subquery.
-    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
-        try:
-            response = query_replays_dataset_with_subquery(
-                project_ids=project_ids,
-                start=start,
-                end=end,
-                fields=fields,
-                environments=environment,
-                search_filters=search_filters,
-                sort=sort,
-                pagination=paginators,
-                tenant_ids=tenant_ids,
-            )
-            return response["data"]
-        except ParseError:
-            # Subquery could not continue because it found search filters which required
-            # aggregation to satisfy.
-            pass
+
+    try:
+        response = query_replays_dataset_with_subquery(
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            fields=fields,
+            environments=environment,
+            search_filters=search_filters,
+            sort=sort,
+            pagination=paginators,
+            tenant_ids=tenant_ids,
+        )
+        return response["data"]
+    except ParseError:
+        # Subquery could not continue because it found search filters which required
+        # aggregation to satisfy.
+        pass
 
     response = query_replays_dataset(
         project_ids=project_ids,
