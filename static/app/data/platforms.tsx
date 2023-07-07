@@ -10,9 +10,9 @@ const migratedJavascriptPlatforms = {
   id: 'javascript',
   name: 'Browser JavaScript',
   integrations: [
-    ...integrationDocsPlatforms.platforms.filter(
-      platform => platform.id === 'javascript'
-    )[0].integrations,
+    ...integrationDocsPlatforms.platforms
+      .filter(platform => platform.id === 'javascript')[0]
+      .integrations.filter(integration => integration.id !== 'javascript-react'),
     {
       id: 'javascript-react',
       link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
