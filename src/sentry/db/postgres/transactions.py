@@ -25,7 +25,7 @@ def django_test_transaction_water_mark(using: str | None = None):
 
     if using is None:
         with contextlib.ExitStack() as stack:
-            for db_name in settings.DATABASES:
+            for db_name in settings.DATABASES:  # type: ignore
                 stack.enter_context(django_test_transaction_water_mark(db_name))
             yield
         return
@@ -87,7 +87,7 @@ def in_test_assert_no_transaction(msg: str):
 
     from sentry.testutils import hybrid_cloud
 
-    for using in settings.DATABASES:
+    for using in settings.DATABASES:  # type: ignore
         assert not hybrid_cloud.simulated_transaction_watermarks.connection_above_watermark(
             using
         ), msg

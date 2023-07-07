@@ -185,11 +185,11 @@ def simulate_on_commit(request: Any):
             return
 
         old_validate = connection.validate_no_atomic_block
-        connection.validate_no_atomic_block = lambda: None
+        connection.validate_no_atomic_block = lambda: None  # type: ignore
         try:
             connection.run_and_clear_commit_hooks()
         finally:
-            connection.validate_no_atomic_block = old_validate
+            connection.validate_no_atomic_block = old_validate  # type: ignore
 
     def new_atomic_exit(self, exc_type, *args, **kwds):
         _old_atomic_exit(self, exc_type, *args, **kwds)
@@ -202,14 +202,20 @@ def simulate_on_commit(request: Any):
         _old_transaction_on_commit(func, using)
         maybe_flush_commit_hooks(transaction.get_connection(using))
 
-    if is_django_test_case:
-        for db_name in settings.DATABASES:
-            # This value happens to match the number of outer transactions in
-            # a django test case.  Unfortunately, the timing of when setup is called
-            # vs when that final outer transaction is added makes it impossible to
-            # sample the value directly -- we just have to specify it here.
-            # That said, there are tests that would fail if this number were wrong.
+    for db_name in settings.DATABASES:
+        # This value happens to match the number of outer transactions in
+        # a django test case.  Unfortunately, the timing of when setup is called
+        # vs when that final outer transaction is added makes it impossible to
+        # sample the value directly -- we just have to specify it here.
+        # That said, there are tests that would fail if this number were wrong.
+        if is_django_test_case:
             simulated_transaction_watermarks.state[db_name] = 2
+        else:
+            simulated_transaction_watermarks.state[
+                db_name
+            ] = simulated_transaction_watermarks.get_transaction_depth(
+                transaction.get_connection(db_name)
+            )
 
     functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
     functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
