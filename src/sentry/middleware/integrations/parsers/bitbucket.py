@@ -29,7 +29,7 @@ class BitbucketRequestParser(BaseRequestParser):
                 organization_id=organization_id
             )
         except OrganizationMapping.DoesNotExist as e:
-            logging_extra["error"] = e
+            logging_extra["error"] = str(e)
             logging_extra["organization_id"] = organization_id
             logger.error("no_mapping", extra=logging_extra)
             return self.get_response_from_control_silo()
