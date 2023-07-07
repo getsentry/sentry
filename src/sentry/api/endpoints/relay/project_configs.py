@@ -49,12 +49,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Relay unauthorized for full config information", 403)
 
         version = request.GET.get("version") or "1"
-        global_requested: bool = request.GET.get("global")
+        global_requested = request.GET.get("global")
 
         set_tag("relay_protocol_version", version)
 
         if version == "4":
-            # With v4, we want to move 'measurements' and 'metricsConditioanlTagging' into a new
+            # With v4, we want to move 'measurements' and 'metricsConditionalTagging' into a new
             # global config.
             res = self._post_or_schedule_by_key(request)
             metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
