@@ -6,6 +6,22 @@ import {PlatformIntegration} from 'sentry/types';
 
 import {tracing} from './platformCategories';
 
+const migratedPlatforms = {
+  id: 'javascript',
+  name: 'Browser JavaScript',
+  integrations: [
+    ...integrationDocsPlatforms.platforms.filter(
+      platform => platform.id === 'javascript'
+    )[0].integrations,
+    {
+      id: 'javascript-react',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
+      name: 'React',
+      type: 'framework',
+    },
+  ],
+};
+
 const otherPlatform = {
   integrations: [
     {
@@ -21,6 +37,7 @@ const otherPlatform = {
 
 const platformIntegrations: PlatformIntegration[] = [
   ...integrationDocsPlatforms.platforms,
+  migratedPlatforms,
   otherPlatform,
 ]
   .map(platform => {
