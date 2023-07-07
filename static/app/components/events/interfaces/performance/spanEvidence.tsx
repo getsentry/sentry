@@ -47,7 +47,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
   const hasConfigurableThresholds =
     issueType &&
     ![
-      IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+      IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS, // TODO Abdullah Khan: Remove check when thresholds for these two issues are configurable.
       IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     ].includes(issueType);
 
