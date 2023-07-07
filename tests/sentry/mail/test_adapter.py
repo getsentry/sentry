@@ -641,24 +641,30 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         organization = project.organization
         event = self.store_event(
             data={
-                "tags": [("level", "error"), ("replay_id", "123456789")],
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": [("level", "error"), ("replayId", "123456789")],
                 "request": {"url": "example.com"},
             },
             project_id=project.id,
         )
+        assert event.group is not None
+        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.save()
 
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+        features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
+        with self.feature(features):
+            with self.tasks():
+                notification = Notification(event=event)
+                self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert len(mail.outbox) >= 1
 
         msg = mail.outbox[-1]
 
-        assert (
-            f"/organization/{organization.slug}/issue/{event.id}/replays/?referrer=alert_email"
-            in msg.alternatives[0][0]
-        )
+        expected_url = f"/organizations/{organization.slug}/issues/{event.group.id}/replays/?referrer=issue_alert-email"
+        assert expected_url in msg.alternatives[0][0]
 
     def test_slack_link(self):
         project = self.project
