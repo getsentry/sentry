@@ -1,6 +1,3 @@
-from datetime import timedelta
-
-from django.utils import timezone
 from django.utils.text import slugify
 
 from sentry.monitors.models import MAX_SLUG_LENGTH, Monitor, MonitorType, ScheduleType
@@ -17,7 +14,6 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             slug="/api/analytics/admin.get?token=123",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
@@ -27,7 +23,6 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             slug="/api/cron",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
@@ -37,7 +32,6 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             slug="valid",
             organization_id=self.organization.id,
             project_id=self.project.id,
-            next_checkin=timezone.now() + timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
