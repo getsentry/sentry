@@ -281,7 +281,6 @@ detailed_project = {
             "performance-consecutive-db-queries-visible",
             "slack-overage-notifications",
             "performance-m-n-plus-one-db-queries-post-process-group",
-            "session-replay-errors-tab",
             "transaction-metrics-extraction",
             "performance-consecutive-db-queries-post-process-group",
             "performance-slow-db-query-post-process-group",
