@@ -404,8 +404,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 )
             except OrganizationMember.DoesNotExist:
                 return None
+
             org_member.remove_user()
-            org_member.save()
+            if org_member.email:
+                org_member.save()
+            else:
+                return None
+
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
