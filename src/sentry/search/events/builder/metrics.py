@@ -94,9 +94,9 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def _resolve_on_demand_spec(
-        self, dataset: Dataset, selected_cols: List[Optional[str]], query: str
+        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
-        if not is_on_demand_query(self.dataset, query):
+        if not is_on_demand_query(dataset, query):
             return None
 
         field = selected_cols[0] if selected_cols else None

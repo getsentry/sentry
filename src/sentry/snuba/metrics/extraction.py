@@ -139,8 +139,10 @@ def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
     return is_on_demand_query(snuba_query.dataset, snuba_query.query)
 
 
-def is_on_demand_query(dataset: Union[str, Dataset], query: str) -> bool:
+def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[str]) -> bool:
     """Returns ``True`` if the dataset and query combination can't be supported by standard metrics."""
+    if not dataset or not query:
+        return False
 
     return Dataset(dataset) == Dataset.PerformanceMetrics and "transaction.duration" in query
 
