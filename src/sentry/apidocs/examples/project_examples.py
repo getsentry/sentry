@@ -272,7 +272,6 @@ detailed_project = {
             "performance-n-plus-one-api-calls-detector",
             "performance-render-blocking-asset-span-post-process-group",
             "performance-uncompressed-assets-post-process-group",
-            "session-replay-index-subquery",
             "performance-issues-search",
             "performance-slow-db-issue",
             "performance-db-main-thread-ingest",

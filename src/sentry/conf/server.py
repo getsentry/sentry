@@ -1559,8 +1559,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enable subquery optimizations for the replay_index page
-    "organizations:session-replay-index-subquery": False,
     "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
