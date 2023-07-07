@@ -5,6 +5,7 @@ import pytest
 import pytz
 from django.utils import timezone
 
+from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import (
     Integration,
     OnboardingTask,
@@ -14,6 +15,7 @@ from sentry.models import (
     Rule,
 )
 from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -268,8 +270,15 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        self.create_member(
+        om = self.create_member(
             organization=self.organization, teams=[self.team], email="someemail@example.com"
+        )
+        helper = ApiInviteHelper(
+            self.make_request(user=user),
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
         )
 
         with pytest.raises(OrganizationOnboardingTask.DoesNotExist):
@@ -279,7 +288,7 @@ class OrganizationOnboardingTaskTest(TestCase):
                 status=OnboardingTaskStatus.COMPLETE,
             )
 
-        member = self.create_member(organization=self.organization, teams=[self.team], user=user)
+        helper.accept_invite(user=user)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
@@ -289,14 +298,25 @@ class OrganizationOnboardingTaskTest(TestCase):
         assert task is not None
 
         user2 = self.create_user(email="test@example.com")
-        self.create_member(organization=self.organization, teams=[self.team], user=user2)
+        om2 = self.create_member(
+            organization=self.organization, teams=[self.team], email="blah@example.com"
+        )
+        helper = ApiInviteHelper(
+            self.make_request(user=user2),
+            organization_service.get_invite_by_id(
+                organization_member_id=om2.id, organization_id=om2.organization_id
+            ),
+            None,
+        )
+
+        helper.accept_invite(user=user2)
 
         task = OrganizationOnboardingTask.objects.get(
             organization=self.organization,
             task=OnboardingTask.INVITE_MEMBER,
             status=OnboardingTaskStatus.COMPLETE,
         )
-        assert task.data["invited_member_id"] == member.id
+        assert task.data["invited_member_id"] == om.id
 
     def test_issue_tracker_onboarding(self):
         plugin_enabled.send(
