@@ -19,8 +19,8 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 DESCRIPTION = """
 Trigger alerts in Opsgenie from Sentry.
 
-OpsGenie is a cloud-based service for dev & ops teams, providing reliable alerts, on-call schedule management and escalations.
-OpsGenie integrates with monitoring tools & services and ensures that the right people are notified via email, SMS, phone calls,
+Opsgenie is a cloud-based service for dev & ops teams, providing reliable alerts, on-call schedule management and escalations.
+Opsgenie integrates with monitoring tools & services and ensures that the right people are notified via email, SMS, phone calls,
 and iOS & Android push notifications.
 """
 
@@ -34,14 +34,14 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Configure Sentry rules to trigger notifications based on conditions you set.
+        Configure rule based Opsgenie alerts to automatically be triggered to notify specific teams.
         """,
         IntegrationFeatures.ALERT_RULE,
     ),
 ]
 
 metadata = IntegrationMetadata(
-    description=DESCRIPTION.strip(),
+    description=_(DESCRIPTION.strip()),
     features=FEATURES,
     author="The Sentry Team",
     noun=_("Installation"),
