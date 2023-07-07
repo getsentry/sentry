@@ -1,3 +1,4 @@
+import pytest
 from django.utils.text import slugify
 
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
@@ -27,9 +28,27 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        self.valid_monitor = Monitor.objects.create(
-            name="valid",
-            slug="valid",
+        self.invalid_monitor_3 = Monitor.objects.create(
+            name="invalid_2",
+            slug="/api/cron/3",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        self.valid_monitor_1 = Monitor.objects.create(
+            name="valid_1",
+            slug="valid_1",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        self.valid_monitor_2 = Monitor.objects.create(
+            name="valid_2",
+            slug="apicron3",
             organization_id=self.organization.id,
             project_id=self.project.id,
             type=MonitorType.CRON_JOB,
@@ -41,7 +60,9 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
 
         invalid_monitor_1 = Monitor.objects.get(id=self.invalid_monitor_1.id)
         invalid_monitor_2 = Monitor.objects.get(id=self.invalid_monitor_2.id)
-        valid_monitor = Monitor.objects.get(id=self.valid_monitor.id)
+
+        valid_monitor_1 = Monitor.objects.get(id=self.valid_monitor_1.id)
+        valid_monitor_2 = Monitor.objects.get(id=self.valid_monitor_2.id)
 
         assert invalid_monitor_1.slug == slugify(self.invalid_monitor_1.slug)[
             :MAX_SLUG_LENGTH
@@ -49,4 +70,10 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
         assert invalid_monitor_2.slug == slugify(self.invalid_monitor_2.slug)[
             :MAX_SLUG_LENGTH
         ].strip("-")
-        assert valid_monitor.slug == self.valid_monitor.slug
+
+        # assert colliding monitor does not exist
+        with pytest.raises(Monitor.DoesNotExist):
+            Monitor.objects.get(id=self.invalid_monitor_3.id)
+
+        assert valid_monitor_1.slug == self.valid_monitor_1.slug
+        assert valid_monitor_2.slug == self.valid_monitor_2.slug
