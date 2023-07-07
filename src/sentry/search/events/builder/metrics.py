@@ -72,6 +72,11 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
+
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
+        )
+
         if granularity is not None:
             self._granularity = granularity
         super().__init__(
@@ -88,12 +93,8 @@ class MetricsQueryBuilder(QueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
 
-        self._on_demand_spec = self._resolve_on_demand_spec(
-            kwargs.get("selected_columns", []), kwargs.get("query", "")
-        )
-
     def _resolve_on_demand_spec(
-        self, selected_cols: List[Optional[str]], query: str
+        self, dataset: Dataset, selected_cols: List[Optional[str]], query: str
     ) -> Optional[OndemandMetricSpec]:
         if not is_on_demand_query(self.dataset, query):
             return None
@@ -193,7 +194,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if self.use_metrics_layer:
+        # on-demand metrics require metrics layer behavior
+        if self.use_metrics_layer or self._on_demand_spec:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -687,7 +689,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,

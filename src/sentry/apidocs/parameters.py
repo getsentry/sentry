@@ -306,6 +306,14 @@ Configures multiple options for the Javascript Loader Script.
         description="Activate or deactivate the client key.",
     )
 
+    IS_BOOKMARKED = OpenApiParameter(
+        name="isBookmarked",
+        location="query",
+        required=False,
+        type=bool,
+        description="Enables starring the project within the projects tab.",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -337,8 +345,8 @@ disable entirely set `rateLimit` to null.
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
         description="""
-A list specifying which legacy browser filters should be active. Anything excluded from the list
-will be turned off. The options are:
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10
