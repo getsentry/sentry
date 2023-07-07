@@ -1,4 +1,6 @@
-export function AuditLogs(params = []) {
+import type {AuditLog as AuditLogType} from 'sentry/types';
+
+export function AuditLogs(params: AuditLogType[] = []): AuditLogType[] {
   return [
     {
       note: 'edited project ludic-science',
