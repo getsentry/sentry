@@ -1,6 +1,6 @@
 from django.utils.text import slugify
 
-from sentry.monitors.models import MAX_SLUG_LENGTH, Monitor, MonitorType, ScheduleType
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
 
@@ -37,6 +37,8 @@ class MigrateSlugifyInvalidMonitorTest(TestMigrations):
         )
 
     def test(self):
+        MAX_SLUG_LENGTH = 50
+
         invalid_monitor_1 = Monitor.objects.get(id=self.invalid_monitor_1.id)
         invalid_monitor_2 = Monitor.objects.get(id=self.invalid_monitor_2.id)
         valid_monitor = Monitor.objects.get(id=self.valid_monitor.id)
