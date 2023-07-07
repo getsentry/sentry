@@ -11,7 +11,7 @@ from sentry.options import (
     FLAG_REQUIRED,
     register,
 )
-from sentry.options.manager import FLAG_CREDENTIAL
+from sentry.options.manager import FLAG_CREDENTIAL, FLAG_MODIFIABLE_BOOL
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
@@ -1375,3 +1375,15 @@ register(
 
 # Killswitch for monitor check-ins
 register("crons.organization.disable-check-in", type=Sequence, default=[])
+
+
+# Timing task to measure query performance
+# This controls a temporary task that is run on demand to investigate dynamic-sampling tasks performance issues in produciton
+# raduw (7 June 2023) This should be removed once the investigation si complete.
+register("dynamic-sampling.timing.task", default=False, flags=FLAG_MODIFIABLE_BOOL)
+register(
+    "dynamic-sampling.timing.get_active_orgs_with_project_counts",
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL,
+)
+register("dynamic-sampling.timing.get_active_orgs_with_project_counts.num_orgs", default=True)

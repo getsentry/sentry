@@ -1,4 +1,72 @@
+import logging
+import time
+from logging import INFO
+
 from sentry.utils import metrics
+
+
+class Timer:
+    """
+    Simple timer class for investigating timeout issues with dynamic sampling tasks
+
+    """
+
+    def __init__(self, name: str = "default", logger_name=None):
+        self.name = name
+        self.elapsed = 0
+        self.started = None
+
+        if logger_name:
+            self.logger = logging.getLogger(logger_name)
+        else:
+            self.logger = logging.getLogger(__name__)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+        return False
+
+    def name(self) -> str:
+        return self.name
+
+    def start(self) -> float:
+        if not self.started:
+            self.started = time.monotonic()
+        return self.current()
+
+    def stop(self) -> float:
+        if self.started:
+            self.elapsed += time.monotonic() - self.started
+        self.started = None
+        return self.current()
+
+    def current(self) -> float():
+        if self.started:
+            return self.elapsed + time.monotonic() - self.started
+        return self.elapsed
+
+    def reset(self) -> float():
+        self.elapsed = 0
+        self.started = None
+        return 0
+
+    def __str__(self) -> str:
+        return f"{self.current()}"
+
+    def __repr__(self) -> str:
+        return f"{self.current()}s ({self.name})"
+
+    def log_current(self, level=INFO, extra=None):
+        if extra is None or not isinstance(extra, dict):
+            extra = {}
+
+        extra["time"] = self.current()
+        extra["timerName"] = (self.name,)
+
+        self.logger.log(level=level, msg=f"Timer::{self.name}", extra=extra)
 
 
 def dynamic_sampling_task(func):

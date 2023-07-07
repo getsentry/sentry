@@ -1106,6 +1106,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/1"),
         "options": {"expires": 60},
     },
+    "dynamic-sampling-performance-timing": {
+        "task": "sentry.dynamic_sampling.tasks.performance_timing",
+        # Run every 5 minutes
+        "schedule": crontab(minute="*/5"),
+    },
 }
 
 # Assign the configuration keys celery uses based on our silo mode.
