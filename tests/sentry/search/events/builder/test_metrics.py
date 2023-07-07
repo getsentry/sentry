@@ -21,10 +21,11 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
+from sentry.testutils.helpers import Feature
 
 pytestmark = pytest.mark.sentry_metrics
-from sentry.snuba.metrics.metric_extraction import QUERY_HASH_KEY
 
 
 def _metric_percentile_definition(
@@ -2051,52 +2052,53 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
 
 class AlertMetricsQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_snql_query(self):
-        query = AlertMetricsQueryBuilder(
-            self.params,
-            use_metrics_layer=True,
-            granularity=3600,
-            query="transaction.duration:>=100",
-            dataset=Dataset.PerformanceMetrics,
-            selected_columns=["p75(measurements.fp)"],
-        )
+        with Feature("organizations:on-demand-metrics-extraction"):
+            query = AlertMetricsQueryBuilder(
+                self.params,
+                use_metrics_layer=True,
+                granularity=3600,
+                query="transaction.duration:>=100",
+                dataset=Dataset.PerformanceMetrics,
+                selected_columns=["p75(measurements.fp)"],
+            )
 
-        snql_request = query.get_snql_query()
-        assert snql_request.dataset == "generic_metrics"
-        snql_query = snql_request.query
-        self.assertCountEqual(
-            [
-                Function(
-                    "arrayElement",
-                    [
-                        Function(
-                            "quantilesIf(0.75)",
-                            [
-                                Column("value"),
-                                Function(
-                                    "equals",
-                                    [
-                                        Column("metric_id"),
-                                        indexer.resolve(
-                                            UseCaseID.TRANSACTIONS,
-                                            None,
-                                            "d:transactions/on_demand@none",
-                                        ),
-                                    ],
-                                ),
-                            ],
-                        ),
-                        1,
-                    ],
-                    "d:transactions/on_demand@none",
-                )
-            ],
-            snql_query.select,
-        )
+            snql_request = query.get_snql_query()
+            assert snql_request.dataset == "generic_metrics"
+            snql_query = snql_request.query
+            self.assertCountEqual(
+                [
+                    Function(
+                        "arrayElement",
+                        [
+                            Function(
+                                "quantilesIf(0.75)",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            indexer.resolve(
+                                                UseCaseID.TRANSACTIONS,
+                                                None,
+                                                "d:transactions/on_demand@none",
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                            1,
+                        ],
+                        "d:transactions/on_demand@none",
+                    )
+                ],
+                snql_query.select,
+            )
 
-        query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
+            query_hash_index = indexer.resolve(UseCaseID.TRANSACTIONS, None, QUERY_HASH_KEY)
 
-        query_hash_clause = Condition(
-            lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
-        )
+            query_hash_clause = Condition(
+                lhs=Column(name=f"tags_raw[{query_hash_index}]"), op=Op.EQ, rhs="80237309"
+            )
 
-        assert query_hash_clause in snql_query.where
+            assert query_hash_clause in snql_query.where

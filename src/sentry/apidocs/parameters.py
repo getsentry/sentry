@@ -237,6 +237,7 @@ ways which then cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
 accurate information, and while they may report valid issues, the context to understand them is
 incorrect or missing.
+- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 """,
     )
 
@@ -245,7 +246,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
+        description="Toggle the browser-extensions, localhost, web-crawlers, or filtered-transaction  filter on or off.",
     )
 
     BROWSER_SDK_VERSION = OpenApiParameter(
@@ -305,6 +306,14 @@ Configures multiple options for the Javascript Loader Script.
         description="Activate or deactivate the client key.",
     )
 
+    IS_BOOKMARKED = OpenApiParameter(
+        name="isBookmarked",
+        location="query",
+        required=False,
+        type=bool,
+        description="Enables starring the project within the projects tab.",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -336,8 +345,8 @@ disable entirely set `rateLimit` to null.
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
         description="""
-A list specifying which legacy browser filters should be active. Anything excluded from the list
-will be turned off. The options are:
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10

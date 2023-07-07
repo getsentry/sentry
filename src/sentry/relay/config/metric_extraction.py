@@ -12,11 +12,12 @@ from sentry.models import (
     ProjectTransactionThresholdOverride,
     TransactionMetric,
 )
-from sentry.snuba.metrics.metric_extraction import (
+from sentry.snuba.metrics.extraction import (
     QUERY_HASH_KEY,
     MetricSpec,
     OndemandMetricSpec,
     RuleCondition,
+    is_on_demand_snuba_query,
 )
 from sentry.snuba.models import SnubaQuery
 
@@ -81,9 +82,10 @@ def convert_query_to_metric(snuba_query: SnubaQuery) -> Optional[MetricSpec]:
     returns a MetricSpec for the query. Otherwise, returns None.
     """
     try:
-        spec = OndemandMetricSpec.parse(snuba_query.aggregate, snuba_query.query)
-        if not spec:
+        if not is_on_demand_snuba_query(snuba_query):
             return None
+
+        spec = OndemandMetricSpec(snuba_query.aggregate, snuba_query.query)
 
         return {
             "category": DataCategory.TRANSACTION.api_name(),

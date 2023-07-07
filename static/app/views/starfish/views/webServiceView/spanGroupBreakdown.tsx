@@ -1,6 +1,7 @@
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
+import * as qs from 'query-string';
 
 import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
@@ -82,20 +83,23 @@ export function SpanGroupBreakdown({
   const isEndpointBreakdownView = Boolean(transaction);
 
   const handleModuleAreaClick = event => {
-    switch (event.seriesName) {
-      case 'http':
-        browserHistory.push('/starfish/api');
-        break;
-      case 'db':
-        browserHistory.push('/starfish/database');
-        break;
-      case 'custom':
-      case 'Other':
-      case 'cache':
-      default:
-        browserHistory.push('/starfish/spans');
-        break;
+    let spansLink;
+    const spansLinkQueryParams = {};
+    if (event.seriesName === 'db') {
+      spansLink = `/starfish/database/`;
+    } else if (event.seriesName === 'http') {
+      spansLink = `/starfish/api/`;
+    } else if (event.seriesName === 'Other') {
+      spansLinkQueryParams['!span.category'] = data.map(r => r.seriesName);
+    } else {
+      spansLinkQueryParams['span.module'] = 'Other';
+      spansLinkQueryParams['span.category'] = event.seriesName;
     }
+
+    if (!spansLink) {
+      spansLink = `/starfish/spans/?${qs.stringify(spansLinkQueryParams)}`;
+    }
+    browserHistory.push(spansLink);
   };
 
   return (
@@ -144,7 +148,9 @@ export function SpanGroupBreakdown({
             }
             tooltipFormatterOptions={{
               valueFormatter: value =>
-                tooltipFormatterUsingAggregateOutputType(value, 'percentage'),
+                dataDisplayType === DataDisplayType.PERCENTAGE
+                  ? tooltipFormatterUsingAggregateOutputType(value, 'percentage')
+                  : tooltipFormatterUsingAggregateOutputType(value, 'duration'),
             }}
             onLegendSelectChanged={event => {
               trackAnalytics('starfish.web_service_view.breakdown.legend_change', {
