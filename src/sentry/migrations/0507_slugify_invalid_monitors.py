@@ -37,7 +37,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0505_debugfile_date_accessed"),
+        ("sentry", "0506_slugify_invalid_monitors"),
     ]
 
     operations = [
