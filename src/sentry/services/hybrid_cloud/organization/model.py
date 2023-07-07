@@ -41,13 +41,6 @@ class _DefaultEnumHelpers:
         return OrganizationStatus.ACTIVE.value
 
 
-class RpcTeamMembership(RpcModel):
-    user_id: int
-    user_email: str
-    member_id: int
-    team_ids: List[int]
-
-
 class RpcTeam(RpcModel):
     id: int = -1
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_team_status_value)

@@ -17,8 +17,6 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationSignal,
     RpcOrganizationSummary,
     RpcRegionUser,
-    RpcTeam,
-    RpcTeamMembership,
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
@@ -275,30 +273,6 @@ class OrganizationService(RpcService):
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def delete_option(self, *, organization_id: int, key: str) -> None:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def get_team_memberships(
-        self, *, organization_id: int, team_ids: List[int]
-    ) -> List[RpcTeamMembership]:
-        pass
-
-    @regional_rpc_method(resolve=ByOrganizationId())
-    @abstractmethod
-    def create_team(
-        self,
-        *,
-        organization_id: int,
-        slug: str,
-        name: Optional[str] = None,
-        idp_provisioned: bool = False,
-        creator_user_id: Optional[int] = None,
-    ) -> Optional[RpcTeam]:
-        """
-        Creates a team based on the given parameters, returning that team if it succeeds, or None if the given slug or name conflicts
-        or is invalid for some reason.
-        """
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())

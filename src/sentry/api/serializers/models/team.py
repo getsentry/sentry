@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from datetime import datetime
 from typing import (
@@ -44,7 +45,6 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
-from sentry.services.hybrid_cloud.organization import RpcTeamMembership, organization_service
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
@@ -375,6 +375,33 @@ class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequi
     members: List[SCIMTeamMemberListItem]
 
 
+@dataclasses.dataclass
+class TeamMembership:
+    user_id: int
+    user_email: str
+    member_id: int
+    team_ids: List[int]
+
+
+def get_team_memberships(team_ids: List[int]) -> List[TeamMembership]:
+    members: Dict[int, TeamMembership] = {}
+    for omt in RangeQuerySetWrapper(
+        OrganizationMemberTeam.objects.filter(team_id__in=team_ids).prefetch_related(
+            "organizationmember"
+        )
+    ):
+        if omt.organizationmember_id not in members:
+            members[omt.organizationmember_id] = TeamMembership(
+                user_id=omt.organizationmember.user_id,
+                user_email=omt.organizationmember.get_email(),
+                member_id=omt.organizationmember_id,
+                team_ids=[],
+            )
+        members[omt.organizationmember_id].team_ids.append(omt.team_id)
+
+    return list(members.values())
+
+
 class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
@@ -392,11 +419,8 @@ class TeamSCIMSerializer(Serializer):
         teams_by_id: Mapping[int, Team] = {t.id: t for t in item_list}
 
         if teams_by_id and "members" in self.expand:
-            org_id: int = next(iter(teams_by_id.values())).organization_id
             team_ids: List[int] = [t.id for t in item_list]
-            team_memberships: List[RpcTeamMembership] = organization_service.get_team_memberships(
-                organization_id=org_id, team_ids=team_ids
-            )
+            team_memberships: List[TeamMembership] = get_team_memberships(team_ids=team_ids)
 
             for team_member in team_memberships:
                 for team_id in team_member.team_ids:
