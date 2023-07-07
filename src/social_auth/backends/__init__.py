@@ -25,6 +25,7 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
 from sentry.utils import json
+from sentry.utils.http import absolute_uri
 from social_auth.exceptions import (
     AuthCanceled,
     AuthFailed,
@@ -357,13 +358,7 @@ class BaseAuth:
         instances.delete()
 
     def build_absolute_uri(self, path=None):
-        """Build absolute URI for given path. Replace http:// schema with
-        https:// if SOCIAL_AUTH_REDIRECT_IS_HTTPS is defined.
-        """
-        uri = self.request.build_absolute_uri(path)
-        if setting("SOCIAL_AUTH_REDIRECT_IS_HTTPS"):
-            uri = uri.replace("http://", "https://")
-        return uri
+        return absolute_uri(path)
 
 
 class OAuthAuth(BaseAuth):
