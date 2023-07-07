@@ -1,3 +1,4 @@
+import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -15,7 +16,7 @@ export const StepTitle = {
   [StepType.VERIFY]: t('Verify'),
 };
 
-export type StepProps = {
+type Configuration = {
   /**
    * The code snippet to display
    */
@@ -24,6 +25,10 @@ export type StepProps = {
    * A brief description of the step
    */
   description: React.ReactNode;
+};
+
+export type StepProps = {
+  configurations: Configuration[];
   /**
    * The language of the selected platform (python, javascript, etc)
    */
@@ -34,16 +39,28 @@ export type StepProps = {
   type: StepType;
 };
 
-export function Step({type, description, language, code}: StepProps) {
+export function Step({type, configurations, language}: StepProps) {
   return (
     <div>
       <h4>{StepTitle[type]}</h4>
-      <p>{description}</p>
-      <CodeSnippet dark language={language}>
-        {language === 'javascript'
-          ? beautify.js(code, {indent_size: 2, e4x: true})
-          : beautify.html(code, {indent_size: 2})}
-      </CodeSnippet>
+      <Configurations>
+        {configurations.map((configuration, index) => (
+          <div key={index}>
+            <p>{configuration.description}</p>
+            <CodeSnippet dark language={language}>
+              {language === 'javascript'
+                ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
+                : beautify.html(configuration.code, {indent_size: 2})}
+            </CodeSnippet>
+          </div>
+        ))}
+      </Configurations>
     </div>
   );
 }
+
+const Configurations = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
