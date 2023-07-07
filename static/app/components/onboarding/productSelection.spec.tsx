@@ -2,7 +2,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 
 describe('Onboarding Product Selection', function () {
   it('renders default state', async function () {
@@ -124,7 +127,7 @@ describe('Onboarding Product Selection', function () {
 
     const disabledProducts = [
       {
-        product: PRODUCT.PERFORMANCE_MONITORING,
+        product: ProductSolution.PERFORMANCE_MONITORING,
         reason: 'Product unavailable in this SDK version',
       },
     ];

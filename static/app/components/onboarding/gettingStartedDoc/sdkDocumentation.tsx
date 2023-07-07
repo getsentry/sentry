@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -9,7 +9,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 export const migratedDocs = ['javascript-react'];
 
 type SdkDocumentationProps = {
-  activeProductSelection: PRODUCT[];
+  activeProductSelection: ProductSolution[];
   orgSlug: Organization['slug'];
   platform: PlatformIntegration | null;
   projectSlug: Project['slug'];
@@ -17,7 +17,7 @@ type SdkDocumentationProps = {
 };
 
 type ModuleProps = {
-  activeProductSelection: PRODUCT[];
+  activeProductSelection: ProductSolution[];
   dsn: string;
   newOrg?: boolean;
 };

@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 import GettingStartedWithReact, {nextSteps, steps} from './react';
 
@@ -10,7 +10,10 @@ describe('GettingStartedWithReact', function () {
     const {container} = render(
       <GettingStartedWithReact
         dsn="test-dsn"
-        activeProductSelection={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+        activeProductSelection={[
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ]}
       />
     );
 
@@ -24,9 +27,10 @@ describe('GettingStartedWithReact', function () {
     // Next Steps
     const filteredNextStepsLinks = nextSteps.filter(
       nextStep =>
-        ![PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY].includes(
-          nextStep.id as PRODUCT
-        )
+        ![
+          ProductSolution.PERFORMANCE_MONITORING,
+          ProductSolution.SESSION_REPLAY,
+        ].includes(nextStep.id as ProductSolution)
     );
 
     for (const filteredNextStepsLink of filteredNextStepsLinks) {
@@ -42,7 +46,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
-        activeProductSelection={[PRODUCT.SESSION_REPLAY]}
+        activeProductSelection={[ProductSolution.SESSION_REPLAY]}
       />
     );
 
@@ -56,7 +60,7 @@ describe('GettingStartedWithReact', function () {
     render(
       <GettingStartedWithReact
         dsn="test-dsn"
-        activeProductSelection={[PRODUCT.PERFORMANCE_MONITORING]}
+        activeProductSelection={[ProductSolution.PERFORMANCE_MONITORING]}
       />
     );
 

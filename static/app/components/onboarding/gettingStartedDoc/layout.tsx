@@ -6,7 +6,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -58,8 +61,8 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
       {!isSelfHosted && newOrg && (
         <ProductSelection
           defaultSelectedProducts={[
-            PRODUCT.PERFORMANCE_MONITORING,
-            PRODUCT.SESSION_REPLAY,
+            ProductSolution.PERFORMANCE_MONITORING,
+            ProductSolution.SESSION_REPLAY,
           ]}
         />
       )}

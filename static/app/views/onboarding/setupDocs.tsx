@@ -16,7 +16,10 @@ import {
   SdkDocumentation,
 } from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
+import {
+  ProductSelection,
+  ProductSolution,
+} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -50,8 +53,8 @@ export function DocWithProductSelection({
   projectSlug: Project['slug'];
   newOrg?: boolean;
 }) {
-  const products = useMemo<PRODUCT[]>(
-    () => (location.query.product ?? []) as PRODUCT[],
+  const products = useMemo<ProductSolution[]>(
+    () => (location.query.product ?? []) as ProductSolution[],
     [location.query.product]
   );
 
@@ -62,15 +65,15 @@ export function DocWithProductSelection({
     currentPlatform && migratedDocs.includes(currentPlatformKey);
 
   const loadPlatform = useMemo(() => {
-    return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-      products.includes(PRODUCT.SESSION_REPLAY)
+    return products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+      products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatformKey}-with-error-monitoring-performance-and-replay`
-      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      : products.includes(ProductSolution.PERFORMANCE_MONITORING)
       ? `${currentPlatformKey}-with-error-monitoring-and-performance`
-      : products.includes(PRODUCT.SESSION_REPLAY)
+      : products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatformKey}-with-error-monitoring-and-replay`
       : `${currentPlatformKey}-with-error-monitoring`;
-  }, [currentPlatformKey, products]);
+  }, [products, currentPlatformKey]);
 
   const {data, isLoading, isError, refetch} = useApiQuery<OnboardingPlatformDoc>(
     [`/projects/${organization.slug}/${projectSlug}/docs/${loadPlatform}/`],
@@ -104,8 +107,8 @@ export function DocWithProductSelection({
         <Fragment>
           <ProductSelection
             defaultSelectedProducts={[
-              PRODUCT.PERFORMANCE_MONITORING,
-              PRODUCT.SESSION_REPLAY,
+              ProductSolution.PERFORMANCE_MONITORING,
+              ProductSolution.SESSION_REPLAY,
             ]}
           />
           {isLoading ? (
