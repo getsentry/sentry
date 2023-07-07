@@ -8,7 +8,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import AsyncComponent, {AsyncComponentState} from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -20,25 +20,30 @@ import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSet
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Scope} from 'sentry/types';
+import type {
+  Integration,
+  Organization,
+  OrganizationAuthProvider,
+  Scope,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   access: Set<Scope>;
   initialData: Organization;
   location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncComponent['state'] & {
-  authProvider: object;
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider;
   githubIntegrations: Integration[];
-};
+}
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {

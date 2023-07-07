@@ -132,10 +132,19 @@ export type AuthConfig = {
 };
 
 export type AuthProvider = {
-  disables2FA: boolean;
   key: string;
   name: string;
   requiredFeature: string;
+};
+
+export type OrganizationAuthProvider = {
+  default_role: string;
+  id: string;
+  login_url: string;
+  pending_links_count: number;
+  provider_name: string;
+  require_link: boolean;
+  scim_enabled: boolean;
 };
 
 export enum UserIdentityCategory {

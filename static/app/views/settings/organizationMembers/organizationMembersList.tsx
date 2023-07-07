@@ -14,12 +14,12 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
+import {Member, MemberRole, Organization, OrganizationAuthProvider} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
 import {
   RenderSearch,
   SearchWrapper,
@@ -29,16 +29,17 @@ import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = AsyncView['state'] & {
+interface State extends AsyncViewState {
+  authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-};
+}
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',
