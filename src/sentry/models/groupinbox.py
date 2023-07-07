@@ -117,12 +117,12 @@ def bulk_remove_groups_from_inbox(groups, action=None, user=None, referrer=None)
             Activity.objects.bulk_create(
                 [
                     Activity(
-                        project_id=group.project_id,
-                        group_id=group.id,
+                        project_id=group_inbox_item.group.project_id,
+                        group_id=group_inbox_item.group.id,
                         type=ActivityType.MARK_REVIEWED.value,
                         user_id=user.id,
                     )
-                    for group in groups
+                    for group_inbox_item in group_inbox
                 ]
             )
 

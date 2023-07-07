@@ -30,6 +30,12 @@ TRANSITION_AFTER_DAYS = 7
 
 
 def skip_if_queue_has_items(func):
+    """
+    Prevent adding more tasks in queue if the queue is not empty.
+    We want to prevent crons from scheduling more tasks than the workers
+    are capable of processing before the next cycle.
+    """
+
     def inner(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
