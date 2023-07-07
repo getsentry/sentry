@@ -164,6 +164,7 @@ def load_defaults():
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
     default_manager.register(models.ArtifactBundle, ArtifactBundleDeletionTask)
+    default_manager.register(models.Rule, defaults.RuleDeletionTask)
 
 
 load_defaults()
