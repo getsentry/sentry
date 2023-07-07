@@ -32,7 +32,12 @@ from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
-from sentry.utils.http import is_valid_origin, origin_from_request
+from sentry.utils.http import (
+    absolute_uri,
+    is_using_customer_domain,
+    is_valid_origin,
+    origin_from_request,
+)
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
 from .authentication import ApiKeyAuthentication, OrgAuthTokenAuthentication, TokenAuthentication
@@ -55,6 +60,7 @@ from ..utils.pagination_factory import (
     get_cursor,
     get_paginator,
 )
+from .utils import generate_organization_url
 
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
@@ -184,7 +190,12 @@ class Endpoint(APIView):
             mutable_query_dict.pop("cursor")
             querystring = mutable_query_dict.urlencode()
 
-        base_url = request.build_absolute_uri(urlquote(request.path))
+        url_prefix = (
+            generate_organization_url(request.subdomain)
+            if is_using_customer_domain(request)
+            else None
+        )
+        base_url = absolute_uri(urlquote(request.path), url_prefix=url_prefix)
 
         if querystring is not None:
             base_url = f"{base_url}?{querystring}"

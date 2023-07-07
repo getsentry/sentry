@@ -238,15 +238,27 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(
-        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+        self,
+        user=None,
+        auth=None,
+        method=None,
+        is_superuser=False,
+        path="/",
+        secure_scheme=False,
+        subdomain=None,
     ) -> HttpRequest:
         request = HttpRequest()
+        if subdomain:
+            setattr(request, "subdomain", subdomain)
         if method:
             request.method = method
         request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
+        if secure_scheme:
+            secure_header = settings.SECURE_PROXY_SSL_HEADER
+            request.META[secure_header[0]] = secure_header[1]
 
         # order matters here, session -> user -> other things
         request.session = self.session
