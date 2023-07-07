@@ -5,7 +5,7 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {getTabKeyForFrame} from 'sentry/utils/replays/frame';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
-import {BreadcrumbFrame, SpanFrame} from 'sentry/utils/replays/types';
+import {ReplayFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
@@ -23,7 +23,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   const hasErrorTab = organization.features.includes('session-replay-errors-tab');
 
   const mouseEnterCallback = useRef<{
-    id: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame | null;
+    id: Crumb | NetworkSpan | ReplayFrame | null;
     timeoutId: NodeJS.Timeout | null;
   }>({
     id: null,
@@ -31,7 +31,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   });
 
   const handleMouseEnter = useCallback(
-    (item: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
+    (item: Crumb | NetworkSpan | ReplayFrame) => {
       // this debounces the mouseEnter callback in unison with mouseLeave
       // we ensure the pointer remains over the target element before dispatching state events in order to minimize unnecessary renders
       // this helps during scrolling or mouse move events which would otherwise fire in rapid succession slowing down our app
@@ -60,7 +60,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleMouseLeave = useCallback(
-    (item: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
+    (item: Crumb | NetworkSpan | ReplayFrame) => {
       // if there is a mouseEnter callback queued and we're leaving it we can just cancel the timeout
       if (mouseEnterCallback.current.id === item) {
         if (mouseEnterCallback.current.timeoutId) {
@@ -82,7 +82,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
   );
 
   const handleClick = useCallback(
-    (crumb: Crumb | NetworkSpan | BreadcrumbFrame | SpanFrame) => {
+    (crumb: Crumb | NetworkSpan | ReplayFrame) => {
       if ('offsetMs' in crumb) {
         const frame = crumb; // Finding `offsetMs` means we have a frame, not a crumb or span
 

@@ -31,7 +31,6 @@ import type {
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {BreadcrumbCategories} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -252,17 +251,18 @@ export default class ReplayReader {
 
   getChapterFrames = memoize(() =>
     [
-      ...this._sortedBreadcrumbFrames.filter(
-        frame =>
-          [
-            'replay.init',
-            'ui.click',
-            'replay.mutations',
-            'ui.slowClickDetected',
-          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        [
+          'replay.init',
+          'ui.click',
+          'replay.mutations',
+          'ui.slowClickDetected',
+          'ui.multiClick',
+          'navigation',
+        ].includes(frame.category)
       ),
       ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
       ),
