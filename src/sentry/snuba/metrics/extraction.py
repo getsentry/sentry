@@ -1,6 +1,5 @@
 import hashlib
 import logging
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, Literal, Optional, Sequence, Tuple, TypedDict, Union, cast
 
@@ -143,26 +142,12 @@ def is_on_demand_query(snuba_query: SnubaQuery) -> bool:
     )
 
 
-@dataclass(frozen=True)
 class OndemandMetricSpec:
     """
     Contains the information required to query or extract an on-demand metric.
     """
 
-    _query: str
-
-    field: Optional[str]
-    metric_type: str
-    mri: str
-    op: MetricOperationType
-
-    @classmethod
-    def check(cls, field: str, query: str) -> bool:
-        """Returns ``True`` if a metrics query requires an on-demand metric."""
-        return "transaction.duration" in query
-
-    @classmethod
-    def parse(cls, field: str, query: str) -> Optional["OndemandMetricSpec"]:
+    def __init__(self, field: str, query: str):
         """
         Parses a selected column and query into an on demand metric spec containing the MRI, field and op.
         Currently, supports only one selected column.
@@ -171,21 +156,14 @@ class OndemandMetricSpec:
         1. Querying on-demand metrics.
         2. Generation of rules for on-demand metric extraction.
 
-        Returns ``None`` if passed params do not require or support an on-demand metric.
         """
-
-        if not cls.check(field, query):
-            return None
-
         relay_field, metric_type, op = _extract_field_info(field)
 
-        return cls(
-            _query=query,
-            field=relay_field,
-            metric_type=metric_type,
-            mri=f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none",
-            op=op,
-        )
+        self._query = query
+        self.field = relay_field
+        self.metric_type = metric_type
+        self.mri = f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
+        self.op = op
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
