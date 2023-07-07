@@ -27,6 +27,10 @@ def _sample_apm():
     return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
 
 
+def get_global_config():
+    return {"measurements": {}, "metricsConditionalTagging": {}}
+
+
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
     authentication_classes = (RelayAuthentication,)
@@ -49,9 +53,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Relay unauthorized for full config information", 403)
 
         version = request.GET.get("version") or "1"
+        global_config: bool = request.GET.get("global")
+
         set_tag("relay_protocol_version", version)
 
-        if self._should_use_v3(version, request):
+        if version == "4":
+            return self._post_or_schedule_by_key_v4(request, global_config)
+        elif self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -67,7 +75,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 full_config_requested=full_config_requested,
             )
         else:
-            return Response("Unsupported version, we only support versions 1 to 3.", 400)
+            return Response("Unsupported version, we only support versions 1 to 4.", 400)
 
     def _should_use_v3(self, version, request):
         set_tag("relay_endpoint_version", version)
@@ -111,7 +119,32 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return use_v3
 
-    def _post_or_schedule_by_key(self, request: Request):
+    def _post_or_schedule_by_key_v4(self, request: Request, global_config_flag: bool):
+        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+
+        proj_configs = {}
+        pending = []
+        for key in public_keys:
+            computed = self._get_cached_or_schedule(key)
+            if not computed:
+                pending.append(key)
+            else:
+                del computed["measurements"]
+                del computed["metricsConditionalTagging"]
+                proj_configs[key] = computed
+
+        if global_config_flag:
+            globalconfig = get_global_config()
+        else:
+            globalconfig = None
+
+        metrics.incr("relay.project_configs.post_v4.pending", amount=len(pending))
+        metrics.incr("relay.project_configs.post_v4.fetched", amount=len(proj_configs))
+        res = {"configs": proj_configs, "pending": pending, "globalConfig": globalconfig}
+
+        return Response(res, status=200)
+
+    def _post_or_schedule_by_key(self, request: Request, global_flag: bool):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         proj_configs = {}
