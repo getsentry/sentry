@@ -24,6 +24,11 @@ class OAuthUserInfoTest(APITestCase):
         assert response.status_code == 401
         assert response.data == "No access token found."
 
+    def test_declines_invalid_token(self):
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer  abcd")
+        response = self.client.get(self.path)
+        assert response.status_code == 400
+
     def test_declines_if_no_openid_scope(self):
         token_without_openid_scope = ApiToken.objects.create(user=self.user, scope_list=[])
         self.client.credentials(HTTP_AUTHORIZATION="Bearer " + token_without_openid_scope.token)

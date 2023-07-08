@@ -33,11 +33,7 @@ class OAuthUserInfoEndpoint(Endpoint):
             user_output["avatar_url"] = user.avatar_url
             user_output["date_joined"] = user.date_joined
         if "email" in scopes:
-            try:
-                email = UserEmail.objects.get(user=user)
-                user_output["email"] = email.email
-                user_output["email_verified"] = email.is_verified
-            except UserEmail.DoesNotExist:
-                user_output["email"] = None
-                user_output["email_verified"] = None
+            email = UserEmail.objects.get(user=user)
+            user_output["email"] = email.email
+            user_output["email_verified"] = email.is_verified
         return Response(user_output)
