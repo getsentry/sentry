@@ -29,7 +29,6 @@ class OAuthUserInfoEndpoint(Endpoint):
         user_output = {"sub": user.id}
         if "profile" in scopes:
             user_output["name"] = user.name
-            user_output["username"]: user.username
             user_output["avatar_type"] = user.avatar_type
             user_output["avatar_url"] = user.avatar_url
             user_output["date_joined"] = user.date_joined
