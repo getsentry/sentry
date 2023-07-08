@@ -233,6 +233,7 @@ from .endpoints.notifications import (
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
+from .endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -673,6 +674,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^oauth/userinfo/$",
+        OAuthUserInfoEndpoint.as_view(),
+        name="sentry-api-0-oauth-userinfo",
     ),
 ]
 
