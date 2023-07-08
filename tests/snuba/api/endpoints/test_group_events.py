@@ -60,6 +60,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         assert sorted(map(lambda x: x["eventID"], response.data)) == sorted(
             [str(event_1.event_id), str(event_2.event_id)]
         )
+        # Should default to full=false which does not include context property
+        assert "context" not in response.data[0]
+        assert "context" not in response.data[1]
 
     def test_full_false(self):
         self.login_as(user=self.user)
