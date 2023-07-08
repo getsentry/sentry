@@ -5,6 +5,7 @@ from unittest.mock import call, patch
 import pytest
 from django.db import transaction
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
@@ -15,6 +16,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.utils.pytest.fixtures import django_db_all
 
 
@@ -32,6 +34,13 @@ def _cache_keys_for_org(org):
             yield key.public_key
 
 
+@pytest.fixture(autouse=True)
+def disable_auto_on_commit():
+    simulated_transaction_watermarks.state["default"] = -1
+    with in_test_hide_transaction_boundary():
+        yield
+
+
 @pytest.fixture
 def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
     # This contraption helps in testing the usage of `transaction.on_commit` in
@@ -42,9 +51,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
     @contextlib.contextmanager
     def inner(assert_num_callbacks=1):
         with burst_task_runner() as burst:
-            with transaction.atomic(), django_capture_on_commit_callbacks(
-                execute=True
-            ) as callbacks:
+            with django_capture_on_commit_callbacks(execute=True) as callbacks:
                 yield
 
                 # Assert there are no relay-related jobs in the queue yet, as we should have
@@ -68,7 +75,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
         # entire test runs in one transaction because that's how pytest-django
         # sets up things unless one uses
         # pytest.mark.django_db(transaction=True).
-        burst(max_jobs=10)
+        burst(max_jobs=20)
 
     return inner
 
@@ -160,7 +167,7 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
-    redis_cache.delete_many([default_projectkey.public_key])
+    # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)
@@ -180,7 +187,11 @@ def test_generate(
 
 @django_db_all
 def test_project_update_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
+    default_projectkey,
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -213,7 +224,11 @@ def test_project_update_option(
 
 @django_db_all
 def test_project_delete_option(
-    default_projectkey, default_project, emulate_transactions, redis_cache, django_cache
+    default_projectkey,
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -228,7 +243,10 @@ def test_project_delete_option(
 
 @django_db_all
 def test_project_get_option_does_not_reload(
-    default_project, emulate_transactions, monkeypatch, django_cache
+    default_project,
+    emulate_transactions,
+    monkeypatch,
+    django_cache,
 ):
     ProjectOption.objects._option_cache.clear()
     with emulate_transactions(assert_num_callbacks=0):
@@ -243,7 +261,10 @@ def test_project_get_option_does_not_reload(
 
 @django_db_all
 def test_invalidation_project_deleted(
-    default_project, emulate_transactions, redis_cache, django_cache
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
 ):
     # Ensure we have a ProjectKey
     project_key = next(_cache_keys_for_project(default_project))
@@ -256,7 +277,8 @@ def test_invalidation_project_deleted(
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    default_project.delete()
+    with emulate_transactions(assert_num_callbacks=6):
+        default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
     # Duplicate invoke the invalidation task, this needs to be fine with the missing project.
@@ -265,7 +287,12 @@ def test_invalidation_project_deleted(
 
 
 @django_db_all
-def test_projectkeys(default_project, emulate_transactions, redis_cache, django_cache):
+def test_projectkeys(
+    default_project,
+    emulate_transactions,
+    redis_cache,
+    django_cache,
+):
     # When a projectkey is deleted the invalidation task should be triggered and the project
     # should be cached as disabled.
 
@@ -301,7 +328,11 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache, django_
 
 @django_db_all(transaction=True)
 def test_db_transaction(
-    default_project, default_projectkey, redis_cache, task_runner, django_cache
+    default_project,
+    default_projectkey,
+    redis_cache,
+    task_runner,
+    django_cache,
 ):
     # Put something in the cache, otherwise triggers/the invalidation task won't compute
     # anything.
@@ -436,7 +467,10 @@ class TestInvalidationTask:
     )
     @mock.patch("django.db.transaction.on_commit", wraps=transaction.on_commit)
     def test_project_config_invalidations_after_commit(
-        self, oncommit, schedule_inner, default_project
+        self,
+        oncommit,
+        schedule_inner,
+        default_project,
     ):
         schedule_invalidate_project_config(
             trigger="test", project_id=default_project.id, countdown=2
@@ -453,7 +487,11 @@ class TestInvalidationTask:
         )
 
     @mock.patch("sentry.tasks.relay._schedule_invalidate_project_config")
-    def test_project_config_invalidations_delayed(self, schedule_inner, default_project):
+    def test_project_config_invalidations_delayed(
+        self,
+        schedule_inner,
+        default_project,
+    ):
         with transaction.atomic():
             schedule_invalidate_project_config(
                 trigger="inside-transaction", project_id=default_project, countdown=2
