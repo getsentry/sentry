@@ -484,6 +484,7 @@ class PerformanceDetectionTest(TestCase):
                     "file_io_main_thread": False,
                     "db_main_thread": False,
                     "n_plus_one_api_calls": False,
+                    "n_plus_one_api_calls_ext": False,
                     "m_n_plus_one_db": False,
                     "uncompressed_assets": True,
                     "browser_name": "Chrome",
