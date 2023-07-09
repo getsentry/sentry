@@ -69,11 +69,17 @@ def determine_using_by_silo_mode(using):
 
 
 def patch_silo_aware_atomic():
+    global _default_on_commit, _default_get_connection, _default_atomic_impl
+
     current_django_version = get_version()
     assert current_django_version.startswith("2.2."), (
         "Newer versions of Django have an additional 'durable' parameter in atomic,"
         + " verify the signature before updating the version check."
     )
+
+    _default_atomic_impl = transaction.atomic
+    _default_on_commit = transaction.on_commit
+    _default_get_connection = transaction.get_connection
 
     transaction.atomic = siloed_atomic  # type:ignore
     transaction.on_commit = siloed_on_commit
