@@ -64,12 +64,16 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         granularity = self.granularity.granularity
         self.granularity = None
 
-        if granularity == 60:
+        if granularity == constants.METRICS_GRANULARITY_MAPPING["1m"]:
             rounding_function = remove_minutes
-            base_granularity = constants.METRICS_GRANULARITY_MAPPING[60]
-        elif granularity == 3600:
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1m"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+        elif granularity == constants.METRICS_GRANULARITY_MAPPING["1h"]:
             rounding_function = remove_hours
-            base_granularity = constants.METRICS_GRANULARITY_MAPPING[3600]
+            base_granularity = constants.METRICS_GRANULARITY_MAPPING["1h"]
+            core_granularity = constants.METRICS_GRANULARITY_MAPPING["1d"]
+        else:
+            return [], Granularity(granularity)
 
         if rounding_function(self.start, False) > rounding_function(self.end):
             return [], Granularity(granularity)
@@ -78,10 +82,13 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         return [
             Or(
                 [
+                    # Grab the buckets that the core_granularity won't be able to capture at the original granularity
                     And(
                         [
                             Or(
                                 [
+                                    # We won't grab outside the queries timewindow because there's still a toplevel
+                                    # filter
                                     Condition(timestamp, Op.GTE, rounding_function(self.end)),
                                     Condition(
                                         timestamp, Op.LT, rounding_function(self.start, False)
@@ -91,6 +98,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
                             Condition(granularity, Op.EQ, base_granularity),
                         ]
                     ),
+                    # Grab the buckets that can use the core_granularity
                     And(
                         [
                             Condition(timestamp, Op.GTE, rounding_function(self.start, False)),
@@ -98,7 +106,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
                             # if an event happened at 15:02, its caught by the above condition in the 1min bucket at
                             # 15:02, but its also caught at the 1hr bucket at 15:00
                             Condition(timestamp, Op.LT, rounding_function(self.end)),
-                            Condition(granularity, Op.EQ, base_granularity + 1),
+                            Condition(granularity, Op.EQ, core_granularity),
                         ]
                     ),
                 ]

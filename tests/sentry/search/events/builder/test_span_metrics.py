@@ -10,7 +10,7 @@ from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-def create_condition(left_boundary, right_boundary, base_granularity):
+def create_condition(left_boundary, right_boundary, base_granularity, core_granularity):
     timestamp = Column("timestamp")
     granularity = Column("granularity")
     return [
@@ -31,7 +31,7 @@ def create_condition(left_boundary, right_boundary, base_granularity):
                     [
                         Condition(timestamp, Op.GTE, left_boundary),
                         Condition(timestamp, Op.LT, right_boundary),
-                        Condition(granularity, Op.EQ, base_granularity + 1),
+                        Condition(granularity, Op.EQ, core_granularity),
                     ]
                 ),
             ]
@@ -79,7 +79,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity on the hour"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 20), 2
+            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 20), 3600, 86400
         ), "Condition, on the hour"
 
         # If we're close to the start of the hour we should use the hour granularity
@@ -88,7 +88,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity on the hour, close"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 21), 2
+            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 21), 3600, 86400
         ), "Condition on the hour, close"
 
         # A decently long period but not close to hour ends, still use hour bucket
@@ -97,7 +97,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity on the hour, long period"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 28), 2
+            datetime.datetime(2015, 5, 19), datetime.datetime(2015, 5, 28), 3600, 86400
         ), "Condition on the hour, long period"
 
         # Hour to hour should only happen at the precise hour
@@ -113,7 +113,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, hour to hour but with seconds"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 18, 11), datetime.datetime(2015, 5, 18, 18), 1
+            datetime.datetime(2015, 5, 18, 11), datetime.datetime(2015, 5, 18, 18), 60, 3600
         ), "Condition, hour to hour but with seconds"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
@@ -123,7 +123,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, hour to hour but random minute"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 18, 11), datetime.datetime(2015, 5, 18, 18), 1
+            datetime.datetime(2015, 5, 18, 11), datetime.datetime(2015, 5, 18, 18), 60, 3600
         ), "Condition, hour to hour but random minute"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
@@ -159,7 +159,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, near 30d, but 1 hour before boundary for end"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 30), 2
+            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 30), 3600, 86400
         ), "Condition, near 30d but 1 hour before boundary for end"
 
         # Near 30d, but 1 hour after the boundary for start
@@ -168,7 +168,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, near 30d, but 1 hour before boundary for start"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 31), 2
+            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 31), 3600, 86400
         ), "Condition, near 30d but 1 hour before boundary for start"
 
         # Exactly 3d
@@ -184,7 +184,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, near 3d, but 1 hour before boundary for end"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 3), 2
+            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 3), 3600, 86400
         ), "Condition, near 3d but 1 hour before boundary for end"
 
         # Near 3d, but 1 hour after the boundary for start
@@ -193,7 +193,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
         condition, granularity = get_granularity(start, end)
         assert granularity is None, "Granularity, near 3d, but 1 hour before boundary for start"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 4), 2
+            datetime.datetime(2015, 5, 2), datetime.datetime(2015, 5, 4), 3600, 86400
         ), "Condition, near 3d but 1 hour before boundary for start"
 
         # exactly 12 hours
@@ -211,7 +211,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
             granularity is None
         ), "Granularity, 12h at boundary, but 15 min before the boundary for end"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 1, 1), datetime.datetime(2015, 5, 1, 12), 1
+            datetime.datetime(2015, 5, 1, 1), datetime.datetime(2015, 5, 1, 12), 60, 3600
         ), "Condition, 12h at boundary, but 15 min before the boundary for end"
 
         # Near 12h, but 15 minutes after the boundary for start
@@ -222,5 +222,5 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
             granularity is None
         ), "Granularity, 12h at boundary, but 15 min before the boundary for start"
         assert condition == create_condition(
-            datetime.datetime(2015, 5, 1, 1), datetime.datetime(2015, 5, 1, 12), 1
+            datetime.datetime(2015, 5, 1, 1), datetime.datetime(2015, 5, 1, 12), 60, 3600
         ), "Condition, 12h at boundary, but 15 min before the boundary for start"
