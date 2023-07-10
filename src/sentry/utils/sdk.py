@@ -269,7 +269,14 @@ def traces_sampler(sampling_context):
             pass
 
     # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+    rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+
+    # multiply everything with the overall multiplier
+    # till we get to 100% client sampling throughout
+    if settings.SENTRY_MULTIPLIER_APM_SAMPLING:
+        rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
+
+    return rate
 
 
 def before_send_transaction(event, _):
