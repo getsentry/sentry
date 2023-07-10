@@ -7,11 +7,11 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def delete_rules(apps, schema_editor):
-    from sentry.models.rule import RuleStatus
+    from sentry.constants import ObjectStatus
 
     Rule = apps.get_model("sentry", "Rule")
     for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
-        if rule.status in (RuleStatus.PENDING_DELETION, RuleStatus.INACTIVE):
+        if rule.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DISABLED):
             rule.delete()
 
 
