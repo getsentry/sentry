@@ -99,6 +99,7 @@ describe('spanEvidence', () => {
         },
       ],
     });
+    organization.features = ['project-performance-settings-admin'];
 
     render(
       <SpanEvidenceSection
