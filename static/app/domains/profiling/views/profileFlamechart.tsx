@@ -11,6 +11,7 @@ import {
   FlamegraphStateLocalStorageSync,
   FlamegraphStateQueryParamSync,
 } from 'sentry/domains/profiling/hooks/flamegraphQueryParamSync';
+import {useCurrentProjectFromRouteParam} from 'sentry/domains/profiling/hooks/useCurrentProjectFromRouteParam';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
   FlamegraphState,
@@ -18,18 +19,16 @@ import {
 import {FlamegraphStateProvider} from 'sentry/domains/profiling/providers/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/domains/profiling/providers/flamegraphThemeProvider';
 import {ProfileGroupTypeProvider} from 'sentry/domains/profiling/providers/profileGroupTypeProvider';
-import {useCurrentProjectFromRouteParam} from 'sentry/domains/profiling/utils/profiling/hooks/useCurrentProjectFromRouteParam';
+import {
+  useProfiles,
+  useProfileTransaction,
+} from 'sentry/domains/profiling/providers/profilesProvider';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-
-import {
-  useProfiles,
-  useProfileTransaction,
-} from '../../domains/profiling/providers/profilesProvider';
 
 function ProfileFlamegraph(): React.ReactElement {
   const organization = useOrganization();
