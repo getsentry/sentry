@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from time import time
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
 
 from requests import PreparedRequest
 from rest_framework.response import Response
 
-from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.exceptions import InvalidIdentity
+from sentry.integrations.client import ApiClient
 from sentry.models import Identity
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
@@ -146,7 +148,7 @@ class VstsSetupApiClient(ApiClient, VstsApiMixin):
         return self._request(method, path, headers=headers, data=data, params=params)
 
 
-class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
+class VstsApiClient(IntegrationProxyClient, VstsApiMixin):
     integration_name = "vsts"
     _identity: Identity | None = None
 
@@ -182,11 +184,24 @@ class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
         return self._request(method, *args, headers=headers, **kwargs)
 
     @control_silo_function
+    def _refresh_auth_if_expired(self):
+        """
+        Checks if auth is expired and if so refreshes it
+        """
+        time_expires = self.identity.data.get("expires")
+        if time_expires is None:
+            raise InvalidIdentity("VstsApiClient requires identity with specified expired time")
+        if int(time_expires) <= int(time()):
+            self.identity.get_provider().refresh_identity(
+                self.identity, redirect_url=self.oauth_redirect_url
+            )
+
+    @control_silo_function
     def authorize_request(
         self,
         prepared_request: PreparedRequest,
     ) -> PreparedRequest:
-        self.check_auth(redirect_url=self.oauth_redirect_url)
+        self._refresh_auth_if_expired()
         access_token = self.identity.data["access_token"]
         headers = prepare_auth_header(
             access_token=access_token,

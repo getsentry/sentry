@@ -521,7 +521,6 @@ module = [
     "sentry.integrations.bitbucket_server.integration",
     "sentry.integrations.bitbucket_server.repository",
     "sentry.integrations.bitbucket_server.webhook",
-    "sentry.integrations.client",
     "sentry.integrations.custom_scm.integration",
     "sentry.integrations.custom_scm.repository",
     "sentry.integrations.example.integration",
