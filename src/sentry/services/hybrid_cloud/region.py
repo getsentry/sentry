@@ -108,12 +108,16 @@ class RequireSingleOrganization(RegionResolution):
         if not settings.SENTRY_SINGLE_ORGANIZATION:
             raise Exception("Method is available only in single-org environment")
 
-        all_org_mappings = list(self.organization_mapping_manager.all()[:2])
-        if len(all_org_mappings) != 1:
-            raise Exception("Expected to find a single org while in single-org mode")
+        all_region_names = list(
+            self.organization_mapping_manager.all()
+            .values_list("region_name", flat=True)
+            .distinct()[:2]
+        )
+        if len(all_region_names) != 1:
+            raise Exception("Expected single-org environment to have only one region")
 
-        (single_org_mapping,) = all_org_mappings
-        return self._resolve_from_mapping(single_org_mapping)
+        (single_region_name,) = all_region_names
+        return get_region_by_name(single_region_name)
 
 
 class UnimplementedRegionResolution(RegionResolution):
