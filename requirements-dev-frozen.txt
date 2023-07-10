@@ -208,7 +208,7 @@ types-requests==2.28.8
 types-setuptools==65.3.0
 types-simplejson==3.17.7.2
 types-urllib3==1.26.22
-typing-extensions==4.5.0
+typing-extensions==4.6.1
 ua-parser==0.10.0
 unidiff==0.7.4
 uritemplate==4.1.1
