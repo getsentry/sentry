@@ -272,12 +272,9 @@ class ArtifactBundleArchive:
         #
         # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
         # ReleaseArtifactBundle table.
-        manifest = self.manifest
-        bundle_id = manifest.get("debug_id")
-        if bundle_id is not None:
-            bundle_id = self.normalize_debug_id(bundle_id)
+        bundle_id = self._extract_bundle_id()
 
-        files = manifest.get("files", {})
+        files = self.manifest.get("files", {})
         for file_path, info in files.items():
             headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
@@ -292,6 +289,14 @@ class ArtifactBundleArchive:
                     debug_ids_with_types.add((source_file_type, debug_id))
 
         return bundle_id, debug_ids_with_types
+
+    def _extract_bundle_id(self):
+        bundle_id = self.manifest.get("debug_id")
+
+        if bundle_id is not None:
+            bundle_id = self.normalize_debug_id(bundle_id)
+
+        return bundle_id
 
     def get_files(self) -> Dict[str, dict]:
         return self.manifest.get("files", {})

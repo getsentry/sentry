@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import collections
 import hashlib
 import logging
 import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import List, Optional, Tuple
+from typing import IO, List, NamedTuple, Optional, Tuple
 
 import sentry_sdk
 from django.db import IntegrityError, router
@@ -53,7 +52,14 @@ class AssembleTask:
     ARTIFACT_BUNDLE = "organization.artifact_bundle"  # Artifact bundle upload
 
 
-AssembleResult = collections.namedtuple("AssembleResult", ["bundle", "temp_file"])
+class AssembleResult(NamedTuple):
+    # File object stored in the database.
+    bundle: File
+    # Temporary in-memory object representing the file used for efficiency.
+    bundle_temp_file: IO
+
+    def delete_bundle(self):
+        self.bundle.delete()
 
 
 def assemble_file(
@@ -75,12 +81,10 @@ def assemble_file(
     else:
         organization = org_or_project
 
-    # Load all FileBlobs from db since we can be sure here we already own all
-    # chunks need to build the file
+    # Load all FileBlobs from db since we can be sure here we already own all chunks need to build the file.
     file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
-    # Reject all files that exceed the maximum allowed size for this
-    # organization. This value cannot be
+    # Reject all files that exceed the maximum allowed size for this organization.
     file_size = sum(x[2] for x in file_blobs)
     if file_size > get_max_file_size(organization):
         set_assemble_status(
@@ -93,8 +97,7 @@ def assemble_file(
 
         return None
 
-    # Sanity check.  In case not all blobs exist at this point we have a
-    # race condition.
+    # Sanity check. In case not all blobs exist at this point we have a race condition.
     if {x[1] for x in file_blobs} != set(chunks):
         set_assemble_status(
             task,
@@ -126,7 +129,7 @@ def assemble_file(
     else:
         file.save()
 
-        return AssembleResult(bundle=file, temp_file=temp_file)
+        return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
 def _get_cache_key(task, scope, checksum):
@@ -260,17 +263,20 @@ class AssembleArtifactsError(Exception):
 class PostAssembler(ABC):
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
-        self._validate_assemble_result()
-
-    def _validate_assemble_result(self):
-        if self.assemble_result.bundle is None or self.assemble_result.temp_file is None:
-            raise AssembleArtifactsError("the assemble result has invalid bundle or temporary file")
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        # In case any exception happens in the `with` block, we will capture it and delete the bundle connected to
+        # it.
+        if exc_type is not None:
+            self._delete_bundle_file_object()
+
         self.close()
+
+    def _delete_bundle_file_object(self):
+        self.assemble_result.delete_bundle()
 
     @abstractmethod
     def _validate_bundle(self):
@@ -295,7 +301,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
 
     def _validate_bundle(self):
         try:
-            self.archive = ReleaseArchive(self.assemble_result.temp_file)
+            self.archive = ReleaseArchive(self.assemble_result.bundle_temp_file)
             metrics.incr(
                 "tasks.assemble.release_bundle.artifact_count", amount=self.archive.artifact_count
             )
@@ -435,14 +441,13 @@ class ArtifactBundlePostAssembler(PostAssembler):
 
     def _validate_bundle(self):
         try:
-            self.archive = ArtifactBundleArchive(self.assemble_result.temp_file)
+            self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
             metrics.incr(
                 "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
             )
         except Exception:
             metrics.incr("tasks.assemble.artifact_bundle.invalid_bundle")
-            # We want to delete the File object if there are any issues.
-            self.assemble_result.bundle.delete()
+
             raise AssembleArtifactsError("the artifact bundle is invalid")
 
     def close(self):
@@ -469,89 +474,87 @@ class ArtifactBundlePostAssembler(PostAssembler):
             has_debug_ids=len(debug_ids_with_types) > 0,
         )
 
-        # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
-        # a release for the upload.
-        if len(debug_ids_with_types) > 0 or self.release:
-            # We take a snapshot in time in order to have consistent values in the database.
-            date_snapshot = timezone.now()
-
-            # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
-            # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
-            new_date_added = {"date_added": date_snapshot}
-
-            # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
-            # state after all of these updates.
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(ArtifactBundle),
-                    router.db_for_write(File),
-                    router.db_for_write(ReleaseArtifactBundle),
-                    router.db_for_write(ProjectArtifactBundle),
-                    router.db_for_write(DebugIdArtifactBundle),
-                )
-            ):
-                artifact_bundle, created = self._bind_or_create_artifact_bundle(
-                    bundle_id=bundle_id, date_added=date_snapshot
-                )
-
-                # If a release version is passed, we want to create the weak association between a bundle and a release.
-                if self.release:
-                    ReleaseArtifactBundle.objects.create_or_update(
-                        organization_id=self.organization.id,
-                        release_name=self.release,
-                        # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
-                        # tables.
-                        dist_name=self.dist or NULL_STRING,
-                        artifact_bundle=artifact_bundle,
-                        values=new_date_added,
-                        defaults=new_date_added,
-                    )
-
-                for project_id in self.projects_ids or ():
-                    ProjectArtifactBundle.objects.create_or_update(
-                        organization_id=self.organization.id,
-                        project_id=project_id,
-                        artifact_bundle=artifact_bundle,
-                        values=new_date_added,
-                        defaults=new_date_added,
-                    )
-
-                for source_file_type, debug_id in debug_ids_with_types:
-                    DebugIdArtifactBundle.objects.create_or_update(
-                        organization_id=self.organization.id,
-                        debug_id=debug_id,
-                        artifact_bundle=artifact_bundle,
-                        source_file_type=source_file_type.value,
-                        values=new_date_added,
-                        defaults=new_date_added,
-                    )
-
-            try:
-                organization = Organization.objects.get_from_cache(id=self.organization.id)
-            except Organization.DoesNotExist:
-                organization = None
-
-            # If we don't have a release set, we don't want to run indexing, since we need at least the release for
-            # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
-            # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
-            # not support them, some files were not injected...).
-            if (
-                organization is not None
-                and self.release
-                and features.has(
-                    "organizations:sourcemaps-bundle-indexing", organization, actor=None
-                )
-            ):
-                # After we committed the transaction we want to try and run indexing by passing non-null release and
-                # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
-                self._index_bundle_if_needed(
-                    release=self.release,
-                    dist=(self.dist or NULL_STRING),
-                    date_snapshot=date_snapshot,
-                )
-        else:
+        # We don't allow the creation of a bundle if no debug ids and release are present, since we are not able to
+        # efficiently index
+        if len(debug_ids_with_types) == 0 and not self.release:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
+            )
+
+        # We take a snapshot in time in order to have consistent values in the database.
+        date_snapshot = timezone.now()
+
+        # We have to add this dictionary to both `values` and `defaults` since we want to update the date_added in
+        # case of a re-upload because the `date_added` of the ArtifactBundle is also updated.
+        new_date_added = {"date_added": date_snapshot}
+
+        # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
+        # state after all of these updates.
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(File),
+                router.db_for_write(ReleaseArtifactBundle),
+                router.db_for_write(ProjectArtifactBundle),
+                router.db_for_write(DebugIdArtifactBundle),
+            )
+        ):
+            artifact_bundle, created = self._bind_or_create_artifact_bundle(
+                bundle_id=bundle_id, date_added=date_snapshot
+            )
+
+            # If a release version is passed, we want to create the weak association between a bundle and a release.
+            if self.release:
+                ReleaseArtifactBundle.objects.create_or_update(
+                    organization_id=self.organization.id,
+                    release_name=self.release,
+                    # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
+                    # tables.
+                    dist_name=self.dist or NULL_STRING,
+                    artifact_bundle=artifact_bundle,
+                    values=new_date_added,
+                    defaults=new_date_added,
+                )
+
+            for project_id in self.projects_ids or ():
+                ProjectArtifactBundle.objects.create_or_update(
+                    organization_id=self.organization.id,
+                    project_id=project_id,
+                    artifact_bundle=artifact_bundle,
+                    values=new_date_added,
+                    defaults=new_date_added,
+                )
+
+            for source_file_type, debug_id in debug_ids_with_types:
+                DebugIdArtifactBundle.objects.create_or_update(
+                    organization_id=self.organization.id,
+                    debug_id=debug_id,
+                    artifact_bundle=artifact_bundle,
+                    source_file_type=source_file_type.value,
+                    values=new_date_added,
+                    defaults=new_date_added,
+                )
+
+        try:
+            organization = Organization.objects.get_from_cache(id=self.organization.id)
+        except Organization.DoesNotExist:
+            organization = None
+
+        # If we don't have a release set, we don't want to run indexing, since we need at least the release for
+        # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
+        # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
+        # not support them, some files were not injected...).
+        if (
+            organization is not None
+            and self.release
+            and features.has("organizations:sourcemaps-bundle-indexing", organization, actor=None)
+        ):
+            # After we committed the transaction we want to try and run indexing by passing non-null release and
+            # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
+            self._index_bundle_if_needed(
+                release=self.release,
+                dist=(self.dist or NULL_STRING),
+                date_snapshot=date_snapshot,
             )
 
     def _bind_or_create_artifact_bundle(
@@ -749,9 +752,8 @@ def assemble_artifacts(
             file_type=file_type,
         )
 
-        # If not file has been created this means that the file failed to
-        # assemble because of bad input data. In this case, assemble_file
-        # has set the assemble status already.
+        # If not file has been created this means that the file failed to assemble because of bad input data.
+        # In this case, assemble_file has set the assemble status already.
         if assemble_result is None:
             return
 
