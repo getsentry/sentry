@@ -43,3 +43,19 @@ class DiscordWebhookTest(APITestCase):
         )
 
         assert resp.status_code == 200
+
+    @responses.activate
+    @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
+    def test_unauthorized_interaction(self, mock_verify_signature):
+        mock_verify_signature.return_value = False
+        resp = self.client.post(
+            path=WEBHOOK_URL,
+            data={
+                "type": -1,
+            },
+            format="json",
+            http_x_signature_ed25519="signature",
+            http_x_signature_timestamp="timestamp",
+        )
+
+        assert resp.status_code == 401
