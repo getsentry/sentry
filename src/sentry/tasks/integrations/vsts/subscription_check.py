@@ -22,7 +22,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     integration = Integration.objects.get(id=integration_id)
     installation = integration.get_installation(organization_id=organization_id)
     try:
-        client = installation.get_client()
+        client = installation.get_client(base_url=installation.instance)
     except ObjectDoesNotExist:
         return
 
@@ -30,9 +30,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
     subscription = None
     try:
         subscription_id = integration.metadata["subscription"]["id"]
-        subscription = client.get_subscription(
-            instance=installation.instance, subscription_id=subscription_id
-        )
+        subscription = client.get_subscription(subscription_id=subscription_id)
     except (KeyError, ApiError) as e:
         logger.info(
             "vsts_subscription_check.failed_to_get_subscription",
@@ -49,9 +47,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
         # We instead will try to delete and then create a new one.
         if subscription:
             try:
-                client.delete_subscription(
-                    instance=installation.instance, subscription_id=subscription_id
-                )
+                client.delete_subscription(subscription_id=subscription_id)
             except ApiError as e:
                 logger.info(
                     "vsts_subscription_check.failed_to_delete_subscription",
@@ -65,9 +61,7 @@ def vsts_subscription_check(integration_id: int, organization_id: int) -> None:
 
         try:
             secret = generate_token()
-            subscription = client.create_subscription(
-                instance=installation.instance, shared_secret=secret
-            )
+            subscription = client.create_subscription(shared_secret=secret)
         except ApiError as e:
             logger.info(
                 "vsts_subscription_check.failed_to_create_subscription",
