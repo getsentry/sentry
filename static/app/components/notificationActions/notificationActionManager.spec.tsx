@@ -12,7 +12,7 @@ import type {NotificationAction} from 'sentry/types';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();
-  const availableActions = TestStubs.AvailableNotificationActions();
+  const availableActions = TestStubs.AvailableNotificationActions().actions;
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/notifications/available-actions/`,
     body: availableActions,

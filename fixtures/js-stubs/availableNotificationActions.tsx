@@ -2,120 +2,122 @@ import type {AvailableNotificationAction as AvailableNotificationActionType} fro
 
 export function AvailableNotificationActions(
   params: AvailableNotificationActionType[] = []
-): AvailableNotificationActionType[] {
-  return [
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'sentry_notification',
-        targetType: 'specific',
-        targetIdentifier: 'default',
-        targetDisplay: 'default',
+): {actions: AvailableNotificationActionType[]} {
+  return {
+    actions: [
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'sentry_notification',
+          targetType: 'specific',
+          targetIdentifier: 'default',
+          targetDisplay: 'default',
+        },
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'slack',
+          targetType: 'specific',
+          integrationId: 1,
+          integrationName: 'sentry-ecosystem',
         },
-      ],
-    },
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'slack',
-        targetType: 'specific',
-        integrationId: 1,
-        integrationName: 'sentry-ecosystem',
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+          {
+            name: 'targetIdentifier',
+            description: "Slack channel ID (e.g. 'C123ABC45DE')",
+          },
+          {
+            name: 'targetDisplay',
+            description: 'Slack channel name (e.g #sentry-spike-protection)',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'slack',
+          targetType: 'specific',
+          integrationId: 5,
+          integrationName: 'sentry-enterprise',
         },
-        {
-          name: 'targetIdentifier',
-          description: "Slack channel ID (e.g. 'C123ABC45DE')",
-        },
-        {
-          name: 'targetDisplay',
-          description: 'Slack channel name (e.g #sentry-spike-protection)',
-        },
-      ],
-    },
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'slack',
-        targetType: 'specific',
-        integrationId: 5,
-        integrationName: 'sentry-enterprise',
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+          {
+            name: 'targetIdentifier',
+            description: "Slack channel ID (e.g. 'C123ABC45DE')",
+          },
+          {
+            name: 'targetDisplay',
+            description: 'Slack channel name (e.g #sentry-spike-protection)',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'pagerduty',
+          targetType: 'specific',
+          integrationId: 2,
+          integrationName: 'sentry-enterprise',
+          targetIdentifier: '3',
+          targetDisplay: 'Default Service',
         },
-        {
-          name: 'targetIdentifier',
-          description: "Slack channel ID (e.g. 'C123ABC45DE')",
-        },
-        {
-          name: 'targetDisplay',
-          description: 'Slack channel name (e.g #sentry-spike-protection)',
-        },
-      ],
-    },
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'pagerduty',
-        targetType: 'specific',
-        integrationId: 2,
-        integrationName: 'sentry-enterprise',
-        targetIdentifier: '3',
-        targetDisplay: 'Default Service',
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'pagerduty',
+          targetType: 'specific',
+          integrationId: 2,
+          integrationName: 'sentry-enterprise',
+          targetIdentifier: '2',
+          targetDisplay: 'Test 2',
         },
-      ],
-    },
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'pagerduty',
-        targetType: 'specific',
-        integrationId: 2,
-        integrationName: 'sentry-enterprise',
-        targetIdentifier: '2',
-        targetDisplay: 'Test 2',
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
+      {
+        action: {
+          triggerType: 'spike-protection',
+          serviceType: 'pagerduty',
+          targetType: 'specific',
+          integrationId: 2,
+          integrationName: 'sentry-enterprise',
+          targetIdentifier: '1',
+          targetDisplay: 'Test 1',
         },
-      ],
-    },
-    {
-      action: {
-        triggerType: 'spike-protection',
-        serviceType: 'pagerduty',
-        targetType: 'specific',
-        integrationId: 2,
-        integrationName: 'sentry-enterprise',
-        targetIdentifier: '1',
-        targetDisplay: 'Test 1',
+        requires: [
+          {
+            name: 'projects',
+            description: 'Project slugs which will receive the action',
+          },
+        ],
       },
-      requires: [
-        {
-          name: 'projects',
-          description: 'Project slugs which will receive the action',
-        },
-      ],
-    },
-    ...params,
-  ];
+      ...params,
+    ],
+  };
 }
