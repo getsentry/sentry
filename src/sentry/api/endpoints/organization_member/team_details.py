@@ -54,14 +54,13 @@ class OrganizationMemberTeamDetailsSerializer(Serializer):
         }
 
 
-class RelaxedOrganizationPermission(OrganizationPermission):
+class TeamOrgMemberPermission(OrganizationPermission):
     _allowed_scopes = [
         "org:read",
         "org:write",
         "org:admin",
-        "member:read",
-        "member:write",
-        "member:admin",
+        "team:write",
+        "team:admin",
     ]
 
     scope_map = {
@@ -76,7 +75,7 @@ class RelaxedOrganizationPermission(OrganizationPermission):
 @region_silo_endpoint
 class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     public = {"DELETE", "POST"}
-    permission_classes = [RelaxedOrganizationPermission]
+    permission_classes = [TeamOrgMemberPermission]
 
     def _can_create_team_member(self, request: Request, team: Team) -> bool:
         """
@@ -172,15 +171,72 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team_slug: str,
     ) -> Response:
+        # NOTE: Required to use HTML to create the table because this markdown version doesn't
+        # support colspan.
         """
-        If the organization member needs permission to join the team, an access request will be
-        generated and the status code will be **`202`**.
-
-        If the organization member is already on the team, the status code will **`204`**.
+        This request can return various success codes depending on the context of the team:
+        - **`201`**: The organization member has been successfully added.
+        - **`202`**: The organization member needs permission to join the team and an access request
+        has been generated.
+        - **`204`**: The organization member is already on the team.
 
         If the team is provisioned through an identity provider, then the member cannot join the
         team through Sentry.
+
+        Note that the permission scopes also vary depending on the organization setting `"Open
+        Membership"`. The following table outlines the accepted scopes based on this setting.
+        <table>
+        <thead>
+            <tr>
+            <th></th>
+            <th colspan="2" style="text-align: center; font-weight: bold;">Open Membership</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td></td>
+            <td style="text-align: center; font-weight: bold;">On</td>
+            <td style="text-align: center; font-weight: bold;">Off</td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold; vertical-align: middle;">Org-Scoped</td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                </ul>
+                </td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                </ul>
+                </td>
+                </tr>
+                <tr>
+                <td style="text-align: center; font-weight: bold; vertical-align: middle;">User-Scoped</td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:read</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                </ul>
+                </td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
+                </ul>
+                </td>
+            </tr>
+        </tbody>
+        </table>
+        *limited to the user's teams
         """
+        print("\n*************** hit POST *****************\n")
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
@@ -304,7 +360,61 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
     ) -> Response:
         """
         Delete an organization member from a team.
+
+        Note that the permission scopes also vary depending on the organization setting `"Open
+        Membership"`. The following table outlines the accepted scopes based on this setting.
+        <table>
+        <thead>
+            <tr>
+            <th></th>
+            <th colspan="2" style="text-align: center; font-weight: bold;">Open Membership</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td></td>
+            <td style="text-align: center; font-weight: bold;">On</td>
+            <td style="text-align: center; font-weight: bold;">Off</td>
+            </tr>
+            <tr>
+                <td style="text-align: center; font-weight: bold; vertical-align: middle;">Org-Scoped</td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                </ul>
+                </td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                </ul>
+                </td>
+                </tr>
+                <tr>
+                <td style="text-align: center; font-weight: bold; vertical-align: middle;">User-Scoped</td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
+                </ul>
+                </td>
+                <td style="text-align: left;">
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li><strong style="color: #9c5f99;">&bull; org:admin</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; org:write</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:write*</strong></li>
+                    <li><strong style="color: #9c5f99;">&bull; team:admin</strong></li>
+                </ul>
+                </td>
+            </tr>
+        </tbody>
+        </table>
+        *limited to the user's teams
         """
+        print("\n*************** hit DELETE *****************\n")
         try:
             team = Team.objects.get(organization=organization, slug=team_slug)
         except Team.DoesNotExist:
