@@ -6,17 +6,17 @@ import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 
 import Legend from './components/legend';
 import PieSeries from './series/pieSeries';
-import BaseChart from './baseChart';
+import BaseChart, {BaseChartProps} from './baseChart';
 
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
+export interface PieChartSeries
+  extends Series,
+    Omit<PieSeriesOption, 'id' | 'color' | 'data'> {}
 
-export type PieChartSeries = Series & Omit<PieSeriesOption, 'data' | 'name'>;
-
-type Props = Omit<ChartProps, 'series'> & {
+interface Props extends Omit<BaseChartProps, 'series'> {
   series: PieChartSeries[];
   theme: Theme;
   selectOnRender?: boolean;
-};
+}
 
 class PieChart extends Component<Props> {
   componentDidMount() {

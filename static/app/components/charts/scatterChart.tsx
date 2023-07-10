@@ -1,15 +1,13 @@
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 
 import ScatterSeries from './series/scatterSeries';
-import BaseChart from './baseChart';
-
-type ChartProps = Omit<React.ComponentProps<typeof BaseChart>, 'css'>;
+import BaseChart, {BaseChartProps} from './baseChart';
 
 export type ScatterChartSeries = Series;
 
-type Props = Omit<ChartProps, 'series'> & {
+interface Props extends Omit<BaseChartProps, 'series'> {
   series: ScatterChartSeries[];
-};
+}
 
 function ScatterChart({series, ...props}: Props) {
   return (

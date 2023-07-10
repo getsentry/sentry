@@ -41,7 +41,7 @@ const ZoomPropKeys = [
   'onFinished',
 ] as const;
 
-export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
+export interface ZoomRenderProps extends Pick<Props, (typeof ZoomPropKeys)[number]> {
   dataZoom?: DataZoomComponentOption[];
   end?: Date;
   isGroupedByDate?: boolean;
@@ -49,7 +49,7 @@ export type ZoomRenderProps = Pick<Props, (typeof ZoomPropKeys)[number]> & {
   start?: Date;
   toolBox?: ToolboxComponentOption;
   utc?: boolean;
-};
+}
 
 type Props = {
   children: (props: ZoomRenderProps) => React.ReactNode;
