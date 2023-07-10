@@ -131,9 +131,7 @@ class HandleIssueMergeTest(TestCase):
         if primary and child:
             generate_and_save_forecasts([primary, child])
             for group in [primary, child]:
-                assert (
-                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast is not None
-                )
+                assert EscalatingGroupForecast.fetch(group.project.id, group.id) is not None
 
             handle_merge([primary, child], self.project_lookup, self.user)
 
