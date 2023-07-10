@@ -17,7 +17,7 @@ export enum StepType {
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
   [StepType.CONFIGURE_SDK]: t('Configure SDK'),
-  [StepType.CONFIGURE_SOURCE_MAPS]: t('Configure Source Maps (Automatic Setup)'),
+  [StepType.CONFIGURE_SOURCE_MAPS]: t('Configure Source Maps'),
   [StepType.VERIFY]: t('Verify'),
 };
 
