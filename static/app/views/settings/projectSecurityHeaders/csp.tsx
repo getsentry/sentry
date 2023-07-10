@@ -10,7 +10,7 @@ import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,

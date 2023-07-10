@@ -5,10 +5,10 @@ import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

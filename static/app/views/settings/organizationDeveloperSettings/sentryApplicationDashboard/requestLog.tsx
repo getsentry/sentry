@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment-timezone';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

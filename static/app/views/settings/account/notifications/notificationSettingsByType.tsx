@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';

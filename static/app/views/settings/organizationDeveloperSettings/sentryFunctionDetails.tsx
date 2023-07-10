@@ -8,7 +8,7 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';

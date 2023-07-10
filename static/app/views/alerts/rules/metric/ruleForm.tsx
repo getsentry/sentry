@@ -10,11 +10,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';

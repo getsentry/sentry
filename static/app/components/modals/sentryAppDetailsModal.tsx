@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import Tag from 'sentry/components/tag';
 import {IconFlag} from 'sentry/icons';

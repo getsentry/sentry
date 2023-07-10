@@ -4,7 +4,7 @@ import TextField from 'sentry/components/forms/fields/textField';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Config = {
   backend: string;

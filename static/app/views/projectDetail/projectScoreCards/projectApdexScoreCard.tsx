@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import round from 'lodash/round';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import ScoreCard from 'sentry/components/scoreCard';

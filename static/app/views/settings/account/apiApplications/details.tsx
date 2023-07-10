@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;

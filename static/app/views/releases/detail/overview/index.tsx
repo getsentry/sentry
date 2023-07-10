@@ -38,7 +38,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,

@@ -1,5 +1,5 @@
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';

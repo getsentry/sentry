@@ -21,7 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 
 import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';

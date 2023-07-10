@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

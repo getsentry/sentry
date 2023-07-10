@@ -2,9 +2,9 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventCustomPerformanceMetrics from 'sentry/components/events/eventCustomPerformanceMetrics';

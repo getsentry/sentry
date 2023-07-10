@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

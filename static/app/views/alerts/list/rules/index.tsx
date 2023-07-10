@@ -5,7 +5,7 @@ import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';

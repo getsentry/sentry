@@ -70,7 +70,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getProjectOptions} from '../utils';

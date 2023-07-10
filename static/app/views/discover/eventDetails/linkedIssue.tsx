@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';

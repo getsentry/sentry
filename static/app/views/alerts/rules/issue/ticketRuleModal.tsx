@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Choices, IssueConfigField, Organization} from 'sentry/types';
 import {IssueAlertRuleAction} from 'sentry/types/alerts';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const IGNORED_FIELDS = ['Sprint'];
 

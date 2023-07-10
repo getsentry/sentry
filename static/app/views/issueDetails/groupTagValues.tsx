@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {RouteComponentProps, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DataExport, {ExportQueryType} from 'sentry/components/dataExport';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';

@@ -2,11 +2,11 @@ import {browserHistory} from 'react-router';
 import type {BarSeriesOption} from 'echarts';
 import {Location} from 'history';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import BaseChart from 'sentry/components/charts/baseChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';

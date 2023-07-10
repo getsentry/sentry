@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Authenticator, OrganizationSummary} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import RemoveConfirm from 'sentry/views/settings/account/accountSecurity/components/removeConfirm';
 import TwoFactorRequired from 'sentry/views/settings/account/accountSecurity/components/twoFactorRequired';
 import PasswordForm from 'sentry/views/settings/account/passwordForm';

@@ -13,7 +13,7 @@ import {
 } from 'sentry/views/alerts/rules/metric/constants';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import RuleForm from './ruleForm';
 

@@ -5,11 +5,11 @@ import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import PanelTable from 'sentry/components/panels/panelTable';

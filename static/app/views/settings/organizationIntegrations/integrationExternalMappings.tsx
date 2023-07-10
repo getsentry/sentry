@@ -3,9 +3,9 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {Tooltip} from 'sentry/components/tooltip';

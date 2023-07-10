@@ -9,7 +9,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type RouteParams = {
   projectId: string;

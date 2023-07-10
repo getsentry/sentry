@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/alert';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -35,7 +35,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
 

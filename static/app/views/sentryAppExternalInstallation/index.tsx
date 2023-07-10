@@ -15,7 +15,7 @@ import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {OrganizationContext} from '../organizationContext';
 

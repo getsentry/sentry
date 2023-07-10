@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {Alert} from 'sentry/components/alert';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {DeviceName} from 'sentry/components/deviceName';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';

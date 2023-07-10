@@ -12,7 +12,7 @@ import {t, tn} from 'sentry/locale';
 import {CommitFile, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 

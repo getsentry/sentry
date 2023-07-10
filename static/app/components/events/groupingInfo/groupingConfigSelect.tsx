@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {Tooltip} from 'sentry/components/tooltip';

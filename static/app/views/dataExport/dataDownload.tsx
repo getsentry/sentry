@@ -9,8 +9,8 @@ import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
 import Layout from 'sentry/views/auth/layout';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 export enum DownloadStatus {
   EARLY = 'EARLY',

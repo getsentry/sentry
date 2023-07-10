@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
   getAttachmentUrl,

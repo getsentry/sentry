@@ -6,10 +6,10 @@ import {
   installSentryApp,
   uninstallSentryApp,
 } from 'sentry/actionCreators/sentryAppInstallations';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';

@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';

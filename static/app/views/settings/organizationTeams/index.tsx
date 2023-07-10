@@ -6,7 +6,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {AccessRequest, Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationTeams from './organizationTeams';
 

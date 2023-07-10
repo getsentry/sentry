@@ -3,8 +3,8 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';

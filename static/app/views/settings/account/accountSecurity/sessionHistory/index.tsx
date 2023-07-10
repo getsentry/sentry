@@ -8,7 +8,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {InternetProtocol} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';

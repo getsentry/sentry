@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {LocationDescriptorObject} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';

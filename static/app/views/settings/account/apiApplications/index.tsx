@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ApiApplication} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import Row from 'sentry/views/settings/account/apiApplications/row';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 

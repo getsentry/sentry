@@ -11,7 +11,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {InternalAppApiToken, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

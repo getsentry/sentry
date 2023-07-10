@@ -1,10 +1,10 @@
 import round from 'lodash/round';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';

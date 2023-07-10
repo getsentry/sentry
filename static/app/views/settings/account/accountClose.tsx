@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

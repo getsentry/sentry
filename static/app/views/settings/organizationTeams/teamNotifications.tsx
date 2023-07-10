@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,7 +18,7 @@ import {space} from 'sentry/styles/space';
 import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {

@@ -2,7 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getOption, getOptionField} from './options';
 

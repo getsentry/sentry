@@ -2,7 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,

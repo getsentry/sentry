@@ -2,7 +2,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {space} from 'sentry/styles/space';

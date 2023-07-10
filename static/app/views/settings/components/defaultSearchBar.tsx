@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 export type RenderSearch = React.ComponentProps<
   typeof DeprecatedAsyncView.prototype.renderSearchInput

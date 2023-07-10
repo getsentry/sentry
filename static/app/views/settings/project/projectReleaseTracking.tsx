@@ -16,7 +16,7 @@ import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 

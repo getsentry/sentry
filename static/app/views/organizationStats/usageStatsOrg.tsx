@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';

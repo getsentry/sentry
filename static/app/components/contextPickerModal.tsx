@@ -4,7 +4,7 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl, {
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';

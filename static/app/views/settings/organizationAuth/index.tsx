@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 import {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationAuthList from './organizationAuthList';
 

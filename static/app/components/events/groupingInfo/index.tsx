@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

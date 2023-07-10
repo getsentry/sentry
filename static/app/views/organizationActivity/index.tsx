@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 

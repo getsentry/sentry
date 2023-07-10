@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';

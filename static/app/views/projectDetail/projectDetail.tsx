@@ -29,7 +29,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';

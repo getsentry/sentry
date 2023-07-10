@@ -3,9 +3,9 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IconWarning} from 'sentry/icons';
 import {OrganizationSummary} from 'sentry/types';
 import {defined} from 'sentry/utils';

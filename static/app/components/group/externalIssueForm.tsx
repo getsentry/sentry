@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import AbstractExternalIssueForm, {
   ExternalIssueAction,
 } from 'sentry/components/externalIssues/abstractExternalIssueForm';

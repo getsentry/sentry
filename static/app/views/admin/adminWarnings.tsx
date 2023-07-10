@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   groups: [groupName: string, grouppedWarnings: string[]][];

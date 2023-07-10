@@ -2,10 +2,10 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';

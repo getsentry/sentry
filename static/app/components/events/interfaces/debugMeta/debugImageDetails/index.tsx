@@ -6,9 +6,9 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';

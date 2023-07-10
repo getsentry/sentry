@@ -18,7 +18,7 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';

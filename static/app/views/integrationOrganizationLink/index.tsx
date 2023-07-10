@@ -22,7 +22,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow

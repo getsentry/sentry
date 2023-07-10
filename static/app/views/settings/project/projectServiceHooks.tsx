@@ -17,7 +17,7 @@ import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type RowProps = {

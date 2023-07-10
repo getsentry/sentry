@@ -23,7 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 

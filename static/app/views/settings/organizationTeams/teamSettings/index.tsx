@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {

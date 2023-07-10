@@ -27,7 +27,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {DASHBOARDS_TEMPLATES} from '../data';
 import {assignDefaultLayout, getInitialColumnDepths} from '../layoutUtils';

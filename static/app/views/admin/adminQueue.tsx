@@ -5,7 +5,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const TIME_WINDOWS = ['1h', '1d', '1w'] as const;
 

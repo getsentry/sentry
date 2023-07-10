@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {Commit, Organization, Project, Repository} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getCommitsByRepository, getQuery, getReposToRender} from '../utils';
 

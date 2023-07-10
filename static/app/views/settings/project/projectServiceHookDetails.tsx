@@ -6,9 +6,9 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 

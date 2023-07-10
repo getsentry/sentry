@@ -3,8 +3,8 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import AlertBadge from 'sentry/components/alertBadge';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';

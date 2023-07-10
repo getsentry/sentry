@@ -35,7 +35,7 @@ import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types'
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 

@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import * as modal from 'sentry/actionCreators/modal';
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ContextPickerModal from 'sentry/components/contextPickerModal';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PluginProjectItem, PluginWithProjectList} from 'sentry/types';

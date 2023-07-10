@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {Organization, Repository} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {DataCategoryInfo, Organization, Outcome} from 'sentry/types';
 

@@ -8,8 +8,8 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';

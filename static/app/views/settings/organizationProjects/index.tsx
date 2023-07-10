@@ -15,7 +15,7 @@ import {sortProjects} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ProjectListItem from 'sentry/views/settings/components/settingsProjectItem';
 import CreateProjectButton from 'sentry/views/settings/organizationProjects/createProjectButton';

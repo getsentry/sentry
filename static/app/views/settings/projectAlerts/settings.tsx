@@ -12,7 +12,7 @@ import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Plugin, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 

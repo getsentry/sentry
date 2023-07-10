@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   RenderSearch,
   SearchWrapper,

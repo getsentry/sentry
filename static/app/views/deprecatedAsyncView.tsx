@@ -1,4 +1,4 @@
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 
 export type AsyncViewState = DeprecatedAsyncComponent['state'];

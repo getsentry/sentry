@@ -13,7 +13,7 @@ import {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',

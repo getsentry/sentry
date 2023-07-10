@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
