@@ -17,7 +17,6 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_value
 from sentry.snuba.dataset import Dataset
@@ -145,7 +144,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
             "transform",
             [
                 Column(
-                    f"tags_raw[{indexer.resolve(UseCaseKey.PERFORMANCE, self.organization.id, 'transaction')}]"
+                    f"tags_raw[{indexer.resolve(UseCaseID.TRANSACTIONS, self.organization.id, 'transaction')}]"
                 ),
                 [""],
                 ["<< unparameterized >>"],
@@ -264,7 +263,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                                     [
                                         Column("metric_id"),
                                         indexer.resolve(
-                                            UseCaseKey.PERFORMANCE,
+                                            UseCaseID.TRANSACTIONS,
                                             self.organization.id,
                                             constants.METRICS_MAP["transaction.duration"],
                                         ),
@@ -335,7 +334,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                             [
                                 Column("metric_id"),
                                 indexer.resolve(
-                                    UseCaseKey.PERFORMANCE,
+                                    UseCaseID.TRANSACTIONS,
                                     self.organization.id,
                                     constants.METRICS_MAP["transaction.duration"],
                                 ),
@@ -385,7 +384,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_name = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+            UseCaseID.TRANSACTIONS, self.organization.id, "foo_transaction"
         )
         transaction = self.build_transaction_transform("transaction")
         self.assertCountEqual(
@@ -405,10 +404,10 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["transaction", "project", "p95(transaction.duration)"],
         )
         transaction_name1 = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+            UseCaseID.TRANSACTIONS, self.organization.id, "foo_transaction"
         )
         transaction_name2 = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
+            UseCaseID.TRANSACTIONS, self.organization.id, "bar_transaction"
         )
         transaction = self.build_transaction_transform("transaction")
         self.assertCountEqual(
@@ -654,7 +653,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 1
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -696,7 +695,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 1
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -730,7 +729,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 2
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -740,7 +739,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "bar_transaction",
             ),
@@ -776,7 +775,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 2
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "bar_transaction",
             ),
@@ -786,7 +785,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -830,7 +829,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 2
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -839,7 +838,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -861,7 +860,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 2
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -870,7 +869,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -900,7 +899,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 3
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "zzz",
             ),
@@ -910,7 +909,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "bbb",
             ),
@@ -1099,7 +1098,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 3
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "bar_transaction",
             ),
@@ -1109,7 +1108,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -1119,7 +1118,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][2] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "baz_transaction",
             ),
@@ -1161,7 +1160,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 3
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "baz_transaction",
             ),
@@ -1170,7 +1169,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][1] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "foo_transaction",
             ),
@@ -1180,7 +1179,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
         assert result["data"][2] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "bar_transaction",
             ),
@@ -1281,7 +1280,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 1
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "baz_transaction",
             ),
@@ -1335,7 +1334,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert len(result["data"]) == 1
         assert result["data"][0] == {
             "transaction": resolve_tag_value(
-                UseCaseKey.PERFORMANCE,
+                UseCaseID.TRANSACTIONS,
                 self.organization.id,
                 "baz_transaction",
             ),
@@ -1674,10 +1673,10 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             selected_columns=["p95(transaction.duration)"],
         )
         transaction_name1 = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, self.organization.id, "foo_transaction"
+            UseCaseID.TRANSACTIONS, self.organization.id, "foo_transaction"
         )
         transaction_name2 = resolve_tag_value(
-            UseCaseKey.PERFORMANCE, self.organization.id, "bar_transaction"
+            UseCaseID.TRANSACTIONS, self.organization.id, "bar_transaction"
         )
 
         transaction = self.build_transaction_transform("transaction")
