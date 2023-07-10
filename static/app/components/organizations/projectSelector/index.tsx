@@ -19,7 +19,7 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import ProjectSelectorFooter from './footer';
 import SelectorItem from './selectorItem';
 
-type Props = {
+export type ProjectSelectorProps = {
   /**
    * Used to render a custom dropdown button for the DropdownAutoComplete
    */
@@ -81,7 +81,7 @@ function ProjectSelector({
   organization,
   value,
   disabled,
-}: Props) {
+}: ProjectSelectorProps) {
   const routes = useRoutes();
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);

@@ -2,10 +2,10 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as ActionCreators from 'sentry/actionCreators/formSearch';
 import FormSource from 'sentry/components/search/sources/formSource';
-import FormSearchStore from 'sentry/stores/formSearchStore';
+import FormSearchStore, {FormSearchField} from 'sentry/stores/formSearchStore';
 
 describe('FormSource', function () {
-  const searchMap = [
+  const searchMap: FormSearchField[] = [
     {
       title: 'Test Field',
       description: 'test-help',
@@ -14,6 +14,7 @@ describe('FormSource', function () {
         name: 'test-field',
         label: 'Test Field',
         help: 'test-help',
+        type: 'text',
       },
     },
     {
@@ -24,6 +25,7 @@ describe('FormSource', function () {
         name: 'foo-field',
         label: 'Foo Field',
         help: 'foo-help',
+        type: 'text',
       },
     },
   ];
@@ -35,7 +37,7 @@ describe('FormSource', function () {
   });
 
   afterEach(function () {
-    ActionCreators.loadSearchMap.mockRestore();
+    (ActionCreators.loadSearchMap as jest.Mock).mockRestore();
   });
 
   it('can find a form field', async function () {
@@ -52,6 +54,7 @@ describe('FormSource', function () {
                   label: 'Test Field',
                   name: 'test-field',
                   help: 'test-help',
+                  type: 'text',
                 },
                 title: 'Test Field',
                 description: 'test-help',

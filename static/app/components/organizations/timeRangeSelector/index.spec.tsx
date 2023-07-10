@@ -1,6 +1,8 @@
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TimeRangeSelector from 'sentry/components/organizations/timeRangeSelector';
+import TimeRangeSelector, {
+  TimeRangeSelectorProps,
+} from 'sentry/components/organizations/timeRangeSelector';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('TimeRangeSelector', function () {
@@ -8,64 +10,58 @@ describe('TimeRangeSelector', function () {
   const routerContext = TestStubs.routerContext();
   const organization = TestStubs.Organization();
 
-  function getComponent(props = {}) {
+  function getComponent(props: Partial<TimeRangeSelectorProps> = {}) {
     return (
       <TimeRangeSelector
         showAbsolute
         showRelative
         onChange={onChange}
         organization={organization}
+        start={null}
+        end={null}
+        onUpdate={jest.fn()}
+        relative={null}
+        utc={false}
         {...props}
       />
     );
   }
 
-  function renderComponent(props = {}) {
+  function renderComponent(props: Partial<TimeRangeSelectorProps> = {}) {
     return render(getComponent(props), {context: routerContext});
   }
 
   beforeEach(function () {
-    ConfigStore.loadInitialData({
-      user: {options: {timezone: 'America/New_York'}},
-    });
+    const config = TestStubs.Config();
+    config.user.options.timezone = 'America/New_York';
+    ConfigStore.loadInitialData(config);
     onChange.mockReset();
   });
 
   it('renders when given relative period not in dropdown', function () {
-    render(
-      <TimeRangeSelector
-        organization={organization}
-        showAbsolute={false}
-        showRelative={false}
-        relative="9d"
-      />,
-      {context: routerContext}
-    );
+    renderComponent({
+      organization,
+      showAbsolute: false,
+      showRelative: false,
+      start: undefined,
+      end: undefined,
+      relative: '9d',
+    });
     expect(screen.getByText('Last 9 days')).toBeInTheDocument();
   });
 
   it('renders when given an invalid relative period', function () {
-    render(
-      <TimeRangeSelector
-        organization={organization}
-        showAbsolute={false}
-        showRelative={false}
-        relative="1y"
-      />,
-      {context: routerContext}
-    );
+    renderComponent({
+      organization,
+      showAbsolute: false,
+      showRelative: false,
+      relative: '1y',
+    });
     expect(screen.getByText('Invalid period')).toBeInTheDocument();
   });
 
   it('hides relative and absolute selectors', async function () {
-    render(
-      <TimeRangeSelector
-        organization={organization}
-        showAbsolute={false}
-        showRelative={false}
-      />,
-      {context: routerContext}
-    );
+    renderComponent({organization, showAbsolute: false, showRelative: false});
     await userEvent.click(screen.getByRole('button'));
 
     // Ensure none of the relative options are shown
@@ -100,7 +96,7 @@ describe('TimeRangeSelector', function () {
       start: new Date('2017-10-03T02:41:20.000Z'),
       end: new Date('2017-10-17T02:41:20.000Z'),
     };
-    expect(onChange).toHaveBeenLastCalledWith(newProps);
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining(newProps));
 
     expect(await screen.findByTestId('date-range')).toBeInTheDocument();
 
@@ -117,11 +113,13 @@ describe('TimeRangeSelector', function () {
     fireEvent.change(toDateInput, {target: {value: '2017-10-04'}});
 
     // Selecting new date range resets time inputs to start/end of day
-    expect(onChange).toHaveBeenLastCalledWith({
-      relative: null,
-      start: new Date('2017-10-03T00:00:00'), // local time
-      end: new Date('2017-10-04T23:59:59'), // local time
-    });
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        relative: null,
+        start: new Date('2017-10-03T00:00:00'), // local time
+        end: new Date('2017-10-04T23:59:59'), // local time
+      })
+    );
     expect(screen.getByTestId('startTime')).toHaveValue('00:00');
     expect(screen.getByTestId('endTime')).toHaveValue('23:59');
   });
@@ -394,11 +392,13 @@ describe('TimeRangeSelector', function () {
     await userEvent.click(screen.getByRole('button'));
     await userEvent.click(await screen.findByTestId('absolute'));
 
-    expect(onChange).toHaveBeenCalledWith({
-      relative: null,
-      start: new Date('2017-10-10T00:00:00.000Z'),
-      end: new Date('2017-10-17T23:59:59.000Z'),
-    });
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        relative: null,
+        start: new Date('2017-10-10T00:00:00.000Z'),
+        end: new Date('2017-10-17T23:59:59.000Z'),
+      })
+    );
   });
 
   it('uses the current absolute date if provided', async function () {

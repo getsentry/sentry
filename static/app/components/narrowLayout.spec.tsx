@@ -7,16 +7,16 @@ describe('NarrowLayout', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
   });
   afterAll(function () {
-    window.location.assign.mockRestore();
+    (window.location.assign as jest.Mock).mockRestore();
   });
 
   it('renders without logout', function () {
-    render(<NarrowLayout />);
+    render(<NarrowLayout>{null}</NarrowLayout>);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
   it('renders with logout', function () {
-    render(<NarrowLayout showLogout />);
+    render(<NarrowLayout showLogout>{null}</NarrowLayout>);
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
@@ -26,7 +26,7 @@ describe('NarrowLayout', function () {
       method: 'DELETE',
       status: 204,
     });
-    render(<NarrowLayout showLogout />);
+    render(<NarrowLayout showLogout>{null}</NarrowLayout>);
 
     await userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();
