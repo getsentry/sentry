@@ -252,7 +252,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert integration.name == "Test Organization"
         assert integration.metadata == {
             "access_token": self.access_token,
-            "expires_at": self.expires_at,
+            # The metadata doesn't get saved with the timezone "Z" character
+            "expires_at": self.expires_at[:-1],
             "icon": "http://example.com/avatar.png",
             "domain_name": "github.com/Test-Organization",
             "account_type": "Organization",
