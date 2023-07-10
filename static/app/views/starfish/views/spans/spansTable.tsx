@@ -30,6 +30,7 @@ type Row = {
   'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
+  'span.action': string;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -197,10 +198,19 @@ function getDescriptionHeader(moduleName: ModuleName) {
   }
   return 'Description';
 }
+function getActionHeader(moduleName: ModuleName) {
+  if (moduleName === ModuleName.HTTP) {
+    return 'HTTP Method';
+  }
+  if (moduleName === ModuleName.DB) {
+    return 'SQL Command';
+  }
+  return 'Action';
+}
 
 function getColumns(moduleName: ModuleName): Column[] {
+  const action = getActionHeader(moduleName);
   const description = getDescriptionHeader(moduleName);
-
   const domain = getDomainHeader(moduleName);
 
   const order: Column[] = [
@@ -214,15 +224,16 @@ function getColumns(moduleName: ModuleName): Column[] {
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    ...(moduleName !== ModuleName.ALL
-      ? [
-          {
-            key: 'span.domain',
-            name: domain,
-            width: COL_WIDTH_UNDEFINED,
-          } as Column,
-        ]
-      : []),
+    {
+      key: 'span.action',
+      name: action,
+      width: COL_WIDTH_UNDEFINED,
+    },
+    {
+      key: 'span.domain',
+      name: domain,
+      width: COL_WIDTH_UNDEFINED,
+    },
     {
       key: 'sps()',
       name: 'Throughput',

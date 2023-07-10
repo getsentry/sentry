@@ -24,6 +24,7 @@ export type SpanMetrics = {
   'http_error_count_percent_change()': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
+  'span.action': string;
   'span.description': string;
   'span.domain': string;
   'span.group': string;
@@ -89,6 +90,7 @@ function getEventView(
       name: '',
       query,
       fields: [
+        'span.action',
         'span.op',
         'span.group',
         'span.description',
