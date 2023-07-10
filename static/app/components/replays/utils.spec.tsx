@@ -7,22 +7,11 @@ import {
   relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
-import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+// import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
-
-function createCrumb({timestamp}: Pick<Crumb, 'timestamp'>): Crumb {
-  return {
-    timestamp,
-    color: 'white',
-    description: 'crumb description',
-    id: 1,
-    type: BreadcrumbType.DEFAULT,
-    data: {},
-    level: BreadcrumbLevelType.DEBUG,
-  };
-}
 
 describe('formatTime', () => {
   it.each([
@@ -94,13 +83,30 @@ describe('countColumns', () => {
 });
 
 describe('getFramesByColumn', () => {
-  const startTimestampMs = 1649945987326; // milliseconds
   const durationMs = 25710; // milliseconds
-  const CRUMB_1 = createCrumb({timestamp: '2022-04-14T14:19:47.326000Z'});
-  const CRUMB_2 = createCrumb({timestamp: '2022-04-14T14:19:49.249000Z'});
-  const CRUMB_3 = createCrumb({timestamp: '2022-04-14T14:19:51.512000Z'});
-  const CRUMB_4 = createCrumb({timestamp: '2022-04-14T14:19:57.326000Z'});
-  const CRUMB_5 = createCrumb({timestamp: '2022-04-14T14:20:13.036000Z'});
+
+  const [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5] = hydrateErrors(
+    TestStubs.ReplayRecord({
+      started_at: new Date('2022-04-14T14:19:47.326000Z'),
+    }),
+    [
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:47.326000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:49.249000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:51.512000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:19:57.326000Z'),
+      }),
+      TestStubs.Replay.RawReplayError({
+        timestamp: new Date('2022-04-14T14:20:13.036000Z'),
+      }),
+    ]
+  );
 
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
@@ -124,7 +130,6 @@ describe('getFramesByColumn', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
     const columns = getFramesByColumn(
-      startTimestampMs,
       durationMs,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
