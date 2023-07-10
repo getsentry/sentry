@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,6 +20,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField, ListField
 from sentry.api.serializers.rest_framework.origin import OriginField
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.datascrubbing import validate_pii_config_update
@@ -364,8 +368,10 @@ class RelaxedProjectPermission(ProjectPermission):
     }
 
 
+@extend_schema(tags=["Projects"])
 @region_silo_endpoint
 class ProjectDetailsEndpoint(ProjectEndpoint):
+    public = {"GET", "PUT", "DELETE"}
     permission_classes = [RelaxedProjectPermission]
 
     def _get_unresolved_count(self, project):
@@ -379,17 +385,20 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return queryset.count()
 
+    @extend_schema(
+        operation_id="Retrieve a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            200: DetailedProjectSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProjectExamples.DETAILED_PROJECT,
+    )
     def get(self, request: Request, project: Project) -> Response:
         """
-        Retrieve a Project
-        ``````````````````
-
         Return details on an individual project.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to retrieve.
-        :auth: required
         """
         data = serialize(project, request.user, DetailedProjectSerializer())
 
@@ -427,26 +436,30 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
+    @extend_schema(
+        operation_id="Update a Project",
+        parameters=[
+            GlobalParams.ORG_SLUG,
+            GlobalParams.PROJECT_SLUG,
+            GlobalParams.name("The name for the project."),
+            GlobalParams.slug("The slug for the project."),
+            ProjectParams.platform("The platform for the project."),
+            ProjectParams.IS_BOOKMARKED,
+        ],
+        request=ProjectAdminSerializer,
+        responses={
+            200: DetailedProjectSerializer,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ProjectExamples.DETAILED_PROJECT,
+    )
     def put(self, request: Request, project) -> Response:
         """
-        Update a Project
-        ````````````````
+        Update various attributes and configurable settings for the given project.
 
-        Update various attributes and configurable settings for the given
-        project.  Only supplied values are updated.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to update.
-        :param string name: the new name for the project.
-        :param string slug: the new slug for the project.
-        :param string platform: the new platform for the project.
-        :param boolean isBookmarked: in case this API call is invoked with a
-                                     user context this allows changing of
-                                     the bookmark flag.
-        :param int digestsMinDelay:
-        :param int digestsMaxDelay:
-        :auth: required
+        Note that solely having the **`project:read`** scope restricts updatable settings to
+        `isBookmarked` only.
         """
 
         old_data = serialize(project, request.user, DetailedProjectSerializer())
@@ -648,7 +661,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ExternalProviders.EMAIL,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 get_option_value_from_boolean(result.get("isSubscribed")),
-                user=request.user,
+                user_id=request.user.id,
                 project=project,
             )
 
@@ -799,22 +812,23 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         return Response(data)
 
+    @extend_schema(
+        operation_id="Delete a Project",
+        parameters=[GlobalParams.ORG_SLUG, GlobalParams.PROJECT_SLUG],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     @sudo_required
     def delete(self, request: Request, project) -> Response:
         """
-        Delete a Project
-        ````````````````
-
         Schedules a project for deletion.
 
-        Deletion happens asynchronously and therefore is not immediate.
-        However once deletion has begun the state of a project changes and
-        will be hidden from most public views.
-
-        :pparam string organization_slug: the slug of the organization the
-                                          project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
-        :auth: required
+        Deletion happens asynchronously and therefore is not immediate. However once deletion has
+        begun the state of a project changes and will be hidden from most public views.
         """
         if project.is_internal_project():
             return Response(

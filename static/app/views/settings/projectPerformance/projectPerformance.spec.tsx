@@ -9,6 +9,9 @@ import {
 import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
   allowedDurationValues,
+  allowedPercentageValues,
+  allowedSizeValues,
+  DetectorConfigCustomer,
 } from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 describe('projectPerformance', function () {
@@ -191,7 +194,7 @@ describe('projectPerformance', function () {
   it.each([
     {
       title: 'N+1 DB Queries',
-      threshold: 'n_plus_one_db_duration_threshold',
+      threshold: DetectorConfigCustomer.N_PLUS_DB_DURATION,
       allowedValues: allowedDurationValues,
       defaultValue: 100,
       newValue: 500,
@@ -200,12 +203,75 @@ describe('projectPerformance', function () {
     },
     {
       title: 'Slow DB Queries',
-      threshold: 'slow_db_query_duration_threshold',
+      threshold: DetectorConfigCustomer.SLOW_DB_DURATION,
       allowedValues: allowedDurationValues.slice(1),
       defaultValue: 1000,
       newValue: 3000,
       newValueIndex: 7,
       sliderIndex: 2,
+    },
+    {
+      title: 'Large Render Blocking Asset',
+      threshold: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+      allowedValues: allowedPercentageValues,
+      defaultValue: 0.33,
+      newValue: 0.5,
+      newValueIndex: 6,
+      sliderIndex: 3,
+    },
+    {
+      title: 'Large HTTP Payload',
+      threshold: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+      allowedValues: allowedSizeValues.slice(1),
+      defaultValue: 1000000,
+      newValue: 5000000,
+      newValueIndex: 13,
+      sliderIndex: 4,
+    },
+    {
+      title: 'DB on Main Thread',
+      threshold: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+      allowedValues: [10, 16, 33, 50],
+      defaultValue: 16,
+      newValue: 33,
+      newValueIndex: 2,
+      sliderIndex: 5,
+    },
+    {
+      title: 'File I/O on Main Thread',
+      threshold: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+      allowedValues: [10, 16, 33, 50],
+      defaultValue: 16,
+      newValue: 50,
+      newValueIndex: 3,
+      sliderIndex: 6,
+    },
+    {
+      title: 'Consecutive DB Queries',
+      threshold: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+      allowedValues: allowedDurationValues.slice(0, 11),
+      defaultValue: 100,
+      newValue: 5000,
+      newValueIndex: 10,
+      sliderIndex: 7,
+    },
+    {
+      title: 'Uncompressed Asset',
+      threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+      allowedValues: allowedSizeValues.slice(1),
+      defaultValue: 512000,
+      newValue: 700000,
+      newValueIndex: 6,
+      sliderIndex: 8,
+    },
+    {
+      title: 'Uncompressed Asset',
+      threshold: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+      allowedValues: allowedDurationValues.slice(1),
+      defaultValue: 500,
+      newValue: 400,
+      newValueIndex: 3,
+      sliderIndex: 9,
     },
   ])(
     'renders detector thresholds settings for $title issue',
@@ -246,6 +312,12 @@ describe('projectPerformance', function () {
         await screen.findByText('Performance Issues - Detector Threshold Settings')
       ).toBeInTheDocument();
       expect(screen.getByText(title)).toBeInTheDocument();
+
+      // Open collapsed panels
+      const chevrons = screen.getAllByTestId('form-panel-collapse-chevron');
+      for (const chevron of chevrons) {
+        await userEvent.click(chevron);
+      }
 
       const slider = screen.getAllByRole('slider')[sliderIndex];
       const indexOfValue = allowedValues.indexOf(defaultValue);

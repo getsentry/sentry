@@ -8,8 +8,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -20,7 +20,7 @@ import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSet
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationProvider, Organization, Scope} from 'sentry/types';
+import {Integration, Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
@@ -35,28 +35,30 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   authProvider: object;
-  githubIntegration: {providers: IntegrationProvider[]};
+  githubIntegrations: Integration[];
 };
 
-class OrganizationSettingsForm extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class OrganizationSettingsForm extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
       ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
       [
-        'githubIntegration',
-        `/organizations/${organization.slug}/config/integrations/?provider_key=github`,
+        'githubIntegrations',
+        `/organizations/${organization.slug}/integrations/?provider_key=github`,
       ],
     ];
   }
 
   render() {
     const {initialData, organization, onSave, access} = this.props;
-    const {authProvider, githubIntegration} = this.state;
+    const {authProvider, githubIntegrations} = this.state;
     const endpoint = `/organizations/${organization.slug}/`;
-    const hasGithubIntegration = !githubIntegration?.providers[0].canAdd;
+    const hasGithubIntegration = githubIntegrations
+      ? githubIntegrations.length > 0
+      : false;
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
@@ -118,7 +120,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         help: (
           <Fragment>
             {t(
-              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
+              'Allow Sentry to comment on pull requests about issues impacting your app.'
             )}{' '}
             <Link to={`/settings/${organization.slug}/integrations/github`}>
               {t('Configure GitHub integration')}

@@ -4,10 +4,10 @@ from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam, Team, TeamStatus
 from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMTeamDetailsTests(SCIMTestCase):
     def test_team_details_404(self):
         url = reverse(
@@ -325,9 +325,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
 
         assert Team.objects.get(id=team.id).status == TeamStatus.PENDING_DELETION
-        mock_metrics.incr.assert_called_with(
-            "sentry.scim.team.delete", tags={"organization": self.organization}
-        )
+        mock_metrics.incr.assert_called_with("sentry.scim.team.delete")
 
     def test_remove_member_azure(self):
         member1 = self.create_member(

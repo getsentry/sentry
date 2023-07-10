@@ -11,16 +11,16 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {ApiApplication} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{appId: string}, {}>;
 type State = {
   app: ApiApplication;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ApiApplicationsDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ApiApplicationsDetails extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['app', `/api-applications/${this.props.params.appId}/`]];
   }
 

@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import List, Optional, cast
 
-from sentry.constants import ObjectStatus
 from sentry.services.hybrid_cloud.region import ByOrganizationId
 from sentry.services.hybrid_cloud.repository import RpcRepository
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -33,7 +32,7 @@ class RepositoryService(RpcService):
         providers: Optional[List[str]] = None,
         has_integration: Optional[bool] = None,
         has_provider: Optional[bool] = None,
-        status: Optional[ObjectStatus] = None,
+        status: Optional[int] = None,
     ) -> List[RpcRepository]:
         pass
 

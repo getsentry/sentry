@@ -861,7 +861,7 @@ function buildRoutes() {
         />
       </Route>
       <Redirect from="developer-settings/sentry-functions/" to="developer-settings/" />
-      <Route path="developer-settings/" name={t('Developer Settings')}>
+      <Route path="developer-settings/" name={t('Custom Integrations')}>
         <IndexRoute
           component={make(
             () => import('sentry/views/settings/organizationDeveloperSettings')
@@ -1664,12 +1664,6 @@ function buildRoutes() {
     <Fragment>
       <IndexRoute
         component={make(() => import('sentry/views/starfish/views/webServiceView'))}
-      />
-      <Route
-        path="failure-detail/:slug/"
-        component={make(
-          () => import('sentry/views/starfish/views/webServiceView/endpointFailureEvents')
-        )}
       />
       <Route path="endpoint-overview/">
         <IndexRoute

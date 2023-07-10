@@ -34,7 +34,7 @@ function useScrollToCurrentItem({breadcrumbs, ref, startTimestampMs}: Opts) {
   useEffect(() => {
     if (ref.current && current) {
       const index = breadcrumbs?.findIndex(crumb => crumb.id === current.id);
-      ref.current?.scrollToRow(index);
+      ref.current?.scrollToRow(index ? index + 1 : undefined);
     }
   }, [breadcrumbs, current, ref]);
 }

@@ -264,6 +264,24 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "bar_transaction"
         assert meta["dataset"] == "spansMetrics"
 
+    def test_time_spent_percentage_local(self):
+        response = self.do_request(
+            {
+                "field": ["time_spent_percentage(local)"],
+                "query": "",
+                "orderby": ["-time_spent_percentage(local)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["time_spent_percentage(local)"] is None
+        assert meta["dataset"] == "spansMetrics"
+
     def test_http_error_rate_and_count(self):
         for _ in range(4):
             self.store_span_metric(

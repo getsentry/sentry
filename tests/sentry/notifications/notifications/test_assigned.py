@@ -35,7 +35,7 @@ class AssignedNotificationAPITest(APITestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         Identity.objects.create(
@@ -77,7 +77,7 @@ class AssignedNotificationAPITest(APITestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            team=self.team,
+            team_id=self.team.id,
         )
 
         url = f"/api/0/issues/{self.group.id}/"
