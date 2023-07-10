@@ -273,8 +273,31 @@ class AssembleArtifactsTest(BaseAssembleTest):
             ProjectArtifactBundle.objects.all().delete()
 
     @patch("sentry.tasks.assemble.ArtifactBundlePostAssembler.post_assemble")
-    def test_assembled_bundle_is_delete_if_exception_occurs(self, post_assemble):
+    def test_assembled_bundle_is_deleted_if_post_assembler_error_occurs(self, post_assemble):
         post_assemble.side_effect = Exception
+
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version="1.0",
+            dist="android",
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        files = File.objects.filter()
+        assert len(files) == 0
+
+    @patch("sentry.tasks.assemble.ArtifactBundleArchive")
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self, artifact_bundle_archive):
+        artifact_bundle_archive.side_effect = Exception
 
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id

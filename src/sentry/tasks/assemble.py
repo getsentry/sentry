@@ -263,13 +263,14 @@ class AssembleArtifactsError(Exception):
 class PostAssembler(ABC):
     def __init__(self, assemble_result: AssembleResult):
         self.assemble_result = assemble_result
+        self._validate_bundle_guarded()
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        # In case any exception happens in the `with` block, we will capture it and delete the bundle connected to
-        # it.
+        # In case any exception happens in the `with` block, we will capture it, and we want to delete the actual `File`
+        # object created in the database, to avoid orphan entries.
         if exc_type is not None:
             self._delete_bundle_file_object()
 
@@ -277,6 +278,16 @@ class PostAssembler(ABC):
 
     def _delete_bundle_file_object(self):
         self.assemble_result.delete_bundle()
+
+    def _validate_bundle_guarded(self):
+        try:
+            self._validate_bundle()
+        except Exception:
+            metrics.incr("tasks.assemble.invalid_bundle")
+            # In case the bundle is invalid, we want to delete the actual `File` object created in the database, to
+            # avoid orphan entries.
+            self._delete_bundle_file_object()
+            raise AssembleArtifactsError("the bundle is invalid")
 
     @abstractmethod
     def _validate_bundle(self):
@@ -297,18 +308,11 @@ class ReleaseBundlePostAssembler(PostAssembler):
         self.organization = organization
         self.version = version
 
-        self._validate_bundle()
-
     def _validate_bundle(self):
-        try:
-            self.archive = ReleaseArchive(self.assemble_result.bundle_temp_file)
-            metrics.incr(
-                "tasks.assemble.release_bundle.artifact_count", amount=self.archive.artifact_count
-            )
-        except Exception:
-            metrics.incr("tasks.assemble.release_bundle.invalid_bundle")
-            self._delete_bundle_file_object()
-            raise AssembleArtifactsError("the release bundle is invalid")
+        self.archive = ReleaseArchive(self.assemble_result.bundle_temp_file)
+        metrics.incr(
+            "tasks.assemble.release_bundle.artifact_count", amount=self.archive.artifact_count
+        )
 
     def close(self):
         self.archive.close()
@@ -436,18 +440,11 @@ class ArtifactBundlePostAssembler(PostAssembler):
         self.dist = dist
         self.projects_ids = project_ids
 
-        self._validate_bundle()
-
     def _validate_bundle(self):
-        try:
-            self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
-            metrics.incr(
-                "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
-            )
-        except Exception:
-            metrics.incr("tasks.assemble.artifact_bundle.invalid_bundle")
-            self._delete_bundle_file_object()
-            raise AssembleArtifactsError("the artifact bundle is invalid")
+        self.archive = ArtifactBundleArchive(self.assemble_result.bundle_temp_file)
+        metrics.incr(
+            "tasks.assemble.artifact_bundle.artifact_count", amount=self.archive.artifact_count
+        )
 
     def close(self):
         self.archive.close()
