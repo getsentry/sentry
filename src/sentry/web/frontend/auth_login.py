@@ -17,7 +17,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
-from sentry.models import AuthProvider, Organization, OrganizationStatus
+from sentry.models import AuthProvider, Organization, OrganizationMapping, OrganizationStatus
 from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
@@ -132,9 +132,9 @@ class AuthLoginView(BaseView):
         organization = kwargs.pop("organization", None)
 
         org_exists = bool(
-            organization_service.check_organization_by_slug(
-                slug=request.subdomain, only_visible=True
-            )
+            OrganizationMapping.objects.filter(
+                slug=request.subdomain, status=OrganizationStatus.ACTIVE
+            ).exists()
         )
 
         if request.method == "GET" and request.subdomain and org_exists:

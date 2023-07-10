@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
+import sys
 import urllib.response
 from abc import abstractmethod
 from collections.abc import Iterable
@@ -353,6 +354,15 @@ class RpcService(abc.ABC):
 
                 service = fallback()
                 method = getattr(service, method_name)
+
+                if "pytest" in sys.modules:
+                    from django.test import override_settings
+
+                    if cls.local_mode == SiloMode.REGION:
+                        region = signature.resolve_to_region(kwargs)
+                        with override_settings(SENTRY_REGION=region.name):
+                            return method(**kwargs)
+
                 return method(**kwargs)
 
             return remote_method_with_fallback

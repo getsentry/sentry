@@ -160,14 +160,6 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
-    @abstractmethod
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        """
-        If exists and matches the only_visible requirement, returns an organization's id by the slug.
-        """
-        pass
-
     def get_organization_by_slug(
         self, *, slug: str, only_visible: bool, user_id: Optional[int] = None
     ) -> Optional[RpcUserOrganizationContext]:

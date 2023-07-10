@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Mapping, Optional, Set, Union, cast
+from typing import Any, Iterable, List, Mapping, Optional, Set, Union
 
 from django.db import IntegrityError, models, transaction
 from django.dispatch import Signal
@@ -26,7 +26,7 @@ from sentry.models import (
     outbox_context,
 )
 from sentry.models.organizationmember import InviteStatus
-from sentry.services.hybrid_cloud import OptionValue, logger
+from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     OrganizationSignalService,
@@ -241,17 +241,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 except OrganizationMember.DoesNotExist:
                     return None
         return serialize_member(org_member)
-
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        try:
-            org = Organization.objects.get_from_cache(slug=slug)
-            if only_visible and org.status != OrganizationStatus.ACTIVE:
-                raise Organization.DoesNotExist
-            return cast(int, org.id)
-        except Organization.DoesNotExist:
-            logger.info("Organization by slug [%s] not found", slug)
-
-        return None
 
     def _query_organizations(
         self, user_id: int, scope: Optional[str], only_visible: bool

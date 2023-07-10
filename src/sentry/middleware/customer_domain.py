@@ -11,7 +11,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import resolve_region
 from sentry.api.utils import generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.models import OrganizationMapping
 from sentry.utils import auth
 from sentry.utils.http import absolute_uri
 
@@ -19,9 +19,7 @@ from sentry.utils.http import absolute_uri
 def _org_exists(slug):
     if not slug:
         return False
-    return (
-        organization_service.check_organization_by_slug(slug=slug, only_visible=False) is not None
-    )
+    return OrganizationMapping.objects.filter(slug=slug).exists()
 
 
 def _query_string(request):
