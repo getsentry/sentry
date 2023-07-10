@@ -72,19 +72,19 @@ export const steps = ({
     ],
   },
   {
-    language: 'html',
+    language: 'bash',
     type: StepType.CONFIGURE_SOURCE_MAPS,
     configurations: [
       {
         description: t(
-          'The easiest way to configure upload Source Maps with Webpack is by using the Sentry Wizard.'
+          'Use Sentry Wizard to configure Source Maps upload, enabling readable stack traces in Sentry errors.'
         ),
         code: `npx @sentry/wizard@latest -i sourcemaps`,
         additionalInfo: (
           <Alert type="info" showIcon noBottomSpacing>
             {tct('Prefer to set up Source Maps manually? [docsLink:Read the docs].', {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/webpack/#manual-setup" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/" />
               ),
             })}
           </Alert>
@@ -109,12 +109,6 @@ export const steps = ({
 ];
 
 export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
-  },
   {
     id: 'react-features',
     name: t('React Features'),
