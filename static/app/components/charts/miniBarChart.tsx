@@ -95,7 +95,6 @@ function MiniBarChart({
   grid,
   ...props
 }: Props) {
-  const {...barChartProps} = props;
   const theme = useTheme();
   const colorList = Array.isArray(colors)
     ? colors
@@ -199,9 +198,7 @@ function MiniBarChart({
     },
   };
 
-  return (
-    <BarChart series={chartSeries} height={height} {...chartOptions} {...barChartProps} />
-  );
+  return <BarChart series={chartSeries} height={height} {...chartOptions} {...props} />;
 }
 
 export default MiniBarChart;
