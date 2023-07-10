@@ -17,11 +17,11 @@ from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
-from sentry.types.region import Region
+from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.region import RegionResolution
+    from sentry.services.hybrid_cloud.region import RegionResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +29,7 @@ _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 _REGION_RESOLUTION_ATTR = "__region_resolution"
+_REGION_RESOLUTION_OPTIONAL_RETURN_ATTR = "__region_resolution_optional_return"
 
 
 class RpcServiceSetupException(Exception):
@@ -123,7 +124,7 @@ class RpcMethodSignature:
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
-    def _extract_region_resolution(self) -> RegionResolution | None:
+    def _extract_region_resolution(self) -> RegionResolutionStrategy | None:
         region_resolution = getattr(self._base_method, _REGION_RESOLUTION_ATTR, None)
 
         is_region_service = self._base_service_cls.local_mode == SiloMode.REGION
@@ -162,12 +163,18 @@ class RpcMethodSignature:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> Region:
+    def resolve_to_region(self, arguments: ArgumentDict) -> Region | None:
         if self._region_resolution is None:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
         try:
-            return self._region_resolution.resolve(arguments)
+            try:
+                return self._region_resolution.resolve(arguments)
+            except RegionMappingNotFound:
+                if getattr(self._base_method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
+                    return None
+                else:
+                    raise
         except Exception as e:
             raise RpcServiceUnimplementedException("Error while resolving region") from e
 
@@ -209,7 +216,8 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
 
 
 def regional_rpc_method(
-    resolve: RegionResolution,
+    resolve: RegionResolutionStrategy,
+    return_none_if_mapping_not_found: bool = False,
 ) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
     """Decorate methods to be exposed as part of the RPC interface.
 
@@ -220,6 +228,7 @@ def regional_rpc_method(
 
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
         setattr(method, _REGION_RESOLUTION_ATTR, resolve)
+        setattr(method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, return_none_if_mapping_not_found)
         return rpc_method(method)
 
     return decorator
@@ -328,6 +337,8 @@ class RpcService(abc.ABC):
 
                 if cls.local_mode == SiloMode.REGION:
                     region = signature.resolve_to_region(kwargs)
+                    if region is None:
+                        return None
                 else:
                     region = None
 

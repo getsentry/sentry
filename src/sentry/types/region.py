@@ -90,6 +90,10 @@ class RegionResolutionError(Exception):
     """Indicate that a region's identity could not be resolved."""
 
 
+class RegionMappingNotFound(RegionResolutionError):
+    """Indicate that a mapping to a region could not be found."""
+
+
 class RegionContextError(Exception):
     """Indicate that the server is not in a state to resolve a region."""
 
