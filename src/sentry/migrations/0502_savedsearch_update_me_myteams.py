@@ -93,22 +93,25 @@ def update_saved_search_query(apps, schema_editor):
 
         all_idx = [m.span() for m in list(assigned_me_idx_iter) + list(assigned_me_in_idx_iter)]
 
-        replacements = []
-        for start, stop in all_idx or ():
-            maybe_replacement = replacement_term(query[start:stop])
-            if maybe_replacement:
-                replacements.append((start, stop, maybe_replacement))
+        try:
+            replacements = []
+            for start, stop in all_idx or ():
+                maybe_replacement = replacement_term(query[start:stop])
+                if maybe_replacement:
+                    replacements.append((start, stop, maybe_replacement))
 
-        if replacements:
-            result = []
-            i = 0
-            for start, end, replacement in replacements:
-                result.append(query[i:start] + replacement)
-                i = end
-            result.append(query[i:])
+            if replacements:
+                result = []
+                i = 0
+                for start, end, replacement in replacements:
+                    result.append(query[i:start] + replacement)
+                    i = end
+                result.append(query[i:])
 
-            ss.query = " ".join(result).strip()
-            ss.save(update_fields=["query"])
+                ss.query = " ".join(result).strip()
+                ss.save(update_fields=["query"])
+        except Exception:
+            continue
 
 
 class Migration(CheckedMigration):
