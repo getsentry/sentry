@@ -68,9 +68,9 @@ class DiscordRequest:
         return {k: v for k, v in data.items() if v}
 
     def validate(self) -> None:
+        self._validate_data()
         self._log_request()
         self.authorize()
-        self._validate_data()
         self.validate_integration()
 
     def authorize(self) -> None:
