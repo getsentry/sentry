@@ -8,7 +8,7 @@ from django.conf import settings
 
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
-from sentry.types.region import Region, get_region_by_name
+from sentry.types.region import Region, RegionResolutionError, get_region_by_name
 
 if TYPE_CHECKING:
     from sentry.db.models import BaseManager
@@ -106,7 +106,7 @@ class RequireSingleOrganization(RegionResolution):
 
     def resolve(self, arguments: ArgumentDict) -> Region:
         if not settings.SENTRY_SINGLE_ORGANIZATION:
-            raise Exception("Method is available only in single-org environment")
+            raise RegionResolutionError("Method is available only in single-org environment")
 
         all_region_names = list(
             self.organization_mapping_manager.all()
@@ -114,7 +114,7 @@ class RequireSingleOrganization(RegionResolution):
             .distinct()[:2]
         )
         if len(all_region_names) != 1:
-            raise Exception("Expected single-org environment to have only one region")
+            raise RegionResolutionError("Expected single-org environment to have only one region")
 
         (single_region_name,) = all_region_names
         return get_region_by_name(single_region_name)
