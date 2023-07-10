@@ -6,14 +6,48 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-def delete_rules(apps, schema_editor):
-    from sentry.constants import ObjectStatus
+class ObjectStatus:
+    VISIBLE = 0
+    HIDDEN = 1
+    PENDING_DELETION = 2
+    DELETION_IN_PROGRESS = 3
 
+    ACTIVE = 0
+    DISABLED = 1
+
+
+def schedule(cls, instance, days=30):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    model = type(instance)
+    model_name = model.__name__
+    record, created = cls.objects.create_or_update(
+        app_label=instance._meta.app_label,
+        model_name=model_name,
+        object_id=instance.pk,
+        values={
+            "date_scheduled": timezone.now() + timedelta(days=days, hours=0),
+            "data": {},
+            "actor_id": None,
+        },
+    )
+    if not created:
+        record = cls.objects.get(
+            app_label=instance._meta.app_label,
+            model_name=model_name,
+            object_id=instance.pk,
+        )
+    return record
+
+
+def delete_rules(apps, schema_editor):
     Rule = apps.get_model("sentry", "Rule")
     RegionScheduledDeletion = apps.get_model("sentry", "RegionScheduledDeletion")
     for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
         if rule.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DISABLED):
-            RegionScheduledDeletion.schedule(rule, days=0)
+            schedule(RegionScheduledDeletion, rule, days=0)
 
 
 class Migration(CheckedMigration):
