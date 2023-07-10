@@ -393,6 +393,7 @@ const Package = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
+  padding-right: 1px;
 `;
 
 const FileName = styled('span')`
