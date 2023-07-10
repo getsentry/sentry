@@ -79,7 +79,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         response = self.get_success_response(
             self.organization.slug,
             metric=["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"],
-            useCase="performance",
+            useCase="transactions",
         )
         assert response.data == []
 

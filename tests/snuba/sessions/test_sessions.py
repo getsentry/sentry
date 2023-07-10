@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -1159,7 +1159,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 tags={},
                 type="set",
                 value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                use_case_id=UseCaseID.SESSIONS,
             )
 
         assert (

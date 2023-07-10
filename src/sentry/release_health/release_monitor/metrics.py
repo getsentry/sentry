@@ -19,7 +19,6 @@ from snuba_sdk import (
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import SESSION_METRIC_NAMES
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key
@@ -103,9 +102,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
         totals: Totals = defaultdict(dict)
         with metrics.timer("release_monitor.fetch_project_release_health_totals.loop"):
             while (time.time() - start_time) < self.MAX_SECONDS:
-                release_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "release")
+                release_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "release")
                 release_col = Column(release_key)
-                env_key = resolve_tag_key(UseCaseKey.RELEASE_HEALTH, org_id, "environment")
+                env_key = resolve_tag_key(UseCaseID.SESSIONS, org_id, "environment")
                 env_col = Column(env_key)
                 query = (
                     Query(
@@ -134,7 +133,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                                 Column("metric_id"),
                                 Op.EQ,
                                 indexer.resolve(
-                                    UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value
+                                    UseCaseID.SESSIONS, org_id, SessionMRI.SESSION.value
                                 ),
                             ),
                         ],

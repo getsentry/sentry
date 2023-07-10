@@ -172,7 +172,7 @@ class OrganizationMetricsMetaTest(OrganizationMetricMetaIntegrationTestCase):
         because the setUp bypasses it.
         """
         response = self.get_success_response(
-            self.organization.slug, project=[self.project.id], useCase=["release-health"]
+            self.organization.slug, project=[self.project.id], useCase=["sessions"]
         )
 
         assert type(response.data) == list
