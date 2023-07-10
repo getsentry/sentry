@@ -1,6 +1,6 @@
 import logging
 
-from sentry_sdk import capture_exception
+import sentry_sdk
 
 from sentry.models.organization import Organization
 from sentry.plugins.base import bindings
@@ -65,5 +65,5 @@ def link_all_repos(integration_id: int, organization_id: int):
         except KeyError:
             continue
         except Exception as e:
-            capture_exception(e)
+            sentry_sdk.capture_exception(e)
             continue
