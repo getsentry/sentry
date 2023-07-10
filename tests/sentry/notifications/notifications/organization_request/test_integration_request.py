@@ -3,10 +3,10 @@ from sentry.notifications.notifications.organization_request.integration_request
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import region_silo_test
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class TestIntegrationRequestNotification(TestCase):
     def test_get_context(self):
         owner = self.create_user("owner@example.com")
