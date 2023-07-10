@@ -23,7 +23,6 @@ class DiscordInteractionsEndpoint(Endpoint):
     @csrf_exempt
     @transaction_start("DiscordInteractionsEndpoint")
     def post(self, request: Request) -> Response:
-
         try:
             discord_request = self.discord_request_class(request)
             discord_request.validate()
