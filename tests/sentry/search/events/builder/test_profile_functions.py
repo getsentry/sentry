@@ -62,12 +62,12 @@ def params():
         ),
         pytest.param(
             "fingerprint:123",
-            Condition(Column("fingerprint"), Op("="), 123),
+            Condition(Function("toUInt32", [Column("fingerprint")], "fingerprint"), Op("="), 123),
             id="fingerprint",
         ),
         pytest.param(
             "!fingerprint:123",
-            Condition(Column("fingerprint"), Op("!="), 123),
+            Condition(Function("toUInt32", [Column("fingerprint")], "fingerprint"), Op("!="), 123),
             id="not fingerprint",
         ),
     ],

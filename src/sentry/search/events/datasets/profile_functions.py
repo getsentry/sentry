@@ -68,7 +68,7 @@ COLUMNS = [
     Column(alias="project_id", column="project_id", kind=Kind.INTEGER),
     Column(alias="transaction", column="transaction_name", kind=Kind.STRING),
     Column(alias="timestamp", column="timestamp", kind=Kind.DATE),
-    Column(alias="fingerprint", column="fingerprint", kind=Kind.INTEGER),
+    Column(alias="_fingerprint", column="fingerprint", kind=Kind.INTEGER),
     Column(alias="function", column="name", kind=Kind.STRING),
     Column(alias="package", column="package", kind=Kind.STRING),
     Column(alias="is_application", column="is_application", kind=Kind.INTEGER),
@@ -137,7 +137,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         "project_id",
         "transaction",
         "timestamp",
-        "fingerprint",
+        "_fingerprint",
         "function",
         "package",
         "is_application",
@@ -161,7 +161,7 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     def _fingerprint_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         try:
             return Condition(
-                self.builder.column("fingerprint"),
+                self.builder.resolve_column("fingerprint"),
                 Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ,
                 int(search_filter.value.value),
             )
@@ -208,9 +208,20 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
     @property
     def field_alias_converter(self) -> Mapping[str, Callable[[str], SelectType]]:
         return {
+            "fingerprint": self._resolve_fingerprint_alias,
             PROJECT_ALIAS: self._resolve_project_slug_alias,
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
         }
+
+    def _resolve_fingerprint_alias(self, alias: str) -> SelectType:
+        # HACK: temporarily truncate the fingerprint to 32 bits
+        # as snuba cannot handle 64 bit unsigned fingerprints
+        # once we migrate to a 32 bit unsigned fingerprint
+        # we can remove this field alias and directly use the column
+        #
+        # When removing this, make sure to update the test helper to
+        # generate 32 bit function fingerprints as well.
+        return Function("toUInt32", [self.builder.column("_fingerprint")], alias)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
