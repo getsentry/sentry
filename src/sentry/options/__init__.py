@@ -1,13 +1,11 @@
 from celery.signals import task_postrun
 from django.core.signals import request_finished
 
-from sentry.services.hybrid_cloud import silo_mode_delegation, stubbed
-from sentry.silo import SiloMode
-
 from .manager import (  # NOQA
     DEFAULT_FLAGS,
     FLAG_ADMIN_MODIFIABLE,
     FLAG_ALLOW_EMPTY,
+    FLAG_AUTOMATOR_MODIFIABLE,
     FLAG_BOOL,
     FLAG_CREDENTIAL,
     FLAG_IMMUTABLE,
@@ -18,41 +16,33 @@ from .manager import (  # NOQA
     FLAG_RATE,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    NotWritableReason,
     OptionsManager,
     UnknownOption,
+    UpdateChannel,
 )
-from .store import AbstractOptionsStore, OptionsStore
+from .store import OptionsStore
 
 __all__ = (
-    "get",
-    "set",
+    "FLAG_AUTOMATOR_MODIFIABLE",
+    "FLAG_CREDENTIAL",
+    "NotWritableReason",
+    "UnknownOption",
+    "UpdateChannel",
+    "can_update",
+    "default_store",
     "delete",
-    "register",
+    "get",
+    "get_last_update_channel",
     "isset",
     "lookup_key",
-    "UnknownOption",
-    "default_store",
+    "register",
+    "unregister",
+    "set",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
-_local_store_impl = OptionsStore(cache=None)
-
-
-def impl_locally() -> AbstractOptionsStore:
-    return _local_store_impl
-
-
-# An abstraction for hybrid cloud.  Currently, under the hood, all silo modes still use the original options store.
-# However, to allow tests to validate abstraction for future silo separation, we need to use a delegator that can,
-# eventually, use a new implementation.
-default_store: AbstractOptionsStore = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_locally,
-        SiloMode.REGION: stubbed(impl_locally, SiloMode.CONTROL),
-        SiloMode.CONTROL: impl_locally,
-    }
-)
-
+default_store = OptionsStore(cache=None)
 task_postrun.connect(default_store.maybe_clean_local_cache)
 request_finished.connect(default_store.maybe_clean_local_cache)
 
@@ -63,10 +53,13 @@ get = default_manager.get
 set = default_manager.set
 delete = default_manager.delete
 register = default_manager.register
+unregister = default_manager.unregister
 all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
 lookup_key = default_manager.lookup_key
+get_last_update_channel = default_manager.get_last_update_channel
+can_update = default_manager.can_update
 
 
 def load_defaults():

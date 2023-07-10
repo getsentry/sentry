@@ -9,6 +9,7 @@ import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {PanelItem} from 'sentry/components/panels';
@@ -45,7 +46,6 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
-  Query,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
@@ -69,6 +69,7 @@ type Props = {
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
+  withColumns?: GroupListColumn[];
 };
 
 function BaseGroupRow({
@@ -86,6 +87,7 @@ function BaseGroupRow({
   statsPeriod = DEFAULT_STREAM_GROUP_STATS_PERIOD,
   canSelect = true,
   withChart = true,
+  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
   useFilteredStats = false,
   useTintRow = true,
   narrowGroups = false,
@@ -128,19 +130,6 @@ function BaseGroupRow({
       was_shown_suggestion: owners.length > 0,
     };
   }, [organization, group.id, group.owners, query]);
-
-  const trackClick = useCallback(() => {
-    if (query === Query.FOR_REVIEW) {
-      trackAnalytics('inbox_tab.issue_clicked', {
-        organization,
-        group_id: group.id,
-      });
-    }
-
-    if (query !== undefined) {
-      trackAnalytics('issues_stream.issue_clicked', sharedAnalytics);
-    }
-  }, [organization, group.id, query, sharedAnalytics]);
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(
@@ -210,7 +199,7 @@ function BaseGroupRow({
       isFiltered && typeof query === 'string' ? query : ''
     );
     const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.Filter && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
     );
     const filteredQuery = joinQuery(filteredTerms, true);
 
@@ -311,6 +300,7 @@ function BaseGroupRow({
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
     [IssueCategory.PROFILE]: t('Profile Events'),
+    [IssueCategory.CRON]: t('Cron Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -433,11 +423,9 @@ function BaseGroupRow({
         <EventOrGroupHeader
           index={index}
           organization={organization}
-          includeLink
           data={group}
           query={query}
           size="normal"
-          onClick={trackClick}
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />
@@ -462,15 +450,21 @@ function BaseGroupRow({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          <EventCountsWrapper>{groupCount}</EventCountsWrapper>
-          <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
-          <AssigneeWrapper narrowGroups={narrowGroups}>
-            <AssigneeSelector
-              id={group.id}
-              memberList={memberList}
-              onAssign={trackAssign}
-            />
-          </AssigneeWrapper>
+          {withColumns.includes('event') && (
+            <EventCountsWrapper>{groupCount}</EventCountsWrapper>
+          )}
+          {withColumns.includes('users') && (
+            <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
+          )}
+          {withColumns.includes('assignee') && (
+            <AssigneeWrapper narrowGroups={narrowGroups}>
+              <AssigneeSelector
+                id={group.id}
+                memberList={memberList}
+                onAssign={trackAssign}
+              />
+            </AssigneeWrapper>
+          )}
           {showLastTriggered && <EventCountsWrapper>{lastTriggered}</EventCountsWrapper>}
         </Fragment>
       )}

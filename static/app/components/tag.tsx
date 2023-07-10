@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
-import {Tooltip} from 'sentry/components/tooltip';
+import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
 import {IconClose, IconOpen} from 'sentry/icons';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
@@ -15,8 +15,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import theme, {Color} from 'sentry/utils/theme';
 
 const TAG_HEIGHT = '20px';
-
-type TooltipProps = React.ComponentProps<typeof Tooltip>;
 
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   /**
@@ -92,9 +90,8 @@ function Tag({
             size="zero"
             priority="link"
             aria-label={t('Dismiss')}
-          >
-            <IconClose isCircled {...iconsProps} />
-          </DismissButton>
+            icon={<IconClose isCircled {...iconsProps} />}
+          />
         )}
       </Background>
     </Tooltip>
@@ -187,6 +184,7 @@ const Text = styled('span')<{maxWidth: number; type: keyof Theme['tag']}>`
 
 const DismissButton = styled(Button)`
   margin-left: ${space(0.5)};
+  margin-right: -${space(0.5)};
   border: none;
 `;
 

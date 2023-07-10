@@ -13,6 +13,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {IssueCategory} from 'sentry/types';
+import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
 const organization = TestStubs.Organization();
@@ -189,6 +190,7 @@ describe('IssueListActions', function () {
       });
 
       it('can ignore selected items (custom)', async function () {
+        const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -233,8 +235,74 @@ describe('IssueListActions', function () {
             },
           })
         );
+
+        expect(analyticsSpy).toHaveBeenCalledWith(
+          'issues_stream.archived',
+          expect.objectContaining({
+            action_status_details: 'ignoreUserCount',
+          })
+        );
       });
     });
+  });
+
+  it('can archive an issue until escalating', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const org_escalating = {...organization, features: ['escalating-issues']};
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org_escalating.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {organization: org_escalating});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {
+          status: 'ignored',
+          statusDetails: {},
+          substatus: 'archived_until_escalating',
+        },
+      })
+    );
+
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'issues_stream.archived',
+      expect.objectContaining({
+        action_substatus: 'archived_until_escalating',
+      })
+    );
+  });
+
+  it('can unarchive an issue when the query contains is:archived', async () => {
+    const org_escalating = {...organization, features: ['escalating-issues']};
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${org_escalating.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} query="is:archived" />, {
+      organization: org_escalating,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({id: ['1'], project: [1]}),
+        data: {status: 'unresolved'},
+      })
+    );
   });
 
   it('can resolve but not merge issues from different projects', function () {
@@ -297,16 +365,6 @@ describe('IssueListActions', function () {
 
       expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
-
-    it('hides mark reviewed button with remove-mark-reviewed flag', function () {
-      render(<WrappedComponent {...defaultProps} />, {
-        organization: {...organization, features: ['remove-mark-reviewed']},
-      });
-
-      expect(
-        screen.queryByRole('button', {name: 'Mark Reviewed'})
-      ).not.toBeInTheDocument();
-    });
   });
 
   describe('sort', function () {
@@ -355,7 +413,7 @@ describe('IssueListActions', function () {
       // 'Add to Bookmarks' is supported
       expect(
         screen.getByRole('menuitemradio', {name: 'Add to Bookmarks'})
-      ).toHaveAttribute('aria-disabled', 'false');
+      ).not.toHaveAttribute('aria-disabled');
 
       // Deleting is not supported and menu item should be disabled
       expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toHaveAttribute(

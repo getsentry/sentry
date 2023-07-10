@@ -19,7 +19,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   return initializeOrg({
     organization,
@@ -33,14 +32,12 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
         },
       },
     },
-    project: 1,
     projects: [],
   });
 }
 
 describe('Performance > TransactionSummary', function () {
   beforeAll(function () {
-    // @ts-ignore no-console
     // eslint-disable-next-line no-console
     jest.spyOn(console, 'error').mockImplementation(jest.fn());
 

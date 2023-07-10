@@ -305,6 +305,15 @@ class WidgetCard extends Component<Props, State> {
                     >
                       <WidgetTitle>{widget.title}</WidgetTitle>
                     </Tooltip>
+                    {widget.description && (
+                      <Tooltip
+                        title={widget.description}
+                        containerDisplayMode="grid"
+                        showOnlyOnOverflow
+                      >
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      </Tooltip>
+                    )}
                     <DashboardsMEPConsumer>
                       {({}) => {
                         // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -385,7 +394,7 @@ class WidgetCard extends Component<Props, State> {
                             widget.widgetType === WidgetType.DISCOVER &&
                             metricSettingContext &&
                             metricSettingContext.metricSettingState !==
-                              MEPState.transactionsOnly
+                              MEPState.TRANSACTIONS_ONLY
                           ) {
                             if (!widgetContainsErrorFields) {
                               return (
@@ -495,6 +504,11 @@ const StyledErrorPanel = styled(ErrorPanel)`
 
 const WidgetHeaderDescription = styled('div')`
   display: flex;
-  gap: ${space(1)};
-  align-items: center;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+export const WidgetDescription = styled('small')`
+  ${p => p.theme.overflowEllipsis}
+  color: ${p => p.theme.gray300};
 `;

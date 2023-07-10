@@ -19,9 +19,11 @@ from sentry.models import (
     SentryAppInstallationToken,
 )
 from sentry.testutils import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 
 
+@control_silo_test
 class VercelIntegrationTest(IntegrationTestCase):
     provider = VercelIntegrationProvider
 
@@ -141,9 +143,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
-            public=True
-        )
+        with exempt_from_silo_limits():
+            enabled_dsn = ProjectKey.get_default(
+                project=Project.objects.get(id=project_id)
+            ).get_dsn(public=True)
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
@@ -251,9 +254,10 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        enabled_dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id)).get_dsn(
-            public=True
-        )
+        with exempt_from_silo_limits():
+            enabled_dsn = ProjectKey.get_default(
+                project=Project.objects.get(id=project_id)
+            ).get_dsn(public=True)
         sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
 
         env_var_map = {
@@ -377,7 +381,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         org = self.organization
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(org.id)
+        with exempt_from_silo_limits():
+            installation = integration.get_installation(org.id)
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))
         dsn.update(id=dsn.id, status=ProjectKeyStatus.INACTIVE)

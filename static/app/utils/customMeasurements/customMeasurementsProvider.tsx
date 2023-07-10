@@ -8,7 +8,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -83,15 +84,14 @@ export function CustomMeasurementsProvider({
 
           setState({customMeasurements: newCustomMeasurements});
         })
-        .catch(e => {
+        .catch((e: RequestError) => {
           if (shouldCancelRequest) {
             return;
           }
 
-          const errorResponse =
-            e?.responseJSON ?? t('Unable to fetch custom performance metrics');
+          const errorResponse = t('Unable to fetch custom performance metrics');
           addErrorMessage(errorResponse);
-          handleXhrErrorResponse(errorResponse)(e);
+          handleXhrErrorResponse(errorResponse, e);
         });
     }
 

@@ -2,8 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {GraphQlRequestBody} from 'sentry/components/events/interfaces/request/graphQlRequestBody';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -17,14 +19,36 @@ import {defined, isUrl} from 'sentry/utils';
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
 
-type Props = {
+interface RequestProps {
   data: EntryRequest['data'];
   event: Event;
-};
+}
+
+interface RequestBodyProps extends RequestProps {
+  meta: any;
+}
 
 type View = 'formatted' | 'curl';
 
-export function Request({data, event}: Props) {
+function RequestBodySection({data, event, meta}: RequestBodyProps) {
+  if (!defined(data.data)) {
+    return null;
+  }
+
+  if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
+    return <GraphQlRequestBody data={data.data} {...{event, meta}} />;
+  }
+
+  return (
+    <RichHttpContentClippedBoxBodySection
+      data={data.data}
+      inferredContentType={data.inferredContentType}
+      meta={meta?.data}
+    />
+  );
+}
+
+export function Request({data, event}: RequestProps) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.REQUEST);
   const meta = event._meta?.entries?.[entryIndex]?.data;
 
@@ -88,7 +112,7 @@ export function Request({data, event}: Props) {
       className="request"
     >
       {view === 'curl' ? (
-        <pre>{getCurlCommand(data)}</pre>
+        <CodeSnippet language="bash">{getCurlCommand(data)}</CodeSnippet>
       ) : (
         <Fragment>
           {defined(data.query) && (
@@ -106,13 +130,7 @@ export function Request({data, event}: Props) {
               </ErrorBoundary>
             </ClippedBox>
           )}
-          {defined(data.data) && (
-            <RichHttpContentClippedBoxBodySection
-              data={data.data}
-              inferredContentType={data.inferredContentType}
-              meta={meta?.data}
-            />
-          )}
+          <RequestBodySection {...{data, event, meta}} />
           {defined(data.cookies) && Object.keys(data.cookies).length > 0 && (
             <RichHttpContentClippedBoxKeyValueList
               defaultCollapsed

@@ -5,12 +5,14 @@ from typing import Any, Mapping, Optional
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_resource_span,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -21,7 +23,7 @@ from ..types import Span
 class RenderBlockingAssetSpanDetector(PerformanceDetector):
     __slots__ = ("stored_problems", "fcp", "transaction_start")
 
-    type: DetectorType = DetectorType.RENDER_BLOCKING_ASSET_SPAN
+    type = DetectorType.RENDER_BLOCKING_ASSET_SPAN
     settings_key = DetectorType.RENDER_BLOCKING_ASSET_SPAN
 
     MAX_SIZE_BYTES = 1_000_000_000  # 1GB
@@ -57,7 +59,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span: Span):
         if not self.fcp:
@@ -92,7 +94,17 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                         "repeating_spans": get_span_evidence_value(span),
                         "repeating_spans_compact": get_span_evidence_value(span, include_op=False),
                     },
-                    evidence_display=[],
+                    evidence_display=[
+                        IssueEvidence(
+                            name="Offending Spans",
+                            value=get_notification_attachment_body(
+                                op,
+                                span.get("description") or "",
+                            ),
+                            # Has to be marked important to be displayed in the notifications
+                            important=True,
+                        )
+                    ],
                 )
 
         # If we visit a span that starts after FCP, then we know we've already

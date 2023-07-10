@@ -85,6 +85,10 @@ class AccountClose extends AsyncView<Props, State> {
       ?.map(({organization}) => organization.slug);
   }
 
+  getTitle() {
+    return t('Close Account');
+  }
+
   handleChange = (
     {slug}: Organization,
     isSingle: boolean,
@@ -149,7 +153,7 @@ class AccountClose extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title="Close Account" />
+        <SettingsPageHeader title={this.getTitle()} />
 
         <TextBlock>
           {t('This will permanently remove all associated data for your user')}.

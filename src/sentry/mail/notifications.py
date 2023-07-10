@@ -4,7 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 import sentry_sdk
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import options
 from sentry.models import Project, ProjectOption, Team
@@ -41,12 +41,10 @@ def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
 
 
 def build_subject_prefix(project: Project) -> str:
-    # Explicitly typing to satisfy mypy.
-    subject_prefix: str = force_text(
+    return force_str(
         ProjectOption.objects.get_value(project, "mail:subject_prefix")
         or options.get("mail.subject-prefix")
     )
-    return subject_prefix
 
 
 def get_subject_with_prefix(
@@ -112,9 +110,9 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor | Team | RpcUser],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:
     for recipient in recipients:
         recipient_actor = RpcActor.from_object(recipient)
@@ -127,7 +125,7 @@ def send_notification_as_email(
             with sentry_sdk.start_span(op="notification.send_email", description="build_message"):
                 msg = MessageBuilder(
                     **get_builder_args(
-                        notification, recipient_actor, shared_context, extra_context_by_actor_id
+                        notification, recipient_actor, shared_context, extra_context_by_actor
                     )
                 )
 
@@ -145,13 +143,11 @@ def get_builder_args(
     notification: BaseNotification,
     recipient: RpcActor,
     shared_context: Mapping[str, Any] | None = None,
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
     # TODO: move context logic to single notification class method
     extra_context = (
-        extra_context_by_actor_id[recipient.actor_id]
-        if extra_context_by_actor_id and recipient.actor_id
-        else {}
+        extra_context_by_actor[recipient] if extra_context_by_actor and recipient else {}
     )
     context = get_context(notification, recipient, shared_context or {}, extra_context)
     return get_builder_args_from_context(notification, context)

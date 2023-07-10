@@ -51,7 +51,7 @@ describe('useInitialTimeOffsetMs', () => {
       });
       await waitForNextUpdate();
 
-      expect(result.current).toBe(23 * 1000);
+      expect(result.current).toStrictEqual({offsetMs: 23 * 1000});
     });
 
     it('should prefer reading `t` over the other qs params', async () => {
@@ -72,7 +72,7 @@ describe('useInitialTimeOffsetMs', () => {
       });
       await waitForNextUpdate();
 
-      expect(result.current).toBe(23 * 1000);
+      expect(result.current).toStrictEqual({offsetMs: 23 * 1000});
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
     });
   });
@@ -95,7 +95,7 @@ describe('useInitialTimeOffsetMs', () => {
       await waitForNextUpdate();
 
       // Expecting 5 minutes difference, in ms
-      expect(result.current).toBe(5 * 60 * 1000);
+      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
     });
 
     it('should return 0 offset if there is no replayStartTimetsamp, then recalculate when the startTimestamp appears', async () => {
@@ -114,7 +114,7 @@ describe('useInitialTimeOffsetMs', () => {
       );
 
       await waitForNextUpdate();
-      expect(result.current).toBe(0);
+      expect(result.current).toStrictEqual({offsetMs: 0});
 
       rerender({
         orgSlug: organization.slug,
@@ -125,7 +125,7 @@ describe('useInitialTimeOffsetMs', () => {
       await waitForNextUpdate();
 
       // Expecting 5 minutes difference, in ms
-      expect(result.current).toBe(5 * 60 * 1000);
+      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
     });
 
     it('should prefer reading `event_t` over the other search query params', async () => {
@@ -149,7 +149,7 @@ describe('useInitialTimeOffsetMs', () => {
       });
       await waitForNextUpdate();
 
-      expect(result.current).toBe(5 * 60 * 1000);
+      expect(result.current).toStrictEqual({offsetMs: 5 * 60 * 1000});
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
     });
   });
@@ -169,7 +169,7 @@ describe('useInitialTimeOffsetMs', () => {
       await waitForNextUpdate();
 
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
-      expect(result.current).toBe(0);
+      expect(result.current).toStrictEqual({offsetMs: 0});
     });
 
     it('should request a list of click results, and calculate the offset from the first result', async () => {
@@ -192,7 +192,14 @@ describe('useInitialTimeOffsetMs', () => {
 
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
       // Expecting 5 minutes difference, in ms
-      expect(result.current).toBe(5 * 60 * 1000);
+      expect(result.current).toStrictEqual({
+        highlight: {
+          annotation: 'click.tag:button',
+          nodeId: 7,
+          spotlight: true,
+        },
+        offsetMs: 5 * 60 * 1000,
+      });
     });
 
     it('should not call call fetch twice when props change', async () => {
@@ -217,7 +224,9 @@ describe('useInitialTimeOffsetMs', () => {
       await waitForNextUpdate();
 
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0);
-      expect(result.current).toBe(0);
+      expect(result.current).toStrictEqual({
+        offsetMs: 0,
+      });
 
       rerender({
         orgSlug: organization.slug,
@@ -228,7 +237,14 @@ describe('useInitialTimeOffsetMs', () => {
       await waitForNextUpdate();
 
       expect(MockFetchReplayClicks).toHaveBeenCalledTimes(1);
-      expect(result.current).toBe(5 * 60 * 1000);
+      expect(result.current).toStrictEqual({
+        highlight: {
+          annotation: 'click.tag:button',
+          nodeId: 7,
+          spotlight: true,
+        },
+        offsetMs: 5 * 60 * 1000,
+      });
     });
   });
 });

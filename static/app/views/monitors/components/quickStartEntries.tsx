@@ -226,3 +226,45 @@ export function PHPLaravelCronQuickStart(props: QuickStartProps) {
     </Fragment>
   );
 }
+
+export function NodeJSCronQuickStart(props: QuickStartProps) {
+  const {slug} = withDefaultProps(props);
+
+  const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
+const checkInId = Sentry.captureCheckIn({
+  monitorSlug: "${slug}",
+  status: "in_progress",
+});
+
+// Execute your scheduled task here...
+
+// 🟢 Notify Sentry your job has completed successfully:
+Sentry.captureCheckIn({
+  checkInId,
+  monitorSlug: "${slug}",
+  status: "ok",
+});`;
+
+  const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
+Sentry.captureCheckIn({
+  checkInId,
+  monitorSlug: "${slug}",
+  status: "error",
+});`;
+
+  return (
+    <Fragment>
+      <div>
+        {tct(
+          '[installLink:Install and configure] the Sentry Node SDK (min v7.52), then instrument your monitor:',
+          {
+            installLink: <ExternalLink href="https://docs.sentry.io/platforms/node/" />,
+          }
+        )}
+      </div>
+      <CodeSnippet language="javascript">{checkInSuccessCode}</CodeSnippet>
+      <div>{t('To notify Sentry if your job execution fails')}</div>
+      <CodeSnippet language="javascript">{checkInFailCode}</CodeSnippet>
+    </Fragment>
+  );
+}

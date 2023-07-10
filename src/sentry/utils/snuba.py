@@ -91,18 +91,24 @@ ISSUE_PLATFORM_MAP = {
 }
 
 SPAN_COLUMN_MAP = {
+    # These are deprecated, keeping them for now while we migrate the frontend
     "action": "action",
     "description": "description",
     "domain": "domain",
     "group": "group",
-    "id": "span_id",
     "module": "module",
+    "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "span.action": "action",
+    "span.description": "description",
+    "span.domain": "domain",
     "span.duration": "duration",
-    "span.self_time": "exclusive_time",
+    "span.group": "group",
+    "span.module": "module",
     "span.op": "op",
+    "span.self_time": "exclusive_time",
     "span.status": "span_status",
     "timestamp": "timestamp",
     "trace": "trace_id",
@@ -817,7 +823,7 @@ def get_cache_key(query: SnubaQuery) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
-        hashable = json.dumps(query, sort_keys=True)
+        hashable = json.dumps(query)
 
     # sqc - Snuba Query Cache
     return f"sqc:{sha1(hashable.encode('utf-8')).hexdigest()}"
@@ -936,7 +942,7 @@ def _bulk_snuba_query(
             if response.status != 200:
                 logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data}")
+            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
         if response.status != 200:
             if body.get("error"):
@@ -964,7 +970,11 @@ def _bulk_snuba_query(
 RawResult = Tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
 
 
-def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str], str]) -> RawResult:
+def _snql_query(
+    params: tuple[
+        tuple[SnubaQuery, Callable[[Any], Any], Callable[[Any], Any]], Hub, Mapping[str, str], str
+    ]
+) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function.
     query_data, thread_hub, headers, parent_api = params
@@ -1219,6 +1229,21 @@ def _aliased_query_impl(**kwargs):
     return raw_query(**aliased_query_params(**kwargs))
 
 
+def resolve_conditions(
+    conditions: Optional[Sequence[Any]], column_resolver: Callable[[str], str]
+) -> Optional[Sequence[Any]]:
+    if conditions is None:
+        return conditions
+
+    replacement_conditions = []
+    for condition in conditions:
+        replacement = resolve_condition(deepcopy(condition), column_resolver)
+        if replacement:
+            replacement_conditions.append(replacement)
+
+    return replacement_conditions
+
+
 def aliased_query_params(
     start=None,
     end=None,
@@ -1257,10 +1282,9 @@ def aliased_query_params(
             if condition_resolver
             else resolve_func
         )
-        for (i, condition) in enumerate(conditions):
-            replacement = resolve_condition(condition, column_resolver)
-            conditions[i] = replacement
-        conditions = [c for c in conditions if c]
+        resolved_conditions = resolve_conditions(conditions, column_resolver)
+    else:
+        resolved_conditions = conditions
 
     if orderby:
         # Don't mutate in case we have a default order passed.
@@ -1276,7 +1300,7 @@ def aliased_query_params(
         start=start,
         end=end,
         groupby=groupby,
-        conditions=conditions,
+        conditions=resolved_conditions,
         aggregations=aggregations,
         selected_columns=selected_columns,
         filter_keys=filter_keys,
@@ -1430,9 +1454,9 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
                 else row
             )(col, rev_map)
 
-        if fwd:
+        if fwd is not None:
             forward = compose(forward, fwd)
-        if rev:
+        if rev is not None:
             reverse = compose(reverse, rev)
 
     # Extra reverse translator for time column.

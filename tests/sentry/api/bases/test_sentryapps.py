@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.http import Http404
@@ -12,10 +12,10 @@ from sentry.api.bases.sentryapps import (
     add_integration_platform_metric_tag,
 )
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
 from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SentryAppPermissionTest(TestCase):
     def setUp(self):
         self.permission = SentryAppPermission()

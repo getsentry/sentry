@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Optional, cast
+from typing import cast
 
 from sentry.models import OrganizationMember
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -29,50 +29,31 @@ class OrganizationMemberMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def create_mapping(
+    def upsert_mapping(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
-        role: str,
-        user_id: Optional[int] = None,
-        email: Optional[str] = None,
-        inviter_id: Optional[int] = None,
-        invite_status: Optional[int] = None,
+        organizationmember_id: int,
+        mapping: RpcOrganizationMemberMappingUpdate,
     ) -> RpcOrganizationMemberMapping:
         pass
 
-    def create_with_organization_member(
+    def upsert_with_organization_member(
         self, *, org_member: OrganizationMember
     ) -> RpcOrganizationMemberMapping:
-        return self.create_mapping(
+        return self.upsert_mapping(
             organizationmember_id=org_member.id,
             organization_id=org_member.organization_id,
-            role=org_member.role,
-            user_id=org_member.user_id,
-            email=org_member.email,
-            inviter_id=org_member.inviter_id,
-            invite_status=org_member.invite_status,
+            mapping=RpcOrganizationMemberMapping.from_orm(org_member),
         )
 
     @rpc_method
     @abstractmethod
-    def update_with_organization_member(
+    def delete(
         self,
         *,
-        organizationmember_id: int,
         organization_id: int,
-        rpc_update_org_member: RpcOrganizationMemberMappingUpdate,
-    ) -> RpcOrganizationMemberMapping:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def delete_with_organization_member(
-        self,
-        *,
         organizationmember_id: int,
-        organization_id: int,
     ) -> None:
         pass
 

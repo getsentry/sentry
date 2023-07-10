@@ -134,14 +134,11 @@ function onResize(entries: ResizeObserverEntry[]) {
     let width;
     let height;
     let dpr = window.devicePixelRatio;
-    // @ts-ignore use as a progressive enhancement, some browsers don't support this yet
     if (entry.devicePixelContentBoxSize) {
       // NOTE: Only this path gives the correct answer
       // The other paths are imperfect fallbacks
       // for browsers that don't provide anyway to do this
-      // @ts-ignore
       width = entry.devicePixelContentBoxSize[0].inlineSize;
-      // @ts-ignore
       height = entry.devicePixelContentBoxSize[0].blockSize;
       dpr = 1; // it's already in width and height
     } else if (entry.contentBoxSize) {
@@ -149,9 +146,9 @@ function onResize(entries: ResizeObserverEntry[]) {
         width = entry.contentBoxSize[0].inlineSize;
         height = entry.contentBoxSize[0].blockSize;
       } else {
-        // @ts-ignore
+        // @ts-expect-error
         width = entry.contentBoxSize.inlineSize;
-        // @ts-ignore
+        // @ts-expect-error
         height = entry.contentBoxSize.blockSize;
       }
     } else {

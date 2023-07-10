@@ -9,14 +9,13 @@ import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
@@ -28,15 +27,14 @@ type Props = {
 
 function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
-  const {fetching, replay, fetchError, replayId} = useReplayData({
+  const {fetching, replay, replayRecord, fetchError, replayId} = useReplayReader({
     orgSlug,
     replaySlug,
   });
+
   const eventTimestamp = event.dateCreated
     ? Math.floor(new Date(event.dateCreated).getTime() / 1000) * 1000
     : 0;
-
-  const replayRecord = replay?.getReplay();
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
@@ -50,21 +48,34 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
 
   if (fetchError) {
     const reasons = [
-      t('The replay is still processing'),
-      t('The replay has been deleted by a member in your organization'),
-      t('There is an internal system error'),
+      t('The replay was rate-limited and could not be accepted.'),
+      t('The replay has been deleted by a member in your organization.'),
+      t('There were network errors and the replay was not saved.'),
+      tct('[link:Read the docs] to understand why.', {
+        link: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+        ),
+      }),
     ];
 
     return (
-      <Alert type="info" showIcon data-test-id="replay-error">
+      <Alert
+        type="info"
+        showIcon
+        data-test-id="replay-error"
+        trailingItems={
+          <Button
+            external
+            href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking"
+            size="xs"
+          >
+            {t('Read Docs')}
+          </Button>
+        }
+      >
         <p>
-          {tct(
-            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to these reasons:',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
-              ),
-            }
+          {t(
+            'The replay for this event cannot be found. This could be due to these reasons:'
           )}
         </p>
         <List symbol="bullet">
@@ -99,7 +110,7 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     <ReplayContextProvider
       isFetching={fetching}
       replay={replay}
-      initialTimeOffsetMs={initialTimeOffsetMs}
+      initialTimeOffsetMs={{offsetMs: initialTimeOffsetMs}}
     >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>
@@ -112,7 +123,6 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
         </CTAOverlay>
         <BadgeContainer>
           <FeatureText>{t('Replays')}</FeatureText>
-          <ReplaysFeatureBadge />
         </BadgeContainer>
       </PlayerContainer>
     </ReplayContextProvider>

@@ -5,9 +5,9 @@ import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
-  description: React.ReactNode;
   title: string;
   'data-test-id'?: string;
+  description?: React.ReactNode;
   required?: boolean;
 }
 
@@ -39,8 +39,8 @@ const Heading = styled('h5')`
   color: ${p => p.theme.gray500};
 `;
 
-const SubHeading = styled('small')`
-  color: ${p => p.theme.gray300};
+export const SubHeading = styled('small')`
+  color: ${p => p.theme.gray400};
   padding: ${space(0.25)} ${space(2)} ${space(2)} 0;
 
   @media (max-width: ${p => p.theme.breakpoints.small}) {

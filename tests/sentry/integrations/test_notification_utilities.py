@@ -9,9 +9,11 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
+from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
 
+@control_silo_test
 class TestNotificationUtilities(TestCase):
     def setUp(self):
         super().setUp()

@@ -38,12 +38,15 @@ export type Project = {
   isBookmarked: boolean;
   isInternal: boolean;
   isMember: boolean;
+  name: string;
   organization: Organization;
   plugins: Plugin[];
+
   processingIssues: number;
   relayPiiConfig: string;
 
   subjectTemplate: string;
+  team: Team;
   teams: Team[];
   builtinSymbolSources?: string[];
   dynamicSamplingRules?: DynamicSamplingRule[] | null;
@@ -78,6 +81,11 @@ export type ProjectKey = {
     secret: string;
     security: string;
     unreal: string;
+  };
+  dynamicSdkLoaderOptions: {
+    hasDebug: boolean;
+    hasPerformance: boolean;
+    hasReplay: boolean;
   };
   id: string;
   isActive: boolean;

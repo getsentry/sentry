@@ -19,7 +19,7 @@ jobs:
         id: token
         uses: getsentry/action-github-app-token@v2.0.0
         with:
-          app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - name: React to product-owners.yml changes

@@ -19,7 +19,6 @@ const group = TestStubs.Group({
 describe('ReprocessEventModal', function () {
   it('form fields & info', function () {
     const {organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
         id: '4660',
         slug: 'org',
@@ -69,7 +68,6 @@ describe('ReprocessEventModal', function () {
 
   it('reprocess all events', async function () {
     const {organization} = initializeOrg({
-      ...initializeOrg(),
       organization: {
         id: '4660',
         slug: 'org',

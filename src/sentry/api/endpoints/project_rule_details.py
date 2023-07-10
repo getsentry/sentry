@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -12,9 +14,9 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRule
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
-    RuleSnooze,
     RuleStatus,
     SentryAppComponent,
     Team,
@@ -24,8 +26,9 @@ from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
@@ -55,10 +58,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = SentryAppComponent(**action.get("_sentry_app_component"))
                 component = prepare_ui_component(
                     installation,
-                    component,
+                    SentryAppComponent(**action.get("_sentry_app_component")),
                     project.slug,
                     action.get("settings"),
                 )
@@ -205,11 +207,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
+        scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=rule.id,
             event=audit_log.get_event_id("RULE_REMOVE"),
             data=rule.get_audit_log_data(),
+            transaction_id=scheduled.id,
         )
         return Response(status=202)

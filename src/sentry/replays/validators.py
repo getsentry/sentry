@@ -24,6 +24,7 @@ VALID_FIELD_SET = {
     "trace_ids",
     "urls",
     "user",
+    "clicks",
 }
 
 

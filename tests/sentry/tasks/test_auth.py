@@ -3,9 +3,11 @@ from django.core import mail
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.tasks.auth import email_missing_links, email_unlink_notifications
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
-class EmailMissingLinksTest(TestCase):
+@region_silo_test(stable=True)
+class TasksAuthTest(TestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user(email="bar@example.com")
@@ -14,14 +16,14 @@ class EmailMissingLinksTest(TestCase):
             organization_id=self.organization.id, provider="dummy"
         )
         om = OrganizationMember.objects.create(
-            user=self.user,
+            user_id=self.user.id,
             organization=self.organization,
             flags=OrganizationMember.flags["sso:linked"],
         )
         assert om.flags["sso:linked"]
         self.user2 = self.create_user(email="baz@example.com")
         om2 = OrganizationMember.objects.create(
-            user=self.user2, organization=self.organization, flags=0
+            user_id=self.user2.id, organization=self.organization, flags=0
         )
         assert not om2.flags["sso:linked"]
 

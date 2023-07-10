@@ -1312,14 +1312,14 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
 class OrganizationSessionsEndpointMetricsTest(
     BaseMetricsTestCase, OrganizationSessionsEndpointTest
 ):
-    def adjust_start(self, start: datetime, interval: int) -> datetime:
+    def adjust_start(self, start: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         start, _end, _num_intervals = to_intervals(
             start, start + datetime.timedelta(minutes=1), interval
         )
         return start
 
-    def adjust_end(self, end: datetime, interval: int) -> datetime:
+    def adjust_end(self, end: datetime.datetime, interval: int) -> datetime.datetime:
         # metrics align start and end to the beginning of the intervals
         _start, end, _num_intervals = to_intervals(
             end - datetime.timedelta(minutes=1), end, interval

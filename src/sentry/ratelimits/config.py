@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Mapping, Union, cast
+from typing import Mapping, Union
 
 from django.conf import settings
 
@@ -76,13 +76,9 @@ class RateLimitConfig:
         return not isinstance(self.limit_overrides, _sentinel)
 
     def get_rate_limit(self, http_method: str, category: RateLimitCategory) -> RateLimit:
-        if not self.has_custom_limit():
+        if isinstance(self.limit_overrides, _sentinel):
             return get_default_rate_limits_for_group(self.group, category)
-        override_rate_limit = (
-            cast(RateLimitOverrideDict, self.limit_overrides)
-            .get(http_method, {})
-            .get(category, None)
-        )
+        override_rate_limit = self.limit_overrides.get(http_method, {}).get(category, None)
         if isinstance(override_rate_limit, RateLimit):
             return override_rate_limit
         return get_default_rate_limits_for_group(self.group, category)

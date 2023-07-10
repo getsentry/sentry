@@ -258,6 +258,36 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'explain_archive_button_issue_details',
+      requiredTargets: ['issue_details_archive_button'],
+      dateThreshold: new Date('2023-07-05'),
+      steps: [
+        {
+          title: t('Ignore is Now Archive'),
+          target: 'issue_details_archive_button',
+          description: t(
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
+          ),
+          dismissText: t('Go Away'),
+        },
+      ],
+    },
+    {
+      guide: 'explain_archive_tab_issue_stream',
+      requiredTargets: ['issue_stream_archive_tab'],
+      dateThreshold: new Date('2023-07-05'),
+      steps: [
+        {
+          title: t('Nothing to see here'),
+          target: 'issue_stream_archive_tab',
+          description: t(
+            "Archived issues will live here. We'll mark them as Escalating if we detect a large number of events."
+          ),
+          dismissText: t('Goodbye Forever'),
+        },
+      ],
+    },
   ];
 }
 

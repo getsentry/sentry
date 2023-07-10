@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 import copy
-from collections.abc import Mapping, MutableMapping
+from typing import Mapping, MutableMapping, TypeVar
 
 from django.conf import settings
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 __all__ = ("CanonicalKeyDict", "CanonicalKeyView", "get_canonical_name")
 
@@ -80,18 +85,18 @@ class CanonicalKeyView(Mapping):
         return self.data.__repr__()
 
 
-class CanonicalKeyDict(MutableMapping):
-    def __init__(self, data, legacy=None):
+class CanonicalKeyDict(MutableMapping[K, V]):
+    def __init__(self, data: Mapping[K, V], legacy: bool | None = None) -> None:
         self.legacy = legacy
         self.__init(data)
 
-    def __init(self, data):
+    def __init(self, data: Mapping[K, V]) -> None:
         legacy = self.legacy
         if legacy is None:
             legacy = settings.PREFER_CANONICAL_LEGACY_KEYS
-        norm_func = legacy and get_legacy_name or get_canonical_name
+        norm_func = get_legacy_name if legacy else get_canonical_name
         self._norm_func = norm_func
-        self.data = {}
+        self.data: dict[K, V] = {}
         for key, value in data.items():
             canonical_key = norm_func(key)
             if key == canonical_key or canonical_key not in self.data:

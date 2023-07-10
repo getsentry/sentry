@@ -93,7 +93,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const profilesAggregateQuery = useProfileEvents<'count()'>({
     fields: ['count()'],
     sort: {key: 'count()', order: 'desc'},
-    referrer: 'api.profiling.profile-summary-table', // TODO
+    referrer: 'api.profiling.profile-summary-totals',
     query,
     enabled: profilingUsingTransactions,
   });

@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class Config(AppConfig):  # type: ignore
+class Config(AppConfig):
     name = "sentry.utils.suspect_resolutions"
 
     def ready(self) -> None:

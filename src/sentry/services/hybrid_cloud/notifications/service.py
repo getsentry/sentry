@@ -8,7 +8,10 @@ from typing import List, Mapping, Optional, Sequence, cast
 
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.auth.model import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
+from sentry.services.hybrid_cloud.notifications.model import NotificationSettingFilterArgs
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -79,7 +82,7 @@ class NotificationsService(RpcService):
             NotificationSettingTypes, NotificationSettingOptionValues
         ],
         external_provider: ExternalProviders,
-        actor: RpcActor,
+        user_id: int,
     ) -> None:
         pass
 
@@ -94,11 +97,33 @@ class NotificationsService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
-        """
-        Delete notification settings based on an actor_id
-        There is no foreign key relationship so we have to manually cascade.
-        """
+    def remove_notification_settings_for_team(
+        self, *, team_id: int, provider: ExternalProviders
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings_for_user(
+        self, *, user_id: int, provider: ExternalProviders
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_many(self, *, filter: NotificationSettingFilterArgs) -> List[RpcNotificationSetting]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: NotificationSettingFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+        serializer: Optional[None] = None,
+    ) -> List[OpaqueSerializedResponse]:
         pass
 
 

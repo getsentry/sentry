@@ -84,7 +84,7 @@ function Content({
     };
 
     const colors =
-      currentFilter === SpanOperationBreakdownFilter.None
+      currentFilter === SpanOperationBreakdownFilter.NONE
         ? [...theme.charts.getColorPalette(1)]
         : [filterToColor(currentFilter)];
 

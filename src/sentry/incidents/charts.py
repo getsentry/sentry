@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional
 
 from django.utils import timezone
 
@@ -10,7 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.api.utils import get_datetime_from_stats_period
-from sentry.charts import generate_chart
+from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import AlertRule, Incident
@@ -136,7 +136,7 @@ def fetch_metric_alert_incidents(
                 **time_period,
             },
         )
-        return cast(List[Any], resp.data)
+        return resp.data
     except Exception as exc:
         logger.error(
             f"Failed to load incidents for chart: {exc}",
@@ -190,7 +190,11 @@ def build_metric_alert_chart(
 
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
     # If we allow alerts to be across multiple orgs this will break
-    project_id = snuba_query.subscriptions.first().project_id
+    first_subscription_or_none = snuba_query.subscriptions.first()
+    if first_subscription_or_none is None:
+        return None
+
+    project_id = first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
     query = (
@@ -231,7 +235,7 @@ def build_metric_alert_chart(
         )
 
     try:
-        return cast(str, generate_chart(style, chart_data, size=size))
+        return charts.generate_chart(style, chart_data, size=size)
     except RuntimeError as exc:
         logger.error(
             f"Failed to generate chart for metric alert: {exc}",

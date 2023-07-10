@@ -48,20 +48,28 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilters,
+  DisplayType,
+  Widget,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {
   dashboardFiltersToString,
   eventViewFromWidget,
-  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
 } from 'sentry/views/dashboards/utils';
-import {SESSION_DURATION_ALERT} from 'sentry/views/dashboards/widgetCard';
+import {
+  SESSION_DURATION_ALERT,
+  WidgetDescription,
+} from 'sentry/views/dashboards/widgetCard';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
@@ -91,6 +99,7 @@ import {
 export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
+  dashboardFilters?: DashboardFilters;
   onEdit?: () => void;
   pageLinks?: string;
   seriesData?: Series[];
@@ -171,8 +180,10 @@ function WidgetViewerModal(props: Props) {
     totalIssuesCount,
     pageLinks: defaultPageLinks,
     seriesResultsType,
+    dashboardFilters,
   } = props;
   const location = useLocation();
+  const {projects} = useProjects();
   const router = useRouter();
   const shouldShowSlider = organization.features.includes('widget-viewer-modal-minimap');
   // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -391,13 +402,12 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const dashboardFilters = dashboardFiltersToString(
-      getDashboardFiltersFromURL(location)
-    );
+    const dashboardFiltersString = dashboardFiltersToString(dashboardFilters);
     const parsedQuery =
       !name && !!conditions
         ? parseSearch(
-            conditions + (dashboardFilters === '' ? '' : ` ${dashboardFilters}`)
+            conditions +
+              (dashboardFiltersString === '' ? '' : ` ${dashboardFiltersString}`)
           )
         : null;
     const getHighlightedQuery = (
@@ -500,6 +510,8 @@ function WidgetViewerModal(props: Props) {
               location,
               tableData: tableResults?.[0],
               isFirstPage,
+              projects,
+              eventView,
             }),
             onResizeColumn,
           }}
@@ -672,7 +684,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   const onZoom: AugmentedEChartDataZoomHandler = (evt, chart) => {
-    // @ts-ignore getModel() is private but we need this to retrieve datetime values of zoomed in region
+    // @ts-expect-error getModel() is private but we need this to retrieve datetime values of zoomed in region
     const model = chart.getModel();
     const {seriesStart, seriesEnd} = evt;
     let startValue, endValue;
@@ -742,7 +754,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {renderIssuesTable}
           </IssueWidgetQueries>
@@ -767,7 +779,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {renderReleaseTable}
           </ReleaseWidgetQueries>
@@ -795,7 +807,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
-            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+            dashboardFilters={dashboardFilters}
           >
             {({tableResults, loading, pageLinks}) => {
               // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -861,7 +873,7 @@ function WidgetViewerModal(props: Props) {
                 api={api}
                 organization={organization}
                 selection={modalChartSelection.current}
-                dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
+                dashboardFilters={dashboardFilters}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
                 onZoom={onZoom}
@@ -990,6 +1002,9 @@ function WidgetViewerModal(props: Props) {
                   <Header closeButton>
                     <WidgetTitle>
                       <h3>{widget.title}</h3>
+                      {widget.description && (
+                        <WidgetDescription>{widget.description}</WidgetDescription>
+                      )}
                       <DashboardsMEPConsumer>
                         {({}) => {
                           // TODO(Tele-Team): Re-enable this when we have a better way to determine if the data is transaction only
@@ -1190,8 +1205,8 @@ const EmptyQueryContainer = styled('span')`
 
 const WidgetTitle = styled('div')`
   display: flex;
+  flex-direction: column;
   gap: ${space(1)};
-  align-items: center;
 `;
 
 export default withPageFilters(WidgetViewerModal);

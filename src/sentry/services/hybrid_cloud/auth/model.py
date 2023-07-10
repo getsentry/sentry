@@ -5,7 +5,6 @@
 
 import base64
 import contextlib
-from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
 
@@ -25,26 +24,39 @@ class RpcAuthenticatorType(IntEnum):
     API_KEY_AUTHENTICATION = 0
     TOKEN_AUTHENTICATION = 1
     SESSION_AUTHENTICATION = 2
+    ORG_AUTH_TOKEN_AUTHENTICATION = 3
 
     @classmethod
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
             return RpcAuthenticatorType.TOKEN_AUTHENTICATION
+        if auth == OrgAuthTokenAuthentication:
+            return RpcAuthenticatorType.ORG_AUTH_TOKEN_AUTHENTICATION
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
-        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+        from sentry.api.authentication import (
+            ApiKeyAuthentication,
+            OrgAuthTokenAuthentication,
+            TokenAuthentication,
+        )
 
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
             return TokenAuthentication()
+        if self == self.ORG_AUTH_TOKEN_AUTHENTICATION:
+            return OrgAuthTokenAuthentication()
         else:
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
@@ -57,7 +69,7 @@ def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
     return base64.b64encode(input).decode("utf8")
 
 
-class RpcAuthentication(BaseAuthentication):  # type: ignore
+class RpcAuthentication(BaseAuthentication):
     www_authenticate_realm = "api"
     types: List[RpcAuthenticatorType]
 
@@ -65,6 +77,10 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
         self.types = types
 
     def authenticate(self, request: Request) -> Optional[Tuple[Any, Any]]:
+        from django.contrib.auth.models import AnonymousUser
+
+        from sentry.models.apikey import is_api_key_auth
+        from sentry.models.orgauthtoken import is_org_auth_token_auth
         from sentry.services.hybrid_cloud.auth.service import auth_service
 
         response = auth_service.authenticate_with(
@@ -73,6 +89,11 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
 
         if response.user is not None:
             return response.user, response.auth
+
+        if response.auth is not None and (
+            is_api_key_auth(response.auth) or is_org_auth_token_auth(response.auth)
+        ):
+            return AnonymousUser(), response.auth
 
         return None
 
@@ -93,8 +114,7 @@ class RpcAuthState(RpcModel):
     permissions: List[str]
 
 
-@dataclass
-class AuthenticationRequest:
+class AuthenticationRequest(RpcModel):
     # HTTP_X_SENTRY_RELAY_ID
     sentry_relay_id: Optional[str] = None
     # HTTP_X_SENTRY_RELAY_SIGNATURE
@@ -130,11 +150,10 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     )
 
 
-@dataclass(eq=True)
-class AuthenticatedToken:
-    allowed_origins: List[str] = field(default_factory=list)
-    audit_log_data: Dict[str, Any] = field(default_factory=dict)
-    scopes: List[str] = field(default_factory=list)
+class AuthenticatedToken(RpcModel):
+    allowed_origins: List[str] = Field(default_factory=list)
+    audit_log_data: Dict[str, Any] = Field(default_factory=dict)
+    scopes: List[str] = Field(default_factory=list)
     entity_id: Optional[int] = None
     kind: str = "system"
     user_id: Optional[int] = None  # only relevant for ApiToken
@@ -193,8 +212,7 @@ class AuthenticatedToken:
         return scope in self.get_scopes()
 
 
-@dataclass
-class AuthenticationContext:
+class AuthenticationContext(RpcModel):
     """
     The default of all values should be a valid, non authenticated context.
     """
@@ -251,7 +269,6 @@ class AuthenticationContext:
                 delattr(request, "auth")
 
 
-@dataclass
 class MiddlewareAuthenticationResponse(AuthenticationContext):
     expired: bool = False
     user_from_signed_request: bool = False

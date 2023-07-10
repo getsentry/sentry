@@ -3,7 +3,7 @@ import {
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as useApi from 'sentry/utils/useApi';
 
@@ -13,6 +13,11 @@ describe('SpanEvidencePreview', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.restoreAllMocks();
+
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/issues/group-id/',
+    });
   });
 
   it('does not fetch before hover', () => {
@@ -20,57 +25,11 @@ describe('SpanEvidencePreview', () => {
     jest.spyOn(useApi, 'default').mockReturnValue(api);
     const spy = jest.spyOn(api, 'requestPromise');
 
-    render(
-      <SpanEvidencePreview
-        eventId="event-id"
-        projectSlug="project-slug"
-        groupId="group-id"
-      >
-        Hover me
-      </SpanEvidencePreview>
-    );
+    render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
 
     jest.runAllTimers();
 
     expect(spy).not.toHaveBeenCalled();
-  });
-
-  it('fetches from event URL when event and project are provided', async () => {
-    const mock = MockApiClient.addMockResponse({
-      url: `/projects/org-slug/project-slug/events/event-id/`,
-      body: null,
-    });
-
-    render(
-      <SpanEvidencePreview
-        eventId="event-id"
-        projectSlug="project-slug"
-        groupId="group-id"
-      >
-        Hover me
-      </SpanEvidencePreview>
-    );
-
-    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalled();
-    });
-  });
-
-  it('fetches from group URL when only group ID is provided', async () => {
-    const mock = MockApiClient.addMockResponse({
-      url: `/issues/group-id/events/latest/`,
-      body: null,
-    });
-
-    render(<SpanEvidencePreview groupId="group-id">Hover me</SpanEvidencePreview>);
-
-    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
-
-    await waitFor(() => {
-      expect(mock).toHaveBeenCalled();
-    });
   });
 
   it('shows error when request fails', async () => {

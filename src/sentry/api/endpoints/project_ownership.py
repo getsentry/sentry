@@ -1,5 +1,6 @@
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,6 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
+from sentry.models.groupowner import GroupOwner
 from sentry.models.project import Project
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
@@ -133,6 +135,11 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             new_values["auto_assignment"] = True
             new_values["suspect_committer_auto_assignment"] = False
         if auto_assignment == "Turn off Auto-Assignment":
+            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
+            if autoassignment_types:
+                GroupOwner.invalidate_autoassigned_owner_cache(
+                    ownership.project_id, autoassignment_types
+                )
             new_values["auto_assignment"] = False
             new_values["suspect_committer_auto_assignment"] = False
 
@@ -224,6 +231,16 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         :param autoAssignment: String detailing automatic assignment setting
         :auth: required
         """
+
+        # Ownership settings others than "raw" ownership rules can only be updated by
+        # users with the organization-level owner, manager, or team-level admin roles
+        has_project_write = request.access and (
+            request.access.has_scope("project:write")
+            or request.access.has_project_scope(project, "project:write")
+        )
+        if list(request.data) != ["raw"] and not has_project_write:
+            raise PermissionDenied
+
         should_return_schema = features.has(
             "organizations:streamline-targeting-context", project.organization
         )

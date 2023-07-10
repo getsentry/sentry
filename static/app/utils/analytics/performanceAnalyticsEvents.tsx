@@ -1,4 +1,5 @@
 import {PlatformKey} from 'sentry/data/platformCategories';
+import {Organization} from 'sentry/types';
 
 type SampleTransactionParam = {
   platform?: PlatformKey;
@@ -30,12 +31,21 @@ export type PerformanceEventParameters = {
   'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
     operation: string;
+    origin: string;
     project_platform: string;
   };
   'performance_views.event_details.search_query': {};
   'performance_views.events.events_tab_clicked': PageLayoutParams;
   'performance_views.filter_dropdown.selection': {
     action: string;
+  };
+  'performance_views.landing.table.seen': {};
+  'performance_views.landing.table.unparameterized': {
+    first_event: 'none' | '14d' | '30d' | '>30d';
+    hit_multi_project_cap: boolean;
+    sent_transaction: boolean;
+    single_project: boolean;
+    stats_period: string;
   };
   'performance_views.landingv2.display.filter_change': {
     field: string;
@@ -82,6 +92,16 @@ export type PerformanceEventParameters = {
     project_platforms: string;
   };
   'performance_views.overview.search': {};
+  'performance_views.project_issue_detection_threshold_changed': {
+    organization: Organization;
+    project_slug: string;
+    threshold_key: string;
+    threshold_value: number;
+  };
+  'performance_views.project_issue_detection_thresholds_reset': {
+    organization: Organization;
+    project_slug: string;
+  };
   'performance_views.project_transaction_threshold.change': {
     from: string;
     key: string;
@@ -230,6 +250,10 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.project_transaction_threshold.change':
     'Project Transaction Threshold: Changed',
+  'performance_views.project_issue_detection_threshold_changed':
+    'Performance Views: Changed detector threshold of an issue for a project',
+  'performance_views.project_issue_detection_thresholds_reset':
+    'Performance Views: Reset the detector thresholds of an issue for a project',
   'performance_views.project_transaction_threshold.clear':
     'Project Transaction Threshold: Cleared',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
@@ -303,4 +327,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Open vitals in discover',
   'performance_views.vitals.open_all_events':
     'Performance Views: Open vitals in all events',
+  'performance_views.landing.table.unparameterized':
+    'Performance Views: Landing Page - Table Unparameterized',
+  'performance_views.landing.table.seen': 'Performance Views: Landing Page - Table Seen',
 };

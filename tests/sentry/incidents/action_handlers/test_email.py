@@ -1,6 +1,7 @@
 from functools import cached_property
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.conf import settings
 from django.core import mail
@@ -23,6 +24,8 @@ from sentry.incidents.models import (
 )
 from sentry.models import NotificationSetting, UserEmail, UserOption
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
@@ -30,6 +33,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
 
 from . import FireTest
+
+pytestmark = pytest.mark.sentry_metrics
 
 
 @freeze_time()
@@ -69,12 +74,30 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         handler = EmailActionHandler(action, self.incident, self.project)
         assert handler.get_targets() == [(self.user.id, self.user.email)]
 
+    def test_rule_snoozed_by_user(self):
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(user_id=self.user.id, alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
+
+    def test_user_rule_snoozed(self):
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
+
     def test_user_alerts_disabled(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         action = self.create_alert_rule_trigger_action(
@@ -97,12 +120,36 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             (new_user.id, new_user.email),
         }
 
+    def test_rule_snoozed_by_one_user_in_team(self):
+        new_user = self.create_user()
+        self.create_team_membership(team=self.team, user=new_user)
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.team.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(user_id=new_user.id, alert_rule=self.incident.alert_rule)
+        assert set(handler.get_targets()) == {
+            (self.user.id, self.user.email),
+        }
+
+    def test_team_rule_snoozed(self):
+        new_user = self.create_user()
+        self.create_team_membership(team=self.team, user=new_user)
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.TEAM,
+            target_identifier=str(self.team.id),
+        )
+        handler = EmailActionHandler(action, self.incident, self.project)
+        self.snooze_rule(alert_rule=self.incident.alert_rule)
+        assert handler.get_targets() == []
+
     def test_team_alert_disabled(self):
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         disabled_user = self.create_user()
@@ -110,7 +157,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=disabled_user,
+            user_id=disabled_user.id,
         )
 
         new_user = self.create_user()
@@ -170,32 +217,24 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
+    @with_feature("organizations:mute-metric-alerts")
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=alert_email",
+        )
         expected = {
-            "link": self.organization.absolute_url(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                ),
-                query="referrer=alert_email",
-            ),
-            "rule_link": self.organization.absolute_url(
-                reverse(
-                    "sentry-alert-rule",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "project_slug": self.project.slug,
-                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-                    },
-                )
-            ),
+            "link": alert_link,
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
@@ -212,6 +251,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -241,16 +282,6 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             },
         )
         assert self.organization.absolute_url(path) in result["link"]
-
-        path = reverse(
-            "sentry-alert-rule",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
-                "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-            },
-        )
-        assert self.organization.absolute_url(path) in result["rule_link"]
 
     def test_resolve(self):
         status = TriggerStatus.RESOLVED
@@ -349,7 +380,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
@@ -383,8 +414,11 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
+        indexer.record(
+            use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"
+        )
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(
             query_type=SnubaQuery.Type.PERFORMANCE, dataset=Dataset.PerformanceMetrics

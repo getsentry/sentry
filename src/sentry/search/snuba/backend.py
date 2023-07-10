@@ -10,10 +10,10 @@ from django.db.models import Q, QuerySet
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import ErrorGroupType
 from sentry.models import (
     Environment,
     Group,
@@ -39,14 +39,15 @@ from sentry.search.snuba.executors import (
     AbstractQueryExecutor,
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
+    PrioritySortWeights,
 )
+from sentry.search.utils import get_teams_for_users
 from sentry.utils.cursors import Cursor, CursorResult
 
 
 def assigned_to_filter(
     actors: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
-    from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 
     include_none = False
     types_to_actors = defaultdict(list)
@@ -78,24 +79,17 @@ def assigned_to_filter(
                 ).values_list("group_id", flat=True)
             }
         )
-        query |= Q(
-            **{
-                f"{field_filter}__in": GroupAssignee.objects.filter(
-                    project_id__in=[p.id for p in projects],
-                    team_id__in=list(
-                        Team.objects.filter(
-                            id__in=OrganizationMemberTeam.objects.filter(
-                                organizationmember__in=OrganizationMember.objects.filter(
-                                    user_id__in=user_ids,
-                                    organization_id=projects[0].organization_id,
-                                ),
-                                is_active=True,
-                            ).values_list("team_id", flat=True)
-                        )
-                    ),
-                ).values_list("group_id", flat=True)
-            }
-        )
+        organization = projects[0].organization
+        # Only add teams to query if assign-to-me flag is off
+        if not features.has("organizations:assign-to-me", organization, actor=None):
+            query |= Q(
+                **{
+                    f"{field_filter}__in": GroupAssignee.objects.filter(
+                        project_id__in=[p.id for p in projects],
+                        team_id__in=[team for team in get_teams_for_users(projects, users)],
+                    ).values_list("group_id", flat=True)
+                }
+            )
 
     if include_none:
         query |= unassigned_filter(True, projects, field_filter=field_filter)
@@ -234,10 +228,15 @@ def assigned_or_suggested_filter(
                 ).values("team")
             ).values_list("id", flat=True)
         )
+        organization = projects[0].organization
+        query_ids = Q(user_id__in=user_ids)
+        # Only add team_ids to query if assign-to-me flag is off
+        if not features.has("organizations:assign-to-me", organization, actor=None):
+            query_ids = query_ids | Q(team_id__in=team_ids)
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
+                    query_ids,
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -363,9 +362,10 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
         actor: Optional[Any] = None,
+        aggregate_kwargs: Optional[PrioritySortWeights] = None,
     ) -> CursorResult[Group]:
-        search_filters = search_filters if search_filters is not None else []
 
+        search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
         if len({p.organization_id for p in projects}) != 1:
             raise RuntimeError("Cross organization search not supported")
@@ -418,6 +418,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             max_hits=max_hits,
             referrer=referrer,
             actor=actor,
+            aggregate_kwargs=aggregate_kwargs,
         )
 
     def _build_group_queryset(
@@ -508,6 +509,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     ) -> Mapping[str, Condition]:
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
+            "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(
                 lambda users: Q(
                     bookmark_set__project__in=projects,
@@ -542,9 +544,9 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
         if message_filter:
 
-            def _perf_issue_message_condition(query: str) -> Q:
+            def _issue_platform_issue_message_condition(query: str) -> Q:
                 return Q(
-                    type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
+                    ~Q(type=ErrorGroupType.type_id),
                     message__icontains=query,
                 )
 
@@ -552,13 +554,15 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 {
                     "message": QCallbackCondition(
                         lambda query: Q(type=ErrorGroupType.type_id)
-                        | _perf_issue_message_condition(query)
+                        | _issue_platform_issue_message_condition(query)
                     )
                     # negation should only apply on the message search icontains, we have to include the
                     # type filter(type=GroupType.ERROR) check since we don't wanna search on the message
                     # column when type=GroupType.ERROR - we delegate that to snuba in that case
                     if not message_filter.is_negation
-                    else QCallbackCondition(lambda query: _perf_issue_message_condition(query))
+                    else QCallbackCondition(
+                        lambda query: _issue_platform_issue_message_condition(query)
+                    )
                 }
             )
 

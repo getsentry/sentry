@@ -64,7 +64,7 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
     poorThreshold: 600,
     type: measurementType(WebVital.TTFB),
   },
-  [WebVital.RequestTime]: {
+  [WebVital.REQUEST_TIME]: {
     slug: 'ttfb.requesttime',
     name: t('Request Time'),
     acronym: 'RT',
@@ -72,115 +72,115 @@ export const WEB_VITAL_DETAILS: Record<WebVital, Vital> = {
       'Captures the time spent making the request and receiving the first byte of the response.'
     ),
     poorThreshold: 600,
-    type: measurementType(WebVital.RequestTime),
+    type: measurementType(WebVital.REQUEST_TIME),
   },
 };
 
 export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
-  [MobileVital.AppStartCold]: {
+  [MobileVital.APP_START_COLD]: {
     slug: 'app_start_cold',
     name: t('App Start Cold'),
     description: t(
       'Cold start is a measure of the application start up time from scratch.'
     ),
-    type: measurementType(MobileVital.AppStartCold),
+    type: measurementType(MobileVital.APP_START_COLD),
   },
-  [MobileVital.AppStartWarm]: {
+  [MobileVital.APP_START_WARM]: {
     slug: 'app_start_warm',
     name: t('App Start Warm'),
     description: t(
       'Warm start is a measure of the application start up time while still in memory.'
     ),
-    type: measurementType(MobileVital.AppStartWarm),
+    type: measurementType(MobileVital.APP_START_WARM),
   },
-  [MobileVital.FramesTotal]: {
+  [MobileVital.FRAMES_TOTAL]: {
     slug: 'frames_total',
     name: t('Total Frames'),
     description: t(
       'Total frames is a count of the number of frames recorded within a transaction.'
     ),
-    type: measurementType(MobileVital.FramesTotal),
+    type: measurementType(MobileVital.FRAMES_TOTAL),
   },
-  [MobileVital.FramesSlow]: {
+  [MobileVital.FRAMES_SLOW]: {
     slug: 'frames_slow',
     name: t('Slow Frames'),
     description: t(
       'Slow frames is a count of the number of slow frames recorded within a transaction.'
     ),
-    type: measurementType(MobileVital.FramesSlow),
+    type: measurementType(MobileVital.FRAMES_SLOW),
   },
-  [MobileVital.FramesFrozen]: {
+  [MobileVital.FRAMES_FROZEN]: {
     slug: 'frames_frozen',
     name: t('Frozen Frames'),
     description: t(
       'Frozen frames is a count of the number of frozen frames recorded within a transaction.'
     ),
-    type: measurementType(MobileVital.FramesFrozen),
+    type: measurementType(MobileVital.FRAMES_FROZEN),
   },
-  [MobileVital.FramesSlowRate]: {
+  [MobileVital.FRAMES_SLOW_RATE]: {
     slug: 'frames_slow_rate',
     name: t('Slow Frames Rate'),
     description: t(
       'Slow Frames Rate is the percentage of frames recorded within a transaction that is considered slow.'
     ),
-    type: measurementType(MobileVital.FramesSlowRate),
+    type: measurementType(MobileVital.FRAMES_SLOW_RATE),
   },
-  [MobileVital.FramesFrozenRate]: {
+  [MobileVital.FRAMES_FROZEN_RATE]: {
     slug: 'frames_frozen_rate',
     name: t('Frozen Frames Rate'),
     description: t(
       'Frozen Frames Rate is the percentage of frames recorded within a transaction that is considered frozen.'
     ),
-    type: measurementType(MobileVital.FramesFrozenRate),
+    type: measurementType(MobileVital.FRAMES_FROZEN_RATE),
   },
-  [MobileVital.StallCount]: {
+  [MobileVital.STALL_COUNT]: {
     slug: 'stall_count',
     name: t('Stalls'),
     description: t(
       'Stalls is the number of times the application stalled within a transaction.'
     ),
-    type: measurementType(MobileVital.StallCount),
+    type: measurementType(MobileVital.STALL_COUNT),
   },
-  [MobileVital.StallTotalTime]: {
+  [MobileVital.STALL_TOTAL_TIME]: {
     slug: 'stall_total_time',
     name: t('Total Stall Time'),
     description: t(
       'Stall Total Time is the total amount of time the application is stalled within a transaction.'
     ),
-    type: measurementType(MobileVital.StallTotalTime),
+    type: measurementType(MobileVital.STALL_TOTAL_TIME),
   },
-  [MobileVital.StallLongestTime]: {
+  [MobileVital.STALL_LONGEST_TIME]: {
     slug: 'stall_longest_time',
     name: t('Longest Stall Time'),
     description: t(
       'Stall Longest Time is the longest amount of time the application is stalled within a transaction.'
     ),
-    type: measurementType(MobileVital.StallLongestTime),
+    type: measurementType(MobileVital.STALL_LONGEST_TIME),
   },
-  [MobileVital.StallPercentage]: {
+  [MobileVital.STALL_PERCENTAGE]: {
     slug: 'stall_percentage',
     name: t('Stall Percentage'),
     description: t(
       'Stall Percentage is the percentage of the transaction duration the application was stalled.'
     ),
-    type: measurementType(MobileVital.StallPercentage),
+    type: measurementType(MobileVital.STALL_PERCENTAGE),
   },
-  [MobileVital.TimeToFullDisplay]: {
+  [MobileVital.TIME_TO_FULL_DISPLAY]: {
     slug: 'time_to_full_display',
     name: t('Time To Full Display'),
     acronym: 'TTFD',
     description: t(
       'The time between application launch and complete display of all resources and views.'
     ),
-    type: measurementType(MobileVital.TimeToFullDisplay),
+    type: measurementType(MobileVital.TIME_TO_FULL_DISPLAY),
   },
-  [MobileVital.TimeToInitialDisplay]: {
+  [MobileVital.TIME_TO_INITIAL_DISPLAY]: {
     slug: 'time_to_initial_display',
     name: t('Time To Initial Display'),
     acronym: 'TTID',
     description: t('The time it takes for an application to produce its first frame.'),
     poorThreshold: 2000,
-    type: measurementType(MobileVital.TimeToInitialDisplay),
+    type: measurementType(MobileVital.TIME_TO_INITIAL_DISPLAY),
   },
 };
 

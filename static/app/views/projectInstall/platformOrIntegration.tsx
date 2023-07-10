@@ -3,6 +3,7 @@ import * as qs from 'query-string';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 
+import GettingStarted from './gettingStarted';
 import {ProjectInstallPlatform} from './platform';
 import PlatformIntegrationSetup from './platformIntegrationSetup';
 
@@ -20,7 +21,9 @@ function PlatformOrIntegration(props: Props) {
   }
   return (
     <OnboardingContextProvider>
-      <ProjectInstallPlatform {...props} />
+      <GettingStarted>
+        <ProjectInstallPlatform {...props} />
+      </GettingStarted>
     </OnboardingContextProvider>
   );
 }

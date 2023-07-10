@@ -17,13 +17,13 @@ from typing import (
 )
 
 from parsimonious.exceptions import ParseError
-from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node
+from parsimonious.grammar import Grammar
+from parsimonious.nodes import Node, NodeVisitor
 from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
-from sentry.models import ActorTuple, RepositoryProjectPathConfig
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import ActorTuple, OrganizationMember, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.codeowners import codeowners_match
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
@@ -234,7 +234,7 @@ class Owner(namedtuple("Owner", "type identifier")):
         return cls(data["type"], data["identifier"])
 
 
-class OwnershipVisitor(NodeVisitor):  # type: ignore
+class OwnershipVisitor(NodeVisitor):
     visit_comment = visit_empty = lambda *a: None
 
     def visit_ownership(self, node: Node, children: Sequence[Optional[Rule]]) -> Sequence[Rule]:
@@ -545,11 +545,17 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
 
     actors = {}
     if users:
-        rpc_users = user_service.get_many(
-            filter=dict(
-                emails=[o.identifier for o in users], is_active=True, project_ids=[project_id]
-            )
+        owner_users = user_service.get_many(
+            filter=dict(emails=[o.identifier for o in users], is_active=True)
         )
+        in_project_user_ids = set(
+            OrganizationMember.objects.filter(
+                teams__projectteam__project__in=[project_id],
+                user_id__in=[owner.id for owner in owner_users],
+            ).values_list("user_id", flat=True)
+        )
+        rpc_users = [owner for owner in owner_users if owner.id in in_project_user_ids]
+
         user_id_email_tuples = set()
         for user in rpc_users:
             user_id_email_tuples.add((user.id, user.email))

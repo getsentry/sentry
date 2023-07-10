@@ -9,6 +9,12 @@ export type DynamicSamplingEventParameters = {
     id: DynamicSamplingBiasType;
     project_id: string;
   };
+  'dynamic_sampling_transaction_summary.baseline': {
+    query: string;
+  };
+  'dynamic_sampling_transaction_summary.no_samples': {
+    query: string;
+  };
 };
 
 type DynamicSamplingAnalyticsKey = keyof DynamicSamplingEventParameters;
@@ -16,4 +22,8 @@ type DynamicSamplingAnalyticsKey = keyof DynamicSamplingEventParameters;
 export const dynamicSamplingEventMap: Record<DynamicSamplingAnalyticsKey, string> = {
   'dynamic_sampling_settings.priority_disabled': 'Disabled dynamic sampling priority',
   'dynamic_sampling_settings.priority_enabled': 'Enabled dynamic sampling priority',
+  'dynamic_sampling_transaction_summary.baseline':
+    'Dynamic Sampling: Transaction overview baseline',
+  'dynamic_sampling_transaction_summary.no_samples':
+    'Dynamic Sampling: Transaction without samples',
 };

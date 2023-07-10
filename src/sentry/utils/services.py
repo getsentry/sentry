@@ -7,6 +7,7 @@ import logging
 import threading
 from concurrent import futures
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -16,6 +17,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypeVar,
     cast,
 )
 
@@ -58,7 +60,13 @@ class Service:
         """
 
 
-class LazyServiceWrapper(LazyObject):  # type: ignore
+if TYPE_CHECKING:
+    Proxied = TypeVar("Proxied", bound=Service)
+else:
+    Proxied = object
+
+
+class LazyServiceWrapper(LazyObject, Proxied):
     """
     Lazyily instantiates a standard Sentry service class.
 
@@ -73,7 +81,7 @@ class LazyServiceWrapper(LazyObject):  # type: ignore
 
     def __init__(
         self,
-        backend_base: Type[Service],
+        backend_base: Type[Proxied],
         backend_path: str,
         options: Mapping[str, Any],
         dangerous: Optional[Sequence[Type[Service]]] = (),

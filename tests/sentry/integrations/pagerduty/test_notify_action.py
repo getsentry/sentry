@@ -91,7 +91,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         results[0].callback(event, futures=[])
         data = json.loads(responses.calls[0].request.body)
 
-        perf_issue_title = 'N+1 Query: SELECT "books_author"."id", "books_author"."name" FROM "books_author" WHERE "books_author"."id" = %s LIMIT 21'
+        perf_issue_title = "N+1 Query"
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == perf_issue_title

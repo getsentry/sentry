@@ -7,13 +7,20 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
+from sentry.integrations.slack.views.link_team import SlackLinkTeamView
+from sentry.integrations.slack.views.unlink_identity import SlackUnlinkIdentityView
+from sentry.integrations.slack.views.unlink_team import SlackUnlinkTeamView
 from sentry.integrations.slack.webhooks.action import (
     NOTIFICATION_SETTINGS_ACTION_OPTIONS,
     UNFURL_ACTION_OPTIONS,
     SlackActionEndpoint,
 )
 from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
+from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
+from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.models.integrations.integration import Integration
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.client import SiloClientError
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
@@ -23,41 +30,41 @@ from .base import BaseRequestParser
 
 logger = logging.getLogger(__name__)
 
-WEBHOOK_ENDPOINTS = ["SlackCommandsEndpoint", "SlackActionEndpoint", "SlackEventEndpoint"]
-"""
-Endpoints which provide integration information in the request headers.
-See: `src/sentry/integrations/slack/webhooks`
-"""
-
-DJANGO_VIEW_ENDPOINTS = [
-    "SlackLinkTeamView",
-    "SlackUnlinkTeamView",
-    "SlackLinkIdentityView",
-    "SlackUnlinkIdentityView",
-]
-"""
-Views served directly from the control silo without React.
-See: `src/sentry/integrations/slack/views`
-"""
-
 ACTIONS_ENDPOINT_ALL_SILOS_ACTIONS = UNFURL_ACTION_OPTIONS + NOTIFICATION_SETTINGS_ACTION_OPTIONS
 
 
 class SlackRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]  # "slack"
+    webhook_identifier = WebhookProviderIdentifier.SLACK
 
     control_classes = [
-        "SlackLinkIdentityView",
-        "SlackUnlinkIdentityView",
-        "PipelineAdvancerView",  # installation
+        SlackLinkIdentityView,
+        SlackUnlinkIdentityView,
     ]
 
     region_classes = [
-        "SlackLinkTeamView",
-        "SlackUnlinkTeamView",
-        "SlackCommandsEndpoint",
-        "SlackEventEndpoint",
+        SlackLinkTeamView,
+        SlackUnlinkTeamView,
+        SlackCommandsEndpoint,
+        SlackEventEndpoint,
     ]
+
+    webhook_endpoints = [SlackCommandsEndpoint, SlackActionEndpoint, SlackEventEndpoint]
+    """
+    Endpoints which provide integration info in the request headers.
+    See: `src/sentry/integrations/slack/webhooks`
+    """
+
+    django_views = [
+        SlackLinkTeamView,
+        SlackUnlinkTeamView,
+        SlackLinkIdentityView,
+        SlackUnlinkIdentityView,
+    ]
+    """
+    Views which contain integration info in query params
+    See: `src/sentry/integrations/slack/views`
+    """
 
     def handle_action_endpoint(self, regions: List[Region]) -> HttpResponse:
         drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
@@ -81,8 +88,8 @@ class SlackRequestParser(BaseRequestParser):
             return successful_responses[0].response
 
     def get_integration_from_request(self) -> Integration | None:
-        view_class_name = self.match.func.view_class.__name__
-        if view_class_name in WEBHOOK_ENDPOINTS:
+        view_class = self.match.func.view_class
+        if view_class in self.webhook_endpoints:
             # We need convert the raw Django request to a Django Rest Framework request
             # since that's the type the SlackRequest expects
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
@@ -95,7 +102,7 @@ class SlackRequestParser(BaseRequestParser):
                 return None
             return Integration.objects.filter(id=slack_request.integration.id).first()
 
-        elif view_class_name in DJANGO_VIEW_ENDPOINTS:
+        elif view_class in self.django_views:
             # Parse the signed params to identify the associated integration
             params = unsign(self.match.kwargs.get("signed_params"))
             return Integration.objects.filter(id=params.get("integration_id")).first()
@@ -134,18 +141,16 @@ class SlackRequestParser(BaseRequestParser):
         """
         Slack Webhook Requests all require synchronous responses.
         """
-        view_class_name = self.match.func.view_class.__name__
+        view_class = self.match.func.view_class
+        if view_class in self.control_classes:
+            return self.get_response_from_control_silo()
 
         regions = self.get_regions_from_organizations()
         if len(regions) == 0:
             logger.error("no_regions", extra={"path": self.request.path})
             return self.get_response_from_control_silo()
 
-        view_class_name = self.match.func.view_class.__name__
-        if view_class_name in self.control_classes:
-            return self.get_response_from_control_silo()
-
-        if view_class_name == "SlackActionEndpoint":
+        if view_class == SlackActionEndpoint:
             drf_request: Request = SlackDMEndpoint().initialize_request(self.request)
             slack_request = self.match.func.view_class.slack_request_class(drf_request)
             action_option = SlackActionEndpoint.get_action_option(slack_request=slack_request)

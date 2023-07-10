@@ -4,9 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, cast
+from typing import Any, List, Mapping, Optional, cast
 
 from sentry.services.hybrid_cloud.app import (
+    RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
@@ -14,14 +15,11 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class AppService(RpcService):
@@ -41,7 +39,7 @@ class AppService(RpcService):
         *,
         filter: SentryAppInstallationFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional["AuthenticationContext"] = None,
+        auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
 
@@ -115,7 +113,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
-    ) -> "AlertRuleActionResult":
+    ) -> RpcAlertRuleActionResult:
         pass
 
 

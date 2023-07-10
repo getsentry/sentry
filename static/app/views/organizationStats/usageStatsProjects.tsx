@@ -255,21 +255,23 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         direction: getArrowDirection(SortBy.DROPPED),
         onClick: () => this.handleChangeSort(SortBy.DROPPED),
       },
-    ].map(h => {
-      const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
+    ]
+      .map(h => {
+        const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
 
-      return (
-        <Cell key={h.key}>
-          <SortLink
-            canSort
-            title={h.title}
-            align={h.align as Alignments}
-            direction={h.direction}
-            generateSortLink={h.onClick}
-          />
-        </Cell>
-      );
-    });
+        return (
+          <Cell key={h.key}>
+            <SortLink
+              canSort
+              title={h.title}
+              align={h.align as Alignments}
+              direction={h.direction}
+              generateSortLink={h.onClick}
+            />
+          </Cell>
+        );
+      })
+      .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
   }
 
   getProjectLink(project: Project) {
@@ -423,7 +425,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const {error, errors, loading} = this.state;
     const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
     const {headers, tableStats} = this.tableData;
-
     return (
       <Fragment>
         {isSingleProject && (

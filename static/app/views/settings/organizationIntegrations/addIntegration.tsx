@@ -112,7 +112,7 @@ export default class AddIntegration extends Component<Props> {
     this.dialog = null;
 
     if (!success) {
-      addErrorMessage(data.error);
+      addErrorMessage(data?.error ?? t('An unknown error occurred'));
       return;
     }
 

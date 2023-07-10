@@ -27,6 +27,7 @@ class TransformTestCase(TestCase):
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
                 target_id=get_actor_id_for_user(self.user),
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.PROJECT.value,
                 scope_identifier=self.project.id,
             ),
@@ -35,6 +36,7 @@ class TransformTestCase(TestCase):
                 type=NotificationSettingTypes.WORKFLOW.value,
                 value=NotificationSettingOptionValues.ALWAYS.value,
                 target_id=get_actor_id_for_user(self.user),
+                user_id=self.user.id,
                 scope_type=NotificationScopeType.USER.value,
                 scope_identifier=self.user.id,
             ),
@@ -46,7 +48,7 @@ class TransformTestCase(TestCase):
         ]
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
     def test_transform_to_notification_settings_by_recipient_empty(self):
         assert (

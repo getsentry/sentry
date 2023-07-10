@@ -1,5 +1,5 @@
 from functools import cached_property
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import RequestFactory, override_settings
 from rest_framework.permissions import AllowAny
@@ -9,7 +9,6 @@ from sentry.api.base import Endpoint
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.middleware.stats import RequestTimingMiddleware, add_request_metric_tags
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import Mock
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 

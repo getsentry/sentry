@@ -165,6 +165,7 @@ class DashboardDetail extends Component<Props, State> {
           tableData,
           pageLinks,
           totalIssuesCount,
+          dashboardFilters: getDashboardFiltersFromURL(location) ?? dashboard.filters,
           onClose: () => {
             // Filter out Widget Viewer Modal query params when exiting the Modal
             const query = omit(location.query, Object.values(WidgetViewerQueryField));
@@ -458,6 +459,7 @@ class DashboardDetail extends Component<Props, State> {
           return;
         }
       },
+      // `updateDashboard` does its own error handling
       () => undefined
     );
   };
@@ -578,6 +580,7 @@ class DashboardDetail extends Component<Props, State> {
                 return;
               }
             },
+            // `updateDashboard` does its own error handling
             () => undefined
           );
 
@@ -638,6 +641,7 @@ class DashboardDetail extends Component<Props, State> {
       <PageFiltersContainer
         desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
         hideDesyncRevertButton
+        disablePersistence
         defaultSelection={{
           datetime: {
             start: null,
@@ -759,6 +763,7 @@ class DashboardDetail extends Component<Props, State> {
         <PageFiltersContainer
           desyncedAlertMessage='Using filter values saved to this dashboard. To edit saved filters, click "Edit Dashboard".'
           hideDesyncRevertButton
+          disablePersistence
           defaultSelection={{
             datetime: {
               start: null,
@@ -883,6 +888,7 @@ class DashboardDetail extends Component<Props, State> {
                                     })
                                   );
                                 },
+                                // `updateDashboard` does its own error handling
                                 () => undefined
                               );
                             }}

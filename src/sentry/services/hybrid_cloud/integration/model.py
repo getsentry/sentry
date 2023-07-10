@@ -25,7 +25,7 @@ class RpcIntegration(RpcModel):
     def get_provider(self) -> IntegrationProvider:
         from sentry import integrations
 
-        return integrations.get(self.provider)  # type: ignore
+        return integrations.get(self.provider)
 
     def get_status_display(self) -> str:
         for status_id, display in ObjectStatus.as_choices():

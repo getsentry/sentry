@@ -4,14 +4,24 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import List, Optional
+from typing import List, Optional, cast
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.hook import RpcServiceHook
+from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 
-class HookService(InterfaceWithLifecycle):
+class HookService(RpcService):
+    key = "hook"
+    local_mode = SiloMode.REGION
+
+    @classmethod
+    def get_local_implementation(cls) -> RpcService:
+        from sentry.services.hybrid_cloud.hook.impl import DatabaseBackedHookService
+
+        return DatabaseBackedHookService()
+
+    @rpc_method
     @abc.abstractmethod
     def create_service_hook(
         self,
@@ -26,6 +36,7 @@ class HookService(InterfaceWithLifecycle):
     ) -> RpcServiceHook:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def update_webhook_and_events(
         self,
@@ -37,16 +48,4 @@ class HookService(InterfaceWithLifecycle):
         pass
 
 
-def impl_with_db() -> HookService:
-    from sentry.services.hybrid_cloud.hook.impl import DatabaseBackedAppService
-
-    return DatabaseBackedAppService()
-
-
-hook_service: HookService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
-)
+hook_service: HookService = cast(HookService, HookService.create_delegation())

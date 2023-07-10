@@ -162,7 +162,7 @@ def save_unprocessed_event(project, event_id):
         nodestore.set(node_id, data)
 
 
-def backup_unprocessed_event(project, data):
+def backup_unprocessed_event(data):
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -185,7 +185,7 @@ def pull_event_data(project_id, event_id) -> ReprocessableEvent:
     from sentry.lang.native.processing import get_required_attachment_types
 
     with sentry_sdk.start_span(op="reprocess_events.eventstore.get"):
-        event = eventstore.get_event_by_id(project_id, event_id)
+        event = eventstore.backend.get_event_by_id(project_id, event_id)
 
     if event is None:
         raise CannotReprocess("event.not_found")

@@ -68,6 +68,8 @@ export type MetaType = Record<string, ColumnType> & {
   units?: Record<string, string>;
 };
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  units: Record<string, string>;
+} & {
   isMetricsData?: boolean;
 };
 
@@ -292,7 +294,7 @@ class EventView {
   statsPeriod: string | undefined;
   utc?: string | boolean | undefined;
   environment: Readonly<string[]>;
-  yAxis: string | undefined;
+  yAxis: string | string[] | undefined;
   display: string | undefined;
   topEvents: string | undefined;
   interval: string | undefined;
@@ -302,7 +304,6 @@ class EventView {
   dataset?: DiscoverDatasets;
 
   constructor(props: {
-    additionalConditions: MutableSearch;
     createdBy: User | undefined;
     display: string | undefined;
     end: string | undefined;
@@ -317,11 +318,12 @@ class EventView {
     statsPeriod: string | undefined;
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    yAxis: string | undefined;
+    additionalConditions?: MutableSearch;
     dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
     utc?: string | boolean | undefined;
+    yAxis?: string | string[] | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -454,7 +456,7 @@ class EventView {
       fields,
       query: queryStringFromSavedQuery(saved),
       team: saved.teams ?? [],
-      project: saved.projects,
+      project: saved.projects ?? [],
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
@@ -466,8 +468,10 @@ class EventView {
         },
         'environment'
       ),
-      // Workaround to only use the first yAxis since eventView yAxis doesn't accept string[]
-      yAxis: Array.isArray(saved.yAxis) ? saved.yAxis[0] : saved.yAxis,
+      yAxis:
+        Array.isArray(saved.yAxis) && saved.yAxis.length === 1
+          ? saved.yAxis[0]
+          : saved.yAxis,
       display: saved.display,
       topEvents: saved.topEvents ? saved.topEvents.toString() : undefined,
       interval: saved.interval,
@@ -611,7 +615,7 @@ class EventView {
       end: this.end,
       range: this.statsPeriod,
       environment: this.environment,
-      yAxis: this.yAxis ? [this.yAxis] : undefined,
+      yAxis: typeof this.yAxis === 'string' ? [this.yAxis] : this.yAxis,
       dataset: this.dataset,
       display: this.display,
       topEvents: this.topEvents,
@@ -1064,7 +1068,7 @@ class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined): string {
+  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
     const queryParts: string[] = [];
 
     if (this.query) {
@@ -1344,7 +1348,7 @@ class EventView {
     );
 
     if (result >= 0) {
-      return yAxis;
+      return typeof yAxis === 'string' ? yAxis : yAxis[0];
     }
 
     return defaultOption;

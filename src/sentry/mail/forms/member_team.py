@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
-
 from django import forms
 
-from sentry.models import Project
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.models import OrganizationMemberTeam, Project
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 class MemberTeamForm(forms.Form):
@@ -33,7 +31,7 @@ class MemberTeamForm(forms.Form):
                 raise forms.ValidationError("targetIdentifier must be an integer")
         return targetIdentifier
 
-    def clean(self) -> dict[str, Any] | None:
+    def clean(self) -> None:
         cleaned_data = super().clean()
         try:
             targetType = self.targetTypeEnum(cleaned_data.get("targetType"))
@@ -63,17 +61,22 @@ class MemberTeamForm(forms.Form):
             self.add_error("targetIdentifier", msg)
             return
 
-        if targetType == self.memberValue and not user_service.get_many(
-            filter={
-                "is_active": True,
-                "is_active_memberteam": True,
-                "organization_id": self.project.organization.id,
-                "project_ids": [self.project.id],
-                "user_ids": [int(targetIdentifier)],
-            }
-        ):
-            msg = forms.ValidationError("This user is not part of the project.")
-            self.add_error("targetIdentifier", msg)
-            return
+        if targetType == self.memberValue:
+            is_active_team_member = OrganizationMemberTeam.objects.filter(
+                is_active=True,
+                organizationmember__user_id=int(targetIdentifier),
+                organizationmember__teams__projectteam__project_id=self.project.id,
+            ).exists()
+            if is_active_team_member:
+                is_active_team_member = bool(
+                    user_service.get_many(
+                        filter=dict(user_ids=[int(targetIdentifier)], is_active=True)
+                    )
+                )
+
+            if not is_active_team_member:
+                msg = forms.ValidationError("This user is not part of the project.")
+                self.add_error("targetIdentifier", msg)
+                return
 
         self.cleaned_data["targetIdentifier"] = targetIdentifier

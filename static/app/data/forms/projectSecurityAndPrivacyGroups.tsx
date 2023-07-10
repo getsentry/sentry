@@ -18,7 +18,7 @@ const ORG_DISABLED_REASON = t(
 // Check if a field has been set AND IS TRUTHY at the organization level.
 const hasOrgOverride = ({organization, name}) => organization[name];
 
-export default [
+const formGroups: JsonFormObject[] = [
   {
     title: t('Security & Privacy'),
     fields: [
@@ -49,7 +49,7 @@ export default [
           return formatStoreCrashReports(value);
         },
         choices: ({organization}) =>
-          getStoreCrashReportsValues(SettingScope.Project).map(value => [
+          getStoreCrashReportsValues(SettingScope.PROJECT).map(value => [
             value,
             formatStoreCrashReports(value, organization.storeCrashReports),
           ]),
@@ -148,4 +148,6 @@ export default [
       },
     ],
   },
-] as JsonFormObject[];
+];
+
+export default formGroups;

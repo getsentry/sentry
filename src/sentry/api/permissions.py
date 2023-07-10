@@ -26,22 +26,22 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class RelayPermission(permissions.BasePermission):  # type: ignore[misc]
+class RelayPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
 
-class SystemPermission(permissions.BasePermission):  # type: ignore[misc]
+class SystemPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return is_system_auth(request.auth)
 
 
-class NoPermission(permissions.BasePermission):  # type: ignore[misc]
+class NoPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return False
 
 
-class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
+class ScopedPermission(permissions.BasePermission):
     """
     Permissions work depending on the type of authentication:
 
@@ -64,7 +64,7 @@ class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
     def has_permission(self, request: Request, view: object) -> bool:
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
-            return request.user.is_authenticated  # type: ignore[no-any-return]
+            return request.user.is_authenticated
 
         allowed_scopes: set[str] = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
@@ -74,7 +74,7 @@ class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
         return False
 
 
-class SuperuserPermission(permissions.BasePermission):  # type: ignore[misc]
+class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         if is_active_superuser(request):
             return True
@@ -120,7 +120,7 @@ class SentryPermission(ScopedPermission):
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
-        if request.user and request.user.is_authenticated and request.auth:
+        if request.auth and request.user and request.user.is_authenticated:
             request.access = access.from_request_org_and_scopes(
                 request=request,
                 rpc_user_org_context=org_context,

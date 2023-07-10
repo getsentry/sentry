@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -21,7 +21,7 @@ import {
   ReplayCell,
   TransactionCell,
 } from 'sentry/views/replays/replayTable/tableCell';
-import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -29,10 +29,18 @@ type Props = {
   isFetching: boolean;
   replays: undefined | ReplayListRecord[] | ReplayListRecordWithTx[];
   sort: Sort | undefined;
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
+  emptyMessage?: ReactNode;
 };
 
-function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Props) {
+function ReplayTable({
+  fetchError,
+  isFetching,
+  replays,
+  sort,
+  visibleColumns,
+  emptyMessage,
+}: Props) {
   const routes = useRoutes();
   const location = useLocation();
   const organization = useOrganization();
@@ -71,28 +79,29 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       visibleColumns={visibleColumns}
       disablePadding
       data-test-id="replay-table"
+      emptyMessage={emptyMessage}
     >
       {replays?.map(replay => {
         return (
           <Fragment key={replay.id}>
             {visibleColumns.map(column => {
               switch (column) {
-                case ReplayColumns.activity:
+                case ReplayColumn.ACTIVITY:
                   return <ActivityCell key="activity" replay={replay} />;
 
-                case ReplayColumns.browser:
+                case ReplayColumn.BROWSER:
                   return <BrowserCell key="browser" replay={replay} />;
 
-                case ReplayColumns.countErrors:
+                case ReplayColumn.COUNT_ERRORS:
                   return <ErrorCountCell key="countErrors" replay={replay} />;
 
-                case ReplayColumns.duration:
+                case ReplayColumn.DURATION:
                   return <DurationCell key="duration" replay={replay} />;
 
-                case ReplayColumns.os:
+                case ReplayColumn.OS:
                   return <OSCell key="os" replay={replay} />;
 
-                case ReplayColumns.replay:
+                case ReplayColumn.REPLAY:
                   return (
                     <ReplayCell
                       key="session"
@@ -103,7 +112,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
                     />
                   );
 
-                case ReplayColumns.slowestTransaction:
+                case ReplayColumn.SLOWEST_TRANSACTION:
                   return (
                     <TransactionCell
                       key="slowestTransaction"
@@ -124,7 +133,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
 }
 
 const StyledPanelTable = styled(PanelTable)<{
-  visibleColumns: Array<keyof typeof ReplayColumns>;
+  visibleColumns: ReplayColumn[];
 }>`
   grid-template-columns: ${p =>
     p.visibleColumns

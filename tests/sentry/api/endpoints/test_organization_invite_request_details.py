@@ -11,6 +11,7 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
 
 
@@ -95,7 +96,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert audit_log_entry.data == self.invite_request.get_audit_log_data()
 
     def test_member_cannot_delete_invite_request(self):
-        self.login_as(user=self.member.user)
+        self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.invite_request.id)
 
         assert resp.status_code == 403
@@ -103,19 +104,20 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 
 
 @region_silo_test
-class OrganizationInviteRequestUpdateTest(InviteRequestBase):
+class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
     def test_owner_can_update_role(self):
         self.login_as(user=self.user)
-        resp = self.get_response(self.org.slug, self.invite_request.id, role="admin")
+        resp = self.get_response(self.org.slug, self.invite_request.id, role="manager")
 
         assert resp.status_code == 200
-        assert resp.data["role"] == "admin"
-        assert resp.data["orgRole"] == "admin"
+        assert resp.data["role"] == "manager"
+        assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
-        assert OrganizationMember.objects.filter(id=self.invite_request.id, role="admin").exists()
+        member = OrganizationMember.objects.get(id=self.invite_request.id, role="manager")
+        self.assert_org_member_mapping(org_member=member)
 
     def test_owner_can_update_teams(self):
         self.login_as(user=self.user)
@@ -145,6 +147,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.invite_request.id, team=self.team
         ).exists()
+        self.assert_org_member_mapping(org_member=self.invite_request)
 
     def test_can_remove_teams(self):
         OrganizationMemberTeam.objects.create(
@@ -162,13 +165,13 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
         ).exists()
 
     def test_member_cannot_update_invite_request(self):
-        self.login_as(user=self.member.user)
-        resp = self.get_response(self.org.slug, self.request_to_join.id, role="admin")
+        self.login_as(user=self.member)
+        resp = self.get_response(self.org.slug, self.request_to_join.id, role="manager")
         assert resp.status_code == 403
 
 
 @region_silo_test
-class OrganizationInviteRequestApproveTest(InviteRequestBase):
+class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
     @patch.object(OrganizationMember, "send_invite_email")
@@ -192,10 +195,10 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert audit_log_entry.data == member.get_audit_log_data()
 
     def test_member_cannot_approve_invite_request(self):
-        self.invite_request.inviter_id = self.member.user.id
+        self.invite_request.inviter_id = self.member.user_id
         self.invite_request.save()
 
-        self.login_as(user=self.member.user)
+        self.login_as(user=self.member)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
         assert resp.status_code == 403
@@ -255,17 +258,22 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
     def test_owner_can_update_and_approve(self, mock_invite_email):
         self.login_as(user=self.user)
         resp = self.get_response(
-            self.org.slug, self.request_to_join.id, approve=1, role="admin", teams=[self.team.slug]
+            self.org.slug,
+            self.request_to_join.id,
+            approve=1,
+            role="manager",
+            teams=[self.team.slug],
         )
 
         assert resp.status_code == 200
-        assert resp.data["role"] == "admin"
-        assert resp.data["orgRole"] == "admin"
+        assert resp.data["role"] == "manager"
+        assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "approved"
 
         assert OrganizationMember.objects.filter(
-            id=self.request_to_join.id, role="admin", invite_status=InviteStatus.APPROVED.value
+            id=self.request_to_join.id, role="manager", invite_status=InviteStatus.APPROVED.value
         ).exists()
+        self.assert_org_member_mapping(org_member=self.request_to_join)
 
         assert OrganizationMemberTeam.objects.filter(
             organizationmember=self.request_to_join.id, team=self.team
@@ -275,7 +283,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
 
     @patch.object(OrganizationMember, "send_invite_email")
     def test_manager_cannot_approve_owner(self, mock_invite_email):
-        self.login_as(user=self.manager.user)
+        self.login_as(user=self.manager)
         resp = self.get_response(self.org.slug, self.invite_request.id, approve=1)
 
         assert resp.status_code == 400
@@ -287,7 +295,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert mock_invite_email.call_count == 0
 
     def test_manager_can_approve_manager(self):
-        self.login_as(user=self.manager.user)
+        self.login_as(user=self.manager)
         invite_request = self.create_member(
             email="hello@example.com",
             organization=self.org,

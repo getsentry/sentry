@@ -23,8 +23,9 @@ import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project} from 'sentry/types';
-import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -88,10 +89,13 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           throw err;
         }
       )
-      .then(() => {
-        // Need to hard reload because lots of components do not listen to Projects Store
-        window.location.assign('/');
-      }, handleXhrErrorResponse('Unable to remove project'));
+      .then(
+        () => {
+          // Need to hard reload because lots of components do not listen to Projects Store
+          window.location.assign('/');
+        },
+        (err: RequestError) => handleXhrErrorResponse('Unable to remove project', err)
+      );
   };
 
   handleTransferProject = async () => {
@@ -110,7 +114,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       window.location.assign('/');
     } catch (err) {
       if (err.status >= 500) {
-        handleXhrErrorResponse('Unable to transfer project')(err);
+        handleXhrErrorResponse('Unable to transfer project', err);
       }
     }
   };
@@ -174,8 +178,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
+    const isOrgOwner = hasEveryAccess(['org:admin'], {
+      organization: this.props.organization,
+    });
 
     return (
       <FieldGroup
@@ -188,7 +194,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           }
         )}
       >
-        {!isProjectAdmin &&
+        {!isOrgOwner &&
           t('You do not have the required permission to transfer this project.')}
 
         {isInternal &&
@@ -196,7 +202,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin && !isInternal && (
+        {isOrgOwner && !isInternal && (
           <Confirm
             onConfirm={this.handleTransferProject}
             priority="danger"
@@ -291,6 +297,8 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       },
     };
 
+    const hasRecapServerFeature = project.features.includes('recap-server');
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -300,7 +308,19 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, fields.platform]}
+            // TODO(recap): Move this to a separate page or debug files one, not general settings
+            fields={[
+              fields.name,
+              fields.platform,
+              {
+                ...fields.recapServerUrl,
+                visible: hasRecapServerFeature,
+              },
+              {
+                ...fields.recapServerToken,
+                visible: hasRecapServerFeature,
+              },
+            ]}
           />
 
           <JsonForm

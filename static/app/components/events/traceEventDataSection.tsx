@@ -10,7 +10,6 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
@@ -18,7 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import {STACK_TYPE} from 'sentry/types/stacktrace';
+import {StackType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
@@ -38,8 +37,6 @@ export const displayOptions = {
   'raw-stack-trace': t('Raw stack trace'),
   'verbose-function-names': t('Verbose function names'),
 };
-
-const HookCodecovCTA = HookOrDefault({hookName: 'component:codecov-integration-cta'});
 
 type State = {
   display: Array<keyof typeof displayOptions>;
@@ -63,7 +60,7 @@ type Props = {
   projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
-  stackType: STACK_TYPE;
+  stackType: StackType;
   title: React.ReactElement<any, any>;
   type: string;
   wrapTitle?: boolean;
@@ -343,7 +340,7 @@ export function TraceEventDataSection({
   }
 
   const nativePlatform = isNativePlatform(platform);
-  const minified = stackType === STACK_TYPE.MINIFIED;
+  const minified = stackType === StackType.MINIFIED;
 
   // Apple crash report endpoint
   const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
@@ -443,7 +440,6 @@ export function TraceEventDataSection({
       wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
-        <HookCodecovCTA />
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
     </EventDataSection>

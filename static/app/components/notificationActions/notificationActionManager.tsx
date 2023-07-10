@@ -191,13 +191,14 @@ function NotificationActionManager({
   const addAlertButton = (
     <Tooltip
       disabled={!disabled}
-      title={t('You do not have permission to add notification actions')}
+      title={t('You do not have permission to add notification actions for this project')}
     >
       <DropdownMenu
         items={getMenuItems()}
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
+            isOpen={isOpen}
             aria-label={t('Add Action')}
             size="xs"
             icon={<IconAdd isCircled color="gray300" />}

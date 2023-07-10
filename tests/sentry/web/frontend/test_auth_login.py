@@ -1,6 +1,7 @@
 from datetime import timedelta
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 import pytest
@@ -8,12 +9,13 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlquote
 
 from sentry import newsletter, options
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.models.organization import Organization
+from sentry.receivers import create_default_projects
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -23,6 +25,7 @@ from sentry.utils import json
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
 # @control_silo_test(stable=True)
+@control_silo_test
 class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @cached_property
     def path(self):
@@ -165,7 +168,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         signup_record = [r for r in mock_record.call_args_list if r[0][0] == "user.signup"]
         assert signup_record == [
@@ -180,6 +183,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_registration_single_org(self):
+        create_default_projects()
         options.set("auth.allow-registration", True)
         with self.feature("auth:register"):
             resp = self.client.post(
@@ -198,19 +202,20 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         # User is part of the default org
         default_org = Organization.get_default()
-        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user=user)
+        org_member = OrganizationMember.objects.get(organization_id=default_org.id, user_id=user.id)
         assert org_member.role == default_org.default_role
         self.assert_org_member_mapping(org_member=org_member)
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_registration_single_org_with_invite(self, from_session):
+        create_default_projects()
         self.session["can_register"] = True
         self.save_session()
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -228,7 +233,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         # An organization member should NOT have been created, even though
         # we're in single org mode, accepting the invite will handle that
         # (which we assert next)
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1
@@ -264,7 +269,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         self.client.get(self.path)
 
-        invite_helper = mock.Mock(valid_request=True)
+        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
         from_session.return_value = invite_helper
 
         resp = self.client.post(
@@ -289,6 +294,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         self.session["can_register"] = True
         self.session["invite_token"] = invite.token
         self.session["invite_member_id"] = invite.id
+        self.session["invite_organization_id"] = invite.organization_id
         self.save_session()
 
         self.client.get(self.path)
@@ -306,7 +312,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         invite.refresh_from_db()
         assert invite.user_id
         assert invite.token is None
-        assert invite.user.username == "member@example.com"
+        assert User.objects.get(id=invite.user_id).username == "member@example.com"
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
@@ -407,7 +413,7 @@ class AuthLoginNewsletterTest(TestCase):
         assert user.email == "test-a-really-long-email-address@example.com"
         assert user.check_password("foobar")
         assert user.name == "Foo Bar"
-        assert not OrganizationMember.objects.filter(user=user).exists()
+        assert not OrganizationMember.objects.filter(user_id=user.id).exists()
 
         assert newsletter.get_subscriptions(user) == {"subscriptions": []}
 

@@ -1,6 +1,8 @@
 import {browserHistory} from 'react-router';
+import {Theme} from '@emotion/react';
 import {Location} from 'history';
 
+import {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {backend, frontend, mobile} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
@@ -12,8 +14,10 @@ import {
   Project,
   ReleaseProject,
 } from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {statsPeriodToDays} from 'sentry/utils/dates';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {TRACING_FIELDS} from 'sentry/utils/discover/fields';
 import {getDuration} from 'sentry/utils/formatters';
@@ -22,8 +26,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import toArray from 'sentry/utils/toArray';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  NormalizedTrendsTransaction,
+  TrendChangeType,
+} from 'sentry/views/performance/trends/types';
 
-import {DEFAULT_MAX_DURATION} from './trends/utils';
+import {DEFAULT_MAX_DURATION, getSelectedQueryKey} from './trends/utils';
 
 export const QUERY_KEYS = [
   'environment',
@@ -79,7 +87,7 @@ export function createUnnamedTransactionsDiscoverTarget(props: {
  * Performance type can used to determine a default view or which specific field should be used by default on pages
  * where we don't want to wait for transaction data to return to determine how to display aspects of a page.
  */
-export enum PROJECT_PERFORMANCE_TYPE {
+export enum ProjectPerformanceType {
   ANY = 'any', // Fallback to transaction duration
   FRONTEND = 'frontend',
   BACKEND = 'backend',
@@ -89,8 +97,10 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
-  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+const FRONTEND_PLATFORMS: string[] = frontend.filter(
+  platform =>
+    // Next, Remix and Sveltekit habe both, frontend and backend transactions.
+    !['javascript-nextjs', 'javascript-remix', 'javascript-sveltekit'].includes(platform)
 );
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
@@ -100,7 +110,7 @@ export function platformToPerformanceType(
   projectIds: readonly number[]
 ) {
   if (projectIds.length === 0 || projectIds[0] === ALL_ACCESS_PROJECTS) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
 
   const selectedProjects = projects.filter(p =>
@@ -108,27 +118,27 @@ export function platformToPerformanceType(
   );
 
   if (selectedProjects.length === 0 || selectedProjects.some(p => !p.platform)) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
 
-  const projectPerformanceTypes = new Set<PROJECT_PERFORMANCE_TYPE>();
+  const projectPerformanceTypes = new Set<ProjectPerformanceType>();
 
   selectedProjects.forEach(project => {
     if (FRONTEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.FRONTEND);
+      projectPerformanceTypes.add(ProjectPerformanceType.FRONTEND);
     }
     if (BACKEND_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.BACKEND);
+      projectPerformanceTypes.add(ProjectPerformanceType.BACKEND);
     }
     if (MOBILE_PLATFORMS.includes(project.platform ?? '')) {
-      projectPerformanceTypes.add(PROJECT_PERFORMANCE_TYPE.MOBILE);
+      projectPerformanceTypes.add(ProjectPerformanceType.MOBILE);
     }
   });
 
   const uniquePerformanceTypeCount = projectPerformanceTypes.size;
 
   if (!uniquePerformanceTypeCount || uniquePerformanceTypeCount > 1) {
-    return PROJECT_PERFORMANCE_TYPE.ANY;
+    return ProjectPerformanceType.ANY;
   }
   const [platformType] = projectPerformanceTypes;
   return platformType;
@@ -142,11 +152,11 @@ export function platformAndConditionsToPerformanceType(
   eventView: EventView
 ) {
   const performanceType = platformToPerformanceType(projects, eventView.project);
-  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+  if (performanceType === ProjectPerformanceType.FRONTEND) {
     const conditions = new MutableSearch(eventView.query);
     const ops = conditions.getFilterValues('!transaction.op');
     if (ops.some(op => op === 'pageload')) {
-      return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
+      return ProjectPerformanceType.FRONTEND_OTHER;
     }
   }
 
@@ -159,16 +169,16 @@ export function platformAndConditionsToPerformanceType(
 export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
-    PROJECT_PERFORMANCE_TYPE.FRONTEND
+    ProjectPerformanceType.FRONTEND
   );
 }
 
 export function isSummaryViewFrontend(eventView: EventView, projects: Project[]) {
   return (
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND ||
+      ProjectPerformanceType.FRONTEND ||
     platformAndConditionsToPerformanceType(projects, eventView) ===
-      PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER
+      ProjectPerformanceType.FRONTEND_OTHER
   );
 }
 
@@ -225,21 +235,26 @@ export function trendsTargetRoute({
 
   const modifiedConditions = initialConditions ?? new MutableSearch([]);
 
-  if (conditions.hasFilter('tpm()')) {
-    modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
-  } else {
-    modifiedConditions.setFilterValues('tpm()', ['>0.01']);
-  }
-  if (conditions.hasFilter('transaction.duration')) {
-    modifiedConditions.setFilterValues(
-      'transaction.duration',
-      conditions.getFilterValues('transaction.duration')
-    );
-  } else {
-    modifiedConditions.setFilterValues('transaction.duration', [
-      '>0',
-      `<${DEFAULT_MAX_DURATION}`,
-    ]);
+  // Trends on metrics don't need these conditions
+  if (!organization.features.includes('performance-new-trends')) {
+    // No need to carry over tpm filters to transaction summary
+    if (conditions.hasFilter('tpm()')) {
+      modifiedConditions.setFilterValues('tpm()', conditions.getFilterValues('tpm()'));
+    } else {
+      modifiedConditions.setFilterValues('tpm()', ['>0.01']);
+    }
+
+    if (conditions.hasFilter('transaction.duration')) {
+      modifiedConditions.setFilterValues(
+        'transaction.duration',
+        conditions.getFilterValues('transaction.duration')
+      );
+    } else {
+      modifiedConditions.setFilterValues('transaction.duration', [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
+    }
   }
   newQuery.query = modifiedConditions.formatString();
 
@@ -259,7 +274,7 @@ export function removeTracingKeysFromSearch(
   }
 ) {
   currentFilter.getFilterKeys().forEach(tagKey => {
-    const searchKey = tagKey.startsWith('!') ? tagKey.substr(1) : tagKey;
+    const searchKey = tagKey.startsWith('!') ? tagKey.substring(1) : tagKey;
     // Remove aggregates and transaction event fields
     if (
       // aggregates
@@ -343,15 +358,200 @@ export function getSelectedProjectPlatforms(location: Location, projects: Projec
   return selectedProjectPlatforms.join(', ');
 }
 
-export function getProjectID(
+export function getProject(
   eventData: EventData,
   projects: Project[]
-): string | undefined {
+): Project | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
     return undefined;
   }
 
-  return projects.find(currentProject => currentProject.slug === projectSlug)?.id;
+  return projects.find(currentProject => currentProject.slug === projectSlug);
+}
+
+export function getProjectID(
+  eventData: EventData,
+  projects: Project[]
+): string | undefined {
+  return getProject(eventData, projects)?.id;
+}
+
+export function transformTransaction(
+  transaction: NormalizedTrendsTransaction
+): NormalizedTrendsTransaction {
+  if (transaction && transaction.breakpoint) {
+    return {
+      ...transaction,
+      breakpoint: transaction.breakpoint * 1000,
+    };
+  }
+  return transaction;
+}
+
+export function getIntervalLine(
+  theme: Theme,
+  series: Series[],
+  intervalRatio: number,
+  label: boolean,
+  transaction?: NormalizedTrendsTransaction
+): LineChartSeries[] {
+  if (!transaction || !series.length || !series[0].data || !series[0].data.length) {
+    return [];
+  }
+
+  const transformedTransaction = transformTransaction(transaction);
+
+  const seriesStart = parseInt(series[0].data[0].name as string, 10);
+  const seriesEnd = parseInt(series[0].data.slice(-1)[0].name as string, 10);
+
+  if (seriesEnd < seriesStart) {
+    return [];
+  }
+
+  const periodLine: LineChartSeries = {
+    data: [],
+    color: theme.textColor,
+    markLine: {
+      data: [],
+      label: {},
+      lineStyle: {
+        color: theme.textColor,
+        type: 'dashed',
+        width: label ? 1 : 2,
+      },
+      symbol: ['none', 'none'],
+      tooltip: {
+        show: false,
+      },
+    },
+    seriesName: 'Baseline',
+  };
+
+  const periodLineLabel = {
+    fontSize: 11,
+    show: label,
+    color: theme.textColor,
+    silent: label,
+  };
+
+  const previousPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const currentPeriod = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+  const periodDividingLine = {
+    ...periodLine,
+    markLine: {...periodLine.markLine},
+    seriesName: 'Baseline',
+  };
+
+  const seriesDiff = seriesEnd - seriesStart;
+  const seriesLine = seriesDiff * intervalRatio + seriesStart;
+  const {breakpoint} = transformedTransaction;
+
+  const divider = breakpoint || seriesLine;
+
+  previousPeriod.markLine.data = [
+    [
+      {value: 'Past', coord: [seriesStart, transformedTransaction.aggregate_range_1]},
+      {coord: [divider, transformedTransaction.aggregate_range_1]},
+    ],
+  ];
+  previousPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transformedTransaction.aggregate_range_1, 'duration'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+  currentPeriod.markLine.data = [
+    [
+      {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
+      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
+    ],
+  ];
+  currentPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transformedTransaction.aggregate_range_2, 'duration'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  };
+  periodDividingLine.markLine = {
+    data: [
+      {
+        xAxis: divider,
+      },
+    ],
+    label: {show: false},
+    lineStyle: {
+      color: theme.textColor,
+      type: 'solid',
+      width: 2,
+    },
+    symbol: ['none', 'none'],
+    tooltip: {
+      show: false,
+    },
+    silent: true,
+  };
+
+  previousPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Past',
+    position: 'insideStartBottom',
+  };
+  currentPeriod.markLine.label = {
+    ...periodLineLabel,
+    formatter: 'Present',
+    position: 'insideEndBottom',
+  };
+
+  const additionalLineSeries = [previousPeriod, currentPeriod, periodDividingLine];
+  return additionalLineSeries;
+}
+
+export function getSelectedTransaction(
+  location: Location,
+  trendChangeType: TrendChangeType,
+  transactions?: NormalizedTrendsTransaction[]
+): NormalizedTrendsTransaction | undefined {
+  const queryKey = getSelectedQueryKey(trendChangeType);
+  const selectedTransactionName = decodeScalar(location.query[queryKey]);
+
+  if (!transactions) {
+    return undefined;
+  }
+
+  const selectedTransaction = transactions.find(
+    transaction =>
+      `${transaction.transaction}-${transaction.project}` === selectedTransactionName
+  );
+
+  if (selectedTransaction) {
+    return selectedTransaction;
+  }
+
+  return transactions.length > 0 ? transactions[0] : undefined;
 }

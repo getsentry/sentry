@@ -4,6 +4,7 @@ import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,6 +48,8 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {projects} = useProjects();
 
+  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
+
   const {
     eventView: _eventView,
     ContainerActions,
@@ -54,10 +57,17 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     withStaticFilters,
     InteractiveTitle,
   } = props;
+
+  const withBreakpoint =
+    organization.features.includes('performance-new-trends') &&
+    !isCardinalityCheckLoading &&
+    !outcome?.forceTransactionsOnly;
+
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
       : TrendChangeType.REGRESSION;
+  const derivedTrendChangeType = withBreakpoint ? TrendChangeType.ANY : trendChangeType;
   const trendFunctionField = TrendFunctionField.AVG; // Average is the easiest chart to understand.
 
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
@@ -66,15 +76,19 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   eventView.fields = fields;
   eventView.sorts = [
     {
-      kind: trendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
+      kind: derivedTrendChangeType === TrendChangeType.IMPROVED ? 'asc' : 'desc',
       field: 'trend_percentage()',
     },
   ];
   const rest = {...props, eventView};
-  eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
-  eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
-  eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
-  eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  if (!withBreakpoint) {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.01']);
+    eventView.additionalConditions.addFilterValues('count_percentage()', ['>0.25', '<4']);
+    eventView.additionalConditions.addFilterValues('trend_percentage()', ['>0%']);
+    eventView.additionalConditions.addFilterValues('confidence()', ['>6']);
+  } else {
+    eventView.additionalConditions.addFilterValues('tpm()', ['>0.1']);
+  }
 
   const chart = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -84,17 +98,18 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           {...provided}
           eventView={provided.eventView}
           location={location}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
           limit={3}
           cursor="0:0:1"
           noPagination
+          withBreakpoint={withBreakpoint}
         />
       ),
       transform: transformTrendsDiscover,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [props.chartSetting, trendChangeType]
+    [props.chartSetting, derivedTrendChangeType]
   );
 
   const assembleAccordionItems = provided =>
@@ -106,7 +121,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         <TrendsChart
           {...provided}
           {...rest}
-          isLoading={provided.widgetData.chart.isLoading}
+          isLoading={provided.widgetData.chart.isLoading || isCardinalityCheckLoading}
           statsData={provided.widgetData.chart.statsData}
           query={eventView.query}
           project={eventView.project}
@@ -115,7 +130,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
           end={eventView.end}
           statsPeriod={eventView.statsPeriod}
           transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-          trendChangeType={trendChangeType}
+          trendChangeType={derivedTrendChangeType}
           trendFunctionField={trendFunctionField}
           disableXAxis
           disableLegend
@@ -216,7 +231,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
               end={eventView.end}
               statsPeriod={eventView.statsPeriod}
               transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-              trendChangeType={trendChangeType}
+              trendChangeType={derivedTrendChangeType}
               trendFunctionField={trendFunctionField}
               disableXAxis
               disableLegend

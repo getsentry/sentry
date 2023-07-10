@@ -316,7 +316,7 @@ class ApiSource extends Component<Props, State> {
     // Otherwise it'd be constant :spinning_loading_wheel:
     if (
       (nextProps.query.length <= 2 &&
-        nextProps.query.substr(0, 2) !== this.props.query.substr(0, 2)) ||
+        nextProps.query.substring(0, 2) !== this.props.query.substring(0, 2)) ||
       // Also trigger a search if next query value satisfies an eventid/shortid query
       shouldSearchShortIds(nextProps.query) ||
       shouldSearchEventIds(nextProps.query)
@@ -393,15 +393,16 @@ class ApiSource extends Component<Props, State> {
   }, 150);
 
   handleRequestError = (err: ResponseMeta, {url, orgId}) => {
-    Sentry.withScope(scope => {
-      scope.setExtra(
-        'url',
-        url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
-      );
-      Sentry.captureException(
-        new Error(`API Source Failed: ${err?.responseJSON?.detail}`)
-      );
-    });
+    if (err && err.status !== 401 && err.status !== 403) {
+      Sentry.withScope(scope => {
+        scope.setExtra(
+          'url',
+          url.replace(`/organizations/${orgId}/`, '/organizations/:orgId/')
+        );
+        scope.setFingerprint(['api-source-failed']);
+        Sentry.captureException(err);
+      });
+    }
   };
 
   // Handles a list of search request promises, and then updates state with response objects

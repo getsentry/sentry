@@ -83,7 +83,6 @@ class SentryAppUpdater:
     allowed_origins: List[str] | None = None
     popularity: int | None = None
     features: List[str] | None = None
-    # user = Param("sentry.models.User")
 
     def run(self, user: User) -> SentryApp:
         with transaction.atomic():
@@ -100,9 +99,9 @@ class SentryAppUpdater:
             self._update_overview()
             self._update_allowed_origins()
             new_schema_elements = self._update_schema()
-            self._update_service_hooks()
             self._update_popularity(user=user)
             self.sentry_app.save()
+        self._update_service_hooks()
         self.record_analytics(user, new_schema_elements)
         return self.sentry_app
 
@@ -302,7 +301,7 @@ class SentryAppCreator:
                 {"name": [f"Name {self.name} is already taken, please use another."]}
             )
 
-        return slug  # type: ignore
+        return slug
 
     def _create_proxy_user(self, slug: str) -> User:
         # need a proxy user name that will always be unique

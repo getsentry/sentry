@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -15,10 +15,11 @@ import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRan
 import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import {
   getAbsoluteSummary,
-  getDefaultRelativePeriods,
+  getArbitraryRelativePeriod,
+  getSortedRelativePeriods,
   timeRangeAutoCompleteFilter,
 } from 'sentry/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -49,10 +50,21 @@ const SelectorItemsHook = HookOrDefault({
   defaultComponent: SelectorItems,
 });
 
-interface TimeRangeSelectorProps
+export interface TimeRangeSelectorProps
   extends Omit<
     SingleSelectProps<string>,
-    'options' | 'onChange' | 'closeOnSelect' | 'value' | 'defaultValue' | 'multiple'
+    | 'multiple'
+    | 'searchable'
+    | 'disableSearchFilter'
+    | 'options'
+    | 'hideOptions'
+    | 'value'
+    | 'defaultValue'
+    | 'onChange'
+    | 'onInteractOutside'
+    | 'closeOnSelect'
+    | 'menuFooter'
+    | 'onKeyDown'
   > {
   /**
    * Set an optional default value to prefill absolute date with
@@ -72,6 +84,10 @@ interface TimeRangeSelectorProps
    */
   end?: DateString;
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -81,9 +97,16 @@ interface TimeRangeSelectorProps
    */
   relative?: string | null;
   /**
-   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   * Override defaults. Accepts a function where defaultRelativeOptions =
+   * DEFAULT_RELATIVE_PERIODS, and arbitraryRelativeOptions contains the custom
+   * user-created periods (via the search box).
    */
-  relativeOptions?: Record<string, React.ReactNode>;
+  relativeOptions?:
+    | Record<string, React.ReactNode>
+    | ((props: {
+        arbitraryOptions: Record<string, React.ReactNode>;
+        defaultOptions: Record<string, React.ReactNode>;
+      }) => Record<string, React.ReactNode>);
   /**
    * Show absolute date selectors
    */
@@ -109,12 +132,19 @@ export function TimeRangeSelector({
   relative,
   relativeOptions,
   onChange,
+  onSearch,
+  onClose,
+  searchPlaceholder,
   showAbsolute = true,
   showRelative = true,
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
+  maxDateRange,
   disallowArbitraryRelativeRanges = false,
+  trigger,
+  menuWidth,
+  menuBody,
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
@@ -211,17 +241,21 @@ export function TimeRangeSelector({
     option => {
       // The absolute option was selected -> open absolute selector
       if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => ({
-          ...current,
-          // Update default values for absolute selector
-          start: defaultAbsolute?.start
+        setInternalValue(current => {
+          const defaultStart = defaultAbsolute?.start
             ? defaultAbsolute.start
             : getPeriodAgo(
                 'hours',
                 parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate(),
-          end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
-        }));
+              ).toDate();
+          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+          return {
+            ...current,
+            // Update default values for absolute selector
+            start: start ? getInternalDate(start, utc) : defaultStart,
+            end: end ? getInternalDate(end, utc) : defaultEnd,
+          };
+        });
         setShowAbsoluteSelector(true);
         return;
       }
@@ -229,23 +263,39 @@ export function TimeRangeSelector({
       setInternalValue(current => ({...current, relative: option.value}));
       onChange?.({relative: option.value, start: undefined, end: undefined});
     },
-    [defaultAbsolute, defaultPeriod, relative, onChange]
+    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
   );
 
+  const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+  const defaultRelativePeriods = {
+    ...DEFAULT_RELATIVE_PERIODS,
+    ...arbitraryRelativePeriods,
+  };
   return (
     <SelectorItemsHook
       shouldShowAbsolute={showAbsolute}
       shouldShowRelative={showRelative}
-      relativePeriods={relativeOptions ?? getDefaultRelativePeriods(relative)}
+      relativePeriods={getSortedRelativePeriods(
+        typeof relativeOptions === 'function'
+          ? relativeOptions({
+              defaultOptions: DEFAULT_RELATIVE_PERIODS,
+              arbitraryOptions: arbitraryRelativePeriods,
+            })
+          : relativeOptions ?? defaultRelativePeriods
+      )}
       handleSelectRelative={value => handleChange({value})}
     >
       {items => (
         <CompactSelect
+          {...selectProps}
           searchable={!showAbsoluteSelector}
           disableSearchFilter
-          onSearch={setSearch}
+          onSearch={s => {
+            onSearch?.(s);
+            setSearch(s);
+          }}
           searchPlaceholder={
-            disallowArbitraryRelativeRanges
+            searchPlaceholder ?? disallowArbitraryRelativeRanges
               ? t('Search…')
               : t('Custom range: 2h, 4d, 8w…')
           }
@@ -256,73 +306,95 @@ export function TimeRangeSelector({
           // Keep menu open when clicking on absolute range option
           closeOnSelect={opt => opt.value !== ABSOLUTE_OPTION_VALUE}
           onClose={() => {
+            onClose?.();
             setHasChanges(false);
             setSearch('');
           }}
           onInteractOutside={commitChanges}
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
-          trigger={triggerProps => {
-            const relativeSummary =
-              items.findIndex(item => item.value === relative) > -1
-                ? relative?.toUpperCase()
-                : t('Invalid Period');
-            const defaultLabel =
-              start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
+          trigger={
+            trigger ??
+            ((triggerProps, isOpen) => {
+              const relativeSummary =
+                items.findIndex(item => item.value === relative) > -1
+                  ? relative?.toUpperCase()
+                  : t('Invalid Period');
+              const defaultLabel =
+                start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
-            return (
-              <DropdownButton {...triggerProps} icon={<IconCalendar />}>
-                <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
-              </DropdownButton>
-            );
-          }}
-          menuWidth={showAbsoluteSelector ? undefined : '16em'}
+              return (
+                <DropdownButton
+                  {...triggerProps}
+                  isOpen={isOpen}
+                  size={selectProps.size}
+                  icon={<IconCalendar />}
+                >
+                  <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
+                </DropdownButton>
+              );
+            })
+          }
+          menuWidth={showAbsoluteSelector ? undefined : menuWidth ?? '16rem'}
           menuBody={
-            showAbsoluteSelector && (
-              <AbsoluteDateRangeWrap>
-                <StyledDateRangeHook
-                  start={internalValue.start ?? null}
-                  end={internalValue.end ?? null}
-                  utc={internalValue.utc}
-                  organization={organization}
-                  showTimePicker
-                  onChange={val => {
-                    val.hasDateRangeErrors && setHasDateRangeErrors(true);
-                    setInternalValue(cur => ({
-                      ...cur,
-                      relative: null,
-                      start: val.start,
-                      end: val.end,
-                    }));
-                    setHasChanges(true);
-                  }}
-                  onChangeUtc={() => {
-                    setHasChanges(true);
-                    setInternalValue(current => {
-                      const newUtc = !current.utc;
-                      const newStart =
-                        start ?? getDateWithTimezoneInUtc(current.start, current.utc);
-                      const newEnd =
-                        end ?? getDateWithTimezoneInUtc(current.end, current.utc);
+            (showAbsoluteSelector || menuBody) && (
+              <Fragment>
+                {!showAbsoluteSelector && menuBody}
+                {showAbsoluteSelector && (
+                  <AbsoluteDateRangeWrap>
+                    <StyledDateRangeHook
+                      start={internalValue.start ?? null}
+                      end={internalValue.end ?? null}
+                      utc={internalValue.utc}
+                      organization={organization}
+                      showTimePicker
+                      onChange={val => {
+                        if (val.hasDateRangeErrors) {
+                          setHasDateRangeErrors(true);
+                          return;
+                        }
 
-                      trackAnalytics('dateselector.utc_changed', {
-                        utc: newUtc,
-                        path: getRouteStringFromRoutes(router.routes),
-                        organization,
-                      });
+                        setHasDateRangeErrors(false);
+                        setInternalValue(cur => ({
+                          ...cur,
+                          relative: null,
+                          start: val.start,
+                          end: val.end,
+                        }));
+                        setHasChanges(true);
+                      }}
+                      onChangeUtc={() => {
+                        setHasChanges(true);
+                        setInternalValue(current => {
+                          const newUtc = !current.utc;
+                          const newStart =
+                            start ?? getDateWithTimezoneInUtc(current.start, current.utc);
+                          const newEnd =
+                            end ?? getDateWithTimezoneInUtc(current.end, current.utc);
 
-                      return {
-                        relative: null,
-                        start: newUtc
-                          ? getLocalToSystem(newStart)
-                          : getUtcToSystem(newStart),
-                        end: newUtc ? getLocalToSystem(newEnd) : getUtcToSystem(newEnd),
-                        utc: newUtc,
-                      };
-                    });
-                  }}
-                  maxPickableDays={maxPickableDays}
-                />
-              </AbsoluteDateRangeWrap>
+                          trackAnalytics('dateselector.utc_changed', {
+                            utc: newUtc,
+                            path: getRouteStringFromRoutes(router.routes),
+                            organization,
+                          });
+
+                          return {
+                            relative: null,
+                            start: newUtc
+                              ? getLocalToSystem(newStart)
+                              : getUtcToSystem(newStart),
+                            end: newUtc
+                              ? getLocalToSystem(newEnd)
+                              : getUtcToSystem(newEnd),
+                            utc: newUtc,
+                          };
+                        });
+                      }}
+                      maxPickableDays={maxPickableDays}
+                      maxDateRange={maxDateRange}
+                    />
+                  </AbsoluteDateRangeWrap>
+                )}
+              </Fragment>
             )
           }
           menuFooter={
@@ -353,7 +425,6 @@ export function TimeRangeSelector({
               </AbsoluteSelectorFooter>
             ))
           }
-          {...selectProps}
         />
       )}
     </SelectorItemsHook>

@@ -1,14 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import {t} from 'sentry/locale';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
-const api: Client = new Client();
+const api = new MockApiClient();
 
 function renderModal({initialData, widget}) {
   return render(
@@ -30,10 +29,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view', 'discover-query'],
-      apdexThreshold: 400,
     },
     router: {},
-    project: 1,
     projects: [],
   });
   let mockQuery;

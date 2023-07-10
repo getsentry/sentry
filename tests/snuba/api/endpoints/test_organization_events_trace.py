@@ -1,12 +1,14 @@
 from datetime import timedelta
+from unittest import mock
 from uuid import uuid4
 
 import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
+from sentry.issues.grouptype import NoiseConfig, PerformanceFileIOMainThreadGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
@@ -59,7 +61,19 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             span["op"] = "file.write"
             span["data"].update({"duration": 1, "blocked_main_thread": True})
         with self.feature(self.FEATURES):
-            return self.store_event(data, project_id=project_id, **kwargs)
+            with mock.patch.object(
+                PerformanceFileIOMainThreadGroupType,
+                "noise_config",
+                new=NoiseConfig(0, timedelta(minutes=1)),
+            ), override_options(
+                {
+                    "performance.issues.all.problem-detection": 1.0,
+                    "performance-file-io-main-thread-creation": 1.0,
+                }
+            ), self.feature(
+                ["projects:performance-suspect-spans-ingestion"]
+            ):
+                return self.store_event(data, project_id=project_id, **kwargs)
 
     def setUp(self):
         """
@@ -737,7 +751,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["measurements"]["lcp"]["value"] == 1000
         assert root["measurements"]["fcp"]["value"] == 750
         assert "issue_short_id" in response.data[0]["performance_issues"][0]
-        assert response.data[0]["performance_issues"][0]["culprit"] == "/country_by_code/"
+        assert response.data[0]["performance_issues"][0]["culprit"] == "root"
         assert (
             response.data[0]["performance_issues"][0]["type"]
             == PerformanceFileIOMainThreadGroupType.type_id

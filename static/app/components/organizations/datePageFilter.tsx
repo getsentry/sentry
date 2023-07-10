@@ -1,37 +1,83 @@
+import styled from '@emotion/styled';
+
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {
+  TimeRangeSelector,
+  TimeRangeSelectorProps,
+} from 'sentry/components/timeRangeSelector';
+import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 
-interface DatePageFilterProps {
+import {
+  DesyncedFilterIndicator,
+  DesyncedFilterMessage,
+} from './pageFilters/desyncedFilter';
+
+interface DatePageFilterProps
+  extends Partial<
+    Partial<
+      Omit<TimeRangeSelectorProps, 'start' | 'end' | 'utc' | 'relative' | 'menuBody'>
+    >
+  > {
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
 }
 
-export function DatePageFilter({resetParamsOnChange}: DatePageFilterProps) {
+export function DatePageFilter({
+  onChange,
+  disabled,
+  menuTitle,
+  menuWidth,
+  triggerProps = {},
+  resetParamsOnChange,
+  ...selectProps
+}: DatePageFilterProps) {
   const router = useRouter();
-  const {selection} = usePageFilters();
+  const {selection, desyncedFilters, isReady: pageFilterIsReady} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
+  const desynced = desyncedFilters.has('datetime');
 
   return (
     <TimeRangeSelector
+      {...selectProps}
       start={start}
       end={end}
       utc={utc}
       relative={period}
+      disabled={disabled ?? !pageFilterIsReady}
       onChange={timePeriodUpdate => {
         const {relative, ...startEndUtc} = timePeriodUpdate;
         const newTimePeriod = {period: relative, ...startEndUtc};
+
+        onChange?.(timePeriodUpdate);
 
         updateDateTime(newTimePeriod, router, {
           save: true,
           resetParams: resetParamsOnChange,
         });
       }}
-      menuTitle={t('Filter Time Range')}
+      menuTitle={menuTitle ?? t('Filter Time Range')}
+      menuWidth={menuWidth ?? desynced ? '22em' : undefined}
+      menuBody={desynced && <DesyncedFilterMessage />}
+      triggerProps={{
+        icon: (
+          <TriggerIconWrap>
+            <IconCalendar />
+            {desynced && <DesyncedFilterIndicator />}
+          </TriggerIconWrap>
+        ),
+        ...triggerProps,
+      }}
     />
   );
 }
+
+const TriggerIconWrap = styled('div')`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;

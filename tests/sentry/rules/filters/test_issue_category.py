@@ -1,7 +1,8 @@
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.issues.grouptype import GroupCategory, PerformanceRenderBlockingAssetSpanGroupType
+from sentry.issues.grouptype import GroupCategory
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.testutils import RuleTestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 
 
@@ -45,20 +46,14 @@ class IssueCategoryFilterErrorTest(RuleTestCase):
 
 
 class IssueCategoryFilterPerformanceTest(
-    RuleTestCase, SnubaTestCase, PerfIssueTransactionTestMixin
+    RuleTestCase,
+    SnubaTestCase,
+    PerfIssueTransactionTestMixin,
+    PerformanceIssueTestCase,
 ):
     rule_cls = IssueCategoryFilter
 
     def test_transaction_category(self):
-        tx_event = self.store_transaction(
-            self.project.id,
-            "test_transaction_category",
-            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
-        )
-
-        group_events = list(tx_event.build_group_events())
-        assert len(group_events) == 1
-
-        self.assertPasses(
-            self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), group_events[0]
-        )
+        tx_event = self.create_performance_issue()
+        assert tx_event.group
+        self.assertPasses(self.get_rule(data={"value": GroupCategory.PERFORMANCE.value}), tx_event)

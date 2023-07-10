@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
+from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
 from django.urls import reverse
 
@@ -11,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class EmailAuthBackendTest(TestCase):
     def setUp(self):
         self.user = User(username="foo", email="baz@example.com")
@@ -37,12 +38,13 @@ class EmailAuthBackendTest(TestCase):
         self.assertEqual(result, None)
 
 
+@control_silo_test(stable=True)
 class GetLoginRedirectTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = "80"
-        request.session = {}
+        request.session = SessionBase()
         request.user = self.user
         if next:
             request.session["_next"] = next
@@ -115,6 +117,7 @@ class GetLoginRedirectTest(TestCase):
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
 
+@control_silo_test(stable=True)
 class LoginTest(TestCase):
     def make_request(self, next=None):
         request = HttpRequest()

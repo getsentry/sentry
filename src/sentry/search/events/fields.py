@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Any, List, Mapping, Match, NamedTuple, Optional, Sequence, Set, Tuple, Union
 
@@ -664,7 +664,7 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns) -> str:
+def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -674,7 +674,10 @@ def get_function_alias_with_columns(function_name, columns) -> str:
             for col in columns
         ),
     )
-    return f"{function_name}_{columns}".rstrip("_")
+    alias = f"{function_name}_{columns}".rstrip("_")
+    if prefix:
+        alias = prefix + alias
+    return alias
 
 
 def get_json_meta_type(field_alias, snuba_type, builder=None):
@@ -1287,7 +1290,7 @@ class DiscoverFunction:
 
     def alias_as(self, name):
         """Create a copy of this function to be used as an alias"""
-        alias = deepcopy(self)
+        alias = copy(self)
         alias.name = name
         return alias
 
@@ -2029,7 +2032,6 @@ FUNCTIONS = {
 
 for alias, name in FUNCTION_ALIASES.items():
     FUNCTIONS[alias] = FUNCTIONS[name].alias_as(alias)
-
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 

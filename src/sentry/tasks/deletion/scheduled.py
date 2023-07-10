@@ -65,7 +65,7 @@ def run_scheduled_deletions():
                 if not affected:
                     continue
 
-                run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
+            run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
 
 
 @instrumented_task(

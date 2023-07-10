@@ -192,15 +192,15 @@ describe('gridRenderer', () => {
     // Labels should be 0 - 10
     expect(context.fillRect).toHaveBeenCalledTimes(3);
 
-    // @ts-ignore this is a mock
+    // @ts-expect-error this is a mock
     for (let i = 0; i < context.fillText.mock.calls.length; i++) {
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       expect(context.fillText.mock.calls[i][0]).toEqual(i + 'ms');
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       expect(context.fillText.mock.calls[i][1]).toEqual(
         i * 100 - LightFlamegraphTheme.SIZES.LABEL_FONT_PADDING - WIDTH
       );
-      // @ts-ignore this is a mock
+      // @ts-expect-error this is a mock
       // First 3 draw calls are for the horizontal line, the rest are verticals
       expect(context.strokeRect.mock.calls[i][0]).toEqual(i * 100 - 1);
     }

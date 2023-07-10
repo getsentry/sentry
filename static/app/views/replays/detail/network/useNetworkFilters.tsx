@@ -1,9 +1,19 @@
 import {useCallback, useMemo} from 'react';
 
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {filterItems, operationName} from 'sentry/views/replays/detail/utils';
 import type {NetworkSpan} from 'sentry/views/replays/types';
+
+export interface NetworkSelectOption extends SelectOption<string> {
+  qs: 'f_n_method' | 'f_n_status' | 'f_n_type';
+}
+
+const DEFAULT_FILTERS = {f_n_method: [], f_n_status: [], f_n_type: []} as Record<
+  NetworkSelectOption['qs'],
+  string[]
+>;
 
 export type FilterFields = {
   f_n_method: string[];
@@ -21,18 +31,14 @@ type Options = {
 const UNKNOWN_STATUS = 'unknown';
 
 type Return = {
-  getMethodTypes: () => {label: string; value: string}[];
-  getResourceTypes: () => {label: string; value: string}[];
-  getStatusTypes: () => {label: string; value: string}[];
+  getMethodTypes: () => NetworkSelectOption[];
+  getResourceTypes: () => NetworkSelectOption[];
+  getStatusTypes: () => NetworkSelectOption[];
   items: NetworkSpan[];
-  method: string[];
   searchTerm: string;
-  setMethod: (method: string[]) => void;
+  selectValue: string[];
+  setFilters: (val: NetworkSelectOption[]) => void;
   setSearchTerm: (searchTerm: string) => void;
-  setStatus: (status: string[]) => void;
-  setType: (type: string[]) => void;
-  status: string[];
-  type: string[];
 };
 
 const FILTERS = {
@@ -94,10 +100,13 @@ function useNetworkFilters({networkSpans}: Options): Return {
       )
         .filter(Boolean)
         .sort()
-        .map(value => ({
-          value,
-          label: value,
-        })),
+        .map(
+          (value): NetworkSelectOption => ({
+            value,
+            label: value,
+            qs: 'f_n_method',
+          })
+        ),
     [networkSpans, method]
   );
 
@@ -105,10 +114,13 @@ function useNetworkFilters({networkSpans}: Options): Return {
     () =>
       Array.from(new Set(networkSpans.map(networkSpan => networkSpan.op).concat(type)))
         .sort((a, b) => (operationName(a) < operationName(b) ? -1 : 1))
-        .map(value => ({
-          value,
-          label: value.split('.')?.[1] ?? value,
-        })),
+        .map(
+          (value): NetworkSelectOption => ({
+            value,
+            label: value.split('.')?.[1] ?? value,
+            qs: 'f_n_type',
+          })
+        ),
     [networkSpans, type]
   );
 
@@ -123,26 +135,14 @@ function useNetworkFilters({networkSpans}: Options): Return {
         )
       )
         .sort()
-        .map(value => ({
-          value,
-          label: value,
-        })),
+        .map(
+          (value): NetworkSelectOption => ({
+            value,
+            label: value,
+            qs: 'f_n_status',
+          })
+        ),
     [networkSpans, status]
-  );
-
-  const setStatus = useCallback(
-    (f_n_status: string[]) => setFilterAndClearDetails({f_n_status}),
-    [setFilterAndClearDetails]
-  );
-
-  const setMethod = useCallback(
-    (f_n_method: string[]) => setFilterAndClearDetails({f_n_method}),
-    [setFilterAndClearDetails]
-  );
-
-  const setType = useCallback(
-    (f_n_type: string[]) => setFilterAndClearDetails({f_n_type}),
-    [setFilterAndClearDetails]
   );
 
   const setSearchTerm = useCallback(
@@ -151,19 +151,28 @@ function useNetworkFilters({networkSpans}: Options): Return {
     [setFilterAndClearDetails]
   );
 
+  const setFilters = useCallback(
+    (value: NetworkSelectOption[]) => {
+      const groupedValues = value.reduce((state, selection) => {
+        return {
+          ...state,
+          [selection.qs]: [...state[selection.qs], selection.value],
+        };
+      }, DEFAULT_FILTERS);
+      setFilterAndClearDetails(groupedValues);
+    },
+    [setFilterAndClearDetails]
+  );
+
   return {
     getMethodTypes,
     getResourceTypes,
     getStatusTypes,
     items,
-    method,
     searchTerm,
-    setMethod,
+    selectValue: [...method, ...status, ...type],
+    setFilters,
     setSearchTerm,
-    setStatus,
-    setType,
-    status,
-    type,
   };
 }
 

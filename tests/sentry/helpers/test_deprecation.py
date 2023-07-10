@@ -12,6 +12,7 @@ from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.options import register
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
@@ -40,6 +41,7 @@ class DummyEndpoint(Endpoint):
 dummy_endpoint = DummyEndpoint.as_view()
 
 
+@control_silo_test
 class TestDeprecationDecorator(APITestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -1,12 +1,10 @@
 import keyBy from 'lodash/keyBy';
 
-import {
-  BooleanField,
-  EmailField,
-  NumberField,
-  RadioField,
-  TextField,
-} from 'sentry/components/forms';
+import BooleanField from 'sentry/components/forms/fields/booleanField';
+import EmailField from 'sentry/components/forms/fields/emailField';
+import NumberField from 'sentry/components/forms/fields/numberField';
+import RadioField from 'sentry/components/forms/fields/radioField';
+import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -400,6 +398,18 @@ const performanceOptionDefinitions: Field[] = [
       'The duration, in ms, that a span must exceed for it to be considered an offending span.'
     ),
     defaultValue: () => '1000',
+    component: NumberField,
+    min: 0,
+    max: Number.MAX_SAFE_INTEGER,
+    step: 1,
+  },
+  {
+    key: 'performance.issues.large_http_payload.size_threshold',
+    label: t('Payload Size Threshold'),
+    help: t(
+      'The threshold at which the payload size of an HTTP span is considered to be too large, in bytes.'
+    ),
+    defaultValue: () => '1000000',
     component: NumberField,
     min: 0,
     max: Number.MAX_SAFE_INTEGER,

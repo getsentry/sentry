@@ -48,7 +48,7 @@ function ReleaseContext(props: BaseContextProps) {
 
     const userInAuthors =
       data &&
-      data.authors.length >= 1 &&
+      authorsCount >= 1 &&
       data.authors.find((author: User) => author.id && user.id && author.id === user.id);
 
     if (userInAuthors) {

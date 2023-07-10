@@ -7,7 +7,7 @@ from typing import Any
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from fido2.ctap2 import AuthenticatorData
 
 from sentry.auth.authenticators import (
@@ -114,16 +114,11 @@ class AuthenticatorManager(BaseManager):
 
 
 class AuthenticatorConfig(PickledObjectField):
-    def __init__(self, *args, **kwargs):
-        # we have special logic to handle pickle compat
-        kwargs.setdefault("disable_pickle_validation", True)
-        super().__init__(*args, **kwargs)
-
     def _is_devices_config(self, value: Any) -> bool:
         return isinstance(value, dict) and "devices" in value
 
     def get_db_prep_value(self, value, *args, **kwargs):
-        if self.write_json and self._is_devices_config(value):
+        if self._is_devices_config(value):
             # avoid mutating the original object
             value = copy.deepcopy(value)
             for device in value["devices"]:

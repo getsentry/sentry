@@ -1,14 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {initializeUrlState} from 'sentry/actionCreators/pageFilters';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {},
-  project: undefined,
-  projects: undefined,
   router: {
     location: {
       query: {},
@@ -35,7 +33,7 @@ describe('DatePageFilter', function () {
           utc: false,
         },
       },
-      new Set()
+      new Set(['datetime'])
     );
   });
 
@@ -57,8 +55,9 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
+      pinnedFilters: new Set(['datetime']),
       selection: {
         datetime: {
           period: '30d',
@@ -99,8 +98,9 @@ describe('DatePageFilter', function () {
     );
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      shouldPersist: true,
       desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
+      pinnedFilters: new Set(['datetime']),
       selection: {
         datetime: {
           period: null,
@@ -121,5 +121,46 @@ describe('DatePageFilter', function () {
       'aria-selected',
       'true'
     );
+  });
+
+  it('displays a desynced state message', async function () {
+    const {
+      organization: desyncOrganization,
+      router: desyncRouter,
+      routerContext: desyncRouterContext,
+    } = initializeOrg({
+      router: {
+        location: {
+          // the datetime parameters need to be non-null for desync detection to work
+          query: {statsPeriod: '7d'},
+          pathname: '/test',
+        },
+        params: {},
+      },
+    });
+
+    PageFiltersStore.reset();
+    initializeUrlState({
+      memberProjects: [],
+      organization: desyncOrganization,
+      queryParams: {statsPeriod: '14d'},
+      router: desyncRouter,
+      shouldEnforceSingleProject: false,
+    });
+
+    render(<DatePageFilter />, {
+      context: desyncRouterContext,
+      organization: desyncOrganization,
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: '14D', expanded: false}));
+
+    // Desync message is inside the menu
+    expect(screen.getByText('Filters Updated')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Restore Previous Values'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Got It'})).toBeInTheDocument();
   });
 });

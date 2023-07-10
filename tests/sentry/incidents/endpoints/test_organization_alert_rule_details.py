@@ -171,6 +171,30 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         )
         assert resp.data["triggers"][0]["actions"][0]["disabled"] is True
 
+    def test_with_snooze_rule(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, alert_rule=self.alert_rule)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == "You"
+
+    def test_with_snooze_rule_everyone(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+
+        user2 = self.create_user("user2@example.com")
+        self.snooze_rule(owner_id=user2.id, alert_rule=self.alert_rule)
+
+        with self.feature("organizations:incidents"):
+            response = self.get_success_response(self.organization.slug, self.alert_rule.id)
+
+        assert response.data["snooze"]
+        assert response.data["snoozeCreatedBy"] == user2.get_display_name()
+
 
 class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
     method = "put"
@@ -498,7 +522,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         serialized_alert_rule = self.get_serialized_alert_rule()
         OrganizationMemberTeam.objects.filter(
-            organizationmember__user=self.user,
+            organizationmember__user_id=self.user.id,
             team=self.team,
         ).delete()
         with self.feature("organizations:incidents"):
@@ -583,7 +607,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.save()
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
         OrganizationMemberTeam.objects.filter(
-            organizationmember__user=self.user,
+            organizationmember__user_id=self.user.id,
             team=self.team,
         ).delete()
         with self.feature("organizations:incidents"):

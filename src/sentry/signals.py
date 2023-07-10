@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import enum
 import functools
 import logging
 import sys
-from typing import Any, Callable, List
+from typing import Any, Callable, List, Tuple, Union
 
 from django.dispatch.dispatcher import NO_RECEIVERS, Signal
 
-_all = object()
-_receivers_that_raise = []
+Receiver = Callable[[], Any]
+
+_AllReceivers = enum.Enum("_AllReceivers", "ALL")
+
+
+_receivers_that_raise: _AllReceivers | List[Receiver] = []
 
 
 class receivers_raise_on_send:
@@ -21,14 +26,14 @@ class receivers_raise_on_send:
 
     receivers: Any
 
-    def __init__(self, receivers: Any | List[Any] = _all):
+    def __init__(self, receivers: _AllReceivers | Receiver | List[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
 
     def __enter__(self) -> None:
         global _receivers_that_raise
         self.old = _receivers_that_raise
 
-        if self.receivers is _all:
+        if self.receivers is _AllReceivers.ALL:
             _receivers_that_raise = self.receivers
         else:
             _receivers_that_raise += self.receivers
@@ -72,22 +77,25 @@ class BetterSignal(Signal):
             wrapped.__doc__ = receiver.__doc__
         return wrapped(receiver)
 
-    def send_robust(self, sender, **named):
+    def send_robust(self, sender, **named) -> List[Tuple[Receiver, Union[Exception, Any]]]:
         """
         A reimplementation of send_robust which logs failures, thus recovering stacktraces.
         """
-        responses = []
+        responses: List[Tuple[Receiver, Union[Exception, Any]]] = []
         if not self.receivers or self.sender_receivers_cache.get(sender) is NO_RECEIVERS:
             return responses
 
         # Call each receiver with whatever arguments it can accept.
         # Return a list of tuple pairs [(receiver, response), ... ].
-        for receiver in self._live_receivers(sender):
+        for receiver in self._live_receivers(sender):  # type: ignore[attr-defined]
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
                 if "pytest" in sys.modules:
-                    if _receivers_that_raise is _all or receiver in _receivers_that_raise:
+                    if (
+                        _receivers_that_raise is _AllReceivers.ALL
+                        or receiver in _receivers_that_raise
+                    ):
                         raise
 
                 logging.error("signal.failure", extra={"receiver": repr(receiver)}, exc_info=True)
@@ -97,99 +105,87 @@ class BetterSignal(Signal):
         return responses
 
 
-buffer_incr_complete = BetterSignal(providing_args=["model", "columns", "extra", "result"])
-pending_delete = BetterSignal(providing_args=["instance", "actor"])
-event_processed = BetterSignal(providing_args=["project", "event"])
+buffer_incr_complete = BetterSignal()  # ["model", "columns", "extra", "result"]
+pending_delete = BetterSignal()  # ["instance", "actor"]
+event_processed = BetterSignal()  # ["project", "event"]
 # When the organization and initial member have been created
-org_setup_complete = BetterSignal(providing_args=["organization", "user"])
+org_setup_complete = BetterSignal()  # ["organization", "user"]
 
 # This signal should eventually be removed as we should not send
 # transactions through post processing
-transaction_processed = BetterSignal(providing_args=["project", "event"])
+transaction_processed = BetterSignal()  # ["project", "event"]
 
 # DEPRECATED
-event_received = BetterSignal(providing_args=["ip", "project"])
-event_accepted = BetterSignal(providing_args=["ip", "data", "project"])
+event_received = BetterSignal()  # ["ip", "project"]
+event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
-project_created = BetterSignal(providing_args=["project", "user", "default_rules"])
-first_event_pending = BetterSignal(providing_args=["project", "user"])
+project_created = BetterSignal()  # ["project", "user", "default_rules"]
+first_event_pending = BetterSignal()  # ["project", "user"]
 
-first_event_received = BetterSignal(providing_args=["project", "event"])
+first_event_received = BetterSignal()  # ["project", "event"]
 # We use signal for consistency with other places but
 # would like to get rid of the signal since it doesn’t serve any purpose
-first_event_with_minified_stack_trace_received = BetterSignal(providing_args=["project", "event"])
-first_transaction_received = BetterSignal(providing_args=["project", "event"])
-first_profile_received = BetterSignal(providing_args=["project"])
-first_replay_received = BetterSignal(providing_args=["project"])
-first_cron_monitor_created = BetterSignal(providing_args=["project", "user", "from_upsert"])
-first_cron_checkin_received = BetterSignal(providing_args=["project", "monitor_id"])
-member_invited = BetterSignal(providing_args=["member", "user"])
-member_joined = BetterSignal(providing_args=["member", "organization"])
-issue_tracker_used = BetterSignal(providing_args=["plugin", "project", "user"])
-plugin_enabled = BetterSignal(providing_args=["plugin", "project", "user"])
+first_event_with_minified_stack_trace_received = BetterSignal()  # ["project", "event"]
+first_transaction_received = BetterSignal()  # ["project", "event"]
+first_profile_received = BetterSignal()  # ["project"]
+first_replay_received = BetterSignal()  # ["project"]
+first_cron_monitor_created = BetterSignal()  # ["project", "user", "from_upsert"]
+first_cron_checkin_received = BetterSignal()  # ["project", "monitor_id"]
+member_invited = BetterSignal()  # ["member", "user"]
+member_joined = BetterSignal()  # ["organization_member_id", "organization_id", "user_id"]
+issue_tracker_used = BetterSignal()  # ["plugin", "project", "user"]
+plugin_enabled = BetterSignal()  # ["plugin", "project", "user"]
 
-email_verified = BetterSignal(providing_args=["email"])
+email_verified = BetterSignal()  # ["email"]
 
-mocks_loaded = BetterSignal(providing_args=["project"])
+mocks_loaded = BetterSignal()  # ["project"]
 
-user_feedback_received = BetterSignal(providing_args=["project"])
+user_feedback_received = BetterSignal()  # ["project"]
 
-advanced_search = BetterSignal(providing_args=["project"])
-advanced_search_feature_gated = BetterSignal(providing_args=["organization", "user"])
-save_search_created = BetterSignal(providing_args=["project", "user"])
-inbound_filter_toggled = BetterSignal(providing_args=["project"])
-sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
-data_scrubber_enabled = BetterSignal(providing_args=["organization"])
-alert_rule_created = BetterSignal(
-    providing_args=[
-        "project",
-        "rule",
-        "user",
-        "rule_type",
-        "is_api_token",
-        "duplicate_rule",
-        "wizard_v3",
-    ]
-)
-alert_rule_edited = BetterSignal(
-    providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
-)
-repo_linked = BetterSignal(providing_args=["repo", "user"])
-release_created = BetterSignal(providing_args=["release"])
-deploy_created = BetterSignal(providing_args=["deploy"])
-ownership_rule_created = BetterSignal(providing_args=["project"])
+advanced_search = BetterSignal()  # ["project"]
+advanced_search_feature_gated = BetterSignal()  # ["organization", "user"]
+save_search_created = BetterSignal()  # ["project", "user"]
+inbound_filter_toggled = BetterSignal()  # ["project"]
+sso_enabled = BetterSignal()  # ["organization", "user", "provider"]
+data_scrubber_enabled = BetterSignal()  # ["organization"]
+# ["project", "rule", "user", "rule_type", "is_api_token", "duplicate_rule", "wizard_v3"]
+alert_rule_created = BetterSignal()
+alert_rule_edited = BetterSignal()  # ["project", "rule", "user", "rule_type", "is_api_token"]
+repo_linked = BetterSignal()  # ["repo", "user"]
+release_created = BetterSignal()  # ["release"]
+deploy_created = BetterSignal()  # ["deploy"]
+ownership_rule_created = BetterSignal()  # ["project"]
 
 # issues
-issue_assigned = BetterSignal(providing_args=["project", "group", "user"])
-issue_deleted = BetterSignal(providing_args=["group", "user", "delete_type"])
-issue_resolved = BetterSignal(
-    providing_args=["organization_id", "project", "group", "user", "resolution_type"]
-)
-issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
-issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
-issue_archived = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
-issue_unignored = BetterSignal(providing_args=["project", "user_id", "group", "transition_type"])
-issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
+issue_assigned = BetterSignal()  # ["project", "group", "user"]
+issue_deleted = BetterSignal()  # ["group", "user", "delete_type"]
+# ["organization_id", "project", "group", "user", "resolution_type"]
+issue_resolved = BetterSignal()
+issue_unresolved = BetterSignal()  # ["project", "user", "group", "transition_type"]
+issue_ignored = BetterSignal()  # ["project", "user", "group_list", "activity_data"]
+issue_archived = BetterSignal()  # ["project", "user", "group_list", "activity_data"]
+issue_escalating = BetterSignal()  # ["project", "group", "event", "was_until_escalating"]
+issue_unignored = BetterSignal()  # ["project", "user_id", "group", "transition_type"]
+issue_mark_reviewed = BetterSignal()  # ["project", "user", "group"]
 
 # comments
-comment_created = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
-comment_updated = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
-comment_deleted = BetterSignal(providing_args=["project", "user", "group", "activity_data"])
-inbox_in = BetterSignal(providing_args=["project", "user", "group", "reason"])
-inbox_out = BetterSignal(
-    providing_args=["project", "user", "group", "action", "inbox_date_added", "referrer"]
-)
+comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"]
+comment_updated = BetterSignal()  # ["project", "user", "group", "activity_data"]
+comment_deleted = BetterSignal()  # ["project", "user", "group", "activity_data"]
 
-terms_accepted = BetterSignal(providing_args=["organization", "user", "ip_address"])
-team_created = BetterSignal(providing_args=["organization", "user", "team"])
-integration_added = BetterSignal(providing_args=["integration", "organization", "user"])
-integration_issue_created = BetterSignal(providing_args=["integration", "organization", "user"])
-integration_issue_linked = BetterSignal(providing_args=["integration", "organization", "user"])
+terms_accepted = BetterSignal()  # ["organization", "user", "ip_address"]
+team_created = BetterSignal()  # ["organization", "user", "team"]
+integration_added = BetterSignal()  # ["integration_id", "organization_id", "user_id"]
+integration_issue_created = BetterSignal()  # ["integration", "organization", "user"]
+integration_issue_linked = BetterSignal()  # ["integration", "organization", "user"]
 
-monitor_environment_failed = BetterSignal(providing_args=["monitor"])
+monitor_environment_failed = BetterSignal()  # ["monitor"]
 
 # experiments
-join_request_created = BetterSignal(providing_args=["member"])
-join_request_link_viewed = BetterSignal(providing_args=["organization"])
-user_signup = BetterSignal(providing_args=["user", "source"])
+join_request_created = BetterSignal()  # ["member"]
+join_request_link_viewed = BetterSignal()  # ["organization"]
+user_signup = BetterSignal()  # ["user", "source"]
+
+# After `sentry upgrade` has completed.  Better than post_migrate because it won't run in tests.
+post_upgrade = BetterSignal()  # []

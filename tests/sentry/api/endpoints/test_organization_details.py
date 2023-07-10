@@ -2,6 +2,7 @@ from base64 import b64encode
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
@@ -12,24 +13,26 @@ from rest_framework import status
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
-from sentry.auth.authenticators import TotpInterface
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.auth.authenticators.totp import TotpInterface
+from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
     AuthProvider,
     DeletedOrganization,
-    ObjectStatus,
     Organization,
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
+    outbox_context,
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
-from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
+from sentry.testutils import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -69,7 +72,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -88,7 +90,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             "organizationUrl": f"http://{self.organization.slug}.testserver",
             "regionUrl": "http://us.testserver",
         }
-        assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
@@ -181,17 +182,19 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
+    def get_onboard_tasks(self, tasks, task_type):
+        return [task for task in tasks if task["task"] == task_type]
+
     def test_onboarding_tasks(self):
         response = self.get_success_response(self.organization.slug)
-        assert response.data["onboardingTasks"] == []
+        assert not self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
         assert response.data["id"] == str(self.organization.id)
 
         project = self.create_project(organization=self.organization)
         project_created.send(project=project, user=self.user, sender=type(project))
 
         response = self.get_success_response(self.organization.slug)
-        assert len(response.data["onboardingTasks"]) == 1
-        assert response.data["onboardingTasks"][0]["task"] == "create_project"
+        assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
         with exempt_from_silo_limits():
@@ -249,23 +252,42 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=0.5
-        ):
-            response = self.get_success_response(org.slug)
-            assert response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=0.5,
+            ):
+                response = self.get_success_response(org.slug)
+                assert response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=1.0
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=1.0,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
 
-        with patch(
-            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate", return_value=None
-        ):
-            response = self.get_success_response(org.slug)
-            assert not response.data["isDynamicallySampled"]
+        with self.feature({"organizations:dynamic-sampling": True}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
+
+        with self.feature({"organizations:dynamic-sampling": False}):
+            with patch(
+                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                return_value=None,
+            ):
+                response = self.get_success_response(org.slug)
+                assert not response.data["isDynamicallySampled"]
+
+    def test_sensitive_fields_too_long(self):
+        value = 1000 * ["0123456789"] + ["1"]
+        resp = self.get_response(self.organization.slug, method="put", sensitiveFields=value)
+        assert resp.status_code == 400
 
 
 @region_silo_test
@@ -339,6 +361,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "isEarlyAdopter": True,
             "codecovAccess": True,
             "aiSuggestedSolution": False,
+            "githubPRBot": False,
             "allowSharedIssues": False,
             "enhancedPrivacy": True,
             "dataScrubber": True,
@@ -408,6 +431,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
         assert "to {}".format(data["aiSuggestedSolution"]) in log.data["aiSuggestedSolution"]
+        assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
 
     @responses.activate
     @patch(
@@ -757,40 +781,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert self.organization.get_option("sentry:store_crash_reports") is None
         assert b"storeCrashReports" in resp.content
 
-    def test_update_slug_with_mapping(self):
-        self.create_organization_mapping(self.organization, slug="test")
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=self.organization.id, slug="test"
-            ).exists()
-
-        response = self.get_success_response(
-            self.organization.slug, slug="santry", idempotencyKey="1234"
-        )
-
-        org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "santry"
-
-        with exempt_from_silo_limits():
-            org_mapping = OrganizationMapping.objects.get(organization_id=org.id, slug="santry")
-            assert not org_mapping.verified
-            assert org_mapping.idempotency_key
-
-            assert OrganizationMapping.objects.filter(organization_id=org.id, slug="test").exists()
-
-        # Drain outbox
-        outbox = Organization.outbox_to_verify_mapping(org.id)
-        outbox.drain_shard()
-
-        with exempt_from_silo_limits():
-            assert OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="santry", verified=True, idempotency_key=""
-            ).exists()
-
-            assert not OrganizationMapping.objects.filter(
-                organization_id=org.id, slug="test"
-            ).exists()
-
     def test_update_name_with_mapping(self):
         response = self.get_success_response(self.organization.slug, name="SaNtRy")
 
@@ -803,9 +793,59 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
 
+    def test_update_slug(self):
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == self.organization.slug
+
+        desired_slug = "new-santry"
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
+    def test_update_slug_with_temporary_rename_collision(self):
+        desired_slug = "taken"
+        previous_slug = self.organization.slug
+        org_with_colliding_slug = self.create_organization(
+            slug=desired_slug, name="collision-imminent"
+        )
+
+        colliding_org_mapping = OrganizationMapping.objects.get(
+            organization_id=org_with_colliding_slug.id
+        )
+        assert colliding_org_mapping.slug == desired_slug
+
+        # Queue a slug update but don't drain the shard yet to ensure a temporary collision happens
+        org_with_colliding_slug.slug = "unique-slug"
+        with outbox_context(flush=False):
+            org_with_colliding_slug.save()
+
+        self.get_success_response(self.organization.slug, slug=desired_slug)
+        self.organization.refresh_from_db()
+        assert self.organization.slug == desired_slug
+
+        # Ensure that the organization update has been flushed, but it collides when attempting an upsert
+        with pytest.raises(OutboxFlushError):
+            Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+
+        organization_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert organization_mapping.slug == previous_slug
+
+        # Flush the colliding org slug change
+        Organization.outbox_for_update(org_id=org_with_colliding_slug.id).drain_shard()
+        colliding_org_mapping.refresh_from_db()
+        assert colliding_org_mapping.slug == "unique-slug"
+
+        # Flush the desired slug change and assert the correct slug was resolved
+        Organization.outbox_for_update(org_id=self.organization.id).drain_shard()
+        organization_mapping.refresh_from_db()
+        assert organization_mapping.slug == desired_slug
+
     def test_org_mapping_already_taken(self):
-        OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
-        self.get_error_response(self.organization.slug, slug="taken", status_code=409)
+        self.create_organization(slug="taken")
+        self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
 
 @region_silo_test
@@ -859,7 +899,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
     def test_redo_deletion(self):
         # Orgs can delete, undelete, delete within a day
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
         ScheduledDeletion.schedule(org, days=1)
 
         self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
@@ -867,9 +907,43 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
 
-        assert ScheduledDeletion.objects.filter(
+        scheduled_deletions = ScheduledDeletion.objects.filter(
             object_id=org.id, model_name="Organization"
-        ).exists()
+        )
+        assert scheduled_deletions.exists()
+        assert scheduled_deletions.count() == 1
+
+    def test_update_org_mapping_on_deletion(self):
+        org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+        assert org_mapping.status == OrganizationStatus.ACTIVE
+        with self.tasks(), outbox_runner():
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
+
+        org = Organization.objects.get(id=self.organization.id)
+        assert org.status == OrganizationStatus.PENDING_DELETION
+
+        deleted_org = DeletedOrganization.objects.get(slug=org.slug)
+        self.assert_valid_deleted_log(deleted_org, org)
+
+        org_mapping.refresh_from_db()
+        assert org_mapping.status == OrganizationStatus.PENDING_DELETION
+
+    def test_organization_does_not_exist(self):
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
+
+        self.get_error_response("nonexistent-slug", status_code=404)
+
+    def test_published_sentry_app(self):
+        """Test that we do not allow an organization who has a published sentry app to be deleted"""
+        org = self.create_organization(name="test", owner=self.user)
+        self.create_sentry_app(
+            organization=org,
+            scopes=["project:write"],
+            published=True,
+        )
+        self.login_as(self.user)
+        self.get_error_response(org.slug, status_code=400)
 
 
 @region_silo_test

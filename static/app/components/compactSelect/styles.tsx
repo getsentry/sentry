@@ -80,6 +80,15 @@ export const SectionHeader = styled('div')`
   box-sizing: content-box;
   height: 1.5em;
   padding: ${space(0.25)} ${space(1.5)};
+
+  /* Remove top padding if this is the first section in a headerless menu (selected
+  with li:nth-of-type(2) because the first list item is a hidden separator) */
+  [data-menu-has-header='false']
+    ul:first-of-type
+    li[role='presentation']:nth-of-type(2)
+    > & {
+    padding-top: 0;
+  }
 `;
 
 export const SectionTitle = styled('p')`

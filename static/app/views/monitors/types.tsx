@@ -39,6 +39,7 @@ interface BaseConfig {
   checkin_margin: number;
   max_runtime: number;
   timezone: string;
+  alert_rule_id?: number;
 }
 
 /**
@@ -86,6 +87,13 @@ export interface Monitor {
   slug: string;
   status: ObjectStatus;
   type: MonitorType;
+  alertRule?: {
+    targets: Array<{
+      targetIdentifier: number;
+      targetType: 'Member' | 'Team';
+    }>;
+    environment?: string;
+  };
 }
 
 export interface MonitorStat {

@@ -7,14 +7,14 @@ function SidebarArea() {
   const {getParamValue} = useUrlParams('t_side', 'crumbs');
   const {replay} = useReplayContext();
 
-  switch (getParamValue()) {
+  switch (getParamValue().toLowerCase()) {
     case 'tags':
       return <TagPanel />;
     case 'crumbs':
     default:
       return (
         <Breadcrumbs
-          breadcrumbs={replay?.getRawCrumbs()}
+          breadcrumbs={replay?.getNonConsoleCrumbs()}
           startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );

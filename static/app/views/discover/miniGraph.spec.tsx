@@ -56,7 +56,6 @@ describe('Discover > MiniGraph', function () {
       router: {
         location,
       },
-      project: 1,
       projects: [],
     });
     eventView = EventView.fromSavedQueryOrLocation(undefined, location);

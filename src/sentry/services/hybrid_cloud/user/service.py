@@ -4,9 +4,11 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, List, Optional, cast
+from typing import Any, List, Optional, cast
 
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
@@ -15,10 +17,6 @@ from sentry.services.hybrid_cloud.user import (
     UserUpdateArgs,
 )
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Group
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class UserService(RpcService):
@@ -38,7 +36,7 @@ class UserService(RpcService):
         *,
         filter: UserFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional["AuthenticationContext"] = None,
+        auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[UserSerializeType] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
@@ -50,14 +48,18 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def get_many_ids(self, *, filter: UserFilterArgs) -> List[int]:
+        pass
+
+    @rpc_method
+    @abstractmethod
     def get_many_by_email(
         self,
         *,
         emails: List[str],
         is_active: bool = True,
         is_verified: bool = True,
-        is_project_member: bool = False,
-        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
     ) -> List[RpcUser]:
         """
         Return a list of users matching the filters
@@ -86,19 +88,27 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_from_group(self, *, group: "Group") -> List[RpcUser]:
-        """Get all users in all teams in a given Group's project."""
-        pass
+    def get_organizations(
+        self,
+        *,
+        user_id: int,
+        only_visible: bool = False,
+    ) -> List[RpcOrganizationSummary]:
+        """Get summary data for all organizations of which the user is a member.
 
-    @rpc_method
-    @abstractmethod
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
+        The organizations may span multiple regions.
+        """
         pass
 
     @rpc_method
     @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def flush_nonce(self, *, user_id: int) -> None:
         pass
 
     @rpc_method
@@ -114,6 +124,13 @@ class UserService(RpcService):
             return users[0]
         else:
             return None
+
+    @rpc_method
+    @abstractmethod
+    def get_user_by_social_auth(
+        self, *, organization_id: int, provider: str, uid: str
+    ) -> Optional[RpcUser]:
+        pass
 
 
 user_service: UserService = cast(UserService, UserService.create_delegation())

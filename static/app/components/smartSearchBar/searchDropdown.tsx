@@ -17,7 +17,7 @@ import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/custo
 import {FieldKind} from 'sentry/utils/fields';
 
 import {SearchInvalidTag} from './searchInvalidTag';
-import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
+import {invalidTypes, ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 import {getSearchConfigFromCustomPerformanceMetrics} from './utils';
 
 const getDropdownItemKey = (item: SearchItem) =>
@@ -33,6 +33,8 @@ type Props = {
   className?: string;
   customInvalidTagMessage?: (item: SearchItem) => React.ReactNode;
   customPerformanceMetrics?: CustomMeasurementCollection;
+  disallowWildcard?: boolean;
+  invalidMessages?: SearchConfig['invalidMessages'];
   maxMenuHeight?: number;
   mergeItemsWith?: Record<string, SearchItem>;
   onIconClick?: (value: string) => void;
@@ -55,6 +57,8 @@ function SearchDropdown({
   supportedTags,
   customInvalidTagMessage,
   mergeItemsWith,
+  disallowWildcard,
+  invalidMessages,
 }: Props) {
   return (
     <SearchDropdownOverlay className={className} data-test-id="smart-search-dropdown">
@@ -66,31 +70,36 @@ function SearchDropdown({
         <SearchItemsList maxMenuHeight={maxMenuHeight}>
           {items.map(item => {
             const isEmpty = item.children && !item.children.length;
+            const Wrapper = item.childrenWrapper ?? Fragment;
 
             // Hide header if `item.children` is defined, an array, and is empty
             return (
               <Fragment key={item.title}>
                 {item.type === 'header' && <HeaderItem group={item} />}
-                {item.children &&
-                  item.children.map(child => (
-                    <DropdownItem
-                      key={getDropdownItemKey(child)}
-                      item={{
-                        ...child,
-                        ...mergeItemsWith?.[child.title!],
-                      }}
-                      searchSubstring={searchSubstring}
-                      onClick={onClick}
-                      onIconClick={onIconClick}
-                      additionalSearchConfig={{
-                        ...getSearchConfigFromCustomPerformanceMetrics(
-                          customPerformanceMetrics
-                        ),
-                        supportedTags,
-                      }}
-                      customInvalidTagMessage={customInvalidTagMessage}
-                    />
-                  ))}
+                <Wrapper>
+                  {item.children &&
+                    item.children.map(child => (
+                      <DropdownItem
+                        key={getDropdownItemKey(child)}
+                        item={{
+                          ...child,
+                          ...mergeItemsWith?.[child.title!],
+                        }}
+                        searchSubstring={searchSubstring}
+                        onClick={onClick}
+                        onIconClick={onIconClick}
+                        additionalSearchConfig={{
+                          ...getSearchConfigFromCustomPerformanceMetrics(
+                            customPerformanceMetrics
+                          ),
+                          supportedTags,
+                          disallowWildcard,
+                          invalidMessages,
+                        }}
+                        customInvalidTagMessage={customInvalidTagMessage}
+                      />
+                    ))}
+                </Wrapper>
                 {isEmpty && <Info>{t('No items found')}</Info>}
               </Fragment>
             );
@@ -163,10 +172,9 @@ function HighlightedRestOfWords({
   isFirstWordHidden,
   hasSplit,
 }: HighlightedRestOfWordsProps) {
-  const remainingSubstr =
-    searchSubstring.indexOf(firstWord) === -1
-      ? searchSubstring
-      : searchSubstring.slice(firstWord.length + 1);
+  const remainingSubstr = !searchSubstring.includes(firstWord)
+    ? searchSubstring
+    : searchSubstring.slice(firstWord.length + 1);
   const descIdx = combinedRestWords.indexOf(remainingSubstr);
 
   if (descIdx > -1) {
@@ -301,16 +309,25 @@ function DropdownItem({
   customInvalidTagMessage,
 }: DropdownItemProps) {
   const isDisabled = item.value === null;
-
   let children: React.ReactNode;
   if (item.type === ItemType.RECENT_SEARCH) {
     children = <QueryItem item={item} additionalSearchConfig={additionalSearchConfig} />;
-  } else if (item.type === ItemType.INVALID_TAG) {
-    children = customInvalidTagMessage?.(item) ?? (
+  } else if (item.type && invalidTypes.includes(item.type)) {
+    const customInvalidMessage = customInvalidTagMessage?.(item);
+    children = customInvalidMessage ?? (
       <SearchInvalidTag
-        message={tct("The field [field] isn't supported here.", {
-          field: <code>{item.desc}</code>,
-        })}
+        highlightMessage={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t('For more information, please see the documentation')
+            : undefined
+        }
+        message={
+          item.type === ItemType.INVALID_QUERY_WITH_WILDCARD
+            ? t("Wildcards aren't supported here.")
+            : tct("The field [field] isn't supported here.", {
+                field: <code>{item.desc}</code>,
+              })
+        }
       />
     );
   } else if (item.type === ItemType.LINK) {
@@ -327,6 +344,15 @@ function DropdownItem({
           />
         )}
       </Fragment>
+    );
+  } else if (item.type === ItemType.RECOMMENDED) {
+    children = (
+      <RecommendedItem>
+        <div>{item.title}</div>
+        {item.desc && (
+          <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
+        )}
+      </RecommendedItem>
     );
   } else {
     children = (
@@ -354,13 +380,13 @@ function DropdownItem({
         data-test-id="search-autocomplete-item"
         onClick={
           !isDisabled
-            ? item.type === ItemType.INVALID_TAG && !!customInvalidTagMessage
+            ? item.type && invalidTypes.includes(item.type) && !!customInvalidTagMessage
               ? undefined
               : item.callback ?? onClick.bind(null, item.value, item)
             : undefined
         }
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-        isGrouped={isChild}
+        isChild={isChild}
         isDisabled={isDisabled}
       >
         {children}
@@ -458,13 +484,7 @@ const Info = styled('div')`
   }
 `;
 
-const ListItem = styled('li')`
-  &:not(:first-child):not(.group-child) {
-    border-top: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const SearchDropdownGroup = styled(ListItem)``;
+const SearchDropdownGroup = styled('li')``;
 
 const SearchDropdownGroupTitle = styled('header')`
   display: flex;
@@ -501,12 +521,13 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   }}
 `;
 
-const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boolean}>`
+const SearchListItem = styled('li')<{isChild?: boolean; isDisabled?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
   padding: 4px ${space(2)};
 
-  min-height: ${p => (p.isGrouped ? '30px' : '36px')};
+  min-height: ${p => (p.isChild ? '30px' : '36px')};
+  ${p => !p.isChild && `border-top: 1px solid ${p.theme.innerBorder};`}
 
   ${p => {
     if (!p.isDisabled) {
@@ -522,6 +543,7 @@ const SearchListItem = styled(ListItem)<{isDisabled?: boolean; isGrouped?: boole
 
     return '';
   }}
+
 
   display: flex;
   flex-direction: row;
@@ -633,4 +655,14 @@ const Value = styled('span')<{hasDocs?: boolean}>`
 
 const IconOpenWithMargin = styled(IconOpen)`
   margin-left: ${space(1)};
+`;
+
+const RecommendedItem = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const RecommendedItemDescription = styled('div')`
+  ${p => p.theme.overflowEllipsis}
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;

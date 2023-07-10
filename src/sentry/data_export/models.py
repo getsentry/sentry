@@ -1,10 +1,10 @@
 import logging
 
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -15,10 +15,10 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import json
 
-from ..db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from ..services.hybrid_cloud.user import user_service
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,7 @@ class ExportedData(Model):
     @staticmethod
     def format_date(date):
         # Example: 12:21 PM on July 21, 2020 (UTC)
-        return None if date is None else force_text(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
+        return None if date is None else force_str(date.strftime("%-I:%M %p on %B %d, %Y (%Z)"))
 
     def delete_file(self):
         file = self._get_file()
@@ -82,14 +82,15 @@ class ExportedData(Model):
         current_time = timezone.now()
         expire_time = current_time + expiration
         self.update(file_id=file.id, date_finished=current_time, date_expired=expire_time)
-        self.email_success()
+        transaction.on_commit(lambda: self.email_success())
 
     def email_success(self):
         from sentry.utils.email import MessageBuilder
 
+        user_email = None
         user = user_service.get_user(user_id=self.user_id)
-        if user is None:
-            return
+        if user:
+            user_email = user.email
 
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self._get_file() is None:
@@ -108,7 +109,7 @@ class ExportedData(Model):
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
-        msg.send_async([user.email])
+        msg.send_async([user_email])
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
@@ -122,7 +123,7 @@ class ExportedData(Model):
             context={
                 "creation": self.format_date(self.date_added),
                 "error_message": message,
-                "payload": json.dumps(self.payload, indent=2, sort_keys=True),
+                "payload": json.dumps(self.payload),
             },
             type="organization.export-data",
             template="sentry/emails/data-export-failure.txt",

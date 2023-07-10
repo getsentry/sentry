@@ -11,6 +11,7 @@ from sentry.integrations.notifications import get_context, get_integrations_by_c
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
+    EscalatingActivityNotification,
     NoteActivityNotification,
     RegressionActivityNotification,
     ReleaseActivityNotification,
@@ -21,6 +22,7 @@ from sentry.notifications.notifications.activity import (
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
@@ -41,6 +43,7 @@ SUPPORTED_NOTIFICATION_TYPES = [
     ResolvedInReleaseActivityNotification,
     ReleaseActivityNotification,
     RegressionActivityNotification,
+    EscalatingActivityNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,
@@ -58,7 +61,7 @@ def is_supported_notification_type(notification: BaseNotification) -> bool:
 
 
 def get_notification_card(
-    notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team
+    notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team | RpcActor
 ) -> AdaptiveCard:
     cls = MESSAGE_BUILDERS[notification.message_builder]
     return cls(notification, context, recipient).build_notification_card()
@@ -67,9 +70,9 @@ def get_notification_card(
 @register_notification_provider(ExternalProviders.MSTEAMS)
 def send_notification_as_msteams(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[RpcActor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ):
     if not is_supported_notification_type(notification):
         logger.info(
@@ -88,7 +91,7 @@ def send_notification_as_msteams(
 
         for recipient, integrations_by_channel in data.items():
             with sentry_sdk.start_span(op="notification.send_msteams", description="send_one"):
-                extra_context = (extra_context_by_actor_id or {}).get(recipient.id, {})
+                extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
                 with sentry_sdk.start_span(

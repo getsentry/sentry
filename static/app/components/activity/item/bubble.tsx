@@ -48,4 +48,4 @@ const ActivityBubble = styled('div')<ActivityBubbleProps>`
   }
 `;
 
-export default ActivityBubble;
+export {ActivityBubble};

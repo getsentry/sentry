@@ -14,10 +14,10 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS
+from sentry.apidocs.parameters import GlobalParams
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuthProvider,
@@ -26,9 +26,9 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    UserOption,
 )
 from sentry.roles import organization_roles, team_roles
+from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
@@ -90,14 +90,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -181,8 +181,9 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
                 if result.get("regenerate"):
                     if request.access.has_scope("member:admin"):
-                        member.regenerate_token()
-                        member.save()
+                        with transaction.atomic():
+                            member.regenerate_token()
+                            member.save()
                     else:
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
                 if member.token_expired:
@@ -215,13 +216,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         is_update_org_role = assigned_org_role and assigned_org_role != member.role
 
         if is_update_org_role:
-            if getattr(member.flags, "idp:role-restricted"):
-                return Response(
-                    {
-                        "role": "This user's org-role is managed through your organization's identity provider."
-                    },
-                    status=403,
-                )
+            # TODO(adas): Reenable idp lockout once all scim role bugs are resolved.
 
             allowed_role_ids = {r.id for r in allowed_roles}
 
@@ -238,7 +233,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (assigned_org_role != member.role):
+            if member.user_id == request.user.id and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
@@ -257,7 +252,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
@@ -289,8 +284,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 organizationmember=member, role__in=lesser_team_roles
             ).update(role=None)
 
-            member.update(role=role)
-
+            member.role = role
+            member.save()
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",
@@ -300,14 +295,14 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     @extend_schema(
         operation_id="Delete an Organization Member",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
+            GlobalParams.ORG_SLUG,
             MEMBER_ID_PARAM,
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(
@@ -360,22 +355,23 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         with transaction.atomic():
             # Delete instances of `UserOption` that are scoped to the projects within the
             # organization when corresponding member is removed from org
-            proj_list = Project.objects.filter(organization=organization).values_list(
-                "id", flat=True
+            proj_list = list(
+                Project.objects.filter(organization=organization).values_list("id", flat=True)
             )
-            uo_list = UserOption.objects.filter(
-                user=member.user, project_id__in=proj_list, key="mail:email"
-            )
-            for uo in uo_list:
-                uo.delete()
-
+            uos = [
+                uo
+                for uo in user_option_service.get_many(
+                    filter=dict(user_ids=[member.user_id], project_ids=proj_list, key="mail:email")
+                )
+            ]
+            user_option_service.delete_options(option_ids=[uo.id for uo in uos])
             member.delete()
 
         self.create_audit_entry(
             request=request,
             organization=organization,
             target_object=member.id,
-            target_user=member.user,
+            target_user_id=member.user_id,
             event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )

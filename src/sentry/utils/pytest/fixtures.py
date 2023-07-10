@@ -11,6 +11,7 @@ import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from typing import Optional
 
 import pytest
 import requests
@@ -136,6 +137,18 @@ DEFAULT_EVENT_DATA = {
     "tags": [],
     "platform": "python",
 }
+
+
+def django_db_all(func=None, *, transaction=None, **kwargs):
+    """Pytest decorator for resetting all databases"""
+
+    if func is not None:
+        return pytest.mark.django_db(transaction=transaction, databases="__all__")(func)
+
+    def decorator(function):
+        return pytest.mark.django_db(transaction=transaction, databases="__all__")(function)
+
+    return decorator
 
 
 @pytest.mark.django_db
@@ -287,7 +300,7 @@ def dyn_sampling_data():
     return inner
 
 
-_snapshot_writeback = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
+_snapshot_writeback: Optional[str] = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
 if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":

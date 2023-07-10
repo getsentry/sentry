@@ -5,7 +5,8 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.urls import reverse
 
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import AuthProviderTestCase
@@ -29,7 +30,7 @@ class DummyOAuth2Provider(OAuth2Provider):
     name = "dummy"
 
     def get_refresh_token_url(self) -> str:
-        pass
+        raise NotImplementedError
 
     def build_config(self, state):
         pass

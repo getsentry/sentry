@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +12,8 @@ from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.models import OrganizationMemberTeam, SentryAppComponent, SentryAppInstallation
 from sentry.models.actor import ACTOR_TYPES
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.services.hybrid_cloud.user.service import user_service
 
 
 @region_silo_endpoint
@@ -57,6 +60,19 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
         if len(errors):
             serialized_rule["errors"] = errors
+
+        rule_snooze = RuleSnooze.objects.filter(
+            Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
+        ).first()
+        if rule_snooze:
+            serialized_rule["snooze"] = True
+            if request.user.id == rule_snooze.owner_id:
+                serialized_rule["snoozeCreatedBy"] = "You"
+            else:
+                user = user_service.get_user(rule_snooze.owner_id)
+                if user:
+                    serialized_rule["snoozeCreatedBy"] = user.get_display_name()
+            serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
 
         return Response(serialized_rule)
 
@@ -112,7 +128,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
                 team = alert_rule.owner.resolve()
                 if not OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user, team=team, is_active=True
+                    organizationmember__user_id=request.user.id, team=team, is_active=True
                 ).exists():
                     return False
         return True

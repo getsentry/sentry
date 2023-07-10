@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.db import transaction
-from django.utils.translation import ugettext_lazy as _
+from django.http import HttpResponse
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.integrations.base import (
@@ -13,8 +16,9 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import OrganizationIntegration, PagerDutyService
+from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.pipeline import PipelineView
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -146,7 +150,12 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     def get_pipeline_views(self):
         return [PagerDutyInstallationRedirect()]
 
-    def post_install(self, integration, organization, extra=None):
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
+    ) -> None:
         services = integration.metadata["services"]
         try:
             org_integration = OrganizationIntegration.objects.get(
@@ -188,7 +197,7 @@ class PagerDutyInstallationRedirect(PipelineView):
 
         return f"https://{account_name}.pagerduty.com/install/integration?app_id={app_id}&redirect_url={setup_url}&version=2"
 
-    def dispatch(self, request: Request, pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:
         if "config" in request.GET:
             pipeline.bind_state("config", request.GET["config"])
             return pipeline.next_step()

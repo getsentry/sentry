@@ -20,14 +20,12 @@ from sentry.event_manager import (
     _save_grouphash_and_group,
     get_event_type,
 )
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
 from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import json, metrics, redis
-
-from .utils import can_create_group
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -41,11 +39,7 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    # Do not hash fingerprints for performance issues because they're already
-    # hashed in save_aggregate_performance
-    # This check should be removed once perf issues are created through the platform
-    if can_create_group(occurrence_data, event.project):
-        process_occurrence_data(occurrence_data)
+    process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -63,9 +57,6 @@ def save_issue_occurrence(
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
-
-        if not can_create_group(occurrence_data, event.project):
-            return occurrence, group_info
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
@@ -153,6 +144,9 @@ def save_issue_from_occurrence(
 ) -> Optional[GroupInfo]:
     project = event.project
     issue_kwargs = _create_issue_kwargs(occurrence, event, release)
+    # We need to augment the message with occurrence data here since we can't build a `GroupEvent`
+    # until after we have created a `Group`.
+    issue_kwargs["message"] = augment_message_with_occurrence(issue_kwargs["message"], occurrence)
 
     # TODO: For now we will assume a single fingerprint. We can expand later if necessary.
     # Note that additional fingerprints won't be used to generated additional issues, they'll be
@@ -164,14 +158,7 @@ def save_issue_from_occurrence(
         .first()
     )
 
-    # This forces an early return to skip extra processing steps
-    # for performance issues because they are already created/updated in save_transaction
-    return_group_info_early = not can_create_group(occurrence, project)
-
     if not existing_grouphash:
-        if return_group_info_early:
-            return None
-
         cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
         client = redis.redis_clusters.get(cluster_key)
         if not should_create_group(occurrence.type, client, new_grouphash, project):
@@ -219,14 +206,10 @@ def save_issue_from_occurrence(
             )
             return None
 
-        is_new = False
-        is_regression = False
-
-        if not return_group_info_early:
-            # Note: This updates the message of the issue based on the event. Not sure what we want to
-            # store there yet, so we may need to revisit that.
-            is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
-        group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
+        group_event = GroupEvent.from_event(event, group)
+        group_event.occurrence = occurrence
+        is_regression = _process_existing_aggregate(group, group_event, issue_kwargs, release)
+        group_info = GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
     return group_info
 
@@ -237,8 +220,6 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    skip_consume = not can_create_group(occurrence, event.project)
-
     eventstream.insert(
         event=group_event,
         is_new=group_info.is_new,
@@ -246,7 +227,7 @@ def send_issue_occurrence_to_eventstream(
         is_new_group_environment=group_info.is_new_group_environment,
         primary_hash=occurrence.fingerprint[0],
         received_timestamp=group_event.data.get("received") or group_event.datetime,
-        skip_consume=skip_consume,
+        skip_consume=False,
         group_states=[
             {
                 "id": group_info.group.id,

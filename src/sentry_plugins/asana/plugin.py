@@ -1,4 +1,4 @@
-from django.conf.urls import url
+from django.urls import re_path
 from requests.exceptions import HTTPError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -47,7 +47,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
@@ -151,7 +151,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
                 workspace=self.get_option("workspace", group.project), data=form_data
             )
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         return response["data"]["gid"]
 
@@ -160,14 +160,14 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             issue = client.get_issue(issue_id=form_data["issue_id"])["data"]
         except Exception as e:
-            raise self.raise_error(e, identity=client.auth)
+            self.raise_error(e, identity=client.auth)
 
         comment = form_data.get("comment")
         if comment:
             try:
                 client.create_comment(issue["gid"], {"text": comment})
             except Exception as e:
-                raise self.raise_error(e, identity=client.auth)
+                self.raise_error(e, identity=client.auth)
 
         return {"title": issue["name"]}
 
@@ -197,7 +197,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         try:
             client = self.get_client(user)
         except PluginIdentityRequired as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
         try:
             workspaces = client.get_workspaces()
         except HTTPError as e:

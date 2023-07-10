@@ -107,7 +107,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
             },
           }}
           legend={{right: 0, top: 0}}
-          xAxis={barAxisLabel(seriesData.length)}
+          xAxis={barAxisLabel()}
           series={[
             {
               seriesName: t('Time to Resolution'),

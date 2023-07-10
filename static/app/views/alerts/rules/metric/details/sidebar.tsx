@@ -39,9 +39,7 @@ export default class Sidebar extends PureComponent<Props> {
 
     const {timeWindow} = rule;
 
-    return tct('[window]', {
-      window: <Duration seconds={timeWindow * 60} />,
-    });
+    return <Duration seconds={timeWindow * 60} />;
   }
 
   renderTrigger(label: string, threshold: number, actions: Action[]): ReactNode {

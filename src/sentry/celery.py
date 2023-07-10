@@ -109,7 +109,3 @@ class SentryCelery(Celery):
 app = SentryCelery("sentry")
 app.config_from_object(settings)
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
-
-from sentry.utils.monitors import connect
-
-connect(app)

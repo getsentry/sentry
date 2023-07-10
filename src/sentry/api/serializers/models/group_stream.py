@@ -8,7 +8,7 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence
 
 from django.utils import timezone
 
-from sentry import features, release_health, tsdb
+from sentry import release_health, tsdb
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupSerializer,
@@ -21,9 +21,12 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models import Environment, Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
+from sentry.snuba.dataset import Dataset
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
+from sentry.utils.snuba import resolve_column, resolve_conditions
 
 
 @dataclass
@@ -157,7 +160,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         else:
             org_id = groups[0].project.organization_id if groups else None
             stats = tsdb.get_range(
-                model=tsdb.models.group,
+                model=TSDBModel.group,
                 keys=[g.id for g in groups],
                 environment_ids=environment and [environment.id],
                 **query_params,
@@ -347,48 +350,43 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         if not groups:
             return
 
-        organization = groups[0].organization
-        search_perf_issues = features.has(
-            "organizations:issue-platform-search-perf-issues", organization, actor=user
-        )
-
-        error_issue_ids, perf_issue_ids, generic_issue_ids = [], [], []
+        error_issue_ids, generic_issue_ids = [], []
         for group in groups:
             if GroupCategory.ERROR == group.issue_category:
                 error_issue_ids.append(group.id)
-            elif GroupCategory.PERFORMANCE == group.issue_category and not search_perf_issues:
-                perf_issue_ids.append(group.id)
             else:
                 generic_issue_ids.append(group.id)
 
-        results = {}
+        error_conditions = resolve_conditions(conditions, resolve_column(Dataset.Discover))
+        issue_conditions = resolve_conditions(conditions, resolve_column(Dataset.IssuePlatform))
 
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            conditions=conditions,
             tenant_ids={"organization_id": self.organization_id},
             **query_params,
         )
+
+        results = {}
+
         if error_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group, keys=error_issue_ids))
-        if perf_issue_ids:
             results.update(
-                get_range(model=snuba_tsdb.models.group_performance, keys=perf_issue_ids)
+                get_range(model=TSDBModel.group, keys=error_issue_ids, conditions=error_conditions)
             )
         if generic_issue_ids:
-            results.update(get_range(model=snuba_tsdb.models.group_generic, keys=generic_issue_ids))
+            results.update(
+                get_range(
+                    model=TSDBModel.group_generic,
+                    keys=generic_issue_ids,
+                    conditions=issue_conditions,
+                )
+            )
         return results
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
-
-    def _seen_stats_performance(
-        self, perf_issue_list: Sequence[Group], user
-    ) -> Mapping[Group, SeenStats]:
-        return self.__seen_stats_impl(perf_issue_list, self._execute_perf_seen_stats_query)
 
     def _seen_stats_generic(
         self, generic_issue_list: Sequence[Group], user

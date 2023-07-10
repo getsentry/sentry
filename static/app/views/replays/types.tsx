@@ -147,6 +147,8 @@ export type ReplaySegment = {
 
 /**
  * Highlight Replay Plugin types
+ *
+ * See also HighlightParams in static/app/components/replays/replayContext.tsx
  */
 export interface Highlight {
   nodeId: number;
@@ -166,7 +168,7 @@ export interface ReplaySpan<T = Record<string, any>> {
   description?: string;
 }
 
-export type MemorySpanType = ReplaySpan<{
+export type MemorySpan = ReplaySpan<{
   memory: {
     jsHeapSizeLimit: number;
     totalJSHeapSize: number;

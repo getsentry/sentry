@@ -31,6 +31,7 @@ function IssueReplayCount({groupId}: Props) {
     'This issue has %s replays available to view',
     count
   );
+
   return (
     <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink

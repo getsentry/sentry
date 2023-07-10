@@ -5,20 +5,20 @@ import responses
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import RegressionActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
+from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 
 
 class SlackRegressionNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    def create_notification(self, group):
+    def create_notification(self, group, data=None):
         return RegressionActivityNotification(
             Activity(
                 project=self.project,
                 group=group,
                 user_id=self.user.id,
                 type=ActivityType.SET_REGRESSION,
-                data={},
+                data=data or {},
             )
         )
 
@@ -42,7 +42,33 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
-    def test_regression_performance_issue(self, mock_func):
+    def test_regression_with_release(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue regresses
+        """
+        with self.tasks():
+            self.create_notification(self.group, {"version": "1.0.0"}).send()
+
+        attachment, text = get_attachment()
+        assert (
+            text
+            == "Issue marked as regression in release <http://testserver/organizations/baz/releases/1.0.0/|1.0.0>"
+        )
+        assert attachment["title"] == "こんにちは"
+        assert attachment["text"] == ""
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_regression_performance_issue(self, mock_func, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses
         """

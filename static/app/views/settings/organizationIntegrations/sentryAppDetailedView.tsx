@@ -243,7 +243,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       return (
         <Confirm
           disabled={!userHasAccess}
-          message={tct('Are you sure you want to remove the [slug] installation?', {
+          message={tct('Are you sure you want to uninstall the [slug] installation?', {
             slug: capitalizedSlug,
           })}
           onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action

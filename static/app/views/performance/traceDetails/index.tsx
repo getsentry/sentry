@@ -27,7 +27,7 @@ type Props = RouteComponentProps<{traceSlug: string}, {}> & {
 
 class TraceSummary extends Component<Props> {
   getDocumentTitle(): string {
-    return [t('Trace Details'), t('Performance')].join(' - ');
+    return [t('Trace Details'), t('Performance')].join(' — ');
   }
 
   getTraceSlug(): string {

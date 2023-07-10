@@ -39,6 +39,7 @@ const STAT_OPS = {
   localhost: {title: t('Localhost'), color: theme.blue300},
   'release-version': {title: t('Release'), color: theme.purple200},
   'web-crawlers': {title: t('Web Crawler'), color: theme.red300},
+  'filtered-transaction': {title: t('Health Check'), color: theme.yellow400},
 };
 
 class ProjectFiltersChart extends Component<Props, State> {
@@ -128,7 +129,7 @@ class ProjectFiltersChart extends Component<Props, State> {
 
     return (
       <Panel>
-        <PanelHeader>{t('Errors filtered in the last 30 days (by day)')}</PanelHeader>
+        <PanelHeader>{t('Events filtered in the last 30 days (by day)')}</PanelHeader>
 
         <PanelBody withPadding>
           {isLoading && <Placeholder height="100px" />}

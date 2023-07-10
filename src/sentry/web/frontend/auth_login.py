@@ -4,10 +4,9 @@ from typing import Optional
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
-from django.db import transaction
 from django.http import HttpResponseRedirect
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -186,7 +185,9 @@ class AuthLoginView(BaseView):
             request.session.pop("invite_email", None)
 
             # Attempt to directly accept any pending invites
-            invite_helper = ApiInviteHelper.from_session(request=request, instance=self)
+            invite_helper = ApiInviteHelper.from_session(
+                request=request,
+            )
 
             # In single org mode, associate the user to the only organization.
             #
@@ -203,7 +204,8 @@ class AuthLoginView(BaseView):
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
-                self.determine_active_organization(request, invite_helper.organization.slug)
+                organization_slug = invite_helper.invite_context.organization.slug
+                self.determine_active_organization(request, organization_slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 
@@ -301,7 +303,6 @@ class AuthLoginView(BaseView):
         return self.redirect_to_org(request)
 
     @never_cache
-    @transaction.atomic
     def handle(self, request: Request, *args, **kwargs) -> Response:
         return super().handle(request, *args, **kwargs)
 

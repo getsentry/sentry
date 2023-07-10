@@ -1,4 +1,4 @@
-import {Fragment, useContext} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
@@ -10,9 +10,9 @@ import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 
 import Divider from './divider.styled';
 
@@ -38,7 +38,7 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 }
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
-  const currentOrganization = useContext(OrganizationContext);
+  const currentOrganization = useOrganization({allowNull: true});
   const route = useResolveRoute('/organizations/new/');
 
   if (!canCreateOrganization) {

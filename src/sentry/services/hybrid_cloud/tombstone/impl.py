@@ -9,16 +9,10 @@ class RegionTombstoneService(TombstoneService):
     def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
-    def close(self) -> None:
-        pass
-
 
 class ControlTombstoneService(TombstoneService):
     def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         ControlTombstone.record_delete(tombstone.table_name, tombstone.identifier)
-
-    def close(self) -> None:
-        pass
 
 
 class MonolithTombstoneService(TombstoneService):
@@ -51,6 +45,3 @@ class MonolithTombstoneService(TombstoneService):
             RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
         else:
             ControlTombstone.record_delete(tombstone.table_name, tombstone.identifier)
-
-    def close(self) -> None:
-        pass

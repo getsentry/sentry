@@ -7,19 +7,19 @@ jobs:
   stale:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@87c2b794b9b47a9bec68ae03c01aeb572ffebdb1
+      - uses: actions/stale@1160a2240286f5da8ec72b1c0816ce2481aabf84
         with:
           repo-token: ${{ github.token }}
           days-before-stale: 21
           days-before-close: 7
-          only-labels: ""
+          only-labels: ''
           operations-per-run: 100
           remove-stale-when-updated: true
           debug-only: false
           ascending: false
 
-          exempt-issue-labels: "Status: Backlog,Status: In Progress"
-          stale-issue-label: "Status: Stale"
+          exempt-issue-labels: 'Status: Backlog,Status: In Progress'
+          stale-issue-label: 'Status: Stale'
           stale-issue-message: |-
             This issue has gone three weeks without activity. In another week, I will close it.
 
@@ -28,12 +28,11 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          skip-stale-issue-message: false
-          close-issue-label: ""
-          close-issue-message: ""
+          close-issue-label: ''
+          close-issue-message: ''
 
-          exempt-pr-labels: "Status: Backlog,Status: In Progress"
-          stale-pr-label: "Status: Stale"
+          exempt-pr-labels: 'Status: Backlog,Status: In Progress'
+          stale-pr-label: 'Status: Stale'
           stale-pr-message: |-
             This pull request has gone three weeks without activity. In another week, I will close it.
 
@@ -42,6 +41,5 @@ jobs:
             ----
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
-          skip-stale-pr-message: false
-          close-pr-label: ""
-          close-pr-message: ""
+          close-pr-label: ''
+          close-pr-message: ''

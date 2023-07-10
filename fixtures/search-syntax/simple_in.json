@@ -208,7 +208,7 @@
         "value": {"type": "valueText", "value": "[h", "quoted": false}
       },
       {"type": "spaces", "value": " "},
-      {"type": "freeText", "value": "e]", "quoted": false},
+      {"type": "freeText", "value": "e]", "quoted": false, "invalid": null},
       {"type": "spaces", "value": ""}
     ]
   },
@@ -365,7 +365,10 @@
       {
         "type": "filter",
         "filter": "textIn",
-        "invalid": {"reason": "Lists should not have empty values"},
+        "invalid": {
+          "type": "empty-value-in-list-not-allowed",
+          "reason": "Lists should not have empty values"
+        },
         "negated": false,
         "key": {"type": "keySimple", "value": "user.email", "quoted": false},
         "operator": "",

@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, cast
 
 from sentry.integrations.base import (
     IntegrationFeatures,
@@ -71,7 +71,7 @@ class IntegrationService(RpcService):
     def get_integrations(
         self,
         *,
-        integration_ids: Optional[Iterable[int]] = None,
+        integration_ids: Optional[List[int]] = None,
         organization_id: Optional[int] = None,
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
@@ -80,7 +80,7 @@ class IntegrationService(RpcService):
         organization_integration_id: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
-        Returns all APIIntegrations matching the provided kwargs.
+        Returns all RpcIntegrations matching the provided kwargs.
         """
         pass
 
@@ -114,7 +114,7 @@ class IntegrationService(RpcService):
         limit: Optional[int] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
-        Returns all APIOrganizationIntegrations from the matching kwargs.
+        Returns all RpcOrganizationIntegrations from the matching kwargs.
         If providers is set, it will also be filtered by the integration providers set in the list.
         If has_grace_period is set, it will filter by whether the grace_period is null or not.
         """
@@ -175,7 +175,7 @@ class IntegrationService(RpcService):
         status: Optional[int] = None,
     ) -> List[RpcIntegration]:
         """
-        Returns a list of APIIntegrations after updating the fields provided.
+        Returns a list of RpcIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
@@ -208,7 +208,7 @@ class IntegrationService(RpcService):
         set_grace_period_end_null: Optional[bool] = None,
     ) -> List[RpcOrganizationIntegration]:
         """
-        Returns a list of APIOrganizationIntegrations after updating the fields provided.
+        Returns a list of RpcOrganizationIntegrations after updating the fields provided.
         To set a field as null, use the `set_{FIELD}_null` keyword argument.
         """
         pass
@@ -284,6 +284,11 @@ class IntegrationService(RpcService):
         self, *, integration_id: int, channel: Optional[str], attachment: Dict[str, Any]
     ) -> None:
         raise NotImplementedError
+
+    @rpc_method
+    @abstractmethod
+    def delete_integration(self, *, integration_id: int) -> None:
+        pass
 
 
 integration_service: IntegrationService = cast(

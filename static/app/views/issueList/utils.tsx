@@ -4,12 +4,18 @@ import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW_OLD = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
+  NEW = 'is:new',
   ARCHIVED = 'is:archived',
+  ESCALATING = 'is:escalating',
+  REGRESSED = 'is:regressed',
   REPROCESSING = 'is:reprocessing',
 }
+
+export const CUSTOM_TAB_VALUE = '__custom__';
 
 type OverviewTab = {
   /**
@@ -25,6 +31,7 @@ type OverviewTab = {
    */
   enabled: boolean;
   name: string;
+  hidden?: boolean;
   /**
    * Tooltip text to be hoverable when text has links
    */
@@ -39,51 +46,72 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
+  const hasAssignToMe = organization.features.includes('assign-to-me');
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.UNRESOLVED,
       {
-        name: t('All Unresolved'),
+        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
         analyticsName: 'unresolved',
         count: true,
         enabled: true,
       },
     ],
     [
-      Query.FOR_REVIEW,
+      hasAssignToMe ? Query.FOR_REVIEW : Query.FOR_REVIEW_OLD,
       {
         name: t('For Review'),
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle:
-          t(`Issues are marked for review when they are created, unresolved, or unignored.
+        tooltipTitle: hasEscalatingIssuesUi
+          ? t(
+              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+            )
+          : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
       },
     ],
-    organization.features.includes('escalating-issues-ui')
-      ? [
-          Query.ARCHIVED,
-          {
-            name: t('Archived'),
-            analyticsName: 'archived',
-            count: true,
-            enabled: true,
-            tooltipTitle: t(`Archived issues don’t trigger alerts.`),
-          },
-        ]
-      : [
-          Query.IGNORED,
-          {
-            name: t('Ignored'),
-            analyticsName: 'ignored',
-            count: true,
-            enabled: true,
-            tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
+    [
+      Query.REGRESSED,
+      {
+        name: t('Regressed'),
+        analyticsName: 'regressed',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ESCALATING,
+      {
+        name: t('Escalating'),
+        analyticsName: 'escalating',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.ARCHIVED,
+      {
+        name: t('Archived'),
+        analyticsName: 'archived',
+        count: true,
+        enabled: hasEscalatingIssuesUi,
+      },
+    ],
+    [
+      Query.IGNORED,
+      {
+        name: t('Ignored'),
+        analyticsName: 'ignored',
+        count: true,
+        enabled: !hasEscalatingIssuesUi,
+        tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
-          },
-        ],
+      },
+    ],
     [
       Query.REPROCESSING,
       {
@@ -101,6 +129,19 @@ export function getTabs(organization: Organization) {
           }
         ),
         tooltipHoverable: true,
+      },
+    ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
       },
     ],
   ];
@@ -134,16 +175,27 @@ export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
   PRIORITY = 'priority',
+  BETTER_PRIORITY = 'betterPriority',
   FREQ = 'freq',
   USER = 'user',
-  TREND = 'trend',
   INBOX = 'inbox',
 }
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({
+  query,
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  query: string;
+  sort: string;
+}) {
+  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
+    ? IssueSortOptions.BETTER_PRIORITY
+    : DEFAULT_ISSUE_STREAM_SORT;
+  return query === DEFAULT_QUERY && sort === defaultSort;
 }
 
 export function getSortLabel(key: string) {
@@ -152,12 +204,12 @@ export function getSortLabel(key: string) {
       return t('First Seen');
     case IssueSortOptions.PRIORITY:
       return t('Priority');
+    case IssueSortOptions.BETTER_PRIORITY:
+      return t('Priority');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:
       return t('Users');
-    case IssueSortOptions.TREND:
-      return t('Relative Change');
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.DATE:
@@ -180,6 +232,8 @@ export const DISCOVER_EXCLUSION_FIELDS: string[] = [
   'is',
   '__text',
 ];
+
+export const FOR_REVIEW_QUERIES: string[] = [Query.FOR_REVIEW, Query.FOR_REVIEW_OLD];
 
 export const SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY =
   'issue-stream-saved-searches-sidebar-open';

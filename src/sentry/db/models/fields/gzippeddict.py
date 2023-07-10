@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import logging
 import pickle
 
 from django.db.models import TextField
 
 from sentry.db.models.utils import Creator
-from sentry.utils.strings import compress, decompress
+from sentry.utils import json
+from sentry.utils.strings import decompress
 
 __all__ = ("GzippedDictField",)
 
@@ -26,15 +29,20 @@ class GzippedDictField(TextField):
         setattr(cls, name, Creator(self))
 
     def to_python(self, value):
-        if isinstance(value, str) and value:
-            try:
-                value = pickle.loads(decompress(value))
-            except Exception as e:
-                logger.exception(e)
+        try:
+            if not value:
                 return {}
-        elif not value:
-            return {}
-        return value
+            return json.loads(value)
+        except (ValueError, TypeError):
+            if isinstance(value, str) and value:
+                try:
+                    value = pickle.loads(decompress(value))
+                except Exception as e:
+                    logger.exception(e)
+                    return {}
+            elif not value:
+                return {}
+            return value
 
     def from_db_value(self, value, expression, connection):
         return self.to_python(value)
@@ -43,11 +51,11 @@ class GzippedDictField(TextField):
         if not value and self.null:
             # save ourselves some storage
             return None
-        # enforce strings to guarantee consistency
-        if isinstance(value, bytes):
-            value = str(value)
-        # db values need to be in unicode
-        return compress(pickle.dumps(value))
+        elif isinstance(value, bytes):
+            value = value.decode("utf-8")
+        if value is None and self.null:
+            return None
+        return json.dumps(value)
 
     def value_to_string(self, obj):
         return self.get_prep_value(self.value_from_object(obj))

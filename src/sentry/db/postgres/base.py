@@ -2,7 +2,7 @@ import psycopg2 as Database
 
 # Some of these imports are unused, but they are inherited from other engines
 # and should be available as part of the backend ``base.py`` namespace.
-from django.db.backends.postgresql.base import DatabaseWrapper
+from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 
 from sentry.utils.strings import strip_lone_surrogates
 
@@ -93,7 +93,7 @@ class CursorWrapper:
         return self.cursor.executemany(sql, paramlist)
 
 
-class DatabaseWrapper(DatabaseWrapper):
+class DatabaseWrapper(DjangoDatabaseWrapper):
     creation_class = SentryDatabaseCreation
     SchemaEditorClass = DatabaseSchemaEditorProxy
 

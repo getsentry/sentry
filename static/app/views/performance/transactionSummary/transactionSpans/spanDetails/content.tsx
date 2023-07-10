@@ -65,7 +65,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
               project: project?.id ?? '',
               name: transactionName,
             }}
-            tab={Tab.Spans}
+            tab={Tab.SPANS}
             spanSlug={spanSlug}
           />
           <Layout.Title>

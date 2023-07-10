@@ -1,10 +1,10 @@
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, Tuple
+from urllib.parse import quote as urlquote
 
 import sentry_sdk
 from django.utils import timezone
-from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError, ValidationError
 from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -30,6 +30,7 @@ from sentry.snuba import (
     metrics_performance,
     profiles,
     spans_indexed,
+    spans_metrics,
 )
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
@@ -45,17 +46,16 @@ DATASET_OPTIONS = {
     "metrics": metrics_performance,
     "profiles": profiles,
     "issuePlatform": issue_platform,
-    "profile_functions": functions,
+    "profileFunctions": functions,
     "spansIndexed": spans_indexed,
+    "spansMetrics": spans_metrics,
 }
 
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 
 
 def resolve_axis_column(column: str, index: int = 0) -> str:
-    return cast(
-        str, get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
-    )
+    return get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
@@ -274,7 +274,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(str, CURSOR_LINK_HEADER).format(
+        return CURSOR_LINK_HEADER.format(
             uri=base_url,
             cursor=str(cursor),
             name=name,
@@ -349,7 +349,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         # once those APIs are used across the application.
         if "transaction.status" in first_row:
             for row in results:
-                row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
+                if "transaction.status" in row:
+                    row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(
+                        row["transaction.status"]
+                    )
 
         fields = self.get_field_list(organization, request)
         if "issue" in fields:  # Look up the short ID and return that in the results
@@ -487,15 +490,24 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                             query_columns,
                             allow_partial_buckets,
                             zerofill_results=zerofill_results,
+                            dataset=dataset,
                         )
                     else:
-                        # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
                             event_result,
                             column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                             zerofill_results=zerofill_results,
                         )
+                        results[key]["meta"] = self.handle_results_with_meta(
+                            request,
+                            organization,
+                            params.get("project_id", []),
+                            event_result.data,
+                            True,
+                            dataset=dataset,
+                        )["meta"]
+
                 serialized_result = results
             elif is_multiple_axis:
                 serialized_result = self.serialize_multiple_axis(
@@ -508,6 +520,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     query_columns,
                     allow_partial_buckets,
                     zerofill_results=zerofill_results,
+                    dataset=dataset,
                 )
                 if top_events > 0 and isinstance(result, SnubaTSResult):
                     serialized_result = {"": serialized_result}
@@ -544,12 +557,18 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         query_columns: Sequence[str],
         allow_partial_buckets: bool,
         zerofill_results: bool = True,
+        dataset: Optional[Any] = None,
     ) -> Dict[str, Any]:
         # Return with requested yAxis as the key
         result = {}
         equations = 0
         meta = self.handle_results_with_meta(
-            request, organization, params.get("project_id", []), event_result.data, True
+            request,
+            organization,
+            params.get("project_id", []),
+            event_result.data,
+            True,
+            dataset=dataset,
         )["meta"]
         for index, query_column in enumerate(query_columns):
             result[columns[index]] = serializer.serialize(

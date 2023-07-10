@@ -74,16 +74,16 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   get mappings() {
     const {integration} = this.props;
     const {members} = this.state;
-    const externalUserMappings = members.reduce((acc, member) => {
+    const externalUserMappings = members.reduce<ExternalActorMapping[]>((acc, member) => {
       const {externalUsers, user} = member;
 
       acc.push(
         ...externalUsers
           .filter(externalUser => externalUser.provider === integration.provider.key)
-          .map(externalUser => ({...externalUser, sentryName: user.name}))
+          .map(externalUser => ({...externalUser, sentryName: user?.name ?? member.name}))
       );
       return acc;
-    }, [] as ExternalActorMapping[]);
+    }, []);
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
@@ -105,9 +105,9 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
   sentryNamesMapper(members: Member[]) {
     return members
       .filter(member => member.user)
-      .map(({user: {id}, email, name}) => {
+      .map(({user, email, name}) => {
         const label = email !== name ? `${name} - ${email}` : `${email}`;
-        return {id, name: label};
+        return {id: user?.id!, name: label};
       });
   }
 

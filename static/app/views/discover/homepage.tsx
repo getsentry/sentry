@@ -29,6 +29,7 @@ type Props = {
 
 type HomepageQueryState = AsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
+  starfishResult?: null;
 };
 
 class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {

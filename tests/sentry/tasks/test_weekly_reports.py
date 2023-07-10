@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytz
 from django.core import mail
+from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
 from django.utils import timezone
 from freezegun import freeze_time
@@ -16,6 +17,7 @@ from sentry.tasks.weekly_reports import (
     ONE_DAY,
     OrganizationReportContext,
     deliver_reports,
+    organization_project_issue_substatus_summaries,
     organization_project_issue_summaries,
     prepare_organization_report,
     schedule_organizations,
@@ -24,6 +26,7 @@ from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.outcomes import Outcome
 
@@ -81,8 +84,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             assert len(mail.outbox) == 1
 
             message = mail.outbox[0]
+            assert isinstance(message, EmailMultiAlternatives)
             assert self.organization.name in message.subject
             html = message.alternatives[0][0]
+            assert isinstance(html, str)
             assert (
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly-email" in html
             )
@@ -111,9 +116,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
 
-        OrganizationMember.objects.filter(user=self.user).update(
-            flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
-        )
+        with in_test_psql_role_override("postgres"):
+            OrganizationMember.objects.filter(user_id=self.user.id).update(
+                flags=F("flags").bitor(OrganizationMember.flags["member-limit:restricted"])
+            )
 
         # disabled
         deliver_reports(ctx)
@@ -167,6 +173,51 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert project_ctx.new_issue_count == 2
         assert project_ctx.existing_issue_count == 0
         assert project_ctx.all_issue_count == 2
+
+    @with_feature("organizations:escalating-issues")
+    def test_organization_project_issue_substatus_summaries(self):
+        self.login_as(user=self.user)
+
+        now = timezone.now()
+        min_ago = iso_format(now - timedelta(minutes=1))
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event1.group.substatus = GroupSubStatus.ONGOING
+        event1.group.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        event2.group.substatus = GroupSubStatus.NEW
+        event2.group.save()
+        timestamp = to_timestamp(now)
+
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        organization_project_issue_substatus_summaries(ctx)
+
+        project_ctx = ctx.projects[self.project.id]
+
+        assert project_ctx.new_substatus_count == 1
+        assert project_ctx.escalating_substatus_count == 0
+        assert project_ctx.ongoing_substatus_count == 1
+        assert project_ctx.regression_substatus_count == 0
+        assert project_ctx.total_substatus_count == 2
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_simple(self, message_builder):
@@ -252,11 +303,77 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
                 "existing_issue_count": 0,
                 "new_issue_count": 2,
                 "reopened_issue_count": 0,
+                # New escalating-issues
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 0,
+                "ongoing_substatus_count": 0,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 0,
             }
             assert len(context["key_errors"]) == 2
             assert context["trends"]["total_error_count"] == 2
             assert context["trends"]["total_transaction_count"] == 10
             assert "Weekly Report for" in message_params["subject"]
+
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    @with_feature("organizations:escalating-issues")
+    def test_message_builder_substatus_simple(self, message_builder):
+        now = timezone.now()
+        three_days_ago = now - timedelta(days=3)
+
+        self.create_member(
+            teams=[self.team], user=self.create_user(), organization=self.organization
+        )
+
+        event1 = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        group1 = event1.group
+        group1.substatus = GroupSubStatus.NEW
+        group1.save()
+
+        event2 = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "message": "message",
+                "timestamp": iso_format(three_days_ago),
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+        group2 = event2.group
+        group2.substatus = GroupSubStatus.ONGOING
+        group2.save()
+
+        prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
+
+        for call_args in message_builder.call_args_list:
+            message_params = call_args.kwargs
+            context = message_params["context"]
+
+            assert message_params["template"] == "sentry/emails/reports/body.txt"
+            assert message_params["html_template"] == "sentry/emails/reports/body.html"
+
+            assert context["organization"] == self.organization
+            assert context["issue_summary"] == {
+                "all_issue_count": 0,
+                "existing_issue_count": 0,
+                "new_issue_count": 0,
+                "reopened_issue_count": 0,
+                "escalating_substatus_count": 0,
+                "new_substatus_count": 1,
+                "ongoing_substatus_count": 1,
+                "regression_substatus_count": 0,
+                "total_substatus_count": 2,
+            }
 
     @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
     def test_message_builder_advanced(self, message_builder):
@@ -316,6 +433,8 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
             "color": "#422C6E",
             "dropped_error_count": 2,
             "accepted_error_count": 1,
+            "accepted_replay_count": 0,
+            "dropped_replay_count": 0,
             "dropped_transaction_count": 9,
             "accepted_transaction_count": 3,
         }
@@ -323,6 +442,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
         assert ctx["trends"]["series"][-2][1][0] == {
             "color": "#422C6E",
             "error_count": 1,
+            "replay_count": 0,
             "transaction_count": 3,
         }
 
@@ -346,3 +466,52 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase):
 
         prepare_organization_report(to_timestamp(now), ONE_DAY * 7, self.organization.id)
         assert mock_send_email.call_count == 0
+
+    @with_feature("organizations:session-replay")
+    @with_feature("organizations:session-replay-weekly-email")
+    @mock.patch("sentry.tasks.weekly_reports.MessageBuilder")
+    def test_message_builder_replays(self, message_builder):
+
+        now = timezone.now()
+        two_days_ago = now - timedelta(days=2)
+        timestamp = to_timestamp(floor_to_utc_day(now))
+
+        for outcome, category, num in [
+            (Outcome.ACCEPTED, DataCategory.REPLAY, 6),
+            (Outcome.RATE_LIMITED, DataCategory.REPLAY, 7),
+        ]:
+            self.store_outcomes(
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "outcome": outcome,
+                    "category": category,
+                    "timestamp": two_days_ago,
+                    "key_id": 1,
+                },
+                num_times=num,
+            )
+
+        prepare_organization_report(timestamp, ONE_DAY * 7, self.organization.id)
+
+        message_params = message_builder.call_args.kwargs
+        ctx = message_params["context"]
+
+        assert ctx["trends"]["legend"][0] == {
+            "slug": "bar",
+            "url": f"http://testserver/organizations/baz/issues/?project={self.project.id}",
+            "color": "#422C6E",
+            "dropped_error_count": 0,
+            "accepted_error_count": 0,
+            "accepted_replay_count": 6,
+            "dropped_replay_count": 7,
+            "dropped_transaction_count": 0,
+            "accepted_transaction_count": 0,
+        }
+
+        assert ctx["trends"]["series"][-2][1][0] == {
+            "color": "#422C6E",
+            "error_count": 0,
+            "replay_count": 6,
+            "transaction_count": 0,
+        }

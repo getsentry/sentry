@@ -22,7 +22,8 @@ describe('ProjectFilters', function () {
         location={{}}
         project={project}
         organization={org}
-      />
+      />,
+      {organization: org}
     );
   }
 
@@ -55,7 +56,7 @@ describe('ProjectFilters', function () {
     const filter = 'browser-extensions';
     const mock = createFilterMock(filter);
 
-    const control = screen.getByRole('checkbox', {
+    const control = await screen.findByRole('checkbox', {
       name: 'Filter out errors known to be caused by browser extensions',
     });
 
@@ -81,6 +82,8 @@ describe('ProjectFilters', function () {
       'web-crawlers': 'Filter out known web crawlers',
     };
 
+    await screen.findByText('Filters');
+
     for (const filter of Object.keys(FILTERS)) {
       const mock = createFilterMock(filter);
 
@@ -97,11 +100,11 @@ describe('ProjectFilters', function () {
     }
   });
 
-  it('has correct legacy browsers selected', function () {
+  it('has correct legacy browsers selected', async function () {
     renderComponent();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      await screen.findByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
     ).toBeChecked();
 
     expect(
@@ -120,7 +123,7 @@ describe('ProjectFilters', function () {
     const mock = createFilterMock(filter);
 
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Safari Version 5 and lower'})
+      await screen.findByRole('checkbox', {name: 'Safari Version 5 and lower'})
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
@@ -163,7 +166,7 @@ describe('ProjectFilters', function () {
     const filter = 'legacy-browsers';
     const mock = createFilterMock(filter);
 
-    await userEvent.click(screen.getByRole('button', {name: 'All'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
       'ie_pre_9',
@@ -189,7 +192,7 @@ describe('ProjectFilters', function () {
     });
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'IP Addresses'}),
+      await screen.findByRole('textbox', {name: 'IP Addresses'}),
       'test\ntest2'
     );
     await userEvent.tab();
@@ -200,10 +203,10 @@ describe('ProjectFilters', function () {
     );
   });
 
-  it('filter by release/error message are not enabled', function () {
+  it('filter by release/error message are not enabled', async function () {
     renderComponent();
 
-    expect(screen.getByRole('textbox', {name: 'Releases'})).toBeDisabled();
+    expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeDisabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeDisabled();
   });
 
@@ -220,7 +223,7 @@ describe('ProjectFilters', function () {
       />
     );
 
-    expect(screen.getByRole('textbox', {name: 'Releases'})).toBeEnabled();
+    expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeEnabled();
 
     const mock = MockApiClient.addMockResponse({
@@ -250,7 +253,7 @@ describe('ProjectFilters', function () {
     );
   });
 
-  it('disables configuration for non project:write users', function () {
+  it('disables configuration for non project:write users', async function () {
     render(
       <ProjectFilters
         organization={org}
@@ -261,12 +264,13 @@ describe('ProjectFilters', function () {
       {organization: TestStubs.Organization({access: []})}
     );
 
-    screen.getAllByRole('checkbox').forEach(checkbox => {
+    const checkboxes = await screen.findAllByRole('checkbox');
+    checkboxes.forEach(checkbox => {
       expect(checkbox).toBeDisabled();
     });
   });
 
-  it('shows disclaimer if error message filter is populated', function () {
+  it('shows disclaimer if error message filter is populated', async function () {
     render(
       <ProjectFilters
         organization={org}
@@ -282,7 +286,7 @@ describe('ProjectFilters', function () {
     );
 
     expect(
-      screen.getByText(
+      await screen.findByText(
         "Minidumps, errors in the minified production build of React, and Internet Explorer's i18n errors cannot be filtered by message."
       )
     ).toBeInTheDocument(0);

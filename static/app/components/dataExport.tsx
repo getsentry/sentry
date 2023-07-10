@@ -12,8 +12,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
 export enum ExportQueryType {
-  IssuesByTag = 'Issues-by-Tag',
-  Discover = 'Discover',
+  ISSUES_BY_TAG = 'Issues-by-Tag',
+  DISCOVER = 'Discover',
 }
 
 interface DataExportPayload {

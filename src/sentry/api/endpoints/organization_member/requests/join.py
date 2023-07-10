@@ -10,11 +10,10 @@ from sentry import ratelimits as ratelimiter
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.validators import AllowedEmailField
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember, outbox_context
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -26,22 +25,26 @@ class JoinRequestSerializer(serializers.Serializer):
 
 
 def create_organization_join_request(organization, email, ip_address=None):
-    if OrganizationMember.objects.filter(
-        Q(email__iexact=email) | Q(user__is_active=True, user__email__iexact=email),
-        organization=organization,
-    ).exists():
-        return
+    with outbox_context(flush=False):
+        om = OrganizationMember.objects.filter(
+            Q(email__iexact=email)
+            | Q(user_is_active=True, user_email__iexact=email, user_id__isnull=False),
+            organization=organization,
+        ).first()
+        if om:
+            return
 
-    try:
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            email=email,
-            invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
-        )
-        return OrganizationMember.objects.get(id=rpc_org_member.id)
-    except IntegrityError:
-        pass
+        try:
+            om = OrganizationMember.objects.create(
+                organization_id=organization.id,
+                role=organization.default_role,
+                email=email,
+                invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
+            )
+        except IntegrityError:
+            pass
+
+        return om
 
 
 @region_silo_endpoint

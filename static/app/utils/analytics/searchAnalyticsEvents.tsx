@@ -36,6 +36,12 @@ export type SearchEventParameters = {
     multi: boolean;
   };
   'search.invalid_field': Omit<SearchEventBase, 'query'> & {attempted_field_name: string};
+  'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
+    item_name: string | undefined;
+    search_operator: string;
+    item_kind?: string;
+    item_type?: string;
+  };
   'search.operator_autocompleted': SearchEventBase & {search_operator: string};
   'search.pin': {
     action: 'pin' | 'unpin';
@@ -70,10 +76,11 @@ export type SearchEventKey = keyof SearchEventParameters;
 
 export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
-  'search.operator_autocompleted': 'Search: Operator Autocompleted',
+  'search.key_autocompleted': 'Search: Key Autocompleted',
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.search_with_invalid': 'Search: Attempted Invalid Search',
   'search.invalid_field': 'Search: Unsupported Field Warning Shown',
+  'search.operator_autocompleted': 'Search: Operator Autocompleted',
   'organization_saved_search.selected':
     'Organization Saved Search: Selected saved search',
   'settings_search.open': 'settings_search Open',

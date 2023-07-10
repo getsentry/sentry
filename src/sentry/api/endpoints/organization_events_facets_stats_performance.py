@@ -100,6 +100,9 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 additional_query_column="p75(transaction.duration)",
             )
 
+            if not results:
+                return {"data": []}
+
             def get_event_stats(
                 query_columns: Sequence[str],
                 query: str,
@@ -112,6 +115,7 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                     selected_columns=query_columns,
                     query=query,
                     params=params,
+                    referrer=referrer,
                     # TODO: Better selection of granularity,
                     # but we generally only need pretty low granularity
                     # for this since it's only being used for sparklines
@@ -122,7 +126,6 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 request,
                 organization,
                 get_event_stats,
-                top_events=5,
                 query=filter_query,
                 query_column="p75(transaction.duration)",
             )
@@ -134,10 +137,18 @@ class OrganizationEventsFacetsStatsPerformanceEndpoint(
                 value = facet.pop("tags_value")
                 new_key = f"{key},{value}"
 
+                if not events_stats:
+                    totals[new_key] = facet
+                    continue
+
                 sum_correlation = discover.corr_snuba_timeseries(
                     results[new_key]["count()"]["data"], events_stats["data"]
                 )
                 facet["sum_correlation"] = sum_correlation
+                p75_correlation = discover.corr_snuba_timeseries(
+                    results[new_key]["p75(transaction.duration)"]["data"], events_stats["data"]
+                )
+                facet["p75_correlation"] = p75_correlation
                 totals[new_key] = facet
 
             results["totals"] = totals

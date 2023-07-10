@@ -20,9 +20,15 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
+  has_exception_group: boolean;
+  has_next_event: boolean;
+  has_previous_event: boolean;
+  has_profile: boolean;
   has_release: boolean;
+  has_source_context: boolean;
   has_source_maps: boolean;
   has_trace: boolean;
+  is_symbolicated: boolean;
   num_commits: number;
   num_in_app_stack_frames: number;
   num_stack_frames: number;
@@ -31,7 +37,11 @@ export type BaseEventAnalyticsParams = {
   error_has_user_feedback?: boolean;
   event_errors?: string;
   event_platform?: string;
+  event_runtime?: string;
   event_type?: string;
+  frames_with_sourcemaps_percent?: number;
+  frames_without_source_maps_percent?: number;
+  has_graphql_request?: boolean;
   has_otel?: boolean;
   release_user_agent?: string;
   sdk_name?: string;
@@ -52,7 +62,6 @@ export type TeamInsightsEventParameters = {
   'alert_rules.viewed': {sort: string};
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
-  'alert_wizard.option_viewed': {alert_type: string};
   'edit_alert_rule.add_row': {
     name: string;
     project_id: string;
@@ -62,7 +71,6 @@ export type TeamInsightsEventParameters = {
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
   'issue_alert_rule_details.edit_clicked': {rule_id: number};
-  'issue_alert_rule_details.viewed': {rule_id: number};
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
@@ -133,13 +141,11 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_rules.viewed': 'Alert Rules: Viewed',
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
-  'alert_wizard.option_viewed': 'Alert Wizard: Option Viewed',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
-  'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'issue_details.attachment_tab.screenshot_title_clicked':
     'Attachment Tab: Screenshot title clicked',

@@ -412,7 +412,7 @@ export function isWidgetUsingTransactionName(widget: Widget) {
       );
       const transactionUsedInFilter = parseSearch(conditions)?.some(
         parsedCondition =>
-          parsedCondition.type === Token.Filter &&
+          parsedCondition.type === Token.FILTER &&
           parsedCondition.key?.text === 'transaction'
       );
       return transactionSelected || transactionUsedInFilter;

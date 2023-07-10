@@ -6,7 +6,6 @@ import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
 import type {Commit, PullRequest, Repository} from './integrations';
 import type {Team} from './organization';
 import type {Project} from './project';
-import type {Release} from './release';
 import type {AvatarUser, User} from './user';
 
 export type EntryData = Record<string, any | Array<any>>;
@@ -37,9 +36,9 @@ export type SavedSearch = {
 };
 
 export enum SavedSearchVisibility {
-  Organization = 'organization',
-  Owner = 'owner',
-  OwnerPinned = 'owner_pinned',
+  ORGANIZATION = 'organization',
+  OWNER = 'owner',
+  OWNER_PINNED = 'owner_pinned',
 }
 
 export enum SavedSearchType {
@@ -52,6 +51,7 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  CRON = 'cron',
   PROFILE = 'profile',
 }
 
@@ -75,6 +75,7 @@ export enum IssueType {
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
+  PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
 }
 
 export const getIssueTypeFromOccurenceType = (
@@ -171,9 +172,9 @@ export type TagWithTopValues = {
 };
 
 export const enum GroupSubstatus {
-  UNTIL_ESCALATING = 'until_escalating',
-  UNTIL_CONDITION_MET = 'until_condition_met',
-  FOREVER = 'forever',
+  ARCHIVED_UNTIL_ESCALATING = 'archived_until_escalating',
+  ARCHIVED_UNTIL_CONDITION_MET = 'archived_until_condition_met',
+  ARCHIVED_FOREVER = 'archived_forever',
   ESCALATING = 'escalating',
   ONGOING = 'ongoing',
   REGRESSED = 'regressed',
@@ -198,12 +199,13 @@ export const enum GroupInboxReason {
   MANUAL = 3,
   REPROCESSED = 4,
   ESCALATING = 5,
+  ONGOING = 6,
 }
 
 export type InboxDetails = {
-  reason_details: InboxReasonDetails;
   date_added?: string;
   reason?: GroupInboxReason;
+  reason_details?: InboxReasonDetails | null;
 };
 
 export type SuggestedOwnerReason =
@@ -260,6 +262,8 @@ export enum GroupActivityType {
   MERGE = 'merge',
   REPROCESS = 'reprocess',
   MARK_REVIEWED = 'mark_reviewed',
+  AUTO_SET_ONGOING = 'auto_set_ongoing',
+  SET_ESCALATING = 'set_escalating',
 }
 
 interface GroupActivityBase {
@@ -335,14 +339,14 @@ export interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit: Commit;
+    commit?: Commit;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest: PullRequest;
+    pullRequest?: PullRequest;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
@@ -399,6 +403,20 @@ interface GroupActivityMerge extends GroupActivityBase {
   type: GroupActivityType.MERGE;
 }
 
+interface GroupActivityAutoSetOngoing extends GroupActivityBase {
+  data: {
+    afterDays?: number;
+  };
+  type: GroupActivityType.AUTO_SET_ONGOING;
+}
+
+interface GroupActivitySetEscalating extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_ESCALATING;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -444,7 +462,9 @@ export type GroupActivity =
   | GroupActivityRegression
   | GroupActivityUnmergeSource
   | GroupActivityAssigned
-  | GroupActivityCreateIssue;
+  | GroupActivityCreateIssue
+  | GroupActivityAutoSetOngoing
+  | GroupActivitySetEscalating;
 
 export type Activity = GroupActivity;
 
@@ -512,13 +532,8 @@ export type GroupStatusResolution = {
   substatus?: GroupSubstatus;
 };
 
-export type GroupRelease = {
-  firstRelease: Release;
-  lastRelease: Release;
-};
-
 // TODO(ts): incomplete
-export interface BaseGroup extends GroupRelease {
+export interface BaseGroup {
   activity: GroupActivity[];
   annotations: string[];
   assignedTo: Actor;
@@ -550,7 +565,6 @@ export interface BaseGroup extends GroupRelease {
   shortId: string;
   status: string;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
-  tags: Pick<Tag, 'key' | 'name' | 'totalValues'>[];
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
@@ -574,18 +588,19 @@ export interface GroupResolution
     GroupStatusResolution {}
 
 export type Group = GroupResolution | GroupReprocessing;
-export interface GroupCollapseRelease
-  extends Omit<Group, keyof GroupRelease>,
-    Partial<GroupRelease> {}
 
-export type GroupTombstone = {
+export interface GroupTombstone {
   actor: AvatarUser;
   culprit: string;
   id: string;
   level: Level;
   metadata: EventMetadata;
-  title: string;
-};
+  type: EventOrGroupType;
+  title?: string;
+}
+export interface GroupTombstoneHelper extends GroupTombstone {
+  isTombstone: true;
+}
 
 export type ProcessingIssueItem = {
   checksum: string;

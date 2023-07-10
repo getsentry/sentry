@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import or_
 from time import sleep
-from typing import Any, Collection, Mapping, Optional, Sequence, Set
+from typing import Any, Collection, Dict, Mapping, Optional, Sequence, Set
 
 import sentry_sdk
 from django.conf import settings
@@ -9,25 +9,23 @@ from django.db.models import Q
 from psycopg2 import OperationalError
 from psycopg2.errorcodes import DEADLOCK_DETECTED
 
+from sentry import options
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
-    KeyResults,
     OrgId,
     StringIndexer,
     UseCaseKeyCollection,
     UseCaseKeyResult,
     UseCaseKeyResults,
+    metric_path_key_compatible_resolve,
+    metric_path_key_compatible_rev_resolve,
 )
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
-from sentry.sentry_metrics.use_case_id_registry import (
-    METRIC_PATH_MAPPING,
-    REVERSE_METRIC_PATH_MAPPING,
-    UseCaseID,
-)
+from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
@@ -51,19 +49,31 @@ class PGStringIndexerV2(StringIndexer):
 
     def _get_db_records(self, db_use_case_keys: UseCaseKeyCollection) -> Any:
         """
-        We are not querying for the use case ID because the order of
-        operations for our changes needs to be:
-        >>> 1. Change write path
+        The order of operations for our changes needs to be:
+            1. Change write path
             2. do DB backfill
-            3. Change Read path (this code)
-        We are currently at step 1
+        >>> 3. Change Read path (this code)
+        We are currently at step 3.
+        Only the performance-path Postgres table has a `use_case_id` column
+        at the moment, but this will change in the future.
         """
-        conditions = [
-            Q(organization_id=int(organization_id), string=string)
-            for _, organization_id, string in db_use_case_keys.as_tuples()
-        ]
+        use_case_ids = db_use_case_keys.mapping.keys()
+        metric_path_key = self._get_metric_path_key(use_case_ids)
 
-        return self._get_table_from_use_case_ids(db_use_case_keys.mapping.keys()).objects.filter(
+        conditions = []
+        for use_case_id, organization_id, string in db_use_case_keys.as_tuples():
+            if metric_path_key is UseCaseKey.PERFORMANCE:
+                conditions.append(
+                    Q(
+                        use_case_id=use_case_id.value,
+                        organization_id=int(organization_id),
+                        string=string,
+                    )
+                )
+            else:
+                conditions.append(Q(organization_id=int(organization_id), string=string))
+
+        return self._get_table_from_use_case_ids(use_case_ids).objects.filter(
             reduce(or_, conditions)
         )
 
@@ -105,18 +115,126 @@ class PGStringIndexerV2(StringIndexer):
             assert isinstance(last_seen_exception, BaseException)
             raise last_seen_exception
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
-        res = self._uca_bulk_record({REVERSE_METRIC_PATH_MAPPING[use_case_id]: org_strings})
-        return res.results[REVERSE_METRIC_PATH_MAPPING[use_case_id]]
-
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
-        """Store a string and return the integer ID generated for it"""
-        result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
-        return result[org_id][string]
-
     def _uca_bulk_record(
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        metric_path_key = self._get_metric_path_key(strings.keys())
+
+        db_read_keys = UseCaseKeyCollection(strings)
+
+        db_read_key_results = UseCaseKeyResults()
+        db_read_key_results.add_use_case_key_results(
+            [
+                UseCaseKeyResult(
+                    use_case_id=(
+                        UseCaseID(db_obj.use_case_id)
+                        if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
+                        else UseCaseID.SESSIONS
+                    ),
+                    org_id=db_obj.organization_id,
+                    string=db_obj.string,
+                    id=db_obj.id,
+                )
+                for db_obj in self._get_db_records(db_read_keys)
+            ],
+            FetchType.DB_READ,
+        )
+        db_write_keys = db_read_key_results.get_unmapped_use_case_keys(db_read_keys)
+
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "true"},
+            amount=(db_read_keys.size - db_write_keys.size),
+        )
+        metrics.incr(
+            _INDEXER_DB_METRIC,
+            tags={"db_hit": "false"},
+            amount=db_write_keys.size,
+        )
+
+        if db_write_keys.size == 0:
+            return db_read_key_results
+
+        config = get_ingest_config(metric_path_key, IndexerStorage.POSTGRES)
+        writes_limiter = writes_limiter_factory.get_ratelimiter(config)
+
+        """
+        Changes to writes_limiter will happen in a separate PR.
+        For now, we are going to operate on the assumption that no custom use case ID
+        will enter this part of the code path. Therethere strings can only be one of the
+        follow 2 types:
+        {
+            "sessions" : {
+                org_id_1: ... ,
+                org_id_n: ... ,
+            }
+        }
+        {
+            "transactions" : {
+                org_id_1: ... ,
+                org_id_n: ... ,
+            }
+        }
+        """
+        with writes_limiter.check_write_limits(db_write_keys) as writes_limiter_state:
+            del db_write_keys
+
+            rate_limited_key_results = UseCaseKeyResults()
+            accepted_keys = writes_limiter_state.accepted_keys
+
+            for dropped_string in writes_limiter_state.dropped_strings:
+                rate_limited_key_results.add_use_case_key_result(
+                    use_case_key_result=dropped_string.use_case_key_result,  # type: ignore
+                    fetch_type=dropped_string.fetch_type,
+                    fetch_type_ext=dropped_string.fetch_type_ext,
+                )
+
+            if accepted_keys.size == 0:
+                return db_read_key_results.merge(rate_limited_key_results)
+
+            table = self._get_table_from_metric_path_key(metric_path_key)
+
+            if metric_path_key is UseCaseKey.PERFORMANCE:
+                new_records = [
+                    table(
+                        organization_id=int(organization_id),
+                        string=string,
+                        use_case_id=use_case_id.value,
+                    )
+                    for use_case_id, organization_id, string in accepted_keys.as_tuples()
+                ]
+            else:
+                new_records = [
+                    table(
+                        organization_id=int(organization_id),
+                        string=string,
+                    )
+                    for _, organization_id, string in accepted_keys.as_tuples()
+                ]
+
+            self._bulk_create_with_retry(table, new_records)
+
+        db_write_key_results = UseCaseKeyResults()
+        db_write_key_results.add_use_case_key_results(
+            [
+                UseCaseKeyResult(
+                    use_case_id=(
+                        UseCaseID.SESSIONS
+                        if metric_path_key is UseCaseKey.RELEASE_HEALTH
+                        else UseCaseID(db_obj.use_case_id)
+                    ),
+                    org_id=db_obj.organization_id,
+                    string=db_obj.string,
+                    id=db_obj.id,
+                )
+                for db_obj in self._get_db_records(accepted_keys)
+            ],
+            fetch_type=FetchType.FIRST_SEEN,
+        )
+
+        return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
+
+    def _bulk_record(
         self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
@@ -126,7 +244,7 @@ class PGStringIndexerV2(StringIndexer):
             [
                 UseCaseKeyResult(
                     use_case_id=(
-                        UseCaseID.TRANSACTIONS
+                        UseCaseID(db_obj.use_case_id)
                         if self._get_metric_path_key(strings.keys()) is UseCaseKey.PERFORMANCE
                         else UseCaseID.SESSIONS
                     ),
@@ -191,7 +309,7 @@ class PGStringIndexerV2(StringIndexer):
 
             rate_limited_key_results = UseCaseKeyResults()
             for dropped_string in writes_limiter_state.dropped_strings:
-                key_result = dropped_string.key_result
+                key_result = dropped_string.key_result  # type: ignore
                 rate_limited_key_results.add_use_case_key_result(
                     UseCaseKeyResult(
                         use_case_id, key_result.org_id, key_result.string, key_result.id
@@ -221,10 +339,9 @@ class PGStringIndexerV2(StringIndexer):
                     for organization_id, string in filtered_db_write_keys.as_tuples()
                 ]
 
-            with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
-                self._bulk_create_with_retry(
-                    self._get_table_from_use_case_ids(strings.keys()), new_records
-                )
+            self._bulk_create_with_retry(
+                self._get_table_from_use_case_ids(strings.keys()), new_records
+            )
 
         db_write_key_results = UseCaseKeyResults()
         db_write_key_results.add_use_case_key_results(
@@ -244,30 +361,45 @@ class PGStringIndexerV2(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results).merge(rate_limited_key_results)
 
-    def _uca_record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
-        result = self._uca_bulk_record(strings={use_case_id: {org_id: {string}}})
+    def bulk_record(
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+    ) -> UseCaseKeyResults:
+        if options.get("sentry-metrics.writes-limiter.apply-uca-limiting"):
+            return self._uca_bulk_record(strings)
+        return self._bulk_record(strings)
+
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+        result = self.bulk_record(strings={use_case_id: {org_id: {string}}})
         return result[use_case_id][org_id][string]
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Returns None if the entry cannot be found.
 
         """
-        table = self._get_table_from_metric_path_key(use_case_id)
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
         try:
-            id: int = table.objects.using_replica().get(organization_id=org_id, string=string).id
+            if metric_path_key is UseCaseKey.PERFORMANCE:
+                return int(
+                    table.objects.using_replica()
+                    .get(organization_id=org_id, string=string, use_case_id=use_case_id.value)
+                    .id
+                )
+            return int(table.objects.using_replica().get(organization_id=org_id, string=string).id)
         except table.DoesNotExist:
             return None
 
-        return id
-
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
         """
-        table = self._get_table_from_metric_path_key(use_case_id)
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
@@ -276,6 +408,23 @@ class PGStringIndexerV2(StringIndexer):
         assert obj.organization_id == org_id
         string: str = obj.string
         return string
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        ret_val: Dict[int, str] = {}
+        metric_path_key = METRIC_PATH_MAPPING[use_case_id]
+        table = self._get_table_from_metric_path_key(metric_path_key)
+        try:
+            strings = table.objects.get_many_from_cache(ids)
+
+        except table.DoesNotExist:
+            return ret_val
+
+        for obj in strings:
+            assert obj.organization_id == org_id
+
+        return {obj.id: obj.string for obj in strings if (obj and obj.string is not None)}
 
     def _get_metric_path_key(self, use_case_ids: Collection[UseCaseID]) -> UseCaseKey:
         metrics_paths = {METRIC_PATH_MAPPING[use_case_id] for use_case_id in use_case_ids}

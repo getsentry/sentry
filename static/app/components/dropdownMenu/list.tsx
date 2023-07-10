@@ -6,7 +6,7 @@ import {useKeyboard} from '@react-aria/interactions';
 import {AriaMenuOptions, useMenu} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
-import {TreeState, useTreeState} from '@react-stately/tree';
+import {TreeProps, TreeState, useTreeState} from '@react-stately/tree';
 import {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
@@ -37,13 +37,14 @@ export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
 
 export interface DropdownMenuListProps
   extends Omit<
-    AriaMenuOptions<MenuItemProps>,
-    | 'selectionMode'
-    | 'selectedKeys'
-    | 'defaultSelectedKeys'
-    | 'onSelectionChange'
-    | 'disallowEmptySelection'
-  > {
+      AriaMenuOptions<MenuItemProps>,
+      | 'selectionMode'
+      | 'selectedKeys'
+      | 'defaultSelectedKeys'
+      | 'onSelectionChange'
+      | 'disallowEmptySelection'
+    >,
+    TreeProps<MenuItemProps> {
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * The open state of the current overlay that contains this menu
@@ -56,7 +57,7 @@ export interface DropdownMenuListProps
   /*
    * Title to display on top of the menu
    */
-  menuTitle?: string;
+  menuTitle?: React.ReactChild;
   /**
    * Minimum menu width
    */
@@ -105,7 +106,7 @@ function DropdownMenuList({
     // logically follows from the tree-like structure and single-selection
     // nature of menus.
     const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value.isSubmenu;
+      const isSection = node.hasChildNodes && !node.value?.isSubmenu;
       // A submenu with key [key] is expanded if
       // state.selectionManager.isSelected([key]) = true
       return isSection
@@ -134,21 +135,21 @@ function DropdownMenuList({
   const showDividers = stateCollection.some(item => !!item.props.details);
 
   // Render a single menu item
-  const renderItem = (node: Node<MenuItemProps>, isLastNode: boolean) => {
+  const renderItem = (node: Node<MenuItemProps>) => {
     return (
       <DropdownMenuItem
         node={node}
         state={state}
         onClose={onClose}
         closeOnSelect={closeOnSelect}
-        showDivider={showDividers && !isLastNode}
+        showDivider={showDividers}
       />
     );
   };
 
   // Render a submenu whose trigger button is a menu item
-  const renderItemWithSubmenu = (node: Node<MenuItemProps>, isLastNode: boolean) => {
-    if (!node.value.children) {
+  const renderItemWithSubmenu = (node: Node<MenuItemProps>) => {
+    if (!node.value?.children) {
       return null;
     }
 
@@ -157,7 +158,7 @@ function DropdownMenuList({
         renderAs="div"
         node={node}
         state={state}
-        showDivider={showDividers && !isLastNode}
+        showDivider={showDividers}
         closeOnSelect={false}
         {...omit(triggerProps, [
           'onClick',
@@ -208,9 +209,9 @@ function DropdownMenuList({
           </DropdownMenuSection>
         );
       } else {
-        itemToRender = node.value.isSubmenu
-          ? renderItemWithSubmenu(node, isLastNode)
-          : renderItem(node, isLastNode);
+        itemToRender = node.value?.isSubmenu
+          ? renderItemWithSubmenu(node)
+          : renderItem(node);
       }
 
       return (

@@ -186,6 +186,7 @@ class Columns(Enum):
         event_name="transaction",
         transaction_name="transaction_name",
         discover_name="transaction",
+        issue_platform_name="transaction_name",
         alias="transaction",
     )
     USER = Column(
@@ -604,6 +605,7 @@ class Columns(Enum):
         event_name=None,
         transaction_name="duration",
         discover_name="duration",
+        issue_platform_name="transaction_duration",
         alias="transaction.duration",
     )
     TRANSACTION_STATUS = Column(
@@ -675,7 +677,7 @@ class Columns(Enum):
         event_name="contexts[trace.trace_id]",
         transaction_name="trace_id",
         discover_name="contexts[trace.trace_id]",
-        issue_platform_name="contexts[trace.trace_id]",
+        issue_platform_name="trace_id",
         alias="trace",
     )
     SPAN_ID = Column(
@@ -723,5 +725,33 @@ class Columns(Enum):
         event_name=None,
         transaction_name="profile_id",
         discover_name="profile_id",
+        issue_platform_name="profile_id",
         alias="profile.id",
+    )
+
+    REPLAY_ID = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name="replay_id",
+        alias="replayId",
+    )
+
+    TRACE_SAMPLED = Column(
+        group_name=None,
+        event_name="trace_sampled",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name=None,
+        alias="trace.sampled",
+    )
+
+    NUM_PROCESSING_ERRORS = Column(
+        group_name=None,
+        event_name="num_processing_errors",
+        transaction_name=None,
+        discover_name=None,
+        issue_platform_name=None,
+        alias="num_processing_errors",
     )

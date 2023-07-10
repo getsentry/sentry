@@ -1,6 +1,8 @@
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
+import {Frame} from '../frame';
+
 import {firstCallee, makeTestingBoilerplate} from './profile.spec';
 
 describe('SampledProfile', () => {
@@ -351,5 +353,38 @@ describe('SampledProfile', () => {
 
     expect(profile.callTree.children[0].count).toBe(3);
     expect(profile.callTree.children[0].children[0].count).toBe(1);
+  });
+
+  it('filters frames', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1],
+      samples: [
+        [0, 1],
+        [0, 1],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {
+        type: 'flamegraph',
+        frameFilter: frame => {
+          return frame.name === 'f0';
+        },
+      }
+    );
+
+    expect(profile.callTree.frame).toBe(Frame.Root);
+    expect(profile.callTree.children).toHaveLength(1);
+    expect(profile.callTree.children[0].frame.name).toEqual('f0');
+    // the f1 frame is filtered out, so the f0 frame has no children
+    expect(profile.callTree.children[0].children).toHaveLength(0);
   });
 });

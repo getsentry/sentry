@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Optional, Sequence, Tuple, Union
 from django.conf import settings
 from django.db import IntegrityError, connections, models, router, transaction
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.app import env
 from sentry.constants import ObjectStatus
@@ -18,10 +18,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
-from sentry.models.actor import Actor
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.actor import ACTOR_TYPES, Actor
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin
 
@@ -127,9 +126,6 @@ class TeamStatus:
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
 
-    # Deprecated. Do not use
-    VISIBLE = 0
-
 
 @region_silo_only_model
 class Team(Model, SnowflakeIdMixin):
@@ -198,7 +194,8 @@ class Team(Model, SnowflakeIdMixin):
         return self.organization.member_set.filter(
             organizationmemberteam__team=self,
             organizationmemberteam__is_active=True,
-            user__is_active=True,
+            user_id__isnull=False,
+            user_is_active=True,
         ).distinct()
 
     def has_access(self, user, access=None):
@@ -274,7 +271,7 @@ class Team(Model, SnowflakeIdMixin):
         for member in old_memberships:
             try:
                 new_member = OrganizationMember.objects.get(
-                    user=member.user, organization=organization
+                    user_id=member.user_id, organization=organization
                 )
             except OrganizationMember.DoesNotExist:
                 continue
@@ -297,7 +294,7 @@ class Team(Model, SnowflakeIdMixin):
             # we use a cursor here to avoid automatic cascading of relations
             # in Django
             try:
-                with transaction.atomic(), in_test_psql_role_override("postgres"):
+                with outbox_context(transaction.atomic(), flush=False):
                     cursor.execute("DELETE FROM sentry_team WHERE id = %s", [self.id])
                     self.outbox_for_update().save()
                     cursor.execute("DELETE FROM sentry_actor WHERE team_id = %s", [new_team.id])
@@ -336,8 +333,18 @@ class Team(Model, SnowflakeIdMixin):
         from sentry.models import ExternalActor
 
         # There is no foreign key relationship so we have to manually delete the ExternalActors
-        with transaction.atomic(), in_test_psql_role_override("postgres"):
+        with outbox_context(transaction.atomic()):
             ExternalActor.objects.filter(actor_id=self.actor_id).delete()
             self.outbox_for_update().save()
 
             return super().delete(**kwargs)
+
+    def get_member_actor_ids(self):
+        owner_ids = [self.actor_id]
+        member_user_ids = self.member_set.values_list("user_id", flat=True)
+        owner_ids += Actor.objects.filter(
+            type=ACTOR_TYPES["user"],
+            user_id__in=member_user_ids,
+        ).values_list("id", flat=True)
+
+        return owner_ids

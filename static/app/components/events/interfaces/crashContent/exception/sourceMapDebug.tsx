@@ -54,7 +54,6 @@ function getErrorMessage(
     }
     return `${baseSourceMapDocsLink}troubleshooting_js/` + (section ? `#${section}` : '');
   }
-
   const defaultDocsLink = `${baseSourceMapDocsLink}#uploading-source-maps-to-sentry`;
 
   switch (error.type) {
@@ -166,6 +165,16 @@ function getErrorMessage(
             "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
           ),
           docsLink: getTroubleshootingLink(),
+        },
+      ];
+    case SourceMapProcessingIssueType.NOT_PART_OF_PIPELINE:
+      return [
+        {
+          title: t('Sentry not part of build pipeline'),
+          desc: t(
+            'Integrate Sentry into your build pipeline using a tool like Webpack or the CLI.'
+          ),
+          docsLink: defaultDocsLink,
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
@@ -301,12 +310,14 @@ export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
                 key={idx}
                 title={message.title}
                 docsLink={
-                  <DocsExternalLink
-                    href={message.docsLink}
-                    onClick={() => handleDocsClick(message.type)}
-                  >
-                    {t('Read Guide')}
-                  </DocsExternalLink>
+                  message.docsLink ? (
+                    <DocsExternalLink
+                      href={message.docsLink}
+                      onClick={() => handleDocsClick(message.type)}
+                    >
+                      {t('Read Guide')}
+                    </DocsExternalLink>
+                  ) : null
                 }
                 onExpandClick={() => handleExpandClick(message.type)}
               >

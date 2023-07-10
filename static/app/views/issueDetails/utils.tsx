@@ -1,36 +1,13 @@
+import {useMemo} from 'react';
+import isEmpty from 'lodash/isEmpty';
 import orderBy from 'lodash/orderBy';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Group, GroupActivity} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-
-/**
- * Fetches group data and mark as seen
- *
- * @param orgId organization slug
- * @param groupId groupId
- * @param eventId eventId or "latest" or "oldest"
- * @param envNames
- * @param projectId project slug required for eventId that is not latest or oldest
- */
-export async function fetchGroupEvent(
-  api: Client,
-  groupId: string,
-  eventId: string,
-  envNames: string[]
-): Promise<Event> {
-  const url = `/issues/${groupId}/events/${eventId}/`;
-
-  const query: {environment?: string[]} = {};
-  if (envNames.length !== 0) {
-    query.environment = envNames;
-  }
-
-  const data = await api.requestPromise(url, {query});
-  return data;
-}
+import {useLocation} from 'sentry/utils/useLocation';
 
 export function markEventSeen(
   api: Client,
@@ -158,4 +135,72 @@ export function getGroupReprocessingStatus(
     default:
       return ReprocessingStatus.NO_STATUS;
   }
+}
+
+export const useFetchIssueTagsForDetailsPage = (
+  {
+    groupId,
+    environment = [],
+  }: {
+    environment: string[];
+    groupId?: string;
+  },
+  {enabled = true}: {enabled?: boolean} = {}
+) => {
+  return useFetchIssueTags(
+    {
+      groupId,
+      environment,
+      readable: true,
+      limit: 4,
+    },
+    {enabled}
+  );
+};
+
+export function useEnvironmentsFromUrl(): string[] {
+  const location = useLocation();
+  const envs = location.query.environment;
+
+  const envsArray = useMemo(() => {
+    return typeof envs === 'string' ? [envs] : envs ?? [];
+  }, [envs]);
+
+  return envsArray;
+}
+
+export function getGroupDetailsQueryData({
+  environments,
+}: {
+  environments?: string[];
+} = {}): Record<string, string | string[]> {
+  // Note, we do not want to include the environment key at all if there are no environments
+  const query: Record<string, string | string[]> = {
+    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    expand: ['inbox', 'owners'],
+    collapse: ['release', 'tags'],
+  };
+
+  return query;
+}
+
+export function getGroupEventDetailsQueryData({
+  environments,
+  query,
+  stacktraceOnly,
+}: {
+  environments?: string[];
+  query?: string;
+  stacktraceOnly?: boolean;
+} = {}): Record<string, string | string[]> {
+  const defaultParams = {
+    collapse: stacktraceOnly ? ['stacktraceOnly'] : ['fullRelease'],
+    ...(query ? {query} : {}),
+  };
+
+  if (!environments || isEmpty(environments)) {
+    return defaultParams;
+  }
+
+  return {...defaultParams, environment: environments};
 }

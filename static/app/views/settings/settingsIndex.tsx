@@ -66,6 +66,8 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
     organizationSettingsUrl,
   };
 
+  const hasOrgAuthTokens = organization?.features.includes('org-auth-tokens');
+
   const myAccount = (
     <GridPanel>
       <HomePanelHeader>
@@ -215,12 +217,19 @@ function SettingsIndex({organization, ...props}: SettingsIndexProps) {
       <HomePanelBody>
         <h3>{t('Quick links')}:</h3>
         <ul>
+          {hasOrgAuthTokens && (
+            <li>
+              <HomeLink to={`${organizationSettingsUrl}auth-tokens/`}>
+                {t('Organization Auth Tokens')}
+              </HomeLink>
+            </li>
+          )}
           <li>
-            <HomeLink to={LINKS.API}>{t('Auth Tokens')}</HomeLink>
+            <HomeLink to={LINKS.API}>{t('User Auth Tokens')}</HomeLink>
           </li>
           <li>
             <HomeLink to={`${organizationSettingsUrl}developer-settings/`}>
-              {t('Your Integrations')}
+              {t('Custom Integrations')}
             </HomeLink>
           </li>
           <li>

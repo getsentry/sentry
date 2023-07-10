@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
-class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # type: ignore
+class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     def convert_args(
         self,
         request: Request,

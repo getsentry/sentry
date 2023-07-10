@@ -13,8 +13,35 @@ import {
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
   SelectSection,
 } from './types';
+
+export function getEscapedKey<Value extends React.Key | undefined>(value: Value): string {
+  return CSS.escape(String(value));
+}
+
+export function getItemsWithKeys<Value extends React.Key>(
+  options: SelectOption<Value>[]
+): SelectOptionWithKey<Value>[];
+export function getItemsWithKeys<Value extends React.Key>(
+  options: SelectOptionOrSection<Value>[]
+): SelectOptionOrSectionWithKey<Value>[];
+export function getItemsWithKeys<Value extends React.Key>(
+  options: SelectOptionOrSection<Value>[]
+): SelectOptionOrSectionWithKey<Value>[] {
+  return options.map((item, i) => {
+    if ('options' in item) {
+      return {
+        ...item,
+        key: item.key ?? `options-${i}`,
+        options: getItemsWithKeys(item.options),
+      };
+    }
+
+    return {...item, key: getEscapedKey(item.value)};
+  });
+}
 
 /**
  * Recursively finds the selected option(s) from an options array. Useful for
@@ -31,7 +58,7 @@ export function getSelectedOptions<Value extends React.Key>(
     }
 
     // If this is an option
-    if (selection === 'all' || selection.has(String(cur.value))) {
+    if (selection === 'all' || selection.has(getEscapedKey(cur.value))) {
       const {key: _key, ...opt} = cur;
       return acc.concat(opt);
     }
@@ -154,15 +181,15 @@ export function getHiddenOptions<Value extends React.Key>(
  * then this function unselects all of them.
  */
 export function toggleOptions<Value extends React.Key>(
-  optionValues: Value[],
+  optionKeys: Value[],
   selectionManager: SelectionManager
 ) {
   const {selectedKeys} = selectionManager;
   const newSelectedKeys = new Set(selectedKeys);
 
-  const allOptionsSelected = optionValues.every(val => selectionManager.isSelected(val));
+  const allOptionsSelected = optionKeys.every(val => selectionManager.isSelected(val));
 
-  optionValues.forEach(val =>
+  optionKeys.forEach(val =>
     allOptionsSelected ? newSelectedKeys.delete(val) : newSelectedKeys.add(val)
   );
 

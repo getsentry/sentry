@@ -10,15 +10,15 @@ import {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 
-export interface initializeDataSettings {
+export interface InitializeDataSettings {
   features?: string[];
   project?: any; // TODO(k-fish): Fix this project type.
   projects?: Project[];
   query?: {};
-  selectedProject?: number | string;
+  selectedProject?: any;
 }
 
-export function initializeData(settings?: initializeDataSettings) {
+export function initializeData(settings?: InitializeDataSettings) {
   const _defaultProject = TestStubs.Project();
   const _settings = {
     query: {},
@@ -33,7 +33,7 @@ export function initializeData(settings?: initializeDataSettings) {
     features,
     projects,
   });
-  const routerLocation: {query: {project?: number}} = {
+  const routerLocation: {query: {project?: string}} = {
     query: {
       ...query,
     },

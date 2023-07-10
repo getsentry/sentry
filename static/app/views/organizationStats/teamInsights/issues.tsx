@@ -11,7 +11,7 @@ import {TeamWithProjects} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useOrganization from 'sentry/utils/useOrganization';
-import useTeams from 'sentry/utils/useTeams';
+import {useTeams} from 'sentry/utils/useTeams';
 
 import Header from '../header';
 
@@ -20,7 +20,7 @@ import DescriptionCard from './descriptionCard';
 import TeamIssuesAge from './teamIssuesAge';
 import TeamIssuesBreakdown from './teamIssuesBreakdown';
 import TeamResolutionTime from './teamResolutionTime';
-import TeamUnresolvedIssues from './teamUnresolvedIssues';
+import {TeamUnresolvedIssues} from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
 type Props = RouteComponentProps<{}, {}>;
@@ -103,7 +103,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
                 statuses={['new', 'regressed', 'unignored']}
               />
             </DescriptionCard>
@@ -122,7 +121,6 @@ function TeamStatsIssues({location, router}: Props) {
                 period={period}
                 start={start?.toString()}
                 end={end?.toString()}
-                location={location}
                 statuses={['resolved', 'ignored', 'deleted']}
               />
             </DescriptionCard>

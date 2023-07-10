@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,7 +11,6 @@ import {space} from 'sentry/styles/space';
 
 type Props = {
   onMerge: () => void;
-  v2: boolean;
 };
 
 const initialState = {
@@ -40,7 +39,7 @@ class SimilarToolbar extends Component<Props, State> {
   listener = GroupingStore.listen(this.onGroupChange, undefined);
 
   render() {
-    const {onMerge, v2} = this.props;
+    const {onMerge} = this.props;
     const {mergeCount} = this.state;
 
     return (
@@ -57,15 +56,8 @@ class SimilarToolbar extends Component<Props, State> {
 
         <Columns>
           <StyledToolbarHeader>{t('Events')}</StyledToolbarHeader>
-
-          {v2 ? (
-            <StyledToolbarHeader>{t('Score')}</StyledToolbarHeader>
-          ) : (
-            <Fragment>
-              <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
-              <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
-            </Fragment>
-          )}
+          <StyledToolbarHeader>{t('Exception')}</StyledToolbarHeader>
+          <StyledToolbarHeader>{t('Message')}</StyledToolbarHeader>
         </Columns>
       </PanelHeader>
     );

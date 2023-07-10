@@ -1,13 +1,13 @@
 from django.conf import settings
-from django.conf.urls import url
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils import APITestCase, TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -158,16 +158,16 @@ class OrganizationTestEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
-    url(
+    re_path(
         r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
     ),
-    url(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
+    re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
 
 
@@ -184,6 +184,7 @@ def provision_middleware():
     SENTRY_SELF_HOSTED=False,
     SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
+@control_silo_test(stable=True)
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()

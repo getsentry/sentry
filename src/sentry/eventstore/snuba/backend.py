@@ -2,10 +2,23 @@ import logging
 import random
 from copy import copy, deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional, Sequence
 
 import sentry_sdk
 from django.utils import timezone
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry.eventstore.base import EventStorage
 from sentry.eventstore.models import Event
@@ -13,6 +26,7 @@ from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils import snuba
+from sentry.utils.snuba import DATASETS, _prepare_start_end, raw_snql_query
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -47,6 +61,89 @@ class SnubaEventStorage(EventStorage):
     """
     Eventstore backend backed by Snuba
     """
+
+    def get_events_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: Optional[datetime],
+        end: Optional[datetime],
+        conditions: Sequence[Condition],
+        orderby: Sequence[str],
+        limit=DEFAULT_LIMIT,
+        offset=DEFAULT_OFFSET,
+        referrer="eventstore.get_events_snql",
+        dataset=snuba.Dataset.Events,
+        tenant_ids=None,
+    ):
+        cols = self.__get_columns(dataset)
+
+        resolved_order_by = []
+        for order_field_alias in orderby:
+            if order_field_alias.startswith("-"):
+                direction = Direction.DESC
+                order_field_alias = order_field_alias[1:]
+            else:
+                direction = Direction.ASC
+            resolved_column_or_none = DATASETS[dataset].get(order_field_alias)
+            if resolved_column_or_none:
+                # special-case handling for nullable column values and proper ordering based on direction
+                # null values are always last in the sort order regardless of Desc or Asc ordering
+                if order_field_alias == Columns.NUM_PROCESSING_ERRORS.value.alias:
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function("coalesce", [Column(resolved_column_or_none), 99999999]),
+                            direction=direction,
+                        )
+                    )
+                elif order_field_alias == Columns.TRACE_SAMPLED.value.alias:
+                    resolved_order_by.append(
+                        OrderBy(
+                            Function("coalesce", [Column(resolved_column_or_none), -1]),
+                            direction=direction,
+                        )
+                    )
+                else:
+                    resolved_order_by.append(
+                        OrderBy(Column(resolved_column_or_none), direction=direction)
+                    )
+        orderby = resolved_order_by
+
+        start, end = _prepare_start_end(
+            start,
+            end,
+            organization_id,
+            [group_id],
+        )
+
+        snql_request = Request(
+            dataset=dataset.value,
+            app_id="eventstore",
+            query=Query(
+                match=Entity(dataset.value),
+                select=[Column(col) for col in cols],
+                where=[
+                    Condition(
+                        Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.GTE, start
+                    ),
+                    Condition(Column(DATASETS[dataset][Columns.TIMESTAMP.value.alias]), Op.LT, end),
+                ]
+                + list(conditions),
+                orderby=orderby,
+                limit=Limit(limit),
+                offset=Offset(offset),
+            ),
+            tenant_ids=tenant_ids or dict(),
+        )
+
+        result = raw_snql_query(snql_request, referrer, use_cache=False)
+
+        if "error" not in result:
+            events = [self.__make_event(evt) for evt in result["data"]]
+            self.bind_nodes(events)
+            return events
+
+        return []
 
     def get_events(
         self,
@@ -214,15 +311,12 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        if group_id is not None and event.get_event_type() != "generic":
-            # Set passed group_id if not a transaction
-            if event.get_event_type() == "transaction" and not skip_transaction_groupevent:
-                logger.warning("eventstore.passed-group-id-for-transaction")
-                return event.for_group(Group.objects.get(id=group_id))
-            else:
-                event.group_id = group_id
-
-        elif event.get_event_type() != "transaction":
+        if group_id is not None and (
+            event.get_event_type() == "error"
+            or (event.get_event_type() == "transaction" and skip_transaction_groupevent)
+        ):
+            event.group_id = group_id
+        elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
             raw_query_kwargs = {}
             if event.datetime > timezone.now() - timedelta(hours=1):
@@ -233,18 +327,23 @@ class SnubaEventStorage(EventStorage):
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
             dataset = (
-                Dataset.IssuePlatform if event.get_event_type() == "generic" else Dataset.Events
+                Dataset.IssuePlatform
+                if event.get_event_type() in ("transaction", "generic")
+                else Dataset.Events
             )
             try:
                 tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
+                filter_keys = {"project_id": [project_id], "event_id": [event_id]}
+                if group_id:
+                    filter_keys["group_id"] = [group_id]
                 result = snuba.raw_query(
                     dataset=dataset,
                     selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
-                    filter_keys={"project_id": [project_id], "event_id": [event_id]},
+                    filter_keys=filter_keys,
                     limit=1,
-                    referrer="eventstore.get_event_by_id_nodestore",
+                    referrer="eventstore.backend.get_event_by_id_nodestore",
                     tenant_ids=tenant_ids,
                     **raw_query_kwargs,
                 )
@@ -274,13 +373,18 @@ class SnubaEventStorage(EventStorage):
             # Inject the snuba data here to make sure any snuba columns are available
             event._snuba_data = result["data"][0]
 
+        # Set passed group_id if not a transaction
+        if event.get_event_type() == "transaction" and not skip_transaction_groupevent and group_id:
+            logger.warning("eventstore.passed-group-id-for-transaction")
+            return event.for_group(Group.objects.get(id=group_id))
+
         return event
 
     def _get_dataset_for_event(self, event):
-        if event.get_event_type() == "transaction":
-            return snuba.Dataset.Transactions
-        elif event.get_event_type() == "generic":
+        if getattr(event, "occurrence", None) or event.get_event_type() == "generic":
             return snuba.Dataset.IssuePlatform
+        elif event.get_event_type() == "transaction":
+            return snuba.Dataset.Transactions
         else:
             return snuba.Dataset.Discover
 

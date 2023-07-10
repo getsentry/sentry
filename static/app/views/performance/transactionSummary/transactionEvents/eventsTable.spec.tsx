@@ -61,7 +61,6 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   const organization = TestStubs.Organization({
     features,
     projects: [TestStubs.Project()],
-    apdexThreshold: 400,
   });
   const initialData = initializeOrg({
     organization,
@@ -69,12 +68,11 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
       location: {
         query: {
           transaction: '/performance',
-          project: 1,
+          project: '1',
           transactionCursor: '1:0:0',
         },
       },
     },
-    project: 1,
     projects: [],
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);

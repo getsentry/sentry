@@ -5,7 +5,7 @@ from rest_framework import serializers
 from sentry.models import Commit, Repository
 
 
-class InCommitValidator(serializers.Serializer):  # type: ignore
+class InCommitValidator(serializers.Serializer):
     commit = serializers.CharField(required=True)
     repository = serializers.CharField(required=True)
 

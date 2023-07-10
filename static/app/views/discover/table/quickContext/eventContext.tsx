@@ -184,7 +184,6 @@ const StackTraceWrapper = styled('div')`
   .traceback {
     margin-bottom: 0;
     border: 0;
-    box-shadow: none;
   }
   border-radius: ${p => p.theme.borderRadius};
 `;

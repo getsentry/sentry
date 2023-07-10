@@ -5,7 +5,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types';
-import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
+import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
   it('display redacted values from exception entry', async function () {
@@ -15,11 +15,9 @@ describe('Exception Content', function () {
     });
 
     const {organization, router, routerContext} = initializeOrg({
-      ...initializeOrg(),
       router: {
         location: {query: {project: '0'}},
       },
-      project: '0',
       projects: [project],
     });
 
@@ -105,12 +103,12 @@ describe('Exception Content', function () {
 
     render(
       <Content
-        type={STACK_TYPE.ORIGINAL}
+        type={StackType.ORIGINAL}
         groupingCurrentLevel={0}
         hasHierarchicalGrouping
         newestFirst
         platform="python"
-        stackView={STACK_VIEW.APP}
+        stackView={StackView.APP}
         event={event}
         values={event.entries[0].data.values}
         meta={event._meta.entries[0].data.values}
@@ -151,11 +149,11 @@ describe('Exception Content', function () {
     const project = TestStubs.Project();
 
     const defaultProps = {
-      type: STACK_TYPE.ORIGINAL,
+      type: StackType.ORIGINAL,
       hasHierarchicalGrouping: false,
       newestFirst: true,
       platform: 'python' as const,
-      stackView: STACK_VIEW.APP,
+      stackView: StackView.APP,
       event,
       values: event.entries[0].data.values,
       projectSlug: project.slug,

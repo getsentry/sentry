@@ -18,7 +18,6 @@ import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
@@ -28,7 +27,7 @@ import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -39,26 +38,24 @@ type RouteParams = {
   teamId: string;
 };
 
-type Props = {
+interface Props extends RouteComponentProps<RouteParams, {}> {
   api: Client;
   config: Config;
   organization: Organization;
   team: Team;
-} & RouteComponentProps<RouteParams, {}>;
+}
 
-type State = {
+interface State extends AsyncViewState {
   dropdownBusy: boolean;
   error: boolean;
-  loading: boolean;
   orgMembers: Member[];
   teamMembers: TeamMember[];
-} & AsyncView['state'];
+}
 
 class TeamMembers extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      loading: true,
       error: false,
       dropdownBusy: false,
       teamMembers: [],
@@ -67,6 +64,7 @@ class TeamMembers extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // Initialize "add member" dropdown with data
     this.fetchMembersRequest('');
   }
@@ -119,8 +117,6 @@ class TeamMembers extends AsyncView<Props, State> {
     const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
-    this.setState({loading: true});
-
     // Reset members list after adding member to team
     this.debouncedFetchMembersRequest('');
 
@@ -138,14 +134,12 @@ class TeamMembers extends AsyncView<Props, State> {
             return;
           }
           this.setState({
-            loading: false,
             error: false,
             teamMembers: teamMembers.concat([orgMember as TeamMember]),
           });
           addSuccessMessage(t('Successfully added member to team.'));
         },
         error: () => {
-          this.setState({loading: false});
           addErrorMessage(t('Unable to add team member.'));
         },
       }
@@ -253,6 +247,7 @@ class TeamMembers extends AsyncView<Props, State> {
 
     return (
       <DropdownAutoComplete
+        closeOnSelect={false}
         items={items}
         alignMenu="right"
         onSelect={
@@ -271,6 +266,7 @@ class TeamMembers extends AsyncView<Props, State> {
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
         disabled={isDropdownDisabled}
+        data-test-id="add-member-menu"
       >
         {({isOpen}) => (
           <DropdownButton
@@ -305,10 +301,6 @@ class TeamMembers extends AsyncView<Props, State> {
   }
 
   render() {
-    if (this.state.loading) {
-      return <LoadingIndicator />;
-    }
-
     if (this.state.error) {
       return <LoadingError onRetry={this.fetchData} />;
     }

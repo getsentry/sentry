@@ -137,7 +137,7 @@ class KillswitchesTest(CliTestCase):
         "sentry.options.set",
     )
     def test_relay_drop_transaction_metrics_all(self, mock_set, mock_schedule):
-
+        self.organization
         option = "relay.drop-transaction-metrics"
 
         rv = self.invoke("push", "--yes", option, "-", input=("- project_id: null\n"))

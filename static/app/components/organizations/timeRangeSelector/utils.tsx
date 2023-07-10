@@ -298,39 +298,39 @@ export const timeRangeAutoCompleteFilter = function (
 };
 
 /**
- * Returns default relative periods (DEFAULT_RELATIVE_PERIODS), but with a custom period
- * (`customPeriod`) inserted inside in sorted order. Used by <TimeRangeSelector /> since
- * in addition to DEFAULT_RELATIVE_PERIODS the selector also needs to show whatever
- * custom period the user selected.
+ * Returns an object whose key is the arbitrary period string and whose value is a
+ * human-readable label for that period. E.g. '2h' returns {'2h': 'Last 2 hours'}.
  */
-export function getDefaultRelativePeriods(customPeriod?: string | null) {
-  // If there's no custom period, or the custom period is already a default period.
-  if (!customPeriod || customPeriod in DEFAULT_RELATIVE_PERIODS) {
-    return DEFAULT_RELATIVE_PERIODS;
+export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
+  // If arbitraryPeriod is invalid
+  if (!arbitraryPeriod || !STATS_PERIOD_REGEX.exec(arbitraryPeriod)) {
+    return {};
   }
 
-  try {
-    const entries = Object.entries(DEFAULT_RELATIVE_PERIODS);
+  // Get the custom period label ("8D" --> "8 Days")
+  const {value, unit} = parseStatsPeriodString(arbitraryPeriod);
+  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value)};
+}
 
-    /**
-     * Location inside `entries` to insert the custom period into.
-     */
-    const insertionIndex = Object.keys(DEFAULT_RELATIVE_PERIODS).findIndex(
-      period =>
-        moment(parseStatsPeriod(period).start) <=
-        moment(parseStatsPeriod(customPeriod).start)
+/**
+ * Returns an object with sorted relative time periods, where the period with the most
+ * recent start time comes first (e.g. 1H — 2H - 1D — 7D…)
+ */
+export function getSortedRelativePeriods(
+  relativePeriods: Record<string, React.ReactNode>
+) {
+  const entries = Object.entries(relativePeriods);
+
+  const validPeriods = entries.filter(([period]) => !!STATS_PERIOD_REGEX.exec(period));
+  const invalidPeriods = entries.filter(([period]) => !STATS_PERIOD_REGEX.exec(period));
+
+  const sortedValidPeriods = validPeriods.sort((a, b) => {
+    const [periodA] = a;
+    const [periodB] = b;
+
+    return moment(parseStatsPeriod(periodB).start).diff(
+      moment(parseStatsPeriod(periodA).start)
     );
-
-    // Get the custom period label ("8D" --> "8 Days")
-    const {value, unit} = parseStatsPeriodString(customPeriod);
-    const customRange: [string, string] = [
-      customPeriod,
-      SUPPORTED_RELATIVE_PERIOD_UNITS[unit].label(value),
-    ];
-
-    entries.splice(insertionIndex, 0, customRange);
-    return Object.fromEntries(entries);
-  } catch {
-    return DEFAULT_RELATIVE_PERIODS;
-  }
+  });
+  return Object.fromEntries(invalidPeriods.concat(sortedValidPeriods));
 }

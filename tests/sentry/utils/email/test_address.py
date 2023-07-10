@@ -45,7 +45,7 @@ class ParseEmailTest(TestCase):
         assert parse_email("lauryn <lauryn@sentry.io>") == "lauryn@sentry.io"
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class ParseUserNameTest(TestCase):
     def test_empty(self):
         assert parse_user_name("") == ""

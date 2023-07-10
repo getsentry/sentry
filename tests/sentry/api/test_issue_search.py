@@ -23,11 +23,12 @@ from sentry.api.issue_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import GROUP_SUBSTATUS_TO_STATUS_MAP, STATUS_QUERY_CHOICES, GroupStatus
+from sentry.search.utils import get_teams_for_users
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -180,6 +181,38 @@ class ConvertJavaScriptConsoleTagTest(TestCase):
 
 @region_silo_test(stable=True)
 class ConvertQueryValuesTest(TestCase):
+    @with_feature("organizations:assign-to-me")
+    def test_valid_assign_me_converter(self):
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
+        expected = value_converters["assigned_to"](
+            [filters[0].value.raw_value], [self.project], self.user, None
+        )
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == expected
+
+    @with_feature("organizations:assign-to-me")
+    def test_valid_assign_me_no_converter(self):
+        search_val = SearchValue("me")
+        filters = [SearchFilter(SearchKey("something"), "=", search_val)]
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == search_val.raw_value
+
+    @with_feature("organizations:assign-to-me")
+    def test_valid_assign_my_teams_converter(self):
+        filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("my_teams"))]
+        expected = value_converters["assigned_to"](
+            [filters[0].value.raw_value], [self.project], self.user, None
+        )
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == expected
+
+    @with_feature("organizations:assign-to-me")
+    def test_valid_assign_my_teams_no_converter(self):
+        search_val = SearchValue("my_teams")
+        filters = [SearchFilter(SearchKey("something"), "=", search_val)]
+        filters = convert_query_values(filters, [self.project], self.user, None)
+        assert filters[0].value.raw_value == search_val.raw_value
+
     def test_valid_converter(self):
         filters = [SearchFilter(SearchKey("assigned_to"), "=", SearchValue("me"))]
         expected = value_converters["assigned_to"](
@@ -220,22 +253,86 @@ class ConvertStatusValueTest(TestCase):
             convert_query_values(filters, [self.project], self.user, None)
 
 
-@apply_feature_flag_on_cls("organizations:issue-states")
+@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ConvertSubStatusValueTest(TestCase):
     def test_valid(self):
         for substatus_string, substatus_val in SUBSTATUS_UPDATE_CHOICES.items():
             filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_string]))]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
+            assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
 
             filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue([substatus_val]))]
             result = convert_query_values(filters, [self.project], self.user, None)
             assert result[0].value.raw_value == [substatus_val]
+            assert result[1].value.raw_value == [GROUP_SUBSTATUS_TO_STATUS_MAP.get(substatus_val)]
 
     def test_invalid(self):
         filters = [SearchFilter(SearchKey("substatus"), "=", SearchValue("wrong"))]
         with pytest.raises(InvalidSearchQuery, match="invalid substatus value"):
             convert_query_values(filters, [self.project], self.user, None)
+
+    def test_mixed_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+        ]
+
+    def test_mixed_with_status(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("status"), "=", SearchValue(["unresolved"])),
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+            ("substatus", "IN", [GroupSubStatus.UNTIL_ESCALATING]),
+        ]
+
+    def test_mixed_incl_excl_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.UNRESOLVED]),
+        ]
+
+    def test_mixed_incl_excl_substatus_with_status(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+            SearchFilter(SearchKey("status"), "=", SearchValue(["ignored"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "IN", [GroupStatus.IGNORED]),
+        ]
+
+    def test_mixed_excl_excl_substatus(self):
+        filters = [
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["ongoing"])),
+            SearchFilter(SearchKey("substatus"), "!=", SearchValue(["until_escalating"])),
+        ]
+        result = convert_query_values(filters, [self.project], self.user, None)
+        assert [(sf.key.name, sf.operator, sf.value.raw_value) for sf in result] == [
+            ("substatus", "NOT IN", [GroupSubStatus.ONGOING]),
+            ("substatus", "NOT IN", [GroupSubStatus.UNTIL_ESCALATING]),
+            ("status", "NOT IN", [GroupStatus.UNRESOLVED]),
+        ]
 
 
 @region_silo_test(stable=True)
@@ -244,6 +341,12 @@ class ConvertActorOrNoneValueTest(TestCase):
         assert convert_actor_or_none_value(
             ["me"], [self.project], self.user, None
         ) == convert_user_value(["me"], [self.project], self.user, None)
+
+    @with_feature("organizations:assign-to-me")
+    def test_my_team(self):
+        assert convert_actor_or_none_value(
+            ["my_teams"], [self.project], self.user, None
+        ) == get_teams_for_users([self.project], [self.user])
 
     def test_none(self):
         assert convert_actor_or_none_value(["none"], [self.project], self.user, None) == [None]

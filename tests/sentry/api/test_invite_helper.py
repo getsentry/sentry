@@ -4,7 +4,10 @@ from django.http import HttpRequest
 
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models import AuthProvider, OrganizationMember
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.signals import receivers_raise_on_send
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class ApiInviteHelperTest(TestCase):
@@ -27,20 +30,26 @@ class ApiInviteHelperTest(TestCase):
         self.request.user = self.user
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     def test_accept_invite(self, get_audit, create_audit):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, self.member.id, None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_SSO(self, mock_provider, get_audit, create_audit):
         self.auth_provider.flags.allow_unlinked = True
@@ -49,15 +58,23 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, self.member.id, None)
-        helper.accept_invite()
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
+
+        with receivers_raise_on_send(), outbox_runner():
+            helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     def test_accept_invite_with_required_SSO(self, mock_provider, get_audit, create_audit):
         self.auth_provider.flags.allow_unlinked = False
@@ -66,16 +83,22 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, self.member.id, None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         # Invite cannot be accepted without AuthIdentity if SSO is required
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is not None
-        assert om.user is None
+        assert om.user_id is None
 
     @patch("sentry.api.invite_helper.create_audit_entry")
-    @patch("sentry.api.invite_helper.OrganizationMember.get_audit_log_data")
+    @patch("sentry.api.invite_helper.RpcOrganizationMember.get_audit_log_metadata")
     @patch("sentry.api.invite_helper.AuthProvider.objects")
     @patch("sentry.api.invite_helper.AuthIdentity.objects")
     def test_accept_invite_with_required_SSO_with_identity(
@@ -88,9 +111,15 @@ class ApiInviteHelperTest(TestCase):
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email == self.member.email
 
-        helper = ApiInviteHelper(self.request, self.member.id, None)
+        helper = ApiInviteHelper(
+            self.request,
+            organization_service.get_invite_by_id(
+                organization_member_id=om.id, organization_id=om.organization_id
+            ),
+            None,
+        )
         helper.accept_invite()
 
         om = OrganizationMember.objects.get(id=self.member.id)
         assert om.email is None
-        assert om.user.id == self.user.id
+        assert om.user_id == self.user.id

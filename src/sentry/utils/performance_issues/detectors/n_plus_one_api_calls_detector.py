@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import os
-import random
 from collections import defaultdict
 from datetime import timedelta
 from typing import List, Mapping, Optional, Sequence
@@ -12,6 +11,7 @@ from django.utils.encoding import force_bytes
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -19,6 +19,7 @@ from ..base import (
     DetectorType,
     PerformanceDetector,
     fingerprint_http_spans,
+    get_notification_attachment_body,
     get_span_duration,
     get_span_evidence_value,
     get_url_from_span,
@@ -41,10 +42,10 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
     """
 
     __slots__ = ["stored_problems"]
-    type: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
-    settings_key: DetectorType = DetectorType.N_PLUS_ONE_API_CALLS
+    type = DetectorType.N_PLUS_ONE_API_CALLS
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS
 
-    HOST_DENYLIST = []
+    HOST_DENYLIST: list[str] = []
 
     def init(self):
         # TODO: Only store the span IDs and timestamps instead of entire span objects
@@ -86,7 +87,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     @classmethod
     def is_event_eligible(cls, event, project=None):
@@ -189,7 +190,19 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
                 "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
                 "parameters": self._get_parameters(),
             },
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        last_span["op"],
+                        os.path.commonprefix(
+                            [span.get("description", "") or "" for span in self.spans]
+                        ),
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
         )
 
     def _get_parameters(self) -> List[str]:
@@ -247,6 +260,106 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.span_hashes[span_a["span_id"]] == self.span_hashes[span_b["span_id"]]
             and span_a["parent_span_id"] == span_b["parent_span_id"]
         )
+
+
+class NPlusOneAPICallsDetectorExtended(NPlusOneAPICallsDetector):
+    """
+    Detector goals:
+    - Extend N+1 API Calls detector to replace individual span duration threshold with total duration.
+    """
+
+    type = DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED
+    settings_key = DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED
+
+    def _maybe_store_problem(self):
+        if len(self.spans) < 1:
+            return
+
+        if len(self.spans) < self.settings["count"]:
+            return
+
+        total_duration = self._sum_span_duration(self.spans)
+        if total_duration < self.settings["total_duration"]:
+            return
+
+        last_span = self.spans[-1]
+
+        fingerprint = self._fingerprint()
+        if not fingerprint:
+            return
+
+        offender_span_ids = [span["span_id"] for span in self.spans]
+
+        self.stored_problems[fingerprint] = PerformanceProblem(
+            fingerprint=fingerprint,
+            op=last_span["op"],
+            desc=os.path.commonprefix([span.get("description", "") or "" for span in self.spans]),
+            type=DETECTOR_TYPE_TO_GROUP_TYPE[self.settings_key],
+            cause_span_ids=[],
+            parent_span_ids=[last_span.get("parent_span_id", None)],
+            offender_span_ids=offender_span_ids,
+            evidence_data={
+                "op": last_span["op"],
+                "cause_span_ids": [],
+                "parent_span_ids": [last_span.get("parent_span_id", None)],
+                "offender_span_ids": offender_span_ids,
+                "transaction_name": self._event.get("transaction", ""),
+                "num_repeating_spans": str(len(offender_span_ids)) if offender_span_ids else "",
+                "repeating_spans": self._get_path_prefix(self.spans[0]),
+                "repeating_spans_compact": get_span_evidence_value(self.spans[0], include_op=False),
+                "parameters": self._get_parameters(),
+            },
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        last_span["op"],
+                        os.path.commonprefix(
+                            [span.get("description", "") or "" for span in self.spans]
+                        ),
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
+        )
+
+    def visit_span(self, span: Span) -> None:
+        if not NPlusOneAPICallsDetectorExtended.is_span_eligible(span):
+            return
+
+        op = span.get("op", None)
+        if op not in self.settings.get("allowed_span_ops", []):
+            return
+
+        self.span_hashes[span["span_id"]] = get_span_hash(span)
+
+        previous_span = self.spans[-1] if len(self.spans) > 0 else None
+
+        if previous_span is None:
+            self.spans.append(span)
+        elif self._spans_are_concurrent(previous_span, span) and self._spans_are_similar(
+            previous_span, span
+        ):
+            self.spans.append(span)
+        else:
+            self._maybe_store_problem()
+            self.spans = [span]
+
+    def _sum_span_duration(self, spans: list[Span]) -> float:
+        "Given a list of spans, find the sum of the span durations in milliseconds"
+        sum = 0.0
+        for span in spans:
+            sum += get_span_duration(span).total_seconds() * 1000
+        return sum
+
+    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
+        # Only collecting metrics.
+        return False
+
+    def is_creation_allowed_for_project(self, project: Project) -> bool:
+        # Only collecting metrics.
+        return False
 
 
 HTTP_METHODS = {

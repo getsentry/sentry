@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
+from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -28,6 +29,7 @@ from sentry.auth.system import SystemToken
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.auth import mark_sso_complete
 
@@ -42,7 +44,12 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
+def _get_response(request: HttpRequest) -> HttpResponse:
+    return HttpResponse("example response")
+
+
 @freeze_time(BASETIME)
+@control_silo_test(stable=True)
 class SuperuserTestCase(TestCase):
     def setUp(self):
         super().setUp()
@@ -167,13 +174,13 @@ class SuperuserTestCase(TestCase):
         ):
             user = User(is_superuser=True, email="test@sentry.io")
             request = self.make_request(user=user, method="PUT")
-            request._body = json.dumps(
+            request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
                 {
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "Edit organization settings",
                     "isSuperuserModal": True,
                 }
-            )
+            ).encode()
 
             superuser = Superuser(request, org_id=None)
             superuser.set_logged_in(request.user)
@@ -240,12 +247,12 @@ class SuperuserTestCase(TestCase):
     def test_su_access_no_request_user_missing_info(self, logger):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = json.dumps(
+        request._body = json.dumps(  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
             {
                 "superuserAccessCategory": "for_unit_test",
                 "superuserReason": "Edit organization settings",
             }
-        )
+        ).encode()
         del request.user.id
 
         superuser = Superuser(request, org_id=None)
@@ -260,7 +267,7 @@ class SuperuserTestCase(TestCase):
     ):
         user = User(is_superuser=True)
         request = self.make_request(user=user, method="PUT")
-        request._body = '{"invalid" "json"}'
+        request._body = b'{"invalid" "json"}'  # type: ignore[attr-defined]  # typeddjango/django-stubs#1607
 
         superuser = Superuser(request, org_id=None)
         with self.settings(
@@ -303,7 +310,7 @@ class SuperuserTestCase(TestCase):
         delattr(request, "superuser")
         delattr(request, "is_superuser")
 
-        middleware = SuperuserMiddleware()
+        middleware = SuperuserMiddleware(_get_response)
         middleware.process_request(request)
         assert request.superuser.is_active
         assert request.is_superuser()
@@ -320,6 +327,37 @@ class SuperuserTestCase(TestCase):
             path=COOKIE_PATH,
             domain=COOKIE_DOMAIN,
         )
+
+    def test_middleware_as_superuser_without_session(self):
+        request = self.build_request(session_data=False)
+
+        delattr(request, "superuser")
+        delattr(request, "is_superuser")
+
+        middleware = SuperuserMiddleware(_get_response)
+        middleware.process_request(request)
+        assert not request.superuser.is_active
+        assert not request.is_superuser()
+
+        response = Mock()
+        middleware.process_response(request, response)
+        response.delete_cookie.assert_called_once_with(COOKIE_NAME)
+
+    def test_middleware_as_non_superuser(self):
+        user = self.create_user("foo@example.com", is_superuser=False)
+        request = self.build_request(user=user)
+
+        delattr(request, "superuser")
+        delattr(request, "is_superuser")
+
+        middleware = SuperuserMiddleware(_get_response)
+        middleware.process_request(request)
+        assert not request.superuser.is_active
+        assert not request.is_superuser()
+
+        response = Mock()
+        middleware.process_response(request, response)
+        assert not response.set_signed_cookie.called
 
     def test_changed_user(self):
         request = self.build_request()

@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import {createPortal} from 'react-dom';
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -11,7 +11,7 @@ import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverla
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
-export interface InternalTooltipProps extends UseHoverOverlayProps {
+interface InternalTooltipProps extends UseHoverOverlayProps {
   /**
    * The content to show in the tooltip popover
    */
@@ -36,8 +36,15 @@ export function DO_NOT_USE_TOOLTIP({
   ...hoverOverlayProps
 }: InternalTooltipProps) {
   const theme = useTheme();
-  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps} =
+  const {wrapTrigger, isOpen, overlayProps, placement, arrowData, arrowProps, reset} =
     useHoverOverlay('tooltip', hoverOverlayProps);
+
+  // Reset the visibility when the tooltip becomes disabled
+  useEffect(() => {
+    if (disabled) {
+      reset();
+    }
+  }, [reset, disabled]);
 
   if (disabled || !title) {
     return <Fragment>{children}</Fragment>;
@@ -99,4 +106,4 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-export {Tooltip};
+export {Tooltip, TooltipProps};

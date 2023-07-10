@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Tooltip} from 'sentry/components/tooltip';
+import {TooltipProps} from 'sentry/components/tooltip';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Actor} from 'sentry/types';
 import Teams from 'sentry/utils/teams';
@@ -20,7 +20,7 @@ type Props = {
   suggested?: boolean;
   title?: string;
   tooltip?: React.ReactNode;
-  tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
+  tooltipOptions?: Omit<TooltipProps, 'children' | 'title'>;
 };
 
 function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {

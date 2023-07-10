@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import Clipboard from 'sentry/components/clipboard';
 import Confirm from 'sentry/components/confirm';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {
   Panel,
@@ -11,7 +11,7 @@ import {
   PanelHeader,
   PanelItem,
 } from 'sentry/components/panels';
-import {IconCopy, IconDownload, IconPrint} from 'sentry/icons';
+import {IconDownload, IconPrint} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
@@ -43,11 +43,7 @@ function RecoveryCodes({className, isEnrolled, codes, onRegenerateBackupCodes}: 
         {t('Unused Codes')}
 
         <Actions>
-          <Clipboard hideUnsupported value={formattedCodes}>
-            <Button size="sm" aria-label={t('copy')}>
-              <IconCopy />
-            </Button>
-          </Clipboard>
+          <CopyToClipboardButton text={formattedCodes} size="sm" />
           <Button size="sm" onClick={printCodes} aria-label={t('print')}>
             <IconPrint />
           </Button>

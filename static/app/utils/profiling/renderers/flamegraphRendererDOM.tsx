@@ -30,7 +30,7 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     super(canvas, flamegraph, theme, options);
 
     const newContainer = document.createElement('div');
-    document.body.appendChild(newContainer);
+    canvas.parentElement?.appendChild(newContainer);
     this.container = newContainer;
   }
 
@@ -39,19 +39,11 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       throw new Error('No container to render into');
     }
 
-    const parent = document.body;
-
-    if (this.container) {
-      this.container.remove();
-    }
-
     const newContainer = document.createElement('div');
-    newContainer.setAttribute('data-test-id', 'flamegraph-zoom-view-container');
-
+    this.canvas.parentElement?.appendChild(newContainer);
     this.container = newContainer;
-    parent.appendChild(newContainer);
 
-    const queue: FlamegraphFrame[] = [...this.flamegraph.root.children];
+    const queue: FlamegraphFrame[] = [...this.flamegraph.frames];
     while (queue.length > 0) {
       const frame = queue.pop()!;
 
@@ -74,12 +66,8 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
       div.style.height = `${rect.height}px`;
       div.style.backgroundColor = color;
       div.innerHTML = frame.frame.name;
-
+      div.setAttribute('data-test-id', 'flamegraph-frame');
       this.container.appendChild(div);
-
-      for (let i = 0; i < frame.children.length; i++) {
-        queue.push(frame.children[i]);
-      }
     }
   }
 

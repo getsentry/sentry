@@ -4,6 +4,8 @@ from django.db import connections
 from django.db.utils import ProgrammingError
 
 from sentry.runner.decorators import configuration
+from sentry.signals import post_upgrade
+from sentry.silo import SiloMode
 
 
 def _check_history():
@@ -37,7 +39,7 @@ def _check_history():
         )
 
 
-def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
+def _upgrade(interactive, traceback, verbosity, repair, run_post_upgrade, with_nodestore):
     from django.core.management import call_command as dj_call_command
 
     _check_history()
@@ -65,6 +67,9 @@ def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
 
         call_command("sentry.runner.commands.repair.repair")
 
+    if run_post_upgrade:
+        post_upgrade.send(sender=SiloMode.get_current_mode())
+
 
 @click.command()
 @click.option("--verbosity", "-v", default=1, help="Verbosity level.")
@@ -79,10 +84,16 @@ def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     help="Hold a global lock and limit upgrade to one concurrent.",
 )
 @click.option("--no-repair", default=False, is_flag=True, help="Skip repair step.")
+@click.option(
+    "--no-post-upgrade",
+    default=False,
+    is_flag=True,
+    help="Skip post migration database initialization.",
+)
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
 @configuration
 @click.pass_context
-def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, with_nodestore):
+def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, no_post_upgrade, with_nodestore):
     "Perform any pending database migrations and upgrades."
 
     if lock:
@@ -92,8 +103,17 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, with_nodestore)
         lock = locks.get("upgrade", duration=0, name="command_upgrade")
         try:
             with lock.acquire():
-                _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)
+                _upgrade(
+                    not noinput,
+                    traceback,
+                    verbosity,
+                    not no_repair,
+                    not no_post_upgrade,
+                    with_nodestore,
+                )
         except UnableToAcquireLock:
             raise click.ClickException("Unable to acquire `upgrade` lock.")
     else:
-        _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)
+        _upgrade(
+            not noinput, traceback, verbosity, not no_repair, not no_post_upgrade, with_nodestore
+        )

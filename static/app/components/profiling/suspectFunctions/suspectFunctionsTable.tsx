@@ -8,10 +8,11 @@ import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/funct
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
+import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
+import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 interface SuspectFunctionsTableProps {
   analyticsPageSource: 'performance_transaction' | 'profiling_transaction';
@@ -26,17 +27,24 @@ export function SuspectFunctionsTable({
   project,
   transaction,
 }: SuspectFunctionsTableProps) {
-  const {selection} = usePageFilters();
   const [functionType, setFunctionType] = useState<'application' | 'system' | 'all'>(
     'application'
   );
   const location = useLocation();
   const functionsCursor = useMemo(
-    () => decodeScalar(location.query.functionsCursor),
-    [location.query.functionsCursor]
+    () => decodeScalar(location.query[FUNCTIONS_CURSOR_NAME]),
+    [location.query]
   );
   const functionsSort = useMemo(
-    () => decodeScalar(location.query.functionsSort, '-sum'),
+    () =>
+      formatSort<FunctionsField>(
+        decodeScalar(location.query.functionsSort),
+        functionsFields,
+        {
+          key: 'sum()',
+          order: 'desc',
+        }
+      ),
     [location.query.functionsSort]
   );
 
@@ -47,14 +55,24 @@ export function SuspectFunctionsTable({
     });
   }, []);
 
-  const functionsQuery = useFunctions({
-    cursor: functionsCursor,
-    project,
-    query: '', // TODO: This doesnt support the same filters
-    selection,
-    transaction,
+  const query = useMemo(() => {
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    if (functionType === 'application') {
+      conditions.setFilterValues('is_application', ['1']);
+    } else if (functionType === 'system') {
+      conditions.setFilterValues('is_application', ['0']);
+    }
+    return conditions.formatString();
+  }, [functionType, transaction]);
+
+  const functionsQuery = useProfileFunctions<FunctionsField>({
+    fields: functionsFields,
+    referrer: 'api.profiling.profile-summary-functions-table',
     sort: functionsSort,
-    functionType,
+    query,
+    limit: 5,
+    cursor: functionsCursor,
   });
 
   return (
@@ -80,11 +98,7 @@ export function SuspectFunctionsTable({
           onChange={({value}) => setFunctionType(value)}
         />
         <StyledPagination
-          pageLinks={
-            functionsQuery.isFetched
-              ? functionsQuery.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
+          pageLinks={functionsQuery.getResponseHeader?.('Link')}
           onCursor={handleFunctionsCursor}
           size="xs"
         />
@@ -93,15 +107,24 @@ export function SuspectFunctionsTable({
         analyticsPageSource={analyticsPageSource}
         error={functionsQuery.isError ? functionsQuery.error.message : null}
         isLoading={functionsQuery.isLoading}
-        functions={
-          functionsQuery.isFetched ? functionsQuery.data?.[0].functions ?? [] : []
-        }
+        functions={functionsQuery.isFetched ? functionsQuery.data?.data ?? [] : []}
         project={project}
         sort={functionsSort}
       />
     </Fragment>
   );
 }
+
+const functionsFields = [
+  'package',
+  'function',
+  'count()',
+  'p75()',
+  'sum()',
+  'examples()',
+] as const;
+
+type FunctionsField = (typeof functionsFields)[number];
 
 const TableHeader = styled('div')`
   display: flex;

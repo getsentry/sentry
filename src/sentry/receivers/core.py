@@ -5,15 +5,15 @@ from click import echo
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db import connections, transaction
-from django.db.models.signals import post_migrate, post_save
+from django.db.models.signals import post_save
 from django.db.utils import OperationalError, ProgrammingError
 from packaging.version import parse as parse_version
 
 from sentry import options
-from sentry.db.models import get_model_if_available
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models import Organization, OrganizationMember, Project, ProjectKey, Team, User
-from sentry.signals import project_created
+from sentry.signals import post_upgrade, project_created
+from sentry.silo import SiloMode
 
 PROJECT_SEQUENCE_FIX = """
 SELECT setval('sentry_project_id_seq', (
@@ -36,20 +36,13 @@ def handle_db_failure(func):
     return wrapped
 
 
-def create_default_projects(app_config, verbosity=2, **kwargs):
-    if app_config and app_config.name != "sentry":
-        return
-
-    if not get_model_if_available(app_config, "Project"):
-        return
-
+def create_default_projects(**kwds):
     create_default_project(
         # This guards against sentry installs that have SENTRY_PROJECT set to None, so
         # that they don't error after every migration. Specifically for single tenant.
         id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID,
         name="Internal",
         slug="internal",
-        verbosity=verbosity,
     )
 
     if settings.SENTRY_FRONTEND_PROJECT:
@@ -57,7 +50,6 @@ def create_default_projects(app_config, verbosity=2, **kwargs):
             id=settings.SENTRY_FRONTEND_PROJECT,
             name="Frontend",
             slug="frontend",
-            verbosity=verbosity,
         )
 
 
@@ -73,7 +65,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
     org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
     if user:
-        OrganizationMember.objects.get_or_create(user=user, organization=org, role="owner")
+        OrganizationMember.objects.get_or_create(user_id=user.id, organization=org, role="owner")
 
     team, _ = Team.objects.get_or_create(
         organization=org, slug="sentry", defaults={"name": "Sentry"}
@@ -151,8 +143,11 @@ def freeze_option_epoch_for_project(instance, created, app=None, **kwargs):
 
 # Anything that relies on default objects that may not exist with default
 # fields should be wrapped in handle_db_failure
-post_migrate.connect(
-    handle_db_failure(create_default_projects), dispatch_uid="create_default_project", weak=False
+post_upgrade.connect(
+    handle_db_failure(create_default_projects),
+    dispatch_uid="create_default_project",
+    weak=False,
+    sender=SiloMode.MONOLITH,
 )
 
 post_save.connect(

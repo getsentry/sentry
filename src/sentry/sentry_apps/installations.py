@@ -92,7 +92,7 @@ class SentryAppInstallationTokenCreator:
 
     @cached_property
     def organization_id(self) -> int:
-        return self.sentry_app_installation.organization_id  # type: ignore
+        return self.sentry_app_installation.organization_id
 
 
 @dataclasses.dataclass
@@ -105,9 +105,10 @@ class SentryAppInstallationCreator:
         with transaction.atomic():
             api_grant = self._create_api_grant()
             install = self._create_install(api_grant=api_grant)
-            self._create_service_hooks(install=install)
-            install.is_new = True
             self.audit(request=request)
+
+        self._create_service_hooks(install=install)
+        install.is_new = True
 
         if self.notify:
             installation_webhook.delay(install.id, user.id)

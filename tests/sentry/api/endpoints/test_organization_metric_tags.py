@@ -1,10 +1,11 @@
 import time
+from typing import Collection
 from unittest.mock import patch
 
 import pytest
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
@@ -16,6 +17,10 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
 )
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+def mocked_bulk_reverse_resolve(use_case_id, org_id: int, ids: Collection[int]):
+    return {}
 
 
 @region_silo_test(stable=True)
@@ -54,6 +59,54 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         )
         assert response.data == []
 
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(
+            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
+        ),
+    )
+    def test_mri_metric_tags(self):
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == [
+            {"key": "tag1"},
+            {"key": "tag2"},
+            {"key": "tag3"},
+            {"key": "tag4"},
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"],
+            useCase="performance",
+        )
+        assert response.data == []
+
+    @patch(
+        "sentry.snuba.metrics.datasource.get_mri",
+        mocked_mri_resolver(
+            ["d:transactions/duration@millisecond", "d:sessions/duration.exited@second"], get_mri
+        ),
+    )
+    def test_mixed_metric_identifiers(self):
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=["d:transactions/duration@millisecond", "not_mri"],
+        )
+
+        assert response.data == []
+
+    @patch(
+        "sentry.snuba.metrics.datasource.bulk_reverse_resolve",
+        mocked_bulk_reverse_resolve,
+    )
+    def test_unknown_tag(self):
+        response = self.get_success_response(
+            self.organization.slug,
+        )
+        assert response.data == []
+
     def test_session_metric_tags(self):
         self.store_session(
             self.build_session(
@@ -84,7 +137,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
 
     def test_metric_tags_metric_does_not_have_data(self):
         indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
             org_id=self.organization.id,
             string=SessionMRI.SESSION.value,
         )

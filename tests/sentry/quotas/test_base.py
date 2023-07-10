@@ -88,7 +88,7 @@ class QuotaTest(TestCase):
 
     def test_get_blended_sample_rate(self):
         org = self.create_organization()
-        assert self.backend.get_blended_sample_rate(org) is None
+        assert self.backend.get_blended_sample_rate(organization_id=org.id) is None
 
 
 @pytest.mark.parametrize(

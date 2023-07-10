@@ -13,11 +13,9 @@ describe('Breadcrumb Data Http', function () {
   });
 
   const {organization, router} = initializeOrg({
-    ...initializeOrg(),
     router: {
       location: {query: {project: '0'}},
     },
-    project: '0',
     projects: [project],
   });
 

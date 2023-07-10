@@ -1,10 +1,19 @@
+import dataclasses
 from typing import Iterable
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import RequestFactory, override_settings
 from pytest import raises
+from rest_framework import status
 
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.models.outbox import (
+    ControlOutbox,
+    OutboxCategory,
+    OutboxScope,
+    WebhookProviderIdentifier,
+)
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils import TestCase
 from sentry.types.region import Region, RegionCategory
@@ -50,7 +59,7 @@ class BaseRequestParserTest(TestCase):
         assert response == self.response_handler(self.request)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos(self, mock__get_response):
         mock__get_response.side_effect = lambda region: region.name
 
@@ -61,7 +70,7 @@ class BaseRequestParserTest(TestCase):
             assert response_map[region.name].response == region.name
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos_with_partial_failure(self, mock__get_response):
         mock__get_response.side_effect = lambda region: error_regions(region, ["eu"])
 
@@ -71,7 +80,7 @@ class BaseRequestParserTest(TestCase):
         assert type(response_map["eu"].error) is SiloLimit.AvailabilityError
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @patch.object(BaseRequestParser, "_get_response_from_region_silo")
+    @patch.object(BaseRequestParser, "get_response_from_region_silo")
     def test_get_responses_from_region_silos_with_complete_failure(self, mock__get_response):
         mock__get_response.side_effect = lambda region: error_regions(region, ["na", "eu"])
 
@@ -81,3 +90,25 @@ class BaseRequestParserTest(TestCase):
 
         for region in self.region_config:
             assert type(response_map[region.name].error) is SiloLimit.AvailabilityError
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_get_response_from_outbox_creation(self):
+        with pytest.raises(NotImplementedError):
+            self.parser.get_response_from_outbox_creation(regions=self.region_config)
+
+        class MockParser(BaseRequestParser):
+            webhook_identifier = WebhookProviderIdentifier.SLACK
+
+        parser = MockParser(self.request, self.response_handler)
+
+        response = parser.get_response_from_outbox_creation(regions=self.region_config)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        new_outboxes = ControlOutbox.objects.all()
+        assert len(new_outboxes) == 2
+        for outbox in new_outboxes:
+            assert outbox.region_name in ["na", "eu"]
+            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
+            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
+            assert outbox.shard_identifier == WebhookProviderIdentifier.SLACK.value
+            payload = outbox.get_webhook_payload_from_request(self.request)
+            assert outbox.payload == dataclasses.asdict(payload)

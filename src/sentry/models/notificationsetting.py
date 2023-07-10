@@ -61,7 +61,7 @@ class NotificationSetting(Model):
     )
     scope_identifier = BoundedBigIntegerField(null=False)
     target_id = HybridCloudForeignKey(
-        "sentry.Actor", db_index=True, unique=False, null=False, on_delete="CASCADE"
+        "sentry.Actor", db_index=True, unique=False, null=True, on_delete="CASCADE"
     )
     team_id = HybridCloudForeignKey("sentry.Team", null=True, db_index=True, on_delete="CASCADE")
     user = FlexibleForeignKey(
@@ -118,6 +118,13 @@ class NotificationSetting(Model):
                 "type",
             ),
         )
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(team_id__isnull=False, user_id__isnull=True)
+                | models.Q(team_id__isnull=True, user_id__isnull=False),
+                name="notification_team_or_user_check",
+            )
+        ]
 
     __repr__ = sane_repr(
         "scope_str",

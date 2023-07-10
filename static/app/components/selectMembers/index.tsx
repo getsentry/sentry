@@ -60,7 +60,7 @@ class SelectMembers extends Component<Props, State> {
     loading: false,
     inputValue: '',
     options: null,
-    memberListLoading: !MemberListStore.isLoaded(),
+    memberListLoading: MemberListStore.state.loading,
   };
 
   componentWillUnmount() {
@@ -68,11 +68,10 @@ class SelectMembers extends Component<Props, State> {
   }
 
   unlisteners = [
-    MemberListStore.listen(() => {
-      this.setState({
-        memberListLoading: !MemberListStore.isLoaded(),
-      });
-    }, undefined),
+    MemberListStore.listen(
+      () => this.setState({memberListLoading: MemberListStore.state.loading}),
+      undefined
+    ),
   ];
 
   renderUserBadge = (user: User) => (
@@ -160,7 +159,7 @@ class SelectMembers extends Component<Props, State> {
           // has not registered for sentry yet, but has been invited
           (members
             ? (members as Member[])
-                .filter(({user}) => user && usersInProjectById.indexOf(user.id) === -1)
+                .filter(({user}) => user && !usersInProjectById.includes(user.id))
                 .map(this.createUnmentionableUser)
             : []) as MentionableUser[]
       )

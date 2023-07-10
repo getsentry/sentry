@@ -34,7 +34,7 @@ class SentryAppStatsTest(APITestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class GetSentryAppStatsTest(SentryAppStatsTest):
     def test_superuser_sees_unowned_published_stats(self):
         self.login_as(user=self.superuser, superuser=True)

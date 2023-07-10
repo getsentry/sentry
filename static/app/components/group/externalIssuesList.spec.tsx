@@ -21,7 +21,7 @@ describe('ExternalIssuesList', () => {
 
   const setupCTA = 'Track this issue in Jira, GitHub, etc.';
 
-  it('renders setup CTA', () => {
+  it('renders setup CTA', async () => {
     MockApiClient.addMockResponse({
       url: `/groups/${group.id}/integrations/`,
       body: [],
@@ -39,10 +39,10 @@ describe('ExternalIssuesList', () => {
       />,
       {organization}
     );
-    expect(screen.getByText(setupCTA)).toBeInTheDocument();
+    expect(await screen.findByText(setupCTA)).toBeInTheDocument();
   });
 
-  it('renders sentry app issues', () => {
+  it('renders sentry app issues', async () => {
     MockApiClient.addMockResponse({
       url: `/groups/${group.id}/integrations/`,
       body: [],
@@ -66,8 +66,8 @@ describe('ExternalIssuesList', () => {
       />,
       {organization}
     );
+    expect(await screen.findByText('Foo Issue')).toBeInTheDocument();
     expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
-    expect(screen.getByText('Foo Issue')).toBeInTheDocument();
   });
 
   it('renders integrations with issues first', async () => {

@@ -1,14 +1,13 @@
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ActivityAuthor from 'sentry/components/activity/author';
-import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
-import {Tooltip} from 'sentry/components/tooltip';
+import {ActivityAuthor} from 'sentry/components/activity/author';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
-
-import EditorTools from './editorTools';
 
 type Props = {
   authorName: string;
@@ -22,56 +21,53 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
   return (
-    <div>
+    <Container>
       <ActivityAuthor>{authorName}</ActivityAuthor>
       {canEdit && (
-        <EditorTools>
-          <Tooltip
-            title={t('You can edit this comment due to your superuser status')}
-            disabled={!activeUser.isSuperuser}
-          >
-            <Edit onClick={onEdit}>{t('Edit')}</Edit>
-          </Tooltip>
-          <Tooltip
-            title={t('You can delete this comment due to your superuser status')}
-            disabled={!activeUser.isSuperuser}
-          >
-            <LinkWithConfirmation
-              title={t('Remove')}
-              message={t('Are you sure you wish to delete this comment?')}
-              onConfirm={onDelete}
-            >
-              <Remove>{t('Remove')}</Remove>
-            </LinkWithConfirmation>
-          </Tooltip>
-        </EditorTools>
+        <DropdownMenu
+          offset={4}
+          size="sm"
+          triggerProps={{
+            size: 'xs',
+            showChevron: false,
+            borderless: true,
+            icon: <IconEllipsis size="xs" />,
+            'aria-label': t('Comment Actions'),
+          }}
+          items={[
+            {
+              key: 'edit',
+              label: t('Edit'),
+              onAction: onEdit,
+              tooltip: activeUser.isSuperuser
+                ? t('You can edit this comment due to your superuser status')
+                : undefined,
+            },
+            {
+              key: 'delete',
+              label: t('Remove'),
+              priority: 'danger',
+              onAction: () =>
+                openConfirmModal({
+                  header: t('Remove'),
+                  message: t('Are you sure you wish to delete this comment?'),
+                  onConfirm: onDelete,
+                }),
+              tooltip: activeUser.isSuperuser
+                ? t('You can delete this comment due to your superuser status')
+                : undefined,
+            },
+          ]}
+        />
       )}
-    </div>
+    </Container>
   );
 }
 
-const getActionStyle = (p: {theme: Theme}) => `
-  padding: 0 7px;
-  color: ${p.theme.gray200};
-  font-weight: normal;
+const Container = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
 `;
 
-const Edit = styled('a')`
-  ${getActionStyle};
-  margin-left: 7px;
-
-  &:hover {
-    color: ${p => p.theme.gray300};
-  }
-`;
-
-const Remove = styled('span')`
-  ${getActionStyle};
-  border-left: 1px solid ${p => p.theme.border};
-
-  &:hover {
-    color: ${p => p.theme.error};
-  }
-`;
-
-export default NoteHeader;
+export {NoteHeader};

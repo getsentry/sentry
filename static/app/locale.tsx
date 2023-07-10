@@ -42,6 +42,7 @@ export function toggleLocaleDebug() {
  * Global Jed locale object loaded with translations via setLocale
  */
 let i18n: Jed | null = null;
+const staticTranslations = new Set<string>();
 
 /**
  * Set the current application locale.
@@ -50,7 +51,7 @@ let i18n: Jed | null = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(translations: any) {
+export function setLocale(translations: any): Jed {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -78,6 +79,14 @@ function getClient(): Jed | null {
   }
 
   return i18n;
+}
+
+export function isStaticString(formatString: string): boolean {
+  if (formatString.trim() === '') {
+    return false;
+  }
+
+  return staticTranslations.has(formatString);
 }
 
 /**
@@ -182,7 +191,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     // eslint-disable-next-line no-cond-assign
     while ((match = regex.exec(template)) !== null) {
-      const substr = template.substr(pos, match.index - pos);
+      const substr = template.substring(pos, match.index);
       if (substr !== '') {
         buf.push(substr);
       }
@@ -209,7 +218,7 @@ export function parseComponentTemplate(template: string): ParsedTemplate {
 
     let endPos = regex.lastIndex;
     if (!satisfied) {
-      const rest = template.substr(pos);
+      const rest = template.substring(pos);
       if (rest) {
         buf.push(rest);
       }
@@ -324,6 +333,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
+    staticTranslations.add(val);
     return mark(val);
   }
 

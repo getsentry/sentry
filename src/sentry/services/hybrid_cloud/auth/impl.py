@@ -1,14 +1,13 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping, Tuple
+from typing import Any, List, Mapping
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
-from rest_framework.request import Request
+from django.http import HttpResponse
 
-from sentry import features, roles
-from sentry.api.invite_helper import ApiInviteHelper
+from sentry import roles
 from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
@@ -17,7 +16,8 @@ from sentry.models import (
     ApiToken,
     AuthIdentity,
     AuthProvider,
-    OrganizationMember,
+    OrganizationMemberMapping,
+    OrgAuthToken,
     SentryAppInstallationToken,
     User,
 )
@@ -28,7 +28,6 @@ from sentry.services.hybrid_cloud.auth import (
     AuthService,
     MiddlewareAuthenticationResponse,
     RpcAuthenticatorType,
-    RpcAuthIdentity,
     RpcAuthProvider,
     RpcAuthState,
     RpcMemberSsoState,
@@ -36,26 +35,19 @@ from sentry.services.hybrid_cloud.auth import (
 )
 from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 from sentry.services.hybrid_cloud.organization import (
-    RpcOrganization,
-    RpcOrganizationMember,
-    RpcOrganizationMemberFlags,
     RpcOrganizationMemberSummary,
     organization_service,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
-from sentry.utils.types import Any
 
 _SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
 _SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
-# When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
-# than the OrganizationMember type.
-def query_sso_state(
+def _query_sso_state(
     organization_id: int | None, is_super_user: bool, member: RpcOrganizationMemberSummary | None
 ) -> RpcMemberSsoState:
     """
@@ -90,44 +82,37 @@ def query_sso_state(
             )
         except AuthIdentity.DoesNotExist:
             sso_is_valid = False
-            # If an owner is trying to gain access,
-            # allow bypassing SSO if there are no other
-            # owners with SSO enabled.
-            if roles.get_top_dog().id in organization_service.get_all_org_roles(
-                member_id=member.id
-            ):
-
-                def get_user_ids(org_id: int, mem_id: int) -> Any:
-                    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
-                        organization_id=org_id
-                    )
-                    return (
-                        OrganizationMember.objects.filter(
-                            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
-                            organization_id=org_id,
-                            user__is_active=True,
-                        )
-                        .exclude(id=mem_id)
-                        .values_list("user_id")
-                    )
-
-                if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-                    # Giant hack for now until we have control silo org membership table.
-                    with SiloMode.exit_single_process_silo_context(), SiloMode.enter_single_process_silo_context(
-                        SiloMode.MONOLITH
-                    ):
-                        user_ids = get_user_ids(member.organization_id, member.id)
-                else:
-                    user_ids = get_user_ids(member.organization_id, member.id)
-
-                requires_sso = AuthIdentity.objects.filter(
-                    auth_provider=auth_provider,
-                    user__in=user_ids,
-                ).exists()
+            requires_sso = not _can_override_sso_as_owner(auth_provider, member)
         else:
             sso_is_valid = auth_identity.is_valid(member)
 
     return RpcMemberSsoState(is_required=requires_sso, is_valid=sso_is_valid)
+
+
+def _can_override_sso_as_owner(
+    auth_provider: AuthProvider, member: RpcOrganizationMemberSummary
+) -> bool:
+    """If an owner is trying to gain access, allow bypassing SSO if there are no
+    other owners with SSO enabled.
+    """
+
+    org_roles = organization_service.get_all_org_roles(member_id=member.id)
+    if roles.get_top_dog().id not in org_roles:
+        return False
+
+    all_top_dogs_from_teams = organization_service.get_top_dog_team_member_ids(
+        organization_id=member.organization_id
+    )
+    user_ids = (
+        OrganizationMemberMapping.objects.filter(
+            Q(id__in=all_top_dogs_from_teams) | Q(role=roles.get_top_dog().id),
+            organization_id=member.organization_id,
+            user__is_active=True,
+        )
+        .exclude(id=member.id)
+        .values_list("user_id")
+    )
+    return not AuthIdentity.objects.filter(auth_provider=auth_provider, user__in=user_ids).exists()
 
 
 class DatabaseBackedAuthService(AuthService):
@@ -153,6 +138,12 @@ class DatabaseBackedAuthService(AuthService):
             for oid in organization_ids
         ]
 
+    def _load_auth_user(self, user: User) -> RpcUser | None:
+        rpc_user: RpcUser | None = None
+        if user is not None:
+            return user_service.get_user(user_id=user.id)
+        return rpc_user
+
     def authenticate_with(
         self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
     ) -> AuthenticationContext:
@@ -168,15 +159,15 @@ class DatabaseBackedAuthService(AuthService):
 
         return AuthenticationContext(
             auth=AuthenticatedToken.from_token(token) if token else None,
-            user=serialize_rpc_user(user) if user else None,
+            user=self._load_auth_user(user),
         )
 
     def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)  # type: ignore
+        return SentryAppInstallationToken.objects.has_organization_access(token, organization_id)
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
-        handler: Any = RequestAuthenticationMiddleware()
+        handler = RequestAuthenticationMiddleware(lambda _: HttpResponse("fake"))
         expired_user: User | None = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
@@ -196,13 +187,13 @@ class DatabaseBackedAuthService(AuthService):
         )
 
         if expired_user is not None:
-            result.user = serialize_rpc_user(expired_user)
+            result.user = self._load_auth_user(expired_user)
             result.expired = True
         elif fake_request.user is not None and not fake_request.user.is_anonymous:
             from django.db import connections, transaction
 
             with transaction.atomic():
-                result.user = serialize_rpc_user(fake_request.user)
+                result.user = self._load_auth_user(fake_request.user)
                 transaction.set_rollback(True)
             if SiloMode.single_process_silo_mode():
                 connections.close_all()
@@ -217,7 +208,7 @@ class DatabaseBackedAuthService(AuthService):
         organization_id: int | None,
         org_member: RpcOrganizationMemberSummary | None,
     ) -> RpcAuthState:
-        sso_state = query_sso_state(
+        sso_state = _query_sso_state(
             organization_id=organization_id, is_super_user=is_superuser, member=org_member
         )
         permissions: List[str] = list()
@@ -231,9 +222,6 @@ class DatabaseBackedAuthService(AuthService):
             permissions=permissions,
         )
 
-    def close(self) -> None:
-        pass
-
     def get_org_ids_with_scim(
         self,
     ) -> List[int]:
@@ -245,53 +233,6 @@ class DatabaseBackedAuthService(AuthService):
 
     def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
         return list(AuthProvider.objects.filter(organization_id=organization_id))
-
-    def handle_new_membership(
-        self,
-        request: Request,
-        organization: RpcOrganization,
-        auth_identity: RpcAuthIdentity,
-        auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
-        # TODO: Might be able to keep hold of the RpcUser object whose ID was
-        #  originally passed to construct the RpcAuthIdentity object
-        user = User.objects.get(id=auth_identity.user_id)
-        serial_user = serialize_rpc_user(user)
-
-        # If the user is either currently *pending* invite acceptance (as indicated
-        # from the invite token and member id in the session) OR an existing invite exists on this
-        # organization for the email provided by the identity provider.
-        invite_helper = ApiInviteHelper.from_session_or_email(
-            request=request, organization_id=organization.id, email=user.email
-        )
-
-        # If we are able to accept an existing invite for the user for this
-        # organization, do so, otherwise handle new membership
-        if invite_helper:
-            if invite_helper.invite_approved:
-                om = invite_helper.accept_invite(user)
-                return serial_user, serialize_member(om)
-
-            # It's possible the user has an _invite request_ that hasn't been approved yet,
-            # and is able to join the organization without an invite through the SSO flow.
-            # In that case, delete the invite request and create a new membership.
-            invite_helper.handle_invite_not_approved()
-
-        flags = RpcOrganizationMemberFlags(sso__linked=True)
-        # if the org doesn't have the ability to add members then anyone who got added
-        # this way should be disabled until the org upgrades
-        if not features.has("organizations:invite-members", organization):
-            flags.member_limit__restricted = True
-
-        # Otherwise create a new membership
-        om = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            role=organization.default_role,
-            user_id=user.id,
-            flags=flags,
-        )
-        return serial_user, om
 
 
 class FakeRequestDict:
@@ -378,6 +319,7 @@ def _unwrap_b64(input: str | None) -> bytes | None:
 
 AuthenticatedToken.register_kind("system", SystemToken)
 AuthenticatedToken.register_kind("api_token", ApiToken)
+AuthenticatedToken.register_kind("org_auth_token", OrgAuthToken)
 AuthenticatedToken.register_kind("api_key", ApiKey)
 
 

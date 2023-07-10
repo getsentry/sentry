@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from mistune import markdown
 from rest_framework.response import Response
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sentry.models import ExternalIssue, Group
 
 
-class VstsIssueSync(IssueSyncMixin):  # type: ignore
+class VstsIssueSync(IssueSyncMixin):
     description = "Integrate Azure DevOps work items by linking a project."
     slug = "vsts"
     conf_key = slug
@@ -37,7 +37,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         try:
             projects = client.get_projects(self.instance)
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_choices = [(project["id"], project["name"]) for project in projects]
 
@@ -77,7 +77,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
         try:
             item_categories = client.get_work_item_categories(self.instance, project)["value"]
         except (ApiError, ApiUnauthorized, KeyError) as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         item_type_map = {}
         for item in item_categories:
@@ -183,7 +183,7 @@ class VstsIssueSync(IssueSyncMixin):  # type: ignore
                 comment=markdown(description),
             )
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         project_name = created_item["fields"]["System.AreaPath"]
         return {

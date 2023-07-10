@@ -1,7 +1,8 @@
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 
-from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models.authenticator import Authenticator, AuthenticatorConfig
 from sentry.testutils import TestCase
@@ -39,8 +40,7 @@ class AuthenticatorTest(TestCase):
 
 
 def test_authenticator_config_compatibility():
-    field_pickle = AuthenticatorConfig(write_json=False)
-    field_json = AuthenticatorConfig(write_json=True)
+    field_json = AuthenticatorConfig()
 
     value = {
         "devices": [
@@ -71,9 +71,4 @@ def test_authenticator_config_compatibility():
         ]
     }
 
-    enc_pickle = field_pickle.get_db_prep_value(value)
-    enc_json = field_json.get_db_prep_value(value)
-
-    for field in (field_pickle, field_json):
-        for enc in (enc_pickle, enc_json):
-            assert value == field.to_python(enc)
+    assert field_json.to_python(field_json.get_db_prep_value(value)) == value

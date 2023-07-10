@@ -68,8 +68,28 @@ class RpcUser(RpcModel):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
+    def by_email(self, email: str) -> "RpcUser":
+        if email == self.email:
+            return self
+        return self.copy(update=dict(email=email))
+
+    def has_unverified_emails(self) -> bool:
+        return len(self.get_unverified_emails()) > 0
+
+    def has_verified_emails(self) -> bool:
+        return len(self.get_verified_emails()) > 0
+
+    def get_unverified_emails(self) -> List[RpcUserEmail]:
+        return [e for e in self.useremails if not e.is_verified]
+
+    def get_verified_emails(self) -> List[RpcUserEmail]:
+        return [e for e in self.useremails if e.is_verified]
+
     def has_usable_password(self) -> bool:
         return self.password_usable
+
+    def get_username(self) -> str:  # API compatibility with ORM User
+        return self.username
 
     def get_display_name(self) -> str:  # API compatibility with ORM User
         return self.display_name
@@ -107,13 +127,14 @@ class UserFilterArgs(TypedDict, total=False):
     user_ids: List[int]
     is_active: bool
     organization_id: int
-    project_ids: List[int]
-    team_ids: List[int]
-    is_active_memberteam: bool
     emails: List[str]
+    email_verified: bool
+    query: str
+    authenticator_types: Optional[List[int]]
 
 
 class UserUpdateArgs(TypedDict, total=False):
     avatar_url: str
     avatar_type: int
     actor_id: int  # TODO(hybrid-cloud): Remove this after the actor migration is complete
+    is_active: bool

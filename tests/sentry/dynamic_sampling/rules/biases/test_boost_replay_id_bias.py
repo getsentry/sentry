@@ -1,10 +1,8 @@
-import pytest
-
 from sentry.dynamic_sampling.rules.biases.boost_replay_id_bias import BoostReplayIdBias
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.skip("The replay bias is temporarily disabled.")
-@pytest.mark.django_db
+@django_db_all
 def test_generate_bias_rules_v2(default_project):
     rules = BoostReplayIdBias().generate_rules(project=default_project, base_sample_rate=0.1)
     assert rules == [

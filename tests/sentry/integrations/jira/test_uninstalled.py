@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 import jwt
 import responses
 
@@ -5,10 +7,12 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_query_hash
 from sentry.models import Integration
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils.http import absolute_uri
 from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
 
 
+@control_silo_test(stable=True)
 class JiraUninstalledTest(APITestCase):
     external_id = "it2may+cody"
     kid = "cudi"
@@ -41,7 +45,9 @@ class JiraUninstalledTest(APITestCase):
             headers={"kid": self.kid, "alg": jira_signing_algorithm},
         )
 
-    def test_with_shared_secret(self):
+    @patch("sentry_sdk.set_tag")
+    @patch("sentry.integrations.utils.scope.bind_organization_context")
+    def test_with_shared_secret(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
         integration = Integration.objects.create(
@@ -55,12 +61,18 @@ class JiraUninstalledTest(APITestCase):
         resp = self.client.post(
             self.path, data={}, HTTP_AUTHORIZATION="JWT " + self.jwt_token_secret()
         )
+        # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
+
+        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_bind_org_context.assert_called_with(org)
         assert integration.status == ObjectStatus.DISABLED
         assert resp.status_code == 200
 
+    @patch("sentry_sdk.set_tag")
+    @patch("sentry.integrations.utils.scope.bind_organization_context")
     @responses.activate
-    def test_with_key_id(self):
+    def test_with_key_id(self, mock_bind_org_context: MagicMock, mock_set_tag: MagicMock):
         org = self.organization
 
         integration = Integration.objects.create(
@@ -77,6 +89,10 @@ class JiraUninstalledTest(APITestCase):
         resp = self.client.post(
             self.path, data={}, HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()
         )
+        # We have to pull this from the DB again to see the updated status
         integration = Integration.objects.get(id=integration.id)
+
+        mock_set_tag.assert_called_with("integration_id", integration.id)
+        mock_bind_org_context.assert_called_with(org)
         assert integration.status == ObjectStatus.DISABLED
         assert resp.status_code == 200

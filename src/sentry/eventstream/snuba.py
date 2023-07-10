@@ -94,7 +94,7 @@ class SnubaProtocolEventStream(EventStream):
 
     def _get_headers_for_insert(
         self,
-        event: Event,
+        event: Event | GroupEvent,
         is_new: bool,
         is_regression: bool,
         is_new_group_environment: bool,
@@ -129,7 +129,7 @@ class SnubaProtocolEventStream(EventStream):
             return
         project = event.project
         set_current_event_project(project.id)
-        retention_days = quotas.get_event_retention(organization=project.organization)
+        retention_days = quotas.backend.get_event_retention(organization=project.organization)
 
         event_data = event.get_raw_data(for_stream=True)
 
@@ -422,20 +422,13 @@ class SnubaEventStream(SnubaProtocolEventStream):
 
         serialized_data = json.dumps(data)
 
-        try:
-            codec = sentry_kafka_schemas.get_codec(
-                topic={
-                    "events": "events",
-                    # "transactions": "transactions",
-                    "search_issues": "generic-events",
-                }[entity]
-            )
-        except (sentry_kafka_schemas.SchemaNotFound, KeyError):
-            # Needed since "generic-events" does not have a schema yet
-            # and the "transactions" one is not compatible with
-            # existing test cases
-            codec = sentry_kafka_schemas.codecs.json.JsonCodec(None)
-
+        codec = sentry_kafka_schemas.get_codec(
+            topic={
+                "events": "events",
+                "transactions": "transactions",
+                "search_issues": "generic-events",
+            }[entity]
+        )
         codec.decode(serialized_data.encode("utf-8"), validate=True)
 
         try:

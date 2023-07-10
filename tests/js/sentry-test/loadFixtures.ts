@@ -22,7 +22,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   const from = path.join(FIXTURES_ROOT, dir);
   const files = fs.readdirSync(from);
 
-  // @ts-ignore, this is a partial definition
+  // @ts-expect-error, this is a partial definition
   const fixtures: TestStubFixtures = {};
 
   for (const file of files) {
@@ -47,7 +47,7 @@ export function loadFixtures(dir: string, opts: Options = {}): TestStubFixtures 
   }
 
   if (opts.flatten) {
-    // @ts-ignore, this is a partial definition
+    // @ts-expect-error, this is a partial definition
     const flattenedFixtures: TestStubFixtures = {};
 
     for (const moduleKey in fixtures) {

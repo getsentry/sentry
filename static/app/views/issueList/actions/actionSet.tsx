@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import IgnoreActions from 'sentry/components/actions/ignore';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
@@ -82,7 +83,10 @@ function ActionSet({
   const canRemoveBookmark =
     allInQuerySelected || selectedIssues.some(issue => issue.isBookmarked);
   const canSetUnresolved =
-    allInQuerySelected || selectedIssues.some(issue => issue.status === 'resolved');
+    allInQuerySelected ||
+    selectedIssues.some(
+      issue => issue.status === 'resolved' || issue.status === 'ignored'
+    );
 
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
@@ -100,7 +104,7 @@ function ActionSet({
   // the dropdown menu based on the current screen size
   const theme = useTheme();
   const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
+  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
 
   const menuItems: MenuItemProps[] = [
     {
@@ -118,17 +122,13 @@ function ActionSet({
         });
       },
     },
-    ...(disabledMarkReviewed
-      ? []
-      : [
-          {
-            key: 'mark-reviewed',
-            label: t('Mark Reviewed'),
-            hidden: !nestMergeAndReview,
-            disabled: !canMarkReviewed,
-            onAction: () => onUpdate({inbox: false}),
-          },
-        ]),
+    {
+      key: 'mark-reviewed',
+      label: t('Mark Reviewed'),
+      hidden: !nestMergeAndReview,
+      disabled: !canMarkReviewed,
+      onAction: () => onUpdate({inbox: false}),
+    },
     {
       key: 'bookmark',
       label: t('Add to Bookmarks'),
@@ -190,11 +190,25 @@ function ActionSet({
     },
   ];
 
-  const hasEscalatingIssuesUI = organization.features.includes('escalating-issues-ui');
-
   return (
     <Fragment>
-      {hasEscalatingIssuesUI ? (
+      {hasEscalatingIssuesUi && query.includes('is:archived') ? (
+        <Button
+          size="xs"
+          onClick={() => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.UNRESOLVE),
+              onConfirm: () => onUpdate({status: ResolutionStatus.UNRESOLVED}),
+              message: confirm({action: ConfirmAction.UNRESOLVE, canBeUndone: true}),
+              confirmText: label('unarchive'),
+            });
+          }}
+          disabled={!anySelected}
+        >
+          {t('Unarchive')}
+        </Button>
+      ) : null}
+      {hasEscalatingIssuesUi ? (
         <ArchiveActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
@@ -243,7 +257,7 @@ function ActionSet({
           }}
         />
       )}
-      {hasEscalatingIssuesUI ? null : (
+      {hasEscalatingIssuesUi ? null : (
         <IgnoreActions
           onUpdate={onUpdate}
           shouldConfirm={onShouldConfirm(ConfirmAction.IGNORE)}
@@ -254,7 +268,7 @@ function ActionSet({
           disabled={ignoreDisabled}
         />
       )}
-      {!nestMergeAndReview && !disabledMarkReviewed && (
+      {!nestMergeAndReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
       )}
       {!nestMergeAndReview && (

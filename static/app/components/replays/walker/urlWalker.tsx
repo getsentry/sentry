@@ -19,14 +19,10 @@ export const CrumbWalker = memo(function CrumbWalker({crumbs, replayRecord}: Cru
   const startTimestampMs = replayRecord.started_at.getTime();
   const {handleClick} = useCrumbHandlers(startTimestampMs);
 
-  const navCrumbs = crumbs.filter(crumb =>
-    [BreadcrumbType.INIT, BreadcrumbType.NAVIGATION].includes(crumb.type)
-  ) as Crumb[];
-
   return (
     <ChevronDividedList
       items={splitCrumbs({
-        crumbs: navCrumbs,
+        crumbs,
         startTimestampMs,
         onClick: handleClick,
       })}

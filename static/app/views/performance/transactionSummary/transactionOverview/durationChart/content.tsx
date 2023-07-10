@@ -1,3 +1,4 @@
+import {useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router';
 import {Theme} from '@emotion/react';
 import {Query} from 'history';
@@ -19,6 +20,7 @@ import {
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
 
 type Props = {
   errored: boolean;
@@ -53,6 +55,24 @@ function Content({
   router,
   onLegendSelectChanged,
 }: Props) {
+  const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
+  const isSeriesDataEmpty = data?.every(values => {
+    return values.data.every(value => !value.value);
+  });
+
+  useEffect(() => {
+    if (!performanceAtScaleContext || isSeriesDataEmpty === undefined) {
+      return;
+    }
+
+    if (loading || reloading) {
+      performanceAtScaleContext.setMetricsSeriesDataEmpty(undefined);
+      return;
+    }
+
+    performanceAtScaleContext.setMetricsSeriesDataEmpty(isSeriesDataEmpty);
+  }, [loading, reloading, isSeriesDataEmpty, performanceAtScaleContext]);
+
   if (errored) {
     return (
       <ErrorPanel>

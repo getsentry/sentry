@@ -5,8 +5,10 @@ from sentry.models import Option
 from sentry.options import default_manager, default_store
 from sentry.tasks.options import sync_options
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class SyncOptionsTest(TestCase):
     def test_task_persistent_name(self):
         assert sync_options.name == "sentry.tasks.options.sync_options"

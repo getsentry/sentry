@@ -1,6 +1,8 @@
 from sentry.testutils import SCIMTestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class SCIMSchemaEndpointTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-schema-index"
 

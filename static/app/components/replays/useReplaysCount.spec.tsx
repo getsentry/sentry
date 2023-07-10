@@ -26,16 +26,11 @@ describe('useReplaysCount', () => {
   const organization = TestStubs.Organization({
     features: ['session-replay'],
   });
-  const project = TestStubs.Project({
-    platform: 'javascript',
-  });
-  const projectIds = [Number(project.id)];
 
   it('should throw if none of groupIds, replayIds, transactionNames is provided', () => {
     const {result} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
       },
     });
     expect(result.error).toBeTruthy();
@@ -45,7 +40,6 @@ describe('useReplaysCount', () => {
     const {result: result1} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: [],
         transactionNames: [],
       },
@@ -55,7 +49,6 @@ describe('useReplaysCount', () => {
     const {result: result2} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: [],
         replayIds: [],
       },
@@ -65,7 +58,6 @@ describe('useReplaysCount', () => {
     const {result: result3} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         replayIds: [],
         transactionNames: [],
       },
@@ -83,7 +75,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -95,7 +86,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[${mockGroupIds.join(',')}]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -115,7 +106,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -141,7 +131,6 @@ describe('useReplaysCount', () => {
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -155,7 +144,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[123,456]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -166,7 +155,6 @@ describe('useReplaysCount', () => {
 
     rerender({
       organization,
-      projectIds,
       groupIds: [...mockGroupIds, '789'],
     });
 
@@ -179,7 +167,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[789]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -200,7 +188,6 @@ describe('useReplaysCount', () => {
     const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         groupIds: mockGroupIds,
       },
     });
@@ -214,7 +201,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `issue.id:[123,456]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -225,7 +212,6 @@ describe('useReplaysCount', () => {
 
     rerender({
       organization,
-      projectIds,
       groupIds: mockGroupIds,
     });
 
@@ -246,7 +232,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         replayIds: mockReplayIds,
       },
     });
@@ -258,7 +243,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `replay_id:[abc,def]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -278,7 +263,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         replayIds: mockReplayIds,
       },
     });
@@ -304,7 +288,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         transactionNames: mockTransactionNames,
       },
     });
@@ -316,7 +299,7 @@ describe('useReplaysCount', () => {
         query: {
           query: `transaction:["/home","/profile"]`,
           statsPeriod: '14d',
-          project: [2],
+          project: -1,
         },
       })
     );
@@ -336,7 +319,6 @@ describe('useReplaysCount', () => {
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplaysCount, {
       initialProps: {
         organization,
-        projectIds,
         transactionNames: mockTransactionNames,
       },
     });

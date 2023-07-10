@@ -14,7 +14,7 @@ def _frontend_versions() -> dict[str, str]:
         with open(
             os.path.join(settings.CONF_DIR, "settings", "frontend", "frontend-versions.json")
         ) as f:
-            return json.load(f)  # type: ignore[no-any-return]  # getsentry path
+            return json.load(f)  # getsentry path
     except OSError:
         return {}  # common case for self-hosted
 

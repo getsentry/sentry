@@ -206,7 +206,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
             period="7d"
             legend={{right: 3, top: 0}}
             yAxis={{minInterval: 1}}
-            xAxis={barAxisLabel(seriesData.length)}
+            xAxis={barAxisLabel()}
             series={[
               {
                 seriesName: t('This Period'),

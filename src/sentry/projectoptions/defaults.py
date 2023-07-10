@@ -1,6 +1,7 @@
 from sentry.projectoptions import register
 
-# latest epoch
+# This controls what sentry:option-epoch value is given to a project when it is created
+# The epoch of a project will determine what options are valid options for that specific project
 LATEST_EPOCH = 11
 
 # grouping related configs
@@ -13,10 +14,11 @@ LATEST_EPOCH = 11
 # TODO: we might instead want to fall back to the latest of the project's
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
-DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
+DEFAULT_GROUPING_CONFIG = "newstyle:2023-01-11"
 # NOTE: this is empty for now to migrate projects off the deprecated
 # `mobile` strategy via grouping auto-updates.
 BETA_GROUPING_CONFIG = ""
+# This registers the option as a valid project option
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -90,6 +92,9 @@ register(
     },
 )
 
+# NOTE: this is the HealthCheck filter, the name should match Relay reason (which is filtered-transaction)
+register(key="filters:filtered-transaction", default="1")
+
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.
 register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
@@ -97,25 +102,19 @@ register(key="sentry:transaction_metrics_custom_tags", epoch_defaults={1: []})
 # Default span attributes config
 register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 
-# Rate at which performance issues are created per project. Defaults to on (rate of 1.0), system flags and options will determine if an organization creates issues.
-# Can be used to turn off a projects detection for users if there is a project-specific issue.
-register(key="sentry:performance_issue_creation_rate", default=1.0)
-
-# Rate at which performance problems are sent to issues platform. Defaults to False, system flags and options will determine if an organization sends perf problems to platform.
-# Can be used to turn off writing occurrences for users if there is a project-specific issue.
-register(key="sentry:performance_issue_send_to_issues_platform", default=True)
-
-# Rate at which performance issues are created through issues platform per project. Defaults to False, system flags and options will determine if an organization creates issues through platform.
-# Can be used to turn off issue creation for users if there is a project-specific issue.
-register(key="sentry:performance_issue_create_issue_through_platform", default=False)
-
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
-    "n_plus_one_db_detection_rate": 1.0,
-    "n_plus_one_api_calls_detection_rate": 1.0,
-    "consecutive_db_queries_detection_rate": 1.0,
     "uncompressed_assets_detection_enabled": True,
     "consecutive_http_spans_detection_enabled": True,
+    "large_http_payload_detection_enabled": True,
+    "n_plus_one_db_queries_detection_enabled": True,
+    "n_plus_one_api_calls_detection_enabled": True,
+    "db_on_main_thread_detection_enabled": True,
+    "file_io_on_main_thread_detection_enabled": True,
+    "consecutive_db_queries_detection_enabled": True,
+    "large_render_blocking_asset_detection_enabled": True,
+    "slow_db_queries_detection_enabled": True,
 }
+
 # A dict containing all the specific detection thresholds and rates.
 register(
     key="sentry:performance_issue_settings",
@@ -126,6 +125,11 @@ register(
 # Contains a mapping from rule to last seen timestamp,
 # for example `{"/organizations/*/**": 1334318402}`
 register(key="sentry:transaction_name_cluster_rules", default={})
+
+# Replacement rules for span descriptions discovered by the clusterer.
+# Contains a mapping from rule to last seen timestamp. Example:
+# `{"**/organizations/*/**": 1334318402}`
+register(key="sentry:span_description_cluster_rules", default={})
 
 # The JavaScript loader dynamic SDK options that are the project defaults.
 register(

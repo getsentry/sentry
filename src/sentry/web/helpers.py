@@ -27,7 +27,7 @@ def render_to_string(
     rendered = loader.render_to_string(template, context=context, request=request)
     timezone.deactivate()
 
-    return rendered  # type: ignore[no-any-return]
+    return rendered
 
 
 def render_to_response(

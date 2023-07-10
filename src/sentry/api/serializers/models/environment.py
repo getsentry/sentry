@@ -6,6 +6,7 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register
 from sentry.models import Environment, EnvironmentProject
+from sentry.tsdb.base import TSDBModel
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
@@ -49,7 +50,7 @@ class GroupEnvironmentWithStatsSerializer(EnvironmentSerializer):
 
             try:
                 stats = tsdb.get_frequency_series(
-                    model=tsdb.models.frequent_environments_by_group,
+                    model=TSDBModel.frequent_environments_by_group,
                     items=items,
                     start=since,
                     end=until,

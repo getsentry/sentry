@@ -7,7 +7,7 @@ import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
 import Table from '../../table';
-import {PROJECT_PERFORMANCE_TYPE} from '../../utils';
+import {ProjectPerformanceType} from '../../utils';
 import {FRONTEND_OTHER_COLUMN_TITLES} from '../data';
 import {DoubleChartRow, TripleChartRow} from '../widgets/components/widgetChartRow';
 import {filterAllowedChartsMetrics} from '../widgets/utils';
@@ -49,7 +49,7 @@ export function FrontendOtherView(props: BasePerformanceViewProps) {
 
   return (
     <PerformanceDisplayProvider
-      value={{performanceType: PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER}}
+      value={{performanceType: ProjectPerformanceType.FRONTEND_OTHER}}
     >
       <div>
         <DoubleChartRow {...props} allowedCharts={doubleChartRowCharts} />

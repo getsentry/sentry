@@ -9,15 +9,17 @@ interface Props extends React.ComponentPropsWithoutRef<typeof Alert> {
   team?: Team | null | undefined;
 }
 
+export const permissionAlertText = t(
+  'These settings can only be edited by users with the organization-level owner, manager, or team-level admin roles.'
+);
+
 function PermissionAlert({access = ['project:write'], project, team, ...props}: Props) {
   return (
     <Access access={access} project={project} team={team}>
       {({hasAccess}) =>
         !hasAccess && (
           <Alert data-test-id="project-permission-alert" type="warning" {...props}>
-            {t(
-              'These settings can only be edited by users with the organization owner, manager, or admin role.'
-            )}
+            {permissionAlertText}
           </Alert>
         )
       }

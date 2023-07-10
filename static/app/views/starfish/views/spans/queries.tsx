@@ -1,56 +1,42 @@
-import {DateTimeObject} from 'sentry/components/charts/utils';
-import {datetimeToClickhouseFilterTimestamps} from 'sentry/views/starfish/utils/dates';
+import {unix} from 'moment';
 
-export const getTimeSpentQuery = (groupingColumn: string, conditions: string[] = []) => {
-  const validConditions = conditions.filter(Boolean);
+import {getInterval} from 'sentry/components/charts/utils';
+import {NewQuery} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useLocation} from 'sentry/utils/useLocation';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-  return `SELECT
-    ${groupingColumn} AS primary_group,
-    sum(exclusive_time) AS exclusive_time
-    FROM spans_experimental_starfish
-    ${validConditions.length > 0 ? 'WHERE' : ''}
-    ${validConditions.join(' AND ')}
-    GROUP BY primary_group
-  `;
-};
+export const useErrorRateQuery = (queryString: string) => {
+  const location = useLocation();
+  const pageFilter = usePageFilters();
 
-export const getSpanListQuery = (
-  datetime: DateTimeObject,
-  conditions: string[] = [],
-  orderBy: string,
-  limit: number
-) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
-  const validConditions = conditions.filter(Boolean);
+  const discoverQuery: NewQuery = {
+    id: undefined,
+    name: 'HTTP Module - HTTP error rate',
+    fields: ['http_error_count()'],
+    query: queryString,
+    version: 1,
+    topEvents: '5',
+    dataset: DiscoverDatasets.SPANS_METRICS,
+    interval: getInterval(pageFilter.selection.datetime, 'low'),
+    yAxis: ['http_error_count()'],
+  };
 
-  return `SELECT
-    group_id, span_operation, description,
-    sum(exclusive_time) as total_exclusive_time,
-    quantile(0.95)(exclusive_time) as p95,
-    quantile(0.50)(exclusive_time) as p50
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${validConditions.length > 0 ? 'AND' : ''}
-    ${validConditions.join(' AND ')}
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    GROUP BY group_id, span_operation, description
-    ORDER BY ${orderBy ?? 'count'} desc
-    ${limit ? `LIMIT ${limit}` : ''}`;
-};
+  const eventView = EventView.fromNewQueryWithLocation(discoverQuery, location);
 
-export const getSpansTrendsQuery = (datetime: DateTimeObject, groupIDs: string[]) => {
-  const {start_timestamp, end_timestamp} = datetimeToClickhouseFilterTimestamps(datetime);
+  const result = useSpansQuery<{'http_error_count()': number; interval: number}[]>({
+    eventView,
+    initialData: [],
+  });
 
-  return `
-    SELECT
-    group_id, span_operation,
-    toStartOfInterval(start_timestamp, INTERVAL 12 HOUR) as interval,
-    quantile(0.95)(exclusive_time) as p95
-    FROM spans_experimental_starfish
-    WHERE greaterOrEquals(start_timestamp, '${start_timestamp}')
-    ${end_timestamp ? `AND lessOrEquals(start_timestamp, '${end_timestamp}')` : ''}
-    AND group_id IN (${groupIDs.map(id => `'${id}'`).join(',')})
-    GROUP BY group_id, span_operation, interval
-    ORDER BY interval asc
-  `;
+  const formattedData = result?.data?.map(entry => {
+    return {
+      interval: unix(entry.interval).format('YYYY-MM-DDTHH:mm:ss'),
+      'http_error_count()': entry['http_error_count()'],
+    };
+  });
+
+  return {...result, formattedData};
 };

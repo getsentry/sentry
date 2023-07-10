@@ -6,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
+import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
@@ -76,6 +77,37 @@ describe('Incident Rules Form', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+  });
+
+  describe('Viewing the rule', () => {
+    const rule = TestStubs.MetricRule();
+
+    it('is enabled without org-level alerts:write', () => {
+      organization.access = [];
+      project.access = [];
+      createWrapper({rule});
+
+      expect(screen.queryByText(permissionAlertText)).toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeDisabled();
+    });
+
+    it('is enabled with org-level alerts:write', () => {
+      organization.access = ['alerts:write'];
+      project.access = [];
+      createWrapper({rule});
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
+
+    it('is enabled with project-level alerts:write', () => {
+      organization.access = [];
+      project.access = ['alerts:write'];
+      createWrapper({rule});
+
+      expect(screen.queryByText(permissionAlertText)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Save Rule')).toBeEnabled();
+    });
   });
 
   describe('Creating a new rule', () => {
@@ -302,6 +334,47 @@ describe('Incident Rules Form', () => {
           }),
         })
       );
+    });
+
+    it('saves a valid on demand metric rule', async () => {
+      const validOnDemandMetricRule = TestStubs.MetricRule({
+        query: 'transaction.duration:<1s',
+      });
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: validOnDemandMetricRule.id,
+        rule: {
+          ...validOnDemandMetricRule,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      expect(onSubmitSuccess).toHaveBeenCalled();
+    });
+
+    it('shows errors for an invalid on demand metric rule', async () => {
+      const invalidOnDemandMetricRule = TestStubs.MetricRule({
+        aggregate: 'percentile()',
+        query: 'transaction.duration:<1s',
+      });
+
+      const onSubmitSuccess = jest.fn();
+
+      createWrapper({
+        ruleId: invalidOnDemandMetricRule.id,
+        rule: {
+          ...invalidOnDemandMetricRule,
+          eventTypes: ['transaction'],
+        },
+        onSubmitSuccess,
+      });
+
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
+      expect(onSubmitSuccess).not.toHaveBeenCalled();
     });
   });
 

@@ -115,7 +115,7 @@ describe('CanvasView', () => {
       const canvas = makeCanvasMock({
         getContext: jest
           .fn()
-          // @ts-ignore
+          // @ts-expect-error
           .mockReturnValue(makeContextMock({canvas: {width: 1000, height: 2000}})),
       });
 
