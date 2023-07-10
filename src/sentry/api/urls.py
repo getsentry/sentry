@@ -233,7 +233,6 @@ from .endpoints.notifications import (
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
-from .endpoints.oauth_userinfo import OAuthUserInfoEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -2821,12 +2820,6 @@ urlpatterns = [
     re_path(
         r"^internal/",
         include(INTERNAL_URLS),
-    ),
-    # OAuth (Sentry as a provider)
-    re_path(
-        r"^oauth/userinfo/$",
-        OAuthUserInfoEndpoint.as_view(),
-        name="sentry-api-0-oauth-userinfo",
     ),
     # Catch all
     re_path(
