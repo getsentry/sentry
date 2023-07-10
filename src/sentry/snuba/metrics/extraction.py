@@ -36,37 +36,43 @@ QUERY_HASH_KEY = "query_hash"
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
 
-# Maps from Discover's field names to event protocol paths.
-# See Relay's ``FieldValueProvider`` for supported fields.
+# Maps from Discover's field names to event protocol paths. See Relay's
+# ``FieldValueProvider`` for supported fields. All fields need to be prefixed
+# with "event.".
 _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level fields
-    "release": "event.release",
-    "dist": "event.dist",
-    "environment": "event.environment",
-    "transaction": "event.transaction",
-    "platform": "event.platform",
-    # User
-    "user.email": "event.user.email",
-    "user.id": "event.user.id",
-    "user.ip_address": "event.user.ip_address",
-    "user.name": "event.user.name",
-    "user.segment": "event.user.segment",
+    "release": "release",
+    "dist": "dist",
+    "environment": "environment",
+    "transaction": "transaction",
+    "platform": "platform",
+    # Top-level structures ("interfaces")
+    "user.email": "user.email",
+    "user.id": "user.id",
+    "user.ip_address": "user.ip_address",
+    "user.name": "user.name",
+    "user.segment": "user.segment",
+    "geo.city": "user.geo.city",
+    "geo.country_code": "user.geo.country_code",
+    "geo.region": "user.geo.region",
+    "geo.subdivision": "user.geo.subdivision",
+    "http.method": "request.method",
     # Subset of context fields
-    "device.name": "event.contexts.device.name",
-    "device.family": "event.contexts.device.family",
-    "os.name": "event.contexts.os.name",
-    "os.version": "event.contexts.os.version",
-    "transaction.op": "event.contexts.trace.op",
+    "device.name": "contexts.device.name",
+    "device.family": "contexts.device.family",
+    "os.name": "contexts.os.name",
+    "os.version": "contexts.os.version",
+    "browser.name": "contexts.browser.name",
+    "browser.version": "contexts.browser.version",
+    "transaction.op": "contexts.trace.op",
+    "transaction.status": "contexts.trace.status",
+    "http.status_code": "contexts.response.status_code",
     # Computed fields
-    "transaction.duration": "event.duration",
-    "release.build": "event.release.build",
-    "release.package": "event.release.package",
-    "release.version": "event.release.version.short",
+    "transaction.duration": "duration",
+    "release.build": "release.build",
+    "release.package": "release.package",
+    "release.version": "release.version.short",
     # Tags, measurements, and breakdowns are mapped by the converter
-    # TODO: Required but yet unsupported by Relay
-    # "geo.country_code": None,
-    # "transaction.status": None,
-    # "http.method": None,
 }
 
 # Maps from Discover's syntax to Relay rule condition operators.
@@ -256,7 +262,7 @@ def _map_field_name(search_key: str) -> str:
     """
     # Map known fields using a static mapping.
     if field := _SEARCH_TO_PROTOCOL_FIELDS.get(search_key):
-        return field
+        return f"event.{field}"
 
     # Measurements support generic access.
     if search_key.startswith("measurements."):
