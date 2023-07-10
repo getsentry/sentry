@@ -1,5 +1,9 @@
+import copy
+from unittest.mock import patch
+
 import pytest
 
+from fixtures.sdk_crash_detection.crash_event import get_metric_kit_crash_event
 from sentry.grouping.api import get_default_grouping_config_dict, load_grouping_config
 from sentry.stacktraces.processing import (
     find_stacktraces_in_data,
@@ -7,6 +11,9 @@ from sentry.stacktraces.processing import (
     normalize_stacktraces_for_grouping,
 )
 from sentry.testutils import TestCase
+from sentry.utils.pytest.fixtures import django_db_all
+from sentry.utils.safe import get_path
+from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
 
 
 class FindStacktracesTest(TestCase):
@@ -419,3 +426,39 @@ class NormalizeInApptest(TestCase):
 )
 def test_get_crash_frame(event):
     assert get_crash_frame_from_event_data(event)["marco"] == "polo"
+
+
+@pytest.fixture
+def store_event(default_project, factories):
+    def inner(data):
+        return factories.store_event(data=data, project_id=default_project.id)
+
+    return inner
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+def test_sdk_crash_detected_event_normalize_ignores_in_app(mock_sdk_crash_reporter, store_event):
+    event = store_event(data=get_metric_kit_crash_event())
+
+    sdk_crash_detection.detect_sdk_crash(event=event, event_project_id=1234, sample_rate=1.0)
+
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+
+    frames = get_path(reported_event_data, "exception", "values", -1, "stacktrace", "frames")
+    original_frames = copy.deepcopy(frames)
+
+    config = load_grouping_config(get_default_grouping_config_dict())
+    normalize_stacktraces_for_grouping(reported_event_data, grouping_config=config)
+
+    frames_after_normalizing = get_path(
+        reported_event_data, "exception", "values", -1, "stacktrace", "frames"
+    )
+
+    def only_keep_in_app_frames(frames):
+        return [frame for frame in frames if frame.get("in_app")]
+
+    assert only_keep_in_app_frames(frames_after_normalizing) == only_keep_in_app_frames(
+        original_frames
+    )

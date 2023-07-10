@@ -280,8 +280,10 @@ def normalize_stacktraces_for_grouping(data, grouping_config=None):
                     frame["raw_function"] = raw_func
                     frame["function"] = function_name
 
+    is_sdk_crash_event = bool(get_path(data, "contexts", "sdk_crash_detection"))
+
     # If a grouping config is available, run grouping enhancers
-    if grouping_config is not None:
+    if grouping_config is not None and not is_sdk_crash_event:
         with sentry_sdk.start_span(op=op, description="apply_modifications_to_frame"):
             counter = 0
             for frames, exception_data in zip(stacktraces, stacktrace_exceptions):
