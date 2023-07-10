@@ -85,7 +85,7 @@ class OAuthTokenView(View):
         if grant.has_scope("openid"):
             open_id_token = OpenIDToken(
                 request.POST.get("client_id"),
-                grant.user.id,
+                grant.user_id,
                 # Encrypt with a random secret until we implement secure shared secrets in prod
                 secrets.token_urlsafe(),
                 nonce=request.POST.get("nonce"),
