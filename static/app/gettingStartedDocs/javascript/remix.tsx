@@ -1,7 +1,8 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -18,6 +19,11 @@ const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+  routingInstrumentation: Sentry.remixRouterInstrumentation(
+    useEffect,
+    useLocation,
+    useMatches
+  ),
 }),
 `;
 
@@ -26,10 +32,16 @@ const performanceOtherConfig = `
 tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
 `;
 
+const prismaConfig = `
+new Sentry.Integrations.Prisma({ client: prisma })
+`;
+
 export const steps = ({
   sentryInitContent,
+  sentryInitContentServer,
 }: {
   sentryInitContent?: string;
+  sentryInitContentServer?: string[];
 } = {}): LayoutProps['steps'] => [
   {
     language: 'bash',
@@ -41,10 +53,10 @@ export const steps = ({
         ),
         code: `
         # Using yarn
-        yarn add @sentry/react
+        yarn add @sentry/remix
 
         # Using npm
-        npm install --save @sentry/react
+        npm install --save @sentry/remix
         `,
       },
     ],
@@ -55,16 +67,79 @@ export const steps = ({
     configurations: [
       {
         description: t(
-          "Initialize Sentry as early as possible in your application's lifecycle."
+          'Import and initialize Sentry in your Remix entry points for both the client and server:'
         ),
         code: `
+        import { useLocation, useMatches } from "@remix-run/react";
+        import * as Sentry from "@sentry/remix";
+        import { useEffect } from "react";
+
         Sentry.init({
           ${sentryInitContent}
         });
+        `,
+      },
+      {
+        description: tct(
+          `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
+          {
+            action: (
+              <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
+            ),
+            loader: (
+              <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
+            ),
+          }
+        ),
+        code: `
 
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
+        ${
+          (sentryInitContentServer ?? []).length > 1
+            ? `import { prisma } from "~/db.server";`
+            : ''
+        }
+
+        import * as Sentry from "@sentry/remix";
+
+        Sentry.init({
+          ${sentryInitContentServer?.join('\n')}
+        });
+        `,
+      },
+      {
+        description: t(
+          'Lastly, wrap your Remix root with "withSentry" to catch React component errors and to get parameterized router transactions:'
+        ),
+        code: `
+import {
+  Links,
+  LiveReload,
+  Meta,
+  Outlet,
+  Scripts,
+  ScrollRestoration,
+} from "@remix-run/react";
+
+import { withSentry } from "@sentry/remix";
+
+function App() {
+  return (
+    <html>
+      <head>
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <Outlet />
+        <ScrollRestoration />
+        <Scripts />
+        <LiveReload />
+      </body>
+    </html>
+  );
+}
+
+export default withSentry(App);
         `,
       },
     ],
@@ -90,21 +165,7 @@ export const nextSteps = [
     id: 'source-maps',
     name: t('Source Maps'),
     description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
-  },
-  {
-    id: 'react-features',
-    name: t('React Features'),
-    description: t('Learn about our first class integration with the React framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
-  },
-  {
-    id: 'react-router',
-    name: t('React Router'),
-    description: t(
-      'Configure routing, so Sentry can generate parameterized transaction names for a better overview in Performance Monitoring.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/',
   },
   {
     id: 'performance-monitoring',
@@ -112,7 +173,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/performance/',
   },
   {
     id: 'session-replay',
@@ -120,7 +181,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/session-replay/',
   },
 ];
 // Configuration End
@@ -131,18 +192,22 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithReact({
+export default function GettingStartedWithRemix({
   dsn,
   activeProductSelection,
   newOrg,
 }: Props) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
+
   let nextStepDocs = [...nextSteps];
+  const sentryInitContentServer: string[] = [`dsn: "${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
+    sentryInitContentServer.push(prismaConfig.trim());
+    sentryInitContentServer.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.PERFORMANCE_MONITORING
     );
@@ -168,7 +233,10 @@ export default function GettingStartedWithReact({
 
   return (
     <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+        sentryInitContentServer,
+      })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
     />
