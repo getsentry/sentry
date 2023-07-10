@@ -2713,6 +2713,7 @@ SENTRY_SDK_CONFIG = {
     "auto_enabling_integrations": False,
     "_experiments": {
         "custom_measurements": True,
+        "enable_backpressure_handling": True,
     },
 }
 
