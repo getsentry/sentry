@@ -1,4 +1,4 @@
-import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationRateLimits from 'sentry/views/settings/organizationRateLimits/organizationRateLimits';
 
@@ -56,10 +56,8 @@ describe('Organization Rate Limits', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Change Account Limit
-    // Remember value needs to be an index of allowedValues for account limit
-    const slider = screen.getByRole('slider', {name: 'Account Limit'});
-    fireEvent.change(slider, {target: {value: 11}});
-    await userEvent.click(slider);
+    screen.getByRole('slider', {name: 'Account Limit'}).focus();
+    await userEvent.keyboard('{ArrowLeft>5}');
     await userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
@@ -85,9 +83,8 @@ describe('Organization Rate Limits', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Change Project Rate Limit
-    const slider = screen.getByRole('slider', {name: 'Per-Project Limit'});
-    fireEvent.change(slider, {target: {value: 100}});
-    await userEvent.click(slider);
+    screen.getByRole('slider', {name: 'Per-Project Limit'}).focus();
+    await userEvent.keyboard('{ArrowRight>5}');
     await userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(

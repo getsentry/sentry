@@ -1,5 +1,4 @@
 import {
-  fireEvent,
   render,
   renderGlobalModal,
   screen,
@@ -285,8 +284,17 @@ describe('projectPerformance', function () {
       sliderIndex,
     }) => {
       // Mock endpoints
-      const mockGETBody = {};
-      mockGETBody[threshold] = defaultValue;
+      const mockGETBody = {
+        [threshold]: defaultValue,
+        n_plus_one_db_queries_detection_enabled: true,
+        slow_db_queries_detection_enabled: true,
+        db_on_main_thread_detection_enabled: true,
+        file_io_on_main_thread_detection_enabled: true,
+        consecutive_db_queries_detection_enabled: true,
+        large_render_blocking_asset_detection_enabled: true,
+        uncompressed_assets_detection_enabled: true,
+        large_http_payload_detection_enabled: true,
+      };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
         method: 'GET',
@@ -329,9 +337,14 @@ describe('projectPerformance', function () {
       expect(slider).toHaveValue(indexOfValue.toString());
 
       // Slide value on range slider.
-      fireEvent.change(slider, {target: {value: newValueIndex}});
+      slider.focus();
+      const indexDelta = newValueIndex - indexOfValue;
+      await userEvent.keyboard(
+        indexDelta > 0 ? `{ArrowRight>${indexDelta}}` : `{ArrowLeft>${-indexDelta}}`
+      );
+      await userEvent.tab();
+
       expect(slider).toHaveValue(newValueIndex.toString());
-      fireEvent.keyUp(slider);
 
       // Ensure that PUT request is fired to update
       // project settings
