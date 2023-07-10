@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
+from sentry.tasks.integrations.github.link_all_repos import link_all_repos
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -304,6 +305,10 @@ class GitHubIntegrationProvider(IntegrationProvider):
                     "organization_id": organization.id,
                 }
             )
+
+        link_all_repos.apply_async(
+            kwargs={"integration_id": integration.id, "organization_id": organization.id}
+        )
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]
