@@ -9,7 +9,9 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import DeprecatedAsyncComponent, {
+  AsyncComponentState,
+} from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -20,25 +22,30 @@ import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSet
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, Organization, Scope} from 'sentry/types';
+import type {
+  Integration,
+  Organization,
+  OrganizationAuthProvider,
+  Scope,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
   hookName: 'component:codecov-integration-settings-link',
 });
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   access: Set<Scope>;
   initialData: Organization;
   location: Location;
   onSave: (previous: Organization, updated: Organization) => void;
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = DeprecatedAsyncComponent['state'] & {
-  authProvider: object;
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider;
   githubIntegrations: Integration[];
-};
+}
 
 class OrganizationSettingsForm extends DeprecatedAsyncComponent<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {

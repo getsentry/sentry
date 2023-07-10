@@ -25,7 +25,7 @@ export type Project = {
     symbolicationDegraded: boolean;
   };
   features: string[];
-  firstEvent: 'string' | null;
+  firstEvent: string | null;
   firstTransactionEvent: boolean;
   groupingAutoUpdate: boolean;
   groupingConfig: string;

@@ -1,4 +1,5 @@
-export function AuditLogsApiEventNames(params = []) {
+// Could not find any strong types for this when converting to typescript
+export function AuditLogsApiEventNames(params: string[] = []): string[] {
   return [
     ...params,
     'member.invite',

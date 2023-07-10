@@ -1,4 +1,6 @@
-export function AccountEmails(params = []) {
+import type {UserEmail} from 'sentry/types';
+
+export function AccountEmails(params: UserEmail[] = []): UserEmail[] {
   return [
     {
       email: 'primary@example.com',
