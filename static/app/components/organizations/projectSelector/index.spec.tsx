@@ -1,6 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ProjectSelector from 'sentry/components/organizations/projectSelector';
+import ProjectSelector, {
+  ProjectSelectorProps,
+} from 'sentry/components/organizations/projectSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 
 describe('ProjectSelector', function () {
@@ -33,8 +35,8 @@ describe('ProjectSelector', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Apply Filter'}));
   }
 
-  const props = {
-    customDropdownButton: () => 'Project Picker',
+  const props: ProjectSelectorProps = {
+    customDropdownButton: () => <span>Project Picker</span>,
     customLoadingIndicator: () => 'Loading...',
     isGlobalSelectionReady: true,
     organization: mockOrg,
@@ -43,7 +45,6 @@ describe('ProjectSelector', function () {
     value: [],
     onApplyChange: () => {},
     onChange: () => {},
-    menuFooter: () => {},
   };
 
   it('should show empty message with no projects button, when no projects, and has no "project:write" access', async function () {
@@ -51,12 +52,12 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         memberProjects={[]}
-        organization={{
+        organization={TestStubs.Organization({
           id: 'org',
           slug: 'org-slug',
           access: [],
           features: [],
-        }}
+        })}
       />,
       {context: routerContext}
     );
@@ -75,12 +76,12 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         memberProjects={[]}
-        organization={{
+        organization={TestStubs.Organization({
           id: 'org',
           slug: 'org-slug',
           access: ['project:write'],
           features: [],
-        }}
+        })}
       />,
       {context: routerContext}
     );
@@ -337,9 +338,7 @@ describe('ProjectSelector', function () {
 
     // Unselect project D (re-render with the updated selection value)
     await userEvent.click(screen.getByRole('checkbox', {name: projectDSelected.slug}));
-    rerender(<ProjectSelector {...multiProjectProps} value={[]} />, {
-      context: routerContext,
-    });
+    rerender(<ProjectSelector {...multiProjectProps} value={[]} />);
 
     // Project D is no longer checked
     expect(screen.getByRole('checkbox', {name: projectDSelected.slug})).not.toBeChecked();
@@ -367,7 +366,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, orgRole: 'owner'}}
+        organization={TestStubs.Organization({...mockOrg, orgRole: 'owner'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -387,7 +386,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, orgRole: 'manager'}}
+        organization={TestStubs.Organization({...mockOrg, orgRole: 'manager'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -407,7 +406,10 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, features: [...mockOrg.features, 'open-membership']}}
+        organization={TestStubs.Organization({
+          ...mockOrg,
+          features: [...mockOrg.features, 'open-membership'],
+        })}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}
@@ -427,7 +429,7 @@ describe('ProjectSelector', function () {
       <ProjectSelector
         {...props}
         nonMemberProjects={[anotherProject]}
-        organization={{...mockOrg, orgRole: 'manager'}}
+        organization={TestStubs.Organization({...mockOrg, orgRole: 'manager'})}
         onApplyChange={mockOnApplyChange}
       />,
       {context: routerContext}

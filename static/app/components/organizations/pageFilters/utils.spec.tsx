@@ -30,7 +30,7 @@ describe('isSelectionEqual', function () {
     changed = {...base, projects: []};
     expect(isSelectionEqual(base, changed)).toBe(false);
 
-    changed = {...base, projects: ['prod', 'staging']};
+    changed = {...base, projects: [1]};
     expect(isSelectionEqual(base, changed)).toBe(false);
   });
 
