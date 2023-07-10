@@ -1,10 +1,12 @@
 import uuid
 import zipfile
 from datetime import datetime, timedelta, timezone
+from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
 import pytz
+from django.core.files.base import ContentFile
 from django.urls import reverse
 from freezegun import freeze_time
 
@@ -12,12 +14,14 @@ from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
     File,
+    FileBlob,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
     ReleaseFile,
     SourceFileType,
 )
 from sentry.models.releasefile import read_artifact_index, update_artifact_index
+from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -28,7 +32,7 @@ def make_file(artifact_name, content, type="artifact.bundle", headers=None):
     return file
 
 
-def make_compressed_zip_file(artifact_name, files):
+def make_compressed_zip_file(files):
     def remove_and_return(dictionary, key):
         dictionary.pop(key)
         return dictionary
@@ -52,18 +56,30 @@ def make_compressed_zip_file(artifact_name, files):
         )
     compressed.seek(0)
 
-    file = File.objects.create(name=artifact_name, type="artifact.bundle")
-    file.putfile(compressed)
+    return compressed.getvalue()
 
-    return file
+
+def upload_bundle(bundle_file, project, release=None, dist=None, upload_as_artifact_bundle=True):
+    blob1 = FileBlob.from_file(ContentFile(bundle_file))
+    total_checksum = sha1(bundle_file).hexdigest()
+
+    return assemble_artifacts(
+        org_id=project.organization.id,
+        project_ids=[project.id],
+        version=release,
+        dist=dist,
+        checksum=total_checksum,
+        chunks=[blob1.checksum],
+        upload_as_artifact_bundle=upload_as_artifact_bundle,
+    )
 
 
 class ArtifactLookupTest(APITestCase):
-    def assert_download_matches_file(self, url: str, file: File):
+    def assert_download_matches_file(self, url: str, file: bytes):
         response = self.client.get(url)
-        with file.getfile() as file:
-            for chunk in response:
-                assert file.read(len(chunk)) == chunk
+        file = BytesIO(file)
+        for chunk in response:
+            assert file.read(len(chunk)) == chunk
 
     def create_archive(self, fields, files, dist=None):
         manifest = dict(
@@ -81,13 +97,12 @@ class ArtifactLookupTest(APITestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        return (update_artifact_index(self.release, dist, file_), file_)
+        return (update_artifact_index(self.release, dist, file_), buffer.getvalue())
 
     def test_query_by_debug_ids(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
         debug_id_b = "bbbbbbbb-0000-0000-0000-000000000000"
         file_ab = make_compressed_zip_file(
-            "bundle_ab.zip",
             {
                 "path/in/zip/a": {
                     "url": "~/path/to/app.js",
@@ -107,35 +122,10 @@ class ArtifactLookupTest(APITestCase):
                 },
             },
         )
-
-        bundle_id_ab = uuid4()
-        artifact_bundle_ab = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            bundle_id=bundle_id_ab,
-            file=file_ab,
-            artifact_count=2,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle_ab,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id_a,
-            artifact_bundle=artifact_bundle_ab,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id_b,
-            artifact_bundle=artifact_bundle_ab,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
+        upload_bundle(file_ab, self.project)
 
         debug_id_c = "cccccccc-0000-0000-0000-000000000000"
         file_c = make_compressed_zip_file(
-            "bundle_c.zip",
             {
                 "path/in/zip/c": {
                     "url": "~/path/to/app.js",
@@ -147,25 +137,7 @@ class ArtifactLookupTest(APITestCase):
                 },
             },
         )
-
-        bundle_id_c = uuid4()
-        artifact_bundle_c = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            bundle_id=bundle_id_c,
-            file=file_c,
-            artifact_count=1,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle_c,
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id_c,
-            artifact_bundle=artifact_bundle_c,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
+        upload_bundle(file_c, self.project)
 
         self.login_as(user=self.user)
 
@@ -200,8 +172,9 @@ class ArtifactLookupTest(APITestCase):
 
     def test_query_by_url(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
+        dist = self.release.add_dist("whatever")
+
         file_a = make_compressed_zip_file(
-            "bundle_a.zip",
             {
                 "path/in/zip": {
                     "url": "~/path/to/app.js",
@@ -213,8 +186,9 @@ class ArtifactLookupTest(APITestCase):
                 },
             },
         )
+        upload_bundle(file_a, self.project, self.release.version, dist.name)
+
         file_b = make_compressed_zip_file(
-            "bundle_b.zip",
             {
                 "path/in/zip_a": {
                     "url": "~/path/to/app.js",
@@ -228,45 +202,7 @@ class ArtifactLookupTest(APITestCase):
                 },
             },
         )
-
-        artifact_bundle_a = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=uuid4(), file=file_a, artifact_count=1
-        )
-        DebugIdArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            debug_id=debug_id_a,
-            artifact_bundle=artifact_bundle_a,
-            source_file_type=SourceFileType.SOURCE_MAP.value,
-        )
-
-        artifact_bundle_b = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=uuid4(), file=file_b, artifact_count=2
-        )
-
-        dist = self.release.add_dist("whatever")
-
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name=self.release.version,
-            dist_name=dist.name,
-            artifact_bundle=artifact_bundle_a,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle_a,
-        )
-        ReleaseArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            release_name=self.release.version,
-            dist_name=dist.name,
-            artifact_bundle=artifact_bundle_b,
-        )
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle_b,
-        )
+        upload_bundle(file_b, self.project, self.release.version, dist.name)
 
         self.login_as(user=self.user)
 
@@ -326,7 +262,7 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["type"] == "file"
         assert response[0]["abs_path"] == "http://example.com/application.js"
         assert response[0]["headers"] == file_headers
-        self.assert_download_matches_file(response[0]["url"], file)
+        self.assert_download_matches_file(response[0]["url"], b"wat")
 
     def test_query_by_url_from_legacy_bundle(self):
         self.login_as(user=self.user)
@@ -531,8 +467,7 @@ class ArtifactLookupTest(APITestCase):
                 ),
                 (35, datetime.now(tz=pytz.UTC), "ef88bc3e-d334-4809-9723-5c5dbc8bd4e9"),
             ):
-                file = make_compressed_zip_file(
-                    "bundle_c.zip",
+                file_zip = make_compressed_zip_file(
                     {
                         "path/in/zip/c": {
                             "url": "~/path/to/app.js",
@@ -544,6 +479,7 @@ class ArtifactLookupTest(APITestCase):
                         },
                     },
                 )
+                file = make_file("bundle_c.zip", file_zip)
                 bundle_id = uuid4()
                 date_added = datetime.now(tz=pytz.UTC) - timedelta(days=days_before)
 
@@ -601,8 +537,7 @@ class ArtifactLookupTest(APITestCase):
     @freeze_time("2023-05-23 10:00:00")
     def test_renewal_with_url(self):
         with self.options({"sourcemaps.artifact-bundles.enable-renewal": 1.0}):
-            file = make_compressed_zip_file(
-                "bundle_c.zip",
+            file_zip = make_compressed_zip_file(
                 {
                     "path/in/zip/c": {
                         "url": "~/path/to/app.js",
@@ -611,6 +546,7 @@ class ArtifactLookupTest(APITestCase):
                     },
                 },
             )
+            file = make_file("bundle_c.zip", file_zip)
 
             for days_before, expected_date_added, release in (
                 (
@@ -688,8 +624,7 @@ class ArtifactLookupTest(APITestCase):
         )
 
         # artifact bundle
-        file_b = make_compressed_zip_file(
-            "bundle_b.zip",
+        file_b_zip = make_compressed_zip_file(
             {
                 "path/in/zip/c": {
                     "url": "~/path/to/app.js",
@@ -699,6 +634,7 @@ class ArtifactLookupTest(APITestCase):
                 },
             },
         )
+        file_b = make_file("bundle_b.zip", file_b_zip)
         bundle_id = uuid4()
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -723,9 +659,9 @@ class ArtifactLookupTest(APITestCase):
         )
 
         # `self.user` has access to these files
-        self.assert_download_matches_file(f"{url}?download=release_file/{release_file.id}", file_a)
+        self.assert_download_matches_file(f"{url}?download=release_file/{release_file.id}", b"wat")
         self.assert_download_matches_file(
-            f"{url}?download=artifact_bundle/{artifact_bundle.id}", file_b
+            f"{url}?download=artifact_bundle/{artifact_bundle.id}", file_b_zip
         )
 
         # legacy `File`-based download does not work
