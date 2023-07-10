@@ -363,7 +363,7 @@ class SearchQueryConverter:
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
 
-        value = token.value.raw_value
+        value: Any = token.value.raw_value
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
@@ -371,6 +371,10 @@ class SearchQueryConverter:
                 "value": [value],
             }
         else:
+            # Special case: `x != ""` is the result of a `has:x` query, which
+            # needs to be translated as `not(x == null)`.
+            if token.operator == "!=" and value == "":
+                value = None
             if isinstance(value, str):
                 value = event_search.translate_escape_sequences(value)
             condition = {
