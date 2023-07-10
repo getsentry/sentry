@@ -65,6 +65,7 @@ default_manager.add(
     )
 )
 default_manager.add(events.ProjectEditAuditLogEvent())
+default_manager.add(events.ProjectPerformanceDetectionSettingsAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=32,

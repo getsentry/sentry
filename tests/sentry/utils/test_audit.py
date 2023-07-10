@@ -264,6 +264,42 @@ class CreateAuditEntryTest(TestCase):
         assert entry.event == audit_log.get_event_id("PROJECT_EDIT")
         assert audit_log_event.render(entry) == "edited project settings in new_slug to new"
 
+    def test_audit_entry_project_performance_setting_disable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": False},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to disable detection of File IO on Main Thread issue"
+        )
+
+    def test_audit_entry_project_performance_setting_enable_detection(self):
+        entry = create_audit_entry(
+            request=self.req,
+            organization=self.org,
+            target_object=self.project.id,
+            event=audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE"),
+            data={"file_io_on_main_thread_detection_enabled": True},
+        )
+        audit_log_event = audit_log.get(entry.event)
+
+        assert entry.actor == self.user
+        assert entry.target_object == self.project.id
+        assert entry.event == audit_log.get_event_id("PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE")
+        assert (
+            audit_log_event.render(entry)
+            == "edited project performance issue detector settings to enable detection of File IO on Main Thread issue"
+        )
+
     def test_audit_entry_integration_log(self):
         project = self.create_project()
         self.login_as(user=self.user)

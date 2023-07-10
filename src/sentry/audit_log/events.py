@@ -119,6 +119,28 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
         return "edited project settings " + items_string
 
 
+class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(
+            event_id=178,
+            name="PROJECT_PERFORMANCE_ISSUE_DETECTION_CHANGE",
+            api_name="project.change-performance-issue-detection",
+        )
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        from sentry.api.endpoints.project_performance_issue_settings import (
+            map_internal_only_project_settings_to_group as map,
+        )
+
+        data = audit_log_entry.data
+        items_string = ", ".join(
+            f"to {'enable' if value else 'disable'} detection of {map[key].description} issue"
+            for (key, value) in data.items()
+            if key in map.keys()
+        )
+        return "edited project performance issue detector settings " + items_string
+
+
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
