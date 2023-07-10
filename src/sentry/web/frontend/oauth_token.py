@@ -90,7 +90,7 @@ class OAuthTokenView(View):
                 secrets.token_urlsafe(),
                 nonce=request.POST.get("nonce"),
             )
-            return open_id_token.get_encrypted_id_token()
+            return open_id_token.get_encrypted_id_token(grant)
         return None
 
     def _get_refresh_token(self, request, client_id):
