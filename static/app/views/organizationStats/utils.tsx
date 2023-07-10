@@ -105,3 +105,34 @@ export function isDisplayUtc(datetime: DateTimeObject): boolean {
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
 }
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getOffsetFromCursor(cursor?: string) {
+  const offset = Number(cursor?.split(':')[1]);
+  return isNaN(offset) ? 0 : offset;
+}
+
+/**
+ * HACK(dlee): client-side pagination
+ */
+export function getPaginationPageLink({
+  numRows,
+  pageSize,
+  offset,
+}: {
+  numRows: number;
+  offset: number;
+  pageSize: number;
+}) {
+  const prevOffset = offset - pageSize;
+  const nextOffset = offset + pageSize;
+
+  return `<link>; rel="previous"; results="${prevOffset >= 0}"; cursor="0:${Math.max(
+    0,
+    prevOffset
+  )}:1", <link>; rel="next"; results="${
+    nextOffset < numRows
+  }"; cursor="0:${nextOffset}:0"`;
+}

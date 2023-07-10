@@ -64,19 +64,15 @@ export const PAGE_QUERY_PARAMS = [
   'sort',
   'query',
   'cursor',
+  'spikeCursor',
 ];
 
-type Props = {
+export type OrganizationStatsProps = {
   organization: Organization;
   selection: PageFilters;
 } & RouteComponentProps<{}, {}>;
 
-const UsageStatsOrganization = HookOrDefault({
-  hookName: 'component:enhanced-org-stats',
-  defaultComponent: UsageStatsOrg,
-});
-
-export class OrganizationStats extends Component<Props> {
+export class OrganizationStats extends Component<OrganizationStatsProps> {
   get dataCategory(): DataCategoryInfo['plural'] {
     const dataCategory = this.props.location?.query?.dataCategory;
 
@@ -181,6 +177,12 @@ export class OrganizationStats extends Component<Props> {
    */
   get hasProjectStats(): boolean {
     return this.props.organization.features.includes('project-stats');
+  }
+
+  get isSingleProject(): boolean {
+    return this.hasProjectStats
+      ? this.projectIds.length === 1 && !this.projectIds.includes(-1)
+      : false;
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -347,13 +349,28 @@ export class OrganizationStats extends Component<Props> {
     );
   };
 
+  /**
+   * This method is replaced by the hook "component:enhanced-org-stats"
+   */
+  renderUsageStatsOrg() {
+    const {organization} = this.props;
+    return (
+      <UsageStatsOrg
+        isSingleProject={this.isSingleProject}
+        projectIds={this.projectIds}
+        organization={organization}
+        dataCategory={this.dataCategory}
+        dataCategoryName={this.dataCategoryName}
+        dataDatetime={this.dataDatetime}
+        chartTransform={this.chartTransform}
+        handleChangeState={this.setStateOnUrl}
+      />
+    );
+  }
+
   render() {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
-
-    const isSingleProject = this.hasProjectStats
-      ? this.projectIds.length === 1 && !this.projectIds.includes(-1)
-      : false;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
@@ -381,25 +398,14 @@ export class OrganizationStats extends Component<Props> {
               {this.renderProjectPageControl()}
               {this.renderPageControl()}
               <div>
-                <ErrorBoundary mini>
-                  <UsageStatsOrganization
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    dataDatetime={this.dataDatetime}
-                    chartTransform={this.chartTransform}
-                    handleChangeState={this.setStateOnUrl}
-                    projectIds={this.projectIds}
-                    isSingleProject={isSingleProject}
-                  />
-                </ErrorBoundary>
+                <ErrorBoundary mini>{this.renderUsageStatsOrg()}</ErrorBoundary>
               </div>
               <ErrorBoundary mini>
                 <UsageStatsProjects
                   organization={organization}
                   dataCategory={this.dataCategory}
                   dataCategoryName={this.dataCategoryName}
-                  isSingleProject={isSingleProject}
+                  isSingleProject={this.isSingleProject}
                   projectIds={this.projectIds}
                   dataDatetime={this.dataDatetime}
                   tableSort={this.tableSort}
@@ -417,7 +423,12 @@ export class OrganizationStats extends Component<Props> {
   }
 }
 
-export default withPageFilters(withOrganization(OrganizationStats));
+const HookOrgStats = HookOrDefault({
+  hookName: 'component:enhanced-org-stats',
+  defaultComponent: OrganizationStats,
+});
+
+export default withPageFilters(withOrganization(HookOrgStats));
 
 const SelectorGrid = styled('div')`
   display: grid;
