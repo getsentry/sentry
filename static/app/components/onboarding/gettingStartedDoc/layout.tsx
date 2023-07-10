@@ -5,7 +5,11 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {
+  Step,
+  StepProps,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ProductSelection,
   ProductSolution,
@@ -25,29 +29,14 @@ type NextStep = {
   name: string;
 };
 
-type CurrentSteps = [
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.INSTALL;
-  },
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.CONFIGURE;
-  },
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.VERIFY;
-  }
-];
+type CurrentStep = {
+  configurations: StepProps['configurations'];
+  language: string;
+  type: StepType;
+};
 
 export type LayoutProps = {
-  steps: CurrentSteps;
+  steps: CurrentStep[];
   newOrg?: boolean;
   nextSteps?: NextStep[];
 };
@@ -74,8 +63,7 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
           <Step
             key={step.type}
             type={step.type}
-            description={step.description}
-            code={step.code}
+            configurations={step.configurations}
             language={step.language}
           />
         ))}
