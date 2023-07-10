@@ -15,6 +15,7 @@ export * from './event';
 export * from './group';
 export * from './integrations';
 export * from './metrics';
+export * from './notificationActions';
 export * from './onboarding';
 export * from './organization';
 export * from './project';
