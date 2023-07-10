@@ -368,7 +368,7 @@ class ReleaseIssues extends Component<Props, State> {
 
   render() {
     const {issuesType, count, pageLinks, onCursor} = this.state;
-    const {organization, queryFilterDescription, withChart} = this.props;
+    const {organization, queryFilterDescription, withChart, version} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -427,7 +427,7 @@ class ReleaseIssues extends Component<Props, State> {
             orgId={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
-            query=""
+            query={`release:${version}`}
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
