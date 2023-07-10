@@ -36,7 +36,7 @@ from sentry.issues.grouptype import (
     MonitorCheckInTimeout,
 )
 from sentry.locks import locks
-from sentry.models import Environment, Organization, Rule, RuleSource, RuleStatus
+from sentry.models import Environment, Organization, Rule, RuleSource
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
@@ -312,7 +312,7 @@ class Monitor(Model):
                 project_id=self.project_id,
                 id=alert_rule_id,
                 source=RuleSource.CRON_MONITOR,
-                status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                status=ObjectStatus.ACTIVE,
             ).first()
             if alert_rule:
                 return alert_rule

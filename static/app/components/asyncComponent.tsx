@@ -14,16 +14,16 @@ import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import PermissionDenied from 'sentry/views/permissionDenied';
 import RouteError from 'sentry/views/routeError';
 
-export type AsyncComponentProps = Partial<RouteComponentProps<{}, {}>>;
+export interface AsyncComponentProps extends Partial<RouteComponentProps<{}, {}>> {}
 
-export type AsyncComponentState = {
+export interface AsyncComponentState {
   [key: string]: any;
   error: boolean;
   errors: Record<string, ResponseMeta>;
   loading: boolean;
   reloading: boolean;
   remainingRequests?: number;
-};
+}
 
 type SearchInputProps = React.ComponentProps<typeof AsyncComponentSearchInput>;
 

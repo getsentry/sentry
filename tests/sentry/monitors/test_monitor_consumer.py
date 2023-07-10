@@ -185,6 +185,11 @@ class MonitorConsumerTest(TestCase):
         )
         assert checkin.timeout_at == timeout_at
 
+        self.send_message(monitor.slug, guid=self.guid)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.timeout_at is None
+
         new_guid = uuid.uuid4().hex
         self.send_message(
             "my-other-monitor",

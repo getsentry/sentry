@@ -65,6 +65,9 @@ class SDKCrashDetection:
                 },
             )
 
+            sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
+            set_path(sdk_crash_event_data, "release", value=sdk_version)
+
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
 
