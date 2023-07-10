@@ -1,12 +1,12 @@
 from django.urls import re_path
 
 from .search import JiraServerSearchEndpoint
-from .webhooks import JiraIssueUpdatedWebhook
+from .webhooks import JiraServerIssueUpdatedWebhook
 
 urlpatterns = [
     re_path(
         r"^issue-updated/(?P<token>[^\/]+)/$",
-        JiraIssueUpdatedWebhook.as_view(),
+        JiraServerIssueUpdatedWebhook.as_view(),
         name="sentry-extensions-jiraserver-issue-updated",
     ),
     re_path(
