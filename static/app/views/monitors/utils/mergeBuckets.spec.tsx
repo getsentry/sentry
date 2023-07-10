@@ -37,7 +37,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.OK)],
       [8, generateJobRun('prod', CheckInStatus.OK)],
     ];
-    const mergedData = mergeBuckets(bucketData);
+    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
     const expectedMerged = [
       {
         startTs: 1,
@@ -63,7 +63,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.MISSED)],
       [8, generateJobRun('prod', CheckInStatus.MISSED)],
     ];
-    const mergedData = mergeBuckets(bucketData);
+    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
     const expectedMerged = [
       {
         startTs: 1,
@@ -97,7 +97,7 @@ describe('mergeBuckets', function () {
       [7, generateJobRun('prod', CheckInStatus.MISSED)],
       [8, generateJobRun('prod', CheckInStatus.TIMEOUT)],
     ];
-    const mergedData = mergeBuckets(bucketData);
+    const mergedData = mergeBuckets(bucketData, new Set(['prod']));
     const expectedMerged = [
       {
         startTs: 1,
@@ -106,6 +106,51 @@ describe('mergeBuckets', function () {
         roundedLeft: true,
         roundedRight: true,
         envMapping: generateEnvMapping('prod', [1, 2, 5, 0]),
+      },
+    ];
+
+    expect(mergedData).toEqual(expectedMerged);
+  });
+
+  it('filters off environment', function () {
+    const bucketData: MonitorBucketData = [
+      [
+        1,
+        {
+          ...generateJobRun('prod', CheckInStatus.TIMEOUT),
+          ...generateJobRun('dev', CheckInStatus.OK),
+        },
+      ],
+      [
+        2,
+        {
+          ...generateJobRun('prod', CheckInStatus.TIMEOUT),
+          ...generateJobRun('dev', CheckInStatus.MISSED),
+        },
+      ],
+      [
+        3,
+        {
+          ...generateJobRun('prod', CheckInStatus.TIMEOUT),
+          ...generateJobRun('dev', CheckInStatus.TIMEOUT),
+        },
+      ],
+      [4, generateJobRun('prod', CheckInStatus.TIMEOUT)],
+      [5, generateJobRun('prod', CheckInStatus.MISSED)],
+      [6, generateJobRun('prod', CheckInStatus.OK)],
+      [7, generateJobRun('prod', CheckInStatus.MISSED)],
+      [8, generateJobRun('prod', CheckInStatus.TIMEOUT)],
+    ];
+
+    const mergedData = mergeBuckets(bucketData, new Set(['dev']));
+    const expectedMerged = [
+      {
+        startTs: 1,
+        endTs: 4,
+        width: 4,
+        roundedLeft: true,
+        roundedRight: true,
+        envMapping: generateEnvMapping('dev', [1, 1, 1, 0]),
       },
     ];
 
