@@ -38,9 +38,7 @@ class DiscordRequest:
         self._data: Mapping[str, object] = {}
 
     @property
-    def integration(self) -> RpcIntegration:
-        if not self._integration:
-            raise RuntimeError
+    def integration(self) -> RpcIntegration | None:
         return self._integration
 
     @property
@@ -62,7 +60,7 @@ class DiscordRequest:
             "discord_channel_id": str(_data.get("channel_id", None)),
         }
 
-        if self._integration:
+        if self.integration:
             data["integration_id"] = str(self.integration.id)
 
         return {k: v for k, v in data.items() if v}

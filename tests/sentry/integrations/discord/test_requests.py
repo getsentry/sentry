@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import pytest
 
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import memoize
@@ -47,3 +48,24 @@ class DiscordRequestTest(TestCase):
         with pytest.raises(DiscordRequestError) as e:
             self.discord_request.validate()
             assert e.value.status == 400
+
+    @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
+    def test_validate_integration(self, mock_get_integration):
+        mock_get_integration.return_value = RpcIntegration(
+            id=1,
+            provider="discord",
+            external_id="guild-id",
+            name="Cool server",
+            metadata={},
+            status=1,
+        )
+        self.discord_request.validate_integration()
+        assert mock_get_integration.call_count == 1
+        assert self.discord_request.integration is not None
+
+    @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
+    def test_validate_integration_no_integration(self, mock_get_integration):
+        mock_get_integration.return_value = None
+        self.discord_request.validate_integration()
+        assert mock_get_integration.call_count == 1
+        assert self.discord_request.integration is None
