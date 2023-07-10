@@ -2,8 +2,6 @@ from typing import Any
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.client import ApiClient
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
@@ -68,19 +66,3 @@ class PagerDutyClient(IntegrationProxyClient):
             payload = data
 
         return self.post("/", data=payload)
-
-
-class PagerDutyClientOld(ApiClient):
-    allow_redirects = False
-    integration_name = "pagerduty"
-    base_url = "https://events.pagerduty.com/v2/enqueue"
-
-    def __init__(self, integration_key):
-        self.integration_key = integration_key
-        super().__init__()
-
-    def request(self, method, path, headers=None, data=None, params=None):
-        if not headers:
-            headers = {"Content-Type": "application/json"}
-
-        return self._request(method, path, headers=headers, data=data, params=params)

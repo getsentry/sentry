@@ -55,18 +55,7 @@ class PagerDutyClientTest(APITestCase):
 
     @responses.activate
     def test_send_trigger(self):
-        responses.add(
-            responses.POST,
-            "https://events.pagerduty.com/v2/enqueue/",
-            body=b"{}",
-            match=[
-                matchers.header_matcher(
-                    {
-                        "Content-Type": "application/json",
-                    }
-                ),
-            ],
-        )
+        integration_key = self.service.integration_key
 
         event = self.store_event(
             data={
@@ -77,14 +66,9 @@ class PagerDutyClientTest(APITestCase):
             },
             project_id=self.project.id,
         )
-        group = event.group
-
-        integration_key = self.service.integration_key
-        client = self.installation.get_client(integration_key=integration_key)
         custom_details = serialize(event, None, ExternalEventSerializer())
-
-        client.send_trigger(event)
-        data = {
+        group = event.group
+        expected_data = {
             "routing_key": integration_key,
             "event_action": "trigger",
             "dedup_key": group.qualified_short_id,
@@ -102,6 +86,24 @@ class PagerDutyClientTest(APITestCase):
                 }
             ],
         }
+
+        responses.add(
+            responses.POST,
+            "https://events.pagerduty.com/v2/enqueue/",
+            body=b"{}",
+            match=[
+                matchers.header_matcher(
+                    {
+                        "Content-Type": "application/json",
+                    }
+                ),
+                matchers.json_params_matcher(expected_data),
+            ],
+        )
+
+        client = self.installation.get_client(integration_key=integration_key)
+        client.send_trigger(event)
+
         assert len(responses.calls) == 1
         request = responses.calls[0].request
         assert "https://events.pagerduty.com/v2/enqueue/" == request.url
