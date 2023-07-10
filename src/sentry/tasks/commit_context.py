@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -51,8 +52,14 @@ def queue_comment_task_if_needed(
         extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
     )
 
-    # client will raise ApiError if the request is not successful
-    response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
+    # client will raise an Exception if the request is not successful
+    try:
+        response = installation.get_client().get_pullrequest_from_commit(
+            repo=repo.name, sha=commit.key
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return
 
     if not isinstance(response, list) or len(response) != 1:
         # the response should return a single PR, return if multiple
