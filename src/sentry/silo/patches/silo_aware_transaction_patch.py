@@ -68,8 +68,14 @@ def determine_using_by_silo_mode(using):
     return using
 
 
+_patched = False
+
+
 def patch_silo_aware_atomic():
-    global _default_on_commit, _default_get_connection, _default_atomic_impl
+    global _default_on_commit, _default_get_connection, _default_atomic_impl, _patched
+
+    assert not _patched
+    _patched = True
 
     current_django_version = get_version()
     assert current_django_version.startswith("2.2."), (
