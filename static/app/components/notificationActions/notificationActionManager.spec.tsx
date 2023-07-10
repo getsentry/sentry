@@ -8,6 +8,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
+import type {NotificationAction} from 'sentry/types';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();
@@ -17,7 +18,7 @@ describe('Adds, deletes, and updates notification actions', function () {
     body: availableActions,
   });
 
-  const notificationActions = [
+  const notificationActions: NotificationAction[] = [
     {
       id: 2,
       organizationId: organization.id,
@@ -344,7 +345,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           serviceType: 'pagerduty',
           triggerType: 'spike-protection',
           targetType: 'specific',
-          targetIdentifier: 1,
+          targetIdentifier: '1',
           targetDisplay: 'Test 1',
         }),
       })
@@ -402,7 +403,7 @@ describe('Adds, deletes, and updates notification actions', function () {
           triggerType: 'spike-protection',
           targetType: 'specific',
           integrationId: 2,
-          targetIdentifier: 3,
+          targetIdentifier: '3',
           targetDisplay: 'Default Service',
         }),
       })

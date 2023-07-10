@@ -1,9 +1,16 @@
-export function ActivityFeed(params = {}) {
+import {
+  type Activity,
+  EventOrGroupType,
+  GroupActivityType,
+  IssueCategory,
+  IssueType,
+} from 'sentry/types';
+
+export function ActivityFeed(params: Partial<Activity> = {}): Activity {
   return {
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',
-    project: {
-      status: 'active',
+    project: TestStubs.Project({
       features: [
         'releases',
         'sample-events',
@@ -13,21 +20,18 @@ export function ActivityFeed(params = {}) {
         'similarity-view',
         'data-forwarding',
       ],
-      color: '#bf873f',
       isInternal: true,
-      isPublic: false,
       dateCreated: '2019-03-09T06:52:19.832Z',
       id: '1',
       slug: 'internal',
       name: 'Internal',
       hasAccess: true,
       isBookmarked: false,
-      platform: null,
+      platform: undefined,
       firstEvent: '2019-03-09T06:56:15Z',
-      avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
       isMember: true,
-    },
-    user: {
+    }),
+    user: TestStubs.User({
       username: 'billy@sentry.io',
       lastLogin: '2019-04-23T00:10:19.787Z',
       isSuperuser: true,
@@ -52,8 +56,8 @@ export function ActivityFeed(params = {}) {
       avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
       hasPasswordAuth: true,
       email: 'billy@sentry.io',
-    },
-    type: 'note',
+    }),
+    type: GroupActivityType.NOTE,
     issue: {
       platform: 'javascript',
       lastSeen: '2019-04-26T16:34:12.288Z',
@@ -62,25 +66,48 @@ export function ActivityFeed(params = {}) {
       culprit: '/organizations/:orgId/issues/:groupId/feedback/',
       title: 'Error: user efedback',
       id: '524',
-      assignedTo: null,
-      logger: null,
-      type: 'error',
+      assignedTo: {
+        id: '1',
+        name: 'actor',
+        type: 'user',
+      },
+      issueCategory: IssueCategory.ERROR,
+      issueType: IssueType.ERROR,
+      participants: [],
+      latestEvent: TestStubs.Event(),
+      isUnhandled: true,
+      pluginActions: [],
+      pluginContexts: [],
+      seenBy: [],
+      filtered: null,
+      pluginIssues: [],
+      // there is a nasty type issue here where "reprocessing" cannot be assigned to
+      // resolution status | "reprocessing" and "reprocessing" cannot be assigned to resolution
+      // status (fails even if I as const it).
+      // @ts-expect-error
+      status: 'reprocessing',
+      activity: [],
+      logger: 'critical',
+      type: EventOrGroupType.ERROR,
       annotations: [],
-      metadata: {type: 'Error', value: 'user efedback', filename: '<anonymous>'},
-      status: 'unresolved',
+      metadata: {type: 'Error', value: 'user feedback', filename: '<anonymous>'},
       subscriptionDetails: {reason: 'commented'},
       isPublic: false,
       hasSeen: true,
       shortId: 'INTERNAL-DW',
-      shareId: null,
+      shareId: '99',
       firstSeen: '2019-04-26T16:34:12.288Z',
       count: '1',
       permalink: 'http://localhost:8000/organizations/sentry/issues/524/?project=1',
       level: 'error',
       isSubscribed: true,
       isBookmarked: false,
-      project: {platform: null, slug: 'internal', id: '1', name: 'Internal'},
-      statusDetails: {},
+      project: TestStubs.Project({
+        platform: undefined,
+        slug: 'internal',
+        id: '1',
+        name: 'Internal',
+      }),
     },
     id: '48',
     ...params,
