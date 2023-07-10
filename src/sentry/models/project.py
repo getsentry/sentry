@@ -51,6 +51,8 @@ if TYPE_CHECKING:
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 
+MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
+
 
 class ProjectManager(BaseManager):
     def get_by_users(self, users: Iterable[User]) -> Mapping[int, Iterable[int]]:
@@ -531,7 +533,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value or value == "other":
+        if not value or value == "other" or value in MIGRATED_GETTING_STARTD_DOCS:
             return True
         return integration_doc_exists(value)
 
