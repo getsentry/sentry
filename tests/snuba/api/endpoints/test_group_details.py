@@ -2,6 +2,7 @@ from unittest import mock
 
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     GROUP_OWNER_TYPE,
     Environment,
@@ -201,6 +202,8 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
             group = event.group
+            generate_and_save_forecasts([group])
+
             url = f"/api/0/issues/{group.id}/?expand=forecast"
 
             response = self.client.get(url, format="json")

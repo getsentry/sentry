@@ -671,7 +671,7 @@ def test_low_freq_events() -> None:
     ceilings_list = generate_issue_forecast(data, START_TIME)
     ceilings = [x["forecasted_value"] for x in ceilings_list]
 
-    assert ceilings == [200] * 14, "Ceilings are incorrect"
+    assert ceilings == [36] * 14, "Ceilings are incorrect"
 
 
 def test_output() -> None:

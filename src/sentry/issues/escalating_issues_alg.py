@@ -78,18 +78,6 @@ def generate_issue_forecast(
 
     ts_max = max(ts_data)
 
-    # minimum ceiling for issues that don't have much data from the past week
-    floor_bound = 200
-
-    # if the max number of issues in an hour bucket is 30,
-    # a floor bound is used as the issue ceiling for the next week
-    if ts_max < 30:
-        for output_ts in output_dates:
-            output.append(
-                {"forecasted_date": output_ts.strftime("%Y-%m-%d"), "forecasted_value": floor_bound}
-            )
-        return output
-
     # if we have less than a week's worth of data (new issue),
     # set the threshold to 10x the max of the dataset to account for
     # how the pattern of the issue will change over the first week

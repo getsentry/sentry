@@ -222,17 +222,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             if "forecast" in expand and features.has(
                 "organizations:escalating-issues", group.organization
             ):
-                fetched_forecast = EscalatingGroupForecast.fetch(
-                    group.project_id, group.id
-                ).to_dict()
-                data.update(
-                    {
-                        "forecast": {
-                            "data": fetched_forecast.get("forecast"),
-                            "date_added": fetched_forecast.get("date_added"),
+                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                if fetched_forecast:
+                    fetched_forecast = fetched_forecast.to_dict()
+                    data.update(
+                        {
+                            "forecast": {
+                                "data": fetched_forecast.get("forecast"),
+                                "date_added": fetched_forecast.get("date_added"),
+                            }
                         }
-                    }
-                )
+                    )
 
             action_list = self._get_actions(request, group)
             data.update(
