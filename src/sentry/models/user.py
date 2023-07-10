@@ -11,7 +11,7 @@ from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry.auth.authenticators import available_authenticators
@@ -105,7 +105,7 @@ class User(BaseModel, AbstractBaseUser):
             "modifying their account (username, password, etc)."
         ),
     )
-    is_sentry_app = models.NullBooleanField(
+    is_sentry_app = models.BooleanField(
         _("is sentry app"),
         null=True,
         default=None,

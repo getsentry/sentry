@@ -109,6 +109,7 @@ SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -708,6 +709,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
     "sentry.tasks.process_buffer",
+    "sentry.tasks.recap_servers",
     "sentry.tasks.relay",
     "sentry.tasks.release_registry",
     "sentry.tasks.weekly_reports",
@@ -761,6 +763,10 @@ CELERY_QUEUES_CONTROL = [
         exchange=control_exchange,
     ),
 ]
+
+CELERY_ISSUE_STATES_QUEUE = Queue(
+    "auto_transition_issue_states", routing_key="auto_transition_issue_states"
+)
 
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -850,7 +856,8 @@ CELERY_QUEUES_REGION = [
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
-    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
+    Queue("recap_servers", routing_key="recap_servers"),
+    CELERY_ISSUE_STATES_QUEUE,
 ]
 
 from celery.schedules import crontab
@@ -977,7 +984,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
@@ -1078,7 +1085,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
@@ -1092,6 +1099,16 @@ CELERYBEAT_SCHEDULE_REGION = {
         # Run job every 6 hours
         "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
+    },
+    "github_comment_reactions": {
+        "task": "sentry.tasks.integrations.github_comment_reactions",
+        "schedule": crontab(hour=16),  # 9:00 PDT, 12:00 EDT, 16:00 UTC
+    },
+    "poll_recap_servers": {
+        "task": "sentry.tasks.poll_recap_servers",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
+        "options": {"expires": 60},
     },
 }
 
@@ -1284,6 +1301,8 @@ SENTRY_FEATURES = {
     "organizations:assign-to-me": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # Enables automatically linking repositories using commit webhook data
+    "organizations:auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1318,10 +1337,14 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable Discord integration
     "organizations:integrations-discord": False,
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1336,12 +1359,12 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow in MS Teams
+    "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the new issue states and substates
-    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1457,14 +1480,10 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable SQL formatting for breadcrumb items and performance spans
-    "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable prefetching of issues from the issue list when hovered
-    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1537,16 +1556,13 @@ SENTRY_FEATURES = {
     "organizations:session-replay": False,
     # Enable Session Replay showing in the sidebar
     "organizations:session-replay-ui": True,
-    # Enabled experimental session replay errors view, replacing issues
-    "organizations:session-replay-errors-tab": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enable subquery optimizations for the replay_index page
-    "organizations:session-replay-index-subquery": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-issue-emails": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1580,8 +1596,6 @@ SENTRY_FEATURES = {
     # Enable SAML2 based SSO functionality. getsentry/sentry-auth-saml2 plugin
     # must be installed to use this functionality.
     "organizations:sso-saml2": True,
-    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
-    "organizations:source-maps-debug-ids": True,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
     # Enable the sliding window per project
@@ -1639,12 +1653,14 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
+    # Enables slack channel lookup via schedule message
+    "organizations:slack-use-new-lookup": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
-    # Enable specifying inbound filter for health check calls.
-    "organizations:health-check-filter": False,
+    # Enable indexing of artifact bundles for sourcemaps.
+    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.
@@ -1658,6 +1674,8 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
+    # Enable functionality for recap server polling.
+    "projects:recap-server": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Enable suspect resolutions feature
@@ -1706,7 +1724,7 @@ SENTRY_ORGANIZATION = None
 SENTRY_FRONTEND_PROJECT = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
-SENTRY_FRONTEND_DSN = None
+SENTRY_FRONTEND_DSN: str | None = None
 # DSN for tracking all client HTTP requests (which can be noisy) [experimental]
 SENTRY_FRONTEND_REQUESTS_DSN = None
 
@@ -1752,6 +1770,9 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 
 # sample rate for all reprocessing tasks (except for the per-event ones)
 SENTRY_REPROCESSING_APM_SAMPLING = 0
+
+# upsampling multiplier that we'll increase in steps till we're at 100% throughout
+SENTRY_MULTIPLIER_APM_SAMPLING = 1
 
 # ----
 # end APM config
@@ -1867,7 +1888,9 @@ SENTRY_REPLAYS_CACHE: str = "sentry.replays.cache.default"
 SENTRY_REPLAYS_CACHE_OPTIONS: Dict[str, Any] = {}
 
 # Events blobs processing backend
-SENTRY_EVENT_PROCESSING_STORE = "sentry.eventstore.processing.default.DefaultEventProcessingStore"
+SENTRY_EVENT_PROCESSING_STORE = (
+    "sentry.eventstore.processing.redis.RedisClusterEventProcessingStore"
+)
 SENTRY_EVENT_PROCESSING_STORE_OPTIONS: dict[str, str] = {}
 
 # The internal Django cache is still used in many places
@@ -2045,7 +2068,7 @@ SENTRY_SOURCE_FETCH_MAX_SIZE = 40 * 1024 * 1024
 # silently fail to cache the compressed result anyway.  Defaults to None which
 # disables the check and allows different backends for unlimited payload.
 # e.g. memcached defaults to 1MB  = 1024 * 1024
-SENTRY_CACHE_MAX_VALUE_SIZE = None
+SENTRY_CACHE_MAX_VALUE_SIZE: int | None = None
 
 # Fields which managed users cannot change via Sentry UI. Username and password
 # cannot be changed by managed users. Optionally include 'email' and
@@ -2076,6 +2099,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    "openid",
+    "profile",
+    "email",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2110,6 +2136,14 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("openid", "Confirms authentication status and provides basic information."),),
+    (
+        (
+            "profile",
+            "Read personal information like name, avatar, date of joining etc. Requires openid scope.",
+        ),
+    ),
+    (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -2330,6 +2364,13 @@ SENTRY_RELAY_PORT = 7899
 # it as a worker, and devservices will run Kafka.
 SENTRY_DEV_PROCESS_SUBSCRIPTIONS = False
 
+SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
+
+# To use RabbitMQ as a Celery tasks broker
+# BROKER_URL = "amqp://guest:guest@localhost:5672/sentry"
+# more info https://develop.sentry.dev/services/queue/
+SENTRY_DEV_USE_RABBITMQ = bool(os.getenv("SENTRY_DEV_USE_RABBITMQ", False))
+
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -2410,6 +2451,23 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                 "64mb",
             ],
             "volumes": {"redis": {"bind": "/data"}},
+        }
+    ),
+    "redis-cluster": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/docker-redis-cluster:7.0.10",
+            "ports": {f"700{idx}/tcp": f"700{idx}" for idx in range(6)},
+            "volumes": {"redis-cluster": {"bind": "/redis-data"}},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_REDIS_CLUSTER,
+        }
+    ),
+    "rabbitmq": lambda settings, options: (
+        {
+            "image": "ghcr.io/getsentry/image-mirror-library-rabbitmq:3-management",
+            "ports": {"5672/tcp": 5672, "15672/tcp": 15672},
+            "environment": {"IP": "0.0.0.0"},
+            "only_if": settings.SENTRY_DEV_USE_RABBITMQ,
         }
     ),
     "postgres": lambda settings, options: (
@@ -2642,6 +2700,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
+    "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
 
 
@@ -2727,7 +2786,7 @@ SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user of outdated SDKs.
-SENTRY_RELEASE_REGISTRY_BASEURL = None
+SENTRY_RELEASE_REGISTRY_BASEURL: str | None = None
 
 # Hardcoded SDK versions for SDKs that do not have an entry in the release
 # registry.
@@ -3186,19 +3245,9 @@ SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
-# Similarity-v2: uses grouping components for diffing (None = fallback to setting for v1)
-SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
-# The grouping strategy to use for driving similarity-v2. You can add multiple
-# strategies here to index them all. This is useful for transitioning a
-# similarity dataset to newer grouping configurations.
-#
-# The dictionary value represents the redis prefix to use.
-#
-# Check out `test_similarity_config_migration` to understand the procedure and risks.
-SENTRY_SIMILARITY_GROUPING_CONFIGURATIONS_TO_INDEX = {
-    "similarity:2020-07-23": "a",
-}
+# Unused legacy option, there to satisfy getsentry CI. Remove from getsentry, then here
+SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
@@ -3408,7 +3457,9 @@ DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS: dict[str, str] = {}
 SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
-if USE_SILOS:
+# USE_SPLIT_DBS is leveraged in tests as we validate db splits further.
+# Split databases are also required for the USE_SILOS devserver flow.
+if USE_SILOS or env("SENTRY_USE_SPLIT_DBS", default=False):
     # Add connections for the region & control silo databases.
     DATABASES["control"] = DATABASES["default"].copy()
     DATABASES["control"]["NAME"] = "control"
@@ -3417,18 +3468,22 @@ if USE_SILOS:
     # silo database is the 'default' elsewhere in application logic.
     DATABASES["default"]["NAME"] = "region"
 
+    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+
+if USE_SILOS:
     # Addresses are hardcoded based on the defaults
     # we use in commands/devserver.
+    region_port = os.environ.get("SENTRY_BACKEND_PORT", "8010")
     SENTRY_REGION_CONFIG = [
         {
             "name": "us",
             "snowflake_id": 1,
             "category": "MULTI_TENANT",
-            "address": "http://localhost:8000",
+            "address": f"http://us.localhost:{region_port}",
             "api_token": "dev-region-silo-token",
         }
     ]
-    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8010")
+    control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
             "is_allowed": True,
@@ -3436,7 +3491,6 @@ if USE_SILOS:
             "control_silo_address": f"http://127.0.0.1:{control_port}",
         }
     )
-    DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
 
 
 # How long we should wait for a gateway proxy request to return before giving up
@@ -3507,10 +3561,13 @@ MAX_ENVIRONMENTS_PER_MONITOR = 1000
 # tests)
 SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = False
 
-# The project ID for SDK Crash Monitoring to save the detected SDK crashed to.
+# The project ID for SDK Crash Detection to save the detected SDK crashed to.
 # Currently, this is a single value, as the SDK Crash Detection feature only detects crashes for the Cocoa SDK.
 # Once we start detecting crashes for other SDKs, this will be a mapping of SDK name to project ID or something similar.
 SDK_CRASH_DETECTION_PROJECT_ID: Optional[int] = None
+
+# The percentage of events to sample for SDK Crash Detection. 0.0 = 0%, 0.5 = 50% 1.0 = 100%.
+SDK_CRASH_DETECTION_SAMPLE_RATE = 0.0
 
 # The Redis cluster to use for monitoring the service / consumer health.
 SENTRY_SERVICE_MONITORING_REDIS_CLUSTER = "default"
@@ -3549,3 +3606,8 @@ SENTRY_KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {}
 # sentry devserver should _always_ start the following consumers, identified by
 # key in SENTRY_KAFKA_CONSUMERS or sentry.consumers.KAFKA_CONSUMERS
 DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
+
+
+# If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
+# to the buffer service.
+SENTRY_BUFFER_INCR_AS_CELERY_TASK = False

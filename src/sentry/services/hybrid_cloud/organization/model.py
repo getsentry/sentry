@@ -3,10 +3,11 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from enum import IntEnum
-from typing import Any, List, Mapping, Optional, TypedDict
+from typing import Any, List, Mapping, Optional
 
 from django.dispatch import Signal
 from pydantic import Field
+from typing_extensions import TypedDict
 
 from sentry.db.models import ValidateFunction, Value
 from sentry.models.options.option import HasOption
@@ -47,9 +48,19 @@ class RpcTeam(RpcModel):
     slug: str = ""
     actor_id: Optional[int] = None
     org_role: Optional[str] = None
+    name: str = ""
 
     def class_name(self) -> str:
         return "Team"
+
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
 
 class RpcTeamMember(RpcModel):

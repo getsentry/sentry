@@ -14,7 +14,7 @@ from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
 from sentry import projectoptions
@@ -50,6 +50,8 @@ if TYPE_CHECKING:
     from sentry.models import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
+
+MIGRATED_GETTING_STARTD_DOCS = ["javascript-react", "javascript-remix"]
 
 
 class ProjectManager(BaseManager):
@@ -531,7 +533,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     @staticmethod
     def is_valid_platform(value):
-        if not value or value == "other":
+        if not value or value == "other" or value in MIGRATED_GETTING_STARTD_DOCS:
             return True
         return integration_doc_exists(value)
 

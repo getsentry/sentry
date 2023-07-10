@@ -4,7 +4,7 @@ from urllib import parse
 
 from django.db.models import Max
 from django.urls import reverse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.logic import get_incident_aggregates

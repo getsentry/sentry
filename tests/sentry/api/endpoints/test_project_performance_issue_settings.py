@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -30,38 +30,70 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             },
         )
 
-    def test_get_returns_default(self):
-        with override_options(
-            {
-                "performance.issues.slow_db_query.duration_threshold": 5000,
-                "performance.issues.n_plus_one_db.duration_threshold": 10000,
-            }
-        ):
-            with self.feature(PERFORMANCE_ISSUE_FEATURES):
-                response = self.client.get(self.url, format="json")
+    def test_get_project_options_overrides_detection_defaults(self):
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.get(self.url, format="json")
 
-            assert response.status_code == 200, response.content
+        assert response.status_code == 200, response.content
 
-            # Respects system defaults
-            assert response.data["slow_db_query_duration_threshold"] == 5000
-            assert response.data["n_plus_one_db_duration_threshold"] == 10000
+        assert response.data["n_plus_one_db_queries_detection_enabled"]
+        assert response.data["slow_db_queries_detection_enabled"]
+        assert response.data["uncompressed_assets_detection_enabled"]
+        assert response.data["consecutive_http_spans_detection_enabled"]
+        assert response.data["large_http_payload_detection_enabled"]
+        assert response.data["n_plus_one_api_calls_detection_enabled"]
+        assert response.data["db_on_main_thread_detection_enabled"]
+        assert response.data["file_io_on_main_thread_detection_enabled"]
+        assert response.data["consecutive_db_queries_detection_enabled"]
+        assert response.data["large_render_blocking_asset_detection_enabled"]
 
-            assert response.data["uncompressed_assets_detection_enabled"]
-            assert response.data["consecutive_http_spans_detection_enabled"]
-            assert response.data["large_http_payload_detection_enabled"]
-            assert response.data["n_plus_one_db_queries_detection_enabled"]
-            assert response.data["n_plus_one_api_calls_detection_enabled"]
-            assert response.data["db_on_main_thread_detection_enabled"]
-            assert response.data["file_io_on_main_thread_detection_enabled"]
-            assert response.data["consecutive_db_queries_detection_enabled"]
-            assert response.data["large_render_blocking_asset_detection_enabled"]
-            assert response.data["slow_db_queries_detection_enabled"]
+        patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
+        self.project_option_mock = patch_project_option_get.start()
+        self.project_option_mock.return_value = {}
 
-    def test_get_project_options_overrides_defaults(self):
+        self.project_option_mock.return_value = {
+            "slow_db_queries_detection_enabled": False,
+            "n_plus_one_db_queries_detection_enabled": False,
+            "uncompressed_assets_detection_enabled": False,
+            "consecutive_http_spans_detection_enabled": False,
+            "large_http_payload_detection_enabled": False,
+            "n_plus_one_api_calls_detection_enabled": False,
+            "db_on_main_thread_detection_enabled": False,
+            "file_io_on_main_thread_detection_enabled": False,
+            "consecutive_db_queries_detection_enabled": False,
+            "large_render_blocking_asset_detection_enabled": False,
+        }
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+
+        self.addCleanup(patch_project_option_get.stop)
+
+        assert not response.data["n_plus_one_db_queries_detection_enabled"]
+        assert not response.data["slow_db_queries_detection_enabled"]
+        assert not response.data["uncompressed_assets_detection_enabled"]
+        assert not response.data["consecutive_http_spans_detection_enabled"]
+        assert not response.data["large_http_payload_detection_enabled"]
+        assert not response.data["n_plus_one_api_calls_detection_enabled"]
+        assert not response.data["db_on_main_thread_detection_enabled"]
+        assert not response.data["file_io_on_main_thread_detection_enabled"]
+        assert not response.data["consecutive_db_queries_detection_enabled"]
+        assert not response.data["large_render_blocking_asset_detection_enabled"]
+
+    def test_get_project_options_overrides_threshold_defaults(self):
         with override_options(
             {
                 "performance.issues.slow_db_query.duration_threshold": 1000,
                 "performance.issues.n_plus_one_db.duration_threshold": 100,
+                "performance.issues.render_blocking_assets.fcp_ratio_threshold": 0.80,
+                "performance.issues.large_http_payload.size_threshold": 2000,
+                "performance.issues.db_on_main_thread.total_spans_duration_threshold": 33,
+                "performance.issues.file_io_on_main_thread.total_spans_duration_threshold": 10,
+                "performance.issues.uncompressed_asset.duration_threshold": 300,
+                "performance.issues.uncompressed_asset.size_threshold": 200000,
+                "performance.issues.consecutive_db.min_time_saved_threshold": 300,
             }
         ):
             with self.feature(PERFORMANCE_ISSUE_FEATURES):
@@ -72,8 +104,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             # System and project defaults
             assert response.data["slow_db_query_duration_threshold"] == 1000
             assert response.data["n_plus_one_db_duration_threshold"] == 100
-            assert response.data["n_plus_one_db_queries_detection_enabled"]
-            assert response.data["slow_db_queries_detection_enabled"]
+            assert response.data["render_blocking_fcp_ratio"] == 0.8
+            assert response.data["large_http_payload_size_threshold"] == 2000
+            assert response.data["db_on_main_thread_duration_threshold"] == 33
+            assert response.data["file_io_on_main_thread_duration_threshold"] == 10
+            assert response.data["uncompressed_asset_duration_threshold"] == 300
+            assert response.data["uncompressed_asset_size_threshold"] == 200000
+            assert response.data["consecutive_db_min_time_saved_threshold"] == 300
 
             patch_project_option_get = patch("sentry.models.ProjectOption.objects.get_value")
             self.project_option_mock = patch_project_option_get.start()
@@ -81,9 +118,14 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
 
             self.project_option_mock.return_value = {
                 "n_plus_one_db_duration_threshold": 10000,
-                "n_plus_one_db_queries_detection_enabled": False,
                 "slow_db_query_duration_threshold": 5000,
-                "slow_db_queries_detection_enabled": False,
+                "render_blocking_fcp_ratio": 0.8,
+                "uncompressed_asset_duration_threshold": 500,
+                "uncompressed_asset_size_threshold": 300000,
+                "large_http_payload_size_threshold": 10000000,
+                "db_on_main_thread_duration_threshold": 50,
+                "file_io_on_main_thread_duration_threshold": 33,
+                "consecutive_db_min_time_saved_threshold": 5000,
             }
 
             with self.feature(PERFORMANCE_ISSUE_FEATURES):
@@ -96,8 +138,13 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             # Updated project settings
             assert response.data["slow_db_query_duration_threshold"] == 5000
             assert response.data["n_plus_one_db_duration_threshold"] == 10000
-            assert not response.data["n_plus_one_db_queries_detection_enabled"]
-            assert not response.data["slow_db_queries_detection_enabled"]
+            assert response.data["render_blocking_fcp_ratio"] == 0.8
+            assert response.data["uncompressed_asset_duration_threshold"] == 500
+            assert response.data["uncompressed_asset_size_threshold"] == 300000
+            assert response.data["large_http_payload_size_threshold"] == 10000000
+            assert response.data["db_on_main_thread_duration_threshold"] == 50
+            assert response.data["file_io_on_main_thread_duration_threshold"] == 33
+            assert response.data["consecutive_db_min_time_saved_threshold"] == 5000
 
     def test_get_returns_error_without_feature_enabled(self):
         with self.feature({}):
@@ -168,6 +215,30 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "n_plus_one_db_queries_detection_enabled": [
                 ErrorDetail(string="Must be a valid boolean.", code="invalid")
             ]
+        }
+
+    @patch("sentry.api.base.create_audit_entry")
+    def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_queries_detection_enabled": False,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert create_audit_entry.called
+        ((_, kwargs),) = create_audit_entry.call_args_list
+        assert kwargs["data"] == {
+            "n_plus_one_db_queries_detection_enabled": False,
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": self.project.status,
+            "public": self.project.public,
         }
 
     def test_delete_reset_project_settings(self):

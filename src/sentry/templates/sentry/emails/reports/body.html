@@ -229,7 +229,7 @@
     {% with height=110 %}
     <table class="project-breakdown-graph-deck"><tbody><tr>
 
-    <td class="project-breakdown-graph-cell {% if has_replay_section %}errors-wide{% else %}errors{% endif %}" {% if has_replay_section %}colspan="2"{% endif %}>
+    <td class="project-breakdown-graph-cell {% if has_replay_graph %}errors-wide{% else %}errors{% endif %}" {% if has_replay_graph %}colspan="2"{% endif %}>
     <h4 class="total-count-title">Total Project Errors</h4>
     <h1 style="margin: 0;" class="total-count">{{ trends.total_error_count|small_count:1 }}</h1>
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
@@ -264,13 +264,13 @@
     </table>
     </td>
 
-{% if has_replay_section %}
+{% if has_replay_graph %}
 </tr>
 <tr>
 {% endif %}
 
     {% if trends.total_transaction_count > 0 %}
-    <td class="project-breakdown-graph-cell {% if has_replay_section %}transactions-below{% else %}transactions{% endif %} {% if has_replay_section and trends.total_replay_count == 0 %}some-empty-below{% endif %}">
+    <td class="project-breakdown-graph-cell {% if has_replay_graph %}transactions-below{% else %}transactions{% endif %} {% if has_replay_graph and trends.total_replay_count == 0 %}some-empty-below{% endif %}">
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
       {% url 'sentry-organization-perfomance' organization.slug as performance_landing %}
@@ -304,7 +304,7 @@
       </table>
       </td>
     {% else %}
-      <td class="project-breakdown-graph-cell {% if has_replay_section and trends.total_replay_count > 0 %}transactions-empty-below{% elif has_replay_section %}transactions-empty-below some-empty-below{% else %}transactions-empty{% endif %}">
+      <td class="project-breakdown-graph-cell {% if has_replay_graph and trends.total_replay_count > 0 %}transactions-empty-below{% elif has_replay_graph %}transactions-empty-below some-empty-below{% else %}transactions-empty{% endif %}">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
@@ -316,7 +316,7 @@
       </td>
     {% endif %}
 
-    {% if has_replay_section and trends.total_replay_count > 0 %}
+    {% if has_replay_graph and trends.total_replay_count > 0 %}
       <td class="project-breakdown-graph-cell replays {% if trends.total_transaction_count == 0 %}some-empty-below{% endif %}">
         <h4 class="total-count-title">Total Project Replays</h4>
         <h1 style="margin: 0;" class="total-count">{{ trends.total_replay_count|small_count:1 }}</h1>
@@ -352,7 +352,7 @@
           </tr>
         </table>
       </td>
-    {% elif has_replay_section %}
+    {% elif has_replay_graph %}
       <td class="project-breakdown-graph-cell {% if trends.total_transaction_count > 0 %}replays-empty some-empty-below{% else %}replays-empty{% endif %}">
         <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-play.png' %}" width="32px" height="32px"
@@ -534,7 +534,7 @@
   </div>
   {% endif %}
 
-  {% if has_replay_section and key_replays|length > 0 %}
+  {% if key_replays|length > 0 %}
   <div id="key-replays">
     <h4>Most erroneous replays</h4>
     {% for a in key_replays %}

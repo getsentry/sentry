@@ -7,7 +7,7 @@ from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework.request import Request
 
 from sentry import features, http
@@ -42,12 +42,13 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
-from .client import VstsApiClient
+from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
 
 DESCRIPTION = """
@@ -130,7 +131,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
         try:
-            repos = self.get_client().get_repos(self.instance)
+            repos = self.get_client(base_url=self.instance).get_repos()
         except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
         data = []
@@ -151,21 +152,33 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
     def has_repo_access(self, repo: Repository) -> bool:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
-            client.get_repo(self.instance, repo.config["name"], project=repo.config["project"])
+            client.get_repo(repo.config["name"], project=repo.config["project"])
         except (ApiError, IdentityNotValid):
             return False
         return True
 
-    def get_client(self) -> VstsApiClient:
-        if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+    def get_client(self, base_url: str | None = None) -> VstsApiClient:
+        if base_url is None:
+            base_url = self.instance
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            if self.default_identity is None:
+                self.default_identity = self.get_default_identity()
+            self.check_domain_name(self.default_identity)
 
-        self.check_domain_name(self.default_identity)
-        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
+        if self.org_integration is None:
+            raise Exception("self.org_integration is not defined")
+        if self.org_integration.default_auth_id is None:
+            raise Exception("self.org_integration.default_auth_id is not defined")
+        return VstsApiClient(
+            base_url=base_url,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=self.org_integration.id,
+            identity_id=self.org_integration.default_auth_id,
+        )
 
     def check_domain_name(self, default_identity: Identity) -> None:
         if re.match("^https://.+/$", self.model.metadata["domain_name"]):
@@ -178,19 +191,19 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
         self.model.save()
 
     def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
-        client = self.get_client()
         instance = self.model.metadata["domain_name"]
+        client = self.get_client(base_url=instance)
 
         project_selector = []
         all_states_set = set()
         try:
-            projects = client.get_projects(instance)
+            projects = client.get_projects()
             for idx, project in enumerate(projects):
                 project_selector.append({"value": project["id"], "label": project["name"]})
                 # only request states for the first 5 projects to limit number
                 # of requests
                 if idx <= 5:
-                    project_states = client.get_work_item_states(instance, project["id"])["value"]
+                    project_states = client.get_work_item_states(project["id"])["value"]
                     for state in project_states:
                         all_states_set.add(state["name"])
 
@@ -433,7 +446,9 @@ class VstsIntegrationProvider(IntegrationProvider):
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            subscription_id, subscription_secret = self.create_subscription(base_url, oauth_data)
+            subscription_id, subscription_secret = self.create_subscription(
+                base_url=base_url, oauth_data=oauth_data
+            )
             integration["metadata"]["subscription"] = {
                 "id": subscription_id,
                 "secret": subscription_secret,
@@ -442,12 +457,16 @@ class VstsIntegrationProvider(IntegrationProvider):
         return integration
 
     def create_subscription(
-        self, instance: str | None, oauth_data: Mapping[str, Any]
+        self, base_url: str | None, oauth_data: Mapping[str, Any]
     ) -> tuple[int, str]:
-        client = VstsApiClient(Identity(data=oauth_data), self.oauth_redirect_url)
+        client = VstsSetupApiClient(
+            base_url=base_url,
+            oauth_redirect_url=self.oauth_redirect_url,
+            access_token=oauth_data["access_token"],
+        )
         shared_secret = generate_token()
         try:
-            subscription = client.create_subscription(instance, shared_secret)
+            subscription = client.create_subscription(shared_secret=shared_secret)
         except ApiError as e:
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)

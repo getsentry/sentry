@@ -187,6 +187,13 @@ def get_user_actions(
             if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
                 event_payload_data = event["data"]["payload"]["data"]
 
+                # The data key is sometimes submitted as an string. If any type other than a
+                # dictionary is provided default the value to an empty dict.
+                #
+                # TODO: Refactor this area in a later release.
+                if not isinstance(event_payload_data, dict):
+                    event_payload_data = {}
+
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
                     metrics.timing(
