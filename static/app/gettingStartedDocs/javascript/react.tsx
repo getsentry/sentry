@@ -84,7 +84,7 @@ export const steps = ({
           <Alert type="info" showIcon noBottomSpacing>
             {tct('Prefer to set up Source Maps manually? [docsLink:Read the docs].', {
               docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
               ),
             })}
           </Alert>
