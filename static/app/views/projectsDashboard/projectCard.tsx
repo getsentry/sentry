@@ -4,6 +4,7 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
+import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
@@ -18,7 +19,7 @@ import ScoreCard, {
   Trend,
 } from 'sentry/components/scoreCard';
 import {releaseHealth} from 'sentry/data/platformCategories';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
@@ -142,6 +143,13 @@ class ProjectCard extends Component<Props> {
                 avatarSize={32}
                 hideOverflow
                 disableLink={!hasProjectAccess}
+              />
+              <SettingsButton
+                borderless
+                size="zero"
+                icon={<IconSettings />}
+                aria-label={t('Settings')}
+                to={`/settings/${organization.slug}/projects/${slug}/`}
               />
               <StyledBookmarkStar organization={organization} project={project} />
             </HeaderRow>
@@ -306,6 +314,13 @@ const CardHeader = styled('div')`
   height: 32px;
 `;
 
+const SettingsButton = styled(Button)`
+  margin-left: auto;
+  margin-top: -${space(0.5)};
+  padding: ${space(0.5)};
+  border-radius: 50%;
+`;
+
 const StyledBookmarkStar = styled(BookmarkStar)`
   padding: 0;
 `;
@@ -314,6 +329,7 @@ const HeaderRow = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 0 ${space(0.5)};
 
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
