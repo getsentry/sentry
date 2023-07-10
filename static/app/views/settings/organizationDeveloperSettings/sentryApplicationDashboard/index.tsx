@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import RequestLog from './requestLog';
@@ -20,7 +20,7 @@ type Props = RouteComponentProps<{appSlug: string}, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   app: SentryApp;
   interactions: {
     componentInteractions: {
@@ -36,8 +36,8 @@ type State = AsyncView['state'] & {
   };
 };
 
-class SentryApplicationDashboard extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class SentryApplicationDashboard extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
 
     // Default time range for now: 90 days ago to now

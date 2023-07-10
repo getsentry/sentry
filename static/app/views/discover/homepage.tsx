@@ -2,7 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
   getDatetimeFromState,
@@ -27,12 +27,12 @@ type Props = {
   setSavedQuery: (savedQuery: SavedQuery) => void;
 };
 
-type HomepageQueryState = AsyncComponent['state'] & {
+type HomepageQueryState = DeprecatedAsyncComponent['state'] & {
   savedQuery?: SavedQuery | null;
   starfishResult?: null;
 };
 
-class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
+class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryState> {
   shouldReload = true;
 
   componentDidUpdate(_, prevState) {
@@ -81,10 +81,10 @@ class HomepageQueryAPI extends AsyncComponent<Props, HomepageQueryState> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
     if (organization.features.includes('discover-query')) {
       endpoints.push([
         'savedQuery',

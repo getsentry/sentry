@@ -1,10 +1,10 @@
 import round from 'lodash/round';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {
   getDiffInMinutes,
   shouldFetchPreviousPeriod,
 } from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import ScoreCard from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
@@ -27,7 +27,7 @@ import {
 
 import MissingReleasesButtons from '../missingFeatureButtons/missingReleasesButtons';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   field: SessionFieldWithOperation.SESSIONS | SessionFieldWithOperation.USERS;
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
@@ -36,12 +36,12 @@ type Props = AsyncComponent['props'] & {
   query?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentSessions: SessionApiResponse | null;
   previousSessions: SessionApiResponse | null;
 };
 
-class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
+class ProjectStabilityScoreCard extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState() {
@@ -74,7 +74,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request
     // https://github.com/getsentry/sentry/pull/22770#issuecomment-758595553
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'currentSessions',
         `/organizations/${organization.slug}/sessions/`,

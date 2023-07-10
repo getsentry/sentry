@@ -27,7 +27,7 @@ import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView, {AsyncViewState} from 'sentry/views/asyncView';
+import DeprecatedAsyncView, {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -52,7 +52,7 @@ interface State extends AsyncViewState {
   teamMembers: TeamMember[];
 }
 
-class TeamMembers extends AsyncView<Props, State> {
+class TeamMembers extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -100,7 +100,7 @@ class TeamMembers extends AsyncView<Props, State> {
     }
   };
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params} = this.props;
 
     return [

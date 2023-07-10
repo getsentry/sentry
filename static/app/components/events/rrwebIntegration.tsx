@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
@@ -13,14 +13,14 @@ type Props = {
   event: Event;
   orgId: Organization['id'];
   projectSlug: Project['slug'];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   attachmentList: Array<IssueAttachment> | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class EventRRWebIntegrationContent extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class EventRRWebIntegrationContent extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {orgId, projectSlug, event} = this.props;
     return [
       [

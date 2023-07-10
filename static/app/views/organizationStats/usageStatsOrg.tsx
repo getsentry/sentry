@@ -4,10 +4,10 @@ import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
@@ -45,11 +45,11 @@ export type UsageStatsOrganizationProps = {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 /**
  * This component is replaced by EnhancedUsageStatsOrganization in getsentry, which inherits
@@ -59,7 +59,7 @@ type UsageStatsOrganizationState = {
 class UsageStatsOrganization<
   P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
   S extends UsageStatsOrganizationState = UsageStatsOrganizationState
-> extends AsyncComponent<P, S> {
+> extends DeprecatedAsyncComponent<P, S> {
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
     const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
     const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
@@ -75,7 +75,7 @@ class UsageStatsOrganization<
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
 

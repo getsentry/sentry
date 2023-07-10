@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import TextareaField from 'sentry/components/forms/fields/textareaField';
 import {t} from 'sentry/locale';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
@@ -15,18 +15,21 @@ type Props = {
   onSuccess: () => void;
 } & RequestIntegrationButton['props'] &
   ModalRenderProps &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 type State = {
   isSending: boolean;
   message: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 /**
  * This modal serves as a non-owner's confirmation step before sending
  * organization owners an email requesting a new organization integration. It
  * lets the user attach an optional message to be included in the email.
  */
-export default class RequestIntegrationModal extends AsyncComponent<Props, State> {
+export default class RequestIntegrationModal extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
   state: State = {
     ...this.getDefaultState(),
     isSending: false,

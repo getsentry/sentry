@@ -45,7 +45,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import {isMobileRelease} from '../utils';
@@ -70,9 +70,9 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ReleasesList extends AsyncView<Props, State> {
+class ReleasesList extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
   shouldRenderBadRequests = true;
 
@@ -80,7 +80,7 @@ class ReleasesList extends AsyncView<Props, State> {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, location} = this.props;
     const {statsPeriod} = location.query;
     const activeSort = this.getSort();
@@ -98,7 +98,7 @@ class ReleasesList extends AsyncView<Props, State> {
           : ReleaseStatus.ACTIVE,
     };
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'releases',
         `/organizations/${organization.slug}/releases/`,

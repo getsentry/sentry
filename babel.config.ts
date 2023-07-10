@@ -37,8 +37,8 @@ const config: TransformOptions = {
             classNameMatchers: [
               'SelectField',
               'FormField',
-              'AsyncComponent',
-              'AsyncView',
+              'DeprecatedAsyncComponent',
+              'DeprecatedAsyncView',
             ],
             additionalLibraries: [/app\/sentryTypes$/],
           },

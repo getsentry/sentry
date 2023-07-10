@@ -7,7 +7,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Props = RouteComponentProps<{}, {}>;
@@ -19,12 +19,12 @@ type TransferDetails = {
 
 type State = {
   transferDetails: TransferDetails | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class AcceptProjectTransfer extends AsyncView<Props, State> {
+class AcceptProjectTransfer extends DeprecatedAsyncView<Props, State> {
   disableErrorReport = false;
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const query = this.props.location.query;
     return [['transferDetails', '/accept-transfer/', {query}]];
   }

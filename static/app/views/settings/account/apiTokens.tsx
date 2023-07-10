@@ -11,20 +11,20 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {InternalAppApiToken, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = {
   organization: Organization;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
 type State = {
   tokenList: InternalAppApiToken[] | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export class ApiTokens extends AsyncView<Props, State> {
+export class ApiTokens extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('User Auth Tokens');
   }
@@ -36,7 +36,7 @@ export class ApiTokens extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['tokenList', '/api-tokens/']];
   }
 

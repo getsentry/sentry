@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -20,7 +20,7 @@ type IssueOwnershipResponse = {
   raw: string;
 };
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   issueId: string;
   onCancel: () => void;
   organization: Organization;
@@ -31,7 +31,7 @@ type Props = AsyncComponent['props'] & {
 type State = {
   ownership: null | IssueOwnershipResponse;
   urlTagData: null | TagWithTopValues;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 function getFrameSuggestions(eventData?: Event) {
   // pull frame data out of exception or the stacktrace
@@ -106,8 +106,8 @@ function OwnershipSuggestions({
   );
 }
 
-class ProjectOwnershipModal extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class ProjectOwnershipModal extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, project, issueId} = this.props;
     return [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],

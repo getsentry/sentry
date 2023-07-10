@@ -28,22 +28,22 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = AsyncView['props'] &
+type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Project;
 };
 
-class ProjectGeneralSettings extends AsyncView<Props, State> {
+class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
   private _form: Record<string, FieldValue> = {};
 
   getTitle() {
@@ -51,7 +51,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 

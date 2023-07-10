@@ -16,7 +16,7 @@ import {Organization, Plugin, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withPlugins from 'sentry/utils/withPlugins';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -35,20 +35,20 @@ type State = {
     token: string;
     webhookUrl: string;
   } | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
 const placeholderData = {
   token: TOKEN_PLACEHOLDER,
   webhookUrl: WEBHOOK_PLACEHOLDER,
 };
 
-class ProjectReleaseTracking extends AsyncView<Props, State> {
+class ProjectReleaseTracking extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Releases'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 

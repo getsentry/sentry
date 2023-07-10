@@ -3,8 +3,8 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
@@ -15,21 +15,21 @@ import {defined} from 'sentry/utils';
 
 import {displayCrashFreePercent} from '../../../utils';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   location: Location;
   organization: Organization;
   projectSlug: string;
   version: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   releaseStats?: {usersBreakdown: CrashFreeTimeBreakdown} | null;
 };
 
-class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
+class TotalCrashFreeUsers extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {location, organization, projectSlug, version} = this.props;
 
     return [

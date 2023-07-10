@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -16,7 +16,7 @@ import {groupingFeedbackTypes} from 'sentry/views/issueDetails/grouping/grouping
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   event: Event;
   organization: Organization;
   projectSlug: string;
@@ -24,14 +24,14 @@ type Props = AsyncComponent['props'] & {
   group?: Group;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configOverride: string | null;
   groupInfo: EventGroupInfo;
   isOpen: boolean;
 };
 
-class GroupingInfo extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class GroupingInfo extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, event, projectSlug, group} = this.props;
 
     if (

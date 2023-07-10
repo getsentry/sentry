@@ -3,7 +3,7 @@ import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel, {FieldValue} from 'sentry/components/forms/model';
@@ -21,7 +21,7 @@ export type ExternalIssueAction = 'create' | 'link';
 
 export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
-type Props = ModalRenderProps & AsyncComponent['props'];
+type Props = ModalRenderProps & DeprecatedAsyncComponent['props'];
 
 type State = {
   action: ExternalIssueAction;
@@ -38,7 +38,7 @@ type State = {
    * Fetched via endpoint, null until set.
    */
   integrationDetails: IntegrationIssueConfig | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
 /**
@@ -47,7 +47,7 @@ const DEBOUNCE_MS = 200;
 export default class AbstractExternalIssueForm<
   P extends Props = Props,
   S extends State = State
-> extends AsyncComponent<P, S> {
+> extends DeprecatedAsyncComponent<P, S> {
   shouldRenderBadRequests = true;
   model = new FormModel();
 

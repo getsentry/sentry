@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -18,7 +18,7 @@ import {space} from 'sentry/styles/space';
 import {ExternalTeam, Integration, Organization, Team} from 'sentry/types';
 import {toTitleCase} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
@@ -26,7 +26,7 @@ type Props = RouteComponentProps<{teamId: string}, {}> & {
   team: Team;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   integrations: Integration[];
   teamDetails: Team;
 };
@@ -35,12 +35,12 @@ const DOCS_LINK =
   'https://docs.sentry.io/product/integrations/notification-incidents/slack/#team-notifications';
 const NOTIFICATION_PROVIDERS = ['slack'];
 
-class TeamNotificationSettings extends AsyncView<Props, State> {
+class TeamNotificationSettings extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return 'Team Notification Settings';
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, team} = this.props;
     return [
       [

@@ -6,9 +6,9 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
@@ -34,10 +34,10 @@ type StatsProps = {
 
 type StatsState = {
   stats: {total: number; ts: number}[] | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class HookStats extends AsyncComponent<StatsProps, StatsState> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class HookStats extends DeprecatedAsyncComponent<StatsProps, StatsState> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const until = Math.floor(new Date().getTime() / 1000);
     const since = until - 3600 * 24 * 30;
     const {organization} = this.props;
@@ -107,10 +107,10 @@ type Props = {
 };
 type State = {
   hook: ServiceHook | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+export default class ProjectServiceHookDetails extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId, hookId} = this.props.params;
     return [['hook', `/projects/${organization.slug}/${projectId}/hooks/${hookId}/`]];

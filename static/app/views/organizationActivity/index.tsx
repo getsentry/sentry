@@ -11,26 +11,26 @@ import {space} from 'sentry/styles/space';
 import {Activity, Organization} from 'sentry/types';
 import routeTitle from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import ActivityFeedItem from './activityFeedItem';
 
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}> &
-  AsyncView['props'];
+  DeprecatedAsyncView['props'];
 
 type State = {
   activity: Activity[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class OrganizationActivity extends AsyncView<Props, State> {
+class OrganizationActivity extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {organization} = this.props;
     return routeTitle(t('Activity'), organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [['activity', `/organizations/${organization.slug}/activity/`]];
   }
