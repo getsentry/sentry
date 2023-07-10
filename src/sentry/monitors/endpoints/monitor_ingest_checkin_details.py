@@ -20,7 +20,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.utils import valid_duration
+from sentry.monitors.utils import get_new_timeout_at, valid_duration
 from sentry.monitors.validators import MonitorCheckInValidator
 
 from .base import MonitorIngestEndpoint
@@ -101,6 +101,10 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
                 return self.respond({"duration": ["Check-in has is too old to update"]}, status=400)
 
             params["duration"] = duration
+
+        params["timeout_at"] = get_new_timeout_at(
+            checkin, params.get("status", checkin.status), params["date_updated"]
+        )
 
         # TODO(rjo100): will need to remove this when environment is ensured
         monitor_environment = checkin.monitor_environment

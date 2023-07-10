@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import Optional
 
 from django.db import transaction
@@ -11,7 +12,8 @@ from sentry.models import Rule, RuleActivity, RuleActivityType, RuleSource, User
 from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
-from .models import Monitor
+from .models import CheckInStatus, Monitor, MonitorCheckIn
+from .tasks import TIMEOUT
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
@@ -30,6 +32,25 @@ def signal_first_monitor_created(project: Project, user, from_upsert: bool):
         first_cron_monitor_created.send_robust(
             project=project, user=user, from_upsert=from_upsert, sender=Project
         )
+
+
+# Generates a timeout_at value for new check-ins
+def get_timeout_at(
+    monitor_config: dict, status: CheckInStatus, date_added: Optional[datetime]
+) -> Optional[datetime]:
+    if status == CheckInStatus.IN_PROGRESS:
+        return date_added.replace(second=0, microsecond=0) + timedelta(
+            minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
+        )
+
+    return None
+
+
+# Generates a timeout_at value for existing check-ins that are being updated
+def get_new_timeout_at(
+    checkin: MonitorCheckIn, new_status: CheckInStatus, date_updated: datetime
+) -> Optional[datetime]:
+    return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
 
 
 # Used to check valid implicit durations for closing check-ins without a duration specified
