@@ -4,10 +4,10 @@ from sentry.testutils.cases import TestCase
 
 class AuthTest(TestCase):
     def test_verify_signature_valid(self):
-        public_key_string = "a1a65ae9a8ef39b446c35f13fc2ab2e6c4cc734a29b1ec4331d597466e071657"
-        signature = "0736274439da0c97afab9fdeed624f62a9eed0d332b0154f2e7f88e7da7c434243a4cd60e987c2d7c55b467da452cc0cfb96268bcb8df5e3998d10cb2b700909"
+        public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
+        signature = "DBC99471F8DD30BA0F488912CF9BA7AC1E938047782BB72FF9A6873D452A1A75DC9F8A07182B8EB7FC67A3771C2271D568DCDC2AB2A5D927A42A4F0FC233C506"
         timestamp = "1688960024"
-        body = '{"application_id":"1113955448580735026","entitlements":[],"id":"1127804826542161952","token":"aW50ZXJhY3Rpb246MTEyNzgwNDgyNjU0MjE2MTk1MjpLWFpnNWkzNmlEa0pOWFlhS1BrU0gzSXR0ZUxsOUFNbTJZRFpLc3BIQlVUdlNkWmtSUnV0MzZkejhKd3FjTERCUUVBWXVkWlk5d2FsSTJXZjBUQmd4MmdwZDk5eU5GZlFocGhjQ2pmbGhQaXFUTWRVRGtZZXJXTU1CaE5QZVgzTg","type":1,"user":{"avatar":"1d978b8af2bf7addf673c05ca511dbfa","avatar_decoration":null,"discriminator":"0","global_name":"spalmurray-sentry","id":"1105971768394518731","public_flags":0,"username":"spalmurraysentry"},"version":1}'
+        body = '{"type":1}'
         message = timestamp + body
 
         result = verify_signature(public_key_string, signature, message)
@@ -15,10 +15,10 @@ class AuthTest(TestCase):
         assert result
 
     def test_verify_signature_invalid(self):
-        public_key_string = "a1a65ae9a8ef39b446c35f13fc2ab2e6c4cc734a29b1ec4331d597466e071657"
+        public_key_string = "3AC1A3E56E967E1C61E3D17B37FA1865CB20CD6C54418631F4E8AE4D1E83EE0E"
         signature = "0123456789abcdef"
         timestamp = "1688960024"
-        body = '{"application_id":"1113955448580735026","entitlements":[],"id":"1127804826542161952","token":"aW50ZXJhY3Rpb246MTEyNzgwNDgyNjU0MjE2MTk1MjpLWFpnNWkzNmlEa0pOWFlhS1BrU0gzSXR0ZUxsOUFNbTJZRFpLc3BIQlVUdlNkWmtSUnV0MzZkejhKd3FjTERCUUVBWXVkWlk5d2FsSTJXZjBUQmd4MmdwZDk5eU5GZlFocGhjQ2pmbGhQaXFUTWRVRGtZZXJXTU1CaE5QZVgzTg","type":1,"user":{"avatar":"1d978b8af2bf7addf673c05ca511dbfa","avatar_decoration":null,"discriminator":"0","global_name":"spalmurray-sentry","id":"1105971768394518731","public_flags":0,"username":"spalmurraysentry"},"version":1}'
+        body = '{"type":1}'
         message = timestamp + body
 
         result = verify_signature(public_key_string, signature, message)
