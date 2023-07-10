@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import List
+from typing import List, Optional
 
 import pytz
 from django.db import OperationalError
@@ -101,8 +101,12 @@ def schedule_auto_transition_new() -> None:
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
+    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
+    # TODO(nisanthan): Remove this conditional in next PR
+    if project_id is not None:
+        project_ids = [project_id]
 
     for new_groups in chunked(
         RangeQuerySetWrapper(
@@ -167,8 +171,13 @@ def schedule_auto_transition_regressed() -> None:
 def auto_transition_issues_regressed_to_ongoing(
     project_ids: List[int],
     date_added_lte: int,
+    project_id: Optional[int] = None,  # TODO(nisanthan): Remove this arg in next PR
     **kwargs,
 ) -> None:
+
+    # TODO(nisanthan): Remove this conditional in next PR
+    if project_id is not None:
+        project_ids = [project_id]
 
     for groups_with_regressed_history in chunked(
         RangeQuerySetWrapper(
