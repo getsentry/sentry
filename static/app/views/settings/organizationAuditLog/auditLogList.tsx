@@ -17,7 +17,10 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
+import {
+  projectDetectorSettingsId,
+  retentionPrioritiesLabels,
+} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -148,6 +151,26 @@ function AuditNote({
             </Link>
           ),
           note: entry.note.replace('edited project settings ', ''),
+        })}
+      </Note>
+    );
+  }
+
+  if (entry.event === 'project.change-performance-issue-detection') {
+    return (
+      <Note>
+        {tct('Edited project [projectSettingsLink] [note]', {
+          projectSettingsLink: (
+            <Link
+              to={`/settings/${orgSlug}/projects/${project.slug}/performance/#${projectDetectorSettingsId}`}
+            >
+              {entry.data.slug} performance issue detector settings
+            </Link>
+          ),
+          note: entry.note.replace(
+            'edited project performance issue detector settings ',
+            ''
+          ),
         })}
       </Note>
     );

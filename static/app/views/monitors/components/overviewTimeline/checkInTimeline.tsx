@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Resizeable} from 'sentry/components/replays/resizeable';
 import {space} from 'sentry/styles/space';
 import {CheckInStatus} from 'sentry/views/monitors/types';
 import {getColorsFromStatus} from 'sentry/views/monitors/utils';
@@ -15,7 +14,7 @@ interface Props {
   end: Date;
   start: Date;
   timeWindow: TimeWindow;
-  width?: number;
+  width: number;
 }
 
 function getBucketedCheckInsPosition(
@@ -28,52 +27,44 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: Props) {
-  const {bucketedData, start, end, timeWindow} = props;
+  const {bucketedData, start, end, timeWindow, width} = props;
 
-  function renderTimelineWithWidth(width: number) {
-    const elapsedMs = end.getTime() - start.getTime();
-    const msPerPixel = elapsedMs / width;
+  const elapsedMs = end.getTime() - start.getTime();
+  const msPerPixel = elapsedMs / width;
 
-    const jobTicks = mergeBuckets(bucketedData);
+  const jobTicks = mergeBuckets(bucketedData);
 
-    return (
-      <TimelineContainer>
-        {jobTicks.map(jobTick => {
-          const {
-            startTs,
-            width: tickWidth,
-            envMapping,
-            roundedLeft,
-            roundedRight,
-          } = jobTick;
-          const timestampMs = startTs * 1000;
-          const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
+  return (
+    <TimelineContainer>
+      {jobTicks.map(jobTick => {
+        const {
+          startTs,
+          width: tickWidth,
+          envMapping,
+          roundedLeft,
+          roundedRight,
+        } = jobTick;
+        const timestampMs = startTs * 1000;
+        const left = getBucketedCheckInsPosition(timestampMs, start, msPerPixel);
 
-          return (
-            <JobTickTooltip
-              jobTick={jobTick}
-              timeWindow={timeWindow}
-              skipWrapper
-              key={startTs}
-            >
-              <JobTick
-                style={{left, width: tickWidth}}
-                status={getAggregateStatus(envMapping)}
-                roundedLeft={roundedLeft}
-                roundedRight={roundedRight}
-              />
-            </JobTickTooltip>
-          );
-        })}
-      </TimelineContainer>
-    );
-  }
-
-  if (props.width) {
-    return renderTimelineWithWidth(props.width);
-  }
-
-  return <Resizeable>{({width}) => renderTimelineWithWidth(width)}</Resizeable>;
+        return (
+          <JobTickTooltip
+            jobTick={jobTick}
+            timeWindow={timeWindow}
+            skipWrapper
+            key={startTs}
+          >
+            <JobTick
+              style={{left, width: tickWidth}}
+              status={getAggregateStatus(envMapping)}
+              roundedLeft={roundedLeft}
+              roundedRight={roundedRight}
+            />
+          </JobTickTooltip>
+        );
+      })}
+    </TimelineContainer>
+  );
 }
 
 const TimelineContainer = styled('div')`

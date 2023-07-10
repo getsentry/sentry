@@ -15,6 +15,7 @@ describe('components/interfaces/utils', function () {
     it('should convert an http request object to an equivalent unix curl command string', function () {
       expect(
         getCurlCommand({
+          apiTarget: null,
           cookies: [
             ['foo', 'bar'],
             ['biz', 'baz'],
@@ -48,6 +49,7 @@ describe('components/interfaces/utils', function () {
       // --compressed (because Accept-Encoding: gzip)
       expect(
         getCurlCommand({
+          apiTarget: null,
           url: 'http://example.com/foo',
           headers: [
             ['Content-Type', 'application/json'],
@@ -75,6 +77,7 @@ describe('components/interfaces/utils', function () {
       // Do not add data if data is empty
       expect(
         getCurlCommand({
+          apiTarget: null,
           url: 'http://example.com/foo',
           headers: [],
           env: {
@@ -89,6 +92,7 @@ describe('components/interfaces/utils', function () {
       // Do not add data if data is empty object
       expect(
         getCurlCommand({
+          apiTarget: null,
           url: 'http://example.com/foo',
           headers: [],
           env: {
@@ -104,6 +108,7 @@ describe('components/interfaces/utils', function () {
       // Escape escaped strings.
       expect(
         getCurlCommand({
+          apiTarget: null,
           cookies: [
             ['foo', 'bar'],
             ['biz', 'baz'],
@@ -137,6 +142,7 @@ describe('components/interfaces/utils', function () {
       // Escape strings with special bash characters
       expect(
         getCurlCommand({
+          apiTarget: null,
           url: 'http://example.com/foo${not_a_variable}',
           headers: [
             ['Referer', 'http://example.com'],
@@ -164,6 +170,7 @@ describe('components/interfaces/utils', function () {
     it('works with a Proxy', function () {
       const spy = jest.spyOn(MetaProxy.prototype, 'get');
       const data = {
+        apiTarget: null,
         fragment: '',
         cookies: [],
         inferredContentType: null,
@@ -182,7 +189,7 @@ describe('components/interfaces/utils', function () {
           ['Content-Type', 'application/json'],
           ['Referer', 'http://example.com'],
           ['Accept-Encoding', 'gzip'],
-        ],
+        ] as [string, string][],
         url: 'https://www.sentry.io',
         query: [],
         data: null,
@@ -249,56 +256,59 @@ describe('components/interfaces/utils', function () {
   });
 
   describe('getCurrentThread()', function () {
-    const event = {
-      entries: [
-        {
-          data: {
-            values: [
-              {
-                id: 13920,
-                current: true,
-                crashed: true,
-                name: 'puma 002',
-                stacktrace: null,
-                rawStacktrace: null,
-                state: 'WAITING',
-              },
-            ],
-          },
-          type: EntryType.THREADS,
-        },
-      ],
-    };
     it('should return current thread if available', function () {
-      const thread = getCurrentThread(event);
-      expect(thread.name).toEqual('puma 002');
+      const thread = getCurrentThread(
+        TestStubs.Event({
+          entries: [
+            {
+              data: {
+                values: [
+                  {
+                    id: 13920,
+                    current: true,
+                    crashed: true,
+                    name: 'puma 002',
+                    stacktrace: null,
+                    rawStacktrace: null,
+                    state: 'WAITING',
+                  },
+                ],
+              },
+              type: EntryType.THREADS,
+            },
+          ],
+        })
+      );
+      expect(thread?.name).toEqual('puma 002');
     });
   });
 
   describe('getThreadById()', function () {
-    const event = {
-      entries: [
-        {
-          data: {
-            values: [
-              {
-                id: 13920,
-                current: true,
-                crashed: true,
-                name: 'puma 002',
-                stacktrace: null,
-                rawStacktrace: null,
-                state: 'WAITING',
-              },
-            ],
-          },
-          type: EntryType.THREADS,
-        },
-      ],
-    };
     it('should return thread by given id if available', function () {
-      const thread = getThreadById(event, 13920);
-      expect(thread.name).toEqual('puma 002');
+      const thread = getThreadById(
+        TestStubs.Event({
+          entries: [
+            {
+              data: {
+                values: [
+                  {
+                    id: 13920,
+                    current: true,
+                    crashed: true,
+                    name: 'puma 002',
+                    stacktrace: null,
+                    rawStacktrace: null,
+                    state: 'WAITING',
+                  },
+                ],
+              },
+              type: EntryType.THREADS,
+            },
+          ],
+        }),
+        13920
+      );
+      expect(thread?.name).toEqual('puma 002');
     });
   });
 });

@@ -52,7 +52,7 @@ from sentry.release_health.base import (
     SessionsQueryResult,
     SessionsQueryValue,
 )
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
@@ -570,7 +570,7 @@ def run_sessions_query(
         metrics_results = get_series(
             projects,
             metrics_query,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
             tenant_ids={"organization_id": org_id},
         )
     except OrderByNotSupportedOverCompositeEntityException:
