@@ -262,7 +262,7 @@ class OrganizationIndexEndpoint(Endpoint):
             if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
-                    organization=org,
+                    organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )
