@@ -39,6 +39,12 @@ const migratedJavascriptPlatforms = {
       name: 'Vue',
       type: 'framework',
     },
+    {
+      id: 'javascript-gatsby',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/',
+      name: 'Gatsby',
+      type: 'framework',
+    },
   ],
 };
 
