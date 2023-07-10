@@ -4,6 +4,7 @@ from .gitlab import GitlabRequestParser
 from .jira import JiraRequestParser
 from .msteams import MsTeamsRequestParser
 from .slack import SlackRequestParser
+from .vsts import VstsRequestParser
 
 __all__ = (
     "BitbucketRequestParser",
@@ -12,4 +13,5 @@ __all__ = (
     "JiraRequestParser",
     "MsTeamsRequestParser",
     "SlackRequestParser",
+    "VstsRequestParser",
 )

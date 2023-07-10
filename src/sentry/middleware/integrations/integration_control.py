@@ -13,6 +13,7 @@ from .parsers import (
     JiraRequestParser,
     MsTeamsRequestParser,
     SlackRequestParser,
+    VstsRequestParser,
 )
 from .parsers.base import BaseRequestParser
 
@@ -25,6 +26,7 @@ ACTIVE_PARSERS = [
     SlackRequestParser,
     MsTeamsRequestParser,
     BitbucketRequestParser,
+    VstsRequestParser,
 ]
 
 

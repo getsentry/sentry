@@ -23,17 +23,24 @@ logger = logging.getLogger("sentry.integrations")
 PROVIDER_KEY = "vsts"
 
 
+class VstsWebhookMixin:
+    def get_external_id(self, request: Request) -> str:
+        data = request.data
+        external_id = data["resourceContainers"]["collection"]["id"]
+        return str(external_id)
+
+
 @region_silo_endpoint
-class WorkItemWebhook(Endpoint):
+class WorkItemWebhook(Endpoint, VstsWebhookMixin):
     authentication_classes = ()
     permission_classes = ()
 
     def post(self, request: Request, *args: Any, **kwargs: Any) -> Response:
-        data = request.data
         try:
+            data = request.data
             event_type = data["eventType"]
-            external_id = data["resourceContainers"]["collection"]["id"]
-        except KeyError as e:
+            external_id = self.get_external_id(request=request)
+        except Exception as e:
             logger.info("vsts.invalid-webhook-payload", extra={"error": str(e)})
             return self.respond(status=status.HTTP_400_BAD_REQUEST)
 
