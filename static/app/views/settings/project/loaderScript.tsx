@@ -50,7 +50,7 @@ export function ProjectLoaderScript({
 
       <TextBlock>
         {tct(
-          'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [link:Learn more about the Loader Script]',
+          'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [link:Learn more about the Loader Script]. Note: The Loader Script is bound to a Client Key (DSN), to create a new Script, go to the Client Keys page.',
           {
             link: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/" />
