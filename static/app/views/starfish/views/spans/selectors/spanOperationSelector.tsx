@@ -59,6 +59,7 @@ export function SpanOperationSelector({
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const queryConditions: string[] = [];
+  queryConditions.push('has:span.description');
   if (moduleName) {
     queryConditions.push(`span.module:${moduleName}`);
   }

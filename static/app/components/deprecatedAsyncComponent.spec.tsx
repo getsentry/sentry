@@ -1,12 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 
-describe('AsyncComponent', function () {
-  class TestAsyncComponent extends AsyncComponent {
+describe('DeprecatedAsyncComponent', function () {
+  class TestAsyncComponent extends DeprecatedAsyncComponent {
     shouldRenderBadRequests = true;
 
-    getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
       return [['data', '/some/path/to/something/']];
     }
 
@@ -69,10 +69,10 @@ describe('AsyncComponent', function () {
       statusCode: 400,
     });
 
-    class UniqueErrorsAsyncComponent extends AsyncComponent {
+    class UniqueErrorsAsyncComponent extends DeprecatedAsyncComponent {
       shouldRenderBadRequests = true;
 
-      getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+      getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
         return [
           ['first', '/first/path/'],
           ['second', '/second/path/'],
@@ -94,7 +94,7 @@ describe('AsyncComponent', function () {
 
   describe('multi-route component', () => {
     class MultiRouteComponent extends TestAsyncComponent {
-      getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+      getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
         return [
           ['data', '/some/path/to/something/'],
           ['project', '/another/path/here'],

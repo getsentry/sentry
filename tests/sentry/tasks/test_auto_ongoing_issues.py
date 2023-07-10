@@ -151,8 +151,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     @mock.patch(
         "sentry.tasks.auto_ongoing_issues.auto_transition_issues_new_to_ongoing.delay",
-        wraps=lambda project_id, first_seen_lte, **kwargs: auto_transition_issues_new_to_ongoing(
-            project_id, first_seen_lte, chunk_size=10, kwargs=kwargs
+        wraps=lambda project_ids, first_seen_lte, **kwargs: auto_transition_issues_new_to_ongoing(
+            project_ids, first_seen_lte, kwargs=kwargs
         ),
     )
     def test_paginated_transition(self, mocked, mock_backend):
@@ -180,10 +180,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         with self.tasks():
             schedule_auto_transition_new()
 
-        # 1st time handles a full page
-        # 2nd time to handle 2 remaining
-        # 3rd time if for Groups with project_id=1 which shouldn't have any groups to transition
-        assert mocked.call_count == 3
+        # Should create a new task for each project
+        assert mocked.call_count == 2
 
         # after
         assert (
