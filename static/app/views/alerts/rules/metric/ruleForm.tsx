@@ -841,7 +841,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonType,
       isQueryValid,
     };
-
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
