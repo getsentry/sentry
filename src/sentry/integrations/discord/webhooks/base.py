@@ -11,7 +11,7 @@ from sentry.web.decorators import transaction_start
 class DiscordInteractionsEndpoint(Endpoint):
     """
     All Discord -> Sentry communication will come through our interactions endpoint.
-    We need to figure out what Discord is sending us and take direct the request
+    We need to figure out what Discord is sending us and direct the request
     to the appropriate handler.
     """
 
