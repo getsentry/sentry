@@ -6,10 +6,7 @@ import pytest
 import rest_framework
 
 from sentry.issues.escalating import GroupsCountResponse
-from sentry.issues.escalating_group_forecast import (
-    DEFAULT_MINIMUM_CEILING_FORECAST,
-    EscalatingGroupForecast,
-)
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import GroupCount, generate_issue_forecast
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -134,17 +131,11 @@ class HandleIssueMergeTest(TestCase):
         if primary and child:
             generate_and_save_forecasts([primary, child])
             for group in [primary, child]:
-                # assert that the escalating group forecast is not the default (ie. gotten from nodestore)
                 assert (
-                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
-                    != DEFAULT_MINIMUM_CEILING_FORECAST
+                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast is not None
                 )
 
             handle_merge([primary, child], self.project_lookup, self.user)
 
             for group in [primary, child]:
-                # assert that the escalating group forecast is the default (ie. not gotten from nodestore)
-                assert (
-                    EscalatingGroupForecast.fetch(group.project.id, group.id).forecast
-                    == DEFAULT_MINIMUM_CEILING_FORECAST
-                )
+                assert EscalatingGroupForecast.fetch(group.project.id, group.id) is None
