@@ -6,7 +6,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {TeamWithProjects} from 'sentry/types';
 import localStorage from 'sentry/utils/localStorage';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -47,6 +47,7 @@ function TeamStatsIssues({location, router}: Props) {
   const environment = query.environment;
 
   const {period, start, end, utc} = dataDatetime(query);
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
 
   if (teams.length === 0) {
     return (
@@ -73,8 +74,11 @@ function TeamStatsIssues({location, router}: Props) {
           <Layout.Main fullWidth>
             <DescriptionCard
               title={t('All Unresolved Issues')}
-              description={t(
-                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or ignored in the past.'
+              description={tct(
+                'This includes New and Returning issues in the last 7 days as well as those that haven’t been resolved or [status] in the past.',
+                {
+                  status: hasEscalatingIssues ? 'archived' : 'ignored',
+                }
               )}
             >
               <TeamUnresolvedIssues
@@ -91,8 +95,11 @@ function TeamStatsIssues({location, router}: Props) {
 
             <DescriptionCard
               title={t('New and Returning Issues')}
-              description={t(
-                'The new, regressed, and unignored issues that were assigned to your team.'
+              description={tct(
+                'The new, regressed, and [status] issues that were assigned to your team.',
+                {
+                  status: hasEscalatingIssues ? 'unarchived' : 'ignored',
+                }
               )}
             >
               <TeamIssuesBreakdown
