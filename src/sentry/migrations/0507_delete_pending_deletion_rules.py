@@ -10,9 +10,10 @@ def delete_rules(apps, schema_editor):
     from sentry.constants import ObjectStatus
 
     Rule = apps.get_model("sentry", "Rule")
+    RegionScheduledDeletion = apps.get_model("sentry", "RegionScheduledDeletion")
     for rule in RangeQuerySetWrapperWithProgressBar(Rule.objects.all()):
         if rule.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DISABLED):
-            rule.delete()
+            RegionScheduledDeletion.schedule(rule, days=0)
 
 
 class Migration(CheckedMigration):
