@@ -76,6 +76,7 @@ function IssueListSetAsDefault({organization, sort, query}: IssueListSetAsDefaul
       action: pinnedSearch ? 'unpin' : 'pin',
       search_type: 'issues',
       query: pinnedSearch?.query ?? query,
+      sort,
     });
 
     if (pinnedSearchActive) {

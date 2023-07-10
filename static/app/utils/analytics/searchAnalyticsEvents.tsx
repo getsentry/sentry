@@ -47,6 +47,7 @@ export type SearchEventParameters = {
     action: 'pin' | 'unpin';
     search_type: string;
     query?: string;
+    sort?: string;
   };
   'search.saved_search_create': {
     name: string;
