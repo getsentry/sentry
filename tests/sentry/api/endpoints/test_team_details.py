@@ -1,5 +1,5 @@
 from sentry import audit_log
-from sentry.models import AuditLogEntry, DeletedTeam, ScheduledDeletion, Team, TeamStatus
+from sentry.models import AuditLogEntry, DeletedTeam, RegionScheduledDeletion, Team, TeamStatus
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.helpers import with_feature
@@ -30,7 +30,7 @@ class TeamDetailsTestBase(APITestCase):
         if status == TeamStatus.ACTIVE:
             assert not deleted_team
             assert not audit_log_entry
-            assert not ScheduledDeletion.objects.filter(
+            assert not RegionScheduledDeletion.objects.filter(
                 model_name="Team", object_id=team.id
             ).exists()
             return
@@ -40,7 +40,7 @@ class TeamDetailsTestBase(APITestCase):
         # *this* actually checks the audit log
         assert audit_log_entry.get()
         # Ensure a scheduled deletion was made.
-        assert ScheduledDeletion.objects.filter(model_name="Team", object_id=team.id).exists()
+        assert RegionScheduledDeletion.objects.filter(model_name="Team", object_id=team.id).exists()
 
     def assert_team_deleted(self, team_id):
         """

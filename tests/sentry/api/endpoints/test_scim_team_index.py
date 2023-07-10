@@ -1,10 +1,12 @@
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models import Team
+from sentry.signals import receivers_raise_on_send
 from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 CREATE_TEAM_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
@@ -13,7 +15,7 @@ CREATE_TEAM_POST_DATA = {
 }
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMGroupIndexTests(SCIMTestCase):
     def test_group_index_empty(self):
         url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
@@ -29,12 +31,14 @@ class SCIMGroupIndexTests(SCIMTestCase):
         assert response.data == correct_get_data
 
     @patch("sentry.scim.endpoints.teams.metrics")
+    @override_settings(SENTRY_REGION="na")
     def test_scim_team_index_create(self, mock_metrics):
         url = reverse(
             "sentry-api-0-organization-scim-team-index",
             args=[self.organization.slug],
         )
-        response = self.client.post(url, CREATE_TEAM_POST_DATA)
+        with receivers_raise_on_send():
+            response = self.client.post(url, CREATE_TEAM_POST_DATA)
         assert response.status_code == 201, response.content
 
         team_id = response.data["id"]
@@ -45,14 +49,14 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "members": [],
             "meta": {"resourceType": "Group"},
         }
-        assert Team.objects.filter(id=team_id).exists()
-        assert Team.objects.get(id=team_id).slug == "test-scimv2"
-        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
-        assert Team.objects.get(id=team_id).idp_provisioned
-        assert len(Team.objects.get(id=team_id).member_set) == 0
+        with exempt_from_silo_limits():
+            assert Team.objects.filter(id=team_id).exists()
+            assert Team.objects.get(id=team_id).slug == "test-scimv2"
+            assert Team.objects.get(id=team_id).name == "Test SCIMv2"
+            assert Team.objects.get(id=team_id).idp_provisioned
+            assert len(Team.objects.get(id=team_id).member_set) == 0
         mock_metrics.incr.assert_called_with(
             "sentry.scim.team.provision",
-            tags={"organization": self.organization},
         )
 
     def test_scim_team_index_populated(self):
@@ -219,6 +223,7 @@ class SCIMGroupIndexTests(SCIMTestCase):
         response = self.client.get(f"{url}?startIndex=0")
         assert response.status_code == 400, response.data
 
+    @override_settings(SENTRY_REGION="na")
     def test_scim_team_no_duplicate_names(self):
         self.create_team(organization=self.organization, name=CREATE_TEAM_POST_DATA["displayName"])
         url = reverse(

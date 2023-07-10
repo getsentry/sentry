@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from collections import defaultdict
 from datetime import datetime
 from typing import (
@@ -374,6 +375,33 @@ class OrganizationTeamSCIMSerializerResponse(OrganizationTeamSCIMSerializerRequi
     members: List[SCIMTeamMemberListItem]
 
 
+@dataclasses.dataclass
+class TeamMembership:
+    user_id: int
+    user_email: str
+    member_id: int
+    team_ids: List[int]
+
+
+def get_team_memberships(team_ids: List[int]) -> List[TeamMembership]:
+    members: Dict[int, TeamMembership] = {}
+    for omt in RangeQuerySetWrapper(
+        OrganizationMemberTeam.objects.filter(team_id__in=team_ids).prefetch_related(
+            "organizationmember"
+        )
+    ):
+        if omt.organizationmember_id not in members:
+            members[omt.organizationmember_id] = TeamMembership(
+                user_id=omt.organizationmember.user_id,
+                user_email=omt.organizationmember.get_email(),
+                member_id=omt.organizationmember_id,
+                team_ids=[],
+            )
+        members[omt.organizationmember_id].team_ids.append(omt.team_id)
+
+    return list(members.values())
+
+
 class TeamSCIMSerializer(Serializer):
     def __init__(
         self,
@@ -385,14 +413,22 @@ class TeamSCIMSerializer(Serializer):
         self, item_list: Sequence[Team], user: Any, **kwargs: Any
     ) -> Mapping[Team, MutableMapping[str, Any]]:
 
-        result: MutableMapping[Team, MutableMapping[str, Any]] = {team: {} for team in item_list}
+        result: MutableMapping[int, MutableMapping[str, Any]] = {
+            team.id: ({"members": []} if "members" in self.expand else {}) for team in item_list
+        }
+        teams_by_id: Mapping[int, Team] = {t.id: t for t in item_list}
 
-        if "members" in self.expand:
-            member_map = get_scim_teams_members(item_list)
-            for team in item_list:
-                # if there are no members in the team, set to empty list
-                result[team]["members"] = member_map.get(team, [])
-        return result
+        if teams_by_id and "members" in self.expand:
+            team_ids: List[int] = [t.id for t in item_list]
+            team_memberships: List[TeamMembership] = get_team_memberships(team_ids=team_ids)
+
+            for team_member in team_memberships:
+                for team_id in team_member.team_ids:
+                    result[team_id]["members"].append(
+                        dict(value=str(team_member.member_id), display=team_member.user_email)
+                    )
+
+        return {teams_by_id[team_id]: attrs for team_id, attrs in result.items()}
 
     def serialize(
         self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any

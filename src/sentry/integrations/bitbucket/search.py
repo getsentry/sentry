@@ -14,7 +14,7 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 @region_silo_endpoint
 class BitbucketSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(self, request: Request, organization, integration_id, **kwds) -> Response:
 
         integration, org_integration = integration_service.get_organization_context(
             organization_id=organization.id,

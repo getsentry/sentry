@@ -1,16 +1,21 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.github.integration import build_repository_query
-from sentry.models import Integration, Organization
+from sentry.models import Integration
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 
 @control_silo_endpoint
 class GitHubSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
+    def get(
+        self, request: Request, organization: RpcOrganization, integration_id: int, **kwds: Any
+    ) -> Response:
         try:
             integration = Integration.objects.get(
                 organizationintegration__organization_id=organization.id, id=integration_id

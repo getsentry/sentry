@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from typing import Any, Dict, Tuple
+
 from django.http import Http404
 from rest_framework.request import Request
 
-from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.api.bases.integration import IntegrationEndpoint, RegionIntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.models import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -19,21 +23,6 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
     """
 
     permission_classes = (OrganizationIntegrationsPermission,)
-
-    def convert_args(self, request: Request, organization_slug, integration_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
-
-        self.validate_integration_id(integration_id)
-
-        kwargs["integration_id"] = integration_id
-        return (args, kwargs)
-
-    @staticmethod
-    def validate_integration_id(integration_id):
-        try:
-            return int(integration_id)
-        except ValueError:
-            raise Http404
 
     @staticmethod
     def get_organization_integration(
@@ -73,7 +62,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             raise Http404
 
 
-class RegionOrganizationIntegrationBaseEndpoint(OrganizationIntegrationBaseEndpoint):
+class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     """
     OrganizationIntegrationBaseEndpoints expect both Integration and
     OrganizationIntegration DB entries to exist for a given organization and
@@ -81,6 +70,26 @@ class RegionOrganizationIntegrationBaseEndpoint(OrganizationIntegrationBaseEndpo
     """
 
     permission_classes = (OrganizationIntegrationsPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str | None = None,
+        integration_id: str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+
+        kwargs["integration_id"] = self.validate_integration_id(integration_id or "")
+        return args, kwargs
+
+    @staticmethod
+    def validate_integration_id(integration_id: str) -> int:
+        try:
+            return int(integration_id)
+        except ValueError:
+            raise Http404
 
     @staticmethod
     def get_organization_integration(

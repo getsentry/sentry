@@ -48,9 +48,19 @@ class RpcTeam(RpcModel):
     slug: str = ""
     actor_id: Optional[int] = None
     org_role: Optional[str] = None
+    name: str = ""
 
     def class_name(self) -> str:
         return "Team"
+
+    def get_audit_log_data(self):
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
 
 class RpcTeamMember(RpcModel):
