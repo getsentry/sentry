@@ -128,7 +128,10 @@ def _parse_config(region_config: Any) -> Iterable[Region]:
         if isinstance(config_value, Region):
             yield config_value
         else:
-            config_value["category"] = RegionCategory[config_value["category"]]
+            category = config_value["category"]
+            config_value["category"] = (
+                category if isinstance(category, RegionCategory) else RegionCategory[category]
+            )
             yield Region(**config_value)
 
 
