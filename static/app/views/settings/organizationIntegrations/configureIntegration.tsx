@@ -26,7 +26,7 @@ import {singleLineRenderer} from 'sentry/utils/marked';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -51,15 +51,15 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type Tab = 'repos' | 'codeMappings' | 'userMappings' | 'teamMappings' | 'settings';
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   config: {providers: IntegrationProvider[]};
   integration: IntegrationWithConfig;
   plugins: PluginWithProjectList[] | null;
   tab?: Tab;
 };
 
-class ConfigureIntegration extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ConfigureIntegration extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {integrationId} = this.props.params;
 

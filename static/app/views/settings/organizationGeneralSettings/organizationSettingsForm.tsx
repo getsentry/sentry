@@ -8,8 +8,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -35,13 +35,13 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   authProvider: object;
   githubIntegrations: Integration[];
 };
 
-class OrganizationSettingsForm extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class OrganizationSettingsForm extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     return [
       ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
