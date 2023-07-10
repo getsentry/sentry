@@ -54,6 +54,8 @@ class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
             assert reported_event_data["user"] == {
                 "id": event.project_id,
             }
+
+            assert reported_event_data["release"] == get_path(event_data, "sdk", "version")
         else:
             assert mock_sdk_crash_reporter.report.call_count == 0
 
