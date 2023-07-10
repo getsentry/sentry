@@ -393,7 +393,7 @@ const Package = styled('span')`
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  padding-right: 1px; /* Needed to prevent text cropping with italic font */
+  padding-right: 2px; /* Needed to prevent text cropping with italic font */
 `;
 
 const FileName = styled('span')`
