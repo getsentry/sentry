@@ -551,12 +551,16 @@ class Release(Model):
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
         other specialized release.  This for instance lets us treat them
         separately for serialization purposes.
         """
-        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+        return (
+            # don't treat `NotImplemented` as truthy
+            Model.__eq__(self, other) is True
+            and self._for_project_id == other._for_project_id
+        )
 
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333

@@ -9,13 +9,12 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import List, TypedDict, cast
+from typing import List, Optional, TypedDict, cast
 
 from sentry import nodestore
 from sentry.utils.dates import parse_timestamp
 
 GROUP_FORECAST_TTL = 14
-DEFAULT_MINIMUM_CEILING_FORECAST = [200] * 14
 
 
 class EscalatingGroupForecastData(TypedDict):
@@ -48,25 +47,30 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast:
+    def fetch(cls, project_id: int, group_id: int) -> Optional[EscalatingGroupForecast]:
+        from sentry.issues.forecasts import generate_and_save_missing_forecasts
+
         results = nodestore.get(cls.build_storage_identifier(project_id, group_id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
-        return EscalatingGroupForecast(
-            project_id=project_id,
-            group_id=group_id,
-            forecast=DEFAULT_MINIMUM_CEILING_FORECAST,
-            date_added=datetime.now(),
+        logger.exception(
+            f"Forecast does not exist for project id: {str(project_id)} group id: {str(group_id)}"
         )
+        generate_and_save_missing_forecasts.delay(group_id=group_id)
+        return None
 
     @classmethod
     def delete(cls, project_id: int, group_id: int) -> None:
         nodestore.delete(cls.build_storage_identifier(project_id, group_id))
 
     @classmethod
-    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int:
+    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> Optional[int]:
         date_now = datetime.now().date()
         escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
+
+        if not escalating_forecast:
+            return None
+
         forecast_today_index = (date_now - escalating_forecast.date_added.date()).days
         if forecast_today_index >= len(escalating_forecast.forecast):
             logger.error("Forecast list index is out of range")

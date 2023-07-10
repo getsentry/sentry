@@ -15,6 +15,8 @@ export enum Query {
   REPROCESSING = 'is:reprocessing',
 }
 
+export const CUSTOM_TAB_VALUE = '__custom__';
+
 type OverviewTab = {
   /**
    * Emitted analytics event tab name
@@ -29,6 +31,7 @@ type OverviewTab = {
    */
   enabled: boolean;
   name: string;
+  hidden?: boolean;
   /**
    * Tooltip text to be hoverable when text has links
    */
@@ -69,15 +72,6 @@ export function getTabs(organization: Organization) {
           : t(`Issues are marked for review when they are created, unresolved, or unignored.
           Mark an issue reviewed to move it out of this list.
           Issues are automatically marked reviewed in 7 days.`),
-      },
-    ],
-    [
-      Query.NEW,
-      {
-        name: t('New'),
-        analyticsName: 'new',
-        count: true,
-        enabled: hasEscalatingIssuesUi,
       },
     ],
     [
@@ -137,6 +131,19 @@ export function getTabs(organization: Organization) {
         tooltipHoverable: true,
       },
     ],
+    [
+      // Hidden tab to account for custom queries that don't match any of the queries
+      // above. It's necessary because if Tabs's value doesn't match that of any tab item
+      // then Tabs will fall back to a default value, causing unexpected behaviors.
+      CUSTOM_TAB_VALUE,
+      {
+        name: t('Custom'),
+        analyticsName: 'custom',
+        hidden: true,
+        count: false,
+        enabled: true,
+      },
+    ],
   ];
 
   return tabs.filter(([_query, tab]) => tab.enabled);
@@ -176,8 +183,19 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({
+  query,
+  sort,
+  organization,
+}: {
+  organization: Organization;
+  query: string;
+  sort: string;
+}) {
+  const defaultSort = organization.features.includes('issue-list-better-priority-sort')
+    ? IssueSortOptions.BETTER_PRIORITY
+    : DEFAULT_ISSUE_STREAM_SORT;
+  return query === DEFAULT_QUERY && sort === defaultSort;
 }
 
 export function getSortLabel(key: string) {

@@ -20,7 +20,7 @@ import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSet
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {IntegrationProvider, Organization, Scope} from 'sentry/types';
+import {Integration, Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 const HookCodecovSettingsLink = HookOrDefault({
@@ -37,7 +37,7 @@ type Props = {
 
 type State = AsyncComponent['state'] & {
   authProvider: object;
-  githubIntegration: {providers: IntegrationProvider[]};
+  githubIntegrations: Integration[];
 };
 
 class OrganizationSettingsForm extends AsyncComponent<Props, State> {
@@ -46,17 +46,19 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
     return [
       ['authProvider', `/organizations/${organization.slug}/auth-provider/`],
       [
-        'githubIntegration',
-        `/organizations/${organization.slug}/config/integrations/?provider_key=github`,
+        'githubIntegrations',
+        `/organizations/${organization.slug}/integrations/?provider_key=github`,
       ],
     ];
   }
 
   render() {
     const {initialData, organization, onSave, access} = this.props;
-    const {authProvider, githubIntegration} = this.state;
+    const {authProvider, githubIntegrations} = this.state;
     const endpoint = `/organizations/${organization.slug}/`;
-    const hasGithubIntegration = !githubIntegration?.providers[0].canAdd;
+    const hasGithubIntegration = githubIntegrations
+      ? githubIntegrations.length > 0
+      : false;
 
     const jsonFormSettings = {
       additionalFieldProps: {hasSsoEnabled: !!authProvider},
@@ -118,7 +120,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         help: (
           <Fragment>
             {t(
-              "Allow Sentry to comment on pull requests about relevant issues impacting your app's performance."
+              'Allow Sentry to comment on pull requests about issues impacting your app.'
             )}{' '}
             <Link to={`/settings/${organization.slug}/integrations/github`}>
               {t('Configure GitHub integration')}

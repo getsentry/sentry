@@ -9,6 +9,7 @@ import {LineChart} from 'sentry/components/charts/lineChart';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import IdBadge from 'sentry/components/idBadge';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -22,8 +23,10 @@ import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts
 import type {TrendType} from 'sentry/utils/profiling/hooks/types';
 import {FunctionTrend} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
+import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
@@ -40,17 +43,19 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'fnTrendCursor';
+const DEFAULT_CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function FunctionTrendsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   trendFunction,
   trendType,
@@ -62,16 +67,19 @@ export function FunctionTrendsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
@@ -185,20 +193,41 @@ function FunctionTrendsEntry({
   setExpanded,
   trendFunction,
 }: FunctionTrendsEntryProps) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === func.project);
 
+  let functionName = <Fragment>{func.function}</Fragment>;
+
+  if (project && func['examples()'].length > 0) {
+    const target = generateProfileFlamechartRouteWithQuery({
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      profileId: func['examples()'][0],
+      query: {
+        frameName: func.function as string,
+        framePackage: func.package as string,
+      },
+    });
+
+    functionName = <Link to={target}>{functionName}</Link>;
+  }
+
+  functionName = (
+    <FunctionName>
+      <Tooltip title={func.package}>{functionName}</Tooltip>
+    </FunctionName>
+  );
+
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
           </Tooltip>
         )}
-        <FunctionName>
-          <Tooltip title={func.package}>{func.function}</Tooltip>
-        </FunctionName>
+        {functionName}
         <Tooltip
           title={tct('Appeared [count] times.', {
             count: <Count value={func['count()']} />,
@@ -218,7 +247,7 @@ function FunctionTrendsEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -403,6 +432,11 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

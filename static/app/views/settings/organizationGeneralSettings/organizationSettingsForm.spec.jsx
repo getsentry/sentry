@@ -18,7 +18,7 @@ describe('OrganizationSettingsForm', function () {
       method: 'GET',
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/config/integrations/?provider_key=github`,
+      url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
       body: {
         providers: [{canAdd: true}],

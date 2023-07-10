@@ -6,6 +6,10 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {
+  getRetryDelay,
+  shouldRetryHandler,
+} from 'sentry/views/starfish/utils/retryHandlers';
 
 export function useEventsStatsQuery({
   eventView,
@@ -39,8 +43,10 @@ export function useEventsStatsQuery({
     }),
     options: {
       enabled,
-      retry: false,
       refetchOnWindowFocus: false,
+      retry: shouldRetryHandler,
+      retryDelay: getRetryDelay,
+      staleTime: Infinity,
     },
     referrer,
   });

@@ -5,8 +5,7 @@ from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
 from django.db.models import F
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
@@ -28,7 +27,7 @@ from sentry.web.helpers import render_to_response
 
 
 class SetupWizardView(BaseView):
-    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
 
             uri_components = list(urlparse(absolute_uri(request.get_full_path())))
@@ -44,7 +43,7 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def get(self, request: Request, wizard_hash) -> HttpResponse:
+    def get(self, request: HttpRequest, wizard_hash) -> HttpResponse:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
@@ -60,28 +59,34 @@ class SetupWizardView(BaseView):
             member_set__role__in=[x.id for x in roles.with_scope("org:read")],
             member_set__user_id=request.user.id,
             status=OrganizationStatus.ACTIVE,
-        ).order_by("-date_added")[:50]
+        ).order_by("-date_added")
+
+        projects = Project.objects.filter(organization__in=orgs, status=ObjectStatus.ACTIVE)
+
+        keys = ProjectKey.objects.filter(
+            project__in=projects,
+            roles=F("roles").bitor(ProjectKey.roles.store),
+            status=ProjectKeyStatus.ACTIVE,
+        )
+
+        orgs_map = {}
+        for org in orgs:
+            orgs_map[org.id] = org
+
+        keys_map = {}
+        for key in keys:
+            if key.project_id not in keys_map:
+                keys_map[key.project_id] = [key]
+            else:
+                keys_map[key.project_id].append(key)
 
         filled_projects = []
 
-        for org in orgs:
-            projects = list(
-                Project.objects.filter(organization=org, status=ObjectStatus.ACTIVE).order_by(
-                    "-date_added"
-                )[:50]
-            )
-            for project in projects:
-                enriched_project = serialize(project)
-                enriched_project["organization"] = serialize(org)
-                keys = list(
-                    ProjectKey.objects.filter(
-                        project=project,
-                        roles=F("roles").bitor(ProjectKey.roles.store),
-                        status=ProjectKeyStatus.ACTIVE,
-                    )
-                )
-                enriched_project["keys"] = serialize(keys)
-                filled_projects.append(enriched_project)
+        for project in projects:
+            enriched_project = serialize(project)
+            enriched_project["organization"] = serialize(orgs_map[project.organization_id])
+            enriched_project["keys"] = serialize(keys_map.get(project.id, []))
+            filled_projects.append(enriched_project)
 
         # Fetching or creating a token
         token = None

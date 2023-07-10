@@ -17,6 +17,7 @@ function IssuesTable(props: Props) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {statsPeriod, start, end} = getDateConditions(pageFilters.selection);
+  const projects = pageFilters.selection.projects;
 
   const queryConditions: string[] = [
     'is:unresolved',
@@ -24,18 +25,18 @@ function IssuesTable(props: Props) {
     ...(transactionName ? [`transaction:${transactionName}`] : ['']),
     ...(httpMethod ? [`http.method:${httpMethod}`] : ['']),
   ];
-  const queryCondtionString = queryConditions.join(' ');
+  const queryConditionString = queryConditions.join(' ');
 
   const queryParams = useMemo(() => {
     const dateConditions = statsPeriod ? {statsPeriod} : {start, end};
     return {
-      project: 1,
-      query: queryCondtionString,
+      project: projects[0],
+      query: queryConditionString,
       limit: 5,
       sort: 'new',
       ...dateConditions,
     };
-  }, [queryCondtionString, statsPeriod, start, end]);
+  }, [queryConditionString, statsPeriod, start, end, projects]);
 
   return (
     <GroupList
@@ -44,7 +45,7 @@ function IssuesTable(props: Props) {
       withColumns={[]}
       narrowGroups
       endpointPath={`/organizations/${organization.slug}/issues/`}
-      query={queryCondtionString}
+      query={queryConditionString}
       queryParams={queryParams}
       withPagination={false}
       useTintRow

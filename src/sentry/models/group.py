@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -47,7 +47,7 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team
+    from sentry.models import Environment, Organization, Team
     from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -239,25 +239,35 @@ def get_oldest_or_latest_event_for_environments(
 
 
 def get_helpful_event_for_environments(
-    environments: Sequence[str], group: Group
+    environments: Sequence[Environment],
+    group: Group,
+    conditions: Optional[Sequence[Condition]] = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    conditions = []
+    all_conditions = []
     if len(environments) > 0:
-        conditions.append(Condition(Column("environment"), Op.IN, environments))
-    conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
-    conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+        all_conditions.append(
+            Condition(Column("environment"), Op.IN, [e.name for e in environments])
+        )
+    all_conditions.append(Condition(Column("project_id"), Op.IN, [group.project.id]))
+    all_conditions.append(Condition(Column("group_id"), Op.IN, [group.id]))
+
+    if conditions:
+        all_conditions.extend(conditions)
+
+    end = group.last_seen + timedelta(minutes=1)
+    start = end - timedelta(days=7)
 
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
         group_id=group.id,
-        start=None,
-        end=None,
-        conditions=conditions,
+        start=start,
+        end=end,
+        conditions=all_conditions,
         limit=1,
         orderby=EventOrdering.MOST_HELPFUL.value,
         referrer="Group.get_helpful",
@@ -388,19 +398,32 @@ class GroupManager(BaseManager):
         status: GroupStatus,
         substatus: GroupSubStatus | None,
         activity_type: ActivityType,
+        activity_data: Optional[Mapping[str, Any]] = None,
+        send_activity_notification: bool = True,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        updated_count = (
-            self.filter(id__in=[g.id for g in groups])
-            .exclude(status=status)
-            .update(status=status, substatus=substatus)
+        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
         )
-        if updated_count:
-            for group in groups:
-                Activity.objects.create_group_activity(group, activity_type)
-                record_group_history_from_activity_type(group, activity_type.value)
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+
+        self.bulk_update(to_be_updated, ["status", "substatus"])
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+            Activity.objects.create_group_activity(
+                group,
+                activity_type,
+                data=activity_data,
+                send_notification=send_activity_notification,
+            )
+            record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -492,7 +515,7 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
-    is_public = models.NullBooleanField(default=False, null=True)
+    is_public = models.BooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
@@ -636,12 +659,16 @@ class Group(Model):
         )
 
     def get_helpful_event_for_environments(
-        self, environments: Sequence[str] = ()
+        self,
+        environments: Sequence[Environment] = (),
+        conditions: Optional[Sequence[Condition]] = None,
     ) -> GroupEvent | None:
-        return get_helpful_event_for_environments(
+        maybe_event = get_helpful_event_for_environments(
             environments,
             self,
+            conditions,
         )
+        return maybe_event if maybe_event else self.get_latest_event_for_environments(environments)
 
     def get_first_release(self) -> str | None:
         from sentry.models import Release

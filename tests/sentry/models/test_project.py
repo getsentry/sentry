@@ -431,9 +431,8 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.project, users
-        )[ExternalProviders.EMAIL]
+        recipients = NotificationSetting.objects.filter_to_accepting_recipients(self.project, users)
+        actual_recipients = recipients[ExternalProviders.EMAIL]
         expected_recipients = {
             RpcActor.from_orm_user(user, fetch_actor=False) for user in expected_users
         }
@@ -448,7 +447,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         self.run_test({user}, {user})
 
@@ -458,7 +457,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         self.run_test({user}, set())
 
@@ -468,13 +467,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
             project=self.project,
         )
         self.run_test({user}, {user})
@@ -485,13 +484,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user),
+            user_id=user.id,
             project=self.project,
         )
         self.run_test({user}, set())
@@ -502,7 +501,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_global_enabled),
+            user_id=user_global_enabled.id,
         )
 
         user_global_disabled = self.create_user()
@@ -510,7 +509,7 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_global_disabled),
+            user_id=user_global_disabled.id,
         )
 
         user_project_enabled = self.create_user()
@@ -518,13 +517,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_project_enabled),
+            user_id=user_project_enabled.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_project_enabled),
+            user_id=user_project_enabled.id,
             project=self.project,
         )
 
@@ -533,13 +532,13 @@ class FilterToSubscribedUsersTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(user_project_disabled),
+            user_id=user_project_disabled.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            actor=RpcActor.from_orm_user(user_project_disabled),
+            user_id=user_project_disabled.id,
             project=self.project,
         )
         self.run_test(

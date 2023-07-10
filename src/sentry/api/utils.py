@@ -109,22 +109,23 @@ def get_date_range_from_params(
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
-    timeframe = params.get("timeframe")
-    timeframe_start = params.get("timeframeStart")
-    timeframe_end = params.get("timeframeEnd")
+    mutable_params = params.copy()
+    timeframe = mutable_params.get("timeframe")
+    timeframe_start = mutable_params.get("timeframeStart")
+    timeframe_end = mutable_params.get("timeframeEnd")
 
     if timeframe is not None:
-        params["statsPeriod"] = timeframe
+        mutable_params["statsPeriod"] = timeframe
 
     elif timeframe_start or timeframe_end:
         if not all([timeframe_start, timeframe_end]):
             raise InvalidParams("timeframeStart and timeframeEnd are both required")
         else:
-            params["statsPeriodStart"] = timeframe_start
-            params["statsPeriodEnd"] = timeframe_end
+            mutable_params["statsPeriodStart"] = timeframe_start
+            mutable_params["statsPeriodEnd"] = timeframe_end
 
     return get_date_range_from_stats_period(
-        params, optional=optional, default_stats_period=default_stats_period
+        mutable_params, optional=optional, default_stats_period=default_stats_period
     )
 
 
@@ -300,7 +301,7 @@ def method_dispatch(**dispatch_mapping):
     """
     Dispatches a incoming request to a different handler based on the HTTP method
 
-    >>> url('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
+    >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
 
     def invalid_method(request, *args, **kwargs):
