@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import MutableMapping
+from typing import Any, MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
@@ -55,7 +55,7 @@ class IntegrationRepositoryProvider:
 
     def create_repository(
         self,
-        repo_config: MutableMapping[str, any],
+        repo_config: MutableMapping[str, Any],
         organization,
     ):
         result = self.build_repository_config(organization=organization, data=repo_config)
