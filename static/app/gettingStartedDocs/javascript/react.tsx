@@ -1,7 +1,8 @@
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -26,56 +27,83 @@ const performanceOtherConfig = `
 tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
 `;
 
-export const steps = (sentryInitContent?: string): LayoutProps['steps'] => [
+export const steps = ({
+  sentryInitContent,
+}: {
+  sentryInitContent?: string;
+} = {}): LayoutProps['steps'] => [
   {
     language: 'bash',
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
-    ),
-    code: `
-    # Using yarn
-    yarn add @sentry/react
+    configurations: [
+      {
+        description: t(
+          'Sentry captures data by using an SDK within your application’s runtime.'
+        ),
+        code: `
+        # Using yarn
+        yarn add @sentry/react
 
-    # Using npm
-    npm install --save @sentry/react
-    `,
+        # Using npm
+        npm install --save @sentry/react
+        `,
+      },
+    ],
   },
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
-    description: t(
-      "Initialize Sentry as early as possible in your application's lifecycle."
-    ),
-    code: `
-    Sentry.init({
-      ${sentryInitContent}
-    });
+    configurations: [
+      {
+        description: t(
+          "Initialize Sentry as early as possible in your application's lifecycle."
+        ),
+        code: `
+        Sentry.init({
+          ${sentryInitContent}
+        });
 
-    const container = document.getElementById(“app”);
-    const root = createRoot(container);
-    root.render(<App />)
-    `,
+        const container = document.getElementById(“app”);
+        const root = createRoot(container);
+        root.render(<App />)
+        `,
+      },
+    ],
+  },
+  {
+    language: 'bash',
+    type: StepType.UPLOAD_SOURCE_MAPS,
+    configurations: [
+      {
+        description: tct(
+          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
+          {
+            guideLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
+            ),
+          }
+        ),
+        code: `npx @sentry/wizard@latest -i sourcemaps`,
+      },
+    ],
   },
   {
     language: 'javascript',
     type: StepType.VERIFY,
-    description: t(
-      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-    ),
-    code: `
-    return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-    `,
+    configurations: [
+      {
+        description: t(
+          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+        ),
+        code: `
+        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
+        `,
+      },
+    ],
   },
 ];
 
 export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/',
-  },
   {
     id: 'react-features',
     name: t('React Features'),
@@ -152,7 +180,7 @@ export default function GettingStartedWithReact({
 
   return (
     <Layout
-      steps={steps(sentryInitContent.join('\n'))}
+      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
     />
