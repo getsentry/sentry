@@ -21,9 +21,6 @@ class DiscordInteractionsEndpoint(Endpoint):
     provider = "discord"
 
     @csrf_exempt
-    def dispatch(self, request: Request, *args, **kwargs) -> Response:
-        return super().dispatch(request, *args, **kwargs)
-
     @transaction_start("DiscordInteractionsEndpoint")
     def post(self, request: Request) -> Response:
 

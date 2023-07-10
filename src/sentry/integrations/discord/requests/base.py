@@ -57,7 +57,7 @@ class DiscordRequest:
     def logging_data(self) -> Mapping[str, str]:
         _data: Mapping[str, object] = self.request.data
         # TODO: come back to this later and see what additional metadata makes sense to include here
-        data: Mapping[str, str | None] = {
+        data: dict[str, str | None] = {
             "discord_guild_id": str(_data.get("guild_id", None)),
             "discord_channel_id": str(_data.get("channel_id", None)),
         }
