@@ -142,6 +142,8 @@ function buildEventViewQuery(
       return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
+  result.push('has:span.description');
+
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
   }

@@ -68,7 +68,7 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: string, spanCategory?: string) {
-  const queryConditions: string[] = [`!span.domain:""`];
+  const queryConditions: string[] = [`has:span.domain has:span.description`];
   if (moduleName) {
     queryConditions.push(`span.module:${moduleName}`);
   }
