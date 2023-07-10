@@ -67,7 +67,7 @@ jobs:
     needs: files-changed
     name: backend test
     runs-on: ubuntu-20.04
-    timeout-minutes: 40
+    timeout-minutes: 80
     strategy:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
