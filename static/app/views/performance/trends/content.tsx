@@ -250,7 +250,7 @@ class TrendsContent extends Component<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <DefaultTrends location={location} eventView={eventView} projects={projects}>
+            <DefaultTrends location={location} eventView={eventView}>
               <FilterActions>
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
@@ -346,7 +346,6 @@ type DefaultTrendsProps = {
   children: React.ReactNode[];
   eventView: EventView;
   location: Location;
-  projects: Project[];
 };
 
 class DefaultTrends extends Component<DefaultTrendsProps> {
