@@ -9,4 +9,5 @@ nodestore: 0002_nodestore_no_dictfield
 sentry: 0508_index_checkin_monitorenvironment
 sentry: 0507_delete_pending_deletion_rules
 sentry: 0507_add_oidc_scopes
+sentry: 0508_merging_migrations
 social_auth: 0001_initial
