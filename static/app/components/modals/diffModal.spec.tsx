@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import DiffModal from 'sentry/components/modals/diffModal';
@@ -26,14 +28,19 @@ describe('DiffModal', function () {
       body: [],
     });
 
+    const styledWrapper = styled(c => c.children);
+
     render(
       <DiffModal
         orgId="123"
         baseIssueId="123"
         targetIssueId="234"
         project={project}
-        Body={({children}) => <div>{children}</div>}
+        Footer={styledWrapper()}
+        Body={styledWrapper()}
+        Header={c => <span>{c.children}</span>}
         CloseButton={({children}) => <div>{children}</div>}
+        closeModal={() => {}}
       />
     );
   });

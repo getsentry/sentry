@@ -1,10 +1,12 @@
+import styled from '@emotion/styled';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import RecoveryOptionsModal from 'sentry/components/modals/recoveryOptionsModal';
 
 describe('RecoveryOptionsModal', function () {
   const closeModal = jest.fn();
-  const onClose = jest.fn();
   const mockId = TestStubs.Authenticators().Recovery().authId;
   const routerContext = TestStubs.routerContext();
 
@@ -18,14 +20,16 @@ describe('RecoveryOptionsModal', function () {
   });
 
   function renderComponent() {
+    const styledWrapper = styled(c => c.children);
+
     render(
       <RecoveryOptionsModal
-        Body={p => p.children}
-        Header={p => p.children}
-        Footer={p => p.children}
+        Body={styledWrapper()}
+        Header={p => <span>{p.children}</span>}
+        Footer={styledWrapper()}
         authenticatorName="Authenticator App"
         closeModal={closeModal}
-        onClose={onClose}
+        CloseButton={makeCloseButton(() => {})}
       />,
       {context: routerContext}
     );

@@ -4,6 +4,10 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
+import type {
+  AsyncComponentProps,
+  AsyncComponentState,
+} from 'sentry/components/asyncComponent';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -21,19 +25,18 @@ import withLatestContext from 'sentry/utils/withLatestContext';
 import InviteRowControl from './inviteRowControl';
 import {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
-type Props = AsyncComponent['props'] &
-  ModalRenderProps & {
-    organization: Organization;
-    initialData?: Partial<InviteRow>[];
-    source?: string;
-  };
+export interface InviteMembersModalProps extends AsyncComponentProps, ModalRenderProps {
+  organization: Organization;
+  initialData?: Partial<InviteRow>[];
+  source?: string;
+}
 
-type State = AsyncComponent['state'] & {
+interface State extends AsyncComponentState {
   complete: boolean;
   inviteStatus: InviteStatus;
   pendingInvites: InviteRow[];
   sendingInvites: boolean;
-};
+}
 
 const DEFAULT_ROLE = 'member';
 
@@ -45,7 +48,7 @@ const InviteModalHook = HookOrDefault({
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
-class InviteMembersModal extends AsyncComponent<Props, State> {
+class InviteMembersModal extends AsyncComponent<InviteMembersModalProps, State> {
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),

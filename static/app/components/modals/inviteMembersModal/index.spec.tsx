@@ -1,9 +1,13 @@
 import selectEvent from 'react-select-event';
+import styled from '@emotion/styled';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
+import {makeCloseButton} from 'sentry/components/globalModal/components';
+import InviteMembersModal, {
+  InviteMembersModalProps,
+} from 'sentry/components/modals/inviteMembersModal';
 import TeamStore from 'sentry/stores/teamStore';
 
 describe('InviteMembersModal', function () {
@@ -11,10 +15,14 @@ describe('InviteMembersModal', function () {
   const org = TestStubs.Organization({access: ['member:write'], teams: [team]});
   TeamStore.loadInitialData([team]);
 
-  const modalProps = {
-    Body: p => p.children,
-    Header: p => p.children,
-    Footer: p => p.children,
+  const styledWrapper = styled(c => c.children);
+  const modalProps: InviteMembersModalProps = {
+    Body: styledWrapper(),
+    Header: p => <span>{p.children}</span>,
+    Footer: styledWrapper(),
+    closeModal: () => {},
+    CloseButton: makeCloseButton(() => {}),
+    organization: TestStubs.Organization(),
   };
 
   const noWriteOrg = TestStubs.Organization({

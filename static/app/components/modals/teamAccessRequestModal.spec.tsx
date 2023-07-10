@@ -1,33 +1,35 @@
+import styled from '@emotion/styled';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import TeamAccessRequestModal from 'sentry/components/modals/teamAccessRequestModal';
+import {makeCloseButton} from 'sentry/components/globalModal/components';
+import TeamAccessRequestModal, {
+  CreateTeamAccessRequestModalProps,
+} from 'sentry/components/modals/teamAccessRequestModal';
 
 describe('TeamAccessRequestModal', function () {
   let createMock;
 
   const closeModal = jest.fn();
-  const onClose = jest.fn();
   const orgId = TestStubs.Organization().slug;
   const memberId = TestStubs.Member().id;
   const teamId = TestStubs.Team().slug;
 
-  const modalRenderProps = {
-    Body: p => p.children,
-    Footer: p => p.children,
-    Header: p => p.children,
+  const styledWrapper = styled(c => c.children);
+  const modalRenderProps: CreateTeamAccessRequestModalProps = {
+    Body: styledWrapper(),
+    Footer: styledWrapper(),
+    Header: p => <span>{p.children}</span>,
     closeModal,
-    onClose,
+    orgId,
+    teamId,
+    memberId,
+    CloseButton: makeCloseButton(() => {}),
+    api: new MockApiClient(),
   };
 
   function renderComponent() {
-    return render(
-      <TeamAccessRequestModal
-        orgId={orgId}
-        teamId={teamId}
-        memberId={memberId}
-        {...modalRenderProps}
-      />
-    );
+    return render(<TeamAccessRequestModal {...modalRenderProps} />);
   }
 
   beforeEach(function () {
