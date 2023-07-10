@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import MutableMapping
 
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
@@ -46,12 +47,17 @@ class IntegrationRepositoryProvider:
 
         return integration_model.get_installation(organization_id)
 
-    def dispatch(self, request: Request, organization, **kwargs):
+    def create_repository(
+        self,
+        repo_config: MutableMapping[str, any],
+        organization,
+        is_dispatch: bool = False,
+        request: Request = None,
+    ):
         try:
-            config = self.get_repository_data(organization, request.data)
-            result = self.build_repository_config(organization=organization, data=config)
+            result = self.build_repository_config(organization=organization, data=repo_config)
         except Exception as e:
-            return self.handle_api_error(e)
+            return self.handle_api_error(e), None
 
         repo_update_params = {
             "external_id": result.get("external_id"),
@@ -96,12 +102,34 @@ class IntegrationRepositoryProvider:
                     self.on_delete_repository(repo)
                 except IntegrationError:
                     pass
-                return Response(
-                    {"errors": {"__all__": "A repository with that name already exists"}},
-                    status=400,
-                )
+
+                if is_dispatch:
+                    return (
+                        Response(
+                            {"errors": {"__all__": "A repository with that name already exists"}},
+                            status=400,
+                        ),
+                        None,
+                    )
+
             else:
-                repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
+                if is_dispatch:
+                    repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
+
+        return result, repo
+
+    def dispatch(self, request: Request, organization, **kwargs):
+        try:
+            config = self.get_repository_data(organization, request.data)
+        except Exception as e:
+            return self.handle_api_error(e)
+
+        result, repo = self.create_repository(
+            repo_config=config, organization=organization, is_dispatch=True, request=request
+        )
+
+        if type(result) == Response:
+            return result
 
         analytics.record(
             "integration.repo.added",
