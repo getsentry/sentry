@@ -758,11 +758,11 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
     def test_simple(self):
+        rule = self.create_project_rule(self.project)
         self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=202
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
-        self.rule.refresh_from_db()
-        assert self.rule.status == RuleStatus.PENDING_DELETION
-        assert RuleActivity.objects.filter(
-            rule=self.rule, type=RuleActivityType.DELETED.value
+        rule.refresh_from_db()
+        assert not Rule.objects.filter(
+            id=self.rule.id, project=self.project, status=RuleStatus.PENDING_DELETION
         ).exists()

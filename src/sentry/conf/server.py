@@ -765,6 +765,10 @@ CELERY_QUEUES_CONTROL = [
     ),
 ]
 
+CELERY_ISSUE_STATES_QUEUE = Queue(
+    "auto_transition_issue_states", routing_key="auto_transition_issue_states"
+)
+
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
@@ -853,8 +857,8 @@ CELERY_QUEUES_REGION = [
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
-    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
     Queue("recap_servers", routing_key="recap_servers"),
+    CELERY_ISSUE_STATES_QUEUE,
 ]
 
 from celery.schedules import crontab
@@ -981,7 +985,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
@@ -1082,7 +1086,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
@@ -1478,14 +1482,10 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable SQL formatting for breadcrumb items and performance spans
-    "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable prefetching of issues from the issue list when hovered
-    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1565,8 +1565,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enable subquery optimizations for the replay_index page
-    "organizations:session-replay-index-subquery": False,
     "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
