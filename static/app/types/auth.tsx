@@ -131,6 +131,9 @@ export type AuthConfig = {
   vstsLoginLink: string;
 };
 
+// Users can have SSO providers of their own (social login with github)
+// and organizations can have SSO configuration for SAML/google domain/okta.
+// https://github.com/getsentry/sentry/pull/52469#discussion_r1258387880
 export type AuthProvider = {
   key: string;
   name: string;
