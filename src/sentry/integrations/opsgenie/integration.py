@@ -34,7 +34,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Configure rule based Opsgenie alerts to automatically be triggered to notify specific teams.
+        Configure rule based Opsgenie alerts that automatically trigger and notify specific teams.
         """,
         IntegrationFeatures.ALERT_RULE,
     ),
