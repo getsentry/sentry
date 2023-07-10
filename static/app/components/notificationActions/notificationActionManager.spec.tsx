@@ -69,7 +69,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
     const projectNotificationActions = screen.queryAllByTestId('notification-action');
@@ -88,7 +87,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
         disabled
       />
     );
@@ -110,7 +108,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
 
@@ -161,7 +158,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
     renderGlobalModal();
@@ -187,7 +183,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
 
@@ -237,7 +232,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
     renderGlobalModal();
@@ -276,7 +270,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
 
@@ -325,7 +318,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
 
@@ -389,7 +381,6 @@ describe('Adds, deletes, and updates notification actions', function () {
         availableActions={availableActions}
         recipientRoles={['owner', 'manager']}
         project={project}
-        updateAlertCount={jest.fn()}
       />
     );
 
