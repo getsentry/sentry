@@ -202,7 +202,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         assert checkin.duration == 1000
         # Check to make sure that date_added was backdated
         # date_updated is still set to timezone.now as default
-        assert checkin.date_added < checkin.date_updated
+        assert checkin.date_added + timedelta(milliseconds=checkin.duration) == checkin.date_updated
 
     def test_invalid_duration(self):
         monitor = self._create_monitor(slug="my-monitor")
