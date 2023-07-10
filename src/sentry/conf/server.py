@@ -1298,7 +1298,7 @@ SENTRY_FEATURES = {
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": False,
+    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
