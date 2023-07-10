@@ -67,14 +67,16 @@ function DurationChart({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics'
+    'sidebar-span-metrics',
+    Boolean(groupId && transactionName && transactionMethod)
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'span-summary-panel-samples-table-p95',
+    Boolean(groupId && transactionName && transactionMethod)
   );
 
   const p95 = spanMetrics?.[`p95(${SPAN_SELF_TIME})`] || 0;

@@ -24,7 +24,8 @@ export const useSpanMetricsSeries = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: SpanSummaryQueryFilters = {},
   yAxis: string[] = [],
-  referrer = 'span-metrics-series'
+  referrer = 'span-metrics-series',
+  enabled: boolean = true
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -38,6 +39,7 @@ export const useSpanMetricsSeries = (
     eventView,
     initialData: [],
     referrer,
+    enabled,
   });
 
   const parsedData = keyBy(

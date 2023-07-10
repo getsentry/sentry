@@ -52,7 +52,8 @@ export const useSpanSamples = (options: Options) => {
     groupId ? {group: groupId} : undefined,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics'
+    'sidebar-span-metrics',
+    Boolean(groupId && transactionName && transactionMethod)
   );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
