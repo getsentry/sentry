@@ -178,41 +178,42 @@ def renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
 
     for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
-        if date_added <= threshold_date:
-            metrics.incr("artifact_bundle_renewal.need_renewal")
-            # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-            with atomic_transaction(
-                using=(
-                    router.db_for_write(ArtifactBundle),
-                    router.db_for_write(ProjectArtifactBundle),
-                    router.db_for_write(ReleaseArtifactBundle),
-                    router.db_for_write(DebugIdArtifactBundle),
-                    router.db_for_write(ArtifactBundleIndex),
-                )
-            ):
-                # We check again for the date_added condition in order to achieve consistency, this is done because
-                # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-                updated_rows_count = ArtifactBundle.objects.filter(
-                    id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                # We want to make cascading queries only if there were actual changes in the db.
-                if updated_rows_count > 0:
-                    ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-                    ReleaseArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-                    DebugIdArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-                    ArtifactBundleIndex.objects.filter(
-                        artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                    ).update(date_added=now)
-
-            # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+        if date_added > threshold_date:
+            continue
+        metrics.incr("artifact_bundle_renewal.need_renewal")
+        # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
+        with atomic_transaction(
+            using=(
+                router.db_for_write(ArtifactBundle),
+                router.db_for_write(ProjectArtifactBundle),
+                router.db_for_write(ReleaseArtifactBundle),
+                router.db_for_write(DebugIdArtifactBundle),
+                router.db_for_write(ArtifactBundleIndex),
+            )
+        ):
+            # We check again for the date_added condition in order to achieve consistency, this is done because
+            # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
+            updated_rows_count = ArtifactBundle.objects.filter(
+                id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            # We want to make cascading queries only if there were actual changes in the db.
             if updated_rows_count > 0:
-                metrics.incr("artifact_bundle_renewal.were_renewed")
+                ProjectArtifactBundle.objects.filter(
+                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                ).update(date_added=now)
+                ReleaseArtifactBundle.objects.filter(
+                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                ).update(date_added=now)
+                DebugIdArtifactBundle.objects.filter(
+                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                ).update(date_added=now)
+                ArtifactBundleIndex.objects.filter(
+                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+                ).update(date_added=now)
+
+        # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+        if updated_rows_count > 0:
+            metrics.incr("artifact_bundle_renewal.were_renewed")
 
 
 # ===== Querying of Artifact Bundles =====
@@ -255,21 +256,20 @@ def query_artifact_bundles_containing_file(
                 {id: (date_added, "debug-id") for id, date_added in bundles}
             )
 
-    total_release_bundles, not_indexed = get_release_indexing_state(project, release, dist)
+    total_bundles, indexed_bundles = get_bundles_indexing_state(project, release, dist)
 
-    if not total_release_bundles:
+    if not total_bundles:
         return []
 
-    # If all the bundles for this release are full indexed, we will only query
+    # If all the bundles for this release are fully indexed, we will only query
     # the url index.
     # Otherwise, if we are below the threshold, or only partially indexed, we
     # want to return the N most recent bundles associated with the release,
     # under the assumption that one of those should ideally contain the file we
     # are looking for.
-    partially_indexed = total_release_bundles <= INDEXING_THRESHOLD
+    is_fully_indexed = total_bundles > INDEXING_THRESHOLD and indexed_bundles == total_bundles
 
-    if total_release_bundles > INDEXING_THRESHOLD and not_indexed:
-        partially_indexed = True
+    if total_bundles > INDEXING_THRESHOLD and indexed_bundles < total_bundles:
         metrics.incr("artifact_bundle_indexing.query_partial_index")
         # TODO: spawn an async task to backfill non-indexed bundles
         # lets do this in a different PR though :-)
@@ -285,7 +285,7 @@ def query_artifact_bundles_containing_file(
 
     # First, get the N most recently uploaded bundles for the release,
     # but only if the index is only partial:
-    if partially_indexed:
+    if not is_fully_indexed:
         bundles = get_artifact_bundles_by_release(project, release, dist)
         update_bundles(bundles, "release")
 
@@ -297,13 +297,13 @@ def query_artifact_bundles_containing_file(
     return _maybe_renew_and_return_bundles(artifact_bundles)
 
 
-def get_release_indexing_state(project: Project, release_name: str, dist_name: str):
+def get_bundles_indexing_state(project: Project, release_name: str, dist_name: str):
     """
-    Returns the number of total bundles, and the number of not-yet-indexed bundles
+    Returns the number of total bundles, and the number of fully indexed bundles
     associated with the given `release` / `dist`.
     """
-    not_indexed = 0
     total_bundles = 0
+    indexed_bundles = 0
 
     for state, count in (
         ArtifactBundle.objects.filter(
@@ -315,11 +315,11 @@ def get_release_indexing_state(project: Project, release_name: str, dist_name: s
         .values_list("indexing_state")
         .annotate(count=Count("*"))
     ):
-        if state == ArtifactBundleIndexingState.NOT_INDEXED.value:
-            not_indexed = count
+        if state == ArtifactBundleIndexingState.WAS_INDEXED.value:
+            indexed_bundles = count
         total_bundles += count
 
-    return (total_bundles, not_indexed)
+    return (total_bundles, indexed_bundles)
 
 
 def get_artifact_bundles_containing_debug_id(
