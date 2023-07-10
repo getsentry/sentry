@@ -32,6 +32,7 @@ export type SpanMetrics = {
   'sps_percent_change()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
 };
 
 export const useSpanList = (
@@ -84,24 +85,31 @@ function getEventView(
     .filter(Boolean)
     .join(' ');
 
+  const fields = [
+    'span.op',
+    'span.group',
+    'span.description',
+    'span.domain',
+    'sps()',
+    'sps_percent_change()',
+    `sum(${SPAN_SELF_TIME})`,
+    `p95(${SPAN_SELF_TIME})`,
+    `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+    'http_error_count()',
+    'http_error_count_percent_change()',
+  ];
+
+  if (defined(transaction)) {
+    fields.push('time_spent_percentage(local)');
+  } else {
+    fields.push('time_spent_percentage()');
+  }
+
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query,
-      fields: [
-        'span.op',
-        'span.group',
-        'span.description',
-        'span.domain',
-        'sps()',
-        'sps_percent_change()',
-        `sum(${SPAN_SELF_TIME})`,
-        `p95(${SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
-        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-        'http_error_count()',
-        'http_error_count_percent_change()',
-      ],
+      fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
