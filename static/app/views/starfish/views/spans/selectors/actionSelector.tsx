@@ -82,8 +82,14 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const queryConditions: string[] = [];
+  queryConditions.push('has:span.description');
+
   if (moduleName) {
-    queryConditions.push('!span.action:""');
+    queryConditions.push('has:span.action');
+  }
+
+  if (![ModuleName.ALL, ModuleName.NONE].includes(moduleName)) {
+    queryConditions.push(`span.module:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {

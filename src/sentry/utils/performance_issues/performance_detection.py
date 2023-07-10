@@ -14,6 +14,12 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.consecutive_http_detector import (
+    ConsecutiveHTTPSpanDetectorExtended,
+)
+from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
+    NPlusOneAPICallsDetectorExtended,
+)
 from sentry.utils.safe import get_path
 
 from .base import DetectorType, PerformanceDetector
@@ -261,6 +267,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "allowed_span_ops": ["http.client"],
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
+        DetectorType.N_PLUS_ONE_API_CALLS_EXTENDED: {
+            "total_duration": 500,  # ms
+            "concurrency_threshold": 15,  # ms
+            "count": 5,
+            "allowed_span_ops": ["http.client"],
+        },
         DetectorType.M_N_PLUS_ONE_DB: {
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
@@ -283,6 +295,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             ],  # ms
             "detection_enabled": settings["consecutive_http_spans_detection_enabled"],
         },
+        DetectorType.CONSECUTIVE_HTTP_OP_EXTENDED: {
+            # time saved by running all queries in parallel
+            "min_time_saved": 500,
+            "consecutive_count_threshold": 2,
+            "max_duration_between_spans": 1000,  # ms
+        },
         DetectorType.LARGE_HTTP_PAYLOAD: {
             "payload_size_threshold": settings["large_http_payload_size_threshold"],
             "detection_enabled": settings["large_http_payload_detection_enabled"],
@@ -300,6 +318,7 @@ def _detect_performance_problems(
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
+        ConsecutiveHTTPSpanDetectorExtended(detection_settings, data),
         DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
@@ -307,6 +326,7 @@ def _detect_performance_problems(
         NPlusOneDBSpanDetectorExtended(detection_settings, data),
         FileIOMainThreadDetector(detection_settings, data),
         NPlusOneAPICallsDetector(detection_settings, data),
+        NPlusOneAPICallsDetectorExtended(detection_settings, data),
         MNPlusOneDBSpanDetector(detection_settings, data),
         UncompressedAssetSpanDetector(detection_settings, data),
         LargeHTTPPayloadDetector(detection_settings, data),

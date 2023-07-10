@@ -5,7 +5,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Granularit
 from snuba_sdk.query import Query
 
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
@@ -286,7 +286,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
             for select_field in select:
                 if select_field.op != TEAM_KEY_TRANSACTION_OP:
                     expr = metric_object_factory(select_field.op, select_field.metric_mri)
-                    entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                    entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
                     if isinstance(entity, str):
                         entities.add(entity)
         else:
@@ -302,7 +302,7 @@ def _derive_mri_to_apply(project_ids, select, orderby):
                         expr = metric_object_factory(
                             orderby_field.field.op, orderby_field.field.metric_mri
                         )
-                        entity = expr.get_entity(project_ids, use_case_id=UseCaseKey.PERFORMANCE)
+                        entity = expr.get_entity(project_ids, use_case_id=UseCaseID.TRANSACTIONS)
                         if isinstance(entity, str):
                             entities.add(entity)
 

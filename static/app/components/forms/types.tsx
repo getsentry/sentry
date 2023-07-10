@@ -1,6 +1,6 @@
 import {createFilter} from 'react-select';
 
-import {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
@@ -80,7 +80,7 @@ interface BaseField {
   resetsForm?: boolean;
   rows?: number;
   saveMessage?: React.ReactNode | ((params: {value: FieldValue}) => string);
-  saveMessageAlertType?: React.ComponentProps<typeof Alert>['type'];
+  saveMessageAlertType?: AlertProps['type'];
   /**
    * If false, disable saveOnBlur for field, instead show a save/cancel button
    */
