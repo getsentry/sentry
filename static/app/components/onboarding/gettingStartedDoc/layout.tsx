@@ -5,11 +5,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {
-  Step,
-  StepProps,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ProductSelection,
   ProductSolution,
@@ -29,14 +25,8 @@ type NextStep = {
   name: string;
 };
 
-type CurrentStep = {
-  configurations: StepProps['configurations'];
-  language: string;
-  type: StepType;
-};
-
 export type LayoutProps = {
-  steps: CurrentStep[];
+  steps: StepProps[];
   newOrg?: boolean;
   nextSteps?: NextStep[];
 };
@@ -60,12 +50,7 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
       )}
       <Steps>
         {steps.map(step => (
-          <Step
-            key={step.type}
-            type={step.type}
-            configurations={step.configurations}
-            language={step.language}
-          />
+          <Step key={step.type} {...step} />
         ))}
       </Steps>
       {nextSteps && (
