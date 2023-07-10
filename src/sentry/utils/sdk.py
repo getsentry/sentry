@@ -28,6 +28,8 @@ from sentry.utils.rust import RustInfoIntegration
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.services.hybrid_cloud.organization import RpcOrganization
+
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +269,14 @@ def traces_sampler(sampling_context):
             pass
 
     # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+    rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+
+    # multiply everything with the overall multiplier
+    # till we get to 100% client sampling throughout
+    if settings.SENTRY_MULTIPLIER_APM_SAMPLING:
+        rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
+
+    return rate
 
 
 def before_send_transaction(event, _):
@@ -595,7 +604,7 @@ def capture_exception_with_scope_check(
     return sentry_sdk.capture_exception(error, scope=extra_scope)
 
 
-def bind_organization_context(organization):
+def bind_organization_context(organization: Organization | RpcOrganization) -> None:
     # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
@@ -619,7 +628,9 @@ def bind_organization_context(organization):
                 )
 
 
-def bind_ambiguous_org_context(orgs: Sequence[Organization], source: str | None = None) -> None:
+def bind_ambiguous_org_context(
+    orgs: Sequence[Organization | RpcOrganization], source: str | None = None
+) -> None:
     """
     Add org context information to the scope in the case where the current org might be one of a
     number of known orgs (for example, if we've attempted to derive the current org from an

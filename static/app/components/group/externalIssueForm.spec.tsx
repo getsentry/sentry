@@ -1,5 +1,8 @@
+import styled from '@emotion/styled';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import ExternalIssueForm from 'sentry/components/group/externalIssueForm';
 
 jest.mock('lodash/debounce', () => {
@@ -41,13 +44,19 @@ describe('ExternalIssueForm', () => {
       body: formConfig,
       match: [MockApiClient.matchQuery({action: 'create'})],
     });
+
+    const styledWrapper = styled(c => c.children);
     const wrapper = render(
       <ExternalIssueForm
-        Body={p => p.children}
-        Header={p => p.children}
+        Body={styledWrapper()}
+        Footer={styledWrapper()}
+        organization={TestStubs.Organization()}
+        Header={c => <span>{c.children}</span>}
         group={group}
         integration={integration}
         onChange={onChange}
+        CloseButton={makeCloseButton(() => {})}
+        closeModal={() => {}}
       />
     );
     await userEvent.click(screen.getByText(action));
@@ -174,8 +183,8 @@ describe('ExternalIssueForm', () => {
       });
 
       afterEach(() => {
-        window.fetch.mockClear();
-        delete window.fetch;
+        (window.fetch as jest.Mock).mockClear();
+        (window.fetch as jest.Mock | undefined) = undefined;
       });
 
       it('fast typing is debounced and uses trailing call when fetching data', async () => {

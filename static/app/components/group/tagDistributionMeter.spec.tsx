@@ -10,7 +10,10 @@ describe('TagDistributionMeter', function () {
     render(
       <GroupTagDistributionMeter
         tag="browser"
-        group={{id: '1337'}}
+        name="Browser"
+        topValues={[]}
+        onTagClick={jest.fn()}
+        group={TestStubs.Group({id: '1337'})}
         organization={organization}
         projectId="456"
         totalValues={0}
@@ -23,7 +26,9 @@ describe('TagDistributionMeter', function () {
     render(
       <GroupTagDistributionMeter
         tag="browser"
-        group={{id: '1337'}}
+        name="Browser"
+        onTagClick={jest.fn()}
+        group={TestStubs.Group({id: '1337'})}
         organization={organization}
         projectId="456"
         totalValues={tags[0].totalValues}

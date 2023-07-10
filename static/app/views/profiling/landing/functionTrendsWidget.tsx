@@ -43,17 +43,19 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'fnTrendCursor';
+const DEFAULT_CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function FunctionTrendsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   trendFunction,
   trendType,
@@ -65,16 +67,19 @@ export function FunctionTrendsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
