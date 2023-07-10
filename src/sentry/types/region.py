@@ -167,6 +167,14 @@ def get_region_by_name(name: str) -> Region:
         raise RegionResolutionError(f"No region with name: {name!r}")
 
 
+def is_region_name(name: str) -> bool:
+    try:
+        get_region_by_name(name)
+        return True
+    except Exception:
+        return False
+
+
 @control_silo_function
 def get_region_for_organization(organization_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
