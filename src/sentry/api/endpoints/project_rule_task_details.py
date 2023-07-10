@@ -5,8 +5,9 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models import Rule, RuleStatus
+from sentry.models import Rule
 
 
 @region_silo_endpoint
@@ -35,7 +36,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
                 rule = Rule.objects.get(
                     project=project,
                     id=int(rule_id),
-                    status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE],
+                    status=ObjectStatus.ACTIVE,
                 )
                 context["rule"] = serialize(rule, request.user)
             except Rule.DoesNotExist:

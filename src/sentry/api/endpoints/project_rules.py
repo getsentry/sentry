@@ -8,9 +8,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
+from sentry.models import Rule, RuleActivity, RuleActivityType, Team, User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.rules.processor import is_condition_slow
 from sentry.signals import alert_rule_created
@@ -33,7 +34,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
 
         """
         queryset = Rule.objects.filter(
-            project=project, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+            project=project,
+            status=ObjectStatus.ACTIVE,
         ).select_related("project")
 
         return self.paginate(
@@ -81,7 +83,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 new_rule_is_slow = True
                 break
 
-        rules = Rule.objects.filter(project=project, status=RuleStatus.ACTIVE)
+        rules = Rule.objects.filter(project=project, status=ObjectStatus.ACTIVE)
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:

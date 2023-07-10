@@ -13,8 +13,8 @@ class RuleDeletionTask(ModelDeletionTask):
         ]
 
     def mark_deletion_in_progress(self, instance_list):
-        from sentry.models import RuleStatus
+        from sentry.constants import ObjectStatus
 
         for instance in instance_list:
-            if instance.status != RuleStatus.PENDING_DELETION:
-                instance.update(status=RuleStatus.PENDING_DELETION)
+            if instance.status != ObjectStatus.PENDING_DELETION:
+                instance.update(status=ObjectStatus.PENDING_DELETION)

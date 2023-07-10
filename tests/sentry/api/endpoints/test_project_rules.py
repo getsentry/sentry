@@ -8,7 +8,8 @@ import responses
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
 from sentry.testutils import APITestCase
@@ -212,7 +213,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "You may not exceed 1 rules with this type of condition per project."
         )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
@@ -245,7 +246,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             == "You may not exceed 1 rules with this type of condition per project."
         )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):

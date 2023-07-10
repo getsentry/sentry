@@ -8,8 +8,9 @@ import responses
 from freezegun import freeze_time
 from pytz import UTC
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils import APITestCase
@@ -764,5 +765,5 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         )
         rule.refresh_from_db()
         assert not Rule.objects.filter(
-            id=self.rule.id, project=self.project, status=RuleStatus.PENDING_DELETION
+            id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()
