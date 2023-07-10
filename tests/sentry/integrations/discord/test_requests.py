@@ -46,4 +46,4 @@ class DiscordRequestTest(TestCase):
         type(self.request).data = mock.PropertyMock(side_effect=ValueError())
         with pytest.raises(DiscordRequestError) as e:
             self.discord_request.validate()
-            assert e.status == 400
+            assert e.value.status == 400
