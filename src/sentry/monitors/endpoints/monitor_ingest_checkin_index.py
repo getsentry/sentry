@@ -199,10 +199,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             if monitor_environment.last_checkin:
                 expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
-            date_added, timeout_at = timezone.now(), None
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
 
+            timeout_at = None
             if status == CheckInStatus.IN_PROGRESS:
                 timeout_at = date_added.replace(second=0, microsecond=0) + timedelta(
                     minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
