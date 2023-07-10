@@ -198,6 +198,9 @@ class ReleaseArchive:
         return self
 
     def __exit__(self, exc, value, tb):
+        self.close()
+
+    def close(self):
         self._zip_file.close()
         self._fileobj.close()
 

@@ -368,7 +368,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-    @patch("sentry.ratelimits.utils.get_rate_limit_key")
+    @patch("sentry.middleware.ratelimit.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
@@ -379,9 +379,9 @@ class TestRatelimitHeader(APITestCase):
         """
         can_be_ratelimited_patch.return_value = None
         response = self.get_response()
-        assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
-        assert "X-Sentry-Rate-Limit-Limit" not in response._headers
-        assert "X-Sentry-Rate-Limit-Reset" not in response._headers
+        assert not response.has_header("X-Sentry-Rate-Limit-Remaining")
+        assert not response.has_header("X-Sentry-Rate-Limit-Limit")
+        assert not response.has_header("X-Sentry-Rate-Limit-Reset")
 
     def test_header_race_condition(self):
         """Make sure concurrent requests don't affect each other's rate limit"""

@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
@@ -215,6 +215,30 @@ class ProjectPerformanceIssueSettingsTest(APITestCase):
             "n_plus_one_db_queries_detection_enabled": [
                 ErrorDetail(string="Must be a valid boolean.", code="invalid")
             ]
+        }
+
+    @patch("sentry.api.base.create_audit_entry")
+    def test_changing_admin_settings_creates_audit_log(self, create_audit_entry: MagicMock):
+
+        with self.feature(PERFORMANCE_ISSUE_FEATURES):
+            response = self.client.put(
+                self.url,
+                data={
+                    "n_plus_one_db_queries_detection_enabled": False,
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        assert create_audit_entry.called
+        ((_, kwargs),) = create_audit_entry.call_args_list
+        assert kwargs["data"] == {
+            "n_plus_one_db_queries_detection_enabled": False,
+            "id": self.project.id,
+            "slug": self.project.slug,
+            "name": self.project.name,
+            "status": self.project.status,
+            "public": self.project.public,
         }
 
     def test_delete_reset_project_settings(self):
