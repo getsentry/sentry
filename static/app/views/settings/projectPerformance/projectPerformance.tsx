@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -39,16 +40,40 @@ export const allowedDurationValues: number[] = [
   10000,
 ]; // In milliseconds
 
+export const allowedPercentageValues: number[] = [
+  0.2, 0.25, 0.3, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
+];
+
+export const allowedSizeValues: number[] = [
+  50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
+  2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
+]; // 50kb to 10MB in bytes
+
+export const projectDetectorSettingsId = 'detector-threshold-settings';
+
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
 
 enum DetectorConfigAdmin {
   N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
   SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
+  DB_MAIN_THREAD_ENABLED = 'db_on_main_thread_detection_enabled',
+  FILE_IO_ENABLED = 'file_io_on_main_thread_detection_enabled',
+  CONSECUTIVE_DB_ENABLED = 'consecutive_db_queries_detection_enabled',
+  RENDER_BLOCK_ASSET_ENABLED = 'large_render_blocking_asset_detection_enabled',
+  UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
+  LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
 }
 
-enum DetectorConfigCustomer {
+export enum DetectorConfigCustomer {
   SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
   N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+  RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
+  LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
+  FILE_IO_MAIN_THREAD_DURATION = 'file_io_on_main_thread_duration_threshold',
+  UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
+  UNCOMPRESSED_ASSET_SIZE = 'uncompressed_asset_size_threshold',
+  CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
 }
 
 type RouteParams = {orgId: string; projectId: string};
@@ -284,6 +309,84 @@ class ProjectPerformance extends AsyncView<Props, State> {
             },
           }),
       },
+      {
+        name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
+        type: 'boolean',
+        label: t('Large Render Blocking Asset Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              large_render_blocking_asset_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
+        type: 'boolean',
+        label: t('Consecutive DB Queries Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              consecutive_db_queries_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
+        type: 'boolean',
+        label: t('Large HTTP Payload Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              large_http_payload_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
+        type: 'boolean',
+        label: t('DB On Main Thread Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              db_on_main_thread_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.FILE_IO_ENABLED,
+        type: 'boolean',
+        label: t('File I/O on Main Thread Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              file_io_on_main_thread_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
+        type: 'boolean',
+        label: t('Uncompressed Assets Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              uncompressed_assets_detection_enabled: value,
+            },
+          }),
+      },
     ];
   }
 
@@ -301,7 +404,20 @@ class ProjectPerformance extends AsyncView<Props, State> {
       : null;
 
     const formatDuration = (value: number | ''): string => {
-      return value && value < 1000 ? `${value}ms` : `${(value as number) / 1000}s`;
+      return value ? (value < 1000 ? `${value}ms` : `${value / 1000}s`) : '';
+    };
+
+    const formatSize = (value: number | ''): string => {
+      return value
+        ? value < 1000000
+          ? `${value / 1000}KB`
+          : `${value / 1000000}MB`
+        : '';
+    };
+
+    const formatFrameRate = (value: number | ''): string => {
+      const fps = value && 1000 / value;
+      return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
     };
 
     return [
@@ -339,6 +455,145 @@ class ProjectPerformance extends AsyncView<Props, State> {
             allowedValues: allowedDurationValues.slice(1),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Large Render Blocking Asset'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+            type: 'range',
+            label: t('FCP Ratio'),
+            defaultValue: 0.33,
+            help: t(
+              'Setting the value to 50%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 50% of First Contentful Paint (FCP).'
+            ),
+            allowedValues: allowedPercentageValues,
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
+            ),
+            formatLabel: value => value && formatPercentage(value),
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Large HTTP Payload'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+            type: 'range',
+            label: t('Size'),
+            defaultValue: 1000000, // 1MB in bytes
+            help: t(
+              'Setting the value to 200KB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 200KB.'
+            ),
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('DB on Main Thread'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 20fps.'
+            ),
+            allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('File I/O on Main Thread'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 20fps.'
+            ),
+            allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Consecutive DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+            type: 'range',
+            label: t('Minimum Time Saved'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 500ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 500ms.'
+            ),
+            allowedValues: allowedDurationValues.slice(0, 11),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Uncompressed Asset'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+            type: 'range',
+            label: t('Size'),
+            defaultValue: 512000, // in kilobytes
+            help: t(
+              'Setting the value to 1MB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 1MB.'
+            ),
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 200ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 200ms.'
+            ),
+            allowedValues: allowedDurationValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
             ),
             formatLabel: formatDuration,
             disabledReason,
@@ -403,6 +658,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
     const isSuperUser = isActiveSuperuser();
+
     return (
       <Fragment>
         <SettingsPageHeader title={t('Performance')} />
@@ -525,7 +781,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Admin Detector Settings')}
+                  title={t(
+                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                  )}
                   fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
@@ -553,13 +811,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
-                  <div>
+                  <div id={projectDetectorSettingsId}>
                     <StyledPanelHeader>
                       {t('Performance Issues - Detector Threshold Settings')}
                     </StyledPanelHeader>
                     <StyledJsonForm
                       forms={this.project_owner_detector_settings(hasAccess)}
                       collapsible
+                      initiallyCollapsed
                     />
                     <StyledPanelFooter>
                       <Actions>

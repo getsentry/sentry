@@ -614,7 +614,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
     @responses.activate
     def test_gh_comment_pr_too_old(self, get_jwt, mock_comment_workflow):
         """No comment on pr that's older than 30 days"""
-        self.pull_request.date_added = iso_format(before_now(days=31))
+        self.pull_request.date_added = iso_format(before_now(days=8))
         self.pull_request.save()
 
         self.add_responses()

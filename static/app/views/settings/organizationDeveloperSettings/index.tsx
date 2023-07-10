@@ -60,7 +60,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   getTitle() {
     const {organization} = this.props;
-    return routeTitleGen(t('Developer Settings'), organization.slug, false);
+    return routeTitleGen(t('Custom Integrations'), organization.slug, false);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
@@ -213,12 +213,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
 
-    const hasAuthTokens = organization.features.includes('org-auth-tokens');
-
     return (
       <div>
         <SettingsPageHeader
-          title={hasAuthTokens ? t('Custom Integrations') : t('Developer Settings')}
+          title={t('Custom Integrations')}
           body={
             <Fragment>
               {t(
