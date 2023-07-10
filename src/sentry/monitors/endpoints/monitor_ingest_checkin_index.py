@@ -189,14 +189,20 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             except MonitorEnvironmentLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=403)
 
+            # Infer the original start time of the check-in from the duration.
+            duration = result.get("duration")
+            date_added = start_time = timezone.now()
+            if duration is not None:
+                date_added -= timedelta(milliseconds=duration)
+
             expected_time = None
             if monitor_environment.last_checkin:
                 expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
 
-            date_added, timeout_at = timezone.now(), None
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
 
+            timeout_at = None
             if status == CheckInStatus.IN_PROGRESS:
                 timeout_at = date_added.replace(second=0, microsecond=0) + timedelta(
                     minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
@@ -206,9 +212,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 project_id=project.id,
                 monitor_id=monitor.id,
                 monitor_environment=monitor_environment,
-                duration=result.get("duration"),
+                duration=duration,
                 status=status,
                 date_added=date_added,
+                date_updated=start_time,
                 expected_time=expected_time,
                 timeout_at=timeout_at,
                 monitor_config=monitor_config,
