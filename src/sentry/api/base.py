@@ -586,7 +586,7 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request):
+def resolve_region(request: Request) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
