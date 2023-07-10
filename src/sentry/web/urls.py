@@ -1066,6 +1066,10 @@ urlpatterns += [
                     r"^msteams/",
                     include("sentry.integrations.msteams.urls"),
                 ),
+                re_path(
+                    r"^discord/",
+                    include("sentry.integrations.discord.urls"),
+                ),
             ]
         ),
     ),
