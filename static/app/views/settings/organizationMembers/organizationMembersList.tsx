@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
+import {AsyncComponentState} from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Pagination from 'sentry/components/pagination';
@@ -14,7 +15,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {Member, MemberRole, Organization} from 'sentry/types';
+import {Member, MemberRole, Organization, OrganizationAuthProvider} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
@@ -29,16 +30,17 @@ import MembersFilter from './components/membersFilter';
 import InviteRequestRow from './inviteRequestRow';
 import OrganizationMemberRow from './organizationMemberRow';
 
-type Props = {
+interface Props extends RouteComponentProps<{}, {}> {
   organization: Organization;
-} & RouteComponentProps<{}, {}>;
+}
 
-type State = DeprecatedAsyncView['state'] & {
+interface State extends AsyncComponentState {
+  authProvider: OrganizationAuthProvider | null;
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
   members: Member[];
-};
+}
 
 const MemberListHeader = HookOrDefault({
   hookName: 'component:member-list-header',

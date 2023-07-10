@@ -1,4 +1,8 @@
-export function AvailableNotificationActions(params = []) {
+import type {AvailableNotificationAction as AvailableNotificationActionType} from 'sentry/types';
+
+export function AvailableNotificationActions(
+  params: AvailableNotificationActionType[] = []
+): {actions: AvailableNotificationActionType[]} {
   return {
     actions: [
       {
@@ -69,7 +73,7 @@ export function AvailableNotificationActions(params = []) {
           targetType: 'specific',
           integrationId: 2,
           integrationName: 'sentry-enterprise',
-          targetIdentifier: 3,
+          targetIdentifier: '3',
           targetDisplay: 'Default Service',
         },
         requires: [
@@ -86,7 +90,7 @@ export function AvailableNotificationActions(params = []) {
           targetType: 'specific',
           integrationId: 2,
           integrationName: 'sentry-enterprise',
-          targetIdentifier: 2,
+          targetIdentifier: '2',
           targetDisplay: 'Test 2',
         },
         requires: [
@@ -103,7 +107,7 @@ export function AvailableNotificationActions(params = []) {
           targetType: 'specific',
           integrationId: 2,
           integrationName: 'sentry-enterprise',
-          targetIdentifier: 1,
+          targetIdentifier: '1',
           targetDisplay: 'Test 1',
         },
         requires: [
