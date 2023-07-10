@@ -6,18 +6,18 @@ import {t} from 'sentry/locale';
 
 export enum StepType {
   INSTALL = 'install',
-  CONFIGURE_SDK = 'configure_sdk',
+  CONFIGURE = 'configure',
   /**
    * This step is used only for JavaScript SDKs
    */
-  CONFIGURE_SOURCE_MAPS = 'configure_source_maps',
+  UPLOAD_SOURCE_MAPS = 'upload_source_maps',
   VERIFY = 'verify',
 }
 
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
-  [StepType.CONFIGURE_SDK]: t('Configure SDK'),
-  [StepType.CONFIGURE_SOURCE_MAPS]: t('Configure Source Maps'),
+  [StepType.CONFIGURE]: t('Configure SDK'),
+  [StepType.UPLOAD_SOURCE_MAPS]: t('Upload Source Maps'),
   [StepType.VERIFY]: t('Verify'),
 };
 
@@ -30,10 +30,6 @@ type ConfigurationType = {
    * A brief description of the step
    */
   description: React.ReactNode;
-  /**
-   * Any additional information to display. It is usually an alert pointing to the docs
-   */
-  additionalInfo?: React.ReactNode;
 };
 
 export type StepProps = {
@@ -54,15 +50,14 @@ export function Step({type, configurations, language}: StepProps) {
       <h4>{StepTitle[type]}</h4>
       <Configurations>
         {configurations.map((configuration, index) => (
-          <Configuration key={index}>
+          <div key={index}>
             <p>{configuration.description}</p>
             <CodeSnippet dark language={language}>
               {language === 'javascript'
                 ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
                 : beautify.html(configuration.code, {indent_size: 2})}
             </CodeSnippet>
-            {configuration.additionalInfo}
-          </Configuration>
+          </div>
         ))}
       </Configurations>
     </div>
@@ -73,13 +68,4 @@ const Configurations = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1rem;
-`;
-
-const Configuration = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  p {
-    margin-bottom: 0;
-  }
 `;

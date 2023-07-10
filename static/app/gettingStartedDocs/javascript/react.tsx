@@ -1,4 +1,3 @@
-import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
@@ -53,7 +52,7 @@ export const steps = ({
   },
   {
     language: 'javascript',
-    type: StepType.CONFIGURE_SDK,
+    type: StepType.CONFIGURE,
     configurations: [
       {
         description: t(
@@ -73,22 +72,18 @@ export const steps = ({
   },
   {
     language: 'bash',
-    type: StepType.CONFIGURE_SOURCE_MAPS,
+    type: StepType.UPLOAD_SOURCE_MAPS,
     configurations: [
       {
-        description: t(
-          'Use Sentry Wizard to configure Source Maps upload, enabling readable stack traces in Sentry errors.'
+        description: tct(
+          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
+          {
+            guideLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
+            ),
+          }
         ),
         code: `npx @sentry/wizard@latest -i sourcemaps`,
-        additionalInfo: (
-          <Alert type="info" showIcon noBottomSpacing>
-            {tct('Prefer to set up Source Maps manually? [docsLink:Read the docs].', {
-              docsLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
-              ),
-            })}
-          </Alert>
-        ),
       },
     ],
   },
