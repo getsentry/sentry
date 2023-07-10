@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Optional, Tuple, TypedDict
 
 from django.db import transaction
 from django.db.models.expressions import CombinedExpression
@@ -32,7 +32,7 @@ def create_organization_and_member_for_monolith(
     organization_name,
     user_id,
     slug: str,
-) -> (Organization, OrganizationMember):
+) -> Tuple[Organization, OrganizationMember]:
     org = create_organization_with_outbox_message(
         create_options={"name": organization_name, "slug": slug}
     )
