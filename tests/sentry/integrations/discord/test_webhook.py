@@ -54,8 +54,34 @@ class DiscordWebhookTest(APITestCase):
                 "type": -1,
             },
             format="json",
-            http_x_signature_ed25519="signature",
-            http_x_signature_timestamp="timestamp",
+            HTTP_X_SIGNATURE_ED25519="signature",
+            HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
+        )
+
+        assert resp.status_code == 401
+
+    @responses.activate
+    def test_missing_signature(self):
+        resp = self.client.post(
+            path=WEBHOOK_URL,
+            data={
+                "type": -1,
+            },
+            format="json",
+            HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
+        )
+
+        assert resp.status_code == 401
+
+    @responses.activate
+    def test_missing_timestamp(self):
+        resp = self.client.post(
+            path=WEBHOOK_URL,
+            data={
+                "type": -1,
+            },
+            format="json",
+            HTTP_X_SIGNATURE_ED25519="signature",
         )
 
         assert resp.status_code == 401
