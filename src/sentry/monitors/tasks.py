@@ -1,5 +1,4 @@
 import logging
-from datetime import timedelta
 
 from django.utils import timezone
 
@@ -92,21 +91,13 @@ def check_monitors(current_datetime=None):
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
-    qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related(
-        "monitor", "monitor_environment"
-    )[:CHECKINS_LIMIT]
+    qs = MonitorCheckIn.objects.filter(
+        status=CheckInStatus.IN_PROGRESS, timeout_at__lte=current_datetime
+    ).select_related("monitor", "monitor_environment")[:CHECKINS_LIMIT]
     metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         try:
-            timeout = timedelta(
-                minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT
-            )
-            # Check against date_updated to allow monitors to run for longer as
-            # long as they continue to send heart beats updating the checkin
-            if checkin.date_updated > current_datetime - timeout:
-                continue
-
             monitor_environment = checkin.monitor_environment
             logger.info(
                 "monitor_environment.checkin-timeout",
