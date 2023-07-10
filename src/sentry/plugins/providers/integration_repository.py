@@ -6,6 +6,7 @@ from typing import MutableMapping
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, transaction
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,11 @@ from sentry.integrations import IntegrationInstallation
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+
+
+class RepoExists(APIException):
+    status_code = 400
+    detail = {"errors": {"__all__": "A repository with that name already exists"}}
 
 
 class IntegrationRepositoryProvider:
@@ -51,13 +57,8 @@ class IntegrationRepositoryProvider:
         self,
         repo_config: MutableMapping[str, any],
         organization,
-        is_dispatch: bool = False,
-        request: Request = None,
     ):
-        try:
-            result = self.build_repository_config(organization=organization, data=repo_config)
-        except Exception as e:
-            return self.handle_api_error(e), None
+        result = self.build_repository_config(organization=organization, data=repo_config)
 
         repo_update_params = {
             "external_id": result.get("external_id"),
@@ -103,18 +104,7 @@ class IntegrationRepositoryProvider:
                 except IntegrationError:
                     pass
 
-                if is_dispatch:
-                    return (
-                        Response(
-                            {"errors": {"__all__": "A repository with that name already exists"}},
-                            status=400,
-                        ),
-                        None,
-                    )
-
-            else:
-                if is_dispatch:
-                    repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
+                raise RepoExists
 
         return result, repo
 
@@ -124,12 +114,12 @@ class IntegrationRepositoryProvider:
         except Exception as e:
             return self.handle_api_error(e)
 
-        result, repo = self.create_repository(
-            repo_config=config, organization=organization, is_dispatch=True, request=request
-        )
+        try:
+            result, repo = self.create_repository(repo_config=config, organization=organization)
+        except Exception as e:
+            return self.handle_api_error(e)
 
-        if type(result) == Response:
-            return result
+        repo_linked.send_robust(repo=repo, user=request.user, sender=self.__class__)
 
         analytics.record(
             "integration.repo.added",
