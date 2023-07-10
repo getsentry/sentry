@@ -4,7 +4,7 @@ import pick from 'lodash/pick';
 import xor from 'lodash/xor';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -27,7 +27,7 @@ import {ScreenshotCard} from './screenshotCard';
 type Props = {
   project: Project;
 } & WithRouterProps<{groupId: string; orgId: string}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 enum EventAttachmentFilter {
   ALL = 'all',
@@ -38,11 +38,11 @@ enum EventAttachmentFilter {
 type State = {
   deletedAttachments: string[];
   eventAttachments?: IssueAttachment[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 export const MAX_SCREENSHOTS_PER_PAGE = 12;
 
-class GroupEventAttachments extends AsyncComponent<Props, State> {
+class GroupEventAttachments extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -66,7 +66,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
     return EventAttachmentFilter.ALL;
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {params, location} = this.props;
 
     if (this.getActiveAttachmentsTab() === EventAttachmentFilter.SCREENSHOTS) {

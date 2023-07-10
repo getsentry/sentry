@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -9,17 +9,17 @@ import {EventGroupingConfig} from 'sentry/types';
 
 import {GroupingConfigItem} from '.';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   configId: string;
   eventConfigId: string;
   onSelect: (selection: any) => void;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   configs: EventGroupingConfig[];
 };
 
-class GroupingConfigSelect extends AsyncComponent<Props, State> {
+class GroupingConfigSelect extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -27,7 +27,7 @@ class GroupingConfigSelect extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['configs', '/grouping-configs/']];
   }
 

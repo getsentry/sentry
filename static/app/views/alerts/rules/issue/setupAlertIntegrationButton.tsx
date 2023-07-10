@@ -1,4 +1,4 @@
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -6,12 +6,12 @@ import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import ConfigStore from 'sentry/stores/configStore';
 import {Organization, Project} from 'sentry/types';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   detailedProject?: Project & {
     hasAlertIntegrationInstalled: boolean;
   };
@@ -21,8 +21,11 @@ type State = AsyncComponent['state'] & {
  * This component renders a button to Set up an alert integration (just Slack for now)
  * if the project has no alerting integrations setup already.
  */
-export default class SetupAlertIntegrationButton extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponent<
+  Props,
+  State
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {projectSlug, organization} = this.props;
     return [
       [

@@ -40,7 +40,7 @@ type RenderSearchInputArgs = Omit<
  * state on error.
  */
 function wrapErrorHandling<T extends any[], U>(
-  component: AsyncComponent,
+  component: DeprecatedAsyncComponent,
   fn: (...args: T) => U
 ) {
   return (...args: T): U | null => {
@@ -58,7 +58,14 @@ function wrapErrorHandling<T extends any[], U>(
   };
 }
 
-class AsyncComponent<
+/**
+ * @deprecated use useApiQuery instead
+ *
+ * Read the dev docs page on network requests for more information [1].
+ *
+ * [1]: https://develop.sentry.dev/frontend/network-requests/
+ */
+class DeprecatedAsyncComponent<
   P extends AsyncComponentProps = AsyncComponentProps,
   S extends AsyncComponentState = AsyncComponentState
 > extends Component<P, S> {
@@ -462,4 +469,4 @@ class AsyncComponent<
   }
 }
 
-export default AsyncComponent;
+export default DeprecatedAsyncComponent;

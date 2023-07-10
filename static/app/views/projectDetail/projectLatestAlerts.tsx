@@ -3,7 +3,7 @@ import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import AlertBadge from 'sentry/components/alertBadge';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Link from 'sentry/components/links/link';
@@ -23,7 +23,7 @@ import {didProjectOrEnvironmentChange} from './utils';
 
 const PLACEHOLDER_AND_EMPTY_HEIGHT = '172px';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   location: Location;
   organization: Organization;
@@ -34,9 +34,9 @@ type State = {
   resolvedAlerts: Incident[] | null;
   unresolvedAlerts: Incident[] | null;
   hasAlertRule?: boolean;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ProjectLatestAlerts extends AsyncComponent<Props, State> {
+class ProjectLatestAlerts extends DeprecatedAsyncComponent<Props, State> {
   shouldComponentUpdate(nextProps: Props, nextState: State) {
     const {location, isProjectStabilized} = this.props;
     // TODO(project-detail): we temporarily removed refetching based on timeselector
@@ -62,7 +62,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {location, organization, isProjectStabilized} = this.props;
 
     if (!isProjectStabilized) {

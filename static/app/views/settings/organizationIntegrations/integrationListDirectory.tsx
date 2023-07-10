@@ -8,7 +8,7 @@ import startCase from 'lodash/startCase';
 import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -83,9 +83,9 @@ type State = {
 
 const TEXT_SEARCH_ANALYTICS_DEBOUNCE_IN_MS = 1000;
 
-export class IntegrationListDirectory extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+export class IntegrationListDirectory extends DeprecatedAsyncComponent<
+  Props & DeprecatedAsyncComponent['props'],
+  State & DeprecatedAsyncComponent['state']
 > {
   // Some integrations require visiting a different website to add them. When
   // we come back to the tab we want to show our integrations as soon as we can.
@@ -170,7 +170,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const baseEndpoints: ([string, string, any] | [string, string])[] = [
       ['config', `/organizations/${organization.slug}/config/integrations/`],

@@ -4,7 +4,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
@@ -21,13 +21,13 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 import IntegrationExternalMappingForm from './integrationExternalMappingForm';
 import IntegrationExternalMappings from './integrationExternalMappings';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps & {
     integration: Integration;
     organization: Organization;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   initialResults: Team[];
   queryResults: {
     // For inline forms, the mappingKey will be the external name (since multiple will be rendered at one time)
@@ -37,7 +37,7 @@ type State = AsyncComponent['state'] & {
   teams: Team[];
 };
 
-class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
+class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -47,7 +47,7 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     return [
       // We paginate on this query, since we're filtering by hasExternalTeams:true

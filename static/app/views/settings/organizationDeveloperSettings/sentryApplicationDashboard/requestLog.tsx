@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment-timezone';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -103,18 +103,18 @@ function TimestampLink({date, link}: {date: moment.MomentInput; link?: string}) 
   );
 }
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   app: SentryApp;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentPage: number;
   errorsOnly: boolean;
   eventType: string;
   requests: SentryAppWebhookRequest[];
 };
 
-export default class RequestLog extends AsyncComponent<Props, State> {
+export default class RequestLog extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
 
   get hasNextPage() {
@@ -125,7 +125,7 @@ export default class RequestLog extends AsyncComponent<Props, State> {
     return this.state.currentPage > 0;
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {slug} = this.props.app;
 
     const query: any = {};

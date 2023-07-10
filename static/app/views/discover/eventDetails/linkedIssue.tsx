@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Times from 'sentry/components/group/times';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -23,11 +23,11 @@ type State = {
   group: Group;
 };
 
-class LinkedIssue extends AsyncComponent<
-  Props & AsyncComponent['props'],
-  State & AsyncComponent['state']
+class LinkedIssue extends DeprecatedAsyncComponent<
+  Props & DeprecatedAsyncComponent['props'],
+  State & DeprecatedAsyncComponent['state']
 > {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {groupId} = this.props;
     const groupUrl = `/issues/${groupId}/`;
 

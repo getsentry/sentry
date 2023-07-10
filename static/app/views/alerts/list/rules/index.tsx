@@ -5,7 +5,7 @@ import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -39,8 +39,11 @@ type State = {
   teamFilterSearch?: string;
 };
 
-class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class AlertRulesList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
 

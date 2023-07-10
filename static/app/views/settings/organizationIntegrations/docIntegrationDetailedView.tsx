@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import DocIntegrationAvatar from 'sentry/components/avatar/docIntegrationAvatar';
 import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -24,7 +24,7 @@ class DocIntegrationDetailedView extends AbstractIntegrationDetailedView<
 > {
   tabs: Tab[] = ['overview'];
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {
       params: {integrationSlug},
     } = this.props;

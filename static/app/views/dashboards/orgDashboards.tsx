@@ -4,7 +4,7 @@ import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'sentry/api';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -42,9 +42,9 @@ type State = {
    * The currently selected dashboard.
    */
   selectedDashboard: DashboardDetails | null;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class OrgDashboards extends AsyncComponent<Props, State> {
+class OrgDashboards extends DeprecatedAsyncComponent<Props, State> {
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -62,10 +62,12 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     const url = `/organizations/${organization.slug}/dashboards/`;
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [['dashboards', url]];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
+      ['dashboards', url],
+    ];
 
     if (params.dashboardId) {
       endpoints.push(['selectedDashboard', `${url}${params.dashboardId}/`]);

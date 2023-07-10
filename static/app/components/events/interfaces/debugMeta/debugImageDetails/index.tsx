@@ -6,7 +6,7 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
@@ -28,7 +28,7 @@ import {INTERNAL_SOURCE, INTERNAL_SOURCE_LOCATION} from './utils';
 
 type ImageCandidates = Image['candidates'];
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   ModalRenderProps & {
     event: Event;
     organization: Organization;
@@ -37,11 +37,11 @@ type Props = AsyncComponent['props'] &
     onReprocessEvent?: () => void;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   debugFiles: Array<DebugFile> | null;
 };
 
-export class DebugImageDetails extends AsyncComponent<Props, State> {
+export class DebugImageDetails extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -61,7 +61,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, projSlug, image} = this.props;
 
     if (!image) {
@@ -71,7 +71,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
     const {debug_id, candidates = []} = image;
 
     const hasUploadedDebugFiles = this.getUploadedDebugFiles(candidates);
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [];
 
     if (hasUploadedDebugFiles) {
       endpoints.push([

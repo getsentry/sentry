@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
@@ -19,16 +19,16 @@ type Props = {
   orgId: string;
   projectSlug: string;
   version: string;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   commits: Commit[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
+class CommitAuthorBreakdown extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {orgId, projectSlug, version} = this.props;
 
     const commitsEndpoint = `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(

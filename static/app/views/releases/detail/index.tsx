@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -111,7 +111,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta} = this.props;
 
     const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
@@ -238,14 +238,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
 type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
 type ReleasesDetailContainerState = {
   releaseMeta: ReleaseMeta | null;
-} & AsyncComponent['state'];
-class ReleasesDetailContainer extends AsyncComponent<
+} & DeprecatedAsyncComponent['state'];
+class ReleasesDetailContainer extends DeprecatedAsyncComponent<
   ReleasesDetailContainerProps,
   ReleasesDetailContainerState
 > {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     // fetch projects this release belongs to
     return [

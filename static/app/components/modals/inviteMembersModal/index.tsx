@@ -8,7 +8,7 @@ import type {
   AsyncComponentProps,
   AsyncComponentState,
 } from 'sentry/components/asyncComponent';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -48,7 +48,10 @@ const InviteModalHook = HookOrDefault({
 
 type InviteModalRenderFunc = React.ComponentProps<typeof InviteModalHook>['children'];
 
-class InviteMembersModal extends AsyncComponent<InviteMembersModalProps, State> {
+class InviteMembersModal extends DeprecatedAsyncComponent<
+  InviteMembersModalProps,
+  State
+> {
   get inviteTemplate(): InviteRow {
     return {
       emails: new Set(),
@@ -75,7 +78,7 @@ class InviteMembersModal extends AsyncComponent<InviteMembersModalProps, State> 
     });
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgId = this.props.organization.slug;
 
     return [['member', `/organizations/${orgId}/members/me/`]];

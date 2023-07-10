@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 import moment from 'moment';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -24,7 +24,7 @@ import toArray from 'sentry/utils/toArray';
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, groupByTrend, sortSeriesByDay} from './utils';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
   projects: Project[];
   teamSlug: string;
@@ -37,14 +37,14 @@ type ProjectReleaseCount = {
   release_counts: Record<string, number>;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   /** weekly selected date range */
   periodReleases: ProjectReleaseCount | null;
   /** Locked to last 7 days */
   weekReleases: ProjectReleaseCount | null;
 };
 
-class TeamReleases extends AsyncComponent<Props, State> {
+class TeamReleases extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState(): State {
@@ -60,7 +60,7 @@ class TeamReleases extends AsyncComponent<Props, State> {
 
     const datetime = {start, end, period, utc};
 
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'periodReleases',
         `/teams/${organization.slug}/${teamSlug}/release-count/`,

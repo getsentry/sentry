@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -33,13 +33,13 @@ type Props = {
     parentId: string
   ) => NotificationSettingsObject;
   onSubmitSuccess: () => void;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   projects: Project[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
+class NotificationSettingsByProjects extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -47,7 +47,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['projects', '/projects/']];
   }
 

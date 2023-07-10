@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -40,7 +40,7 @@ class TeamNotificationSettings extends AsyncView<Props, State> {
     return 'Team Notification Settings';
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, team} = this.props;
     return [
       [

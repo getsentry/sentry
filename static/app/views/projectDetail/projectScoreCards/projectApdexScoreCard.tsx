@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import round from 'lodash/round';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {shouldFetchPreviousPeriod} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -17,7 +17,7 @@ import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   isProjectStabilized: boolean;
   organization: Organization;
   selection: PageFilters;
@@ -25,12 +25,12 @@ type Props = AsyncComponent['props'] & {
   query?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   currentApdex: TableData | null;
   previousApdex: TableData | null;
 };
 
-class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
+class ProjectApdexScoreCard extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState() {
@@ -57,7 +57,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       field: ['apdex()'],
       query: ['event.type:transaction count():>0', query].join(' ').trim(),
     };
-    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncComponent['getEndpoints']> = [
       [
         'currentApdex',
         `/organizations/${organization.slug}/events/`,

@@ -3,7 +3,7 @@ import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Pagination from 'sentry/components/pagination';
@@ -37,7 +37,7 @@ type CodeOwnersAssociationMappings = {
   };
 };
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouterProps &
   Pick<
     IntegrationExternalMappingForm['props'],
@@ -56,12 +56,12 @@ type Props = AsyncComponent['props'] &
     pageLinks?: string;
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   associationMappings: CodeOwnersAssociationMappings;
   newlyAssociatedMappings: ExternalActorMapping[];
 };
 
-class IntegrationExternalMappings extends AsyncComponent<Props, State> {
+class IntegrationExternalMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -70,7 +70,7 @@ class IntegrationExternalMappings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, integration} = this.props;
     return [
       [

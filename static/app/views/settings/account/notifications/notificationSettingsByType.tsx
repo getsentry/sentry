@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
@@ -43,13 +43,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 type Props = {
   notificationType: string;
   organizations: Organization[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   identities: Identity[];
   notificationSettings: NotificationSettingsObject;
   organizationIntegrations: OrganizationIntegration[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
   quota: [
@@ -71,7 +71,7 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-class NotificationSettingsByType extends AsyncComponent<Props, State> {
+class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -81,7 +81,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
     return [
       [

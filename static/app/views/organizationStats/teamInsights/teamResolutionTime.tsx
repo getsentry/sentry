@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,17 +14,17 @@ import {barAxisLabel, sortSeriesByDay} from './utils';
 
 type TimeToResolution = Record<string, {avg: number; count: number}>;
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
   teamSlug: string;
   environment?: string;
 } & DateTimeObject;
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   resolutionTime: TimeToResolution | null;
 };
 
-class TeamResolutionTime extends AsyncComponent<Props, State> {
+class TeamResolutionTime extends DeprecatedAsyncComponent<Props, State> {
   shouldRenderBadRequests = true;
 
   getDefaultState(): State {
@@ -34,7 +34,7 @@ class TeamResolutionTime extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, start, end, period, utc, teamSlug, environment} = this.props;
     const datetime = {start, end, period, utc};
 

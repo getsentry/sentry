@@ -4,7 +4,7 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import SelectControl, {
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
@@ -431,15 +431,18 @@ type ContainerProps = Omit<
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type ContainerState = {
   organizations: Organization[];
   integrationConfigs?: Integration[];
   selectedOrganization?: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
+class ContextPickerModalContainer extends DeprecatedAsyncComponent<
+  ContainerProps,
+  ContainerState
+> {
   getDefaultState() {
     const storeState = OrganizationStore.get();
     return {
@@ -449,7 +452,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {configUrl} = this.props;
     if (configUrl) {
       return [['integrationConfigs', configUrl]];

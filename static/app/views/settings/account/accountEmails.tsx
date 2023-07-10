@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
 import AlertLink from 'sentry/components/alertLink';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -70,7 +70,7 @@ class AccountEmails extends AsyncView<Props, State> {
 
 export default AccountEmails;
 
-export class EmailAddresses extends AsyncComponent<Props, State> {
+export class EmailAddresses extends DeprecatedAsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['emails', ENDPOINT]];
   }

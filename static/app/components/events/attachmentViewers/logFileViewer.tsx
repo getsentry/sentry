@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import Ansi from 'ansi-to-react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
   getAttachmentUrl,
@@ -9,11 +9,11 @@ import {
 } from 'sentry/components/events/attachmentViewers/utils';
 import {space} from 'sentry/styles/space';
 
-type Props = ViewerProps & AsyncComponent['props'];
+type Props = ViewerProps & DeprecatedAsyncComponent['props'];
 
-type State = AsyncComponent['state'];
+type State = DeprecatedAsyncComponent['state'];
 
-class LogFileViewer extends AsyncComponent<Props, State> {
+class LogFileViewer extends DeprecatedAsyncComponent<Props, State> {
   getEndpoints(): [string, string][] {
     return [['attachmentText', getAttachmentUrl(this.props)]];
   }

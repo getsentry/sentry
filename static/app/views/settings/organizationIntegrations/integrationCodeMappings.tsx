@@ -4,7 +4,7 @@ import sortBy from 'lodash/sortBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -37,19 +37,19 @@ import RepositoryProjectPathConfigRow, {
   OutputPathColumn,
 } from './repositoryProjectPathConfigRow';
 
-type Props = AsyncComponent['props'] &
+type Props = DeprecatedAsyncComponent['props'] &
   WithRouteAnalyticsProps & {
     integration: Integration;
     organization: Organization;
     projects: Project[];
   };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   pathConfigs: RepositoryProjectPathConfig[];
   repos: Repository[];
 };
 
-class IntegrationCodeMappings extends AsyncComponent<Props, State> {
+class IntegrationCodeMappings extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -77,7 +77,7 @@ class IntegrationCodeMappings extends AsyncComponent<Props, State> {
     return this.state.repos.filter(repo => repo.integrationId === this.integrationId);
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgSlug = this.props.organization.slug;
     return [
       [

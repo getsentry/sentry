@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -49,8 +49,11 @@ type State = {
   hasAlertRule?: boolean;
 };
 
-class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state']> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class IncidentsList extends DeprecatedAsyncComponent<
+  Props,
+  State & DeprecatedAsyncComponent['state']
+> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location} = this.props;
     const {query} = location;
     const status = getQueryStatus(query.status);

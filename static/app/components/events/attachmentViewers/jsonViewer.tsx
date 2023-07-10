@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/asyncComponent';
 import ContextData from 'sentry/components/contextData';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import {
@@ -8,11 +8,11 @@ import {
   ViewerProps,
 } from 'sentry/components/events/attachmentViewers/utils';
 
-type Props = ViewerProps & AsyncComponent['props'];
+type Props = ViewerProps & DeprecatedAsyncComponent['props'];
 
-type State = AsyncComponent['state'];
+type State = DeprecatedAsyncComponent['state'];
 
-export default class JsonViewer extends AsyncComponent<Props, State> {
+export default class JsonViewer extends DeprecatedAsyncComponent<Props, State> {
   getEndpoints(): [string, string][] {
     return [['attachmentJson', getAttachmentUrl(this.props)]];
   }
