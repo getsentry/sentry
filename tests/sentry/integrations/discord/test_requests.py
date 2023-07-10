@@ -37,17 +37,34 @@ class DiscordRequestTest(TestCase):
     def test_exposes_guild_id(self):
         assert self.discord_request.guild_id == "guild-id"
 
+    def test_validate_data_returns_400(self):
+        type(self.request).data = mock.PropertyMock(side_effect=ValueError())
+        with pytest.raises(DiscordRequestError) as e:
+            self.discord_request.validate()
+            assert e.value.status == 400
+
     def test_collects_logging_data(self):
         assert self.discord_request.logging_data == {
             "discord_guild_id": "guild-id",
             "discord_channel_id": "channel-id",
         }
 
-    def test_validate_data_returns_400(self):
-        type(self.request).data = mock.PropertyMock(side_effect=ValueError())
-        with pytest.raises(DiscordRequestError) as e:
-            self.discord_request.validate()
-            assert e.value.status == 400
+    @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
+    def test_collects_logging_data_with_integration_id(self, mock_get_integration):
+        mock_get_integration.return_value = RpcIntegration(
+            id=1,
+            provider="discord",
+            external_id="guild-id",
+            name="Cool server",
+            metadata={},
+            status=1,
+        )
+        self.discord_request.validate_integration()
+        assert self.discord_request.logging_data == {
+            "discord_guild_id": "guild-id",
+            "discord_channel_id": "channel-id",
+            "integration_id": 1,
+        }
 
     @mock.patch("sentry.integrations.discord.requests.base.integration_service.get_integration")
     def test_validate_integration(self, mock_get_integration):

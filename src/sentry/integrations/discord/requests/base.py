@@ -52,16 +52,16 @@ class DiscordRequest:
         return str(self.data.get("guild_id", None))
 
     @property
-    def logging_data(self) -> Mapping[str, str]:
+    def logging_data(self) -> Mapping[str, str | int]:
         _data: Mapping[str, object] = self.request.data
         # TODO: come back to this later and see what additional metadata makes sense to include here
-        data: dict[str, str | None] = {
+        data: dict[str, str | int | None] = {
             "discord_guild_id": str(_data.get("guild_id", None)),
             "discord_channel_id": str(_data.get("channel_id", None)),
         }
 
         if self.integration:
-            data["integration_id"] = str(self.integration.id)
+            data["integration_id"] = self.integration.id
 
         return {k: v for k, v in data.items() if v}
 
