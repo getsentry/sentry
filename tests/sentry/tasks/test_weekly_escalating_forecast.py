@@ -43,10 +43,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             fetched_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
             assert fetched_forecast is None
             assert mock_logger.exception.call_args.args[0] == (
-                "Forecast does not exist for project id: "
-                + str(group.project.id)
-                + " group id: "
-                + str(group.id)
+                f"Forecast does not exist for project id: {group.project.id} group id: {group.id}"
             )
         assert mock_generate_and_save_missing_forecasts.call_count == 1
 

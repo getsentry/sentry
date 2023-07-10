@@ -54,10 +54,7 @@ class EscalatingGroupForecast:
         if results:
             return EscalatingGroupForecast.from_dict(results)
         logger.exception(
-            "Forecast does not exist for project id: "
-            + str(project_id)
-            + " group id: "
-            + str(group_id)
+            f"Forecast does not exist for project id: {str(project_id)} group id: {str(group_id)}"
         )
         generate_and_save_missing_forecasts.delay(group_id=group_id)
         return None
