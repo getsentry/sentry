@@ -781,7 +781,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Admin Detector Settings')}
+                  title={t(
+                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                  )}
                   fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
