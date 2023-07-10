@@ -113,6 +113,8 @@ class RequireSingleOrganization(RegionResolution):
             .values_list("region_name", flat=True)
             .distinct()[:2]
         )
+        if len(all_region_names) == 0:
+            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
         if len(all_region_names) != 1:
             raise RegionResolutionError("Expected single-org environment to have only one region")
 
