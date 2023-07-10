@@ -51,7 +51,9 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     )
     def put(self, request: Request, project, filter_id) -> Response:
         """
-        Update various inbound data filters for a project. The hydration filter and custom inbound
+        Update various inbound data filters for a project.
+
+        Note that the hydration filter and custom inbound
         filters must be updated using the [Update a
         Project](https://docs.sentry.io/api/projects/update-a-project/) endpoint.
         """
