@@ -1,3 +1,5 @@
+from typing import Dict, Type
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.permissions import SuperuserPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.issues.grouptype import (
+    GroupType,
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceDBMainThreadGroupType,
@@ -29,7 +32,7 @@ SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 # These options should only be accessible internally and used by
 # support to enable/disable performance issue detection for an outlying project
 # on a case-by-case basis.
-map_internal_only_project_settings_to_group = {
+map_internal_only_project_settings_to_group: Dict[str, Type[GroupType]] = {
     "uncompressed_assets_detection_enabled": PerformanceUncompressedAssetsGroupType,
     "consecutive_http_spans_detection_enabled": PerformanceConsecutiveHTTPQueriesGroupType,
     "large_http_payload_detection_enabled": PerformanceLargeHTTPPayloadGroupType,
