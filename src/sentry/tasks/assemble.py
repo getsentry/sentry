@@ -307,8 +307,7 @@ class ReleaseBundlePostAssembler(PostAssembler):
             )
         except Exception:
             metrics.incr("tasks.assemble.release_bundle.invalid_bundle")
-            # We want to delete the File object if there are any issues.
-            self.assemble_result.bundle.delete()
+            self._delete_bundle_file_object()
             raise AssembleArtifactsError("the release bundle is invalid")
 
     def close(self):
@@ -447,7 +446,7 @@ class ArtifactBundlePostAssembler(PostAssembler):
             )
         except Exception:
             metrics.incr("tasks.assemble.artifact_bundle.invalid_bundle")
-
+            self._delete_bundle_file_object()
             raise AssembleArtifactsError("the artifact bundle is invalid")
 
     def close(self):
