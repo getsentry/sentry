@@ -114,7 +114,7 @@ class OAuthTokenView(View):
         try:
             token = ApiToken.objects.get(application=application, refresh_token=refresh_token)
         except ApiToken.DoesNotExist:
-            return self.error(request, "invalid_grant", "invalid token")
+            return self.error(request, "invalid_grant", "invalid refresh token")
 
         token.refresh()
 
