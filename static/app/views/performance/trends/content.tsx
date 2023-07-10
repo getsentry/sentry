@@ -31,7 +31,6 @@ import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
 import {
-  DEFAULT_MAX_DURATION,
   DEFAULT_TRENDS_STATS_PERIOD,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
@@ -190,8 +189,6 @@ class TrendsContent extends Component<Props, State> {
 
     const trendView = eventView.clone() as TrendView;
     modifyTrendsViewDefaultPeriod(trendView, location);
-
-    console.log(trendView);
 
     if (organization.features.includes('performance-new-trends')) {
       modifyTransactionNameTrendsQuery(trendView);
@@ -356,14 +353,9 @@ class DefaultTrends extends Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
-    const {children, location, eventView, projects} = this.props;
+    const {children, location, eventView} = this.props;
 
     const queryString = decodeScalar(location.query.query);
-    // const trendParameter = getCurrentTrendParameter(
-    //   location,
-    //   projects,
-    //   eventView.project
-    // );
     const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
@@ -371,8 +363,6 @@ class DefaultTrends extends Component<DefaultTrendsProps> {
       return <Fragment>{children}</Fragment>;
     }
     this.hasPushedDefaults = true;
-    // conditions.setFilterValues('tpm()', ['>0.01']);
-    // conditions.setFilterValues(trendParameter.column, ['>0', `<${DEFAULT_MAX_DURATION}`]);
 
     const query = conditions.formatString();
     eventView.query = query;
