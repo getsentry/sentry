@@ -675,11 +675,6 @@ AUTH_URLS = [
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
     ),
-    re_path(
-        r"^oauth/userinfo/$",
-        OAuthUserInfoEndpoint.as_view(),
-        name="sentry-api-0-oauth-userinfo",
-    ),
 ]
 
 BROADCAST_URLS = [
@@ -2826,6 +2821,12 @@ urlpatterns = [
     re_path(
         r"^internal/",
         include(INTERNAL_URLS),
+    ),
+    # OAuth (Sentry as a provider)
+    re_path(
+        r"^oauth/userinfo/$",
+        OAuthUserInfoEndpoint.as_view(),
+        name="sentry-api-0-oauth-userinfo",
     ),
     # Catch all
     re_path(

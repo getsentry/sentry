@@ -28,12 +28,15 @@ class OAuthUserInfoEndpoint(Endpoint):
         user = token_details.user
         user_output = {"sub": user.id}
         if "profile" in scopes:
-            user_output["name"] = user.name
-            user_output["avatar_type"] = user.avatar_type
-            user_output["avatar_url"] = user.avatar_url
-            user_output["date_joined"] = user.date_joined
+            profile_details = {
+                "name": user.name,
+                "avatar_type": user.avatar_type,
+                "avatar_url": user.avatar_url,
+                "date_joined": user.date_joined,
+            }
+            user_output.update(profile_details)
         if "email" in scopes:
             email = UserEmail.objects.get(user=user)
-            user_output["email"] = email.email
-            user_output["email_verified"] = email.is_verified
+            email_details = {"email": email.email, "email_verified": email.is_verified}
+            user_output.update(email_details)
         return Response(user_output)
