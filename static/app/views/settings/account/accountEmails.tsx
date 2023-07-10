@@ -17,18 +17,18 @@ import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {UserEmail} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
-type Props = AsyncView['props'];
+type Props = DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[];
 };
 
-class AccountEmails extends AsyncView<Props, State> {
+class AccountEmails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Emails');
   }
@@ -71,7 +71,7 @@ class AccountEmails extends AsyncView<Props, State> {
 export default AccountEmails;
 
 export class EmailAddresses extends DeprecatedAsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['emails', ENDPOINT]];
   }
   doApiCall(endpoint: string, requestParams: RequestOptions) {

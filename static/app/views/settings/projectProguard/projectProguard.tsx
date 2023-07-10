@@ -10,7 +10,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -21,11 +21,11 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   mappings: DebugFile[];
 };
 
-class ProjectProguard extends AsyncView<Props, State> {
+class ProjectProguard extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -39,11 +39,11 @@ class ProjectProguard extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, params, location} = this.props;
     const {projectId} = params;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'mappings',
         `/projects/${organization.slug}/${projectId}/files/dsyms/`,

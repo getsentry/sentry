@@ -13,7 +13,7 @@ import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import {DeprecatedApiKey} from './types';
@@ -26,12 +26,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   apiKey: DeprecatedApiKey;
 };
 
-class OrganizationApiKeyDetails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationApiKeyDetails extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [
       [

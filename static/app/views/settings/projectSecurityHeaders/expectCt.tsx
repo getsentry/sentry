@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
@@ -19,10 +19,10 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 type State = {
   keyList: null | ProjectKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectExpectCtReports extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ProjectExpectCtReports extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];

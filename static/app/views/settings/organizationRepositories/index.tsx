@@ -6,20 +6,20 @@ import {t} from 'sentry/locale';
 import {Organization, Repository} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 import OrganizationRepositories from './organizationRepositories';
 
 type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
-} & AsyncView['props'];
+} & DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   itemList: Repository[] | null;
 };
 
-class OrganizationRepositoriesContainer extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationRepositoriesContainer extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [
       ['itemList', `/organizations/${organization.slug}/repos/`, {query: {status: ''}}],

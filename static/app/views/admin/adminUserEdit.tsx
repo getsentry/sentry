@@ -13,7 +13,7 @@ import {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 const userEditForm: JsonFormObject = {
   title: 'User details',
@@ -118,19 +118,19 @@ class RemoveUserModal extends Component<RemoveModalProps, RemoveModalState> {
   }
 }
 
-type Props = AsyncView['props'] & RouteComponentProps<{id: string}, {}>;
+type Props = DeprecatedAsyncView['props'] & RouteComponentProps<{id: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   user: User | null;
 };
 
-class AdminUserEdit extends AsyncView<Props, State> {
+class AdminUserEdit extends DeprecatedAsyncView<Props, State> {
   get userEndpoint() {
     const {params} = this.props;
     return `/users/${params.id}/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['user', this.userEndpoint]];
   }
 

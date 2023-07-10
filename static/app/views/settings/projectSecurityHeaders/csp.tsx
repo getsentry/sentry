@@ -10,7 +10,7 @@ import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
@@ -23,10 +23,10 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 type State = {
   keyList: null | ProjectKey[];
   project: null | Project;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectCspReports extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class ProjectCspReports extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [

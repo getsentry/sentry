@@ -15,13 +15,13 @@ import {Organization, SentryApp, SentryAppInstallation} from 'sentry/types';
 import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 import {OrganizationContext} from '../organizationContext';
 
 type Props = RouteComponentProps<{sentryAppSlug: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   organization: Organization | null;
   organizations: Organization[];
   reloading: boolean;
@@ -29,7 +29,10 @@ type State = AsyncView['state'] & {
   sentryApp: SentryApp;
 };
 
-export default class SentryAppExternalInstallation extends AsyncView<Props, State> {
+export default class SentryAppExternalInstallation extends DeprecatedAsyncView<
+  Props,
+  State
+> {
   disableErrorReport = false;
   controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
@@ -44,7 +47,7 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [
       ['organizations', '/organizations/'],
       ['sentryApp', `/sentry-apps/${this.sentryAppSlug}/`],

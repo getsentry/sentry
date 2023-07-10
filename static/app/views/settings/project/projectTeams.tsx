@@ -8,7 +8,7 @@ import {t, tct} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {Organization, Project, Team} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TeamSelectForProject from 'sentry/views/settings/components/teamSelect/teamSelectForProject';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -21,10 +21,10 @@ type Props = {
 
 type State = {
   projectTeams: null | Team[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectTeams extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ProjectTeams extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, project} = this.props;
     return [['projectTeams', `/projects/${organization.slug}/${project.slug}/teams/`]];
   }

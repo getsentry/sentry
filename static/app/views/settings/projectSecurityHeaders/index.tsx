@@ -9,7 +9,7 @@ import {Organization, ProjectKey} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
@@ -20,10 +20,10 @@ type Props = {
 
 type State = {
   keyList: null | ProjectKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectSecurityHeaders extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class ProjectSecurityHeaders extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 

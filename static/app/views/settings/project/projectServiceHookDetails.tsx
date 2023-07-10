@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ServiceHookSettingsForm from 'sentry/views/settings/project/serviceHookSettingsForm';
 
@@ -107,9 +107,9 @@ type Props = {
 };
 type State = {
   hook: ServiceHook | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-export default class ProjectServiceHookDetails extends AsyncView<Props, State> {
+export default class ProjectServiceHookDetails extends DeprecatedAsyncView<Props, State> {
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     const {projectId, hookId} = this.props.params;

@@ -11,7 +11,7 @@ import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {ApiApplication} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Authorization = {
@@ -25,10 +25,10 @@ type Props = RouteComponentProps<{}, {}>;
 
 type State = {
   data: Authorization[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class AccountAuthorizations extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AccountAuthorizations extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/api-authorizations/']];
   }
 

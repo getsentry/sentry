@@ -6,7 +6,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {AccessRequest, Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 import OrganizationTeams from './organizationTeams';
 
@@ -16,12 +16,12 @@ type Props = {
   teams: Team[];
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   requestList: AccessRequest[];
 };
 
-class OrganizationTeamsContainer extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class OrganizationTeamsContainer extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
 
     return [['requestList', `/organizations/${organization.slug}/access-requests/`]];

@@ -13,7 +13,7 @@ import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -32,9 +32,9 @@ type Props = {
 type State = {
   codeowners?: CodeOwner[];
   ownership?: null | IssueOwnership;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectOwnership extends AsyncView<Props, State> {
+class ProjectOwnership extends DeprecatedAsyncView<Props, State> {
   // TODO: Remove with `streamline-targeting-context`
   getOwnershipTitle() {
     const {organization} = this.props;
@@ -48,9 +48,9 @@ class ProjectOwnership extends AsyncView<Props, State> {
     return routeTitleGen(this.getOwnershipTitle(), project.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, project} = this.props;
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
     if (organization.features.includes('integrations-codeowners')) {

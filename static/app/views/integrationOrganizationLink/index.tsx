@@ -22,23 +22,26 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   organization?: Organization;
   provider?: IntegrationProvider;
   selectedOrgSlug?: string;
 };
 
-export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
+export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
+  Props,
+  State
+> {
   disableErrorReport = false;
   controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }
 

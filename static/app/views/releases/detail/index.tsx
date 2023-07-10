@@ -35,7 +35,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
 
@@ -68,9 +68,9 @@ type State = {
   deploys: Deploy[];
   release: ReleaseWithHealth;
   sessions: SessionApiResponse | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ReleasesDetail extends AsyncView<Props, State> {
+class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
@@ -118,7 +118,7 @@ class ReleasesDetail extends AsyncView<Props, State> {
       params.release
     )}/`;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'release',
         basePath,

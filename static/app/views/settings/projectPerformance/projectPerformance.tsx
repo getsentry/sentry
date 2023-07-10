@@ -23,7 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -90,11 +90,11 @@ type ProjectThreshold = {
   id?: string;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   threshold: ProjectThreshold;
 };
 
-class ProjectPerformance extends AsyncView<Props, State> {
+class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -109,11 +109,11 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {params, organization} = this.props;
     const {projectId} = params;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'threshold',
         `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,

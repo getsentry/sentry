@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import theme from 'sentry/utils/theme';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import {
   RenderSearch,
   SearchWrapper,
@@ -33,7 +33,7 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   inviteRequests: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
   member: (Member & {roles: MemberRole[]}) | null;
@@ -45,7 +45,7 @@ const MemberListHeader = HookOrDefault({
   defaultComponent: () => <PanelHeader>{t('Active Members')}</PanelHeader>,
 });
 
-class OrganizationMembersList extends AsyncView<Props, State> {
+class OrganizationMembersList extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -64,7 +64,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
 
     return [

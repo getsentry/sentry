@@ -4,20 +4,20 @@ import TextField from 'sentry/components/forms/fields/textField';
 import InternalStatChart from 'sentry/components/internalStatChart';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 type Config = {
   backend: string;
   options: Record<string, string>;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   config: Config;
   resolution: string;
   since: number;
 };
 
-export default class AdminQuotas extends AsyncView<{}, State> {
+export default class AdminQuotas extends DeprecatedAsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -26,7 +26,7 @@ export default class AdminQuotas extends AsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['config', '/internal/quotas/']];
   }
 

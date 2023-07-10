@@ -11,7 +11,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Organization, Relay, RelayActivity} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
@@ -30,9 +30,9 @@ type Props = {
 type State = {
   relayActivities: Array<RelayActivity>;
   relays: Array<Relay>;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class RelayWrapper extends AsyncView<Props, State> {
+class RelayWrapper extends DeprecatedAsyncView<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (!isEqual(prevState.relays, this.state.relays)) {
       // Fetch fresh activities
@@ -54,7 +54,7 @@ class RelayWrapper extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     return [['relayActivities', `/organizations/${organization.slug}/relay_usage/`]];
   }

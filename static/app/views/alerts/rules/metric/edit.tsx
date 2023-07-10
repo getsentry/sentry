@@ -9,7 +9,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/asyncView';
 
 type RouteParams = {
   projectId: string;
@@ -26,9 +26,9 @@ type Props = {
 type State = {
   actions: Map<string, any>;
   rule: MetricRule; // This is temp
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class MetricRulesEdit extends AsyncView<Props, State> {
+class MetricRulesEdit extends DeprecatedAsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -49,7 +49,7 @@ class MetricRulesEdit extends AsyncView<Props, State> {
     );
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {ruleId} = this.props.params;
 
