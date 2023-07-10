@@ -590,6 +590,7 @@ def resolve_region(request: Request):
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
+    # TODO(hybridcloud) Replace this with the region domain list.
     if subdomain in {"us", "eu"}:
         return subdomain
     return None

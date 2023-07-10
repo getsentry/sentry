@@ -28,6 +28,12 @@ const migratedJavascriptPlatforms = {
       type: 'framework',
     },
     {
+      id: 'javascript-angular',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/angular/',
+      name: 'Angular',
+      type: 'framework',
+    },
+    {
       id: 'javascript-vue',
       link: 'https://docs.sentry.io/platforms/javascript/guides/vue/',
       name: 'Vue',
