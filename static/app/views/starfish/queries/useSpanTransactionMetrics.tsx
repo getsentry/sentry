@@ -38,6 +38,7 @@ export const useSpanTransactionMetrics = (
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    referrer: _referrer,
   });
 };
 
@@ -74,7 +75,6 @@ function getEventView(
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

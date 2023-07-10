@@ -14,14 +14,14 @@ import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-export enum PRODUCT {
+export enum ProductSolution {
   ERROR_MONITORING = 'error-monitoring',
   PERFORMANCE_MONITORING = 'performance-monitoring',
   SESSION_REPLAY = 'session-replay',
 }
 
 export type DisabledProduct = {
-  product: PRODUCT;
+  product: ProductSolution;
   reason: string;
   onClick?: () => void;
 };
@@ -64,7 +64,7 @@ function Product({disabled, permanentDisabled, checked, label, onClick}: Product
 }
 
 export type ProductSelectionProps = {
-  defaultSelectedProducts?: PRODUCT[];
+  defaultSelectedProducts?: ProductSolution[];
   disabledProducts?: DisabledProduct[];
   lazyLoader?: boolean;
   skipLazyLoader?: () => void;
@@ -95,7 +95,7 @@ export function ProductSelection({
   }, [router]);
 
   const handleClickProduct = useCallback(
-    (product: PRODUCT) => {
+    (product: ProductSolution) => {
       router.replace({
         pathname: router.location.pathname,
         query: {
@@ -110,11 +110,11 @@ export function ProductSelection({
   );
 
   const performanceProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === PRODUCT.PERFORMANCE_MONITORING
+    disabledProduct => disabledProduct.product === ProductSolution.PERFORMANCE_MONITORING
   );
 
   const sessionReplayProductDisabled = disabledProducts?.find(
-    disabledProduct => disabledProduct.product === PRODUCT.SESSION_REPLAY
+    disabledProduct => disabledProduct.product === ProductSolution.SESSION_REPLAY
   );
 
   return (
@@ -152,10 +152,10 @@ export function ProductSelection({
             onClick={
               performanceProductDisabled
                 ? performanceProductDisabled?.onClick
-                : () => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)
+                : () => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)
             }
             disabled={!!performanceProductDisabled}
-            checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
+            checked={products.includes(ProductSolution.PERFORMANCE_MONITORING)}
             label={t('Performance Monitoring')}
           />
         </Tooltip>
@@ -178,10 +178,10 @@ export function ProductSelection({
             onClick={
               sessionReplayProductDisabled
                 ? sessionReplayProductDisabled?.onClick
-                : () => handleClickProduct(PRODUCT.SESSION_REPLAY)
+                : () => handleClickProduct(ProductSolution.SESSION_REPLAY)
             }
             disabled={!!sessionReplayProductDisabled}
-            checked={products.includes(PRODUCT.SESSION_REPLAY)}
+            checked={products.includes(ProductSolution.SESSION_REPLAY)}
             label={t('Session Replay')}
           />
         </Tooltip>
@@ -255,7 +255,10 @@ const ProductButtonInner = styled('div')`
 `;
 
 const Divider = styled('hr')`
-  border-top-color: ${p => p.theme.border};
+  height: 1px;
+  width: 100%;
+  background: ${p => p.theme.border};
+  border: none;
 `;
 
 const TooltipDescription = styled('div')`

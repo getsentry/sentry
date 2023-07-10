@@ -109,6 +109,7 @@ SENTRY_RATE_LIMIT_REDIS_CLUSTER = "default"
 SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
+SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -763,6 +764,10 @@ CELERY_QUEUES_CONTROL = [
     ),
 ]
 
+CELERY_ISSUE_STATES_QUEUE = Queue(
+    "auto_transition_issue_states", routing_key="auto_transition_issue_states"
+)
+
 CELERY_QUEUES_REGION = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
@@ -851,8 +856,8 @@ CELERY_QUEUES_REGION = [
     Queue("transactions.name_clusterer", routing_key="transactions.name_clusterer"),
     Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
     Queue("weekly_escalating_forecast", routing_key="weekly_escalating_forecast"),
-    Queue("auto_transition_issue_states", routing_key="auto_transition_issue_states"),
     Queue("recap_servers", routing_key="recap_servers"),
+    CELERY_ISSUE_STATES_QUEUE,
 ]
 
 from celery.schedules import crontab
@@ -979,7 +984,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule-auto-resolution": {
         "task": "sentry.tasks.schedule_auto_resolution",
         # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 60 * 25},
     },
     "auto-remove-inbox": {
@@ -1080,7 +1085,7 @@ CELERYBEAT_SCHEDULE_REGION = {
     "schedule_auto_transition_new": {
         "task": "sentry.tasks.schedule_auto_transition_new",
         # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
+        "schedule": crontab(minute="*/10"),
         "options": {"expires": 3600},
     },
     "schedule_auto_transition_regressed": {
@@ -1334,6 +1339,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
+    # Enables import/export functionality for dashboards
+    "organizations:dashboards-import": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.
@@ -1348,12 +1355,12 @@ SENTRY_FEATURES = {
     "organizations:escalating-issues": False,
     # Enable escalating forecast threshold a/b experiment
     "organizations:escalating-issues-experiment-group": False,
+    # Enable archive/escalating issue workflow in MS Teams
+    "organizations:escalating-issues-msteams": False,
     # Enable archive/escalating issue workflow features in v2
     "organizations:escalating-issues-v2": False,
     # Enable the new issue states and substates
     "organizations:issue-states": False,
-    # Enable the new issue states and substates
-    "organizations:remove-mark-reviewed": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Monitors (Crons) view
@@ -1469,14 +1476,10 @@ SENTRY_FEATURES = {
     "organizations:invite-members-rate-limits": True,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
-    # Enable SQL formatting for breadcrumb items and performance spans
-    "organizations:sql-format": False,
     # Enable experimental replay-issue rendering on Issue Details page
     "organizations:issue-details-replay-event": False,
     # Enable sorting Issue detail events by 'most helpful'
     "organizations:issue-details-most-helpful-event": False,
-    # Enable prefetching of issues from the issue list when hovered
-    "organizations:issue-list-prefetch-issue-on-hover": False,
     # Enable better priority sort algorithm.
     "organizations:issue-list-better-priority-sort": False,
     # Adds the ttid & ttfd vitals to the frontend
@@ -1556,8 +1559,6 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    # Enable subquery optimizations for the replay_index page
-    "organizations:session-replay-index-subquery": False,
     "organizations:session-replay-weekly-email": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
@@ -1649,10 +1650,14 @@ SENTRY_FEATURES = {
     "organizations:sdk-crash-detection": False,
     # Enables commenting on PRs from the Sentry comment bot.
     "organizations:pr-comment-bot": False,
+    # Enables slack channel lookup via schedule message
+    "organizations:slack-use-new-lookup": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
     "projects:custom-inbound-filters": False,
+    # Enable indexing of artifact bundles for sourcemaps.
+    "organizations:sourcemaps-bundle-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

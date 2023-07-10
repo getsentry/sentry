@@ -15,6 +15,7 @@ interface EventOrGroupTitleProps {
   className?: string;
   /* is issue breakdown? */
   grouping?: boolean;
+  query?: string;
   withStackTracePreview?: boolean;
 }
 
@@ -24,6 +25,7 @@ function EventOrGroupTitle({
   withStackTracePreview,
   grouping = false,
   className,
+  query,
 }: EventOrGroupTitleProps) {
   const {id, groupID} = data as Event;
 
@@ -41,6 +43,7 @@ function EventOrGroupTitle({
           groupId={groupID ? groupID : id}
           issueCategory={data.issueCategory}
           groupingCurrentLevel={data.metadata?.current_level}
+          query={query}
         >
           {titleLabel}
         </GroupPreviewTooltip>

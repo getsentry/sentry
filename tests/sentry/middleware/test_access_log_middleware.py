@@ -1,8 +1,8 @@
 import logging
 
 import pytest
-from django.conf.urls import url
 from django.test import override_settings
+from django.urls import re_path
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -96,15 +96,15 @@ class MyOrganizationEndpoint(OrganizationEndpoint):
 
 
 urlpatterns = [
-    url(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
-    url(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
-    url(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
-    url(
+    re_path(r"^/dummy$", DummyEndpoint.as_view(), name="dummy-endpoint"),
+    re_path(r"^/dummyfail$", DummyFailEndpoint.as_view(), name="dummy-fail-endpoint"),
+    re_path(r"^/dummyratelimit$", RateLimitedEndpoint.as_view(), name="ratelimit-endpoint"),
+    re_path(
         r"^/dummyratelimitconcurrent$",
         ConcurrentRateLimitedEndpoint.as_view(),
         name="concurrent-ratelimit-endpoint",
     ),
-    url(
+    re_path(
         r"^(?P<organization_slug>[^\/]+)/stats_v2/$",
         MyOrganizationEndpoint.as_view(),
         name="sentry-api-0-organization-stats-v2",

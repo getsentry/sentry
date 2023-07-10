@@ -31,8 +31,6 @@ filterwarnings = [
     # Consider all warnings to be errors other than the ignored ones.
     "error",
 
-    "ignore::django.utils.deprecation.RemovedInDjango30Warning",
-
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is
     # released: https://github.com/googleapis/python-bigtable/pull/246
@@ -557,7 +555,6 @@ module = [
     "sentry.integrations.jira_server.client",
     "sentry.integrations.jira_server.integration",
     "sentry.integrations.jira_server.search",
-    "sentry.integrations.jira_server.utils.api",
     "sentry.integrations.jira_server.webhooks",
     "sentry.integrations.manager",
     "sentry.integrations.message_builder",
@@ -611,7 +608,6 @@ module = [
     "sentry.integrations.vsts.integration",
     "sentry.integrations.vsts.issues",
     "sentry.integrations.vsts.repository",
-    "sentry.integrations.vsts.webhooks",
     "sentry.integrations.vsts_extension.integration",
     "sentry.interfaces.breadcrumbs",
     "sentry.interfaces.contexts",
@@ -826,7 +822,6 @@ module = [
     "sentry.runner.commands.upgrade",
     "sentry.runner.importer",
     "sentry.runner.initializer",
-    "sentry.runner.settings",
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
@@ -999,7 +994,6 @@ module = [
     "sentry.web.frontend.auth_organization_login",
     "sentry.web.frontend.auth_provider_login",
     "sentry.web.frontend.base",
-    "sentry.web.frontend.csrf_failure",
     "sentry.web.frontend.debug.debug_assigned_email",
     "sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email",
     "sentry.web.frontend.debug.debug_incident_activity_email",
@@ -1008,7 +1002,6 @@ module = [
     "sentry.web.frontend.debug.debug_mfa_added_email",
     "sentry.web.frontend.debug.debug_mfa_removed_email",
     "sentry.web.frontend.debug.debug_new_processing_issues_email",
-    "sentry.web.frontend.debug.debug_onboarding_continuation_email",
     "sentry.web.frontend.debug.debug_organization_integration_request",
     "sentry.web.frontend.debug.debug_organization_invite_request",
     "sentry.web.frontend.debug.debug_organization_join_request",
@@ -1271,7 +1264,6 @@ module = [
     "tests.sentry.integrations.slack.notifications.test_unassigned",
     "tests.sentry.integrations.slack.test_client",
     "tests.sentry.integrations.slack.test_integration",
-    "tests.sentry.integrations.slack.test_link_team",
     "tests.sentry.integrations.slack.test_message_builder",
     "tests.sentry.integrations.slack.test_notifications",
     "tests.sentry.integrations.slack.test_notify_action",
@@ -1335,7 +1327,6 @@ module = [
     "tests.sentry.models.test_authenticator",
     "tests.sentry.models.test_avatar",
     "tests.sentry.models.test_eventuser",
-    "tests.sentry.models.test_groupassignee",
     "tests.sentry.models.test_grouphistory",
     "tests.sentry.models.test_groupsnooze",
     "tests.sentry.models.test_notificationaction",

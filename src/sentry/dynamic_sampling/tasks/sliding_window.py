@@ -208,6 +208,10 @@ def fetch_projects_with_total_root_transactions_count(
         if not more_results:
             break
     else:
-        log_query_timeout(query="fetch_projects_with_total_root_transactions_count", offset=offset)
+        log_query_timeout(
+            query="fetch_projects_with_total_root_transactions_count",
+            offset=offset,
+            timeout_seconds=MAX_SECONDS,
+        )
 
     return aggregated_projects

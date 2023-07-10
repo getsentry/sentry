@@ -47,20 +47,19 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
 
   const [hoveredValue, setHoveredValue] = useState<DataRow | null>(null);
 
-  const topCategoryView = EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, 'span.category'],
-    query: `transaction.op:http.server ${
-      transaction ? `transaction:${transaction}` : ''
-    } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: selection.datetime.start ?? undefined,
-    end: selection.datetime.end ?? undefined,
-    range: selection.datetime.period ?? undefined,
-    orderby: '-sum_span_self_time',
-    projects: selection.projects,
-    version: 2,
-  });
+  const topCategoryView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, 'span.category'],
+      query: `transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+    },
+    location
+  );
 
   const totalView = topCategoryView
     .clone()

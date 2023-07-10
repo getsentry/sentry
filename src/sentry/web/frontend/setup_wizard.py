@@ -5,8 +5,7 @@ from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
 from django.db.models import F
-from django.http import HttpResponse
-from rest_framework.request import Request
+from django.http import HttpRequest, HttpResponse
 
 from sentry import roles
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
@@ -28,7 +27,7 @@ from sentry.web.helpers import render_to_response
 
 
 class SetupWizardView(BaseView):
-    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if request.GET.get("signup") == "1" and settings.SENTRY_SIGNUP_URL:
 
             uri_components = list(urlparse(absolute_uri(request.get_full_path())))
@@ -44,7 +43,7 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(settings.SENTRY_SIGNUP_URL, params))
         return super().handle_auth_required(request, *args, **kwargs)
 
-    def get(self, request: Request, wizard_hash) -> HttpResponse:
+    def get(self, request: HttpRequest, wizard_hash) -> HttpResponse:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
