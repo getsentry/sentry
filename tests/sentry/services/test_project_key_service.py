@@ -15,6 +15,7 @@ def test_project_key_service():
     project_key = Factories.create_project_key(project)
     assert project_key.dsn_public
 
-    with override_settings(SENTRY_PROJECT=project.id):
-        with use_real_service(project_key_service, SiloMode.CONTROL):
-            assert get_client_config()["dsn"] == project_key.dsn_public
+    with override_settings(SENTRY_PROJECT=project.id), use_real_service(
+        project_key_service, SiloMode.CONTROL
+    ):
+        assert get_client_config()["dsn"] == project_key.dsn_public

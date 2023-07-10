@@ -10,20 +10,13 @@ import sqlparse
 from django.utils import timezone
 from sentry_relay import meta_with_chunks
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.issues.grouptype import (
-    GroupCategory,
-    get_group_type_by_type_id,
-    get_group_types_by_category,
-)
-from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
+from sentry.models import EventAttachment, EventError, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
 from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.utils.json import prune_empty_keys
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
 
 CRASH_FILE_TYPES = {"event.minidump"}
@@ -121,23 +114,6 @@ def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
     return (
         [i[1] for i in interface_list],
         {k: {"data": i[2]} for k, i in enumerate(interface_list) if i[2]},
-    )
-
-
-def get_problems(item_list: Sequence[Event | GroupEvent]):
-    group_hashes = {
-        group_hash.group_id: group_hash
-        for group_hash in GroupHash.objects.filter(
-            group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
-            group__type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
-        )
-    }
-    return EventPerformanceProblem.fetch_multi(
-        [
-            (e, group_hashes[e.group_id].hash)
-            for e in item_list
-            if getattr(e, "group_id", None) in group_hashes
-        ]
     )
 
 
@@ -417,10 +393,9 @@ class SqlFormatEventSerializer(EventSerializer):
     def serialize(self, obj, attrs, user):
         result = super().serialize(obj, attrs, user)
 
-        if features.has("organizations:sql-format", obj.project.organization, actor=user):
-            with sentry_sdk.start_span(op="serialize", description="Format SQL"):
-                result = self._format_breadcrumb_messages(result, obj, user)
-                result = self._format_db_spans(result, obj, user)
+        with sentry_sdk.start_span(op="serialize", description="Format SQL"):
+            result = self._format_breadcrumb_messages(result, obj, user)
+            result = self._format_db_spans(result, obj, user)
 
         return result
 
@@ -433,14 +408,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def get_attrs(
         self, item_list: Sequence[Event | GroupEvent], user: User, is_public: bool = False, **kwargs
     ):
-        results = super().get_attrs(item_list, user, is_public)
-        # XXX: Collapse hashes to one hash per group for now. Performance issues currently only have
-        # a single hash, so this will work fine for the moment
-        problems = get_problems(item_list)
-        for event_problem in problems:
-            if event_problem:
-                results[event_problem.event]["perf_problem"] = event_problem.problem.to_dict()
-        return results
+        return super().get_attrs(item_list, user, is_public)
 
     def _get_release_info(self, user, event, include_full_release_data: bool):
         version = event.get_tag("sentry:release")
@@ -462,23 +430,11 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def _get_sdk_updates(self, obj):
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_perf_problem(self, attrs):
-        from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
-
-        perf_problem = attrs.get("perf_problem")
-        if perf_problem is None:
-            return None
-        converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
-        issue_type = perf_problem.get("type")
-        converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
-        return converted_problem
-
     def serialize(self, obj, attrs, user, include_full_release_data=False):
         result = super().serialize(obj, attrs, user)
         result["release"] = self._get_release_info(user, obj, include_full_release_data)
         result["userReport"] = self._get_user_report(user, obj)
         result["sdkUpdates"] = self._get_sdk_updates(obj)
-        result["perfProblem"] = self._get_perf_problem(attrs)
         return result
 
 

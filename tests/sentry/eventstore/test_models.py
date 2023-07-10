@@ -16,6 +16,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils import snuba
+from sentry.utils.pytest.fixtures import django_db_all
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -604,7 +605,7 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             assert fetch_mock.call_count == 2
 
 
-@pytest.mark.django_db
+@django_db_all
 def test_renormalization(monkeypatch, factories, task_runner, default_project):
     from sentry_relay.processing import StoreNormalizer
 

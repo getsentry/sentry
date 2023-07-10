@@ -16,7 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.issues.grouptype import MonitorCheckInFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -113,7 +113,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user2,
+            user_id=user2.id,
             project=project,
         )
 
@@ -128,7 +128,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user4,
+            user_id=user4.id,
         )
 
         # add a specific setting for a different provider
@@ -136,7 +136,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            user=user4,
+            user_id=user4.id,
         )
 
         assert user4 not in self.adapter.get_sendable_user_objects(project)
@@ -144,14 +144,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
         NotificationSetting.objects.remove_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
-            user=user4,
+            user_id=user4.id,
         )
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user4,
+            user_id=user4.id,
         )
 
         assert user4.id not in {u.id for u in self.adapter.get_sendable_user_objects(project)}
@@ -281,7 +281,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -289,7 +289,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -333,7 +333,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            ProfileFileIOGroupType,
+            MonitorCheckInFailure,
             ensure_aware(datetime.now()),
             "info",
             "/api/123",
@@ -341,7 +341,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileFileIOGroupType.type_id
+        event.group.type = MonitorCheckInFailure.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -422,7 +422,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -464,7 +464,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user,
+            user_id=user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -516,7 +516,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
@@ -789,7 +789,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=user2,
+            user_id=user2.id,
             project=project,
         )
 
@@ -824,7 +824,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -885,7 +885,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         with self.feature("organizations:notification-all-recipients"):
@@ -1035,7 +1035,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
                 NotificationSettingOptionValues.NEVER,
-                user=u,
+                user_id=u.id,
             )
 
         """
@@ -1451,7 +1451,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
         activity = Activity.objects.create(
             project=self.project,
@@ -1476,7 +1476,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         activity = Activity.objects.create(
@@ -1503,7 +1503,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         activity = Activity.objects.create(
@@ -1545,7 +1545,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         with self.tasks():
@@ -1576,7 +1576,7 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         report = self.create_report()

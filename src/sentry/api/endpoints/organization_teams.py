@@ -2,7 +2,7 @@ from typing import List
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -160,7 +160,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         operation_id="Create a New Team",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.name("The name of the team.", required=True),
+            GlobalParams.name("The name for the team.", required=True),
             GlobalParams.slug(
                 "Optional slug for the team. If not provided a slug is generated from the name."
             ),

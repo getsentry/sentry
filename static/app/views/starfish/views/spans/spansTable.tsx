@@ -13,6 +13,7 @@ import {Organization} from 'sentry/types';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -62,6 +63,8 @@ export const SORTABLE_FIELDS = new Set([
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
+  'http_error_count()',
+  'http_error_count_percent_change()',
 ]);
 
 export default function SpansTable({
@@ -96,26 +99,35 @@ export default function SpansTable({
     });
   };
 
+  const shouldTrackVCD = Boolean(endpoint);
+
   return (
     <Fragment>
-      <GridEditable
+      <VisuallyCompleteWithData
+        id="SpansTable"
+        hasData={data.length > 0}
         isLoading={isLoading}
-        data={data as Row[]}
-        columnOrder={columnOrder ?? getColumns(moduleName)}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
-        grid={{
-          renderHeadCell: column => renderHeadCell({column, sort, location}),
-          renderBodyCell: (column, row) =>
-            renderBodyCell(column, row, meta, location, organization, endpoint, method),
-        }}
-        location={location}
-      />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+        disabled={shouldTrackVCD}
+      >
+        <GridEditable
+          isLoading={isLoading}
+          data={data as Row[]}
+          columnOrder={columnOrder ?? getColumns(moduleName)}
+          columnSortBy={[
+            {
+              key: sort.field,
+              order: sort.kind,
+            },
+          ]}
+          grid={{
+            renderHeadCell: column => renderHeadCell({column, sort, location}),
+            renderBodyCell: (column, row) =>
+              renderBodyCell(column, row, meta, location, organization, endpoint, method),
+          }}
+          location={location}
+        />
+        <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      </VisuallyCompleteWithData>
     </Fragment>
   );
 }
@@ -131,6 +143,7 @@ function renderBodyCell(
 ): React.ReactNode {
   if (column.key === 'span.description') {
     const queryString = {
+      ...location.query,
       endpoint,
       endpointMethod,
     };

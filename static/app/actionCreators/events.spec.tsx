@@ -1,8 +1,7 @@
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
 
 describe('Events ActionCreator', function () {
-  const api = new Client();
+  const api = new MockApiClient();
   const organization = TestStubs.Organization();
   const project = TestStubs.Project();
   const opts = {

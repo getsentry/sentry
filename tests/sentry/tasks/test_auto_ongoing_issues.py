@@ -16,6 +16,7 @@ from sentry.models import (
 )
 from sentry.receivers import create_default_projects
 from sentry.tasks.auto_ongoing_issues import (
+    TRANSITION_AFTER_DAYS,
     auto_transition_issues_new_to_ongoing,
     schedule_auto_transition_new,
     schedule_auto_transition_regressed,
@@ -28,14 +29,17 @@ from sentry.types.group import GroupSubStatus
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
-    def test_simple(self):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group.first_seen = now - timedelta(days=3, hours=1)
+        group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group.save()
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -44,18 +48,17 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
+        assert not GroupInbox.objects.filter(group=group).exists()
 
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
-        assert set_ongoing_activity.data == {"after_days": 3}
+        assert set_ongoing_activity.data == {"after_days": 7}
 
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
 
-    def test_reprocessed(self):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_reprocessed(self, mock_backend):
         now = datetime.now(tz=pytz.UTC)
 
         project = self.create_project()
@@ -63,8 +66,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         group = self.create_group(
             project=project, status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW
         )
-        group.first_seen = now - timedelta(days=3, hours=1)
+        group.first_seen = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group.save()
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_new()
@@ -73,11 +78,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
+        assert not GroupInbox.objects.filter(group=group).exists()
 
-    def test_multiple_old_new(self):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_multiple_old_new(self, mock_backend):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         new_groups = []
@@ -109,7 +113,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             group.first_seen = first_seen
             group.save()
 
-            if (now - first_seen).days >= 3:
+            if (now - first_seen).days >= 7:
                 older_groups.append(group)
             else:
                 new_groups.append(group)
@@ -118,6 +122,8 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             new_groups
         )
 
+        mock_backend.get_size.return_value = 0
+
         with self.tasks():
             schedule_auto_transition_new()
 
@@ -125,10 +131,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
             new_groups
         )
-        assert GroupInbox.objects.filter(project=project).count() == len(older_groups)
-        assert GroupInbox.objects.filter(
-            project_id=project.id, reason=GroupInboxReason.ONGOING.value
-        ).count() == len(older_groups)
+        assert not GroupInbox.objects.filter(group=group).exists()
 
         assert set(
             Group.objects.filter(
@@ -145,13 +148,14 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             ).values_list("id", flat=True)
         ) == {g.id for g in older_groups}
 
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
     @mock.patch(
         "sentry.tasks.auto_ongoing_issues.auto_transition_issues_new_to_ongoing.delay",
         wraps=lambda project_id, first_seen_lte, **kwargs: auto_transition_issues_new_to_ongoing(
             project_id, first_seen_lte, chunk_size=10, kwargs=kwargs
         ),
     )
-    def test_paginated_transition(self, mocked):
+    def test_paginated_transition(self, mocked, mock_backend):
         create_default_projects()
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
@@ -162,11 +166,13 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                     project=project,
                     status=GroupStatus.UNRESOLVED,
                     substatus=GroupSubStatus.NEW,
-                    first_seen=now - timedelta(days=3, hours=idx, minutes=1),
+                    first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=idx, minutes=1),
                 )
                 for idx in range(12)
             ]
         )
+
+        mock_backend.get_size.return_value = 0
 
         # before
         assert Group.objects.filter(project_id=project.id).count() == len(groups) == 12
@@ -193,32 +199,30 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
                 substatus=GroupSubStatus.ONGOING,
             ).values_list("id", flat=True)
         ) == {g.id for g in groups}
-        assert set(
-            GroupInbox.objects.filter(
-                project=project, reason=GroupInboxReason.ONGOING.value
-            ).values_list("group_id", flat=True)
-        ) == {g.id for g in groups}
 
 
 @apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
-    def test_simple(self):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
         now = datetime.now(tz=pytz.UTC)
         project = self.create_project()
         group = self.create_group(
             project=project,
             status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.REGRESSED,
-            first_seen=now - timedelta(days=3, hours=1),
+            first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1),
         )
         group_inbox = add_group_to_inbox(group, GroupInboxReason.REGRESSION)
-        group_inbox.date_added = now - timedelta(days=3, hours=1)
+        group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group_inbox.save(update_fields=["date_added"])
         group_history = record_group_history(
             group, GroupHistoryStatus.REGRESSED, actor=None, release=None
         )
-        group_history.date_added = now - timedelta(days=3, hours=1)
+        group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
         group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
 
         with self.tasks():
             schedule_auto_transition_regressed()
@@ -227,13 +231,9 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         assert group.status == GroupStatus.UNRESOLVED
         assert group.substatus == GroupSubStatus.ONGOING
 
-        ongoing_inbox = GroupInbox.objects.filter(group=group).get()
-        assert ongoing_inbox.reason == GroupInboxReason.ONGOING.value
-        assert ongoing_inbox.date_added >= now
-
         set_ongoing_activity = Activity.objects.filter(
             group=group, type=ActivityType.AUTO_SET_ONGOING.value
         ).get()
-        assert set_ongoing_activity.data == {"after_days": 3}
+        assert set_ongoing_activity.data == {"after_days": 7}
 
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()

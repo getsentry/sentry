@@ -235,6 +235,8 @@ class QueryBuilder(BaseQueryBuilder):
         self.raw_equations = equations
         self.use_metrics_layer = use_metrics_layer
         self.auto_fields = auto_fields
+        self.query = query
+        self.groupby_columns = groupby_columns
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
         self.tips: Dict[str, Set[str]] = {
@@ -1501,8 +1503,10 @@ class QueryBuilder(BaseQueryBuilder):
         )
 
     @classmethod
-    def handle_invalid_float(cls, value: float) -> Optional[float]:
-        if math.isnan(value):
+    def handle_invalid_float(cls, value: Optional[float]) -> Optional[float]:
+        if value is None:
+            return value
+        elif math.isnan(value):
             return 0
         elif math.isinf(value):
             return None

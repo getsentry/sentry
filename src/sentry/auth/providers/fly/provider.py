@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Dict, Optional, cast
 
 from sentry import options
 from sentry.auth.partnership_config import SPONSOR_OAUTH_NAME, ChannelName
@@ -45,45 +45,13 @@ class FlyOAuth2Provider(OAuth2Provider):
         return ACCESS_TOKEN_URL
 
     @classmethod
-    def build_config(self, state: Any, organization: Optional[Any] = None):
+    def build_config(self, resource: Optional[Any] = None):
         """
-        On configuration, we determine which provider organization to configure SSO for.
+        On configuration, we determine which provider organization to configure sentry SSO for.
         This configuration is then stored and passed into the pipeline instances during SSO
         to determine whether the Auth'd user has the appropriate access to the provider org
-
-        {
-            'state': '9da4041848844e8088864eaea3c3a705',
-            'data': {
-                'access_token': 'fo1_6xgeCrB8ew8vFQ86vdaakBSFTVDGCzOUvebUbvgPGhI',
-                'token_type': 'Bearer',
-                'expires_in': 7200,
-                'refresh_token': 'PmUkAB75UPLKGZplERMq8WwOHnsTllZ5HveY4RvNUTk',
-                'scope': 'read',
-                'created_at': 1686786353},
-                'user': {
-                    'resource_owner_id': 'k9d01lp82rky6vo2',
-                    'scope': ['read'],
-                    'expires_in': 7200,
-                    'application': {'uid': 'elMJpuhA5bXbR59ZaKdXrxXGFVKTypGHuJ4h6Rfw1Qk'},
-                    'created_at': 1686786353,
-                    'user_id': 'k9d01lp82rky6vo2',
-                    'user_name': 'Nathan',
-                    'email': 'k9d01lp82rky6vo2@customer.fly.io',
-                    'organizations': [
-                        {'id': 'nathans-org', 'role': 'member'},
-                        {'id': '0vogzmzoj1k5xp29', 'role': 'admin'}
-                    ]
-                }
-            }
-        }
         """
-        org = organization
-        if not organization:
-            data = state["data"]
-            # TODO: determine which org to configure SSO for
-            org = data["user"]["organizations"][0]
-
-        return {"org": org}
+        return {"org": {"id": cast(Dict, resource).get("id")}}
 
     def build_identity(self, state):
         """

@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import functools
 import inspect
+import sys
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, Set, Tuple, Type
+from typing import Any, Callable, Generator, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
@@ -11,6 +12,8 @@ from django.conf import settings
 from django.db import connections, router
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
+from django.db.models.signals import post_migrate
+from django.db.transaction import get_connection
 from django.test import override_settings
 
 from sentry import deletions
@@ -161,6 +164,36 @@ region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
 
 @contextmanager
+def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+    """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
+    test code in a special silo context.
+    In monolith mode, this context manager has no effect.
+    This context manager, should never be run outside of test contexts.  In fact, it depends on test code that will
+    not exist in production!
+    When run in either Region or Control silo modes, it forces the settings.SILO_MODE to the desired_silo.
+    Notably, this won't be thread safe, so again, only use this in factories and test cases, not code, or you'll
+    have a nightmare when your (threaded) acceptance tests bleed together and do whacky things :o)
+    Use this in combination with factories or test setup code to create models that don't correspond with your
+    given test mode.
+    """
+    # Only swapping the silo mode if we are already in a silo mode.
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        desired_silo = SiloMode.MONOLITH
+
+    overrides: MutableMapping[str, Any] = {}
+    if desired_silo != SiloMode.get_current_mode():
+        overrides["SILO_MODE"] = desired_silo
+    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
+        overrides["SENTRY_REGION"] = "na"
+
+    if overrides:
+        with override_settings(**overrides):
+            yield
+    else:
+        yield
+
+
+@contextmanager
 def exempt_from_silo_limits() -> Generator[None, None, None]:
     """Exempt test setup code from silo mode checks.
 
@@ -186,29 +219,110 @@ def exempt_from_silo_limits() -> Generator[None, None, None]:
         yield
 
 
-def reset_test_role(role: str, using: str | None = None, create_role: bool | None = None) -> None:
-    with connections["default"].cursor() as connection:
-        connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
-        if connection.fetchone():
-            connection.execute(f"REASSIGN OWNED BY {role} TO postgres")
-            connection.execute(f"DROP OWNED BY {role} CASCADE")
-            connection.execute(f"DROP ROLE {role}")
-        connection.execute(f"CREATE ROLE {role}")
-        connection.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
-        connection.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
-        connection.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
+def reset_test_role(role: str, using: str, create_role: bool) -> None:
+    connection_names = [conn.alias for conn in connections.all()]
+
+    if create_role:
+        role_exists = False
+        with get_connection(using).cursor() as connection:
+            connection.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", [role])
+            role_exists = connection.fetchone()
+
+        if role_exists:
+            # Drop role permissions on each connection, or we can't drop the role.
+            for alias in connection_names:
+                with get_connection(alias).cursor() as conn:
+                    conn.execute(f"REASSIGN OWNED BY {role} TO postgres")
+                    conn.execute(f"DROP OWNED BY {role} CASCADE")
+
+            # Drop and re-create the role as required.
+            with get_connection(using).cursor() as conn:
+                conn.execute(f"DROP ROLE {role}")
+
+        with get_connection(using).cursor() as conn:
+            conn.execute(f"CREATE ROLE {role}")
+
+    # Create permissions on the current connection as we'll build up permissions incrementally.
+    with get_connection(using).cursor() as conn:
+        conn.execute(f"GRANT USAGE ON SCHEMA public TO {role};")
+        conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {role};")
+        conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {role};")
 
 
-def restrict_role_by_silo(mode: SiloMode, role: str) -> None:
-    for model in iter_models():
-        silo_limit = getattr(model._meta, "silo_limit", None)
-        if silo_limit is None or mode not in silo_limit.modes:
-            restrict_role(role, model, "ALL PRIVILEGES")
+_role_created: bool = False
+_role_privileges_created: MutableMapping[str, bool] = {}
 
 
-def restrict_role(role: str, model: Any, revocation_type: str) -> None:
+def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
+    global _role_created
+    if "pytest" not in sys.modules:
+        return
+
+    from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+    from sentry.models import (
+        Organization,
+        OrganizationMapping,
+        OrganizationMember,
+        OrganizationMemberMapping,
+    )
+    from sentry.testutils.silo import iter_models, reset_test_role, restrict_role
+
+    if not app_config or app_config.name != "sentry":
+        return
+
+    with get_connection(using).cursor() as conn:
+        conn.execute("SET ROLE 'postgres'")
+
+    if not _role_privileges_created.get(using, False):
+        reset_test_role(role="postgres_unprivileged", using=using, create_role=not _role_created)
+        _role_created = True
+        _role_privileges_created[using] = True
+
+    # Protect Foreign Keys using hybrid cloud models from being deleted without using the privileged user.
+    # Deletion should only occur when the developer is actively aware of the need to generate outboxes.
+    seen_models: MutableSet[type] = set()
+    for model in iter_models(app_config.name):
+        for field in model._meta.fields:
+            if not isinstance(field, HybridCloudForeignKey):
+                continue
+            fk_model = field.foreign_model
+            if fk_model is None or fk_model in seen_models:
+                continue
+            seen_models.add(fk_model)
+
+            restrict_role(
+                role="postgres_unprivileged", model=fk_model, revocation_type="DELETE", using=using
+            )
+
+    # Protect organization members from being updated without also invoking the correct outbox logic.
+    # If you hit test failures as a result of lacking these privileges, first ensure that you create the correct
+    # outboxes in a transaction, and cover that transaction with `in_test_psql_role_override`
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=Organization, revocation_type="UPDATE")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="INSERT")
+    restrict_role(role="postgres_unprivileged", model=OrganizationMapping, revocation_type="UPDATE")
+    # OrganizationMember objects need to cascade, but they can't use the standard hybrid cloud foreign key because the
+    # identifiers are not snowflake ids.
+    restrict_role(role="postgres_unprivileged", model=OrganizationMember, revocation_type="DELETE")
+
+    restrict_role(
+        role="postgres_unprivileged", model=OrganizationMemberMapping, revocation_type="INSERT"
+    )
+
+
+# Listen to django's migration signal so that we're not trapped inside
+# test method transactions.
+post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
+
+
+def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:
+    if router.db_for_write(model) != using:
+        return
+
     using = router.db_for_write(model)
-    with connections[using].cursor() as connection:
+    with get_connection(using).cursor() as connection:
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
 
 

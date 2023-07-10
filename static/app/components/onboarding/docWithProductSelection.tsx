@@ -9,7 +9,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {MissingExampleWarning} from 'sentry/components/onboarding/missingExampleWarning';
-import {PRODUCT} from 'sentry/components/onboarding/productSelection';
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
@@ -42,12 +42,12 @@ export function DocWithProductSelection({
 
   const loadPlatform = useMemo(() => {
     const products = location.query.product ?? [];
-    return products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-      products.includes(PRODUCT.SESSION_REPLAY)
+    return products.includes(ProductSolution.PERFORMANCE_MONITORING) &&
+      products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatform}-with-error-monitoring-performance-and-replay`
-      : products.includes(PRODUCT.PERFORMANCE_MONITORING)
+      : products.includes(ProductSolution.PERFORMANCE_MONITORING)
       ? `${currentPlatform}-with-error-monitoring-and-performance`
-      : products.includes(PRODUCT.SESSION_REPLAY)
+      : products.includes(ProductSolution.SESSION_REPLAY)
       ? `${currentPlatform}-with-error-monitoring-and-replay`
       : `${currentPlatform}-with-error-monitoring`;
   }, [location.query.product, currentPlatform]);
