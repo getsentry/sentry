@@ -29,7 +29,16 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconWarning} from 'sentry/icons';
 import {DateString} from 'sentry/types';
-import {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';
+import {
+  EChartClickHandler,
+  EChartDataZoomHandler,
+  EChartEventHandler,
+  EChartHighlightHandler,
+  EChartMouseOutHandler,
+  EChartMouseOverHandler,
+  ReactEchartsRef,
+  Series,
+} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -80,6 +89,15 @@ type Props = {
   isLineChart?: boolean;
   log?: boolean;
   onClick?: EChartClickHandler;
+  onDataZoom?: EChartDataZoomHandler;
+  onHighlight?: EChartHighlightHandler;
+  onLegendSelectChanged?: EChartEventHandler<{
+    name: string;
+    selected: Record<string, boolean>;
+    type: 'legendselectchanged';
+  }>;
+  onMouseOut?: EChartMouseOutHandler;
+  onMouseOver?: EChartMouseOverHandler;
   previousData?: Series[];
   scatterPlot?: Series[];
   showLegend?: boolean;
@@ -95,7 +113,7 @@ function computeMax(data: Series[]) {
 }
 
 // adapted from https://stackoverflow.com/questions/11397239/rounding-up-for-a-graph-maximum
-function computeAxisMax(data: Series[], stacked?: boolean) {
+export function computeAxisMax(data: Series[], stacked?: boolean) {
   // assumes min is 0
   let maxValue = 0;
   if (data.length > 1 && stacked) {
@@ -153,10 +171,15 @@ function Chart({
   throughput,
   aggregateOutputFormat,
   onClick,
+  onMouseOver,
+  onMouseOut,
+  onHighlight,
   forwardedRef,
   chartGroup,
   tooltipFormatterOptions = {},
   errored,
+  onLegendSelectChanged,
+  onDataZoom,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -351,8 +374,26 @@ function Chart({
       );
     }
 
+    // Trims off the last data point because it's incomplete
+    const trimmedSeries =
+      statsPeriod && !start && !end
+        ? series.map(serie => {
+            return {
+              ...serie,
+              data: serie.data.slice(0, -1),
+            };
+          })
+        : series;
+
     return (
-      <ChartZoom router={router} period={statsPeriod} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={statsPeriod}
+        start={start}
+        end={end}
+        utc={utc}
+        onDataZoom={onDataZoom}
+      >
         {zoomRenderProps => {
           if (isLineChart) {
             return (
@@ -369,8 +410,11 @@ function Chart({
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
                 onClick={onClick}
+                onMouseOut={onMouseOut}
+                onMouseOver={onMouseOver}
+                onHighlight={onHighlight}
                 series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
+                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -398,7 +442,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={series}
+                series={trimmedSeries}
                 xAxis={xAxis}
                 additionalSeries={transformedThroughput}
                 yAxes={areaChartProps.yAxes}
@@ -406,6 +450,7 @@ function Chart({
                 colors={colors}
                 grid={grid}
                 legend={showLegend ? {top: 0, right: 0} : undefined}
+                onClick={onClick}
               />
             );
           }
@@ -415,12 +460,14 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={series}
+              series={trimmedSeries}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}
               stacked={stacked}
+              onClick={onClick}
               {...areaChartProps}
+              onLegendSelectChanged={onLegendSelectChanged}
             />
           );
         }}

@@ -3,24 +3,25 @@ import logging
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import control_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
-from sentry.models import Integration
+from sentry.integrations.bitbucket.integration import BitbucketIntegration
+from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.bitbucket")
 
 
-@control_silo_endpoint
+@region_silo_endpoint
 class BitbucketSearchEndpoint(IntegrationEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
-        try:
-            integration = Integration.objects.get(
-                organizationintegration__organization_id=organization.id,
-                id=integration_id,
-                provider="bitbucket",
-            )
-        except Integration.DoesNotExist:
+    def get(self, request: Request, organization, integration_id, **kwds) -> Response:
+
+        integration, org_integration = integration_service.get_organization_context(
+            organization_id=organization.id,
+            integration_id=integration_id,
+            provider="bitbucket",
+        )
+        if not integration or not org_integration:
             return Response(status=404)
 
         field = request.GET.get("field")
@@ -30,7 +31,9 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
         if not query:
             return Response({"detail": "query is a required parameter"}, status=400)
 
-        installation = integration.get_installation(organization.id)
+        installation: BitbucketIntegration = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )  # type: ignore
 
         if field == "externalIssue":
             repo = request.GET.get("repo")

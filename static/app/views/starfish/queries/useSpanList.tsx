@@ -11,7 +11,13 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
-const SPAN_FILTER_KEYS = ['span.op', 'span.domain', 'span.action'];
+const SPAN_FILTER_KEYS = [
+  'span.op',
+  'span.domain',
+  'span.action',
+  '!span.module',
+  '!span.category',
+];
 
 export type SpanMetrics = {
   'http_error_count()': number;
@@ -26,6 +32,7 @@ export type SpanMetrics = {
   'sps_percent_change()': number;
   'sum(span.self_time)': number;
   'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
 };
 
 export const useSpanList = (
@@ -78,26 +85,32 @@ function getEventView(
     .filter(Boolean)
     .join(' ');
 
+  const fields = [
+    'span.op',
+    'span.group',
+    'span.description',
+    'span.domain',
+    'sps()',
+    'sps_percent_change()',
+    `sum(${SPAN_SELF_TIME})`,
+    `p95(${SPAN_SELF_TIME})`,
+    `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
+    'http_error_count()',
+    'http_error_count_percent_change()',
+  ];
+
+  if (defined(transaction)) {
+    fields.push('time_spent_percentage(local)');
+  } else {
+    fields.push('time_spent_percentage()');
+  }
+
   const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query,
-      fields: [
-        'span.op',
-        'span.group',
-        'span.description',
-        'span.domain',
-        'sps()',
-        'sps_percent_change()',
-        `sum(${SPAN_SELF_TIME})`,
-        `p95(${SPAN_SELF_TIME})`,
-        'time_spent_percentage()',
-        `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
-        'http_error_count()',
-        'http_error_count_percent_change()',
-      ],
+      fields,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     omit(location, 'span.category', 'http.method')
@@ -122,11 +135,29 @@ function buildEventViewQuery(
     .filter(key => SPAN_FILTER_KEYS.includes(key))
     .filter(key => Boolean(query[key]))
     .map(key => {
-      return `${key}:${query[key]}`;
+      const value = query[key];
+      const isArray = Array.isArray(value);
+
+      if (key === '!span.category' && isArray && value.includes('db')) {
+        // When omitting database spans, explicitly allow `db.redis` spans, because
+        // we're not including those spans in the database category
+        const categoriesAsideFromDatabase = value.filter(v => v !== 'db');
+        return `(!span.category:db OR span.op:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
+          ','
+        )}]`;
+      }
+
+      return `${key}:${isArray ? `[${value}]` : value}`;
     });
+
+  result.push('has:span.description');
 
   if (moduleName !== ModuleName.ALL) {
     result.push(`span.module:${moduleName}`);
+  }
+
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
   }
 
   if (defined(spanCategory)) {

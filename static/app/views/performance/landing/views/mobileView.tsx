@@ -1,3 +1,4 @@
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 
@@ -23,6 +24,12 @@ export function MobileView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_FRAMES_AREA,
     PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
   ];
+
+  const doubleRowAllowedCharts = [
+    PerformanceWidgetSetting.MOST_SLOW_FRAMES,
+    PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
+  ];
+
   if (organization.features.includes('mobile-vitals')) {
     columnTitles = [...columnTitles.slice(0, 5), 'ttid', ...columnTitles.slice(5, 0)];
     allowedCharts.push(
@@ -32,18 +39,20 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
+  if (
+    organization.features.includes('performance-new-trends') &&
+    canUseMetricsData(props.organization)
+  ) {
+    doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
+  } else {
+    doubleRowAllowedCharts.push(
+      ...[PerformanceWidgetSetting.MOST_IMPROVED, PerformanceWidgetSetting.MOST_REGRESSED]
+    );
+  }
   return (
     <PerformanceDisplayProvider value={{performanceType: ProjectPerformanceType.ANY}}>
       <div>
-        <DoubleChartRow
-          {...props}
-          allowedCharts={[
-            PerformanceWidgetSetting.MOST_SLOW_FRAMES,
-            PerformanceWidgetSetting.MOST_FROZEN_FRAMES,
-            PerformanceWidgetSetting.MOST_IMPROVED,
-            PerformanceWidgetSetting.MOST_REGRESSED,
-          ]}
-        />
+        <DoubleChartRow {...props} allowedCharts={doubleRowAllowedCharts} />
         <TripleChartRow {...props} allowedCharts={allowedCharts} />
         <Table
           {...props}

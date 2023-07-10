@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from django.db import transaction
 from django.db.models.signals import post_save
@@ -49,6 +49,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
+from sentry.snuba.metrics.extraction import is_on_demand_snuba_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -59,6 +60,7 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
 )
 from sentry.snuba.tasks import build_query_builder
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry_from_user
 from sentry.utils.snuba import is_measurement
@@ -428,7 +430,6 @@ class AlertRuleNameAlreadyUsedError(Exception):
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
 
-
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
 query_datasets_to_type = {
@@ -559,6 +560,8 @@ def create_alert_rule(
             user_id=user.id if user else None,
             type=AlertRuleActivityType.CREATED.value,
         )
+
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -794,6 +797,8 @@ def update_alert_rule(
             data=alert_rule.get_audit_log_data(),
             event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
+
+    schedule_update_project_config(alert_rule, projects)
 
     return alert_rule
 
@@ -1481,7 +1486,8 @@ def rewrite_trigger_action_fields(action_data):
 
 
 def get_filtered_actions(
-    alert_rule_data: Mapping[str, Any], action_type: AlertRuleTriggerAction.Type
+    alert_rule_data: Mapping[str, Any],
+    action_type: ActionService,
 ):
     from sentry.incidents.serializers import STRING_TO_ACTION_TYPE
 
@@ -1491,3 +1497,16 @@ def get_filtered_actions(
         for action in trigger.get("actions", [])
         if STRING_TO_ACTION_TYPE.get(action.get("type")) == action_type
     ]
+
+
+def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Project]):
+    if not projects or not features.has(
+        "organizations:on-demand-metrics-extraction", alert_rule.organization
+    ):
+        return
+
+    if is_on_demand_snuba_query(alert_rule.snuba_query):
+        for project in projects:
+            schedule_invalidate_project_config(
+                trigger="alerts:create-on-demand-metric", project_id=project.id
+            )

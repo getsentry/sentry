@@ -339,12 +339,11 @@ def get_suspect_commit_users(project: Project, event: Event) -> List[RpcUser]:
     `event`: The event that suspect committers are wanted for
     """
 
-    suspect_committers = []
     committers: Sequence[AuthorCommitsSerialized] = get_serialized_event_file_committers(
         project, event
     )
     user_emails = [committer["author"]["email"] for committer in committers]  # type: ignore
-    suspect_committers = user_service.get_many_by_email(emails=user_emails)
+    suspect_committers = user_service.get_many_by_email(emails=user_emails, is_verified=True)
     in_project_user_ids = set(
         OrganizationMember.objects.filter(
             teams__projectteam__project__in=[project],
@@ -467,13 +466,15 @@ def get_fallthrough_recipients(
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        return user_service.get_many(
+        member_users = user_service.get_many(
             filter={
-                "user_ids": project.member_set.order_by("-user__last_active").values_list(
-                    "user_id", flat=True
-                )
-            }
-        )[:FALLTHROUGH_NOTIFICATION_LIMIT]
+                "user_ids": project.member_set.values_list("user_id", flat=True),
+            },
+        )
+        member_users.sort(
+            key=lambda u: u.last_active.isoformat() if u.last_active else "", reverse=True
+        )
+        return member_users[:FALLTHROUGH_NOTIFICATION_LIMIT]
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 

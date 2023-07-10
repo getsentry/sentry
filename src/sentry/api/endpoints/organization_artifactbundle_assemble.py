@@ -2,12 +2,13 @@ import jsonschema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import analytics, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models import FileBlobOwner, Project
+from sentry.models.apitoken import is_api_token_auth
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -83,7 +84,7 @@ class OrganizationArtifactBundleAssembleEndpoint(
 
         # We want to put the missing chunks functionality behind an option in order to cut it off in case of CLI
         # regressions for our users.
-        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks"):
+        if options.get("sourcemaps.artifact_bundles.assemble_with_missing_chunks") is True:
             # We check if all requested chunks have been uploaded.
             missing_chunks = self.find_missing_chunks(organization, chunks)
             # In case there are some missing chunks, we will tell the client which chunks we require.
@@ -138,6 +139,15 @@ class OrganizationArtifactBundleAssembleEndpoint(
                 "chunks": chunks,
                 "upload_as_artifact_bundle": True,
             }
+        )
+
+        analytics.record(
+            "artifactbundle.assemble",
+            user_id=request.user.id if request.user and request.user.id else None,
+            organization_id=organization.id,
+            project_ids=project_ids,
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            auth_type="api_token" if is_api_token_auth(request.auth) else None,
         )
 
         return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)

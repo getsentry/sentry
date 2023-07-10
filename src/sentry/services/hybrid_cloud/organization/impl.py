@@ -184,7 +184,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         Query for an organization member by its id and organization
         """
 
-        member: RpcOrganizationMember | None = None
+        member: OrganizationMember | None = None
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
@@ -278,12 +278,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [r.organization for r in results]
 
     def update_flags(self, *, organization_id: int, flags: RpcOrganizationFlagsUpdate) -> None:
-        updates = models.F("flags")
+        updates: models.F | models.CombinedExpression = models.F("flags")
         for (name, value) in flags.items():
             if value is True:
-                updates = updates.bitor(Organization.flags[name])
+                updates = updates.bitor(getattr(Organization.flags, name))
             elif value is False:
-                updates = updates.bitand(~Organization.flags[name])
+                updates = updates.bitand(~getattr(Organization.flags, name))
             else:
                 raise TypeError(f"Invalid value received for update_flags: {name}={value!r}")
 
@@ -396,13 +396,21 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org.save()
         return serialize_rpc_organization(org)
 
-    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
         with outbox_context(transaction.atomic()):
-            org_member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
-            )
+            try:
+                org_member = OrganizationMember.objects.get(
+                    organization_id=organization_id, user_id=user_id
+                )
+            except OrganizationMember.DoesNotExist:
+                return None
+
             org_member.remove_user()
-            org_member.save()
+            if org_member.email:
+                org_member.save()
+            else:
+                return None
+
         return serialize_member(org_member)
 
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
@@ -499,7 +507,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         *,
         organization_id: int,
         signal: RpcOrganizationSignal,
-        args: Mapping[str, Optional[str, int]],
+        args: Mapping[str, str | int | None],
     ) -> None:
         signal.signal.send_robust(None, organization_id=organization_id, **args)
 

@@ -5,6 +5,7 @@ from typing import Any, MutableMapping, Sequence
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryAppInstallation, User
+from sentry.models.integrations.sentry_app import SentryApp
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -22,13 +23,20 @@ class SentryAppInstallationSerializer(Serializer):
                 organization_ids=list({i.organization_id for i in item_list})
             )
         }
+        sentry_apps = {
+            sa.id: sa
+            for sa in SentryApp.objects.filter(id__in=[item.sentry_app_id for item in item_list])
+        }
         for item in item_list:
-            result[item] = dict(organization=organizations[item.organization_id])
+            result[item] = {
+                "organization": organizations[item.organization_id],
+                "sentry_app": sentry_apps[item.sentry_app_id],
+            }
         return result
 
     def serialize(self, install, attrs, user):
         data = {
-            "app": {"uuid": install.sentry_app.uuid, "slug": install.sentry_app.slug},
+            "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug},
             "uuid": install.uuid,
             "status": SentryAppInstallationStatus.as_str(install.status),

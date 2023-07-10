@@ -16,6 +16,7 @@ from sentry.ingest.ingest_consumer import (
 )
 from sentry.models import EventAttachment, EventUser, File, UserReport, create_files_from_dif_zip
 from sentry.utils import json
+from sentry.utils.pytest.fixtures import django_db_all
 
 PROGUARD_UUID = "467ade76-6d0b-11ed-a1eb-0242ac120002"
 PROGUARD_SOURCE = b"""\
@@ -51,7 +52,7 @@ def preprocess_event(monkeypatch):
     return calls
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_deduplication_works(default_project, task_runner, preprocess_event):
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
@@ -81,7 +82,7 @@ def test_deduplication_works(default_project, task_runner, preprocess_event):
     }
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_transactions_spawn_save_event_transaction(
     default_project,
     task_runner,
@@ -130,7 +131,7 @@ def test_transactions_spawn_save_event_transaction(
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize("missing_chunks", (True, False))
 def test_with_attachments(default_project, task_runner, missing_chunks, monkeypatch, django_cache):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
@@ -199,7 +200,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
         assert not persisted_attachments
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_deobfuscate_view_hierarchy(default_project, task_runner):
     payload = get_normalized_event(
         {
@@ -278,7 +279,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     assert file_contents.name == "view_hierarchy.json"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.parametrize(
     "event_attachments", [True, False], ids=["with_feature", "without_feature"]
 )
@@ -357,7 +358,7 @@ def test_individual_attachments(
         assert file_contents.name == "foo.txt"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_userreport(django_cache, default_project, monkeypatch):
     """
     Test that user_report-type kafka messages end up in a user report being
@@ -401,7 +402,7 @@ def test_userreport(django_cache, default_project, monkeypatch):
     assert evtuser.name == "Hans Gans"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     """
     Test that ingesting a userreport before the event works. This is relevant
@@ -442,7 +443,7 @@ def test_userreport_reverse_order(django_cache, default_project, monkeypatch):
     assert evtuser.name is None
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_individual_attachments_missing_chunks(default_project, factories, monkeypatch):
     monkeypatch.setattr("sentry.features.has", lambda *a, **kw: True)
 

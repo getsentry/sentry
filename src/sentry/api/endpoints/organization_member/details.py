@@ -14,7 +14,7 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
@@ -97,7 +97,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -302,7 +302,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             204: RESPONSE_NO_CONTENT,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def delete(

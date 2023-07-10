@@ -2,7 +2,7 @@ from typing import List
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError
@@ -15,7 +15,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, TeamParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -88,7 +88,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 "ListOrgTeamResponse", List[TeamSerializerResponse]
             ),
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=TeamExamples.LIST_ORG_TEAMS,
     )
@@ -160,7 +160,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         operation_id="Create a New Team",
         parameters=[
             GlobalParams.ORG_SLUG,
-            GlobalParams.name("The name of the team.", required=True),
+            GlobalParams.name("The name for the team.", required=True),
             GlobalParams.slug(
                 "Optional slug for the team. If not provided a slug is generated from the name."
             ),

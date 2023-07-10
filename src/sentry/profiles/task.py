@@ -9,7 +9,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
-from symbolic import ProguardMapper
+from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -621,6 +621,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
+            method.setdefault("data", {})
             if len(mapped) == 1:
                 new_frame = mapped[0]
                 method.update(
@@ -631,6 +632,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "source_line": new_frame.line,
                     }
                 )
+                method["data"]["deobfuscation_status"] = "deobfuscated"
             elif len(mapped) > 1:
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
@@ -641,13 +643,17 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         if bottom_class == new_frame.class_name
                         else None,
                         "source_line": new_frame.line,
+                        "data": {"deobfuscation_status": "deobfuscated"},
                     }
                     for new_frame in mapped
                 ]
             else:
-                mapped = mapper.remap_class(method["class_name"])
-                if mapped:
-                    method["class_name"] = mapped
+                mapped_class = mapper.remap_class(method["class_name"])
+                if mapped_class:
+                    method["class_name"] = mapped_class
+                    method["data"]["deobfuscation_status"] = "partial"
+                else:
+                    method["data"]["deobfuscation_status"] = "missing"
 
 
 @metrics.wraps("process_profile.track_outcome")

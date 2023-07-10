@@ -1,7 +1,7 @@
 from typing import List, Union
 from urllib.parse import urlparse
 
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
 from rest_framework.exceptions import NotFound, ParseError
@@ -13,7 +13,7 @@ from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
@@ -60,7 +60,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             200: inline_sentry_response_serializer("SourceMapDebug", SourceMapProcessingResponse),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(self, request: Request, project: Project, event_id: str) -> Response:
@@ -292,7 +292,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
             )
 
-        return force_text(sourcemap) if sourcemap is not None else None
+        return force_str(sourcemap) if sourcemap is not None else None
 
     def _unify_url(self, urlparts):
         return "~" + urlparts.path

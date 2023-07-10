@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry import options
 from sentry.api.endpoints.chunk import (
     API_PREFIX,
+    CHUNK_UPLOAD_ACCEPT,
     HASH_ALGORITHM,
     MAX_CHUNKS_PER_REQUEST,
     MAX_CONCURRENCY,
@@ -44,6 +45,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
         assert response.data["url"] == options.get("system.url-prefix") + self.url
+        assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
 
         options.set("system.upload-url-prefix", "test")
         response = self.client.get(
@@ -52,25 +54,25 @@ class ChunkUploadTest(APITestCase):
 
         assert response.data["url"] == options.get("system.upload-url-prefix") + self.url
 
-    def test_accept_with_feature_flag_enabled_and_disabled(self):
-        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
+    def test_accept_with_artifact_bundles_v2_option(self):
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": False}):
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
-            assert "artifact_bundles" not in response.data["accept"]
+            assert "artifact_bundles_v2" not in response.data["accept"]
 
-        with self.options({"sourcemaps.enable-artifact-bundles": 1.0}):
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": True}):
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
-            assert "artifact_bundles" in response.data["accept"]
+            assert "artifact_bundles_v2" in response.data["accept"]
 
-        with self.options({"sourcemaps.enable-artifact-bundles": 0.0}):
+        with self.options({"sourcemaps.artifact_bundles.assemble_with_missing_chunks": 1.0}):
             self.organization.update(flags=F("flags").bitor(Organization.flags.early_adopter))
             response = self.client.get(
                 self.url, HTTP_AUTHORIZATION=f"Bearer {self.token.token}", format="json"
             )
-            assert "artifact_bundles" in response.data["accept"]
+            assert "artifact_bundles_v2" not in response.data["accept"]
 
     def test_relative_url_support(self):
         # Starting `sentry-cli@1.70.1` we added a support for relative chunk-uploads urls

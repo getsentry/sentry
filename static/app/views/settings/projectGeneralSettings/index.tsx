@@ -28,22 +28,22 @@ import recreateRoute from 'sentry/utils/recreateRoute';
 import RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
-type Props = AsyncView['props'] &
+type Props = DeprecatedAsyncView['props'] &
   RouteComponentProps<{projectId: string}, {}> & {
     onChangeSlug: (slug: string) => void;
     organization: Organization;
   };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   data: Project;
 };
 
-class ProjectGeneralSettings extends AsyncView<Props, State> {
+class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
   private _form: Record<string, FieldValue> = {};
 
   getTitle() {
@@ -51,7 +51,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Project Settings'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
 
@@ -178,8 +178,10 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
 
   renderTransferProject() {
     const project = this.state.data;
-    const isProjectAdmin = this.isProjectAdmin();
     const {isInternal} = project;
+    const isOrgOwner = hasEveryAccess(['org:admin'], {
+      organization: this.props.organization,
+    });
 
     return (
       <FieldGroup
@@ -192,7 +194,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           }
         )}
       >
-        {!isProjectAdmin &&
+        {!isOrgOwner &&
           t('You do not have the required permission to transfer this project.')}
 
         {isInternal &&
@@ -200,7 +202,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
             'This project cannot be transferred. It is used internally by the Sentry server.'
           )}
 
-        {isProjectAdmin && !isInternal && (
+        {isOrgOwner && !isInternal && (
           <Confirm
             onConfirm={this.handleTransferProject}
             priority="danger"
@@ -295,6 +297,8 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       },
     };
 
+    const hasRecapServerFeature = project.features.includes('recap-server');
+
     return (
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
@@ -304,7 +308,19 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
-            fields={[fields.name, fields.platform]}
+            // TODO(recap): Move this to a separate page or debug files one, not general settings
+            fields={[
+              fields.name,
+              fields.platform,
+              {
+                ...fields.recapServerUrl,
+                visible: hasRecapServerFeature,
+              },
+              {
+                ...fields.recapServerToken,
+                visible: hasRecapServerFeature,
+              },
+            ]}
           />
 
           <JsonForm

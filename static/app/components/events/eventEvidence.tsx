@@ -1,7 +1,8 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {Event, Group, IssueCategory} from 'sentry/types';
+import {Event, Group} from 'sentry/types';
+import {eventIsProfilingIssue} from 'sentry/utils/events';
 import {
   getConfigForIssueType,
   getIssueCategoryAndTypeFromOccurrenceType,
@@ -18,12 +19,12 @@ export function EventEvidence({event, group, projectSlug}: EvidenceProps) {
     return null;
   }
 
-  const {issueCategory, issueType} =
-    group ?? getIssueCategoryAndTypeFromOccurrenceType(event.occurrence.type);
-
-  if (issueCategory === IssueCategory.PROFILE) {
+  if (eventIsProfilingIssue(event)) {
     return <ProfileEventEvidence event={event} projectSlug={projectSlug} />;
   }
+
+  const {issueCategory, issueType} =
+    group ?? getIssueCategoryAndTypeFromOccurrenceType(event.occurrence.type);
 
   const config = getConfigForIssueType({issueCategory, issueType}).evidence;
   const evidenceDisplay = event.occurrence?.evidenceDisplay;

@@ -7,6 +7,7 @@ from sentry.models.project import Project
 from sentry.testutils.helpers import Feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.json import prune_empty_keys
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 @pytest.fixture(autouse=True)
@@ -78,7 +79,7 @@ def _render_all_previews(client):
     return inner
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_error_missing_feature(client, default_project):
     group = Group.objects.create(project=default_project)
 
@@ -88,7 +89,7 @@ def test_error_missing_feature(client, default_project):
         assert response.data["detail"]["code"] == "missing_feature"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 def test_error_no_events(client, default_project):
     group = Group.objects.create(project=default_project)
 
@@ -98,7 +99,7 @@ def test_error_no_events(client, default_project):
 
 
 @region_silo_test(stable=True)
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
     default_project.update_option("sentry:grouping_config", "mobile:2021-02-12")
@@ -120,7 +121,7 @@ def test_error_not_hierarchical(client, default_project, reset_snuba, factories)
     assert response.data["detail"]["code"] == "issue_not_hierarchical"
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 def test_error_project_not_hierarchical(client, default_organization, reset_snuba, factories):
 
@@ -164,7 +165,7 @@ def _assert_tree_labels(event, functions):
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @region_silo_test(stable=True)
 def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
@@ -215,7 +216,7 @@ b0505d7461a2e36c4a8235bb6c310a3b: ZeroDivisionError | foo | bar2 | baz2 | bam (1
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @region_silo_test(stable=True)
 def test_upwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
@@ -280,7 +281,7 @@ level 2*
     )
 
 
-@pytest.mark.django_db(databases="__all__")
+@django_db_all
 @pytest.mark.snuba
 @region_silo_test(stable=True)
 def test_default_events(default_project, store_stacktrace, reset_snuba, _render_all_previews):

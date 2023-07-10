@@ -20,7 +20,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -36,7 +36,7 @@ class OrgAuthTokenDetailTest(APITestCase):
         assert res.get("name") == "token 1"
         assert res.get("token") is None
         assert res.get("tokenLastCharacters") == "xyz1"
-        assert res.get("scopes") == ["project:read", "project:releases"]
+        assert res.get("scopes") == ["org:ci"]
         assert res.get("dateCreated") is not None
         assert res.get("lastUsedDate") is None
         assert res.get("lastUsedProjectId") is None
@@ -47,7 +47,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=datetime(2023, 1, 1, tzinfo=timezone.utc),
             project_last_used_id=self.project.id,
         )
@@ -68,7 +68,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -82,7 +82,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -97,7 +97,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -116,7 +116,7 @@ class OrgAuthTokenDetailTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
             date_deactivated=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
@@ -137,7 +137,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         payload = {"name": "new token"}
@@ -159,7 +159,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         payload: Dict[str, str] = {}
@@ -180,7 +180,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         payload = {"name": ""}
@@ -201,7 +201,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         payload: Dict[str, str] = {}
@@ -216,7 +216,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -232,7 +232,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -252,7 +252,7 @@ class OrgAuthTokenEditTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
             date_deactivated=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
@@ -274,7 +274,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -297,7 +297,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
         response = self.get_error_response(self.organization.slug, token.id)
@@ -310,7 +310,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -325,7 +325,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 
@@ -344,7 +344,7 @@ class OrgAuthTokenDeleteTest(APITestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
             date_deactivated=datetime(2023, 1, 1, tzinfo=timezone.utc),
         )
@@ -366,7 +366,7 @@ class OrgAuthTokenDetailsPermissionTest(PermissionTestCase):
             name="token 1",
             token_hashed="ABCDEF",
             token_last_characters="xyz1",
-            scope_list=["project:read", "project:releases"],
+            scope_list=["org:ci"],
             date_last_used=None,
         )
 

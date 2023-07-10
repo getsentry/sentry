@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
 import AlertLink from 'sentry/components/alertLink';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,18 +17,18 @@ import {IconDelete, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {UserEmail} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/emails/';
 
-type Props = AsyncView['props'];
+type Props = DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   emails: UserEmail[];
 };
 
-class AccountEmails extends AsyncView<Props, State> {
+class AccountEmails extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Emails');
   }
@@ -70,8 +70,8 @@ class AccountEmails extends AsyncView<Props, State> {
 
 export default AccountEmails;
 
-export class EmailAddresses extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export class EmailAddresses extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['emails', ENDPOINT]];
   }
   doApiCall(endpoint: string, requestParams: RequestOptions) {

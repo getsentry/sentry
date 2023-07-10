@@ -30,7 +30,7 @@ class EnableNotificationsActionTest(BaseEventTest):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
         )
 
         response = self.post_webhook(

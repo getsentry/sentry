@@ -9,7 +9,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import IssuesReplayCountProvider from 'sentry/components/replays/issuesReplayCountProvider';
-import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import GroupingStore, {SimilarItem} from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
@@ -38,7 +37,6 @@ type ItemState = {
 function SimilarStackTrace({params, location, project}: Props) {
   const {orgId, groupId} = params;
 
-  const [isUsingSimilarityViewV2, setIsUsingSimilarityViewV2] = useState<boolean>(false);
   const [items, setItems] = useState<ItemState>({
     similar: [],
     filtered: [],
@@ -56,20 +54,17 @@ function SimilarStackTrace({params, location, project}: Props) {
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
 
     if (hasSimilarityFeature) {
-      const version = isUsingSimilarityViewV2 ? '2' : '1';
-
       reqs.push({
         endpoint: `/issues/${groupId}/similar/?${qs.stringify({
           ...location.query,
           limit: 50,
-          version,
         })}`,
         dataKey: 'similar',
       });
     }
 
     GroupingStore.onFetch(reqs);
-  }, [location.query, groupId, isUsingSimilarityViewV2, hasSimilarityFeature]);
+  }, [location.query, groupId, hasSimilarityFeature]);
 
   const onGroupingChange = useCallback(
     ({
@@ -135,7 +130,6 @@ function SimilarStackTrace({params, location, project}: Props) {
     });
   }, [params, location.query, items]);
 
-  const hasSimilarityViewV2 = project.features.includes('similarity-view-v2');
   const hasSimilarItems =
     hasSimilarityFeature &&
     (items.similar.length > 0 || items.filtered.length > 0) &&
@@ -153,21 +147,6 @@ function SimilarStackTrace({params, location, project}: Props) {
         </Alert>
         <HeaderWrapper>
           <Title>{t('Issues with a similar stack trace')}</Title>
-          {hasSimilarityViewV2 && (
-            <SegmentedControl
-              aria-label={t('Algorithm')}
-              size="sm"
-              value={isUsingSimilarityViewV2 ? 'new' : 'old'}
-              onChange={key => setIsUsingSimilarityViewV2(key === 'new')}
-            >
-              <SegmentedControl.Item key="old">
-                {t('Old Algorithm')}
-              </SegmentedControl.Item>
-              <SegmentedControl.Item key="new">
-                {t('New Algorithm')}
-              </SegmentedControl.Item>
-            </SegmentedControl>
-          )}
         </HeaderWrapper>
         {status === 'loading' && <LoadingIndicator />}
         {status === 'error' && (
@@ -186,7 +165,6 @@ function SimilarStackTrace({params, location, project}: Props) {
               project={project}
               groupId={groupId}
               pageLinks={items.pageLinks}
-              v2={isUsingSimilarityViewV2}
             />
           </IssuesReplayCountProvider>
         )}

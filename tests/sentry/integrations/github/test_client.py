@@ -319,7 +319,7 @@ class GitHubAppsClientTest(TestCase):
 
         responses.add(
             method=responses.PATCH,
-            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1/",
+            url=f"https://api.github.com/repos/{self.repo.name}/issues/comments/1",
             json={
                 "id": 1,
                 "node_id": "MDEyOklzc3VlQ29tbWVudDE=",
@@ -336,6 +336,28 @@ class GitHubAppsClientTest(TestCase):
         self.client.update_comment(repo=self.repo.name, comment_id="1", data={"body": "world"})
         assert responses.calls[2].response.status_code == 200
         assert responses.calls[2].request.body == b'{"body": "world"}'
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_comment_reactions(self, get_jwt):
+        comment_reactions = {
+            "reactions": {
+                "url": "abcdef",
+                "hooray": 1,
+                "+1": 2,
+                "-1": 0,
+            }
+        }
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/issues/comments/2",
+            json=comment_reactions,
+        )
+
+        reactions = self.client.get_comment_reactions(repo=self.repo.name, comment_id="2")
+        stored_reactions = comment_reactions["reactions"]
+        del stored_reactions["url"]
+        assert reactions == stored_reactions
 
 
 control_address = "http://controlserver"
