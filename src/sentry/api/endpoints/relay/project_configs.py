@@ -53,29 +53,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_protocol_version", version)
 
         if version == "4":
-            res = self._post_or_schedule_by_key(request)
-            metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
-            metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
-
-            if request.GET.get("global"):
-                res["global"] = {
-                    "measurements": res["measurements"],
-                    "metricsConditionalTagging": res["metricsConditionalTagging"],
-                }
-
-            del res["measurements"]
-            del res["metricsConditionalTagging"]
-
-            return Response(res, status=200)
+            return self._get_v4_config
         elif self._should_use_v3(version, request):
-            # Always compute the full config. It's invalid to send partial
-            # configs to processing relays, and these validate the requests they
-            # get with permissions and trim configs down accordingly.
-
-            res = self._post_or_schedule_by_key(request)
-            metrics.incr("relay.project_configs.post_v3.pending", amount=len(res["pending"]))
-            metrics.incr("relay.project_configs.post_v3.fetched", amount=len(res["configs"]))
-            return Response(res, status=200)
+            return self._get_v3_config(request)
         elif version in ["2", "3"]:
             return self._post_by_key(
                 request=request,
@@ -88,6 +68,32 @@ class RelayProjectConfigsEndpoint(Endpoint):
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 4.", 400)
+
+    def _get_v4_config(self, request):
+        res = self._post_or_schedule_by_key(request)
+        metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
+        metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
+
+        if request.GET.get("global"):
+            res["global"] = {
+                "measurements": res["measurements"],
+                "metricsConditionalTagging": res["metricsConditionalTagging"],
+            }
+
+        del res["measurements"]
+        del res["metricsConditionalTagging"]
+
+        return Response(res, status=200)
+
+    def _get_v3_config(self, request):
+        # Always compute the full config. It's invalid to send partial
+        # configs to processing relays, and these validate the requests they
+        # get with permissions and trim configs down accordingly.
+
+        res = self._post_or_schedule_by_key(request)
+        metrics.incr("relay.project_configs.post_v3.pending", amount=len(res["pending"]))
+        metrics.incr("relay.project_configs.post_v3.fetched", amount=len(res["configs"]))
+        return Response(res, status=200)
 
     def _should_use_v3(self, version, request):
         set_tag("relay_endpoint_version", version)
