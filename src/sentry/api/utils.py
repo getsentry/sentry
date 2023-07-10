@@ -20,7 +20,10 @@ from sentry import options
 # Unfortunately, this function is imported as an export of this module in several places, keep it.
 from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
+from sentry.models.apikey import is_api_key_auth
+from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -335,3 +338,13 @@ def print_and_capture_handler_exception(
     event_id: str | None = capture_exception(exception, scope=scope)
 
     return event_id
+
+
+def get_auth_api_token_type(auth: object) -> str | None:
+    if is_api_token_auth(auth):
+        return "api_token"
+    if is_org_auth_token_auth(auth):
+        return "org_auth_token"
+    if is_api_key_auth(auth):
+        return "api_key"
+    return None
