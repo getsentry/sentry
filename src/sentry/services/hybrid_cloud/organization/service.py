@@ -247,7 +247,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())
