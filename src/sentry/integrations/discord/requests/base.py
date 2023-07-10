@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 from ..utils import logger, verify_signature
 
@@ -50,16 +50,16 @@ class DiscordRequest:
         return self._data
 
     @property
+    def guild_id(self) -> str:
+        return str(self.data.get("guild_id", None))
+
+    @property
     def logging_data(self) -> Mapping[str, str]:
         _data: Mapping[str, object] = self.request.data
-        # TODO: come back to this later brain hurts
-        # Would be great to have the type of channel in here, I.e. DM or guild channel - along with other stuff lol
-        # Do we need the _get_field_id_option thing from slackrequest?
-        # https://discord.com/developers/docs/interactions/receiving-and-responding#receiving-an-interaction
+        # TODO: come back to this later and see what additional metadata makes sense to include here
         data: Mapping[str, str | None] = {
             "discord_guild_id": str(_data.get("guild_id", None)),
             "discord_channel_id": str(_data.get("channel_id", None)),
-            # "discord_user_id": _data["user"]
         }
 
         if self._integration:
@@ -71,7 +71,7 @@ class DiscordRequest:
         self._log_request()
         self.authorize()
         self._validate_data()
-        # self.validate_integration()
+        self.validate_integration()
 
     def authorize(self) -> None:
         public_key: str = options.get("discord.public-key")
@@ -90,6 +90,11 @@ class DiscordRequest:
             self._data = self.request.data
         except (ValueError, TypeError):
             raise DiscordRequestError(status=status.HTTP_400_BAD_REQUEST)
+
+    def validate_integration(self) -> None:
+        self._integration = integration_service.get_integration(
+            provider="discord", external_id=self.guild_id
+        )
 
     def _log_request(self) -> None:
         self._info("discord.request")
