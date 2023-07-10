@@ -29,26 +29,14 @@ type NextStep = {
   name: string;
 };
 
-type CurrentSteps = [
-  {
-    configurations: StepProps['configurations'];
-    language: string;
-    type: StepType.INSTALL;
-  },
-  {
-    configurations: StepProps['configurations'];
-    language: string;
-    type: StepType.CONFIGURE;
-  },
-  {
-    configurations: StepProps['configurations'];
-    language: string;
-    type: StepType.VERIFY;
-  }
-];
+type CurrentStep = {
+  configurations: StepProps['configurations'];
+  language: string;
+  type: StepType;
+};
 
 export type LayoutProps = {
-  steps: CurrentSteps;
+  steps: CurrentStep[];
   newOrg?: boolean;
   nextSteps?: NextStep[];
 };

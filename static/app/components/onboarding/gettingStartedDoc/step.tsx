@@ -7,16 +7,21 @@ import {t} from 'sentry/locale';
 export enum StepType {
   INSTALL = 'install',
   CONFIGURE = 'configure',
+  /**
+   * This step is used only for JavaScript SDKs
+   */
+  UPLOAD_SOURCE_MAPS = 'upload_source_maps',
   VERIFY = 'verify',
 }
 
 export const StepTitle = {
   [StepType.INSTALL]: t('Install'),
-  [StepType.CONFIGURE]: t('Configure'),
+  [StepType.CONFIGURE]: t('Configure SDK'),
+  [StepType.UPLOAD_SOURCE_MAPS]: t('Upload Source Maps'),
   [StepType.VERIFY]: t('Verify'),
 };
 
-type Configuration = {
+type ConfigurationType = {
   /**
    * The code snippet to display
    */
@@ -28,7 +33,7 @@ type Configuration = {
 };
 
 export type StepProps = {
-  configurations: Configuration[];
+  configurations: ConfigurationType[];
   /**
    * The language of the selected platform (python, javascript, etc)
    */
