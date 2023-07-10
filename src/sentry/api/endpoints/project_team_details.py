@@ -29,7 +29,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectTeamsPermission,)
 
     @extend_schema(
-        operation_id="Register a Team to a Project",
+        operation_id="Add a Team to a Project",
         parameters=[
             GlobalParams.ORG_SLUG,
             GlobalParams.PROJECT_SLUG,
