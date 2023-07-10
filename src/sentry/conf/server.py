@@ -1560,6 +1560,7 @@ SENTRY_FEATURES = {
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-issue-emails": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view

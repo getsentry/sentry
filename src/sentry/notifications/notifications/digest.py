@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 from urllib.parse import urlencode
 
+from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -124,6 +125,9 @@ class DigestNotification(ProjectNotification):
         rule_details: Sequence[NotificationRuleDetails],
         alert_timestamp: int | None = None,
     ) -> MutableMapping[str, Any]:
+        has_session_replay = features.has("organizations:session-replay", organization)
+        show_replay_link = features.has("organizations:session-replay-issue-emails", organization)
+
         return {
             **get_digest_as_context(digest),
             "has_alert_integration": has_alert_integration(project),
@@ -133,6 +137,7 @@ class DigestNotification(ProjectNotification):
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email", None, rule_details, alert_timestamp
             ),
+            "show_replay_links": has_session_replay and show_replay_link,
         }
 
     def get_extra_context(
