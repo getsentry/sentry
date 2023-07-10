@@ -827,7 +827,6 @@ module = [
     "sentry.search.events.builder.discover",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.builder.spans_metrics",
-    "sentry.search.events.constants",
     "sentry.search.events.datasets.discover",
     "sentry.search.events.datasets.filter_aliases",
     "sentry.search.events.datasets.function_aliases",
