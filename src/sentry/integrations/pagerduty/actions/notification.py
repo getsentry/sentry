@@ -7,6 +7,7 @@ from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PagerDutyClient
 from sentry.models import PagerDutyService
 from sentry.rules.actions import IntegrationEventAction
+from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
@@ -47,8 +48,15 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event, futures):
+            org_integration = self.get_organization_integration()
+            if org_integration:
+                org_integration_id = org_integration.id
+            else:
+                org_integration_id = infer_org_integration(
+                    integration_id=service.integration_id, ctx_logger=logger
+                )
             client = PagerDutyClient(
-                org_integration_id=self.get_organization_integration(),
+                org_integration_id=org_integration_id,
                 integration_key=service.integration_key,
             )
             try:

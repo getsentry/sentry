@@ -6,6 +6,7 @@ from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentSt
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models import PagerDutyService
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyClient
@@ -67,8 +68,14 @@ def send_incident_alert_notification(
         integration_id=service.integration_id,
         organization_id=service.organization_id,
     )
+    if org_integration is None:
+        org_integration_id = infer_org_integration(
+            integration_id=service.integration_id, ctx_logger=logger
+        )
+    else:
+        org_integration_id = org_integration.id
     integration_key = service.integration_key
-    client = PagerDutyClient(org_integration_id=org_integration.id, integration_key=integration_key)
+    client = PagerDutyClient(org_integration_id=org_integration_id, integration_key=integration_key)
     attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
     try:
         client.send_trigger(attachment)
