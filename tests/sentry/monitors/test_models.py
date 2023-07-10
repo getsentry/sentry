@@ -36,12 +36,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -53,12 +53,12 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 11, tzinfo=timezone.utc
         )
 
         monitor.config["schedule"] = "*/5 * * * *"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
@@ -74,14 +74,14 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 12, 00, tzinfo=timezone.utc
         )
 
         # Europe/Berlin == UTC+01:00.
         # the run should be represented 1 hours earlier in UTC time
         monitor.config["timezone"] = "Europe/Berlin"
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 1, 1, 11, 00, tzinfo=timezone.utc
         )
 
@@ -93,7 +93,7 @@ class MonitorTestCase(TestCase):
         monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
 
         # XXX: Seconds are removed as we clamp to the minute.
-        assert monitor_environment.monitor.get_next_scheduled_checkin(ts) == datetime(
+        assert monitor_environment.monitor.get_next_scheduled_checkin_with_margin(ts) == datetime(
             2019, 2, 1, 1, 10, 0, tzinfo=timezone.utc
         )
 
@@ -159,7 +159,7 @@ class MonitorTestCase(TestCase):
 
 @region_silo_test(stable=True)
 class MonitorEnvironmentTestCase(TestCase):
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_default_params_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -204,7 +204,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -249,7 +249,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature({"organizations:crons-issue-platform": False})
+    @with_feature({"organizations:issue-platform": False})
     @patch("sentry.coreapi.insert_data_to_database_legacy")
     def test_mark_failed_with_missed_reason_legacy(self, mock_insert_data_to_database_legacy):
         monitor = Monitor.objects.create(
@@ -298,7 +298,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_default_params_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -376,7 +376,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(
@@ -455,7 +455,7 @@ class MonitorEnvironmentTestCase(TestCase):
             },
         ) == dict(event)
 
-    @with_feature(["organizations:issue-platform", "organizations:crons-issue-platform"])
+    @with_feature("organizations:issue-platform")
     @patch("sentry.issues.producer.produce_occurrence_to_kafka")
     def test_mark_failed_with_missed_reason_issue_platform(self, mock_produce_occurrence_to_kafka):
         monitor = Monitor.objects.create(

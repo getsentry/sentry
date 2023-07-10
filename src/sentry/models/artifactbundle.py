@@ -1,6 +1,6 @@
 import zipfile
 from enum import Enum
-from typing import IO, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import IO, Callable, Dict, List, Mapping, Optional, Set, Tuple
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -197,8 +197,15 @@ class ArtifactBundleArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
+        self.artifact_count = len(self.manifest.get("files", {}))
         if build_memory_map:
             self._build_memory_maps()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        self.close()
 
     def close(self):
         self._zip_file.close()
@@ -232,7 +239,6 @@ class ArtifactBundleArchive:
         self._entries_by_debug_id = {}
         self._entries_by_url = {}
 
-        # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
@@ -254,6 +260,43 @@ class ArtifactBundleArchive:
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def extract_debug_ids_from_manifest(
+        self,
+    ) -> Tuple[Optional[str], Set[Tuple[SourceFileType, str]]]:
+        # We use a set, since we might have the same debug_id and file_type.
+        debug_ids_with_types = set()
+
+        # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
+        # identify a specific ArtifactBundle in case for example of future deletion.
+        #
+        # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
+        # ReleaseArtifactBundle table.
+        bundle_id = self._extract_bundle_id()
+
+        files = self.manifest.get("files", {})
+        for file_path, info in files.items():
+            headers = self.normalize_headers(info.get("headers", {}))
+            if (debug_id := headers.get("debug-id")) is not None:
+                debug_id = self.normalize_debug_id(debug_id)
+                file_type = info.get("type")
+                if (
+                    debug_id is not None
+                    and file_type is not None
+                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
+                    is not None
+                ):
+                    debug_ids_with_types.add((source_file_type, debug_id))
+
+        return bundle_id, debug_ids_with_types
+
+    def _extract_bundle_id(self):
+        bundle_id = self.manifest.get("debug_id")
+
+        if bundle_id is not None:
+            bundle_id = self.normalize_debug_id(bundle_id)
+
+        return bundle_id
 
     def get_files(self) -> Dict[str, dict]:
         return self.manifest.get("files", {})
@@ -329,4 +372,5 @@ class ArtifactBundleArchive:
     def get_file_url_by_file_path(self, file_path):
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
+
         return file_info.get("url")

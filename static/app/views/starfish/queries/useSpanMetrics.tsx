@@ -8,6 +8,7 @@ import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
   [metric: string]: number | string;
+  'http_error_count()': number;
   'p95(span.self_time)': number;
   'span.op': string;
   'sps()': number;

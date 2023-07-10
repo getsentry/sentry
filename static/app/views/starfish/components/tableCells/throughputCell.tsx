@@ -11,11 +11,13 @@ type Props = {
 };
 
 export default function ThroughputCell({throughputPerSecond, containerProps}: Props) {
-  const throughput = throughputPerSecond ? throughputPerSecond.toFixed(2) : '--';
+  const throughput = throughputPerSecond
+    ? formatAbbreviatedNumber(throughputPerSecond)
+    : '--';
 
   return (
     <NumberContainer {...containerProps}>
-      {formatAbbreviatedNumber(throughput)}/{t('s')}
+      {throughput}/{t('s')}
     </NumberContainer>
   );
 }

@@ -29,7 +29,7 @@ urlpatterns: list[URLResolver | URLPattern] = [
     ),
 ]
 
-if "django.contrib.admin" in settings.INSTALLED_APPS:
+if "django.contrib.admin" in settings.INSTALLED_APPS and settings.ADMIN_ENABLED:
     from sentry import django_admin
 
     urlpatterns += django_admin.urlpatterns

@@ -438,7 +438,7 @@ describe('OrganizationMemberDetail', function () {
     const noAccess = TestStubs.Member({
       ...fields,
       id: '4',
-      user: TestStubs.User({has2fa: false}),
+      user: TestStubs.User({has2fa: false, authenticators: undefined}),
     });
 
     const no2fa = TestStubs.Member({

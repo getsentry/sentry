@@ -306,6 +306,37 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="true"; cursor="1492107369532:0:0"'
         )
 
+    def test_preserves_ssl_proto(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/", secure_scheme=True)
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options({"system.url-prefix": "https://testserver"}):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
+    def test_handles_customer_domains(self):
+        request = self.make_request(
+            method="GET", path="/api/0/organizations/", secure_scheme=True, subdomain="bebe"
+        )
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options(
+            {
+                "system.url-prefix": "https://testserver",
+                "system.organization-url-template": "https://{hostname}",
+            }
+        ):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://bebe.testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
     def test_unicode_path(self):
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
@@ -461,7 +492,7 @@ class FunctionSiloLimitTest(APITestCase):
             if expect_to_be_active:
                 decorated_function()
             else:
-                with raises(ValueError):
+                with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
     def test_with_active_mode(self):
