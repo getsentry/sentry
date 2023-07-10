@@ -139,6 +139,7 @@ def auto_transition_issues_new_to_ongoing(
 @monitor(monitor_slug="schedule_auto_transition_regressed")
 @skip_if_queue_has_items
 def schedule_auto_transition_regressed() -> None:
+
     now = datetime.now(tz=pytz.UTC)
     seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
@@ -188,8 +189,7 @@ def auto_transition_issues_regressed_to_ongoing(
                 grouphistory__status=GroupHistoryStatus.REGRESSED,
             )
             .annotate(recent_regressed_history=Max("grouphistory__date_added"))
-            .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC))
-            .order_by("recent_regressed_history"),
+            .filter(recent_regressed_history__lte=datetime.fromtimestamp(date_added_lte, pytz.UTC)),
             step=ITERATOR_CHUNK,
         ),
         ITERATOR_CHUNK,
