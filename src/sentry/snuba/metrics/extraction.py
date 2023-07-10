@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import re
 from typing import (
     Any,
     Dict,
@@ -197,9 +198,12 @@ class OndemandMetricSpec:
         2. Generation of rules for on-demand metric extraction.
 
         """
-        relay_field, metric_type, op = _extract_field_info(field)
 
-        self._query = query
+        # On-demand metrics are implicitly transaction metrics. Remove the
+        # filter from the query since it can't be translated to a RuleCondition.
+        self._query = re.sub(r"event\.type:transaction\s*", "", query)
+
+        relay_field, metric_type, op = _extract_field_info(field)
         self.field = relay_field
         self.metric_type = metric_type
         self.mri = f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
