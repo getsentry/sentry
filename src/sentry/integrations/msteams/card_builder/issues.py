@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, List, Sequence, Tuple
 
@@ -44,6 +45,8 @@ from .block import (
     create_input_choice_set_block,
     create_text_block,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
@@ -231,6 +234,17 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             input_id=IssueConstants.ASSIGN_INPUT_ID,
             choices=teams_choices,
             default_choice=ME,
+        )
+
+        logger.info(
+            "msteams.build_group_actions",
+            extra={
+                "group_id": self.group.id,
+                "project_id": self.group.project.id,
+                "organization": self.group.project.organization.id,
+                "has_escalating": has_escalating,
+                "ignore_action": ignore_action,
+            },
         )
 
         return create_container_block(

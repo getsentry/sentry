@@ -74,10 +74,11 @@ function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQue
     'issue-list-better-priority-sort'
   );
   const sortOptions = [
-    ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    ...(hasBetterPrioritySort ? [] : [IssueSortOptions.PRIORITY]), // hide regular priority for EA orgs
+    ...(hasBetterPrioritySort
+      ? [IssueSortOptions.BETTER_PRIORITY]
+      : [IssueSortOptions.PRIORITY]), // show better priority for EA orgs
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];
