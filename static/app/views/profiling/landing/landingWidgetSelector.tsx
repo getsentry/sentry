@@ -1,8 +1,10 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
+import omit from 'lodash/omit';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import useRouter from 'sentry/utils/useRouter';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 import {FunctionTrendsWidget} from './functionTrendsWidget';
@@ -14,6 +16,7 @@ export type WidgetOption =
   | 'improved functions';
 
 interface LandingWidgetSelectorProps {
+  cursorName: string;
   defaultWidget: WidgetOption;
   query: string;
   storageKey: string;
@@ -21,13 +24,28 @@ interface LandingWidgetSelectorProps {
 }
 
 export function LandingWidgetSelector({
+  cursorName,
   defaultWidget,
   storageKey,
   widgetHeight,
 }: LandingWidgetSelectorProps) {
+  const router = useRouter();
+
   const [selectedWidget, setSelectedWidget] = useSyncedLocalStorageState<WidgetOption>(
     storageKey,
     defaultWidget
+  );
+
+  const onWidgetChange = useCallback(
+    opt => {
+      const newQuery = omit(router.location.query, [cursorName]);
+      router.push({
+        pathname: router.location.pathname,
+        query: newQuery,
+      });
+      setSelectedWidget(opt.value);
+    },
+    [cursorName, router, setSelectedWidget]
   );
 
   const functionQuery = useMemo(() => {
@@ -40,7 +58,7 @@ export function LandingWidgetSelector({
     <CompactSelect
       value={selectedWidget}
       options={WIDGET_OPTIONS}
-      onChange={opt => setSelectedWidget(opt.value)}
+      onChange={onWidgetChange}
       triggerProps={{borderless: true, size: 'zero'}}
       offset={4}
     />
@@ -50,6 +68,7 @@ export function LandingWidgetSelector({
     case 'slowest functions':
       return (
         <SlowestFunctionsWidget
+          cursorName={cursorName}
           header={header}
           userQuery={functionQuery}
           widgetHeight={widgetHeight}
@@ -58,6 +77,7 @@ export function LandingWidgetSelector({
     case 'regressed functions':
       return (
         <FunctionTrendsWidget
+          cursorName={cursorName}
           header={header}
           trendFunction="p95()"
           trendType="regression"
@@ -68,6 +88,7 @@ export function LandingWidgetSelector({
     case 'improved functions':
       return (
         <FunctionTrendsWidget
+          cursorName={cursorName}
           header={header}
           trendFunction="p95()"
           trendType="improvement"

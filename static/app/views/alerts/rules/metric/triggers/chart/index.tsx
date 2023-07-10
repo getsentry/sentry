@@ -22,7 +22,7 @@ import {
 import LoadingMask from 'sentry/components/loadingMask';
 import {PanelAlert} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
+import {IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -219,6 +219,7 @@ class TriggersChart extends PureComponent<Props, State> {
       query,
       dataset,
     } = this.props;
+
     const statsPeriod = this.getStatsPeriod();
 
     const queryExtras = getMetricDatasetQueryExtras({
@@ -317,6 +318,7 @@ class TriggersChart extends PureComponent<Props, State> {
             minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
           />
         )}
+
         <ChartControls>
           <InlineContainer data-test-id="alert-total-events">
             <SectionHeading>
@@ -338,6 +340,7 @@ class TriggersChart extends PureComponent<Props, State> {
               selected={period}
               onChange={this.handleStatsPeriodChange}
               title={t('Display')}
+              disabled={isOnDemandMetricAlert}
             />
           </InlineContainer>
         </ChartControls>
@@ -362,6 +365,7 @@ class TriggersChart extends PureComponent<Props, State> {
       triggers,
       thresholdType,
       isQueryValid,
+      isOnDemandMetricAlert,
     } = this.props;
 
     const period = this.getStatsPeriod();
@@ -375,6 +379,17 @@ class TriggersChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery,
     });
+
+    // Currently we don't have anything to show for on-demand metric alerts
+    if (isOnDemandMetricAlert) {
+      return this.renderChart({
+        timeseriesData: [],
+        isQueryValid: true,
+        isLoading: false,
+        isReloading: false,
+        orgFeatures: organization.features,
+      });
+    }
 
     return isSessionAggregate(aggregate) ? (
       <SessionsRequest
@@ -485,7 +500,7 @@ const ChartPlaceholder = styled(Placeholder)`
 `;
 
 const StyledErrorPanel = styled(ErrorPanel)`
-  /* Height and margin should with the alert should match up placeholer height of (184px) */
+  /* Height and margin should with the alert should match up placeholder height of (184px) */
   padding: ${space(2)};
   height: 119px;
 `;
@@ -515,13 +530,13 @@ function ErrorChart({isAllowIndexed, isQueryValid, errorMessage}) {
 function WarningChart() {
   return (
     <ChartErrorWrapper>
-      <PanelAlert type="warning">
+      <PanelAlert type="info">
         {t(
-          'Your filter conditions contain a field for which we have no previous data. We will start collecting this metric once the alert is saved.'
+          'Selected filters include advanced conditions, which is a feature that is currently in early access. We will start collecting data for the chart once this alert rule is saved.'
         )}
       </PanelAlert>
       <StyledErrorPanel>
-        <IconWarning color="gray500" size="lg" />
+        <IconSettings color="gray500" size="lg" />
       </StyledErrorPanel>
     </ChartErrorWrapper>
   );

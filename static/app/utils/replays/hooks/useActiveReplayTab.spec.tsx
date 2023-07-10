@@ -81,47 +81,17 @@ describe('useActiveReplayTab', () => {
     });
   });
 
-  it('should allow ISSUES if session-replay-errors-tab is disabled', () => {
-    mockOrganization({
-      features: [],
-    });
-    const {result} = reactHooks.renderHook(useActiveReplayTab);
-    expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
-
-    // ISSUES is allowed:
-    result.current.setActiveTab(TabKey.ISSUES);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.ISSUES},
-    });
-
-    // ERRORS is not enabled, reset to default:
-    result.current.setActiveTab(TabKey.ERRORS);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.CONSOLE},
-    });
-  });
-
-  it('should allow ERRORS if session-replay-errors-tab is enabled', () => {
+  it('should allow ERRORS', () => {
     mockOrganization({
       features: ['session-replay-errors-tab'],
     });
     const {result} = reactHooks.renderHook(useActiveReplayTab);
     expect(result.current.getActiveTab()).toBe(TabKey.CONSOLE);
 
-    // ERRORS is enabled:
     result.current.setActiveTab(TabKey.ERRORS);
     expect(mockPush).toHaveBeenLastCalledWith({
       pathname: '',
       query: {t_main: TabKey.ERRORS},
-    });
-
-    // ISSUES is not allowed, it's been replaced by ERRORS, reset to default:
-    result.current.setActiveTab(TabKey.ISSUES);
-    expect(mockPush).toHaveBeenLastCalledWith({
-      pathname: '',
-      query: {t_main: TabKey.CONSOLE},
     });
   });
 });

@@ -5,9 +5,7 @@ import {Organization} from 'sentry/types';
 import {HookName, Hooks} from 'sentry/types/hooks';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsNavigation from 'sentry/views/settings/components/settingsNavigation';
-import navigationConfiguration, {
-  organizationNavigationWithAuthTokens,
-} from 'sentry/views/settings/organization/navigationConfiguration';
+import navigationConfiguration from 'sentry/views/settings/organization/navigationConfiguration';
 import {NavigationSection} from 'sentry/views/settings/types';
 
 type Props = {
@@ -74,13 +72,9 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
     const access = new Set(organization.access);
     const features = new Set(organization.features);
 
-    const navigationObjects = features.has('org-auth-tokens')
-      ? organizationNavigationWithAuthTokens
-      : navigationConfiguration;
-
     return (
       <SettingsNavigation
-        navigationObjects={navigationObjects}
+        navigationObjects={navigationConfiguration}
         access={access}
         features={features}
         organization={organization}

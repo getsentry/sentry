@@ -1,14 +1,7 @@
 import pytest
 
 from sentry.constants import ObjectStatus
-from sentry.models import (
-    Environment,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleStatus,
-    ScheduledDeletion,
-)
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -517,7 +510,7 @@ class DeleteMonitorTest(MonitorTestCase):
         )
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
-        assert rule.status == RuleStatus.PENDING_DELETION
+        assert rule.status == ObjectStatus.PENDING_DELETION
         assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
 
     def test_simple_with_alert_rule_deleted(self):
