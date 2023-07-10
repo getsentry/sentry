@@ -63,10 +63,18 @@ def valid_duration(duration: Optional[int]) -> bool:
     return True
 
 
-# Returns serializer appropriate group_ids corresponding with check-in trace ids
 def fetch_associated_groups(
     trace_ids: List[str], organization_id: int, project_id: int, start: datetime, end
 ) -> Dict[str, Set[int]]:
+    """
+    Returns serializer appropriate group_ids corresponding with check-in trace ids
+    :param trace_ids: list of trace_ids from the given check-ins
+    :param organization_id: organization id
+    :param project_id: project id
+    :param start: timestamp of the earliest check-in
+    :param end: timestamp of the latest check-in
+    :return:
+    """
     from snuba_sdk import (
         Column,
         Condition,
@@ -88,7 +96,7 @@ def fetch_associated_groups(
 
     dataset = Dataset.Events
 
-    # add 30 minutes on each end to be safe
+    # add 30 minutes on each end to ensure we get all associated events
     query_start = start - timedelta(minutes=30)
     query_end = end + timedelta(minutes=30)
 
@@ -139,6 +147,8 @@ def fetch_associated_groups(
     trace_groups: Dict[str, Set[int]] = defaultdict(set)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
+    # if query completes successfully, add the set of group id's to the corresponding check-in trace
+    # otherwise, return an empty dict to return an empty array through the serializer
     if "error" not in result:
         for event in result["data"]:
             trace_id_event_name = Columns.TRACE_ID.value.event_name
