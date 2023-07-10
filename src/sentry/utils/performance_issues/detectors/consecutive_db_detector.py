@@ -4,13 +4,17 @@ import re
 from datetime import timedelta
 from typing import Any, List, Mapping, Optional, Sequence
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils.event_frames import get_sdk_name
+from sentry.utils.performance_issues.detectors.utils import (
+    get_max_span_duration,
+    get_total_span_duration,
+)
 
 from ..base import (
     DetectorType,
@@ -91,7 +95,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         )
 
         time_saved = self._calculate_time_saved(self.independent_db_spans)
-        total_time = self._sum_span_duration(self.consecutive_db_spans)
+        total_time = get_total_span_duration(self.consecutive_db_spans)
 
         exceeds_time_saved_threshold = time_saved >= self.settings.get("min_time_saved")
 
@@ -181,13 +185,6 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return self.consecutive_db_spans[0].get("description", "")
 
-    def _sum_span_duration(self, spans: list[Span]) -> int:
-        "Given a list of spans, find the sum of the span durations in milliseconds"
-        sum = 0
-        for span in spans:
-            sum += get_span_duration(span).total_seconds() * 1000
-        return sum
-
     def _set_independent_spans(self, spans: list[Span]):
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
@@ -213,13 +210,10 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         this is where thresholds come in
         """
         consecutive_spans = self.consecutive_db_spans
-        total_duration = self._sum_span_duration(consecutive_spans)
+        total_duration = get_total_span_duration(consecutive_spans)
+        max_independent_span_duration = get_max_span_duration(independent_spans)
 
-        max_independent_span_duration = max(
-            [get_span_duration(span).total_seconds() * 1000 for span in independent_spans]
-        )
-
-        sum_of_dependent_span_durations = 0
+        sum_of_dependent_span_durations = 0.0
         for span in consecutive_spans:
             if span not in independent_spans:
                 sum_of_dependent_span_durations += get_span_duration(span).total_seconds() * 1000

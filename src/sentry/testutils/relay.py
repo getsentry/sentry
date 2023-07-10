@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import requests
@@ -26,6 +26,14 @@ class RelayStoreHelper(RequiredBaseclass):
     it's fine to call the regular `store_event` or `create_event`.
 
     """
+
+    get_relay_store_url: Any
+    auth_header: Any
+    get_relay_security_url: Any
+    wait_for_ingest_consumer: Any
+    get_relay_attachments_url: Any
+    get_relay_minidump_url: Any
+    get_relay_unreal_url: Any
 
     def use_relay(self):
         return True

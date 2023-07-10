@@ -5,7 +5,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import EventView from 'sentry/utils/discover/eventView';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
@@ -15,15 +15,18 @@ const EventsRequest = withApi(_EventsRequest);
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import {tooltipFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withApi from 'sentry/utils/withApi';
+import {P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {EndpointDataRow} from 'sentry/views/starfish/views/webServiceView/endpointDetails';
 import {SpanGroupBreakdownContainer} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 import EndpointList from './endpointList';
@@ -31,13 +34,12 @@ import EndpointList from './endpointList';
 type BasePerformanceViewProps = {
   eventView: EventView;
   location: Location;
-  onSelect: (row: EndpointDataRow) => void;
   organization: Organization;
-  projects: Project[];
 };
 
 export function StarfishView(props: BasePerformanceViewProps) {
-  const {organization, eventView, onSelect} = props;
+  const {organization, eventView} = props;
+  const pageFilter = usePageFilters();
   const theme = useTheme();
 
   function renderCharts() {
@@ -52,7 +54,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         query={query.formatString()}
         includePrevious={false}
         partial
-        interval="1h"
+        interval={getInterval(pageFilter.selection.datetime, 'low')}
         includeTransformedData
         limit={1}
         environment={eventView.environment}
@@ -62,7 +64,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         start={eventView.start}
         end={eventView.end}
         organization={organization}
-        yAxis={['tps()', 'http_error_count()']}
+        yAxis={['tps()', 'http_error_count()', 'p95(transaction.duration)']}
         dataset={DiscoverDatasets.METRICS}
       >
         {({loading, results}) => {
@@ -71,22 +73,51 @@ export function StarfishView(props: BasePerformanceViewProps) {
           }
 
           const throughputData: Series = {
-            seriesName: t('Throughput'),
+            seriesName: t('Requests'),
             data: results[0].data,
           };
 
           const errorsData: Series = {
-            seriesName: t('Errors (5XXs)'),
+            seriesName: t('5XX Responses'),
             color: CHART_PALETTE[5][3],
             data: results[1].data,
           };
 
+          const percentileData: Series = {
+            seriesName: t('Requests'),
+            data: results[2].data,
+          };
+
           return (
             <Fragment>
+              <MiniChartPanel title={DataTitles.p95}>
+                <Chart
+                  statsPeriod={eventView.statsPeriod}
+                  height={71}
+                  data={[percentileData]}
+                  start={eventView.start as string}
+                  end={eventView.end as string}
+                  loading={loading}
+                  utc={false}
+                  grid={{
+                    left: '0',
+                    right: '0',
+                    top: '8px',
+                    bottom: '0',
+                  }}
+                  definedAxisTicks={2}
+                  isLineChart
+                  chartColors={[P95_COLOR]}
+                  tooltipFormatterOptions={{
+                    valueFormatter: value =>
+                      tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+                  }}
+                />
+              </MiniChartPanel>
               <MiniChartPanel title={DataTitles.throughput}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[throughputData]}
                   start=""
                   end=""
@@ -102,7 +133,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
                   definedAxisTicks={2}
                   stacked
                   isLineChart
-                  chartColors={theme.charts.getColorPalette(2)}
+                  chartColors={[THROUGHPUT_COLOR]}
                   tooltipFormatterOptions={{
                     valueFormatter: value => formatThroughput(value),
                   }}
@@ -112,7 +143,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
               <MiniChartPanel title={DataTitles.errorCount}>
                 <Chart
                   statsPeriod={eventView.statsPeriod}
-                  height={80}
+                  height={71}
                   data={[errorsData]}
                   start={eventView.start as string}
                   end={eventView.end as string}
@@ -140,7 +171,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
 
   return (
     <div data-test-id="starfish-view">
-      <StyledRow minSize={200}>
+      <StyledRow minSize={300}>
         <ChartsContainer>
           <ChartsContainerItem>
             <SpanGroupBreakdownContainer />
@@ -149,11 +180,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         </ChartsContainer>
       </StyledRow>
 
-      <EndpointList
-        {...props}
-        setError={usePageError().setPageError}
-        onSelect={onSelect}
-      />
+      <EndpointList {...props} setError={usePageError().setPageError} />
     </div>
   );
 }

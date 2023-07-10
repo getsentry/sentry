@@ -19,6 +19,7 @@ from sentry.utils import json
 # The list is defined here:
 # https://docs.sentry.io/product/performance/performance-at-scale/getting-started
 SUPPORTED_SDK_VERSIONS = {
+    # Python
     "sentry-python": "1.7.2",
     "sentry.python.tornado": "1.7.2",
     "sentry.python.starlette": "1.7.2",
@@ -30,6 +31,7 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.python.aws_lambda": "1.7.2",
     "sentry.python.aiohttp": "1.7.2",
     "sentry.python": "1.7.2",
+    # JavaScript
     "sentry-browser": "7.6.0",
     "sentry.javascript.angular": "7.6.0",
     "sentry.javascript.browser": "7.6.0",
@@ -41,21 +43,30 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.javascript.serverless": "7.6.0",
     "sentry.javascript.svelte": "7.6.0",
     "sentry.javascript.vue": "7.6.0",
+    "sentry.javascript.node": "7.6.0",
+    "sentry.javascript.angular-ivy": "7.6.0",
+    "sentry.javascript.sveltekit": "7.6.0",
+    # Apple
     "sentry-cocoa": "7.23.0",
     "sentry-objc": "7.23.0",
     "sentry-swift": "7.23.0",
-    "sentry.cocoa": "7.23.0",
+    "sentry.cocoa": "7.18.0",
     "sentry.swift": "7.23.0",
     "SentrySwift": "7.23.0",
+    # Android
     "sentry-android": "6.5.0",
     "sentry.java.android.timber": "6.5.0",
     "sentry.java.android": "6.5.0",
     "sentry.native.android": "6.5.0",
+    # React Native
     "sentry-react-native": "4.3.0",
     "sentry.cocoa.react-native": "4.3.0",
     "sentry.java.android.react-native": "4.3.0",
     "sentry.javascript.react-native": "4.3.0",
     "sentry.native.android.react-native": "4.3.0",
+    "sentry.javascript.react-native.expo": "6.0.0",
+    "sentry.javascript.react.expo": "6.0.0",
+    # Dart and Flutter
     "dart": "6.11.0",
     "dart-sentry-client": "6.11.0",
     "sentry.dart": "6.11.0",
@@ -65,19 +76,24 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.java.android.flutter": "6.11.0",
     "sentry.native.android.flutter": "6.11.0",
     "sentry.dart.browser": "6.11.0",
+    # PHP
     "sentry-php": "3.9.0",
     "sentry.php": "3.9.0",
+    # Laravel
     "sentry-laravel": "3.0.0",
     "sentry.php.laravel": "3.0.0",
+    # Symfony
     "sentry-symfony": "4.4.0",
     "sentry.php.symfony": "4.4.0",
     "Symphony.SentryClient": "4.4.0",
+    # Ruby
     "sentry-ruby": "5.5.0",
     "sentry.ruby": "5.5.0",
     "sentry.ruby.delayed_job": "5.5.0",
     "sentry.ruby.rails": "5.5.0",
     "sentry.ruby.resque": "5.5.0",
     "sentry.ruby.sidekiq": "5.5.0",
+    # Java
     "sentry-java": "6.5.0",
     "sentry.java": "6.5.0",
     "sentry.java.jul": "6.5.0",
@@ -86,6 +102,8 @@ SUPPORTED_SDK_VERSIONS = {
     "sentry.java.spring": "6.5.0",
     "sentry.java.spring-boot": "6.5.0",
     "sentry.java.spring-boot.jakarta": "6.5.0",
+    "sentry.java.spring.jakarta": "6.5.0",
+    # .NET
     "sentry.aspnetcore": "3.22.0",
     "Sentry.AspNetCore": "3.22.0",
     "sentry.dotnet": "3.22.0",
@@ -109,6 +127,11 @@ SUPPORTED_SDK_VERSIONS = {
     "Sentry.UWP": "3.22.0",
     "SentryDotNet": "3.22.0",
     "SentryDotNet.AspNetCore": "3.22.0",
+    # Unity
+    "sentry.dotnet.unity": "0.24.0",
+    "sentry.cocoa.unity": "0.24.0",
+    "sentry.java.android.unity": "0.24.0",
+    # Go
     "sentry.go": "0.16.0",
 }
 
@@ -117,12 +140,20 @@ ONE_MINUTE_TTL = 60  # 1 minute
 
 # Conditions that are excluded from the widgets query.
 EXCLUDED_CONDITIONS = [
+    # Match specific tags with values.
     "event.type:error",
     "!event.type:transaction",
     "event.type:csp",
     "event.type:default",
+    # Match specific tags.
     "handled:",
     "unhandled:",
+    "culprit:",
+    "issue:",
+    "level:",
+    "unreal.crash_type:",
+    # Match multiple tags that contain this.
+    "stack.",
     "error.",
 ]
 

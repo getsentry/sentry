@@ -9,7 +9,7 @@ from django.utils import timezone
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -27,7 +27,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsLayerTest(BaseMetricsTestCase, cls):
+    class MetricsLayerTest(BaseMetricsTestCase, cls):  # type: ignore[valid-type]
         __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
         adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation
@@ -1159,7 +1159,7 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
                 tags={},
                 type="set",
                 value=value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                use_case_id=UseCaseID.SESSIONS,
             )
 
         assert (

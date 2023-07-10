@@ -191,7 +191,28 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         args: Mapping[str, Union[str, Column, SelectType, int, float]],
         alias: str,
     ) -> SelectType:
-        base_condition = Function("greaterOrEquals", [args["column"], args["min"]])
+        base_condition = Function(
+            "and",
+            [
+                Function("greaterOrEquals", [args["column"], args["min"]]),
+                Function(
+                    "greater",
+                    [
+                        Function(
+                            "position",
+                            [
+                                Function("toString", [Column("span_id")]),
+                                Function(
+                                    "substring",
+                                    [Function("toString", [Function("rand", [])]), 1, 2],
+                                ),
+                            ],
+                        ),
+                        0,
+                    ],
+                ),
+            ],
+        )
         if args["max"] is not None:
             condition = Function(
                 "and", [base_condition, Function("less", [args["column"], args["max"]])]

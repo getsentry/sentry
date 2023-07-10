@@ -1,9 +1,11 @@
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils import get_integration_from_jwt
+from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.integrations.integration import Integration
 
 from .base import JiraWebhookBase
@@ -25,6 +27,9 @@ class JiraSentryUninstalledWebhook(JiraWebhookBase):
             method="POST",
         )
         integration = Integration.objects.get(id=rpc_integration.id)
+        bind_org_context_from_integration(integration.id, {"webhook": "uninstalled"})
+        sentry_sdk.set_tag("integration_id", integration.id)
+
         integration.update(status=ObjectStatus.DISABLED)
 
         return self.respond()

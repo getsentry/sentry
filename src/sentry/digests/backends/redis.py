@@ -142,13 +142,11 @@ class RedisBackend(Backend):
     def __schedule_partition(
         self, host: int, deadline: float, timestamp: float
     ) -> Iterable[Tuple[bytes, float]]:
-        # Explicitly typing to satisfy mypy.
-        partitions: Iterable[Tuple[bytes, float]] = script(
+        return script(
             self.cluster.get_local_client(host),
             ["-"],
             ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
         )
-        return partitions
 
     def schedule(
         self, deadline: float, timestamp: Optional[float] = None

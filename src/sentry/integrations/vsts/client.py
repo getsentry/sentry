@@ -1,12 +1,19 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence, Union
 
+from requests import PreparedRequest
 from rest_framework.response import Response
 
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
+from sentry.models import Identity
+from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.base import BaseApiResponseX
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Identity, Project
+    from sentry.models import Project
 
 UNSET = object()
 
@@ -72,49 +79,124 @@ class VstsApiPath:
     work_item_categories = "{instance}{project}/_apis/wit/workitemtypecategories"
 
 
-class VstsApiClient(ApiClient, OAuth2RefreshMixin):
+def prepare_headers(
+    api_version: str,
+    method: str,
+    api_version_preview: str,
+):
+
+    headers = {
+        "Accept": f"application/json; api-version={api_version}{api_version_preview}",
+        "Content-Type": "application/json-patch+json" if method == "PATCH" else "application/json",
+        "X-HTTP-Method-Override": method,
+        "X-TFS-FedAuthRedirect": "Suppress",
+    }
+    return headers
+
+
+def prepare_auth_header(
+    access_token: str,
+):
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+    }
+    return headers
+
+
+class VstsApiMixin:
     api_version = "4.1"  # TODO: update api version
     api_version_preview = "-preview.1"
+
+    def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
+        return self.post(
+            VstsApiPath.subscriptions.format(instance=instance),
+            data={
+                "publisherId": "tfs",
+                "eventType": "workitem.updated",
+                "resourceVersion": "1.0",
+                "consumerId": "webHooks",
+                "consumerActionId": "httpRequest",
+                "consumerInputs": {
+                    "url": absolute_uri("/extensions/vsts/issue-updated/"),
+                    "resourceDetailsToSend": "all",
+                    "httpHeaders": f"shared-secret:{shared_secret}",
+                },
+            },
+        )
+
+
+class VstsSetupApiClient(ApiClient, VstsApiMixin):
     integration_name = "vsts"
 
-    def __init__(
-        self, identity: "Identity", oauth_redirect_url: str, *args: Any, **kwargs: Any
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        self.identity = identity
+    def __init__(self, oauth_redirect_url: str, access_token: str):
+        super().__init__()
         self.oauth_redirect_url = oauth_redirect_url
-        if "access_token" not in self.identity.data:
-            raise ValueError("Vsts Identity missing access token")
+        self.access_token = access_token
 
     def request(
-        self,
-        method: str,
-        path: str,
-        data: Optional[Mapping[str, Any]] = None,
-        params: Optional[Sequence[Any]] = None,
-        api_preview: bool = False,
-        timeout: Optional[int] = None,
-    ) -> Response:
-        self.check_auth(redirect_url=self.oauth_redirect_url)
-        headers = {
-            "Accept": "application/json; api-version={}{}".format(
-                self.api_version, self.api_version_preview if api_preview else ""
-            ),
-            "Content-Type": "application/json-patch+json"
-            if method == "PATCH"
-            else "application/json",
-            "X-HTTP-Method-Override": method,
-            "X-TFS-FedAuthRedirect": "Suppress",
-            "Authorization": "Bearer {}".format(self.identity.data["access_token"]),
-        }
-        return self._request(
-            method, path, headers=headers, data=data, params=params, timeout=timeout
+        self, method, path, data=None, params=None, api_preview: bool = False
+    ) -> BaseApiResponseX:
+        headers = prepare_headers(
+            api_version=self.api_version,
+            method=method,
+            api_version_preview=self.api_version_preview if api_preview else "",
         )
+        headers.update(prepare_auth_header(access_token=self.access_token))
+        return self._request(method, path, headers=headers, data=data, params=params)
+
+
+class VstsApiClient(IntegrationProxyClient, OAuth2RefreshMixin, VstsApiMixin):
+    integration_name = "vsts"
+    _identity: Identity | None = None
+
+    def __init__(
+        self,
+        base_url: str,
+        oauth_redirect_url: str,
+        org_integration_id: int,
+        identity_id: int | None = None,
+    ) -> None:
+        self.base_url = base_url
+        self.identity_id = identity_id
+        self.oauth_redirect_url = oauth_redirect_url
+        super().__init__(org_integration_id=org_integration_id)
+
+    @property
+    def identity(self):
+        if self._identity:
+            return self._identity
+        self._identity = Identity.objects.get(id=self.identity_id)
+        return self._identity
+
+    def request(self, method: str, *args: Any, **kwargs: Any) -> BaseApiResponseX:
+        api_preview = kwargs.pop("api_preview", False)
+        headers = kwargs.pop("headers", {})
+        new_headers = prepare_headers(
+            api_version=self.api_version,
+            method=method,
+            api_version_preview=self.api_version_preview if api_preview else "",
+        )
+        headers.update(new_headers)
+
+        return self._request(method, *args, headers=headers, **kwargs)
+
+    @control_silo_function
+    def authorize_request(
+        self,
+        prepared_request: PreparedRequest,
+    ) -> PreparedRequest:
+        self.check_auth(redirect_url=self.oauth_redirect_url)
+        access_token = self.identity.data["access_token"]
+        headers = prepare_auth_header(
+            access_token=access_token,
+        )
+        prepared_request.headers.update(headers)
+        return prepared_request
 
     def create_work_item(
         self,
         instance: str,
-        project: "Project",
+        project: Project,
         item_type: Optional[str] = None,
         title: Optional[str] = None,
         description: Optional[str] = None,
@@ -275,9 +357,7 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             return {"stateFilter": "WellFormed", "$skip": offset, "$top": page_size}
 
         def get_results(resp: Response) -> Sequence[Any]:
-            # Explicitly typing to satisfy mypy.
-            results: Sequence[Any] = resp["value"]
-            return results
+            return resp["value"]
 
         return self.get_with_pagination(
             VstsApiPath.projects.format(instance=instance),
@@ -294,23 +374,6 @@ class VstsApiClient(ApiClient, OAuth2RefreshMixin):
             VstsApiPath.users.format(account_name=account_name),
             api_preview=True,
             params={"continuationToken": continuation_token},
-        )
-
-    def create_subscription(self, instance: Optional[str], shared_secret: str) -> Response:
-        return self.post(
-            VstsApiPath.subscriptions.format(instance=instance),
-            data={
-                "publisherId": "tfs",
-                "eventType": "workitem.updated",
-                "resourceVersion": "1.0",
-                "consumerId": "webHooks",
-                "consumerActionId": "httpRequest",
-                "consumerInputs": {
-                    "url": absolute_uri("/extensions/vsts/issue-updated/"),
-                    "resourceDetailsToSend": "all",
-                    "httpHeaders": f"shared-secret:{shared_secret}",
-                },
-            },
         )
 
     def get_subscription(self, instance: str, subscription_id: str) -> Response:

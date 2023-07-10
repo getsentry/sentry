@@ -97,7 +97,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         action = self.create_alert_rule_trigger_action(
@@ -149,7 +149,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=self.user,
+            user_id=self.user.id,
             project=self.project,
         )
         disabled_user = self.create_user()
@@ -157,7 +157,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
             ExternalProviders.EMAIL,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.NEVER,
-            user=disabled_user,
+            user_id=disabled_user.id,
         )
 
         new_user = self.create_user()
@@ -217,33 +217,24 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
+    @with_feature("organizations:mute-metric-alerts")
     def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=alert_email",
+        )
         expected = {
-            "link": self.organization.absolute_url(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                ),
-                query="referrer=alert_email",
-            ),
-            "rule_link": self.organization.absolute_url(
-                reverse(
-                    "sentry-alert-rule",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "project_slug": self.project.slug,
-                        "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-                    },
-                ),
-                query="referrer=alert_email",
-            ),
+            "link": alert_link,
             "incident_name": incident.title,
             "aggregate": aggregate,
             "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
@@ -260,8 +251,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "unsubscribe_link": None,
             "chart_url": None,
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
-            "snooze_alert": False,
-            "snooze_alert_url": None,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -291,16 +282,6 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             },
         )
         assert self.organization.absolute_url(path) in result["link"]
-
-        path = reverse(
-            "sentry-alert-rule",
-            kwargs={
-                "organization_slug": self.organization.slug,
-                "project_slug": self.project.slug,
-                "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
-            },
-        )
-        assert self.organization.absolute_url(path) in result["rule_link"]
 
     def test_resolve(self):
         status = TriggerStatus.RESOLVED
@@ -399,7 +380,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
@@ -433,7 +414,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         "sentry.incidents.charts.fetch_metric_alert_events_timeseries",
         side_effect=fetch_metric_alert_events_timeseries,
     )
-    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_metric_chart_mep(self, mock_generate_chart, mock_fetch_metric_alert_events_timeseries):
         indexer.record(
             use_case_id=UseCaseID.TRANSACTIONS, org_id=self.organization.id, string="level"

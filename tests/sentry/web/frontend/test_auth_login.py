@@ -1,6 +1,7 @@
 from datetime import timedelta
 from functools import cached_property
 from unittest import mock
+from urllib.parse import quote as urlquote
 from urllib.parse import urlencode
 
 import pytest
@@ -8,13 +9,13 @@ from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.http import urlquote
 
 from sentry import newsletter, options
 from sentry.auth.authenticators import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.models.organization import Organization
+from sentry.receivers import create_default_projects
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -182,6 +183,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     def test_registration_single_org(self):
+        create_default_projects()
         options.set("auth.allow-registration", True)
         with self.feature("auth:register"):
             resp = self.client.post(
@@ -207,6 +209,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
     def test_registration_single_org_with_invite(self, from_session):
+        create_default_projects()
         self.session["can_register"] = True
         self.save_session()
 

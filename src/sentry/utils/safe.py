@@ -4,9 +4,10 @@ from typing import Any, Mapping, Sequence, Union
 import sentry_sdk
 from django.conf import settings
 from django.db import transaction
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.http import urlencode
 
+from sentry.db.postgres.transactions import django_test_transaction_water_mark
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
@@ -21,7 +22,7 @@ def safe_execute(func, *args, **kwargs):
     try:
         if _with_transaction:
             with sentry_sdk.start_span(op="db.safe_execute", description="transaction.atomic"):
-                with transaction.atomic():
+                with transaction.atomic(), django_test_transaction_water_mark():
                     result = func(*args, **kwargs)
         else:
             result = func(*args, **kwargs)
@@ -72,11 +73,11 @@ def trim(
     elif isinstance(value, dict):
         result = {}
         _size += 2
-        for k in sorted(value.keys(), key=lambda x: (len(force_text(value[x])), x)):
+        for k in sorted(value.keys(), key=lambda x: (len(force_str(value[x])), x)):
             v = value[k]
             trim_v = trim(v, _size=_size, **options)
             result[k] = trim_v
-            _size += len(force_text(trim_v)) + 1
+            _size += len(force_str(trim_v)) + 1
             if _size >= max_size:
                 break
 
@@ -86,7 +87,7 @@ def trim(
         for v in value:
             trim_v = trim(v, _size=_size, **options)
             result.append(trim_v)
-            _size += len(force_text(trim_v))
+            _size += len(force_str(trim_v))
             if _size >= max_size:
                 break
         if isinstance(value, tuple):

@@ -202,6 +202,10 @@ type Props = WithRouterProps &
      */
     customPerformanceMetrics?: CustomMeasurementCollection;
     /**
+     * The default search group to show when there is no query
+     */
+    defaultSearchGroup?: SearchGroup;
+    /**
      * Disabled control (e.g. read-only)
      */
     disabled?: boolean;
@@ -1558,15 +1562,22 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param recentSearchItems List of recent search items, same format as searchItem
    * @param tagName The current tag name in scope
    * @param type Defines the type/state of the dropdown menu items
+   * @param skipDefaultGroup Force hide the default group even without a query
    */
   updateAutoCompleteState(
     searchItems: SearchItem[],
     recentSearchItems: SearchItem[],
     tagName: string,
-    type: ItemType
+    type: ItemType,
+    skipDefaultGroup = false
   ) {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
 
     const queryCharsLeft =
@@ -1580,6 +1591,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       maxSearchItems,
       queryCharsLeft,
       true,
+      skipDefaultGroup ? undefined : defaultSearchGroup,
       fieldDefinitionGetter
     );
 
@@ -1592,8 +1604,13 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * @param groups Groups that will be used to populate the autocomplete dropdown
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
-    const {fieldDefinitionGetter, hasRecentSearches, maxSearchItems, maxQueryLength} =
-      this.props;
+    const {
+      fieldDefinitionGetter,
+      hasRecentSearches,
+      maxSearchItems,
+      maxQueryLength,
+      defaultSearchGroup,
+    } = this.props;
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1608,18 +1625,19 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
           maxSearchItems,
           queryCharsLeft,
           false,
+          defaultSearchGroup,
           fieldDefinitionGetter
         )
       )
-      .reduce(
+      .reduce<ReturnType<typeof createSearchGroups>>(
         (acc, item) => ({
           searchGroups: [...acc.searchGroups, ...item.searchGroups],
           flatSearchItems: [...acc.flatSearchItems, ...item.flatSearchItems],
           activeSearchItem: -1,
         }),
         {
-          searchGroups: [] as SearchGroup[],
-          flatSearchItems: [] as SearchItem[],
+          searchGroups: [],
+          flatSearchItems: [],
           activeSearchItem: -1,
         }
       );
@@ -1647,17 +1665,6 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     const {query} = this.state;
 
     const cursorToken = this.cursorToken;
-
-    if (item.kind === FieldKind.FIELD || item.kind === FieldKind.TAG) {
-      trackAnalytics('search.key_autocompleted', {
-        organization: this.props.organization,
-        search_operator: replaceText,
-        search_source: this.props.searchSource,
-        item_name: item.title ?? item.value?.split(':')[0],
-        item_kind: item.kind,
-        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
-      });
-    }
 
     if (!cursorToken) {
       this.updateQuery(`${query}${replaceText}`);
@@ -1761,6 +1768,34 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
         this.doSearch();
       });
 
+      return;
+    }
+
+    if (
+      item.kind === FieldKind.FIELD ||
+      item.kind === FieldKind.TAG ||
+      item.type === ItemType.RECOMMENDED
+    ) {
+      trackAnalytics('search.key_autocompleted', {
+        organization: this.props.organization,
+        search_operator: replaceText,
+        search_source: this.props.searchSource,
+        item_name: item.title ?? item.value?.split(':')[0],
+        item_kind: item.kind,
+        item_type: item.type,
+        search_type: this.props.savedSearchType === 0 ? 'issues' : 'events',
+      });
+    }
+
+    if (item.applyFilter) {
+      const [tagKeys, tagType] = this.getTagKeys('');
+      this.updateAutoCompleteState(
+        tagKeys.filter(item.applyFilter),
+        [],
+        '',
+        tagType,
+        true
+      );
       return;
     }
 

@@ -24,6 +24,7 @@ class AuditLogEvent(RpcModel):
     event_id: int = -1
     actor_label: str = ""
     actor_user_id: Optional[int] = None
+    actor_key_id: Optional[int] = None
     ip_address: Optional[str] = None
     target_object_id: Optional[int] = None
     data: Optional[Mapping[str, Any]] = None

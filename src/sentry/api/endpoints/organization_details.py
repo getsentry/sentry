@@ -22,7 +22,7 @@ from sentry.api.serializers.models.organization import (
     TrustedRelaySerializer,
 )
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, SentryAppStatus
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -36,9 +36,11 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.models.integrations import SentryApp
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
@@ -50,6 +52,7 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
+ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -125,6 +128,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.AI_SUGGESTED_SOLUTION,
     ),
+    (
+        "githubPRBot",
+        "sentry:github_pr_bot",
+        bool,
+        org_serializers.GITHUB_PR_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -168,6 +177,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
@@ -517,17 +527,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            changed_data = {}
             try:
                 with transaction.atomic():
                     organization, changed_data = serializer.save()
-
-            # TODO(hybrid-cloud): This will need to be a more generic error
-            # when the internal RPC is implemented.
             except IntegrityError:
                 return self.respond(
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
                 )
+            except OutboxFlushError:
+                pass
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -565,6 +575,10 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
+        if SentryApp.objects.filter(
+            owner_id=organization.id, status=SentryAppStatus.PUBLISHED
+        ).exists():
+            return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
         with transaction.atomic():
             updated_organization = mark_organization_as_pending_deletion_with_outbox_message(

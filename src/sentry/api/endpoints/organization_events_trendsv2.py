@@ -37,6 +37,7 @@ TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 TOP_EVENTS_LIMIT = 50
 EVENTS_PER_QUERY = 10
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
+ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
 DEFAULT_RATE_LIMIT = 10
 DEFAULT_RATE_LIMIT_WINDOW = 1
@@ -99,7 +100,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         modified_params = params.copy()
         delta = modified_params["end"] - modified_params["start"]
         duration = delta.total_seconds()
-        if duration >= 1209600 and duration <= 1209600 * 2:
+        if duration >= 14 * ONE_DAY_IN_SECONDS and duration <= 30 * ONE_DAY_IN_SECONDS:
             new_start = modified_params["end"] - timedelta(days=30)
             min_start = timezone.now() - timedelta(days=90)
             modified_params["start"] = new_start if min_start < new_start else min_start
@@ -146,7 +147,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             )
             return f"transaction:[{top_transaction_as_str}]"
 
-        def get_timeseries(top_events, params, rollup, zerofill_results):
+        def get_timeseries(top_events, _, rollup, zerofill_results):
             # Split top events into multiple queries for bulk timeseries query
             data = top_events["data"]
             split_top_events = [
@@ -161,7 +162,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                params,
+                modified_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
@@ -198,7 +199,11 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 formatted_results[key] = SnubaTSResult(
                     {
                         "data": zerofill(
-                            item["data"], params["start"], params["end"], rollup, "time"
+                            item["data"],
+                            modified_params["start"],
+                            modified_params["end"],
+                            rollup,
+                            "time",
                         )
                         if zerofill_results
                         else item["data"],
@@ -207,8 +212,8 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "order": item["order"],
                         "meta": result["meta"],
                     },
-                    params["start"],
-                    params["end"],
+                    modified_params["start"],
+                    modified_params["end"],
                     rollup,
                 )
             return formatted_results
@@ -303,13 +308,20 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             if request.GET.get("withTimeseries", False):
                 trending_transaction_names_stats = stats_data
             else:
-                # TODO remove extra data when stats period is from 14d to 30d
                 for t in results["data"]:
                     transaction_name = t["transaction"]
                     project = t["project"]
                     t_p_key = project + "," + transaction_name
                     if t_p_key in stats_data:
-                        trending_transaction_names_stats[t_p_key] = stats_data[t_p_key]
+                        selected_stats_data = stats_data[t_p_key]
+                        idx = next(
+                            i
+                            for i, data in enumerate(selected_stats_data["data"])
+                            if data[0] >= params["start"].timestamp()
+                        )
+                        parsed_stats_data = selected_stats_data["data"][idx:]
+                        selected_stats_data["data"] = parsed_stats_data
+                        trending_transaction_names_stats[t_p_key] = selected_stats_data
                     else:
                         logger.warning(
                             "trends.trends-request.timeseries.key-mismatch",
@@ -320,7 +332,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "events": self.handle_results_with_meta(
                     request,
                     organization,
-                    params["project_id"],
+                    modified_params["project_id"],
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
@@ -342,7 +354,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 get_event_stats_metrics,
                 top_events=EVENTS_PER_QUERY,
                 query_column=trend_function,
-                params=modified_params,
+                params=params,
                 query=query,
             )
 
@@ -355,7 +367,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "events": self.handle_results_with_meta(
                             request,
                             organization,
-                            params["project_id"],
+                            modified_params["project_id"],
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),

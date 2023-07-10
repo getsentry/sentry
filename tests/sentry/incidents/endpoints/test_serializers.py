@@ -27,6 +27,8 @@ from sentry.incidents.serializers import (
 from sentry.models import ACTOR_TYPES, Environment, Integration
 from sentry.models.actor import get_actor_for_user
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.app import app_service
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -85,7 +87,17 @@ class TestAlertRuleSerializer(TestCase):
 
     @cached_property
     def context(self):
-        return {"organization": self.organization, "access": self.access, "user": self.user}
+        return {
+            "organization": self.organization,
+            "access": self.access,
+            "user": self.user,
+            "installations": app_service.get_installed_for_organization(
+                organization_id=self.organization.id
+            ),
+            "integrations": integration_service.get_integrations(
+                organization_id=self.organization.id
+            ),
+        }
 
     def run_fail_validation_test(self, params, errors):
         base_params = self.valid_params.copy()
@@ -855,7 +867,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
                 "target_identifier": "1234567",
             },
-            {"nonFieldErrors": ["User does not exist"]},
+            {"nonFieldErrors": ["User does not belong to this organization"]},
         )
         other_user = self.create_user()
         self.run_fail_validation_test(

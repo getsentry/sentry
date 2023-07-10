@@ -9,6 +9,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export type SpanMetrics = {
@@ -21,7 +22,7 @@ export type SpanMetrics = {
 
 export const useSpanMetricsSeries = (
   span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: {transactionName?: string} = {},
+  queryFilters: SpanSummaryQueryFilters = {},
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
@@ -29,17 +30,11 @@ export const useSpanMetricsSeries = (
   const pageFilters = usePageFilters();
 
   const eventView = span
-    ? getEventView(
-        span,
-        location,
-        pageFilters.selection,
-        yAxis,
-        queryFilters.transactionName
-      )
+    ? getEventView(span, location, pageFilters.selection, yAxis, queryFilters)
     : undefined;
 
   // TODO: Add referrer
-  const {isLoading, data} = useSpansQuery<SpanMetrics[]>({
+  const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
     referrer,
@@ -49,7 +44,10 @@ export const useSpanMetricsSeries = (
     yAxis.map(seriesName => {
       const series: Series = {
         seriesName,
-        data: data.map(datum => ({value: datum[seriesName], name: datum.interval})),
+        data: result?.data.map(datum => ({
+          value: datum[seriesName],
+          name: datum.interval,
+        })),
       };
 
       return series;
@@ -57,7 +55,7 @@ export const useSpanMetricsSeries = (
     'seriesName'
   );
 
-  return {isLoading, data: parsedData};
+  return {...result, data: parsedData};
 };
 
 function getEventView(
@@ -65,7 +63,7 @@ function getEventView(
   location: Location,
   pageFilters: PageFilters,
   yAxis: string[],
-  transaction?: string
+  queryFilters?: SpanSummaryQueryFilters
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
@@ -73,13 +71,18 @@ function getEventView(
     {
       name: '',
       query: `span.group:${cleanGroupId}${
-        transaction ? ` transaction:${transaction}` : ''
+        queryFilters?.transactionName
+          ? ` transaction:${queryFilters?.transactionName}`
+          : ''
+      }${
+        queryFilters?.['transaction.method']
+          ? ` transaction.method:${queryFilters?.['transaction.method']}`
+          : ''
       }`,
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
       interval: getInterval(pageFilters.datetime, 'low'),
-      projects: [1],
       version: 2,
     },
     location

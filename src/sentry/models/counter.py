@@ -14,6 +14,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.silo import SiloMode
 
 
 @region_silo_only_model
@@ -97,6 +98,9 @@ def create_counter_function(app_config, using, **kwargs):
         return
 
     if not get_model_if_available(app_config, "Counter"):
+        return
+
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
         return
 
     with in_test_psql_role_override("postgres", using), connections[using].cursor() as cursor:

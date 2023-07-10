@@ -107,7 +107,10 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
-                    user_ids = {u.id for u in user_service.get_many_by_email(emails=[value])}
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=[value], is_verified=False)
+                    }
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
@@ -116,7 +119,10 @@ class OrganizationIndexEndpoint(Endpoint):
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    user_ids = {u.id for u in user_service.get_many_by_email(emails=value)}
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
                     queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
@@ -227,7 +233,6 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
-                om.outbox_for_update().drain_shard(max_updates_to_drain=10)
                 org_setup_complete.send_robust(
                     instance=org, user=request.user, sender=self.__class__
                 )

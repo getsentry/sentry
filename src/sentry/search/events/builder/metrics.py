@@ -29,16 +29,18 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
     HistogramParams,
+    NormalizedArg,
     ParamsType,
     QueryFramework,
     SelectType,
     WhereType,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.metrics.extraction import QUERY_HASH_KEY, OndemandMetricSpec, is_on_demand_query
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import DATASETS, bulk_snql_query, raw_snql_query
 
@@ -69,6 +71,11 @@ class MetricsQueryBuilder(QueryBuilder):
         # always true if this is being called
         kwargs["has_metrics"] = True
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
+
+        self._on_demand_spec = self._resolve_on_demand_spec(
+            dataset, kwargs.get("selected_columns", []), kwargs.get("query", "")
+        )
+
         if granularity is not None:
             self._granularity = granularity
         super().__init__(
@@ -84,6 +91,50 @@ class MetricsQueryBuilder(QueryBuilder):
         if org_id is None or not isinstance(org_id, int):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
         self.organization_id: int = org_id
+
+    def _resolve_on_demand_spec(
+        self, dataset: Optional[Dataset], selected_cols: List[Optional[str]], query: str
+    ) -> Optional[OndemandMetricSpec]:
+        if not is_on_demand_query(dataset, query):
+            return None
+
+        field = selected_cols[0] if selected_cols else None
+        if not self.is_alerts_query or not field:
+            return None
+        try:
+            return OndemandMetricSpec(field, query)
+
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
+    def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
+        if not self.is_performance or not self.is_alerts_query:
+            return None
+
+        spec = self._on_demand_spec
+
+        return MetricsQuery(
+            select=[MetricField(spec.op, spec.mri, alias=spec.mri)],
+            where=[
+                Condition(
+                    lhs=Column(QUERY_HASH_KEY),
+                    op=Op.EQ,
+                    rhs=spec.query_hash(),
+                ),
+            ],
+            # TODO(ogi): groupby and orderby
+            limit=self.limit,
+            offset=self.offset,
+            granularity=self.resolve_granularity(),
+            is_alerts_query=self.is_alerts_query,
+            org_id=self.params.organization.id,
+            project_ids=[p.id for p in self.params.projects],
+            # We do not need the series here, as later, we only extract the totals and assign it to the
+            # request.query
+            include_series=False,
+            start=self.params.start,
+            end=self.params.end,
+        )
 
     def validate_aggregate_arguments(self) -> None:
         if not self.use_metrics_layer:
@@ -142,7 +193,8 @@ class MetricsQueryBuilder(QueryBuilder):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
 
-        if self.use_metrics_layer:
+        # on-demand metrics require metrics layer behavior
+        if self.use_metrics_layer or self._on_demand_spec:
             if col in ["project_id", "timestamp"]:
                 return col
             # TODO: update resolve params so this isn't needed
@@ -288,7 +340,7 @@ class MetricsQueryBuilder(QueryBuilder):
     def resolve_snql_function(
         self,
         snql_function: fields.MetricsFunction,
-        arguments: Mapping[str, fields.NormalizedArg],
+        arguments: Mapping[str, NormalizedArg],
         alias: str,
         resolve_only: bool,
     ) -> Optional[SelectType]:
@@ -636,7 +688,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 raise IncompatibleMetricsQuery("Can't orderby tags")
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,
@@ -644,16 +696,20 @@ class MetricsQueryBuilder(QueryBuilder):
 
             try:
                 with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        self.get_metrics_layer_snql_query().query, self.is_alerts_query
-                    )
+                    if self._on_demand_spec:
+                        metric_query = self._get_on_demand_metrics_query()
+                    else:
+                        metric_query = transform_mqb_query_to_metrics_query(
+                            self.get_metrics_layer_snql_query().query, self.is_alerts_query
+                        )
+                    # metric_query.where = metric_query_ondemand.where
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )
@@ -835,18 +891,22 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             )
 
             snuba_request = self.get_metrics_layer_snql_query()
+
+            if self._on_demand_spec:
+                metrics_query = self._get_on_demand_metrics_query()
+            else:
+                metrics_query = transform_mqb_query_to_metrics_query(
+                    snuba_request.query, is_alerts_query=self.is_alerts_query
+                )
+
             snuba_queries, _ = SnubaQueryBuilder(
                 projects=self.params.projects,
-                metrics_query=transform_mqb_query_to_metrics_query(
-                    snuba_request.query, is_alerts_query=self.is_alerts_query
-                ),
-                use_case_id=UseCaseKey.PERFORMANCE
-                if self.is_performance
-                else UseCaseKey.RELEASE_HEALTH,
+                metrics_query=metrics_query,
+                use_case_id=UseCaseID.TRANSACTIONS if self.is_performance else UseCaseID.SESSIONS,
             ).get_snuba_queries()
 
             if len(snuba_queries) != 1:
-                # If we have have zero or more than one queries resulting from the supplied query, we want to generate
+                # If we have zero or more than one queries resulting from the supplied query, we want to generate
                 # an error as we don't support this case.
                 raise IncompatibleMetricsQuery(
                     "The metrics layer generated zero or multiple queries from the supplied query, only a single query is supported"
@@ -926,7 +986,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         )
         if self.granularity.granularity > interval:
             for granularity in constants.METRICS_GRANULARITIES:
-                if granularity < interval:
+                if granularity <= interval:
                     self.granularity = Granularity(granularity)
                     break
 
@@ -1054,9 +1114,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     metrics_data = get_series(
                         projects=self.params.projects,
                         metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
+                        use_case_id=UseCaseID.TRANSACTIONS
                         if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
+                        else UseCaseID.SESSIONS,
                         include_meta=True,
                         tenant_ids=self.tenant_ids,
                     )

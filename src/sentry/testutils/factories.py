@@ -17,7 +17,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -81,7 +81,6 @@ from sentry.models import (
     Repository,
     RepositoryProjectPathConfig,
     Rule,
-    RuleSnooze,
     SavedSearch,
     SentryAppInstallation,
     SentryFunction,
@@ -102,6 +101,7 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.releasefile import update_artifact_index
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
@@ -269,9 +269,6 @@ class Factories:
 
         if owner:
             Factories.create_member(organization=org, user_id=owner.id, role="owner")
-
-        region_outbox = Organization.outbox_for_update(org_id=org.id)
-        region_outbox.drain_shard()
         return org
 
     @staticmethod
@@ -307,7 +304,6 @@ class Factories:
         kwargs["inviter_id"] = inviter_id
 
         om = OrganizationMember.objects.create(**kwargs)
-        om.outbox_for_update().drain_shard(max_updates_to_drain=10)
 
         if team_roles:
             for team, role in team_roles:
@@ -453,7 +449,7 @@ class Factories:
         unadopted: Optional[datetime] = None,
     ):
         if version is None:
-            version = force_text(hexlify(os.urandom(20)))
+            version = force_str(hexlify(os.urandom(20)))
 
         if date_added is None:
             date_added = timezone.now()
@@ -578,6 +574,7 @@ class Factories:
         artifact_count=0,
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,
+        date_last_modified=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -593,6 +590,7 @@ class Factories:
             file=file_,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
+            date_last_modified=date_last_modified,
         )
         return artifact_bundle
 
@@ -1415,6 +1413,7 @@ class Factories:
             user_id=user.id,
             status=IdentityStatus.VALID,
             scopes=[],
+            **kwargs,
         )
 
     @staticmethod

@@ -27,8 +27,7 @@ from snuba_sdk import (
 
 from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
     resolve,
     resolve_tag_key,
@@ -72,6 +71,7 @@ from sentry.snuba.metrics.query import MetricConditionField, MetricField, Metric
 from sentry.snuba.metrics.query_builder import QUERY_PROJECT_LIMIT, QueryDefinition
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.pytest.fixtures import django_db_all
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -92,7 +92,7 @@ BEG_12H_BEFORE_NOW = datetime(2021, 8, 25, 12, tzinfo=timezone.utc)
 BEG_1D_BEFORE_NOW = datetime(2021, 8, 25, 00, tzinfo=timezone.utc)
 
 ORG_ID = 1
-USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
+USE_CASE_ID = UseCaseID.SESSIONS
 
 
 def get_entity_of_metric_mocked(_, metric_name, use_case_id):
@@ -104,7 +104,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
     }[metric_name]
 
 
-@pytest.mark.django_db
+@django_db_all
 @pytest.mark.parametrize(
     "query_string,expected",
     [
@@ -251,7 +251,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
 )
 def test_parse_query(query_string, expected):
     org_id = ORG_ID
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
         # will be values 10000, 10001 respectively
         indexer.record(use_case_id=UseCaseID.SESSIONS, org_id=org_id, string=s)
@@ -370,11 +370,11 @@ def test_build_snuba_query(mock_now, mock_now2):
         having=having,
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
 
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
@@ -485,7 +485,7 @@ def test_build_snuba_query(mock_now, mock_now2):
 )
 def test_build_snuba_query_mri(mock_now, mock_now2):
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
     query_params = MultiValueDict(
         {
@@ -567,7 +567,7 @@ def test_build_snuba_query_mri(mock_now, mock_now2):
 )
 def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
     query_params = MultiValueDict(
         {
@@ -723,7 +723,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
         )
 
 
-@pytest.mark.django_db
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_orderby(mock_now, mock_now2):
@@ -744,11 +744,11 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_metrics_query(), UseCaseKey.RELEASE_HEALTH
+        [PseudoProject(1, 1)], query_definition.to_metrics_query(), UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
 
     counter_queries = snuba_queries.pop("metrics_counters")
     assert not snuba_queries
@@ -826,7 +826,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
     )
 
 
-@pytest.mark.django_db
+@django_db_all
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
@@ -846,11 +846,11 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     snuba_queries, _ = SnubaQueryBuilder(
         [PseudoProject(1, 1)],
         query_definition.to_metrics_query(),
-        UseCaseKey.RELEASE_HEALTH,
+        UseCaseID.SESSIONS,
     ).get_snuba_queries()
 
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
 
     distribution_queries = snuba_queries.pop("metrics_distributions")
     assert not snuba_queries
@@ -1049,7 +1049,7 @@ def test_translate_results_derived_metrics(_1, _2):
         fields_in_entities,
         intervals,
         results,
-        UseCaseKey.RELEASE_HEALTH,
+        UseCaseID.SESSIONS,
     ).translate_result_groups() == [
         {
             "by": {},
@@ -1071,7 +1071,7 @@ def test_translate_results_derived_metrics(_1, _2):
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_missing_slots(_1, _2):
     org_id = 1
-    use_case_id = UseCaseKey.RELEASE_HEALTH
+    use_case_id = UseCaseID.SESSIONS
     query_params = MultiValueDict(
         {
             "field": [
@@ -1309,7 +1309,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
             [
                 MetricGroupByField(MetricField("sum", SessionMRI.SESSION.value)),
             ],
-            UseCaseKey.RELEASE_HEALTH,
+            UseCaseID.SESSIONS,
             re.escape("Cannot group by metrics expression sum(sentry.sessions.session)"),
             id="invalid grouping by metric expression - release_health",
         ),
@@ -1320,7 +1320,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
             [
                 MetricGroupByField(MetricField("count", TransactionMRI.DURATION.value)),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             re.escape("Cannot group by metrics expression count(transaction.duration)"),
             id="invalid grouping by metric expression - performance",
         ),
@@ -1331,7 +1331,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
             [
                 MetricGroupByField(MetricField(None, TransactionMRI.FAILURE_RATE.value)),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "Cannot group by metric transaction.failure_rate",
             id="invalid grouping by derived metric - release_health",
         ),
@@ -1342,7 +1342,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
             [
                 MetricGroupByField(MetricField(None, SessionMRI.ERRORED.value)),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "Cannot group by metric session.errored",
             id="invalid grouping by composite entity derived metric - release_health",
         ),
@@ -1363,7 +1363,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
                     )
                 ),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "",
             id="valid grouping by metrics expression",
         ),
@@ -1404,7 +1404,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             [
                 MetricConditionField(MetricField("sum", SessionMRI.SESSION.value), Op.GTE, 10),
             ],
-            UseCaseKey.RELEASE_HEALTH,
+            UseCaseID.SESSIONS,
             re.escape("Cannot filter by metrics expression sum(sentry.sessions.session)"),
             id="invalid filtering by metric expression - release_health",
         ),
@@ -1415,7 +1415,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             [
                 MetricConditionField(MetricField("count", TransactionMRI.DURATION.value), Op.LT, 2),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             re.escape("Cannot filter by metrics expression count(transaction.duration)"),
             id="invalid filtering by metric expression - performance",
         ),
@@ -1428,7 +1428,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
                     MetricField(None, TransactionMRI.FAILURE_RATE.value), Op.EQ, 0.5
                 ),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "Cannot filter by metric transaction.failure_rate",
             id="invalid filtering by derived metric - release_health",
         ),
@@ -1439,7 +1439,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
             [
                 MetricConditionField(MetricField(None, SessionMRI.ERRORED.value), Op.EQ, 7),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "Cannot filter by metric session.errored",
             id="invalid filtering by composite entity derived metric - release_health",
         ),
@@ -1462,7 +1462,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
                     1,
                 ),
             ],
-            UseCaseKey.PERFORMANCE,
+            UseCaseID.TRANSACTIONS,
             "",
             id="valid filtering by metrics expression",
         ),
@@ -1517,14 +1517,14 @@ class QueryDefinitionTestCase(TestCase):
 class ResolveTagsTestCase(TestCase):
     def setUp(self):
         self.org_id = ORG_ID
-        self.use_case_id = UseCaseKey.PERFORMANCE
+        self.use_case_id = UseCaseID.TRANSACTIONS
 
     def test_resolve_tags_with_unary_tuple(self):
         transactions = ["/foo", "/bar"]
 
         for transaction in ["transaction"] + transactions:
             indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                use_case_id=self.use_case_id,
                 org_id=self.org_id,
                 string=transaction,
             )
@@ -1585,12 +1585,12 @@ class ResolveTagsTestCase(TestCase):
 
         for transaction, platform in [("transaction", "platform")] + tags:
             indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                use_case_id=self.use_case_id,
                 org_id=self.org_id,
                 string=transaction,
             )
             indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+                use_case_id=self.use_case_id,
                 org_id=self.org_id,
                 string=platform,
             )
@@ -1659,7 +1659,7 @@ class ResolveTagsTestCase(TestCase):
         tag_key = "transaction"
 
         indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            use_case_id=self.use_case_id,
             org_id=self.org_id,
             string=tag_key,
         )
@@ -1699,7 +1699,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_filterable_tag(self):
         indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            use_case_id=self.use_case_id,
             org_id=self.org_id,
             string="environment",
         )
@@ -1739,7 +1739,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_deep_filterable_tag(self):
         indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            use_case_id=self.use_case_id,
             org_id=self.org_id,
             string="environment",
         )
@@ -1784,7 +1784,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_non_filterable_tag(self):
         indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            use_case_id=self.use_case_id,
             org_id=self.org_id,
             string="http_status_code",
         )
@@ -1815,7 +1815,7 @@ class ResolveTagsTestCase(TestCase):
 
     def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
         indexer.record(
-            use_case_id=REVERSE_METRIC_PATH_MAPPING[self.use_case_id],
+            use_case_id=self.use_case_id,
             org_id=self.org_id,
             string="http_status_code",
         )
@@ -1874,7 +1874,7 @@ class ResolveTagsTestCase(TestCase):
                 [PseudoProject(1, ORG_ID)],
             )
 
-        capture_message.assert_called_once()
+        assert capture_message.call_count == 1
 
     @mock.patch(
         "sentry.snuba.metrics.Project.objects.filter", return_value=[PseudoProject(1, ORG_ID)]
@@ -1925,7 +1925,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
     )
 
     builder = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
     )
 
     snuba_queries, fields = builder.get_snuba_queries()
@@ -1941,7 +1941,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
                 "equals",
                 [
                     Column("metric_id"),
-                    resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value),
+                    resolve_weak(UseCaseID.SESSIONS, org_id, SessionMRI.SESSION.value),
                 ],
             ),
         ],
@@ -1980,7 +1980,7 @@ def test_having_clause(include_totals, include_series):
         include_series=include_series,
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseID.SESSIONS
     ).get_snuba_queries()
 
     queries = snuba_queries["metrics_counters"]

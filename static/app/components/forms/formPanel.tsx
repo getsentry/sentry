@@ -29,6 +29,7 @@ type Props = {
    * The name of the field that should be highlighted
    */
   highlighted?: string;
+  initiallyCollapsed?: boolean;
   /**
    * Renders inside of PanelBody before PanelBody close
    */
@@ -52,9 +53,10 @@ function FormPanel({
   renderFooter,
   renderHeader,
   collapsible,
+  initiallyCollapsed = false,
   ...otherProps
 }: Props) {
-  const [collapsed, setCollapse] = useState(false);
+  const [collapsed, setCollapse] = useState(initiallyCollapsed);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
   return (
@@ -64,44 +66,46 @@ function FormPanel({
           {title}
           {collapsible && (
             <Collapse onClick={handleCollapseToggle}>
-              <IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />
+              <IconChevron
+                data-test-id="form-panel-collapse-chevron"
+                direction={collapsed ? 'down' : 'up'}
+                size="xs"
+              />
             </Collapse>
           )}
         </PanelHeader>
       )}
-      {!collapsed && (
-        <PanelBody>
-          {typeof renderHeader === 'function' && renderHeader({title, fields})}
+      <PanelBody hidden={collapsed}>
+        {typeof renderHeader === 'function' && renderHeader({title, fields})}
 
-          {fields.map(field => {
-            if (typeof field === 'function') {
-              return field();
-            }
+        {fields.map(field => {
+          if (typeof field === 'function') {
+            return field();
+          }
 
-            const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
+          const {defaultValue: _, ...fieldWithoutDefaultValue} = field;
 
-            // Allow the form panel disabled prop to override the fields
-            // disabled prop, with fallback to the fields disabled state.
-            if (disabled === true) {
-              fieldWithoutDefaultValue.disabled = true;
-              fieldWithoutDefaultValue.disabledReason = undefined;
-            }
+          // Allow the form panel disabled prop to override the fields
+          // disabled prop, with fallback to the fields disabled state.
+          if (disabled === true) {
+            fieldWithoutDefaultValue.disabled = true;
+            fieldWithoutDefaultValue.disabledReason = undefined;
+          }
 
-            return (
-              <FieldFromConfig
-                access={access}
-                disabled={disabled}
-                key={field.name}
-                {...otherProps}
-                {...additionalFieldProps}
-                field={fieldWithoutDefaultValue}
-                highlighted={otherProps.highlighted === `#${field.name}`}
-              />
-            );
-          })}
-          {typeof renderFooter === 'function' && renderFooter({title, fields})}
-        </PanelBody>
-      )}
+          return (
+            <FieldFromConfig
+              access={access}
+              disabled={disabled}
+              key={field.name}
+              {...otherProps}
+              {...additionalFieldProps}
+              field={fieldWithoutDefaultValue}
+              highlighted={otherProps.highlighted === `#${field.name}`}
+            />
+          );
+        })}
+        {typeof renderFooter === 'function' && renderFooter({title, fields})}
+      </PanelBody>
     </Panel>
   );
 }

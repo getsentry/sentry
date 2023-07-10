@@ -7,6 +7,7 @@ from typing import Any, Mapping
 from django.conf import settings
 from requests import PreparedRequest
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.util import control_silo_function
@@ -33,9 +34,10 @@ def infer_org_integration(
     In those situations, we just grab the first organization and log this assumption.
     """
     org_integration_id = None
-    org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration_id
-    )
+    with in_test_hide_transaction_boundary():
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=integration_id
+        )
     if len(org_integrations) > 0:
         org_integration_id = org_integrations[0].id
         if ctx_logger:
@@ -56,7 +58,7 @@ class IntegrationProxyClient(ApiClient):
     add sensitive credentials at that stage.
 
     When testing, client requests will always go to the base_url unless `self._use_proxy_url_for_tests`
-    is set to True.
+    is set to True. Enable to test proxying locally.
     """
 
     _should_proxy_to_control = False
@@ -81,6 +83,7 @@ class IntegrationProxyClient(ApiClient):
             self.proxy_url = f"{settings.SENTRY_CONTROL_ADDRESS}{PROXY_BASE_PATH}"
 
         if is_test_environment and not self._use_proxy_url_for_tests:
+            logger.info("proxy_disabled_in_test_env")
             self.proxy_url = self.base_url
 
     @control_silo_function
@@ -104,8 +107,11 @@ class IntegrationProxyClient(ApiClient):
             return prepared_request
 
         # E.g. client.get("/chat.postMessage") -> proxy_path = 'chat.postMessage'
-        proxy_path = trim_leading_slashes(prepared_request.url[len(self.base_url) :])
-        url = f"{self.proxy_url}/{proxy_path}"
+        assert self.base_url and self.proxy_url
+        base_url = self.base_url.rstrip("/")
+        proxy_path = trim_leading_slashes(prepared_request.url[len(base_url) :])
+        proxy_url = self.proxy_url.rstrip("/")
+        url = f"{proxy_url}/{proxy_path}"
 
         request_body = prepared_request.body
         if not isinstance(request_body, bytes):

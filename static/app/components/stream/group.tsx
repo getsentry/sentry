@@ -46,7 +46,6 @@ import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
   isForReviewQuery,
-  Query,
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
@@ -131,19 +130,6 @@ function BaseGroupRow({
       was_shown_suggestion: owners.length > 0,
     };
   }, [organization, group.id, group.owners, query]);
-
-  const trackClick = useCallback(() => {
-    if (query === Query.FOR_REVIEW) {
-      trackAnalytics('inbox_tab.issue_clicked', {
-        organization,
-        group_id: group.id,
-      });
-    }
-
-    if (query !== undefined) {
-      trackAnalytics('issues_stream.issue_clicked', sharedAnalytics);
-    }
-  }, [organization, group.id, query, sharedAnalytics]);
 
   const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
     useCallback(
@@ -314,6 +300,7 @@ function BaseGroupRow({
     [IssueCategory.ERROR]: t('Error Events'),
     [IssueCategory.PERFORMANCE]: t('Transaction Events'),
     [IssueCategory.PROFILE]: t('Profile Events'),
+    [IssueCategory.CRON]: t('Cron Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (
@@ -439,7 +426,6 @@ function BaseGroupRow({
           data={group}
           query={query}
           size="normal"
-          onClick={trackClick}
           source={referrer}
         />
         <EventOrGroupExtraDetails data={group} showInboxTime={showInboxTime} />

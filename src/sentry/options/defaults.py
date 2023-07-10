@@ -440,6 +440,11 @@ register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFI
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
 
+# Discord Integration
+register("discord.application-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.public-key", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
+register("discord.bot-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -561,8 +566,6 @@ register(
 register(
     "symbolicator.sourcemaps-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-# Use a fraction of Symbolicator Source Maps processing events for A/B testing.
-register("symbolicator.sourcemaps-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)  # unused
@@ -908,7 +911,7 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register(
-    "sentry-metrics.performance.index-tag-values", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -1212,6 +1215,11 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.issues.slow_db_query.duration_threshold",
+    default=1000.0,  # ms
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.issues.render_blocking_assets.fcp_minimum_threshold",
     default=2000.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1251,13 +1259,33 @@ register(
     default=1000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
+register(
+    "performance.issues.db_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.file_io_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.uncompressed_asset.size_threshold",
+    default=500 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # 512 kilo bytes
+register(
+    "performance.issues.uncompressed_asset.duration_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.consecutive_db.min_time_saved_threshold",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Dynamic Sampling system-wide options
-# Kill-switch to disable new dynamic sampling behavior specifically new dynamic sampling biases.
-register("dynamic-sampling:enabled-biases", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# System-wide options that observes latest releases on transactions and caches these values to be used later in
-# project config computation. This is temporary option to monitor the performance of this feature.
-register("dynamic-sampling:boost-latest-release", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Number of large transactions to retrieve from Snuba for transaction re-balancing.
@@ -1284,14 +1312,14 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Controls whether we allow people to upload artifact bundles instead of release bundles.
-register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether artifact bundles asynchronous renewal is enabled.
 register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Whether renewal of Debug Files is enabled.
+register("debug-files.enable-renewal", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 
@@ -1318,21 +1346,32 @@ register(
 )
 register(
     "backpressure.high_watermarks.attachments-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-store",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.processing-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "backpressure.high_watermarks.post-process-locks",
-    default=0.5,
+    default=0.8,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Control whether the artifact bundles assemble endpoint support the missing chunks check the enables the CLI to only
+# upload missing chunks instead of the entire bundle again.
+register(
+    "sourcemaps.artifact_bundles.assemble_with_missing_chunks",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for monitor check-ins
+register("crons.organization.disable-check-in", type=Sequence, default=[])

@@ -63,9 +63,7 @@ class OrganizationOptionManager(OptionManager["Organization"]):
             else:
                 self._option_cache[cache_key] = result
 
-        # Explicitly typing to satisfy mypy.
-        values: Mapping[str, Value] = self._option_cache.get(cache_key, {})
-        return values
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Value]:
         from sentry.tasks.relay import schedule_invalidate_project_config

@@ -1,12 +1,13 @@
 import {Location} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
+import {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
-import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
@@ -19,27 +20,34 @@ export type SpanTransactionMetrics = {
   'sum(span.self_time)': number;
   'time_spent_percentage(local)': number;
   transaction: string;
+  transactionMethod: string;
 };
 
 export const useSpanTransactionMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  transactions?: string[],
+  span: Pick<IndexedSpan, 'group'>,
+  options: {sorts?: Sort[]; transactions?: string[]},
   _referrer = 'span-transaction-metrics'
 ) => {
   const location = useLocation();
 
-  const eventView = span ? getEventView(span, location, transactions ?? []) : undefined;
+  const {transactions, sorts} = options;
 
-  const {isLoading, data, pageLinks} = useSpansQuery<SpanTransactionMetrics[]>({
+  const eventView = getEventView(span, location, transactions ?? [], sorts);
+
+  return useWrappedDiscoverQuery<SpanTransactionMetrics[]>({
     eventView,
     initialData: [],
     enabled: Boolean(span),
+    referrer: _referrer,
   });
-
-  return {isLoading, data, pageLinks};
 };
 
-function getEventView(span: {group: string}, location: Location, transactions: string[]) {
+function getEventView(
+  span: {group: string},
+  location: Location,
+  transactions: string[],
+  sorts?: Sort[]
+) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   const search = new MutableSearch('');
@@ -50,12 +58,13 @@ function getEventView(span: {group: string}, location: Location, transactions: s
     search.addFilterValues('transaction', transactions);
   }
 
-  return EventView.fromNewQueryWithLocation(
+  const eventView = EventView.fromNewQueryWithLocation(
     {
       name: '',
       query: search.formatString(),
       fields: [
         'transaction',
+        'transaction.method',
         'sps()',
         'sps_percent_change()',
         `sum(${SPAN_SELF_TIME})`,
@@ -66,9 +75,14 @@ function getEventView(span: {group: string}, location: Location, transactions: s
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location
   );
+
+  if (sorts) {
+    eventView.sorts = sorts;
+  }
+
+  return eventView;
 }

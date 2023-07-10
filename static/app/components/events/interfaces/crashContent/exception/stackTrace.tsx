@@ -26,6 +26,7 @@ type Props = {
   meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackView;
+  threadId?: number;
 };
 
 function StackTrace({
@@ -41,6 +42,7 @@ function StackTrace({
   expandFirstFrame,
   event,
   meta,
+  threadId,
 }: Props) {
   if (!defined(stacktrace)) {
     return null;
@@ -123,6 +125,7 @@ function StackTrace({
       event={event}
       meta={meta}
       debugFrames={debugFrames}
+      threadId={threadId}
     />
   );
 }

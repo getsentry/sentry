@@ -156,11 +156,11 @@ export interface Thread {
 }
 
 export type Lock = {
-  address: string | null;
-  class_name: string | null;
-  package_name: string | null;
-  thread_id: number | null;
   type: LockType;
+  address?: string | null;
+  class_name?: string | null;
+  package_name?: string | null;
+  thread_id?: number | null;
 };
 
 export enum LockType {
@@ -191,6 +191,7 @@ export type Frame = {
   addrMode?: string;
   isPrefix?: boolean;
   isSentinel?: boolean;
+  lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
   mapUrl?: string | null;
@@ -647,6 +648,7 @@ type EventContexts = {
   // TODO (udameli): add better types here
   // once perf issue data shape is more clear
   performance_issue?: any;
+  profile?: ProfileContext;
   replay?: ReplayContext;
   response?: ResponseContext;
   runtime?: RuntimeContext;

@@ -5,17 +5,22 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
+import Confirm from 'sentry/components/confirm';
+import FieldWrapper from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/types';
+import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PanelItem} from 'sentry/components/panels';
+import {Panel, PanelFooter, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -29,6 +34,47 @@ export const retentionPrioritiesLabels = {
   boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
   ignoreHealthChecks: t('Deprioritize health checks'),
 };
+
+export const allowedDurationValues: number[] = [
+  50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000,
+  10000,
+]; // In milliseconds
+
+export const allowedPercentageValues: number[] = [
+  0.2, 0.25, 0.3, 0.33, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95,
+];
+
+export const allowedSizeValues: number[] = [
+  50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
+  2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
+]; // 50kb to 10MB in bytes
+
+export const projectDetectorSettingsId = 'detector-threshold-settings';
+
+type ProjectPerformanceSettings = {[key: string]: number | boolean};
+
+enum DetectorConfigAdmin {
+  N_PLUS_DB_ENABLED = 'n_plus_one_db_queries_detection_enabled',
+  SLOW_DB_ENABLED = 'slow_db_queries_detection_enabled',
+  DB_MAIN_THREAD_ENABLED = 'db_on_main_thread_detection_enabled',
+  FILE_IO_ENABLED = 'file_io_on_main_thread_detection_enabled',
+  CONSECUTIVE_DB_ENABLED = 'consecutive_db_queries_detection_enabled',
+  RENDER_BLOCK_ASSET_ENABLED = 'large_render_blocking_asset_detection_enabled',
+  UNCOMPRESSED_ASSET_ENABLED = 'uncompressed_assets_detection_enabled',
+  LARGE_HTTP_PAYLOAD_ENABLED = 'large_http_payload_detection_enabled',
+}
+
+export enum DetectorConfigCustomer {
+  SLOW_DB_DURATION = 'slow_db_query_duration_threshold',
+  N_PLUS_DB_DURATION = 'n_plus_one_db_duration_threshold',
+  RENDER_BLOCKING_ASSET_RATIO = 'render_blocking_fcp_ratio',
+  LARGE_HTT_PAYLOAD_SIZE = 'large_http_payload_size_threshold',
+  DB_ON_MAIN_THREAD_DURATION = 'db_on_main_thread_duration_threshold',
+  FILE_IO_MAIN_THREAD_DURATION = 'file_io_on_main_thread_duration_threshold',
+  UNCOMPRESSED_ASSET_DURATION = 'uncompressed_asset_duration_threshold',
+  UNCOMPRESSED_ASSET_SIZE = 'uncompressed_asset_size_threshold',
+  CONSECUTIVE_DB_MIN_TIME_SAVED = 'consecutive_db_min_time_saved_threshold',
+}
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -118,6 +164,28 @@ class ProjectPerformance extends AsyncView<Props, State> {
     );
   };
 
+  handleThresholdsReset = () => {
+    const {projectId} = this.props.params;
+    const {organization, project} = this.props;
+
+    this.setState({
+      loading: true,
+    });
+
+    trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {
+      organization,
+      project_slug: project.slug,
+    });
+
+    this.api.request(
+      `/projects/${organization.slug}/${projectId}/performance-issues/configure/`,
+      {
+        method: 'DELETE',
+        complete: () => this.fetchData(),
+      }
+    );
+  };
+
   getEmptyMessage() {
     return t('There is no threshold set for this project.');
   }
@@ -170,6 +238,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return fields;
   }
 
+  get areAllConfigurationsDisabled(): boolean {
+    let result = true;
+    Object.values(DetectorConfigAdmin).forEach(threshold => {
+      result = result && !this.state.performance_issue_settings[threshold];
+    });
+    return result;
+  }
+
   get performanceIssueFormFields(): Field[] {
     return [
       {
@@ -205,70 +281,327 @@ class ProjectPerformance extends AsyncView<Props, State> {
     ];
   }
 
-  get performanceIssueDetectorsFormFields(): Field[] {
+  get performanceIssueDetectorAdminFields(): Field[] {
     return [
       {
-        name: 'n_plus_one_db_queries_detection_enabled',
+        name: DetectorConfigAdmin.N_PLUS_DB_ENABLED,
         type: 'boolean',
         label: t('N+1 DB Queries Detection Enabled'),
         defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              n_plus_one_db_queries_detection_enabled: value,
+            },
+          }),
       },
       {
-        name: 'slow_db_queries_detection_enabled',
+        name: DetectorConfigAdmin.SLOW_DB_ENABLED,
         type: 'boolean',
         label: t('Slow DB Queries Detection Enabled'),
         defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              slow_db_queries_detection_enabled: value,
+            },
+          }),
       },
       {
-        name: 'n_plus_one_api_calls_detection_enabled',
-        type: 'boolean',
-        label: t('N+1 API Calls Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'consecutive_http_spans_detection_enabled',
-        type: 'boolean',
-        label: t('Consecutive HTTP Spans Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'consecutive_db_queries_detection_enabled',
-        type: 'boolean',
-        label: t('Consecutive DB Queries Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'large_http_payload_detection_enabled',
-        type: 'boolean',
-        label: t('Large HTTP Payload Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'db_on_main_thread_detection_enabled',
-        type: 'boolean',
-        label: t('DB On Main Thread Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'file_io_on_main_thread_detection_enabled',
-        type: 'boolean',
-        label: t('File I/O on Main Thread Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'uncompressed_assets_detection_enabled',
-        type: 'boolean',
-        label: t('Uncompressed Assets Detection Enabled'),
-        defaultValue: true,
-      },
-      {
-        name: 'large_render_blocking_asset_detection_enabled',
+        name: DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED,
         type: 'boolean',
         label: t('Large Render Blocking Asset Detection Enabled'),
         defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              large_render_blocking_asset_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED,
+        type: 'boolean',
+        label: t('Consecutive DB Queries Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              consecutive_db_queries_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED,
+        type: 'boolean',
+        label: t('Large HTTP Payload Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              large_http_payload_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED,
+        type: 'boolean',
+        label: t('DB On Main Thread Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              db_on_main_thread_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.FILE_IO_ENABLED,
+        type: 'boolean',
+        label: t('File I/O on Main Thread Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              file_io_on_main_thread_detection_enabled: value,
+            },
+          }),
+      },
+      {
+        name: DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED,
+        type: 'boolean',
+        label: t('Uncompressed Assets Detection Enabled'),
+        defaultValue: true,
+        onChange: value =>
+          this.setState({
+            performance_issue_settings: {
+              ...this.state.performance_issue_settings,
+              uncompressed_assets_detection_enabled: value,
+            },
+          }),
       },
     ];
   }
+
+  project_owner_detector_settings = (hasAccess: boolean): JsonFormObject[] => {
+    const performanceSettings: ProjectPerformanceSettings =
+      this.state.performance_issue_settings;
+    const supportMail = ConfigStore.get('supportEmail');
+    const disabledReason = hasAccess
+      ? tct(
+          'Detection of this issue has been disabled. Contact our support team at [link:support@sentry.io].',
+          {
+            link: <ExternalLink href={'mailto:' + supportMail} />,
+          }
+        )
+      : null;
+
+    const formatDuration = (value: number | ''): string => {
+      return value ? (value < 1000 ? `${value}ms` : `${value / 1000}s`) : '';
+    };
+
+    const formatSize = (value: number | ''): string => {
+      return value
+        ? value < 1000000
+          ? `${value / 1000}KB`
+          : `${value / 1000000}MB`
+        : '';
+    };
+
+    const formatFrameRate = (value: number | ''): string => {
+      const fps = value && 1000 / value;
+      return fps ? `${Math.floor(fps / 5) * 5}fps` : '';
+    };
+
+    return [
+      {
+        title: t('N+1 DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 200ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 200ms'
+            ),
+            allowedValues: allowedDurationValues,
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Slow DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.SLOW_DB_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 1000, // ms
+            help: t(
+              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s.'
+            ),
+            allowedValues: allowedDurationValues.slice(1),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Large Render Blocking Asset'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
+            type: 'range',
+            label: t('FCP Ratio'),
+            defaultValue: 0.33,
+            help: t(
+              'Setting the value to 50%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 50% of First Contentful Paint (FCP).'
+            ),
+            allowedValues: allowedPercentageValues,
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
+            ),
+            formatLabel: value => value && formatPercentage(value),
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Large HTTP Payload'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
+            type: 'range',
+            label: t('Size'),
+            defaultValue: 1000000, // 1MB in bytes
+            help: t(
+              'Setting the value to 200KB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 200KB.'
+            ),
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.LARGE_HTTP_PAYLOAD_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('DB on Main Thread'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 20fps.'
+            ),
+            allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('File I/O on Main Thread'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 16, // ms
+            help: t(
+              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 20fps.'
+            ),
+            allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
+            ),
+            formatLabel: formatFrameRate,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Consecutive DB Queries'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.CONSECUTIVE_DB_MIN_TIME_SAVED,
+            type: 'range',
+            label: t('Minimum Time Saved'),
+            defaultValue: 100, // ms
+            help: t(
+              'Setting the value to 500ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 500ms.'
+            ),
+            allowedValues: allowedDurationValues.slice(0, 11),
+            disabled: !(
+              hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+      {
+        title: t('Uncompressed Asset'),
+        fields: [
+          {
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
+            type: 'range',
+            label: t('Size'),
+            defaultValue: 512000, // in kilobytes
+            help: t(
+              'Setting the value to 1MB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 1MB.'
+            ),
+            allowedValues: allowedSizeValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatSize,
+            disabledReason,
+          },
+          {
+            name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
+            type: 'range',
+            label: t('Duration'),
+            defaultValue: 500, // in ms
+            help: t(
+              'Setting the value to 200ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 200ms.'
+            ),
+            allowedValues: allowedDurationValues.slice(1),
+            disabled: !(
+              hasAccess &&
+              performanceSettings[DetectorConfigAdmin.UNCOMPRESSED_ASSET_ENABLED]
+            ),
+            formatLabel: formatDuration,
+            disabledReason,
+          },
+        ],
+      },
+    ];
+  };
 
   get retentionPrioritiesFormFields(): Field[] {
     return [
@@ -295,9 +628,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         type: 'boolean',
         label: retentionPrioritiesLabels.boostLowVolumeTransactions,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
-        visible: this.props.organization.features.includes(
-          'dynamic-sampling-transaction-name-priority'
-        ),
         getData: this.getRetentionPrioritiesData,
       },
       {
@@ -451,12 +781,62 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Admin Detector Settings')}
-                  fields={this.performanceIssueDetectorsFormFields}
+                  title={t(
+                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                  )}
+                  fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
               </Form>
             )}
+            <Form
+              allowUndo
+              initialData={this.state.performance_issue_settings}
+              apiMethod="PUT"
+              apiEndpoint={performanceIssuesEndpoint}
+              saveOnBlur
+              onSubmitSuccess={(option: {[key: string]: number}) => {
+                const [threshold_key, threshold_value] = Object.entries(option)[0];
+
+                trackAnalytics(
+                  'performance_views.project_issue_detection_threshold_changed',
+                  {
+                    organization,
+                    project_slug: project.slug,
+                    threshold_key,
+                    threshold_value,
+                  }
+                );
+              }}
+            >
+              <Access access={requiredScopes} project={project}>
+                {({hasAccess}) => (
+                  <div id={projectDetectorSettingsId}>
+                    <StyledPanelHeader>
+                      {t('Performance Issues - Detector Threshold Settings')}
+                    </StyledPanelHeader>
+                    <StyledJsonForm
+                      forms={this.project_owner_detector_settings(hasAccess)}
+                      collapsible
+                      initiallyCollapsed
+                    />
+                    <StyledPanelFooter>
+                      <Actions>
+                        <Confirm
+                          message={t(
+                            'Are you sure you wish to reset all detector thresholds?'
+                          )}
+                          onConfirm={() => this.handleThresholdsReset()}
+                          disabled={!hasAccess || this.areAllConfigurationsDisabled}
+                        >
+                          <Button>{t('Reset All Thresholds')}</Button>
+                        </Confirm>
+                      </Actions>
+                    </StyledPanelFooter>
+                  </div>
+                )}
+              </Access>
+            </Form>
           </Feature>
         </Fragment>
       </Fragment>
@@ -466,6 +846,50 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  border: 1px solid ${p => p.theme.border};
+  border-bottom: none;
+`;
+
+const StyledJsonForm = styled(JsonForm)`
+  ${Panel} {
+    margin-bottom: 0;
+    border-radius: 0;
+    border-bottom: 0;
+  }
+
+  ${FieldWrapper} {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+
+  ${FieldWrapper} + ${FieldWrapper} {
+    border-top: 0;
+  }
+
+  ${Panel} + ${Panel} {
+    border-top: 1px solid ${p => p.theme.border};
+  }
+
+  ${PanelHeader} {
+    border-bottom: 0;
+    text-transform: none;
+    margin-bottom: 0;
+    background: none;
+    padding: ${space(3)} ${space(2)};
+  }
+`;
+
+const StyledPanelFooter = styled(PanelFooter)`
+  background: ${p => p.theme.white};
+  border: 1px solid ${p => p.theme.border};
+  border-radius: 0 0 calc(${p => p.theme.panelBorderRadius} - 1px)
+    calc(${p => p.theme.panelBorderRadius} - 1px);
+
+  ${Actions} {
+    padding: ${space(1.5)};
+  }
 `;
 
 const LoadingIndicatorContainer = styled('div')`

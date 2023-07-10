@@ -11,7 +11,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/checkInTimeline';
+import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
@@ -21,7 +21,7 @@ import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
 
 import {MonitorBucketData, TimeWindow} from './types';
-import {getStartFromTimeWindow, timeWindowData} from './utils';
+import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
 interface Props {
   monitorList: Monitor[];
@@ -44,7 +44,7 @@ export function OverviewTimeline({monitorList}: Props) {
   );
 
   const rollup = Math.floor(
-    (timeWindowData[timeWindow].elapsedMinutes * 60) / timelineWidth
+    (timeWindowConfig[timeWindow].elapsedMinutes * 60) / timelineWidth
   );
   const monitorStatsQueryKey = `/organizations/${organization.slug}/monitors-stats/`;
   const {data: monitorStats, isLoading} = useApiQuery<Record<string, MonitorBucketData>>(
@@ -88,6 +88,7 @@ export function OverviewTimeline({monitorList}: Props) {
         width={timelineWidth}
       />
       <GridLineOverlay
+        showCursor={!isLoading}
         timeWindow={timeWindow}
         end={nowRef.current}
         width={timelineWidth}

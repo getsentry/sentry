@@ -1,8 +1,12 @@
+import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
+import {SelectOption} from 'sentry/components/compactSelect';
 import {Panel} from 'sentry/components/panels';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -20,7 +24,7 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 export const OTHER_SPAN_GROUP_MODULE = 'Other';
-export const NULL_SPAN_CATEGORY = '<null>';
+export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
   transaction?: string;
@@ -41,6 +45,12 @@ export type DataRow = {
   group: Group;
 };
 
+export enum DataDisplayType {
+  DURATION_P95 = 'duration_p95',
+  CUMULATIVE_DURATION = 'cumulative_duration',
+  PERCENTAGE = 'percentage',
+}
+
 export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Props) {
   const pageFilter = usePageFilters();
   const organization = useOrganization();
@@ -48,9 +58,19 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const {selection} = pageFilter;
   const theme = useTheme();
 
+  const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
+    {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
+    {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
+  ];
+
+  const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
+    DataDisplayType.PERCENTAGE
+  );
+
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      selection,
+      location,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -64,7 +84,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      selection,
+      location,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -81,11 +101,13 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     isError,
   } = useEventsStatsQuery({
     eventView: getEventView(
+      location,
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
       ['span.category'],
+      dataDisplayType,
       true
     ),
     enabled: true,
@@ -156,10 +178,6 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const data = Object.values(seriesByDomain);
 
-  const initialShowSeries = transformedData.map(
-    segment => segment.group['span.category'] !== OTHER_SPAN_GROUP_MODULE
-  );
-
   return (
     <StyledPanel>
       <SpanGroupBreakdown
@@ -168,11 +186,13 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
         isTableLoading={isSegmentsLoading}
         topSeriesData={data}
         colorPalette={colorPalette}
-        initialShowSeries={initialShowSeries}
         isTimeseriesLoading={isTopDataLoading}
         isCumulativeTimeLoading={isCumulativeDataLoading}
         transaction={transaction}
         errored={isError}
+        options={options}
+        dataDisplayType={dataDisplayType}
+        setDataDisplayType={setDataDisplayType}
       />
     </StyledPanel>
   );
@@ -184,44 +204,49 @@ const StyledPanel = styled(Panel)`
 `;
 
 const getEventView = (
+  location: Location,
   pageFilters: PageFilters,
   query: string,
   groups: string[],
+  dataDisplayType: DataDisplayType,
   getTimeseries?: boolean
 ) => {
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
-    yAxis: getTimeseries ? [`p95(${SPAN_SELF_TIME})`] : [],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
-    projects: [1],
-    version: 2,
-    topEvents: groups.length > 0 ? '4' : undefined,
-    interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
-  });
+  const yAxis =
+    dataDisplayType === DataDisplayType.DURATION_P95
+      ? `p95(${SPAN_SELF_TIME})`
+      : `sum(${SPAN_SELF_TIME})`;
+
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+      yAxis: getTimeseries ? [yAxis] : [],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+      topEvents: groups.length > 0 ? '4' : undefined,
+      interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
+    },
+    location
+  );
 };
 
 const getCumulativeTimeEventView = (
-  pageFilters: PageFilters,
+  location: Location,
   query: string,
   groups: string[]
 ) => {
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_duration',
-    projects: [1],
-    version: 2,
-    topEvents: groups.length > 0 ? '4' : undefined,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+      topEvents: groups.length > 0 ? '4' : undefined,
+    },
+    location
+  );
 };

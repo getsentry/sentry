@@ -1,11 +1,10 @@
-import pytest
-
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.factories import Factories
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_user_serialize_avatar_none():
     user = Factories.create_user()
     rpc_user = user_service.get_user(user_id=user.id)
@@ -13,7 +12,7 @@ def test_user_serialize_avatar_none():
     assert rpc_user.avatar is None
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_user_serialize_avatar():
     user = Factories.create_user()
     avatar = UserAvatar.objects.create(user_id=user.id, avatar_type=2, ident="abc123")
@@ -26,7 +25,7 @@ def test_user_serialize_avatar():
     assert rpc_user.avatar.avatar_type == "gravatar"
 
 
-@pytest.mark.django_db(transaction=True)
+@django_db_all(transaction=True)
 def test_user_serialize_multiple_emails():
     user = Factories.create_user()
     email = Factories.create_useremail(user=user, email="test@example.com", is_verified=True)

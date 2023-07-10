@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from datetime import datetime, timedelta
 from typing import Optional, Sequence
@@ -8,6 +10,7 @@ from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
+from sentry.receivers import create_default_projects
 from sentry.snuba.metrics import (
     OPERATIONS,
     DerivedMetricParseException,
@@ -20,6 +23,7 @@ from sentry.snuba.metrics import (
 )
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.pytest.fixtures import django_db_all
 
 
 class MetricsQueryBuilder:
@@ -44,51 +48,51 @@ class MetricsQueryBuilder:
         self.interval: Optional[int] = None
         self.is_alerts_query: bool = False
 
-    def with_select(self, select: Sequence[MetricField]) -> "MetricsQueryBuilder":
+    def with_select(self, select: Sequence[MetricField]) -> MetricsQueryBuilder:
         self.select = select
         return self
 
-    def with_start(self, start: datetime) -> "MetricsQueryBuilder":
+    def with_start(self, start: datetime) -> MetricsQueryBuilder:
         self.start = start
         return self
 
-    def with_end(self, end: datetime) -> "MetricsQueryBuilder":
+    def with_end(self, end: datetime) -> MetricsQueryBuilder:
         self.end = end
         return self
 
-    def with_where(self, where: [ConditionGroup]) -> "MetricsQueryBuilder":
+    def with_where(self, where: Sequence[ConditionGroup]) -> MetricsQueryBuilder:
         self.where = where
         return self
 
-    def with_having(self, having: [ConditionGroup]) -> "MetricsQueryBuilder":
+    def with_having(self, having: list[ConditionGroup]) -> MetricsQueryBuilder:
         self.having = having
         return self
 
-    def with_orderby(self, orderby: Sequence[MetricOrderByField]) -> "MetricsQueryBuilder":
+    def with_orderby(self, orderby: Sequence[MetricOrderByField]) -> MetricsQueryBuilder:
         self.orderby = orderby
         return self
 
-    def with_granularity(self, granularity: Granularity) -> "MetricsQueryBuilder":
+    def with_granularity(self, granularity: Granularity) -> MetricsQueryBuilder:
         self.granularity = granularity
         return self
 
-    def with_include_series(self, include_series: bool) -> "MetricsQueryBuilder":
+    def with_include_series(self, include_series: bool) -> MetricsQueryBuilder:
         self.include_series = include_series
         return self
 
-    def with_include_totals(self, include_totals: bool) -> "MetricsQueryBuilder":
+    def with_include_totals(self, include_totals: bool) -> MetricsQueryBuilder:
         self.include_totals = include_totals
         return self
 
-    def with_limit(self, limit: Limit) -> "MetricsQueryBuilder":
+    def with_limit(self, limit: Limit) -> MetricsQueryBuilder:
         self.limit = limit
         return self
 
-    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> "MetricsQueryBuilder":
+    def with_groupby(self, groupby: Sequence[MetricGroupByField]) -> MetricsQueryBuilder:
         self.groupby = groupby
         return self
 
-    def with_interval(self, interval: int) -> "MetricsQueryBuilder":
+    def with_interval(self, interval: int) -> MetricsQueryBuilder:
         self.interval = interval
         return self
 
@@ -148,7 +152,7 @@ def test_validate_select():
     ):
         MetricsQuery(
             **MetricsQueryBuilder()
-            .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])
+            .with_select([MetricField(op="foo", metric_mri=SessionMRI.DURATION.value)])  # type: ignore[arg-type]
             .to_metrics_query_dict()
         )
     with pytest.raises(
@@ -189,7 +193,7 @@ def test_validate_order_by():
             .with_orderby(
                 [
                     MetricOrderByField(
-                        field=MetricField(op="foo", metric_mri=SessionMRI.DURATION.value),
+                        field=MetricField(op="foo", metric_mri=SessionMRI.DURATION.value),  # type: ignore[arg-type]
                         direction=Direction.ASC,
                     )
                 ]
@@ -220,8 +224,9 @@ def test_validate_order_by():
         )
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_order_by_field_in_select():
+    create_default_projects()
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -243,8 +248,9 @@ def test_validate_order_by_field_in_select():
     MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_order_by_field_in_select_with_different_alias():
+    create_default_projects()
     ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
     ap_dex_with_alias_2 = MetricField(
         op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
@@ -265,8 +271,9 @@ def test_validate_order_by_field_in_select_with_different_alias():
         )
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_orderby_columns_not_specified_in_select():
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
     metrics_query_dict = (
@@ -287,12 +294,13 @@ def test_validate_multiple_orderby_columns_not_specified_in_select():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_order_by_fields_from_multiple_entities():
     """
     The example should fail because session crash free rate is generated from
     counters entity while p50 of duration will go to distribution
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
     metric_field_3 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
@@ -316,12 +324,13 @@ def test_validate_multiple_order_by_fields_from_multiple_entities():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_multiple_orderby_derived_metrics_from_different_entities():
     """
     This example should fail because session crash free rate is generated from
     counters while session user crash free rate is generated from sets
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
     metrics_query_dict = (
@@ -344,11 +353,12 @@ def test_validate_multiple_orderby_derived_metrics_from_different_entities():
         MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_many_order_by_fields_are_in_select():
     """
     Validate no exception is raised when all orderBy fields are presented the select
     """
+    create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.ABNORMAL.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.ALL.value)
 
@@ -446,7 +456,7 @@ def test_validate_distribution_functions_in_orderby():
     MetricsQuery(**metrics_query_dict)
 
 
-@pytest.mark.django_db(True)
+@django_db_all
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])
@@ -535,10 +545,14 @@ def test_series_and_totals_validation():
     ],
 )
 def test_granularity_validation(stats_period, interval, error_message):
+    period_t = parse_stats_period(stats_period)
+    assert period_t is not None
+    interval_t = parse_stats_period(interval)
+    assert interval_t is not None
     metrics_query_dict = (
         MetricsQueryBuilder()
-        .with_start(datetime.now() - parse_stats_period(stats_period))
-        .with_granularity(Granularity(int(parse_stats_period(interval).total_seconds())))
+        .with_start(datetime.now() - period_t)
+        .with_granularity(Granularity(int(interval_t.total_seconds())))
         .to_metrics_query_dict()
     )
 

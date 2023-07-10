@@ -1,4 +1,6 @@
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from __future__ import annotations
+
+from typing import Any, Mapping, MutableMapping, Sequence
 
 from sentry.models import Commit, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
@@ -93,7 +95,7 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         return commit_list
 
     def compare_commits(
-        self, repo: Repository, start_sha: Optional[str], end_sha: str
+        self, repo: Repository, start_sha: str | None, end_sha: str
     ) -> Sequence[Mapping[str, str]]:
         """TODO(mgaeta): This function is kinda a mess."""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
@@ -128,6 +130,4 @@ class VstsRepositoryProvider(IntegrationRepositoryProvider):
         ]
 
     def repository_external_slug(self, repo: Repository) -> str:
-        # Explicitly typing to satisfy mypy.
-        external_id: str = repo.external_id
-        return external_id
+        return repo.external_id

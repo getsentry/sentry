@@ -4,11 +4,12 @@ import isString from 'lodash/isString';
 import uniq from 'lodash/uniq';
 import * as qs from 'query-string';
 
+import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import {Frame, PlatformType} from 'sentry/types';
 import {Image} from 'sentry/types/debugImage';
-import {EntryRequest, EntryThreads, EntryType, Event} from 'sentry/types/event';
+import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -257,4 +258,35 @@ export function getCurrentThread(event: Event) {
     | EntryThreads
     | undefined;
   return threads?.data.values?.find(thread => thread.current);
+}
+
+export function getThreadById(event: Event, tid?: number) {
+  const threads = event.entries?.find(entry => entry.type === EntryType.THREADS) as
+    | EntryThreads
+    | undefined;
+  return threads?.data.values?.find(thread => thread.id === tid);
+}
+
+export function inferPlatform(event: Event, thread?: Thread): PlatformType {
+  const exception = getThreadException(event, thread);
+  let exceptionFramePlatform: Frame | undefined = undefined;
+
+  for (const value of exception?.values ?? []) {
+    exceptionFramePlatform = value.stacktrace?.frames?.find(frame => !!frame.platform);
+    if (exceptionFramePlatform) {
+      break;
+    }
+  }
+
+  if (exceptionFramePlatform?.platform) {
+    return exceptionFramePlatform.platform;
+  }
+
+  const threadFramePlatform = thread?.stacktrace?.frames?.find(frame => !!frame.platform);
+
+  if (threadFramePlatform?.platform) {
+    return threadFramePlatform.platform;
+  }
+
+  return event.platform ?? 'other';
 }

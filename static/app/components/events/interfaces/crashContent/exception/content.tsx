@@ -29,6 +29,7 @@ type Props = {
   meta?: Record<any, any>;
   newestFirst?: boolean;
   stackView?: StackTraceProps['stackView'];
+  threadId?: number;
 } & Pick<ExceptionType, 'values'> &
   Pick<
     React.ComponentProps<typeof StackTrace>,
@@ -128,6 +129,7 @@ export function Content({
   values,
   type,
   meta,
+  threadId,
 }: Props) {
   const {collapsedExceptions, toggleException, expandException} =
     useCollapsedExceptions(values);
@@ -216,6 +218,7 @@ export function Content({
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta?.[excIdx]?.stacktrace}
           debugFrames={hasSourcemapDebug ? debugFrames : undefined}
+          threadId={threadId}
         />
       </div>
     );

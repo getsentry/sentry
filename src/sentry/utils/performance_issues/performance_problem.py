@@ -23,7 +23,7 @@ class PerformanceProblem:
     # So until we disable transaction based perf issues we'll need to keep this optional.
     evidence_data: Optional[Mapping[str, Any]]
     # User-friendly evidence to be displayed directly
-    evidence_display: Optional[Sequence[IssueEvidence]]
+    evidence_display: Sequence[IssueEvidence]
 
     def to_dict(
         self,

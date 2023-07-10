@@ -1,4 +1,4 @@
-from typing import Any, Collection, Dict, Mapping, Sequence
+from typing import Any, Collection, Dict, Mapping, MutableMapping, Sequence
 
 IN_APP_FRAME = {
     "function": "LoginViewController.viewDidAppear",
@@ -15,61 +15,82 @@ IN_APP_FRAME = {
 }
 
 
-def get_sentry_frame(function: str, in_app: bool = False) -> Mapping[str, Any]:
+def get_sentry_frame(function: str, in_app: bool = False) -> MutableMapping[str, Any]:
     return {
         "function": function,
-        "package": "Sentry",
+        "package": "/private/var/containers/Bundle/Application/59E988EF-46DB-4C75-8E08-10C27DC3E90E/iOS-Swift.app/Frameworks/Sentry.framework/Sentry",
         "in_app": in_app,
         "image_addr": "0x100304000",
     }
 
 
-def get_frames(function: str, sentry_frame_in_app: bool = False) -> Sequence[Mapping[str, Any]]:
+def get_frames(
+    function: str, sentry_frame_in_app: bool = False
+) -> Sequence[MutableMapping[str, Any]]:
     frames = [
         get_sentry_frame(function, sentry_frame_in_app),
         {
             "function": "LoginViewController.viewDidAppear",
             "symbol": "$s8Sentry9LoginViewControllerC13viewDidAppearyySbF",
-            "package": "SentryApp",
+            "package": "/private/var/containers/Bundle/Application/D9118D4F-E47F-47D3-96A2-35E854245CB4/iOS-Swift.app/iOS-Swift",
             "in_app": True,
             "filename": "LoginViewController.swift",
             "image_addr": "0x100260000",
         },
+        get_sentry_frame(
+            "__49-[SentrySwizzleWrapper swizzleSendAction:forKey:]_block_invoke_2", False
+        ),
         IN_APP_FRAME,
         {
             "function": "-[UIViewController _setViewAppearState:isAnimating:]",
             "symbol": "-[UIViewController _setViewAppearState:isAnimating:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UIViewController __viewDidAppear:]",
             "symbol": "-[UIViewController __viewDidAppear:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UIViewController _endAppearanceTransition:]",
             "symbol": "-[UIViewController _endAppearanceTransition:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
             "symbol": "-[UINavigationController navigationTransitionView:didEndTransition:fromView:toView:]",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
         },
         {
             "function": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
             "symbol": "__49-[UINavigationController _startCustomTransition:]_block_invoke",
-            "package": "UIKitCore",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
             "in_app": False,
             "image_addr": "0x1a4e8f000",
+        },
+        {
+            "filename": "EventStripperTestFrame.swift",
+            "function": "function",
+            "raw_function": "raw_function",
+            "module": "module",
+            "abs_path": "abs_path",
+            "in_app": False,
+            "instruction_addr": "0x1a4e8f000",
+            "addr_mode": "0x1a4e8f000",
+            "symbol": "symbol",
+            "symbol_addr": "0x1a4e8f000",
+            "image_addr": "0x1a4e8f000",
+            "package": "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+            "platform": "platform",
+            "post_context": ["should_be_removed"],
         },
     ]
 
@@ -99,8 +120,26 @@ def get_crash_event_with_frames(
                     "stacktrace": {
                         "frames": frames,
                     },
-                    "type": "SIGABRT",
-                    "mechanism": {"handled": handled},
+                    "type": "EXC_BAD_ACCESS",
+                    "value": "crash > crash: > objectAtIndex: >\nAttempted to dereference null pointer.",
+                    "mechanism": {
+                        "handled": handled,
+                        "type": "mach",
+                        "meta": {
+                            "signal": {
+                                "number": 11,
+                                "code": 0,
+                                "name": "SIGSEGV",
+                                "code_name": "SEGV_NOOP",
+                            },
+                            "mach_exception": {
+                                "exception": 1,
+                                "code": 1,
+                                "subcode": 0,
+                                "name": "EXC_BAD_ACCESS",
+                            },
+                        },
+                    },
                 }
             ]
         },
@@ -139,6 +178,7 @@ def get_crash_event_with_frames(
                 "boot_time": "2023-02-01T05:21:23Z",
                 "timezone": "PST",
                 "type": "device",
+                "simulator": True,
             },
             "os": {
                 "name": "iOS",
@@ -192,7 +232,7 @@ def get_crash_event_with_frames(
         "environment": "test-app",
         "sdk": {
             "name": "sentry.cocoa",
-            "version": "8.1.0",
+            "version": "8.2.0",
             "integrations": [
                 "Crash",
                 "PerformanceTracking",

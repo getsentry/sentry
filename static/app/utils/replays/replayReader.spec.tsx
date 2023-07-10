@@ -151,7 +151,7 @@ describe('ReplayReader', () => {
         ],
       },
       {
-        method: 'getSortedChapters',
+        method: 'getChapterFrames',
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.click'}),
@@ -160,10 +160,10 @@ describe('ReplayReader', () => {
         ],
       },
       {
-        method: 'getTimelineEvents',
+        method: 'getTimelineFrames',
         expected: [
-          expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'replay.init'}),
+          expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({op: 'navigation.navigate'}),
         ],
       },
@@ -198,7 +198,7 @@ describe('ReplayReader', () => {
       replayRecord,
     });
 
-    expect(replay?.sdkConfig()).toBe(optionsFrame);
+    expect(replay?.getSDKOptions()).toBe(optionsFrame);
   });
 
   describe('isNetworkDetailsSetup', () => {

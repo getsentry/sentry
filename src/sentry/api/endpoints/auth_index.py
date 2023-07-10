@@ -47,7 +47,7 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
+    authentication_classes = (QuietBasicAuthentication, SessionAuthentication)
 
     permission_classes = ()
 

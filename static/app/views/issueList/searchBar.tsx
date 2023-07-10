@@ -1,8 +1,13 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 // eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
+import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {IconStar} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
@@ -87,6 +92,59 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     [tagValueLoader]
   );
 
+  const hasSearchShortcuts = organization.features.includes('issue-search-shortcuts');
+  const recommendedGroup: SearchGroup = {
+    title: t('Recommended'),
+    type: 'header',
+    icon: <IconStar size="xs" />,
+    childrenWrapper: RecommendedWrapper,
+    children: [
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Issue Category'),
+        desc: t('Error or performance issues.'),
+        value: 'issue.category:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Assignee'),
+        desc: t('Filter by team or member.'),
+        value: 'assigned_or_suggested:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Release'),
+        desc: t('Filter by release version.'),
+        value: 'release:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Level'),
+        desc: t('Filter by fatal, error, etc.'),
+        value: 'level:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Unhandled'),
+        desc: t('Filter by unhandled events.'),
+        value: 'error.unhandled:true ',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.TAG,
+        title: t('Custom Tags'),
+        desc: t('Filter events by custom tags.'),
+        // Shows only tags when clicked
+        applyFilter: item => item.kind === FieldKind.TAG,
+      },
+    ],
+  };
+
   return (
     <SmartSearchBar
       hasRecentSearches
@@ -95,6 +153,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
       supportedTags={getSupportedTags(tags)}
+      defaultSearchGroup={hasSearchShortcuts ? recommendedGroup : undefined}
       organization={organization}
       {...props}
     />
@@ -102,3 +161,18 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 }
 
 export default withIssueTags(IssueListSearchBar);
+
+const RecommendedWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: ${space(1.5)};
+  padding: ${space(1.5)};
+
+  & > li {
+    ${p => p.theme.overflowEllipsis}
+    border-radius: ${p => p.theme.borderRadius};
+    border: 1px solid ${p => p.theme.border};
+    padding: ${space(1.5)} ${space(2)};
+    margin: 0;
+  }
+`;

@@ -1,94 +1,161 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback} from 'react';
 import {browserHistory} from 'react-router';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
-import {Form, TextField} from 'sentry/components/forms';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {setDateToTime} from 'sentry/utils/dates';
-import getDynamicText from 'sentry/utils/getDynamicText';
+import {Organization, OrgAuthToken} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-import {tokenPreview, TokenWip} from 'sentry/views/settings/organizationAuthTokens';
-
-function generateMockToken({
-  id,
-  name,
-  scopes,
-  dateCreated = new Date(),
-  dateLastUsed,
-  projectLastUsed,
-}: {
-  id: string;
-  name: string;
-  scopes: string[];
-  dateCreated?: Date;
-  dateLastUsed?: Date;
-  projectLastUsed?: Project;
-}): TokenWip {
-  return {
-    id,
-    name,
-    tokenLastCharacters: crypto.randomUUID().slice(0, 4),
-    scopes,
-    dateCreated,
-    dateLastUsed,
-    projectLastUsed,
-  };
-}
+import {
+  makeFetchOrgAuthTokensForOrgQueryKey,
+  tokenPreview,
+} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   organization: Organization;
   params: {tokenId: string};
 };
 
+type FetchOrgAuthTokenParameters = {
+  orgSlug: string;
+  tokenId: string;
+};
+type FetchOrgAuthTokenResponse = OrgAuthToken;
+type UpdateTokenQueryVariables = {
+  name: string;
+};
+
+export const makeFetchOrgAuthTokenKey = ({
+  orgSlug,
+  tokenId,
+}: FetchOrgAuthTokenParameters) =>
+  [`/organizations/${orgSlug}/org-auth-tokens/${tokenId}/`] as const;
+
 function AuthTokenDetailsForm({
   token,
   organization,
 }: {
   organization: Organization;
-  token: TokenWip;
+  token: OrgAuthToken;
 }) {
   const initialData = {
     name: token.name,
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
   };
 
+  const api = useApi();
+  const queryClient = useQueryClient();
+
+  const handleGoBack = useCallback(() => {
+    browserHistory.push(normalizeUrl(`/settings/${organization.slug}/auth-tokens/`));
+  }, [organization.slug]);
+
+  const {mutate: submitToken} = useMutation<{}, RequestError, UpdateTokenQueryVariables>({
+    mutationFn: ({name}) =>
+      api.requestPromise(
+        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        {
+          method: 'PUT',
+          data: {
+            name,
+          },
+        }
+      ),
+
+    onSuccess: (_data, {name}) => {
+      addSuccessMessage(t('Updated auth token.'));
+
+      // Update get by id query
+      setApiQueryData(
+        queryClient,
+        makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId: token.id}),
+        (oldData: OrgAuthToken | undefined) => {
+          if (!oldData) {
+            return oldData;
+          }
+
+          oldData.name = name;
+
+          return oldData;
+        }
+      );
+
+      // Update get list query
+      if (
+        getApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug})
+        )
+      ) {
+        setApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+          (oldData: OrgAuthToken[] | undefined) => {
+            if (!Array.isArray(oldData)) {
+              return oldData;
+            }
+
+            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
+
+            if (existingToken) {
+              existingToken.name = name;
+            }
+
+            return oldData;
+          }
+        );
+      }
+
+      handleGoBack();
+    },
+    onError: error => {
+      const message = t('Failed to update the auth token.');
+      handleXhrErrorResponse(message, error);
+      addErrorMessage(message);
+    },
+  });
+
   return (
     <Form
       apiMethod="PUT"
       initialData={initialData}
-      apiEndpoint={`/organizations/${organization.slug}/auth-tokens/${token.id}/`}
-      onSubmit={() => {
-        // TODO FN: Actually submit data
+      apiEndpoint={`/organizations/${organization.slug}/org-auth-tokens/${token.id}/`}
+      onSubmit={({name}) => {
+        addLoadingMessage();
 
-        try {
-          const message = t('Successfully updated the auth token.');
-          addSuccessMessage(message);
-        } catch (error) {
-          const message = t('Failed to update the auth token.');
-          handleXhrErrorResponse(message, error);
-          addErrorMessage(message);
-        }
+        return submitToken({
+          name,
+        });
       }}
-      onCancel={() =>
-        browserHistory.push(normalizeUrl(`/settings/${organization.slug}/auth-tokens/`))
-      }
+      onCancel={handleGoBack}
     >
       <TextField
         name="name"
         label={t('Name')}
-        value={token.dateLastUsed}
         required
         help={t('A name to help you identify this token.')}
       />
@@ -96,24 +163,13 @@ function AuthTokenDetailsForm({
       <TextField
         name="tokenPreview"
         label={t('Token')}
-        value={tokenPreview(
-          token.tokenLastCharacters
-            ? getDynamicText({
-                value: token.tokenLastCharacters,
-                fixed: 'ABCD',
-              })
-            : '****'
-        )}
         disabled
         help={t('You can only view the token once after creation.')}
       />
 
       <FieldGroup
         label={t('Scopes')}
-        inline={false}
-        help={t(
-          'You cannot change the scopes of an existing token. If you need different scopes, please create a new token.'
-        )}
+        help={t('You cannot change the scopes of an existing token.')}
       >
         <div>{token.scopes.slice().sort().join(', ')}</div>
       </FieldGroup>
@@ -122,43 +178,24 @@ function AuthTokenDetailsForm({
 }
 
 export function OrganizationAuthTokensDetails({params, organization}: Props) {
-  const [token, setToken] = useState<TokenWip | null>(null);
-  const [hasLoadingError, setHasLoadingError] = useState(false);
-
   const {tokenId} = params;
 
-  const fetchToken = useCallback(async () => {
-    try {
-      // TODO FN: Actually do something here
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setToken(
-        generateMockToken({
-          id: tokenId,
-          name: 'custom token',
-          scopes: ['org:ci'],
-          dateLastUsed: setDateToTime(new Date(), '00:05:00'),
-          projectLastUsed: {slug: 'my-project', name: 'My Project'} as Project,
-          dateCreated: setDateToTime(new Date(), '00:01:00'),
-        })
-      );
-      setHasLoadingError(false);
-    } catch (error) {
-      const message = t('Failed to load auth token.');
-      handleXhrErrorResponse(message, error);
-      setHasLoadingError(error);
+  const {
+    isLoading,
+    isError,
+    data: token,
+    refetch: refetchToken,
+  } = useApiQuery<FetchOrgAuthTokenResponse>(
+    makeFetchOrgAuthTokenKey({orgSlug: organization.slug, tokenId}),
+    {
+      staleTime: Infinity,
     }
-  }, [tokenId]);
-
-  useEffect(() => {
-    fetchToken();
-  }, [fetchToken]);
+  );
 
   return (
     <div>
       <SentryDocumentTitle title={t('Edit Auth Token')} />
       <SettingsPageHeader title={t('Edit Auth Token')} />
-
-      <Alert>Note: This page is WIP and currently only shows mocked data.</Alert>
 
       <TextBlock>
         {t(
@@ -177,16 +214,16 @@ export function OrganizationAuthTokensDetails({params, organization}: Props) {
         <PanelHeader>{t('Auth Token Details')}</PanelHeader>
 
         <PanelBody>
-          {hasLoadingError && (
+          {isError && (
             <LoadingError
               message={t('Failed to load auth token.')}
-              onRetry={fetchToken}
+              onRetry={refetchToken}
             />
           )}
 
-          {!hasLoadingError && !token && <LoadingIndicator />}
+          {isLoading && <LoadingIndicator />}
 
-          {!hasLoadingError && token && (
+          {!isLoading && !isError && token && (
             <AuthTokenDetailsForm token={token} organization={organization} />
           )}
         </PanelBody>

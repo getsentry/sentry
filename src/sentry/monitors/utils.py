@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.request import Request
 
@@ -19,8 +20,10 @@ def signal_first_checkin(project: Project, monitor: Monitor):
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
         signal_first_monitor_created(project, None, False)
-        first_cron_checkin_received.send_robust(
-            project=project, monitor_id=str(monitor.guid), sender=Project
+        transaction.on_commit(
+            lambda: first_cron_checkin_received.send_robust(
+                project=project, monitor_id=str(monitor.guid), sender=Project
+            )
         )
 
 

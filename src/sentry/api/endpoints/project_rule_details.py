@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -11,7 +13,15 @@ from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import RuleActivity, RuleActivityType, RuleStatus, SentryAppComponent, Team, User
+from sentry.models import (
+    RegionScheduledDeletion,
+    RuleActivity,
+    RuleActivityType,
+    RuleStatus,
+    SentryAppComponent,
+    Team,
+    User,
+)
 from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
@@ -48,10 +58,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = SentryAppComponent(**action.get("_sentry_app_component"))
                 component = prepare_ui_component(
                     installation,
-                    component,
+                    SentryAppComponent(**action.get("_sentry_app_component")),
                     project.slug,
                     action.get("settings"),
                 )
@@ -198,11 +207,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
+        scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=rule.id,
             event=audit_log.get_event_id("RULE_REMOVE"),
             data=rule.get_audit_log_data(),
+            transaction_id=scheduled.id,
         )
         return Response(status=202)

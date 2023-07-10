@@ -60,6 +60,11 @@ describe('DateTime', () => {
     expect(screen.getByText('Oct 17, 2:41 AM UTC')).toBeInTheDocument();
   });
 
+  it('renders date with forced timezone', () => {
+    render(<DateTime date={new Date()} forcedTimezone="America/Toronto" />);
+    expect(screen.getByText('Oct 16, 10:41 PM')).toBeInTheDocument();
+  });
+
   describe('24 Hours', () => {
     beforeAll(() => {
       user.options.clock24Hours = true;
@@ -84,6 +89,11 @@ describe('DateTime', () => {
     it('renders date with forced utc', () => {
       render(<DateTime date={new Date()} utc />);
       expect(screen.getByText('Oct 17, 02:41 UTC')).toBeInTheDocument();
+    });
+
+    it('renders date with forced timezone', () => {
+      render(<DateTime date={new Date()} forcedTimezone="America/Toronto" />);
+      expect(screen.getByText('Oct 16, 22:41')).toBeInTheDocument();
     });
   });
 });

@@ -34,6 +34,8 @@ OPTION_KEYS = frozenset(
         "sentry:releases",
         "sentry:error_messages",
         "sentry:scrape_javascript",
+        "sentry:recap_server_url",
+        "sentry:recap_server_token",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
@@ -97,9 +99,7 @@ class ProjectOptionManager(OptionManager["Project"]):
         inst, created = self.create_or_update(project=project, key=key, values={"value": value})
         self.reload_cache(project.id, "projectoption.set_value")
 
-        # Explicitly typing to satisfy mypy.
-        success: bool = created or inst > 0
-        return success
+        return created or inst > 0
 
     def get_all_values(self, project: Project) -> Mapping[str, Value]:
         if isinstance(project, models.Model):
@@ -115,9 +115,7 @@ class ProjectOptionManager(OptionManager["Project"]):
             else:
                 self._option_cache[cache_key] = result
 
-        # Explicitly typing to satisfy mypy.
-        values: Mapping[str, Value] = self._option_cache.get(cache_key, {})
-        return values
+        return self._option_cache.get(cache_key, {})
 
     def reload_cache(self, project_id: int, update_reason: str) -> Mapping[str, Value]:
         from sentry.tasks.relay import schedule_invalidate_project_config

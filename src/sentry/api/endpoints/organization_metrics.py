@@ -7,7 +7,8 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.utils import string_to_use_case_id
 from sentry.snuba.metrics import (
     QueryDefinition,
     get_metrics,
@@ -21,17 +22,18 @@ from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.cursors import Cursor, CursorResult
 
 
-def get_use_case_id(request: Request) -> UseCaseKey:
+def get_use_case_id(request: Request) -> UseCaseID:
     """
-    Get useCase from query params and validate it against UseCaseKey enum type
+    Get useCase from query params and validate it against UseCaseID enum type
     Raise a ParseError if the use_case parameter is invalid.
     """
 
     try:
-        return UseCaseKey(request.GET.get("useCase", "release-health"))
+        use_case_param = request.GET.get("useCase", "sessions")
+        return string_to_use_case_id(use_case_param)
     except ValueError:
         raise ParseError(
-            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseKey]}"
+            detail=f"Invalid useCase parameter. Please use one of: {[uc.value for uc in UseCaseID]}"
         )
 
 
@@ -82,12 +84,12 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
 
-        metric_names = request.GET.getlist("metric") or None
+        metrics = request.GET.getlist("metric") or []
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(
                 projects,
-                metric_names,
+                metrics,
                 use_case_id=get_use_case_id(request),
             )
         except (InvalidParams, DerivedMetricParseException) as exc:

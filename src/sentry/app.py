@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 from threading import local
+
+from django.http.request import HttpRequest
 
 
 class State(local):
-    request = None
+    request: HttpRequest | None = None
     data = {}
 
 

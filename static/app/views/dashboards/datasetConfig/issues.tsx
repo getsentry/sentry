@@ -6,7 +6,6 @@ import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {enablePrioritySortByDefault} from 'sentry/utils/prioritySort';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
@@ -71,7 +70,9 @@ function disableSortOptions(_widgetQuery: WidgetQuery) {
 }
 
 function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
-  const hasBetterPrioritySort = enablePrioritySortByDefault(organization);
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
   const sortOptions = [
     ...(hasBetterPrioritySort ? [IssueSortOptions.BETTER_PRIORITY] : []), // show better priority for EA orgs
     IssueSortOptions.DATE,

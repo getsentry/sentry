@@ -178,7 +178,7 @@ def outside_retention_with_modified_start(
     organizations retention period. Returns an updated
     start datetime if start is out of retention.
     """
-    retention = quotas.get_event_retention(organization=organization)
+    retention = quotas.backend.get_event_retention(organization=organization)
     if not retention:
         return False, start
 

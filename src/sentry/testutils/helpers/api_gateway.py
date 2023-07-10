@@ -2,13 +2,14 @@ from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
-from django.conf.urls import url
 from django.test import override_settings
+from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import control_silo_endpoint, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.testutils import APITestCase
 from sentry.types.region import Region, RegionCategory, clear_global_regions
@@ -41,12 +42,12 @@ class RegionEndpoint(OrganizationEndpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/control/$",
         ControlEndpoint.as_view(),
         name="control-endpoint",
     ),
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/region/$",
         RegionEndpoint.as_view(),
         name="region-endpoint",
@@ -133,9 +134,11 @@ class ApiGatewayTestCase(APITestCase):
             content_type="application/json",
             adding_headers={"test": "header"},
         )
-        OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-            region_name="region1"
-        )
+
+        with in_test_psql_role_override("postgres"):
+            OrganizationMapping.objects.get(organization_id=self.organization.id).update(
+                region_name="region1"
+            )
 
         # Echos the request body and header back for verification
         def return_request_body(request):

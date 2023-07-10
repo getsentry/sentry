@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4
 
-from django.conf.urls import url
+from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -88,7 +88,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
 
     def get_group_urls(self):
         return super().get_group_urls() + [
-            url(
+            re_path(
                 r"^autocomplete",
                 IssueGroupActionEndpoint.as_view(view_method_name="view_autocomplete", plugin=self),
             )
@@ -153,7 +153,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             with self.get_client(request.user) as client:
                 response = client.list_assignees(repo=self.get_option("repo", group.project))
         except Exception as e:
-            raise self.raise_error(e)
+            self.raise_error(e)
 
         users = tuple((u["login"], u["login"]) for u in response)
 
@@ -172,7 +172,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                     },
                 )
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return response["number"]
 
@@ -187,7 +187,7 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
                         repo=repo, issue_id=issue["number"], data={"body": comment}
                     )
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
 
         return {"title": issue["title"]}
 
@@ -282,7 +282,7 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                 with self.get_client(actor) as client:
                     repo = client.get_repo(config["name"])
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
             else:
                 config["external_id"] = str(repo["id"])
         return config
@@ -337,7 +337,7 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                         "status_code": getattr(e, "code", None),
                     },
                 )
-                raise self.raise_error(e)
+                self.raise_error(e)
             else:
                 return {
                     "name": data["name"],
@@ -407,14 +407,14 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                 try:
                     res = client.get_last_commits(name, end_sha)
                 except Exception as e:
-                    raise self.raise_error(e)
+                    self.raise_error(e)
                 else:
                     return self._format_commits(repo, res[:10])
             else:
                 try:
                     res = client.compare_commits(name, start_sha, end_sha)
                 except Exception as e:
-                    raise self.raise_error(e)
+                    self.raise_error(e)
                 else:
                     return self._format_commits(repo, res["commits"])
 
@@ -429,7 +429,7 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
                 with self.get_client(actor) as client:
                     res = client.get_pr_commits(name, number)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
             else:
                 return self._format_commits(repo, res)
 
@@ -518,14 +518,14 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
             try:
                 res = client.get_last_commits(name, end_sha)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
             else:
                 return self._format_commits(repo, res[:10])
         else:
             try:
                 res = client.compare_commits(name, start_sha, end_sha)
             except Exception as e:
-                raise self.raise_error(e)
+                self.raise_error(e)
             else:
                 return self._format_commits(repo, res["commits"])
 

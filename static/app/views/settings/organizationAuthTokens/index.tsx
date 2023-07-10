@@ -1,56 +1,91 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {PanelTable} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {setDateToTime} from 'sentry/utils/dates';
+import {Organization, OrgAuthToken, Project} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {
+  setApiQueryData,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import RequestError from 'sentry/utils/requestError/requestError';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
-export type TokenWip = {
-  dateCreated: Date;
-  id: string;
-  name: string;
-  scopes: string[];
-  dateLastUsed?: Date;
-  projectLastUsed?: Project;
-  tokenLastCharacters?: string;
+type FetchOrgAuthTokensResponse = OrgAuthToken[];
+type FetchOrgAuthTokensParameters = {
+  orgSlug: string;
+};
+type RevokeTokenQueryVariables = {
+  token: OrgAuthToken;
 };
 
-function generateMockToken({
-  name,
-  scopes,
-  dateCreated = new Date(),
-  dateLastUsed,
-  projectLastUsed,
+export const makeFetchOrgAuthTokensForOrgQueryKey = ({
+  orgSlug,
+}: FetchOrgAuthTokensParameters) =>
+  [`/organizations/${orgSlug}/org-auth-tokens/`] as const;
+
+function TokenList({
+  organization,
+  tokenList,
+  isRevoking,
+  revokeToken,
 }: {
-  name: string;
-  scopes: string[];
-  dateCreated?: Date;
-  dateLastUsed?: Date;
-  projectLastUsed?: Project;
-}): TokenWip {
-  return {
-    id: crypto.randomUUID(),
-    name,
-    tokenLastCharacters: crypto.randomUUID().slice(0, 4),
-    scopes,
-    dateCreated,
-    dateLastUsed,
-    projectLastUsed,
-  };
+  isRevoking: boolean;
+  organization: Organization;
+  tokenList: OrgAuthToken[];
+  revokeToken?: (data: {token: OrgAuthToken}) => void;
+}) {
+  const apiEndpoint = `/organizations/${organization.slug}/projects/`;
+
+  const projectIds = tokenList
+    .map(token => token.projectLastUsedId)
+    .filter(id => !!id) as string[];
+
+  const idQueryParams = projectIds.map(id => `id:${id}`).join(' ');
+
+  const hasProjects = projectIds.length > 0;
+
+  const {data: projects, isLoading: isLoadingProjects} = useApiQuery<Project[]>(
+    [apiEndpoint, {query: {query: idQueryParams}}],
+    {
+      staleTime: 0,
+      enabled: hasProjects,
+    }
+  );
+
+  return (
+    <Fragment>
+      {tokenList.map(token => {
+        const projectLastUsed = token.projectLastUsedId
+          ? projects?.find(p => p.id === token.projectLastUsedId)
+          : undefined;
+        return (
+          <OrganizationAuthTokensAuthTokenRow
+            key={token.id}
+            organization={organization}
+            token={token}
+            isRevoking={isRevoking}
+            revokeToken={revokeToken ? () => revokeToken({token}) : undefined}
+            projectLastUsed={projectLastUsed}
+            isProjectLoading={hasProjects && isLoadingProjects}
+          />
+        );
+      })}
+    </Fragment>
+  );
 }
 
 export function OrganizationAuthTokensIndex({
@@ -58,59 +93,55 @@ export function OrganizationAuthTokensIndex({
 }: {
   organization: Organization;
 }) {
-  const [tokenList, setTokenList] = useState<TokenWip[] | null>(null);
-  const [hasLoadingError, setHasLoadingError] = useState(false);
-  const [isRevoking, setIsRevoking] = useState(false);
+  const api = useApi();
+  const queryClient = useQueryClient();
 
-  const fetchTokenList = useCallback(async () => {
-    try {
-      // TODO FN: Actually do something here
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setTokenList([
-        generateMockToken({
-          name: 'custom token',
-          scopes: ['org:ci'],
-          dateLastUsed: setDateToTime(new Date(), '00:05:00'),
-          projectLastUsed: {slug: 'my-project', name: 'My Project'} as Project,
-          dateCreated: setDateToTime(new Date(), '00:01:00'),
-        }),
-        generateMockToken({
-          name: 'my-project CI token',
-          scopes: ['org:ci'],
-          dateLastUsed: new Date('2023-06-09'),
-        }),
-        generateMockToken({name: 'my-pro2 CI token', scopes: ['org:ci']}),
-      ]);
-      setHasLoadingError(false);
-    } catch (error) {
-      const message = t('Failed to load auth tokens for the organization.');
-      handleXhrErrorResponse(message, error);
-      setHasLoadingError(error);
+  const {
+    isLoading,
+    isError,
+    data: tokenList,
+    refetch: refetchTokenList,
+  } = useApiQuery<FetchOrgAuthTokensResponse>(
+    makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+    {
+      staleTime: Infinity,
     }
-  }, []);
-
-  const handleRevokeToken = useCallback(
-    async (token: TokenWip) => {
-      try {
-        setIsRevoking(true);
-        // TODO FN: Actually do something here
-        await new Promise(resolve => setTimeout(resolve, 500));
-        const newTokens = (tokenList || []).filter(
-          tokenCompare => tokenCompare !== token
-        );
-        setTokenList(newTokens);
-
-        addSuccessMessage(t('Revoked auth token for the organization.'));
-      } catch (error) {
-        const message = t('Failed to revoke the auth token for the organization.');
-        handleXhrErrorResponse(message, error);
-        addErrorMessage(message);
-      } finally {
-        setIsRevoking(false);
-      }
-    },
-    [tokenList]
   );
+
+  const {mutate: handleRevokeToken, isLoading: isRevoking} = useMutation<
+    {},
+    RequestError,
+    RevokeTokenQueryVariables
+  >({
+    mutationFn: ({token}) =>
+      api.requestPromise(
+        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        {
+          method: 'DELETE',
+        }
+      ),
+
+    onSuccess: (_data, {token}) => {
+      addSuccessMessage(t('Revoked auth token for the organization.'));
+
+      setApiQueryData(
+        queryClient,
+        makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+        oldData => {
+          if (!Array.isArray(oldData)) {
+            return oldData;
+          }
+
+          return oldData.filter(oldToken => oldToken.id !== token.id);
+        }
+      );
+    },
+    onError: error => {
+      const message = t('Failed to revoke the auth token for the organization.');
+      handleXhrErrorResponse(message, error);
+      addErrorMessage(message);
+    },
+  });
 
   const createNewToken = (
     <Button
@@ -123,18 +154,12 @@ export function OrganizationAuthTokensIndex({
     </Button>
   );
 
-  useEffect(() => {
-    fetchTokenList();
-  }, [fetchTokenList]);
-
   return (
     <Access access={['org:write']}>
       {({hasAccess}) => (
         <Fragment>
           <SentryDocumentTitle title={t('Auth Tokens')} />
           <SettingsPageHeader title={t('Auth Tokens')} action={createNewToken} />
-
-          <Alert>Note: This page is WIP and currently only shows mocked data.</Alert>
 
           <TextBlock>
             {t(
@@ -149,40 +174,30 @@ export function OrganizationAuthTokensIndex({
               }
             )}
           </TextBlock>
-          <Panel>
-            <PanelHeader>{t('Auth Token')}</PanelHeader>
 
-            <PanelBody>
-              {hasLoadingError && (
+          <ResponsivePanelTable
+            isLoading={isLoading || isError}
+            isEmpty={!isLoading && !tokenList?.length}
+            loader={
+              isError ? (
                 <LoadingError
                   message={t('Failed to load auth tokens for the organization.')}
-                  onRetry={fetchTokenList}
+                  onRetry={refetchTokenList}
                 />
-              )}
-
-              {!hasLoadingError && !tokenList && <LoadingIndicator />}
-
-              {!hasLoadingError && tokenList && tokenList.length === 0 && (
-                <EmptyMessage>
-                  {t("You haven't created any authentication tokens yet.")}
-                </EmptyMessage>
-              )}
-
-              {!hasLoadingError &&
-                tokenList &&
-                tokenList.length > 0 &&
-                tokenList.map(token => (
-                  <OrganizationAuthTokensAuthTokenRow
-                    key={token.id}
-                    organization={organization}
-                    token={token}
-                    isRevoking={isRevoking}
-                    revokeToken={hasAccess ? handleRevokeToken : () => {}}
-                    canRevoke={hasAccess}
-                  />
-                ))}
-            </PanelBody>
-          </Panel>
+              ) : undefined
+            }
+            emptyMessage={t("You haven't created any authentication tokens yet.")}
+            headers={[t('Auth token'), t('Last access'), '']}
+          >
+            {!isError && !isLoading && !!tokenList?.length && (
+              <TokenList
+                organization={organization}
+                tokenList={tokenList}
+                isRevoking={isRevoking}
+                revokeToken={hasAccess ? handleRevokeToken : undefined}
+              />
+            )}
+          </ResponsivePanelTable>
         </Fragment>
       )}
     </Access>
@@ -194,3 +209,13 @@ export function tokenPreview(tokenLastCharacters: string) {
 }
 
 export default withOrganization(OrganizationAuthTokensIndex);
+
+const ResponsivePanelTable = styled(PanelTable)`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: 1fr 1fr;
+
+    > *:nth-child(3n + 2) {
+      display: none;
+    }
+  }
+`;

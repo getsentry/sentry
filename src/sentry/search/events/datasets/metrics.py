@@ -698,24 +698,24 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_percentile_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "http_error_count_percent_change",
                     snql_distribution=self._resolve_http_error_count_percent_change,
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "epm_percent_change",
                     snql_distribution=self._resolve_epm_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
                 fields.MetricsFunction(
                     "eps_percent_change",
                     snql_distribution=self._resolve_eps_percent_change,
                     optional_args=[fields.IntervalDefault("interval", 1, None)],
-                    default_result_type="percentage",
+                    default_result_type="percent_change",
                 ),
             ]
         }

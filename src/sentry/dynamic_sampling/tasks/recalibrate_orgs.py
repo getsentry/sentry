@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Generator, List, Optional
+from typing import Generator, List
 
 from snuba_sdk import (
     Column,
@@ -16,18 +16,25 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import quotas
-from sentry.dynamic_sampling.rules.utils import (
-    adjusted_factor,
-    generate_cache_key_rebalance_factor,
-    get_redis_client_for_ds,
-)
+from sentry.dynamic_sampling.tasks.common import get_adjusted_base_rate_from_cache_or_compute
 from sentry.dynamic_sampling.tasks.constants import (
     MAX_REBALANCE_FACTOR,
-    MAX_SECONDS,
     MIN_REBALANCE_FACTOR,
+    RECALIBRATE_ORGS_QUERY_INTERVAL,
 )
-from sentry.dynamic_sampling.tasks.logging import log_recalibrate_orgs_errors
+from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import (
+    compute_adjusted_factor,
+    delete_adjusted_factor,
+    get_adjusted_factor,
+    set_guarded_adjusted_factor,
+)
+from sentry.dynamic_sampling.tasks.logging import (
+    log_action_if,
+    log_query_timeout,
+    log_recalibrate_org_error,
+    log_recalibrate_org_state,
+    log_sample_rate_source,
+)
 from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -35,6 +42,17 @@ from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task
 from sentry.utils.snuba import raw_snql_query
+
+# Since we are using a granularity of 60 (minute granularity), we want to have a higher time upper limit for executing
+# multiple queries on Snuba.
+RECALIBRATE_ORGS_MAX_SECONDS = 600
+
+
+class RecalibrationError(Exception):
+    def __init__(self, org_id, message):
+        final_message = f"Error during recalibration of org {org_id}: {message}"
+        self.message = final_message
+        super().__init__(self.message)
 
 
 @dataclass(frozen=True)
@@ -48,8 +66,15 @@ class OrganizationDataVolume:
     org_id: int
     # total number of transactions
     total: int
-    # number of transactions indexed ( i.e. kept)
+    # number of transactions indexed (i.e. stored)
     indexed: int
+
+    def is_valid_for_recalibration(self):
+        return self.total > 0 and self.indexed > 0
+
+
+def orgs_to_check(org_volume: OrganizationDataVolume):
+    return lambda: org_volume.org_id in [1, 1407395]
 
 
 @instrumented_task(
@@ -62,67 +87,81 @@ class OrganizationDataVolume:
 )
 @dynamic_sampling_task
 def recalibrate_orgs() -> None:
-    query_interval = timedelta(minutes=5)
+    for orgs in get_active_orgs(1000):
+        log_action_if("fetching_orgs", {"orgs": orgs}, lambda: True)
 
-    # use a dict instead of a list to easily pass it to the logger in the extra field
-    errors: Dict[str, str] = {}
-    for orgs in get_active_orgs(1000, query_interval):
-        for org_volume in fetch_org_volumes(orgs, query_interval):
-            error = rebalance_org(org_volume)
-            if error and len(errors) < 100:
-                error_message = f"organisation:{org_volume.org_id} with {org_volume.total} transactions from which {org_volume.indexed} indexed, generated error:{error}"
-                errors[str(org_volume.org_id)] = error_message
+        for org_volume in fetch_org_volumes(orgs):
+            try:
+                log_action_if(
+                    "starting_recalibration",
+                    {"org_id": org_volume.org_id},
+                    orgs_to_check(org_volume),
+                )
 
-    if errors:
-        log_recalibrate_orgs_errors(errors=errors)
+                recalibrate_org(org_volume)
+            except Exception as e:
+                log_recalibrate_org_error(org_volume.org_id, str(e))
 
 
-def rebalance_org(org_volume: OrganizationDataVolume) -> Optional[str]:
-    """
-    Calculates the rebalancing factor for an org
+def recalibrate_org(org_volume: OrganizationDataVolume) -> None:
+    # We check if the organization volume is valid for recalibration, otherwise it doesn't make sense to run the
+    # recalibration.
+    if not org_volume.is_valid_for_recalibration():
+        raise RecalibrationError(org_id=org_volume.org_id, message="invalid data for recalibration")
 
-    It takes the last interval total number of transactions and kept transactions, and
-    it figures out how far it is from the desired rate ( i.e. the blended rate)
-    """
-    redis_client = get_redis_client_for_ds()
-    factor_key = generate_cache_key_rebalance_factor(org_volume.org_id)
-
-    desired_sample_rate = quotas.get_blended_sample_rate(  # type:ignore
-        organization_id=org_volume.org_id
-    )
-    if desired_sample_rate is None:
-        return f"Organisation with desired_sample_rate==None org_id={org_volume.org_id}"
-
-    if org_volume.total == 0 or org_volume.indexed == 0:
-        # not enough info to make adjustments ( we don't consider this an error)
-        return None
-
-    previous_interval_sample_rate = org_volume.indexed / org_volume.total
-    try:
-        previous_factor = float(redis_client.get(factor_key))
-    except (TypeError, ValueError):
-        previous_factor = 1.0
-
-    new_factor = adjusted_factor(
-        previous_factor, previous_interval_sample_rate, desired_sample_rate
+    log_action_if(
+        "ready_for_recalibration", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
     )
 
-    if new_factor < MIN_REBALANCE_FACTOR or new_factor > MAX_REBALANCE_FACTOR:
-        # whatever we did before didn't help, give up
-        redis_client.delete(factor_key)
-        return f"factor:{new_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}..{MAX_REBALANCE_FACTOR}]"
+    target_sample_rate = get_adjusted_base_rate_from_cache_or_compute(org_volume.org_id)
+    log_sample_rate_source(
+        org_volume.org_id, None, "recalibrate_orgs", "sliding_window_org", target_sample_rate
+    )
+    if target_sample_rate is None:
+        raise RecalibrationError(
+            org_id=org_volume.org_id, message="couldn't get target sample rate for recalibration"
+        )
 
-    if new_factor != 1.0:
-        # Finally got a good key, save it to be used in rule generation
-        redis_client.set(factor_key, new_factor)
-    else:
-        # we are either at 1.0 no point creating an adjustment rule
-        redis_client.delete(factor_key)
+    log_action_if(
+        "target_sample_rate_determined", {"org_id": org_volume.org_id}, orgs_to_check(org_volume)
+    )
 
-    return None
+    # We compute the effective sample rate that we had in the last considered time window.
+    effective_sample_rate = org_volume.indexed / org_volume.total
+    # We get the previous factor that was used for the recalibration.
+    previous_factor = get_adjusted_factor(org_volume.org_id)
+
+    log_recalibrate_org_state(
+        org_volume.org_id, previous_factor, effective_sample_rate, target_sample_rate
+    )
+
+    # We want to compute the new adjusted factor.
+    adjusted_factor = compute_adjusted_factor(
+        previous_factor, effective_sample_rate, target_sample_rate
+    )
+    if adjusted_factor is None:
+        raise RecalibrationError(
+            org_id=org_volume.org_id, message="adjusted factor can't be computed"
+        )
+
+    if adjusted_factor < MIN_REBALANCE_FACTOR or adjusted_factor > MAX_REBALANCE_FACTOR:
+        # In case the new factor would result into too much recalibration, we want to remove it from cache, effectively
+        # removing the generated rule.
+        delete_adjusted_factor(org_volume.org_id)
+        raise RecalibrationError(
+            org_id=org_volume.org_id,
+            message=f"factor {adjusted_factor} outside of the acceptable range [{MIN_REBALANCE_FACTOR}..{MAX_REBALANCE_FACTOR}]",
+        )
+
+    # At the end we set the adjusted factor.
+    set_guarded_adjusted_factor(org_volume.org_id, adjusted_factor)
+
+    log_action_if("set_adjusted_factor", {"org_id": org_volume.org_id}, orgs_to_check(org_volume))
 
 
-def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[int], None, None]:
+def get_active_orgs(
+    max_orgs: int, time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL
+) -> Generator[List[int], None, None]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
@@ -131,7 +170,7 @@ def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[i
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
 
-    while (time.time() - start_time) < MAX_SECONDS:
+    while (time.time() - start_time) < RECALIBRATE_ORGS_MAX_SECONDS:
         query = (
             Query(
                 match=Entity(EntityKey.GenericOrgMetricsCounters.value),
@@ -177,10 +216,14 @@ def get_active_orgs(max_orgs: int, time_interval: timedelta) -> Generator[List[i
 
         if not more_results:
             return
+    else:
+        log_query_timeout(
+            query="get_active_orgs", offset=offset, timeout_seconds=RECALIBRATE_ORGS_MAX_SECONDS
+        )
 
 
 def fetch_org_volumes(
-    org_ids: List[int], query_interval: timedelta
+    org_ids: List[int], query_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL
 ) -> List[OrganizationDataVolume]:
     """
     Returns the number of total and indexed transactions received by all organisations in the

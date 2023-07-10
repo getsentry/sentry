@@ -18,6 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.hybrid_cloud.log import log_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -31,6 +32,12 @@ def create_audit_entry(
 ) -> AuditLogEntry:
     user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
     api_key = get_api_key_for_audit_log(request)
+    org_auth_token = get_org_auth_token_for_audit_log(request)
+
+    # We do not keep any user/key ID for this case for now, but only pass the token name as a label
+    # Without this, the AuditLogEntry fails on save because it cannot find an actor_label
+    if org_auth_token:
+        kwargs["actor_label"] = org_auth_token.name
 
     return create_audit_entry_from_user(
         user, api_key, request.META["REMOTE_ADDR"], transaction_id, logger, **kwargs
@@ -104,6 +111,14 @@ def get_api_key_for_audit_log(request: Request) -> ApiKey | None:
     return request.auth if hasattr(request, "auth") and isinstance(request.auth, ApiKey) else None
 
 
+def get_org_auth_token_for_audit_log(request: Request) -> OrgAuthToken | None:
+    return (
+        request.auth
+        if hasattr(request, "auth") and isinstance(request.auth, OrgAuthToken)
+        else None
+    )
+
+
 def _create_org_delete_log(entry: AuditLogEntry) -> None:
     delete_log = DeletedOrganization()
     organization = Organization.objects.get(id=entry.target_object)
@@ -153,7 +168,7 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
     Adds common information on a delete log from an audit entry and
     saves that delete log.
     """
-    delete_log.actor_label = entry.actor_label[:64]
+    delete_log.actor_label = entry.actor_label[:64] if entry.actor_label else None
     delete_log.actor_id = entry.actor_id
     delete_log.actor_key = entry.actor_key
     delete_log.ip_address = entry.ip_address

@@ -4,12 +4,12 @@ from unittest import TestCase, mock
 
 import pytest
 from django.utils.functional import SimpleLazyObject
+from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import imports
 from sentry.utils.redis import (
     ClusterManager,
-    FailoverRedis,
     _RedisCluster,
     _shared_pool,
     get_cluster_from_options,
@@ -40,7 +40,7 @@ class ClusterManagerTestCase(TestCase):
         manager = make_manager()
         assert manager.get("foo") is manager.get("foo")
         assert manager.get("foo") is not manager.get("bar")
-        assert manager.get("foo").pool_cls is _shared_pool
+        assert manager.get("foo").pool_cls is _shared_pool  # type: ignore[attr-defined]
         with pytest.raises(KeyError):
             manager.get("invalid")
 
@@ -52,9 +52,9 @@ class ClusterManagerTestCase(TestCase):
         # object to verify it's correct.
 
         # cluster foo is fine since it's a single node, without specific client_class
-        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)
+        assert isinstance(manager.get("foo")._setupfunc(), FailoverRedis)  # type: ignore[attr-defined]
         # baz works becasue it's explicitly is_redis_cluster
-        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
+        assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value  # type: ignore[attr-defined]
 
         # bar is not a valid redis or redis cluster definition
         # becasue it is two hosts, without explicitly saying is_redis_cluster
@@ -102,6 +102,7 @@ def test_get_cluster_from_options_legacy_hosts_option():
 
     # it should have warned about the deprecated setting
     (warn,) = warninfo
+    assert isinstance(warn.message, DeprecatedSettingWarning)
     assert warn.message.setting == "'hosts' parameter of sentinel.backend"
     assert warn.message.replacement == 'sentinel.backend["cluster"]'
 

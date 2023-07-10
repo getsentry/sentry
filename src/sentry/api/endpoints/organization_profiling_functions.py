@@ -66,6 +66,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
     function = serializers.CharField(max_length=10)
     trend = TrendTypeField()
     query = serializers.CharField(required=False)
+    threshold = serializers.IntegerField(min_value=0, max_value=1000, default=16, required=False)
 
 
 @region_silo_endpoint
@@ -103,17 +104,17 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     "package",
                     "function",
                     "count()",
+                    "examples()",
                 ],
                 query=query,
                 params=params,
                 orderby=["-count()"],
                 limit=TOP_FUNCTIONS_LIMIT,
                 referrer=Referrer.API_PROFILING_FUNCTION_TRENDS_TOP_EVENTS.value,
+                auto_aggregations=True,
                 use_aggregate_conditions=True,
                 transform_alias_to_input_format=True,
             )
-
-            set_measurement("profiling.top_functions", len(top_functions.get("data", [])))
 
             results = functions.top_events_timeseries(
                 timeseries_columns=columns,
@@ -135,6 +136,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             return results
 
         def get_trends_data(stats_data):
+            if not stats_data:
+                return []
+
             trends_request = {
                 "data": {
                     k: {
@@ -166,6 +170,31 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
 
         trending_functions = get_trends_data(stats_data)
 
+        all_trending_functions_count = len(trending_functions)
+        set_measurement("profiling.top_functions", all_trending_functions_count)
+
+        # Profiling functions have a resolution of ~10ms. To increase the confidence
+        # of the results, the caller can specify a min threshold for the trend difference.
+        threshold = data.get("threshold")
+        if threshold is not None:
+            trending_functions = [
+                data
+                for data in trending_functions
+                if abs(data["trend_difference"]) >= threshold * 1e6
+            ]
+
+        filtered_trending_functions_count = all_trending_functions_count - len(trending_functions)
+        set_measurement(
+            "profiling.top_functions.below_threshold", filtered_trending_functions_count
+        )
+
+        # Make sure to sort the results so that it's in order of largest change
+        # to smallest change (ASC/DESC depends on the trend type)
+        trending_functions.sort(
+            key=lambda function: function["trend_percentage"],
+            reverse=data["trend"] is TrendType.REGRESSION,
+        )
+
         def paginate_trending_events(offset, limit):
             return {"data": trending_functions[offset : limit + offset]}
 
@@ -193,14 +222,14 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                             "trend_difference",
                             "trend_percentage",
                             "unweighted_p_value",
-                            "unweighted_t_value",
+                            # "unweighted_t_value",  # unneeded, but also can error because of infs
                         ]
                     }
                 )
                 formatted_result.update(
                     {
                         k: functions[key][k]
-                        for k in ["fingerprint", "package", "function", "count()"]
+                        for k in ["fingerprint", "package", "function", "count()", "examples()"]
                     }
                 )
                 formatted_results.append(formatted_result)

@@ -32,7 +32,7 @@ export function ClickFrame(fields: TestableFrame<'ui.click'>): MockFrame<'ui.cli
     data: fields.data ?? {},
     message: fields.message ?? '',
     timestamp: fields.timestamp.getTime() / 1000,
-    type: BreadcrumbType.DEFAULT,
+    type: BreadcrumbType.UI,
   };
 }
 
@@ -87,6 +87,7 @@ export function SlowClickFrame(
   return {
     category: 'ui.slowClickDetected',
     data: fields.data ?? {
+      clickCount: undefined,
       endReason: '',
       timeAfterClickMs: 5,
       url: '/',

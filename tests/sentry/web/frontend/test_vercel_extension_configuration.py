@@ -8,10 +8,10 @@ from sentry.integrations.vercel import VercelClient
 from sentry.models import OrganizationMember
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class VercelExtensionConfigurationTest(TestCase):
     path = "/extensions/vercel/configure/"
 
@@ -69,7 +69,7 @@ class VercelExtensionConfigurationTest(TestCase):
         assert resp.url.endswith("?next=https%3A%2F%2Fexample.com")
 
     def test_logged_in_as_member(self):
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres"), exempt_from_silo_limits():
             OrganizationMember.objects.filter(user_id=self.user.id, organization=self.org).update(
                 role="member"
             )
@@ -91,7 +91,8 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        OrganizationMember.objects.create(user_id=self.user.id, organization=org)
+        with exempt_from_silo_limits():
+            OrganizationMember.objects.create(user_id=self.user.id, organization=org)
 
         resp = self.client.get(self.path, self.params)
 
@@ -110,7 +111,8 @@ class VercelExtensionConfigurationTest(TestCase):
         self.login_as(self.user)
 
         org = self.create_organization()
-        OrganizationMember.objects.create(user_id=self.user.id, organization=org)
+        with exempt_from_silo_limits():
+            OrganizationMember.objects.create(user_id=self.user.id, organization=org)
         self.params["orgSlug"] = org.slug
 
         resp = self.client.get(self.path, self.params)

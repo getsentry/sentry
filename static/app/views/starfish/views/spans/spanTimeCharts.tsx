@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -10,6 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -40,14 +40,8 @@ type ChartProps = {
   moduleName: ModuleName;
 };
 
-function getSegmentLabel(span_operation, action, domain) {
-  if (span_operation === 'http.client') {
-    return t('%s requests to %s', action, domain);
-  }
-  if (span_operation === 'db') {
-    return t('%s queries on %s', action, domain);
-  }
-  return span_operation || domain || undefined;
+function getSegmentLabel(moduleName: ModuleName) {
+  return moduleName === ModuleName.DB ? 'Queries' : 'Requests';
 }
 
 export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props) {
@@ -105,11 +99,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = getSegmentLabel(moduleName);
   const {isLoading, data} = useSpansQuery({
     eventView,
     initialData: [],
@@ -151,6 +141,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       tooltipFormatterOptions={{
         valueFormatter: value => formatThroughput(value),
       }}
+      onDataZoom={useSortPageByHandler('-sps()')}
     />
   );
 }
@@ -160,11 +151,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const location = useLocation();
   const eventView = getEventView(moduleName, location, pageFilters.selection, filters);
 
-  const label = getSegmentLabel(
-    location.query['span.op'],
-    location.query['span.action'],
-    location.query['span.domain']
-  );
+  const label = `p95(${SPAN_SELF_TIME})`;
 
   const {isLoading, data} = useSpansQuery({
     eventView,
@@ -176,7 +163,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
     const groupData = dataByGroup[groupName];
 
     return {
-      seriesName: label ?? `p95(${SPAN_SELF_TIME})`,
+      seriesName: label,
       data: groupData.map(datum => ({
         value: datum[`p95(${SPAN_SELF_TIME})`],
         name: datum.interval,
@@ -203,6 +190,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
+      onDataZoom={useSortPageByHandler('-p95(span.self_time)')}
     />
   );
 }
@@ -240,6 +228,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[ERRORS_COLOR]}
+      onDataZoom={useSortPageByHandler('-http_error_count()')}
     />
   );
 }
@@ -262,7 +251,6 @@ const getEventView = (
       yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },
@@ -286,6 +274,10 @@ const buildDiscoverQueryConditions = (
     result.push(`span.module:${moduleName}`);
   }
 
+  if (moduleName === ModuleName.DB) {
+    result.push('!span.op:db.redis');
+  }
+
   if (spanCategory) {
     if (spanCategory === NULL_SPAN_CATEGORY) {
       result.push(`!has:span.category`);
@@ -296,6 +288,27 @@ const buildDiscoverQueryConditions = (
 
   return result.join(' ');
 };
+
+function useSortPageByHandler(sort: string) {
+  const router = useRouter();
+  const location = useLocation();
+  return (_, chartRef) => {
+    // This is kind of jank but we need to check if the chart is hovered because
+    // onDataZoom is fired for all charts when one chart is zoomed.
+    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+      element => {
+        return element.classList.contains('echarts-for-react');
+      }
+    );
+    const echartElement = document.querySelector(`[_echarts_instance_="${chartRef.id}"]`);
+    if (hoveredEchartElement === echartElement) {
+      router.replace({
+        pathname: location.pathname,
+        query: {...location.query, spansSort: sort},
+      });
+    }
+  };
+}
 
 const ChartsContainer = styled('div')`
   display: flex;

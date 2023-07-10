@@ -15,6 +15,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     BinaryIO,
+    ClassVar,
     Dict,
     FrozenSet,
     Iterable,
@@ -26,8 +27,10 @@ from typing import (
 )
 
 from django.db import models
-from symbolic import Archive, ObjectErrorUnsupportedObject, SymbolicError, normalize_debug_id
-from symbolic.debuginfo import BcSymbolMap, Object, UuidMapping
+from django.db.models import Q
+from django.utils import timezone
+from symbolic.debuginfo import Archive, BcSymbolMap, Object, UuidMapping, normalize_debug_id
+from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
 from sentry import options
 from sentry.constants import KNOWN_DIF_FORMATS
@@ -82,7 +85,7 @@ class ProjectDebugFileManager(BaseManager):
         return sorted(missing)
 
     def find_by_debug_ids(
-        self, project: Project, debug_ids: List[str], features: Optional[Set[str]] = None
+        self, project: Project, debug_ids: List[str], features: Iterable[str] | None = None
     ) -> Dict[str, ProjectDebugFile]:
         """Finds debug information files matching the given debug identifiers.
 
@@ -92,13 +95,15 @@ class ProjectDebugFileManager(BaseManager):
 
         Returns a dict of debug files keyed by their debug identifier.
         """
-        features: FrozenSet[str] = frozenset(features) if features is not None else frozenset()  # type: ignore
+        features = frozenset(features) if features is not None else frozenset()
 
-        difs = (
-            ProjectDebugFile.objects.filter(project_id=project.id, debug_id__in=debug_ids)
-            .select_related("file")
-            .order_by("-id")
-        )
+        query = Q(project_id=project.id, debug_id__in=debug_ids)
+        difs = list(ProjectDebugFile.objects.filter(query).select_related("file").order_by("-id"))
+
+        # because otherwise this would be a circular import:
+        from sentry.debug_files.debug_files import maybe_renew_debug_files
+
+        maybe_renew_debug_files(query, difs)
 
         difs_by_id: Dict[str, List[ProjectDebugFile]] = {}
         for dif in difs:
@@ -138,7 +143,11 @@ class ProjectDebugFile(Model):
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = JSONField(null=True)
+    date_accessed = models.DateTimeField(default=timezone.now)
+
     objects = ProjectDebugFileManager()
+
+    difcache: ClassVar[DIFCache]
 
     class Meta:
         index_together = (("project_id", "debug_id"), ("project_id", "code_id"))
@@ -604,7 +613,7 @@ class DIFCache:
         return os.path.join(self.cache_path, str(project.id))
 
     def fetch_difs(
-        self, project: Project, debug_ids: Iterable[str], features: Optional[Set[str]] = None
+        self, project: Project, debug_ids: Iterable[str], features: Iterable[str] | None = None
     ) -> Mapping[str, str]:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
@@ -629,4 +638,4 @@ class DIFCache:
         clear_cached_files(self.cache_path)
 
 
-ProjectDebugFile.difcache = DIFCache()  # type: ignore[attr-defined]
+ProjectDebugFile.difcache = DIFCache()

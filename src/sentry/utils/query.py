@@ -49,7 +49,9 @@ def celery_run_batch_query(
             [["timestamp", "<", state["timestamp"]], ["event_id", "<", state["event_id"]]]
         )
 
-    method = eventstore.get_events if fetch_events else eventstore.get_unfetched_events
+    method = (
+        eventstore.backend.get_events if fetch_events else eventstore.backend.get_unfetched_events
+    )
 
     events = list(
         method(
