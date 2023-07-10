@@ -46,7 +46,7 @@ export function Step({type, configurations, language}: StepProps) {
       <Configurations>
         {configurations.map((configuration, index) => (
           <div key={index}>
-            <p>{configuration.description}</p>
+            <Description>{configuration.description}</Description>
             <CodeSnippet dark language={language}>
               {language === 'javascript'
                 ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
@@ -63,4 +63,8 @@ const Configurations = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+`;
+
+const Description = styled('div')`
+  margin-bottom: 1em;
 `;
