@@ -1,6 +1,7 @@
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {withMetricsTrendsCheck} from 'sentry/views/performance/trends/utils';
 
 import Table from '../../table';
 import {ProjectPerformanceType} from '../../utils';
@@ -9,17 +10,14 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-export function AllTransactionsView(props: BasePerformanceViewProps) {
+function AllTransactionsViewContent(props: BasePerformanceViewProps) {
   const showSpanOperationsWidget =
     props.organization.features.includes('performance-new-widget-designs') &&
     canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
 
-  if (
-    props.organization.features.includes('performance-new-trends') &&
-    canUseMetricsData(props.organization)
-  ) {
+  if (props.withMetricsTrends) {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_REGRESSED);
@@ -52,3 +50,5 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     </PerformanceDisplayProvider>
   );
 }
+
+export const AllTransactionsView = withMetricsTrendsCheck(AllTransactionsViewContent);

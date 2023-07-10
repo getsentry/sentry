@@ -8,5 +8,6 @@ export type BasePerformanceViewProps = {
   location: Location;
   organization: Organization;
   projects: Project[];
+  withMetricsTrends: boolean;
   withStaticFilters: boolean;
 };

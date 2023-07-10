@@ -1,6 +1,6 @@
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {withMetricsTrendsCheck} from 'sentry/views/performance/trends/utils';
 
 import Table from '../../table';
 import {ProjectPerformanceType} from '../../utils';
@@ -11,7 +11,7 @@ import {PerformanceWidgetSetting} from '../widgets/widgetDefinitions';
 
 import {BasePerformanceViewProps} from './types';
 
-export function MobileView(props: BasePerformanceViewProps) {
+function MobileViewContent(props: BasePerformanceViewProps) {
   let columnTitles = checkIsReactNative(props.eventView)
     ? REACT_NATIVE_COLUMN_TITLES
     : MOBILE_COLUMN_TITLES;
@@ -39,10 +39,7 @@ export function MobileView(props: BasePerformanceViewProps) {
       ]
     );
   }
-  if (
-    organization.features.includes('performance-new-trends') &&
-    canUseMetricsData(props.organization)
-  ) {
+  if (props.withMetricsTrends) {
     doubleRowAllowedCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleRowAllowedCharts.push(
@@ -63,3 +60,5 @@ export function MobileView(props: BasePerformanceViewProps) {
     </PerformanceDisplayProvider>
   );
 }
+
+export const MobileView = withMetricsTrendsCheck(MobileViewContent);

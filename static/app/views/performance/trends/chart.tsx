@@ -45,6 +45,7 @@ type Props = ViewProps & {
   projects: Project[];
   statsData: TrendsStats;
   trendChangeType: TrendChangeType;
+  withMetricsTrends: boolean;
   disableLegend?: boolean;
   disableXAxis?: boolean;
   grid?: LineChartProps['grid'];
@@ -101,7 +102,7 @@ export function Chart({
   height,
   projects,
   project,
-  organization,
+  withMetricsTrends,
 }: Props) {
   const location = useLocation();
   const router = useRouter();
@@ -125,7 +126,7 @@ export function Chart({
     browserHistory.push(to);
   };
 
-  const derivedTrendChangeType = organization.features.includes('performance-new-trends')
+  const derivedTrendChangeType = withMetricsTrends
     ? transaction?.change
     : trendChangeType;
   const lineColor = trendToColor[derivedTrendChangeType || trendChangeType];

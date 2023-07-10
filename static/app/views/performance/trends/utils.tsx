@@ -13,6 +13,7 @@ import {
   generateFieldAsString,
   Sort,
 } from 'sentry/utils/discover/fields';
+import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeScalar} from 'sentry/utils/queryString';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -445,3 +446,40 @@ export function modifyTransactionNameTrendsQuery(trendView: TrendView) {
   query.setFilterValues('tpm()', ['>0.1']);
   trendView.query = query.formatString();
 }
+
+export const withMetricsTrendsCheck = WrappedComponent =>
+  function (props) {
+    const {isLoading: isCardinalityCheckLoading, outcome} =
+      useMetricsCardinalityContext();
+
+    const withMetricsTrends =
+      props.organization.features.includes('performance-new-trends') &&
+      !isCardinalityCheckLoading &&
+      !outcome?.forceTransactionsOnly;
+
+    return <WrappedComponent {...props} withMetricsTrends={withMetricsTrends} />;
+  };
+
+// const withOrganization = <P extends InjectedOrganizationProps>(
+//   WrappedComponent: React.ComponentType<P>
+// ) =>
+//   class extends Component<
+//     Omit<P, keyof InjectedOrganizationProps> & InjectedOrganizationProps
+//   > {
+//     static displayName = `withOrganization(${getDisplayName(WrappedComponent)})`;
+//     static contextTypes = {
+//       organization: SentryTypes.Organization,
+//     };
+
+//     render() {
+//       const {organization, ...props} = this.props;
+//       return (
+//         <WrappedComponent
+//           {...({
+//             organization: organization ?? this.context.organization,
+//             ...props,
+//           } as P)}
+//         />
+//       );
+//     }
+//   };

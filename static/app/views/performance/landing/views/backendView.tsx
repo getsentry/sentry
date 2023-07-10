@@ -5,6 +5,7 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {PerformanceDisplayProvider} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {withMetricsTrendsCheck} from 'sentry/views/performance/trends/utils';
 
 import Table from '../../table';
 import {ProjectPerformanceType} from '../../utils';
@@ -34,7 +35,7 @@ function getAllowedChartsSmall(
   return filterAllowedChartsMetrics(props.organization, charts, mepSetting);
 }
 
-export function BackendView(props: BasePerformanceViewProps) {
+function BackendViewContent(props: BasePerformanceViewProps) {
   const mepSetting = useMEPSettingContext();
   const showSpanOperationsWidget =
     props.organization.features.includes('performance-new-widget-designs') &&
@@ -45,10 +46,7 @@ export function BackendView(props: BasePerformanceViewProps) {
     PerformanceWidgetSetting.SLOW_DB_OPS,
   ];
 
-  if (
-    props.organization.features.includes('performance-new-trends') &&
-    canUseMetricsData(props.organization)
-  ) {
+  if (props.withMetricsTrends) {
     doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
   } else {
     doubleChartRowCharts.push(
@@ -76,3 +74,5 @@ export function BackendView(props: BasePerformanceViewProps) {
     </PerformanceDisplayProvider>
   );
 }
+
+export const BackendView = withMetricsTrendsCheck(BackendViewContent);

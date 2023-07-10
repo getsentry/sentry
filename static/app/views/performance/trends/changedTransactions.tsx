@@ -26,7 +26,6 @@ import {space} from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -70,7 +69,7 @@ type Props = {
   trendView: TrendView;
   previousTrendColumn?: TrendParameterColumn;
   previousTrendFunction?: TrendFunctionField;
-  withBreakpoint?: boolean;
+  withMetricsTrends?: boolean;
 };
 
 type TrendsCursorQuery = {
@@ -211,11 +210,9 @@ function ChangedTransactions(props: Props) {
     organization,
     projects,
     setError,
-    withBreakpoint,
+    withMetricsTrends = false,
   } = props;
   const api = useApi();
-
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
@@ -240,7 +237,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
-      withBreakpoint={withBreakpoint && !outcome?.forceTransactionsOnly}
+      withMetricsTrends={withMetricsTrends}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);
@@ -281,7 +278,7 @@ function ChangedTransactions(props: Props) {
                 {chartTitle}
                 <QuestionTooltip size="sm" position="top" title={titleTooltipContent} />
               </StyledHeaderTitleLegend>
-              {isLoading || isCardinalityCheckLoading ? (
+              {isLoading ? (
                 <LoadingIndicator
                   style={{
                     margin: '237px auto',
@@ -302,6 +299,7 @@ function ChangedTransactions(props: Props) {
                           statsPeriod={trendView.statsPeriod}
                           transaction={selectedTransaction}
                           isLoading={isLoading}
+                          withMetricsTrends={withMetricsTrends}
                           {...props}
                         />
                       </ChartContainer>
@@ -325,6 +323,7 @@ function ChangedTransactions(props: Props) {
                             organization,
                             trendChangeType
                           )}
+                          withMetricsTrends={withMetricsTrends}
                         />
                       ))}
                     </Fragment>
@@ -362,6 +361,7 @@ type TrendsListItemProps = {
   transactions: NormalizedTrendsTransaction[];
   trendChangeType: TrendChangeType;
   trendView: TrendView;
+  withMetricsTrends: boolean;
 };
 
 function TrendsListItem(props: TrendsListItemProps) {
@@ -377,6 +377,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
     trendView,
+    withMetricsTrends,
   } = props;
   const color = trendToColor[trendChangeType].default;
 
@@ -478,7 +479,7 @@ function TrendsListItem(props: TrendsListItemProps) {
           />
         }
       >
-        {!organization.features.includes('performance-new-trends') && (
+        {!withMetricsTrends && (
           <Fragment>
             <MenuItem
               onClick={() =>

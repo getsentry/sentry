@@ -38,10 +38,11 @@ export type PerformanceWidgetProps = {
   title: string;
   titleTooltip: string;
 
+  withMetricsTrends: boolean;
+
   InteractiveTitle?: React.ComponentType<{isLoading: boolean}> | null;
 
   chartColor?: string;
-
   withStaticFilters?: boolean;
 };
 

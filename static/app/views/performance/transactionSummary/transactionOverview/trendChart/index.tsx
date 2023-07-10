@@ -15,7 +15,6 @@ import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -43,7 +42,7 @@ type Props = ViewProps & {
   trendFunction: TrendFunctionField;
   trendParameter: string;
   withoutZerofill: boolean;
-  withBreakpoint?: boolean;
+  withMetricsTrends?: boolean;
 };
 
 function TrendChart({
@@ -56,7 +55,7 @@ function TrendChart({
   trendParameter,
   queryExtra,
   withoutZerofill,
-  withBreakpoint,
+  withMetricsTrends,
   eventView,
   start: propsStart,
   end: propsEnd,
@@ -66,10 +65,6 @@ function TrendChart({
   const location = useLocation();
   const api = useApi();
   const theme = useTheme();
-
-  const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
-  const shouldGetBreakpoint =
-    withBreakpoint && !isCardinalityCheckLoading && !outcome?.forceTransactionsOnly;
 
   function handleLegendSelectChanged(legendChange: {
     name: string;
@@ -169,14 +164,14 @@ function TrendChart({
   return (
     <Fragment>
       {header}
-      {shouldGetBreakpoint ? (
+      {withMetricsTrends ? (
         // queries events-trends-statsv2 for breakpoint data (feature flag only)
         <TrendsDiscoverQuery
           eventView={trendView}
           orgSlug={organization.slug}
           location={location}
           limit={1}
-          withBreakpoint
+          withMetricsTrends
         >
           {({isLoading, trendsData}) => {
             const events = normalizeTrends(
@@ -220,10 +215,10 @@ function TrendChart({
               <Content
                 series={timeSeriesMetricsData}
                 errored={!trendsData && !isLoading}
-                loading={isLoading || isCardinalityCheckLoading}
+                loading={isLoading}
                 reloading={isLoading}
                 timeFrame={metricsTimeFrame}
-                withBreakpoint
+                withMetricsTrends
                 transaction={selectedTransaction}
                 {...contentCommonProps}
               />
@@ -248,7 +243,7 @@ function TrendChart({
                       loading={loading || isLoading}
                       reloading={reloading}
                       timeFrame={timeframe}
-                      withBreakpoint
+                      withMetricsTrends
                       transaction={selectedTransaction}
                       {...contentCommonProps}
                     />
@@ -275,7 +270,7 @@ function TrendChart({
               <Content
                 series={timeseriesData}
                 errored={errored}
-                loading={loading || isCardinalityCheckLoading}
+                loading={loading}
                 reloading={reloading}
                 timeFrame={timeFrame}
                 {...contentCommonProps}

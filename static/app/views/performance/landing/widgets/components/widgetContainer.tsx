@@ -47,6 +47,7 @@ interface Props extends ChartRowProps {
   organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  withMetricsTrends: boolean;
   withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
@@ -163,6 +164,7 @@ const _WidgetContainer = (props: Props) => {
     'organization',
     'chartHeight',
     'withStaticFilters',
+    'withMetricsTrends',
   ]);
 
   const titleTooltip = showNewWidgetDesign ? '' : widgetProps.titleTooltip;

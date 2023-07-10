@@ -36,7 +36,7 @@ type Props = {
     start: number;
   };
   transaction?: NormalizedTrendsTransaction;
-  withBreakpoint?: boolean;
+  withMetricsTrends?: boolean;
 } & Omit<React.ComponentProps<typeof ReleaseSeries>, 'children' | 'queryExtra'> &
   Pick<LineChartProps, 'onLegendSelectChanged' | 'legend'>;
 
@@ -56,7 +56,7 @@ function Content({
   utc,
   queryExtra,
   router,
-  withBreakpoint,
+  withMetricsTrends,
   transaction,
   onLegendSelectChanged,
 }: Props) {
@@ -84,7 +84,7 @@ function Content({
     : [];
 
   const needsLabel = false;
-  const breakpointSeries = withBreakpoint
+  const breakpointSeries = withMetricsTrends
     ? getIntervalLine(theme, data || [], 0.5, needsLabel, transaction)
     : [];
 

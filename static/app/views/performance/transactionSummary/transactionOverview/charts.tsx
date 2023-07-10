@@ -235,7 +235,7 @@ function TransactionSummaryCharts({
             statsPeriod={eventView.statsPeriod}
             withoutZerofill={withoutZerofill}
             projects={project ? [project] : []}
-            withBreakpoint={organization.features.includes('performance-new-trends')}
+            withMetricsTrends={organization.features.includes('performance-new-trends')}
           />
         )}
         {display === DisplayModes.VITALS && (

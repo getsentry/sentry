@@ -31,6 +31,7 @@ import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
 import {
+  DEFAULT_MAX_DURATION,
   DEFAULT_TRENDS_STATS_PERIOD,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
@@ -40,6 +41,7 @@ import {
   resetCursors,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
+  withMetricsTrendsCheck,
 } from './utils';
 
 type Props = {
@@ -48,6 +50,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   selection: PageFilters;
+  withMetricsTrends: boolean;
 };
 
 type State = {
@@ -184,13 +187,13 @@ class TrendsContent extends Component<Props, State> {
   }
 
   render() {
-    const {organization, eventView, location, projects} = this.props;
+    const {organization, eventView, location, projects, withMetricsTrends} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
     modifyTrendsViewDefaultPeriod(trendView, location);
 
-    if (organization.features.includes('performance-new-trends')) {
+    if (withMetricsTrends) {
       modifyTransactionNameTrendsQuery(trendView);
     }
 
@@ -250,14 +253,19 @@ class TrendsContent extends Component<Props, State> {
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
-            <DefaultTrends location={location} eventView={eventView}>
+            <DefaultTrends
+              location={location}
+              eventView={eventView}
+              projects={projects}
+              withMetricsTrends={withMetricsTrends}
+            >
               <FilterActions>
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
                   <DatePageFilter alignDropdown="left" />
                 </PageFilterBar>
-                {organization.features.includes('performance-new-trends') ? (
+                {withMetricsTrends ? (
                   <StyledTransactionNameSearchBar
                     organization={organization}
                     eventView={trendView}
@@ -301,9 +309,7 @@ class TrendsContent extends Component<Props, State> {
                   trendView={trendView}
                   location={location}
                   setError={this.setError}
-                  withBreakpoint={organization.features.includes(
-                    'performance-new-trends'
-                  )}
+                  withMetricsTrends={withMetricsTrends}
                 />
                 <ChangedTransactions
                   trendChangeType={TrendChangeType.REGRESSION}
@@ -311,9 +317,7 @@ class TrendsContent extends Component<Props, State> {
                   trendView={trendView}
                   location={location}
                   setError={this.setError}
-                  withBreakpoint={organization.features.includes(
-                    'performance-new-trends'
-                  )}
+                  withMetricsTrends={withMetricsTrends}
                 />
               </ListContainer>
               <Feature features={['organizations:performance-trendsv2-dev-only']}>
@@ -346,15 +350,22 @@ type DefaultTrendsProps = {
   children: React.ReactNode[];
   eventView: EventView;
   location: Location;
+  projects: Project[];
+  withMetricsTrends: boolean;
 };
 
 class DefaultTrends extends Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
-    const {children, location, eventView} = this.props;
+    const {children, location, eventView, projects, withMetricsTrends} = this.props;
 
     const queryString = decodeScalar(location.query.query);
+    const trendParameter = getCurrentTrendParameter(
+      location,
+      projects,
+      eventView.project
+    );
     const conditions = new MutableSearch(queryString || '');
 
     if (queryString || this.hasPushedDefaults) {
@@ -362,6 +373,14 @@ class DefaultTrends extends Component<DefaultTrendsProps> {
       return <Fragment>{children}</Fragment>;
     }
     this.hasPushedDefaults = true;
+
+    if (!withMetricsTrends) {
+      conditions.setFilterValues('tpm()', ['>0.01']);
+      conditions.setFilterValues(trendParameter.column, [
+        '>0',
+        `<${DEFAULT_MAX_DURATION}`,
+      ]);
+    }
 
     const query = conditions.formatString();
     eventView.query = query;
@@ -426,4 +445,4 @@ const ListContainer = styled('div')`
   }
 `;
 
-export default withPageFilters(TrendsContent);
+export default withPageFilters(withMetricsTrendsCheck(TrendsContent));
