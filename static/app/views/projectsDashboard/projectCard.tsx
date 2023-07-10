@@ -147,7 +147,7 @@ class ProjectCard extends Component<Props> {
               <SettingsButton
                 borderless
                 size="zero"
-                icon={<IconSettings />}
+                icon={<IconSettings color="subText" />}
                 aria-label={t('Settings')}
                 to={`/settings/${organization.slug}/projects/${slug}/`}
               />
@@ -317,7 +317,7 @@ const CardHeader = styled('div')`
 const SettingsButton = styled(Button)`
   margin-left: auto;
   margin-top: -${space(0.5)};
-  padding: ${space(0.5)};
+  padding: 3px;
   border-radius: 50%;
 `;
 
