@@ -178,8 +178,6 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """
-        "external_id": account subdomain
-            - make API call to get this info?
         "metadata": {
             "api_key": org-level API key
             "base_url": should be https://api.opsgenie.com/ or https://api.eu.opsgenie.com/
