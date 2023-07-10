@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
+import {Alert, AlertProps} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -38,9 +38,9 @@ import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
-type AlertType = React.ComponentProps<typeof Alert> & {
+interface AlertType extends AlertProps {
   text: string;
-};
+}
 
 type State = {
   tab: Tab;

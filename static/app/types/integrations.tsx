@@ -1,4 +1,4 @@
-import type {Alert} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
@@ -312,9 +312,7 @@ export type DocIntegration = {
 };
 
 type IntegrationAspects = {
-  alerts?: Array<
-    React.ComponentProps<typeof Alert> & {text: string; icon?: string | React.ReactNode}
-  >;
+  alerts?: Array<AlertProps & {text: string; icon?: string | React.ReactNode}>;
   configure_integration?: {
     title: string;
   };
