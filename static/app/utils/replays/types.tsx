@@ -16,9 +16,9 @@ import type {
 import invariant from 'invariant';
 
 /**
- * Extra types to account for stock SDK breadcrumbs
+ * Extra breadcrumb types not included in `@sentry/replay`
  */
-type NonSDKBreadcrumbs = {
+type ExtraBreadcrumbTypes = {
   category: 'navigation';
   data: {
     from: string;
@@ -29,7 +29,7 @@ type NonSDKBreadcrumbs = {
   type: string; // For compatibility reasons
 };
 
-export type RawBreadcrumbFrame = TRawBreadcrumbFrame | NonSDKBreadcrumbs;
+export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
@@ -98,7 +98,7 @@ type HydratedTimestamp = {
   timestampMs: number;
 };
 type HydratedBreadcrumb<Category extends string> = Overwrite<
-  Extract<TRawBreadcrumbFrame | NonSDKBreadcrumbs, {category: Category}>,
+  Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
 >;
 
@@ -135,7 +135,7 @@ type HydratedSpan<Op extends string> = Overwrite<
 
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
-  TRawBreadcrumbFrame | NonSDKBreadcrumbs,
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
   HydratedTimestamp
 >;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;

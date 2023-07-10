@@ -3,7 +3,7 @@ import {
   divide,
   flattenFrames,
   formatTime,
-  getCrumbsByColumn,
+  getFramesByColumn,
   relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
@@ -93,7 +93,7 @@ describe('countColumns', () => {
   });
 });
 
-describe('getCrumbsByColumn', () => {
+describe('getFramesByColumn', () => {
   const startTimestampMs = 1649945987326; // milliseconds
   const durationMs = 25710; // milliseconds
   const CRUMB_1 = createCrumb({timestamp: '2022-04-14T14:19:47.326000Z'});
@@ -104,19 +104,14 @@ describe('getCrumbsByColumn', () => {
 
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(startTimestampMs, durationMs, [], columnCount);
+    const columns = getFramesByColumn(durationMs, [], columnCount);
     const expectedEntries = [];
     expect(columns).toEqual(new Map(expectedEntries));
   });
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn(
-      startTimestampMs,
-      durationMs,
-      [CRUMB_1, CRUMB_5],
-      columnCount
-    );
+    const columns = getFramesByColumn(durationMs, [CRUMB_1, CRUMB_5], columnCount);
     expect(columns).toEqual(
       new Map([
         [1, [CRUMB_1]],
@@ -128,7 +123,7 @@ describe('getCrumbsByColumn', () => {
   it('should group crumbs by bucket', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
-    const columns = getCrumbsByColumn(
+    const columns = getFramesByColumn(
       startTimestampMs,
       durationMs,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],

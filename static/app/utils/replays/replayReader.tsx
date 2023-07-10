@@ -27,6 +27,7 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
+  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
   SpanFrame,
@@ -260,7 +261,8 @@ export default class ReplayReader {
             'ui.slowClickDetected',
             'navigation',
           ].includes(frame.category) ||
-          (frame.category === 'ui.multiClick' && frame.data.clickCount >= 3)
+          (frame.category === 'ui.multiClick' &&
+            (frame as MultiClickFrame).data.clickCount >= 3)
       ),
       ...this._sortedSpanFrames.filter(frame =>
         ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(

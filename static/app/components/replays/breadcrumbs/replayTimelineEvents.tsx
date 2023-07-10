@@ -98,7 +98,7 @@ function Event({
   `;
 
   // If we have more than 3 events we want to make sure of showing all the different colors that we have
-  const uniqueColors = uniq(frames.map(frame => getColor(frame)));
+  const uniqueColors = uniq(frames.map(getColor));
 
   // We just need to stack up to 3 times
   const frameCount = Math.min(frames.length, 3);

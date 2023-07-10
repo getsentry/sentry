@@ -15,7 +15,7 @@ import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {
   getBreadcrumbType,
   getColor,
@@ -74,9 +74,11 @@ function getCrumbOrFrameData(crumb: Crumb | ReplayFrame) {
       timestampMs: crumb.timestampMs,
     };
   }
+  const details = getDetails(crumb);
   return {
-    ...getDetails(crumb),
+    ...details,
     timestampMs: crumb.timestamp || '',
+    projectSlug: crumb.type === BreadcrumbType.ERROR ? details.projectSlug : undefined,
   };
 }
 
