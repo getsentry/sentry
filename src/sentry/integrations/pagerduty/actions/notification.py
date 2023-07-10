@@ -49,6 +49,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
 
         def send_notification(event, futures):
             org_integration = self.get_organization_integration()
+            org_integration_id = None
             if org_integration:
                 org_integration_id = org_integration.id
             else:

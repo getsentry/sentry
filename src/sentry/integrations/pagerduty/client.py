@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
@@ -21,7 +23,7 @@ class PagerDutyClient(IntegrationProxyClient):
 
     def __init__(
         self,
-        org_integration_id: int,
+        org_integration_id: int | None,
         integration_key: str,
     ) -> None:
         self.integration_key = integration_key
