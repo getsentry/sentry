@@ -1,4 +1,6 @@
+import logging
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Optional
 
 import pytz
@@ -7,7 +9,8 @@ from django.db.models import Max
 from sentry_sdk.crons.decorator import monitor
 
 from sentry import features
-from sentry.issues.ongoing import transition_group_to_ongoing
+from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
+from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models import (
     Group,
     GroupHistoryStatus,
@@ -16,11 +19,39 @@ from sentry.models import (
     OrganizationStatus,
     Project,
 )
+from sentry.monitoring.queues import backend
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.group import GroupSubStatus
 from sentry.utils.query import RangeQuerySetWrapper
 
+logger = logging.getLogger(__name__)
+
 TRANSITION_AFTER_DAYS = 7
+
+
+def skip_if_queue_has_items(func):
+    """
+    Prevent adding more tasks in queue if the queue is not empty.
+    We want to prevent crons from scheduling more tasks than the workers
+    are capable of processing before the next cycle.
+    """
+
+    def inner(func):
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+            if queue_size > 0:
+                logger.exception(
+                    f"{CELERY_ISSUE_STATES_QUEUE.name} queue size greater than 0.",
+                    extra={"size": queue_size, "task": func.__name__},
+                )
+                return
+
+            func(*args, **kwargs)
+
+        return wrapped
+
+    return inner(func)
 
 
 @instrumented_task(
@@ -32,7 +63,9 @@ TRANSITION_AFTER_DAYS = 7
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_new")
+@skip_if_queue_has_items
 def schedule_auto_transition_new() -> None:
+
     now = datetime.now(tz=pytz.UTC)
     three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
@@ -58,6 +91,7 @@ def schedule_auto_transition_new() -> None:
     acks_late=True,
 )
 @retry(on=(OperationalError,))
+@skip_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_id: int,
     first_seen_lte: int,
@@ -77,13 +111,12 @@ def auto_transition_issues_new_to_ongoing(
 
     new_groups = list(queryset.order_by("first_seen")[:chunk_size])
 
-    for group in new_groups:
-        transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.NEW,
-            group,
-            activity_data={"after_days": TRANSITION_AFTER_DAYS},
-        )
+    bulk_transition_group_to_ongoing(
+        GroupStatus.UNRESOLVED,
+        GroupSubStatus.NEW,
+        new_groups,
+        activity_data={"after_days": TRANSITION_AFTER_DAYS},
+    )
 
     if len(new_groups) == chunk_size:
         auto_transition_issues_new_to_ongoing.delay(
@@ -104,6 +137,7 @@ def auto_transition_issues_new_to_ongoing(
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_regressed")
+@skip_if_queue_has_items
 def schedule_auto_transition_regressed() -> None:
     now = datetime.now(tz=pytz.UTC)
     three_days_past = now - timedelta(days=TRANSITION_AFTER_DAYS)
@@ -130,6 +164,7 @@ def schedule_auto_transition_regressed() -> None:
     acks_late=True,
 )
 @retry(on=(OperationalError,))
+@skip_if_queue_has_items
 def auto_transition_issues_regressed_to_ongoing(
     project_id: int,
     date_added_lte: int,
@@ -155,13 +190,12 @@ def auto_transition_issues_regressed_to_ongoing(
 
     groups_with_regressed_history = list(queryset.order_by("recent_regressed_history")[:chunk_size])
 
-    for group in groups_with_regressed_history:
-        transition_group_to_ongoing(
-            GroupStatus.UNRESOLVED,
-            GroupSubStatus.REGRESSED,
-            group,
-            activity_data={"after_days": TRANSITION_AFTER_DAYS},
-        )
+    bulk_transition_group_to_ongoing(
+        GroupStatus.UNRESOLVED,
+        GroupSubStatus.REGRESSED,
+        groups_with_regressed_history,
+        activity_data={"after_days": TRANSITION_AFTER_DAYS},
+    )
 
     if len(groups_with_regressed_history) == chunk_size:
         auto_transition_issues_regressed_to_ongoing.delay(

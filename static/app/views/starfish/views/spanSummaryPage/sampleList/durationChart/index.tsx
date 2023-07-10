@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 
+import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
 import {isNearBaseline} from 'sentry/views/starfish/components/samplesTable/common';
@@ -33,6 +35,7 @@ function DurationChart({
   transactionMethod,
 }: Props) {
   const theme = useTheme();
+  const {setPageError} = usePageError();
 
   const getSampleSymbol = (
     duration: number,
@@ -56,14 +59,18 @@ function DurationChart({
         };
   };
 
-  const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {
+    isLoading,
+    data: spanMetricsSeriesData,
+    error: spanMetricsSeriesError,
+  } = useSpanMetricsSeries(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'sidebar-span-metrics'
   );
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
@@ -156,6 +163,10 @@ function DurationChart({
       onMouseLeaveSample();
     }
   };
+
+  if (spanMetricsSeriesError || spanMetricsError) {
+    setPageError(t('An error has occured while loading chart data'));
+  }
 
   return (
     <div onMouseLeave={handleMouseLeave}>

@@ -50,7 +50,7 @@ export const useSpanSamples = (options: Options) => {
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
     groupId ? {group: groupId} : undefined,
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'sidebar-span-metrics'
   );
