@@ -21,11 +21,13 @@ class OpenIDToken:
         self,
         aud,
         sub,
+        shared_secret,
         iss="https://sentry.io",
         exp=None,
         iat=None,
         nonce=None,
     ):
+        self.shared_secret = shared_secret
         self.aud = aud
         self.sub = sub
         self.iss = iss
@@ -47,4 +49,4 @@ class OpenIDToken:
         }
         if self.nonce:
             claims["nonce"] = self.nonce
-        return jwt_utils.encode(claims, "secret", headers={**headers, "alg": "HS256"})
+        return jwt_utils.encode(claims, self.shared_secret, headers={**headers, "alg": "HS256"})

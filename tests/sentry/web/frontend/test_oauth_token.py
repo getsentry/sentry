@@ -24,7 +24,7 @@ class OAuthTokenTest(TestCase):
     def test_missing_grant_type(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path)
+        resp = self.client.post(self.path, {"client_id": "abcd"})
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
@@ -32,7 +32,7 @@ class OAuthTokenTest(TestCase):
     def test_invalid_grant_type(self):
         self.login_as(self.user)
 
-        resp = self.client.post(self.path, {"grant_type": "foo"})
+        resp = self.client.post(self.path, {"grant_type": "foo", "client_id": "abcd"})
 
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "unsupported_grant_type"}
@@ -115,6 +115,89 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
+    def test_expired_grant(self):
+        self.login_as(self.user)
+        expired_grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            expires_at="2022-01-01 11:11",
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": expired_grant.code,
+                "client_id": self.application.client_id,
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_invalid_redirect_uri(self):
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "redirect_uri": "cheese.org",
+            },
+        )
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_no_open_id_token(self):
+        """
+        Checks that the OIDC token is not returned unless the right scope is approved.
+        """
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        assert "id_token" not in data
+
+    def test_valid_no_redirect_uri(self):
+        """
+        Checks that we get the correct redirect URI if we don't pass one in
+        """
+        self.login_as(self.user)
+
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+            },
+        )
+
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+
+        token = ApiToken.objects.get(token=data["access_token"])
+        assert token.application == self.application
+        assert token.user == self.grant.user
+        assert token.get_scopes() == self.grant.get_scopes()
+
+        assert data["access_token"] == token.token
+        assert data["refresh_token"] == token.refresh_token
+        assert isinstance(data["expires_in"], int)
+        assert data["token_type"] == "bearer"
+        assert data["user"]["id"] == str(token.user_id)
+
     def test_valid_params(self):
         self.login_as(self.user)
 
@@ -141,6 +224,37 @@ class OAuthTokenCodeTest(TestCase):
         assert isinstance(data["expires_in"], int)
         assert data["token_type"] == "bearer"
         assert data["user"]["id"] == str(token.user_id)
+
+    def test_valid_params_id_token(self):
+        self.login_as(self.user)
+        open_id_grant = ApiGrant.objects.create(
+            user=self.user,
+            application=self.application,
+            redirect_uri="https://example.com",
+            scope_list=["openid", "profile", "email"],
+        )
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": open_id_grant.code,
+                "client_id": self.application.client_id,
+            },
+        )
+        assert resp.status_code == 200
+
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(token=data["access_token"])
+
+        assert token.get_scopes() == ["openid", "profile", "email"]
+        assert data["refresh_token"] == token.refresh_token
+        assert data["access_token"] == token.token
+        assert isinstance(data["expires_in"], int)
+        assert data["token_type"] == "bearer"
+        assert data["user"]["id"] == str(token.user_id)
+
+        assert data["id_token"].count(".") == 2
 
 
 @control_silo_test(stable=True)

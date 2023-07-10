@@ -2097,6 +2097,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    "openid",
+    "profile",
+    "email",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2131,6 +2134,14 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("openid", "Confirms authentication status and provides basic information."),),
+    (
+        (
+            "profile",
+            "Read personal information like name, avatar, date of joining etc. Requires openid scope.",
+        ),
+    ),
+    (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
