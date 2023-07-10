@@ -1,7 +1,9 @@
+import {Alert} from 'sentry/components/alert';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -51,7 +53,7 @@ export const steps = ({
   },
   {
     language: 'javascript',
-    type: StepType.CONFIGURE,
+    type: StepType.CONFIGURE_SDK,
     configurations: [
       {
         description: t(
@@ -66,6 +68,27 @@ export const steps = ({
         const root = createRoot(container);
         root.render(<App />)
         `,
+      },
+    ],
+  },
+  {
+    language: 'html',
+    type: StepType.CONFIGURE_SOURCE_MAPS,
+    configurations: [
+      {
+        description: t(
+          'The easiest way to configure upload Source Maps with Webpack is by using the Sentry Wizard.'
+        ),
+        code: `npx @sentry/wizard@latest -i sourcemaps`,
+        additionalInfo: (
+          <Alert type="info" showIcon noBottomSpacing>
+            {tct('Prefer to set up Source Maps manually? [docsLink:Read the docs].', {
+              docsLink: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/webpack/#manual-setup" />
+              ),
+            })}
+          </Alert>
+        ),
       },
     ],
   },

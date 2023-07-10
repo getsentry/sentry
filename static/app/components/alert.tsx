@@ -13,6 +13,7 @@ export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
   defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
+  noBottomSpacing?: boolean;
   opaque?: boolean;
   showIcon?: boolean;
   system?: boolean;
@@ -126,6 +127,7 @@ const alertStyles = ({
   trailingItems,
   hovered,
   theme,
+  noBottomSpacing,
 }: AlertProps & {theme: Theme; hovered?: boolean}) => {
   const alertColors = theme.alert[type];
   const showExpand = defined(expand);
@@ -139,7 +141,7 @@ const alertStyles = ({
       ${showTrailingItems && 'max-content'}
       ${showExpand && 'max-content'};
     gap: ${space(1)};
-    margin: 0 0 ${space(2)};
+    margin: ${noBottomSpacing ? 0 : `0 0 ${space(2)}`};
     font-size: ${theme.fontSizeMedium};
     border-radius: ${theme.borderRadius};
     border: 1px solid ${alertColors.border};

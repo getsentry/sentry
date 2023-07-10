@@ -63,7 +63,7 @@ export const steps = ({
   },
   {
     language: 'javascript',
-    type: StepType.CONFIGURE,
+    type: StepType.CONFIGURE_SDK,
     configurations: [
       {
         description: t(
