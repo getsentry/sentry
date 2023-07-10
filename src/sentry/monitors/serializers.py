@@ -130,8 +130,8 @@ class MonitorSerializerResponse(TypedDict):
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
     def __init__(self, start=None, end=None, expand=None, organization_id=None, project_id=None):
-        self.start = start
-        self.end = end
+        self.start = start  # timestamp of the beginning of the specified date range
+        self.end = end  # timestamp of the end of the specified date range
         self.expand = expand
         self.organization_id = organization_id
         self.project_id = project_id

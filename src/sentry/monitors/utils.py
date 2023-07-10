@@ -71,8 +71,8 @@ def fetch_associated_groups(
     :param trace_ids: list of trace_ids from the given check-ins
     :param organization_id: organization id
     :param project_id: project id
-    :param start: timestamp of the earliest check-in
-    :param end: timestamp of the latest check-in
+    :param start: timestamp of the beginning of the specified date range
+    :param end: timestamp of the end of the specified date range
     :return:
     """
     from snuba_sdk import (
