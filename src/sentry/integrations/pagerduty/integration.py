@@ -66,7 +66,10 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(integration_key=integration_key)
+        return PagerDutyClient(
+            org_integration_id=self.org_integration.id,
+            integration_key=integration_key,
+        )
 
     def get_organization_config(self):
         fields = [

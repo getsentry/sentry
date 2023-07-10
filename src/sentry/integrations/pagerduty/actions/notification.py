@@ -47,7 +47,10 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event, futures):
-            client = PagerDutyClient(integration_key=service.integration_key)
+            client = PagerDutyClient(
+                org_integration_id=self.get_organization_integration(),
+                integration_key=service.integration_key,
+            )
             try:
                 resp = client.send_trigger(event)
             except ApiError as e:
