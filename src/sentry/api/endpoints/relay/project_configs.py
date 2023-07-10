@@ -53,8 +53,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_protocol_version", version)
 
         if version == "4":
-            # With v4, we want to move 'measurements' and 'metricsConditionalTagging' into a new
-            # global config.
             res = self._post_or_schedule_by_key(request)
             metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
             metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
