@@ -150,7 +150,10 @@ def _index_urls_in_bundle(
             return
 
         # Insert the index
-        ArtifactBundleIndex.objects.bulk_create(urls_to_index)
+        # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
+        # which is not quite that efficient. We want to have a fixed batch size,
+        # which will result in a fixed number of unique `INSERT` queries.
+        ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
 
         # Mark the bundle as indexed
         ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
