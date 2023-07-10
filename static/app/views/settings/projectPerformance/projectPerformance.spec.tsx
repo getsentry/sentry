@@ -288,6 +288,12 @@ describe('projectPerformance', function () {
         [threshold]: defaultValue,
         n_plus_one_db_queries_detection_enabled: true,
         slow_db_queries_detection_enabled: true,
+        db_on_main_thread_detection_enabled: true,
+        file_io_on_main_thread_detection_enabled: true,
+        consecutive_db_queries_detection_enabled: true,
+        large_render_blocking_asset_detection_enabled: true,
+        uncompressed_assets_detection_enabled: true,
+        large_http_payload_detection_enabled: true,
       };
       const performanceIssuesGetMock = MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/performance-issues/configure/',
@@ -332,7 +338,10 @@ describe('projectPerformance', function () {
 
       // Slide value on range slider.
       slider.focus();
-      await userEvent.keyboard(`{ArrowRight>${newValueIndex - indexOfValue}}`);
+      const indexDelta = newValueIndex - indexOfValue;
+      await userEvent.keyboard(
+        indexDelta > 0 ? `{ArrowRight>${indexDelta}}` : `{ArrowLeft>${-indexDelta}}`
+      );
       await userEvent.tab();
 
       expect(slider).toHaveValue(newValueIndex.toString());
