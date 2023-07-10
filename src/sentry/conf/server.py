@@ -1335,6 +1335,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable Discord integration
     "organizations:integrations-discord": False,
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -2684,6 +2686,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
+    "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
 
 
