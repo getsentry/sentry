@@ -53,7 +53,7 @@ START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
 
 @project_created.connect(weak=False)
 def record_new_project(project, user=None, user_id=None, **kwargs):
-    if user_id is None:
+    if user_id is not None:
         default_user_id = user_id
     elif user.is_authenticated:
         user_id = default_user_id = user.id
