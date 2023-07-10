@@ -1,6 +1,14 @@
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 
-const delete_properties = ['createdBy', 'dateCreated', 'id', 'dashboardId', 'widgetId'];
+import {DashboardDetails} from './types';
+
+const deleteProperties = [
+  'createdBy',
+  'dateCreated',
+  'id',
+  'dashboardId',
+  'widgetId',
+] as const;
 
 async function exportDashboard() {
   try {
@@ -10,10 +18,10 @@ async function exportDashboard() {
     };
 
     const params = getAPIParams(structure);
-    const api_url = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
-    const response = await fetch(api_url);
+    const apiUrl = `https://${params.base_url}/api/0/organizations/testorg-az/dashboards/${params.dashboard_id}/`;
+    const response = await fetch(apiUrl);
     const jsonData = await response.json();
-    const normalized = normalize_data(jsonData);
+    const normalized = normalizeData(jsonData);
     normalized.projects = [];
 
     downloadObjectAsJson(normalized, cleanTitle(normalized.title));
@@ -41,65 +49,117 @@ function getAPIParams(structure) {
   return structure;
 }
 
-function normalize_data(source) {
-  const payload = {};
-  type Nullable<T> = T | null;
+function normalizeData(
+  source: DashboardDetails
+): Omit<DashboardDetails, (typeof deleteProperties)[number]> {
+  const payload: Omit<DashboardDetails, (typeof deleteProperties)[number]> = {
+    title: '',
+    filters: {},
+    projects: [],
+    widgets: [],
+    environment: [],
+  };
 
-  let last_data_attr: Nullable<string> = null;
-  for (let data in source) {
-    if (Array.isArray(source[data]) && source[data].length !== 0) {
-      for (const attr in source[data]) {
-        if (typeof source[data] === 'undefined') {
-          continue;
-        }
-        if (!payload.hasOwnProperty(data)) {
-          payload[data] = [];
-        }
+  for (const property in payload) {
+    if (property in source) {
+      let data: any[] = [];
 
-        if (typeof source[data][attr] !== 'string') {
-          if (last_data_attr === null) {
-            last_data_attr = data;
-          }
-
-          if (last_data_attr !== null) {
-            payload[last_data_attr].push(normalize_data(source[data][attr]));
-            data = String(last_data_attr);
-            last_data_attr = null;
-          }
-        } else {
-          payload[data].push(source[data][attr]);
-        }
+      // if there is a nested object with properties that should be deleted
+      if (['widgets', 'filters'].includes(property)) {
+        // get the object properties so that we can loop through them
+        const type = getType(property);
+        data = normalizeNestedObject(source[property], type);
+      } else {
+        data = source[property];
       }
-    } else {
-      if (!delete_properties.includes(data)) {
-        if (data === 'limit' && source[data] === null) {
-          payload[data] = 5;
-        } else {
-          payload[data] = source[data];
-        }
-      }
+
+      payload[property] = data;
     }
   }
 
   return payload;
 }
 
-function cleanTitle(title) {
-  const regex = /[^a-z0-9]/gi;
-  const formatted_title = title.replace(regex, '-');
-  const date = new Date();
-  return `${formatted_title}-${date.toISOString()}`;
+function normalizeNestedObject(object, structure) {
+  const nestedObjectArray: any[] = [];
+  const nestedObject = structure;
+
+  for (const index in object) {
+    for (const property in structure) {
+      if (property in object[index]) {
+        let data: any[] = [];
+
+        if (['queries'].includes(property)) {
+          // get the object properties so that we can loop through them
+          const type = getType(property);
+          data = normalizeNestedObject(object[index][property], type);
+        } else {
+          data = object[index][property];
+        }
+
+        nestedObject[property] = data;
+      }
+    }
+
+    nestedObjectArray.push(nestedObject);
+  }
+
+  return nestedObjectArray;
+}
+
+function getType(property) {
+  let structure = {};
+
+  switch (property) {
+    case 'widgets':
+      structure = {
+        title: '',
+        description: '',
+        interval: '',
+        queries: [],
+        displayType: '',
+      };
+      break;
+    case 'filters':
+      structure = {
+        release: '',
+      };
+      break;
+    case 'queries':
+      structure = {
+        aggregates: [],
+        columns: [],
+        conditions: [],
+        name: '',
+        orderby: '',
+        fieldAliases: [],
+        fields: [],
+      };
+      break;
+    default:
+      structure = {};
+  }
+
+  return structure;
 }
 
 function downloadObjectAsJson(exportObj, exportName) {
-  const dataStr =
-    'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportObj));
+  const dataStr = `data:text/json;charset=utf-8,${encodeURIComponent(
+    JSON.stringify(exportObj)
+  )}`;
   const downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute('href', dataStr);
-  downloadAnchorNode.setAttribute('download', exportName + '.json');
+  downloadAnchorNode.setAttribute('download', `${exportName}.json`);
   document.body.appendChild(downloadAnchorNode); // required for firefox
   downloadAnchorNode.click();
   downloadAnchorNode.remove();
+}
+
+function cleanTitle(title) {
+  const regex = /[^a-z0-9]/gi;
+  const formattedTitle = title.replace(regex, '-');
+  const date = new Date();
+  return `${formattedTitle}-${date.toISOString()}`;
 }
 
 export default exportDashboard;

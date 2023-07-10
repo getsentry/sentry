@@ -138,8 +138,6 @@ function Controls({
                   exportDashboard();
                 }}
                 icon={<IconDownload />}
-                disabled={!hasFeature || hasUnsavedFilters}
-                title={hasUnsavedFilters && UNSAVED_FILTERS_MESSAGE}
                 priority="default"
                 size="sm"
               >
