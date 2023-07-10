@@ -40,7 +40,7 @@
     "@react-aria/visually-hidden": "^3.8.1",
     "@react-stately/collections": "^3.8.0",
     "@react-stately/menu": "^3.5.2",
-    "@react-stately/numberfield": "^3.4.2",
+    "@react-stately/numberfield": "^3.5.0",
     "@react-stately/radio": "^3.8.1",
     "@react-stately/slider": "^3.3.2",
     "@react-stately/tabs": "^3.4.1",
