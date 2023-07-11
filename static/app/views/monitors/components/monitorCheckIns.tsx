@@ -8,7 +8,7 @@ import Duration from 'sentry/components/duration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
