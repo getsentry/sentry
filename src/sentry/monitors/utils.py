@@ -13,7 +13,9 @@ from sentry.models.project import Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 
 from .models import CheckInStatus, Monitor, MonitorCheckIn
-from .tasks import TIMEOUT
+
+# default maximum runtime for a monitor, in minutes
+TIMEOUT = 30
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):
