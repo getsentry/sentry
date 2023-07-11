@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';

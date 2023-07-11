@@ -6,7 +6,9 @@ import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox'
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {Organization, ServiceHook} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
