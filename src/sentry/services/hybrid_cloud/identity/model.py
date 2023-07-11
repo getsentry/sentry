@@ -23,6 +23,7 @@ class RpcIdentity(RpcModel):
 
 
 class IdentityFilterArgs(TypedDict, total=False):
+    id: int
     user_id: int
     identity_ext_id: str
     provider_id: int

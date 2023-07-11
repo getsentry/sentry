@@ -86,6 +86,8 @@ class DatabaseBackedIdentityService(IdentityService):
         FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
         def apply_filters(self, query: QuerySet, filters: IdentityFilterArgs) -> QuerySet:
+            if "id" in filters:
+                query = query.filter(id=filters["id"])
             if "user_id" in filters:
                 query = query.filter(user_id=filters["user_id"])
             if "identity_ext_id" in filters:
