@@ -1,17 +1,17 @@
 import {Fragment} from 'react';
 
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Data = {
   extensions: [key: string, value: string][];
   modules: [key: string, value: string][];
 };
 
-type State = AsyncView['state'] & {data: Data};
+type State = DeprecatedAsyncView['state'] & {data: Data};
 
-export default class AdminPackages extends AsyncView<{}, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class AdminPackages extends DeprecatedAsyncView<{}, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/packages/']];
   }
 

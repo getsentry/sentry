@@ -636,6 +636,39 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert "Suspect Commits" in msg.body
 
+    def test_notify_with_replay_id(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": [("level", "error"), ("replayId", "123456789")],
+                "request": {"url": "example.com"},
+            },
+            project_id=project.id,
+        )
+        assert event.group is not None
+        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.save()
+
+        features = ["organizations:session-replay", "organizations:session-replay-issue-emails"]
+        with self.feature(features):
+            with self.tasks():
+                notification = Notification(event=event)
+                self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+
+        expected_url = f"/organizations/{organization.slug}/issues/{event.group.id}/replays/?referrer=issue_alert-email"
+
+        assert isinstance(msg, EmailMultiAlternatives)
+        assert isinstance(msg.alternatives[0][0], str)
+        assert expected_url in msg.alternatives[0][0]
+
     def test_slack_link(self):
         project = self.project
         organization = project.organization

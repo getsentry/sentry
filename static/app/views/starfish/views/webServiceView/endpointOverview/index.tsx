@@ -9,6 +9,7 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PerformanceLayoutBodyRow} from 'sentry/components/performance/layouts';
 import Placeholder from 'sentry/components/placeholder';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
@@ -31,7 +32,6 @@ import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -264,7 +264,7 @@ export default function EndpointOverview() {
   useSynchronizeCharts();
 
   return (
-    <StarfishPageFilterContainer>
+    <PageFiltersContainer>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -364,7 +364,7 @@ export default function EndpointOverview() {
           </Layout.Side>
         </Layout.Body>
       </Layout.Page>
-    </StarfishPageFilterContainer>
+    </PageFiltersContainer>
   );
 }
 
@@ -381,7 +381,7 @@ function SpanMetricsTable({
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
       sort={{
-        field: 'time_spent_percentage()',
+        field: 'time_spent_percentage(local)',
         kind: 'desc',
       }}
       endpoint={transaction}

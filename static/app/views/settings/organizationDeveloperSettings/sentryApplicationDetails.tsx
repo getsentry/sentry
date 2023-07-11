@@ -35,7 +35,7 @@ import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types'
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -139,12 +139,12 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   app: SentryApp | null;
   tokens: InternalAppApiToken[];
 };
 
-class SentryApplicationDetails extends AsyncView<Props, State> {
+class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
   form = new SentryAppFormModel({mapFormErrors});
 
   getDefaultState(): State {
@@ -155,7 +155,7 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
       return [
