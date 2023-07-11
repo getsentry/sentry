@@ -42,10 +42,10 @@ export const steps = ({
       {
         code: `
         # Using yarn
-        yarn add @sentry/gatsby
+        yarn add @sentry/svelte
 
         # Using npm
-        npm install --save @sentry/gatsby
+        npm install --save @sentry/svelte
         `,
       },
     ],
@@ -53,48 +53,33 @@ export const steps = ({
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
+    description: tct(
+      "Initialize Sentry as early as possible in your application's lifecycle, usually your Svelte app's entry point ([code:main.ts/js]):",
+      {code: <code />}
+    ),
     configurations: [
       {
-        description: (
-          <div>
-            {tct(
-              'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
-              {
-                code: <code />,
-              }
-            )}
-          </div>
-        ),
         code: `
-        module.exports = {
-          plugins: [
-            {
-              resolve: "@sentry/gatsby",
-            },
-          ],
-        };
-        `,
-      },
-      {
-        description: (
-          <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
-        ),
-        code: `
-        import * as Sentry from "@sentry/gatsby";
+        import "./app.css";
+        import App from "./App.svelte";
+
+        import * as Sentry from "@sentry/svelte";
 
         Sentry.init({
           ${sentryInitContent}
         });
 
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
+        const app = new App({
+          target: document.getElementById("app"),
+        });
+
+        export default app;
         `,
       },
     ],
   },
   getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/'
+    'https://docs.sentry.io/platforms/javascript/guides/svelte/sourcemaps/'
   ),
   {
     language: 'javascript',
@@ -104,7 +89,10 @@ export const steps = ({
     ),
     configurations: [
       {
-        code: 'myUndefinedFunction();',
+        code: `
+        // SomeComponent.svelte
+        <button type="button" on:click="{unknownFunction}">Break the world</button>
+        `,
       },
     ],
   },
@@ -112,12 +100,18 @@ export const steps = ({
 
 export const nextSteps = [
   {
+    id: 'svelte-features',
+    name: t('Svelte Features'),
+    description: t('Learn about our first class integration with the Svelte framework.'),
+    link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/features/',
+  },
+  {
     id: 'performance-monitoring',
     name: t('Performance Monitoring'),
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/performance/',
   },
   {
     id: 'session-replay',
@@ -125,7 +119,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/svelte/session-replay/',
   },
 ];
 // Configuration End
@@ -136,7 +130,7 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithReact({
+export default function GettingStartedWithSvelte({
   dsn,
   activeProductSelection,
   newOrg,
