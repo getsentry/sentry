@@ -147,10 +147,10 @@ class ReleaseArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250, db_index=True)
+    release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING, db_index=True)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -158,7 +158,7 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        index_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
+        index_together = (("release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -175,7 +175,7 @@ class DebugIdArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_debugidartifactbundle"
 
-        index_together = (("organization_id", "debug_id", "source_file_type", "artifact_bundle"),)
+        index_together = (("debug_id", "artifact_bundle"),)
 
 
 @region_silo_only_model

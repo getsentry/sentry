@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0501_typed_bitfield_remove_labels"),
+        ("sentry", "0509_merging_migrations"),
     ]
 
     operations = [
