@@ -102,6 +102,7 @@ class StaticMediaTest(TestCase):
         response = self.client.get(url)
         assert response.status_code == 404, response
 
+    @override_settings(DEBUG=False)
     def test_gzip(self):
         url = "/_static/sentry/js/ads.js"
         response = self.client.get(url, HTTP_ACCEPT_ENCODING="gzip,deflate")

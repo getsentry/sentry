@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import responses
+from django.test import override_settings
 
 import sentry
 from sentry import options
@@ -18,6 +19,7 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
+    @override_settings(DEBUG=False)
     @responses.activate
     def test_simple(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         self.organization
@@ -60,6 +62,7 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
+    @override_settings(DEBUG=False)
     @responses.activate
     def test_anonymous(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         self.organization
@@ -101,6 +104,7 @@ class SendBeaconTest(TestCase):
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
     @patch("sentry.tasks.beacon.safe_urlread")
+    @override_settings(DEBUG=False)
     @responses.activate
     def test_with_broadcasts(self, safe_urlread, safe_urlopen, mock_get_all_package_versions):
         broadcast_id = uuid4().hex
@@ -179,6 +183,7 @@ class SendBeaconTest(TestCase):
         assert not safe_urlopen.mock_calls
 
     @patch("sentry.tasks.beacon.safe_urlopen")
+    @override_settings(DEBUG=False)
     @responses.activate
     def test_metrics(self, safe_urlopen):
         metrics = [

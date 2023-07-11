@@ -206,7 +206,7 @@ def test_registered_relay(internal):
         white_listed_pk = []
 
     authenticator = RelayAuthentication()
-    with override_settings(SENTRY_RELAY_WHITELIST_PK=white_listed_pk):
+    with override_settings(SENTRY_RELAY_WHITELIST_PK=white_listed_pk, DEBUG=False):
         authenticator.authenticate(request)
 
     # now the request should contain a relay
