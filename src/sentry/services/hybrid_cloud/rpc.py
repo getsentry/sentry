@@ -112,7 +112,7 @@ class RpcMethodSignature:
         The created model has a single attribute containing the return value. This
         extra abstraction is necessary in order to have Pydantic handle generic
         return annotations such as `Optional[RpcOrganization]` or `List[RpcUser]`,
-        where we can't directly access an RpcModel class on which to call `parse_obj`.
+        where we can't directly access an RpcModel class on which to call `model_validate`.
         """
         name = f"{self.service_name}__{self.method_name}__ReturnModel"
         return_type = inspect.signature(self._base_method).return_annotation
@@ -147,7 +147,7 @@ class RpcMethodSignature:
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
         try:
-            return self._parameter_model.parse_obj(serial_arguments)
+            return self._parameter_model.model_validate(serial_arguments)
         except Exception as e:
             # TODO: Parse Pydantic's exception object(s) and produce more useful
             #  error messages that can be put into the body of the HTTP 400 response
@@ -159,7 +159,7 @@ class RpcMethodSignature:
                 raise RpcResponseException(f"Expected None but got {type(value)}")
             return None
 
-        parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
+        parsed = self._return_model.model_validate({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
     def resolve_to_region(self, arguments: ArgumentDict) -> Region:
