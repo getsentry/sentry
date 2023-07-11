@@ -1,10 +1,10 @@
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 import SpansView from 'sentry/views/starfish/views/spans/spansView';
 
@@ -21,9 +21,9 @@ export default function HTTPModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <StarfishPageFilterContainer>
+            <PageFiltersContainer>
               <SpansView moduleName={ModuleName.HTTP} />
-            </StarfishPageFilterContainer>
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>

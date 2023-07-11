@@ -1,11 +1,11 @@
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {t} from 'sentry/locale';
 import {
   PageErrorAlert,
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {ModuleName} from 'sentry/views/starfish/types';
 
 import SpansView from './spansView';
@@ -38,9 +38,9 @@ export default function Spans() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageErrorAlert />
-            <StarfishPageFilterContainer>
+            <PageFiltersContainer>
               <SpansView moduleName={moduleName} spanCategory={spanCategory} />
-            </StarfishPageFilterContainer>
+            </PageFiltersContainer>
           </Layout.Main>
         </Layout.Body>
       </PageErrorProvider>
