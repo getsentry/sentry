@@ -25,7 +25,7 @@ class RpcIdentity(RpcModel):
     external_id: str
     data: str
 
-    def get_identity(self) -> Provider:
+    def get_identity(self) -> "Provider":
         from sentry.identity import get
 
         identity_provider = identity_service.get_provider(provider_id=self.idp_id)
