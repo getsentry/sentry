@@ -365,11 +365,13 @@ describe('Performance > Trends', function () {
     expect(summaryLink.closest('a')).not.toHaveAttribute('href');
 
     await clickEl(summaryLink);
-    expect(screen.getByText('Ongoing Improvement')).toBeInTheDocument();
-    expect(screen.getByText('Throughput')).toBeInTheDocument();
-    expect(screen.getByText('P95')).toBeInTheDocument();
-    expect(screen.getByText('P50')).toBeInTheDocument();
-    expect(screen.getByText('Errors')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('Ongoing Improvement')).toBeInTheDocument();
+      expect(screen.getByText('Throughput')).toBeInTheDocument();
+      expect(screen.getByText('P95')).toBeInTheDocument();
+      expect(screen.getByText('P50')).toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+    });
   });
 
   it('hide from list menu action modifies query', async function () {
