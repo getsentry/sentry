@@ -46,7 +46,6 @@ function getEventView(
       }`,
       fields: ['span.op', 'span.description', 'span.action', 'span.domain', 'count()'], // TODO: Failing to pass a field like `count()` causes an error
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

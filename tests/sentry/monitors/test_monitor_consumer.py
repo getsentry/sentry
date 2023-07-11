@@ -9,6 +9,7 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
 from django.test.utils import override_settings
 
+from sentry import killswitches, options
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
@@ -97,7 +98,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -120,7 +121,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -141,7 +142,7 @@ class MonitorConsumerTest(TestCase):
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -158,7 +159,7 @@ class MonitorConsumerTest(TestCase):
         # is disabled
         assert monitor_environment.status == MonitorStatus.ERROR
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -183,6 +184,11 @@ class MonitorConsumerTest(TestCase):
             minutes=TIMEOUT
         )
         assert checkin.timeout_at == timeout_at
+
+        self.send_message(monitor.slug, guid=self.guid)
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.timeout_at is None
 
         new_guid = uuid.uuid4().hex
         self.send_message(
@@ -247,7 +253,7 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
         assert monitor_environment.environment.name == "jungle"
         assert monitor_environment.last_checkin == checkin.date_added
-        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin_with_margin(
             checkin.date_added
         )
 
@@ -267,7 +273,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     def test_monitor_update(self):
@@ -290,7 +298,9 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.last_checkin == checkin.date_added
         assert (
             monitor_environment.next_checkin
-            == monitor_environment.monitor.get_next_scheduled_checkin(checkin.date_added)
+            == monitor_environment.monitor.get_next_scheduled_checkin_with_margin(
+                checkin.date_added
+            )
         )
 
     def test_check_in_empty_id(self):
@@ -457,3 +467,18 @@ class MonitorConsumerTest(TestCase):
 
         monitor_environments = MonitorEnvironment.objects.filter(monitor=monitor)
         assert len(monitor_environments) == settings.MAX_ENVIRONMENTS_PER_MONITOR
+
+    def test_organization_killswitch(self):
+        monitor = self._create_monitor(slug="my-monitor")
+
+        opt_val = killswitches.validate_user_input(
+            "crons.organization.disable-check-in", [{"organization_id": self.organization.id}]
+        )
+        options.set("crons.organization.disable-check-in", opt_val)
+
+        self.send_message(monitor.slug)
+
+        opt_val = killswitches.validate_user_input("crons.organization.disable-check-in", [])
+        options.set("crons.organization.disable-check-in", opt_val)
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()

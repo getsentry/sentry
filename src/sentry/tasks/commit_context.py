@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timedelta
 
+import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
@@ -36,6 +37,7 @@ DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
 DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
 DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
+PR_COMMENT_WINDOW = 7  # days
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +52,14 @@ def queue_comment_task_if_needed(
         extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
     )
 
-    # client will raise ApiError if the request is not successful
-    response = installation.get_client().get_pullrequest_from_commit(repo=repo.name, sha=commit.key)
+    # client will raise an Exception if the request is not successful
+    try:
+        response = installation.get_client().get_pullrequest_from_commit(
+            repo=repo.name, sha=commit.key
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return
 
     if not isinstance(response, list) or len(response) != 1:
         # the response should return a single PR, return if multiple
@@ -83,7 +91,7 @@ def queue_comment_task_if_needed(
         return
 
     pr = pr_query.get()
-    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=30) and (
+    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
         not pr.pullrequestcomment_set.exists()
         or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
     ):

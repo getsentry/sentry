@@ -88,7 +88,6 @@ export default function EndpointOverview() {
     id: undefined,
     name: t('Endpoint Overview'),
     query: query.formatString(),
-    projects: [1],
     fields: ['tps()', 'p95(transaction.duration)', 'http_error_count()'],
     dataset: DiscoverDatasets.METRICS,
     start: pageFilter.selection.datetime.start ?? undefined,
@@ -382,7 +381,7 @@ function SpanMetricsTable({
     <SpansTable
       moduleName={filter ?? ModuleName.ALL}
       sort={{
-        field: 'time_spent_percentage()',
+        field: 'time_spent_percentage(local)',
         kind: 'desc',
       }}
       endpoint={transaction}

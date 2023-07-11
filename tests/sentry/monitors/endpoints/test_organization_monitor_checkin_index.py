@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from django.utils import timezone
@@ -7,6 +8,7 @@ from sentry.models import Environment
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.samples import load_data
 
 
 @region_silo_test(stable=True)
@@ -17,6 +19,17 @@ class ListMonitorCheckInsTest(MonitorTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+
+    def create_error(self, platform, trace_id, project_id, timestamp):
+        data = load_data(platform, timestamp=timestamp)
+        if "contexts" not in data:
+            data["contexts"] = {}
+        data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": trace_id,
+            "span_id": uuid.uuid4().hex[:16],
+        }
+        return self.store_event(data, project_id=project_id)
 
     def test_simple(self):
         monitor = self._create_monitor()
@@ -136,3 +149,45 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "volcano"}
         )
         assert len(resp.data) == 0
+
+    def test_trace_ids(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+
+        trace_id = uuid.uuid4().hex
+
+        error = self.create_error(
+            platform="python",
+            trace_id=trace_id,
+            project_id=self.project.id,
+            timestamp=monitor.date_added,
+        )
+
+        checkin1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+            trace_id=trace_id,
+        )
+        checkin2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            **{"statsPeriod": "1d", "expand": ["groupIds"]},
+        )
+        assert len(resp.data) == 2
+
+        # Newest first
+        assert resp.data[0]["id"] == str(checkin2.guid)
+        assert resp.data[0]["groupIds"] == []
+        assert resp.data[1]["id"] == str(checkin1.guid)
+        assert resp.data[1]["groupIds"] == [error.group_id]

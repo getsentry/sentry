@@ -47,19 +47,19 @@ def __get_explicit_endpoints() -> List[Tuple[str, str, str, Any]]:
 
     return [
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
             "GET",
             OrganizationMonitorCheckInIndexEndpoint.as_view(),
         ),
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/$",
             "POST",
             MonitorIngestCheckInIndexEndpoint.as_view(),
         ),
         (
-            "/api/0/organization/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
+            "/api/0/organizations/{organization_slug}/monitors/{monitor_slug}/checkins/{checkin_id}/",
             r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_slug>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
             "PUT",
             MonitorIngestCheckInDetailsEndpoint.as_view(),

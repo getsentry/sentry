@@ -105,7 +105,7 @@ class User(BaseModel, AbstractBaseUser):
             "modifying their account (username, password, etc)."
         ),
     )
-    is_sentry_app = models.NullBooleanField(
+    is_sentry_app = models.BooleanField(
         _("is sentry app"),
         null=True,
         default=None,

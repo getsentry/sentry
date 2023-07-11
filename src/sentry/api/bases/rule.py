@@ -4,7 +4,8 @@ from rest_framework.request import Request
 
 from sentry.api.bases import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Rule, RuleStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Rule
 
 
 class RuleEndpoint(ProjectEndpoint):
@@ -21,7 +22,9 @@ class RuleEndpoint(ProjectEndpoint):
 
         try:
             kwargs["rule"] = Rule.objects.get(
-                project=project, id=rule_id, status__in=[RuleStatus.ACTIVE, RuleStatus.INACTIVE]
+                project=project,
+                id=rule_id,
+                status=ObjectStatus.ACTIVE,
             )
         except Rule.DoesNotExist:
             raise ResourceDoesNotExist

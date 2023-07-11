@@ -29,7 +29,7 @@ type InitializeUrlStateProps = Omit<
   'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
-type Props = InitializeUrlStateProps & {
+interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
   /**
    * Custom alert message for the desynced filter state.
@@ -49,7 +49,7 @@ type Props = InitializeUrlStateProps & {
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
-};
+}
 
 /**
  * The page filters container handles initialization of page filters for the

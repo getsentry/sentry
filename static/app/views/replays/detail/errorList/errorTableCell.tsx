@@ -4,15 +4,14 @@ import classNames from 'classnames';
 
 import Avatar from 'sentry/components/avatar';
 import Link from 'sentry/components/links/link';
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   AvatarWrapper,
   Cell,
   StyledTimestampButton,
   Text,
 } from 'sentry/components/replays/virtualizedGrid/bodyCell';
-import type {Crumb} from 'sentry/types/breadcrumbs';
 import {getShortEventId} from 'sentry/utils/events';
+import type {ErrorFrame} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -24,12 +23,12 @@ const EMPTY_CELL = '--';
 
 type Props = {
   columnIndex: number;
-  crumb: Crumb;
   currentHoverTime: number | undefined;
   currentTime: number;
-  onClickTimestamp: (crumb: Crumb) => void;
-  onMouseEnter: (crumb: Crumb) => void;
-  onMouseLeave: (crumb: Crumb) => void;
+  frame: ErrorFrame;
+  onClickTimestamp: (frame: ErrorFrame) => void;
+  onMouseEnter: (frame: ErrorFrame) => void;
+  onMouseLeave: (frame: ErrorFrame) => void;
   rowIndex: number;
   sortConfig: ReturnType<typeof useSortErrors>['sortConfig'];
   startTimestampMs: number;
@@ -42,11 +41,11 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
       columnIndex,
       currentHoverTime,
       currentTime,
+      frame,
+      onClickTimestamp,
       onMouseEnter,
       onMouseLeave,
-      onClickTimestamp,
       sortConfig,
-      crumb,
       startTimestampMs,
       style,
     }: Props,
@@ -54,9 +53,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
   ) => {
     const organization = useOrganization();
 
-    // @ts-expect-error
-    const {eventId, groupId, groupShortId, project: projectSlug} = crumb.data;
-    const title = crumb.message;
+    const {eventId, groupId, groupShortId, projectSlug} = frame.data;
+    const title = frame.message;
     const {projects} = useProjects();
     const project = useMemo(
       () => projects.find(p => p.slug === projectSlug),
@@ -75,13 +73,9 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
           }
         : null;
 
-    const crumbTime = useMemo(
-      // @ts-expect-error
-      () => relativeTimeInMs(new Date(crumb.timestamp).getTime(), startTimestampMs),
-      [crumb.timestamp, startTimestampMs]
-    );
-    const hasOccurred = currentTime >= crumbTime;
-    const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= crumbTime;
+    const hasOccurred = currentTime >= frame.offsetMs;
+    const isBeforeHover =
+      currentHoverTime === undefined || currentHoverTime >= frame.offsetMs;
 
     const isByTimestamp = sortConfig.by === 'timestamp';
     const isAsc = isByTimestamp ? sortConfig.asc : undefined;
@@ -111,8 +105,8 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
             : undefined,
       }),
       hasOccurred: isByTimestamp ? hasOccurred : undefined,
-      onMouseEnter: () => onMouseEnter(crumb),
-      onMouseLeave: () => onMouseLeave(crumb),
+      onMouseEnter: () => onMouseEnter(frame),
+      onMouseLeave: () => onMouseLeave(frame),
       ref,
       style,
     } as ComponentProps<typeof Cell>;
@@ -176,10 +170,10 @@ const ErrorTableCell = forwardRef<HTMLDivElement, Props>(
           <StyledTimestampButton
             format="mm:ss.SSS"
             onClick={() => {
-              onClickTimestamp(crumb);
+              onClickTimestamp(frame);
             }}
             startTimestampMs={startTimestampMs}
-            timestampMs={crumb.timestamp || ''}
+            timestampMs={frame.timestampMs}
           />
         </Cell>
       ),

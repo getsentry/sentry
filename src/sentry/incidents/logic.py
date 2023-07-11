@@ -49,6 +49,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_key_from_query_builder,
     get_entity_subscription_from_snuba_query,
 )
+from sentry.snuba.metrics.extraction import is_on_demand_snuba_query
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import (
     bulk_create_snuba_subscriptions,
@@ -428,7 +429,6 @@ class AlertRuleNameAlreadyUsedError(Exception):
 # Default values for `SnubaQuery.resolution`, in minutes.
 DEFAULT_ALERT_RULE_RESOLUTION = 1
 DEFAULT_CMP_ALERT_RULE_RESOLUTION = 2
-
 
 # Temporary mapping of `Dataset` to `AlertRule.Type`. In the future, `Performance` will be
 # able to be run on `METRICS` as well.
@@ -1505,7 +1505,7 @@ def schedule_update_project_config(alert_rule: AlertRule, projects: Sequence[Pro
     ):
         return
 
-    if alert_rule.is_custom_metric:
+    if is_on_demand_snuba_query(alert_rule.snuba_query):
         for project in projects:
             schedule_invalidate_project_config(
                 trigger="alerts:create-on-demand-metric", project_id=project.id
