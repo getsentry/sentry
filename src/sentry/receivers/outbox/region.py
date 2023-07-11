@@ -69,7 +69,7 @@ def process_organization_member_updates(
         )
         return
 
-    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(org_member)
+    rpc_org_member_update = RpcOrganizationMemberMappingUpdate.model_validate(org_member)
 
     organizationmember_mapping_service.upsert_mapping(
         organizationmember_id=org_member.id,

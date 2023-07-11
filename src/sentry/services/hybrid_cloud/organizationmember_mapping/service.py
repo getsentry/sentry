@@ -44,7 +44,7 @@ class OrganizationMemberMappingService(RpcService):
         return self.upsert_mapping(
             organizationmember_id=org_member.id,
             organization_id=org_member.organization_id,
-            mapping=RpcOrganizationMemberMapping.from_orm(org_member),
+            mapping=RpcOrganizationMemberMapping.model_validate(org_member),
         )
 
     @rpc_method
