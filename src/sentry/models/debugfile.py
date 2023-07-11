@@ -377,7 +377,7 @@ class ProguardArtifactRelease(Model):  # type: ignore
         app_label = "sentry"
         db_table = "sentry_proguardartifactrelease"
 
-        unique_together = (("organization_id", "project_id", "release_name"),)
+        unique_together = (("organization_id", "project_id", "release_name", "proguard_uuid"),)
 
 
 class DifMeta:

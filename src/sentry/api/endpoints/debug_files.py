@@ -1,6 +1,7 @@
 import logging
 import posixpath
 import re
+import uuid
 from typing import Sequence
 
 import jsonschema
@@ -92,9 +93,22 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
     def post(self, request: Request, project) -> Response:
         release_name = request.data.get("release_name")
         proguard_uuid = request.data.get("proguard_uuid")
-        if not all([release_name, proguard_uuid]):
+
+        missing_fields = []
+        if not release_name:
+            missing_fields.append("release_name")
+        if not proguard_uuid:
+            missing_fields.append("proguard_uuid")
+
+        if missing_fields:
+            error_message = f"Missing required fields: {', '.join(missing_fields)}"
+            return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uuid.UUID(proguard_uuid)
+        except ValueError:
             return Response(
-                data={"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST
+                data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
@@ -124,7 +138,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                                           file belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      DIFs of.
-        :qparam string uuid: the uuid of the Proguard file.
+        :qparam string proguard_uuid: the uuid of the Proguard file.
         :auth: required
         """
 
@@ -135,15 +149,8 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 organization_id=project.organization_id,
                 project_id=project.id,
                 proguard_uuid=proguard_uuid,
-            )
-        else:
-            releases = ProguardArtifactRelease.objects.filter(
-                organization_id=project.organization_id,
-                project_id=project.id,
-            )
-        releases = releases.values()
-
-        return Response(list(releases))
+            ).values_list("release_name", flat=True)
+        return Response({"releases": releases})
 
 
 @region_silo_endpoint
