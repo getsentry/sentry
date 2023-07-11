@@ -29,7 +29,7 @@ function ReplayTimeline({}: Props) {
 
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getReplay().started_at.getTime();
-  const userCrumbs = replay.getUserActionCrumbs();
+  const chapterFrames = replay.getChapterFrames();
   const networkFrames = replay.getNetworkFrames();
 
   return (
@@ -49,7 +49,7 @@ function ReplayTimeline({}: Props) {
             </UnderTimestamp>
             <UnderTimestamp paddingTop="26px">
               <ReplayTimelineEvents
-                crumbs={userCrumbs}
+                frames={chapterFrames}
                 durationMs={durationMs}
                 startTimestampMs={startTimestampMs}
                 width={width}
