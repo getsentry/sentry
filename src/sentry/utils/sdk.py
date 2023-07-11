@@ -421,6 +421,15 @@ def configure_sdk():
                         tags={"reason": "unsafe"},
                     )
 
+        def is_healthy(self):
+            if sentry4sentry_transport:
+                if not sentry4sentry_transport.is_healthy():
+                    return False
+            if sentry_saas_transport:
+                if not sentry_saas_transport.is_healthy():
+                    return False
+            return True
+
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
     from sentry_sdk.integrations.logging import LoggingIntegration

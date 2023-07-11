@@ -305,6 +305,10 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         empty_scope = Scope()
 
         for entry in empty_scope.__slots__:
+            # _propagation_context is generated on __init__ for tracing without performance
+            # so is different every time.
+            if entry == "_propagation_context":
+                continue
             # No new scope data should be passed
             assert getattr(passed_scope, entry) == getattr(empty_scope, entry)
 
