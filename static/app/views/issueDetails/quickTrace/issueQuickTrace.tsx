@@ -34,7 +34,12 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
   });
 
   if (isTraceMissing) {
-    return null;
+    return (
+      <QuickTraceWrapper>
+        {' '}
+        <TraceLink event={event} noTrace />
+      </QuickTraceWrapper>
+    );
   }
 
   return (
@@ -49,7 +54,7 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
           errorDest="issue"
           transactionDest="performance"
         />
-        <TraceLink event={event} />
+        <TraceLink noTrace={false} event={event} />
       </QuickTraceWrapper>
     </ErrorBoundary>
   );
@@ -60,6 +65,7 @@ const QuickTraceWrapper = styled('div')`
   align-items: center;
   flex-wrap: wrap;
   margin-top: ${space(0.75)};
+  height: 20px;
 `;
 
 export default IssueQuickTrace;
