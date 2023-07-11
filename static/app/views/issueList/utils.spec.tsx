@@ -21,9 +21,7 @@ describe('getTabs', () => {
   });
 
   it('should enable/disable my_teams filter in For Review tab', () => {
-    expect(
-      getTabs(TestStubs.Organization({features: ['assign-to-me']})).map(tab => tab[0])
-    ).toEqual([
+    expect(getTabs(TestStubs.Organization({features: []})).map(tab => tab[0])).toEqual([
       'is:unresolved',
       'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
       'is:ignored',
