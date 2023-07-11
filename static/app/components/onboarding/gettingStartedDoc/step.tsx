@@ -3,6 +3,7 @@ import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 export enum StepType {
   INSTALL = 'install',
@@ -27,13 +28,17 @@ type ConfigurationType = {
    */
   code: string;
   /**
-   * A brief description of the step
+   * A brief description of the configuration
    */
-  description: React.ReactNode;
+  description?: React.ReactNode;
 };
 
 export type StepProps = {
   configurations: ConfigurationType[];
+  /**
+   * A brief description of the step
+   */
+  description: React.ReactNode;
   /**
    * The language of the selected platform (python, javascript, etc)
    */
@@ -44,32 +49,33 @@ export type StepProps = {
   type: StepType;
 };
 
-export function Step({type, configurations, language}: StepProps) {
+export function Step({type, configurations, description, language}: StepProps) {
   return (
     <div>
       <h4>{StepTitle[type]}</h4>
+      {description}
       <Configurations>
         {configurations.map((configuration, index) => (
-          <div key={index}>
-            <Description>{configuration.description}</Description>
+          <Configuration key={index}>
+            {configuration.description}
             <CodeSnippet dark language={language}>
               {language === 'javascript'
                 ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
                 : beautify.html(configuration.code, {indent_size: 2})}
             </CodeSnippet>
-          </div>
+          </Configuration>
         ))}
       </Configurations>
     </div>
   );
 }
 
-const Configurations = styled('div')`
+const Configuration = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1rem;
 `;
 
-const Description = styled('div')`
-  margin-bottom: 1em;
+const Configurations = styled(Configuration)`
+  margin-top: ${space(2)};
 `;

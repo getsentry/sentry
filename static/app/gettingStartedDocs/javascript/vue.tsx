@@ -1,8 +1,7 @@
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -19,11 +18,7 @@ const performanceIntegration = `
 new Sentry.BrowserTracing({
   // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
   tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
-  routingInstrumentation: Sentry.remixRouterInstrumentation(
-    useEffect,
-    useLocation,
-    useMatches
-  ),
+  routingInstrumentation:  Sentry.vueRouterInstrumentation(router),
 }),
 `;
 
@@ -32,16 +27,10 @@ const performanceOtherConfig = `
 tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
 `;
 
-const prismaConfig = `
-new Sentry.Integrations.Prisma({ client: prisma })
-`;
-
 export const steps = ({
   sentryInitContent,
-  sentryInitContentServer,
 }: {
   sentryInitContent?: string;
-  sentryInitContentServer?: string[];
 } = {}): LayoutProps['steps'] => [
   {
     language: 'bash',
@@ -53,10 +42,10 @@ export const steps = ({
       {
         code: `
         # Using yarn
-        yarn add @sentry/remix
+        yarn add @sentry/vue
 
         # Using npm
-        npm install --save @sentry/remix
+        npm install --save @sentry/vue
         `,
       },
     ],
@@ -65,81 +54,56 @@ export const steps = ({
     language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
-      'Import and initialize Sentry in your Remix entry points for both the client and server:'
+      "Initialize Sentry as early as possible in your application's lifecycle."
     ),
     configurations: [
       {
+        description: <h5>V2</h5>,
         code: `
-        import { useLocation, useMatches } from "@remix-run/react";
-        import * as Sentry from "@sentry/remix";
-        import { useEffect } from "react";
+        import { createApp } from "vue";
+        import { createRouter } from "vue-router";
+        import * as Sentry from "@sentry/vue";
+
+        const app = createApp({
+          // ...
+        });
+        const router = createRouter({
+          // ...
+        });
 
         Sentry.init({
+          app,
           ${sentryInitContent}
         });
+
+        app.use(router);
+        app.mount("#app");
         `,
       },
       {
-        description: tct(
-          `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
-          {
-            action: (
-              <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
-            ),
-            loader: (
-              <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
-            ),
-          }
-        ),
+        description: <h5>V3</h5>,
         code: `
+        import Vue from "vue";
+        import Router from "vue-router";
+        import * as Sentry from "@sentry/vue";
 
-        ${
-          (sentryInitContentServer ?? []).length > 1
-            ? `import { prisma } from "~/db.server";`
-            : ''
-        }
+        Vue.use(Router);
 
-        import * as Sentry from "@sentry/remix";
+        const router = new Router({
+          // ...
+        });
 
         Sentry.init({
-          ${sentryInitContentServer?.join('\n')}
+          Vue,
+          ${sentryInitContent}
         });
-        `,
-      },
-      {
-        description: t(
-          'Lastly, wrap your Remix root with "withSentry" to catch React component errors and to get parameterized router transactions:'
-        ),
-        code: `
-import {
-  Links,
-  LiveReload,
-  Meta,
-  Outlet,
-  Scripts,
-  ScrollRestoration,
-} from "@remix-run/react";
 
-import { withSentry } from "@sentry/remix";
+        // ...
 
-function App() {
-  return (
-    <html>
-      <head>
-        <Meta />
-        <Links />
-      </head>
-      <body>
-        <Outlet />
-        <ScrollRestoration />
-        <Scripts />
-        <LiveReload />
-      </body>
-    </html>
-  );
-}
-
-export default withSentry(App);
+        new Vue({
+          router,
+          render: (h) => h(App),
+        }).$mount("#app");
         `,
       },
     ],
@@ -152,9 +116,7 @@ export default withSentry(App);
     ),
     configurations: [
       {
-        code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-        `,
+        code: 'myUndefinedFunction();',
       },
     ],
   },
@@ -165,7 +127,13 @@ export const nextSteps = [
     id: 'source-maps',
     name: t('Source Maps'),
     description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/sourcemaps/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/',
+  },
+  {
+    id: 'vue-features',
+    name: t('Vue Features'),
+    description: t('Learn about our first class integration with the Vue framework.'),
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/features/',
   },
   {
     id: 'performance-monitoring',
@@ -173,7 +141,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/performance/',
   },
   {
     id: 'session-replay',
@@ -181,7 +149,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/remix/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/vue/session-replay/',
   },
 ];
 // Configuration End
@@ -192,7 +160,7 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithRemix({
+export default function GettingStartedWithVue({
   dsn,
   activeProductSelection,
   newOrg,
@@ -201,13 +169,10 @@ export default function GettingStartedWithRemix({
   const otherConfigs: string[] = [];
 
   let nextStepDocs = [...nextSteps];
-  const sentryInitContentServer: string[] = [`dsn: "${dsn}",`];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
     integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
-    sentryInitContentServer.push(prismaConfig.trim());
-    sentryInitContentServer.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.PERFORMANCE_MONITORING
     );
@@ -235,7 +200,6 @@ export default function GettingStartedWithRemix({
     <Layout
       steps={steps({
         sentryInitContent: sentryInitContent.join('\n'),
-        sentryInitContentServer,
       })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
