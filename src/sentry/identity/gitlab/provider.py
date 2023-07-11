@@ -4,6 +4,8 @@ from sentry import http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.oauth2 import OAuth2Provider
+from sentry.services.hybrid_cloud.identity import identity_service
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
@@ -85,7 +87,7 @@ class GitlabIdentityProvider(OAuth2Provider):
             "client_secret": client_secret,
         }
 
-    def refresh_identity(self, identity, *args, **kwargs):
+    def refresh_identity(self, identity: RpcIdentity, *args, **kwargs):
         refresh_token = identity.data.get("refresh_token")
         refresh_token_url = kwargs.get("refresh_token_url")
 
@@ -123,5 +125,5 @@ class GitlabIdentityProvider(OAuth2Provider):
         self.handle_refresh_error(req, payload)
 
         identity.data.update(get_oauth_data(payload))
-        identity.update(data=identity.data)
+        identity_service.update_data(identity_id=identity.id, data=identity.data)
         return identity
