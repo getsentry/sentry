@@ -4,12 +4,10 @@ import logging
 from typing import Any, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.contrib import messages
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 from requests.exceptions import MissingSchema
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.base import (
     FeatureDescription,
@@ -18,12 +16,15 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.pipeline import Pipeline, PipelineView
+from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieProxySetupClient
+
+# from rest_framework.response import Response
+
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -62,23 +63,6 @@ metadata = IntegrationMetadata(
 )
 
 
-class OpsgenieFinishedView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
-        response = pipeline.finish_pipeline()
-
-        integration = getattr(pipeline, "integration", None)
-        if not integration:
-            return response
-
-        messages.add_message(request, messages.SUCCESS, "Opsgenie integration installed.")
-
-        return self.redirect(
-            absolute_uri(
-                f"/settings/{pipeline.organization.slug}/integrations/opsgenie/{integration.id}/"
-            )
-        )
-
-
 class InstallationForm(forms.Form):
     base_url = forms.CharField(
         label=_("Base URL"),
@@ -107,7 +91,7 @@ class InstallationConfigView(PipelineView):
 
                 pipeline.bind_state("installation_data", form_data)
 
-                return pipeline.next_step()
+                return pipeline.finish_pipeline()
         else:
             form = InstallationForm()
 
@@ -184,7 +168,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
             raise IntegrationError("Invalid URL provided.")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
-        return [InstallationGuideView(), InstallationConfigView(), OpsgenieFinishedView()]
+        return [InstallationGuideView(), InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         """
