@@ -148,7 +148,7 @@ def fetch_associated_groups(
     trace_groups: Dict[str, List[Dict[str, Union[int, str]]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
-    # if query completes successfully, add the set of group id's to the corresponding check-in trace
+    # if query completes successfully, add an array of objects with group id and short id
     # otherwise, return an empty dict to return an empty array through the serializer
     if "error" not in result:
         for event in result["data"]:
