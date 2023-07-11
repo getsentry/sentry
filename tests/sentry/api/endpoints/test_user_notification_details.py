@@ -102,7 +102,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
 
     # def test_save_approvals(self):
     #     data = {"approval": {"user": {"me": {"email": "always"}}}}
-
+    #
     #     self.get_success_response("me", **data)
     #     value = NotificationSetting.objects.get_settings(
     #         ExternalProviders.EMAIL,

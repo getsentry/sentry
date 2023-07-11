@@ -54,7 +54,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [
-      ['notificationSettings', `/users/me/notification-settings/`],
+      ['notificationSettings', `/users/me/notification-settings/`, {v2: 'serializer'}],
       ['legacyData', '/users/me/notifications/'],
     ];
   }

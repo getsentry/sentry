@@ -62,6 +62,7 @@ export const getFallBackValue = (notificationType: string): string => {
     case 'reports':
       return 'always';
     default:
+      // These are the expected potential settings with fallback of ''
       // issue, quotaErrors, quotaTransactions, quotaAttachments,
       // quotaReplays, quotaWarnings, quotaSpendAllocations
       return '';

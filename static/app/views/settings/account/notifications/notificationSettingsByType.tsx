@@ -129,7 +129,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       [
         'notificationSettings',
         `/users/me/notification-settings/`,
-        {query: getQueryParams(notificationType)},
+        {query: getQueryParams(notificationType), v2: 'serializer'},
       ],
       ['identities', `/users/me/identities/`, {query: {provider: 'slack'}}],
       [

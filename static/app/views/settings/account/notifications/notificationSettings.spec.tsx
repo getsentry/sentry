@@ -14,7 +14,7 @@ function renderMockRequests({
   notificationSettings: NotificationSettingsObject;
 }) {
   MockApiClient.addMockResponse({
-    url: '/users/me/notification-settings/',
+    url: '/users/me/notification-settings/?v2=serializer',
     method: 'GET',
     body: notificationSettings,
   });
