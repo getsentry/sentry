@@ -11,6 +11,7 @@ export const migratedDocs = [
   'javascript-remix',
   'javascript-angular',
   'javascript-vue',
+  'javascript-gatsby',
   'javascript-ember',
 ];
 

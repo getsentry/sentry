@@ -1,6 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 
@@ -13,6 +12,13 @@ const replayOtherConfig = `
 // Session Replay
 replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
 replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
+`;
+
+const performanceIntegration = `
+new Sentry.BrowserTracing({
+  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
+}),
 `;
 
 const performanceOtherConfig = `
@@ -28,15 +34,17 @@ export const steps = ({
   {
     language: 'bash',
     type: StepType.INSTALL,
-
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
         code: `
-        # Using ember-cli
-        ember install @sentry/ember
+        # Using yarn
+        yarn add @sentry/gatsby
+
+        # Using npm
+        npm install --save @sentry/gatsby
         `,
       },
     ],
@@ -44,38 +52,46 @@ export const steps = ({
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
-    description: tct(
-      'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
-      {
-        code: <code />,
-      }
-    ),
     configurations: [
       {
+        description: (
+          <div>
+            {tct(
+              'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
+              {
+                code: <code />,
+              }
+            )}
+          </div>
+        ),
         code: `
-        import Application from "@ember/application";
-        import Resolver from "ember-resolver";
-        import loadInitializers from "ember-load-initializers";
-        import config from "./config/environment";
-
-        import * as Sentry from "@sentry/ember";
+        module.exports = {
+          plugins: [
+            {
+              resolve: "@sentry/gatsby",
+            },
+          ],
+        };
+        `,
+      },
+      {
+        description: (
+          <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
+        ),
+        code: `
+        import * as Sentry from "@sentry/gatsby";
 
         Sentry.init({
           ${sentryInitContent}
         });
 
-        export default class App extends Application {
-          modulePrefix = config.modulePrefix;
-          podModulePrefix = config.podModulePrefix;
-          Resolver = Resolver;
-        }
+        const container = document.getElementById(“app”);
+        const root = createRoot(container);
+        root.render(<App />)
         `,
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/'
-  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,
@@ -84,7 +100,7 @@ export const steps = ({
     ),
     configurations: [
       {
-        code: `myUndefinedFunction();`,
+        code: 'myUndefinedFunction();',
       },
     ],
   },
@@ -92,12 +108,18 @@ export const steps = ({
 
 export const nextSteps = [
   {
+    id: 'source-maps',
+    name: t('Source Maps'),
+    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
+  },
+  {
     id: 'performance-monitoring',
     name: t('Performance Monitoring'),
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/ember/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/performance/',
   },
   {
     id: 'session-replay',
@@ -105,7 +127,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/ember/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
   },
 ];
 // Configuration End
@@ -116,17 +138,17 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithEmber({
+export default function GettingStartedWithReact({
   dsn,
-  newOrg,
   activeProductSelection,
+  newOrg,
 }: Props) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
-
   let nextStepDocs = [...nextSteps];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
+    integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.PERFORMANCE_MONITORING
@@ -153,9 +175,7 @@ export default function GettingStartedWithEmber({
 
   return (
     <Layout
-      steps={steps({
-        sentryInitContent: sentryInitContent.join('\n'),
-      })}
+      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
     />
