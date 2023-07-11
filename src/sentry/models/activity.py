@@ -133,6 +133,8 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models import Group
+
             self.group.update(num_comments=F("num_comments") + 1)
             post_save.send_robust(
                 sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
@@ -143,6 +145,8 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
+            from sentry.models import Group
+
             self.group.update(num_comments=F("num_comments") - 1)
             post_save.send_robust(
                 sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
