@@ -1,4 +1,5 @@
 import {forwardRef, useCallback, useImperativeHandle, useMemo, useRef} from 'react';
+import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
 import {AriaSliderProps, AriaSliderThumbOptions, useSlider} from '@react-aria/slider';
@@ -227,6 +228,7 @@ function BaseSlider(
         <SliderTrack
           ref={trackRef}
           {...trackProps}
+          disabled={disabled}
           hasThumbLabels={showThumbLabels && !label}
           hasTickLabels={showTickLabels && allTickValues.length > 0}
         >
@@ -324,7 +326,14 @@ const SliderLabelOutput = styled('output')`
   color: ${p => p.theme.subText};
 `;
 
-const SliderTrack = styled('div')<{hasThumbLabels: boolean; hasTickLabels: boolean}>`
+const SliderTrack = styled('div', {
+  shouldForwardProp: prop =>
+    prop !== 'disabled' && typeof prop === 'string' && isPropValid(prop),
+})<{
+  disabled: boolean;
+  hasThumbLabels: boolean;
+  hasTickLabels: boolean;
+}>`
   position: relative;
   width: calc(100% - 2px);
   height: 3px;
@@ -334,6 +343,8 @@ const SliderTrack = styled('div')<{hasThumbLabels: boolean; hasTickLabels: boole
 
   margin-bottom: ${p => (p.hasTickLabels ? '2em' : '0.5rem')};
   margin-top: ${p => (p.hasThumbLabels ? '2em' : '0.5rem')};
+
+  ${p => p.disabled && `pointer-events: none;`}
 
   /* Users can click on the track to quickly jump to a value. We should extend the click
   area to make the action easier. */

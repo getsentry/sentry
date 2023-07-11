@@ -10,6 +10,7 @@ export const migratedDocs = [
   'javascript-react',
   'javascript-remix',
   'javascript-angular',
+  'javascript-vue',
 ];
 
 type SdkDocumentationProps = {
