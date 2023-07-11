@@ -18,8 +18,7 @@ from sentry.receivers import create_default_projects
 from sentry.tasks.auto_ongoing_issues import (
     TRANSITION_AFTER_DAYS,
     auto_transition_issues_new_to_ongoing,
-    schedule_auto_transition_new,
-    schedule_auto_transition_regressed,
+    schedule_auto_transition_to_ongoing,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
@@ -42,7 +41,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
@@ -72,7 +71,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
@@ -125,7 +124,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
         # after
         assert Group.objects.filter(project_id=project.id).count() == len(older_groups) + len(
@@ -178,7 +177,7 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         assert Group.objects.filter(project_id=project.id).count() == len(groups) == 12
 
         with self.tasks():
-            schedule_auto_transition_new()
+            schedule_auto_transition_to_ongoing()
 
         # Should create a new task for each project
         assert mocked.call_count == 2
@@ -223,7 +222,45 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         mock_backend.get_size.return_value = 0
 
         with self.tasks():
-            schedule_auto_transition_regressed()
+            schedule_auto_transition_to_ongoing()
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+
+        set_ongoing_activity = Activity.objects.filter(
+            group=group, type=ActivityType.AUTO_SET_ONGOING.value
+        ).get()
+        assert set_ongoing_activity.data == {"after_days": 7}
+
+        assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ONGOING).exists()
+
+
+@apply_feature_flag_on_cls("organizations:escalating-issues")
+class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
+    @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
+    def test_simple(self, mock_backend):
+        now = datetime.now(tz=pytz.UTC)
+        project = self.create_project()
+        group = self.create_group(
+            project=project,
+            status=GroupStatus.UNRESOLVED,
+            substatus=GroupSubStatus.ESCALATING,
+            first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1),
+        )
+        group_inbox = add_group_to_inbox(group, GroupInboxReason.ESCALATING)
+        group_inbox.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_inbox.save(update_fields=["date_added"])
+        group_history = record_group_history(
+            group, GroupHistoryStatus.ESCALATING, actor=None, release=None
+        )
+        group_history.date_added = now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1)
+        group_history.save(update_fields=["date_added"])
+
+        mock_backend.get_size.return_value = 0
+
+        with self.tasks():
+            schedule_auto_transition_to_ongoing()
 
         group.refresh_from_db()
         assert group.status == GroupStatus.UNRESOLVED
