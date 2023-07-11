@@ -83,7 +83,7 @@ class DatabaseBackedIdentityService(IdentityService):
         ).delete()
 
     def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
-        identity: Identity = Identity.objects.filter(id=identity_id).first()
+        identity: Optional[Identity] = Identity.objects.filter(id=identity_id).first()
         if identity is None:
             return None
         identity.update(data=data)
