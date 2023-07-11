@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
@@ -28,7 +28,6 @@ type PerformanceChangeExplorerProps = {
   onClose: () => void;
   organization: Organization;
   projects: Project[];
-  selectedTransaction: string;
   statsData: TrendsStats;
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
@@ -58,7 +57,6 @@ type HeaderProps = {
 export function PerformanceChangeExplorer({
   collapsed,
   transaction,
-  selectedTransaction,
   onClose,
   trendChangeType,
   trendFunction,
@@ -71,7 +69,7 @@ export function PerformanceChangeExplorer({
   location,
 }: PerformanceChangeExplorerProps) {
   return (
-    <DetailPanel detailKey={selectedTransaction} onClose={onClose}>
+    <DetailPanel detailKey={!collapsed ? transaction.transaction : ''} onClose={onClose}>
       {!collapsed && (
         <PanelBodyWrapper>
           <ExplorerBody
@@ -106,29 +104,30 @@ function ExplorerBody(props: ExplorerBodyProps) {
   const breakpointDate = transaction.breakpoint
     ? moment(transaction.breakpoint * 1000).format('ddd, DD MMM YYYY HH:mm:ss z')
     : '';
+
+  const start = moment(trendView.start).format('DD MMM YYYY HH:mm:ss z');
+  const end = moment(trendView.end).format('DD MMM YYYY HH:mm:ss z');
   return (
-    <React.Fragment>
+    <Fragment>
       <Header transaction={transaction} trendChangeType={trendChangeType} />
-      <ExplorerContainer>
-        <ExplorerContainer style={{display: 'flex'}}>
-          <InfoItem
-            label={
-              trendChangeType === TrendChangeType.REGRESSION
-                ? t('Regression Metric')
-                : t('Improvement Metric')
-            }
-            value={trendFunction}
-          />
-          <InfoItem label={t('Start Time')} value={breakpointDate} />
-        </ExplorerContainer>
-      </ExplorerContainer>
+      <div style={{display: 'flex', gap: space(4)}}>
+        <InfoItem
+          label={
+            trendChangeType === TrendChangeType.REGRESSION
+              ? t('Regression Metric')
+              : t('Improvement Metric')
+          }
+          value={trendFunction}
+        />
+        <InfoItem label={t('Start Time')} value={breakpointDate} />
+      </div>
       <GraphPanel data-test-id="pce-graph">
-        <strong>{trendParameter.label + ' (' + trendFunction + ')'}</strong>
-        <ExplorerText color={theme.gray300} margin={'-' + space(3)}>
+        <strong>{`${trendParameter.label} (${trendFunction})`}</strong>
+        <ExplorerText color={theme.gray300} margin={`-${space(3)}`}>
           {trendView.statsPeriod
             ? DEFAULT_RELATIVE_PERIODS[trendView.statsPeriod] ||
               getArbitraryRelativePeriod(trendView.statsPeriod)[trendView.statsPeriod]
-            : trendView.start + ' - ' + trendView.end}
+            : `${start} - ${end}`}
         </ExplorerText>
         <Chart
           query={trendView.query}
@@ -151,16 +150,16 @@ function ExplorerBody(props: ExplorerBodyProps) {
         trendView={trendView}
         organization={organization}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 function InfoItem({label, value}: {label: string; value: string}) {
   return (
-    <ExplorerContainer style={{marginRight: space(4), float: 'left'}}>
+    <div style={{float: 'left'}}>
       <InfoLabel>{label}</InfoLabel>
       <InfoText>{value}</InfoText>
-    </ExplorerContainer>
+    </div>
   );
 }
 
@@ -230,8 +229,6 @@ const GraphPanel = styled('div')`
   padding: ${space(3)};
   display: block;
 `;
-
-const ExplorerContainer = styled('div')``;
 
 type TextProps = {
   align?: string;

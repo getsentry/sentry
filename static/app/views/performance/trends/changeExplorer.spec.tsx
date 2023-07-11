@@ -18,7 +18,7 @@ import {
 } from 'sentry/views/performance/trends/types';
 import {TRENDS_PARAMETERS} from 'sentry/views/performance/trends/utils';
 
-async function waitForMockCall(mock: any) {
+async function waitForMockCall(mock: jest.Mock) {
   await waitFor(() => {
     expect(mock).toHaveBeenCalled();
   });
@@ -89,7 +89,6 @@ describe('Performance > Trends > Performance Change Explorer', function () {
       <PerformanceChangeExplorer
         collapsed={false}
         transaction={transaction}
-        selectedTransaction={transaction.transaction}
         onClose={() => {}}
         trendChangeType={TrendChangeType.REGRESSION}
         trendFunction={TrendFunctionField.P50}

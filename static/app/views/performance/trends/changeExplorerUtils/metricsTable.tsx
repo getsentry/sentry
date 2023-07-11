@@ -1,4 +1,4 @@
-import {ReactNode, ReactText, useMemo} from 'react';
+import {ReactNode, useMemo} from 'react';
 import {Location} from 'history';
 import moment from 'moment';
 
@@ -43,6 +43,44 @@ type MetricsTableProps = {
 
 const fieldsNeeded: AggregationKeyWithAlias[] = ['tps', 'p50', 'p95'];
 
+type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
+
+type MetricColumn = GridColumnOrder<MetricColumnKey>;
+
+type TableDataRow = Record<MetricColumnKey, any>;
+
+const MetricColumnOrder = ['metric', 'before', 'after', 'change'];
+
+export const COLUMNS: Record<MetricColumnKey, MetricColumn> = {
+  metric: {
+    key: 'metric',
+    name: t('Metric'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  before: {
+    key: 'before',
+    name: t('Before'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  after: {
+    key: 'after',
+    name: t('After'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  change: {
+    key: 'change',
+    name: t('Change'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+};
+
+const COLUMN_TYPE: Record<MetricColumnKey, ColumnType> = {
+  metric: 'string',
+  before: 'duration',
+  after: 'duration',
+  change: 'percentage',
+};
+
 export function MetricsTable(props: MetricsTableProps) {
   const {trendFunction, transaction, trendView, organization, location, isLoading} =
     props;
@@ -58,9 +96,16 @@ export function MetricsTable(props: MetricsTableProps) {
   const breakpoint = transaction.breakpoint;
 
   const hours = trendView.statsPeriod ? parsePeriodToHours(trendView.statsPeriod) : 0;
-  const startTime = useMemo(() => moment().subtract(hours, 'h').toISOString(), [hours]);
+  const startTime = useMemo(
+    () =>
+      trendView.start ? trendView.start : moment().subtract(hours, 'h').toISOString(),
+    [hours, trendView.start]
+  );
   const breakpointTime = breakpoint ? new Date(breakpoint * 1000).toISOString() : '';
-  const endTime = useMemo(() => moment().toISOString(), []);
+  const endTime = useMemo(
+    () => (trendView.end ? trendView.end : moment().toISOString()),
+    [trendView.end]
+  );
 
   const {data: beforeBreakpoint, isLoading: isLoadingBefore} = useDiscoverQuery(
     getQueryParams(
@@ -199,10 +244,10 @@ function getEventsRowData(
     return {
       metric: rowTitle,
       before: !wholeNumbers
-        ? toFormattedNumber(beforeData.data[0][field], 1) + ' ' + suffix
+        ? toFormattedNumber(beforeData.data[0][field].toString(), 1) + ' ' + suffix
         : beforeData.data[0][field],
       after: !wholeNumbers
-        ? toFormattedNumber(afterData.data[0][field], 1) + ' ' + suffix
+        ? toFormattedNumber(afterData.data[0][field].toString(), 1) + ' ' + suffix
         : afterData.data[0][field],
       change: formatPercentage(
         percentChange(
@@ -267,8 +312,8 @@ function getEventViewWithFields(
   return newEventView.withColumns(chartFields);
 }
 
-function toFormattedNumber(numberString: ReactText, decimal: number) {
-  return (numberString as number).toFixed(decimal);
+function toFormattedNumber(numberString: string, decimal: number) {
+  return parseFloat(numberString).toFixed(decimal);
 }
 
 function percentChange(before: number, after: number) {
@@ -373,41 +418,3 @@ function getQueryParams(
     },
   };
 }
-
-type MetricColumnKey = 'metric' | 'before' | 'after' | 'change';
-
-type MetricColumn = GridColumnOrder<MetricColumnKey>;
-
-type TableDataRow = Record<MetricColumnKey, any>;
-
-const MetricColumnOrder = ['metric', 'before', 'after', 'change'];
-
-export const COLUMNS: Record<MetricColumnKey, MetricColumn> = {
-  metric: {
-    key: 'metric',
-    name: t('Metric'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  before: {
-    key: 'before',
-    name: t('Before'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  after: {
-    key: 'after',
-    name: t('After'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  change: {
-    key: 'change',
-    name: t('Change'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-};
-
-const COLUMN_TYPE: Record<MetricColumnKey, ColumnType> = {
-  metric: 'string',
-  before: 'duration',
-  after: 'duration',
-  change: 'percentage',
-};
