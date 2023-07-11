@@ -1,8 +1,13 @@
+import styled from '@emotion/styled';
+
+import ExternalLink from 'sentry/components/links/externalLink';
+import List from 'sentry/components/list/';
+import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 // Configuration Start
 const replayIntegration = `
@@ -16,10 +21,7 @@ replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire sess
 `;
 
 const performanceIntegration = `
-new Sentry.BrowserTracing({
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
-}),
+new Sentry.BrowserTracing(),
 `;
 
 const performanceOtherConfig = `
@@ -34,45 +36,90 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: t(
-      'Sentry captures data by using an SDK within your application’s runtime.'
+    description: tct(
+      'Add Sentry automatically to your app with the [wizardLink:Sentry wizard].',
+      {
+        wizardLink: (
+          <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/#install" />
+        ),
+      }
     ),
     configurations: [
       {
         language: 'bash',
-        code: `
-        # Using yarn
-        yarn add @sentry/react
-
-        # Using npm
-        npm install --save @sentry/react
-        `,
+        code: `npx @sentry/wizard -i nextjs`,
       },
     ],
   },
   {
     type: StepType.CONFIGURE,
-    description: t(
-      "Initialize Sentry as early as possible in your application's lifecycle."
+    description: (
+      <ConfigureDescription>
+        {t('The Sentry wizard will automatically patch your application:')}
+        <List symbol="bullet">
+          <ListItem>
+            {tct(
+              'Create [code:sentry.client.config.js] and [code:sentry.server.config.js] with the default [code:Sentry.init].',
+              {
+                code: <code />,
+              }
+            )}
+          </ListItem>
+          <ListItem>
+            {tct('Create [code:next.config.js] with the default configuration.', {
+              code: <code />,
+            })}
+          </ListItem>
+          <ListItem>
+            {tct(
+              'Create [code:sentry.properties] with configuration for sentry-cli (which is used when automatically uploading source maps).',
+              {
+                code: <code />,
+              }
+            )}
+          </ListItem>
+        </List>
+        <div>
+          {tct('Alternatively, you can also [manualSetupLink:set up the SDK manually].', {
+            manualSetupLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/" />
+            ),
+          })}
+        </div>
+      </ConfigureDescription>
     ),
     configurations: [
+      {
+        description: (
+          <ConfigureDescription>
+            <strong>{t('Configure the Sentry SDK:')}</strong>
+            <div>
+              {tct(
+                'Install Sentry’s Next.js SDK using either [code:yarn] or [code:npm]:',
+                {
+                  code: <code />,
+                }
+              )}
+            </div>
+          </ConfigureDescription>
+        ),
+        language: 'bash',
+        code: `
+        yarn add @sentry/nextjs
+        # or
+        npm install --save @sentry/nextjs
+        `,
+      },
       {
         language: 'javascript',
         code: `
         Sentry.init({
           ${sentryInitContent}
         });
-
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
         `,
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
-  ),
   {
     type: StepType.VERIFY,
     description: t(
@@ -91,18 +138,10 @@ export const steps = ({
 
 export const nextSteps = [
   {
-    id: 'react-features',
-    name: t('React Features'),
-    description: t('Learn about our first class integration with the React framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
-  },
-  {
-    id: 'react-router',
-    name: t('React Router'),
-    description: t(
-      'Configure routing, so Sentry can generate parameterized transaction names for a better overview in Performance Monitoring.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
+    id: 'source-maps',
+    name: t('Source Maps'),
+    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/sourcemaps/',
   },
   {
     id: 'performance-monitoring',
@@ -110,7 +149,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/performance/',
   },
   {
     id: 'session-replay',
@@ -118,7 +157,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/session-replay/',
   },
 ];
 // Configuration End
@@ -129,7 +168,7 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithReact({
+export default function GettingStartedWithNextJs({
   dsn,
   activeProductSelection,
   newOrg,
@@ -172,3 +211,9 @@ export default function GettingStartedWithReact({
     />
   );
 }
+
+const ConfigureDescription = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(1)};
+`;

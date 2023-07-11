@@ -31,7 +31,6 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: tct(
       'Configure your app automatically with the [wizardLink:Sentry wizard].',
@@ -43,12 +42,12 @@ export const steps = ({
     ),
     configurations: [
       {
+        language: 'bash',
         code: `npx @sentry/wizard -i sveltekit`,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: (
       <ConfigureDescription>
@@ -103,6 +102,7 @@ export const steps = ({
             </div>
           </ConfigureDescription>
         ),
+        language: 'javascript',
         code: `
         import * as Sentry from "@sentry/sveltekit";
 
@@ -114,13 +114,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         <!-- +page.svelte -->
         <button type="button" on:click={unknownFunction}>Break the world</button>

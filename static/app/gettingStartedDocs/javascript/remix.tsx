@@ -44,13 +44,13 @@ export const steps = ({
   sentryInitContentServer?: string[];
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/remix
@@ -62,13 +62,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       'Import and initialize Sentry in your Remix entry points for both the client and server:'
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         import { useLocation, useMatches } from "@remix-run/react";
         import * as Sentry from "@sentry/remix";
@@ -80,6 +80,7 @@ export const steps = ({
         `,
       },
       {
+        language: 'javascript',
         description: tct(
           `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
           {
@@ -110,6 +111,7 @@ export const steps = ({
         description: t(
           'Lastly, wrap your Remix root with "withSentry" to catch React component errors and to get parameterized router transactions:'
         ),
+        language: 'javascript',
         code: `
 import {
   Links,
@@ -145,13 +147,13 @@ export default withSentry(App);
     ],
   },
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,
