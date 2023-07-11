@@ -6,7 +6,7 @@ import Projects from 'sentry/utils/projects';
 describe('utils.projects', function () {
   const renderer = jest.fn(() => null);
 
-  const createWrapper = props =>
+  const createWrapper = (props = {}) =>
     render(<Projects orgId="org-slug" children={renderer} {...props} />); // eslint-disable-line
 
   beforeEach(function () {
@@ -52,9 +52,6 @@ describe('utils.projects', function () {
     it('fetches projects from API if not found in store', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        query: {
-          query: 'slug:a slug:b',
-        },
         body: [
           TestStubs.Project({
             id: '100',
@@ -261,10 +258,6 @@ describe('utils.projects', function () {
     it('fetches projects from API if ids not found in store', async function () {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        query: {
-          all_projects: '1',
-          collapse: ['latestDeploys'],
-        },
         body: [
           TestStubs.Project({
             id: '1',
@@ -576,10 +569,6 @@ describe('utils.projects', function () {
 
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        query: {
-          all_projects: '1',
-          collapse: ['latestDeploys'],
-        },
         body: mockProjects,
       });
       ProjectsStore.reset();

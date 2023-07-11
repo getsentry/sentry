@@ -30,7 +30,7 @@ describe('ProcessingIssueList', function () {
 
   describe('componentDidMount', function () {
     it('fetches issues', async function () {
-      render(<ProcessingIssueList organization={organization} projects={projects} />);
+      render(<ProcessingIssueList organization={organization} projectIds={projects} />);
       await screen.findAllByText('Show details');
 
       expect(fetchIssueRequest).toHaveBeenCalled();
@@ -39,7 +39,7 @@ describe('ProcessingIssueList', function () {
 
   describe('render', function () {
     it('renders multiple issues', async function () {
-      render(<ProcessingIssueList organization={organization} projects={projects} />);
+      render(<ProcessingIssueList organization={organization} projectIds={projects} />);
       const items = await screen.findAllByText(/There is 1 issue blocking/);
       expect(items).toHaveLength(2);
     });
@@ -48,8 +48,8 @@ describe('ProcessingIssueList', function () {
       render(
         <ProcessingIssueList
           organization={organization}
-          projects={projects}
           showProject
+          projectIds={projects}
         />
       );
       const projectText = await screen.findByText(/test-project/);
