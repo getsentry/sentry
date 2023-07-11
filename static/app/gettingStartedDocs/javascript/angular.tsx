@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -159,23 +159,9 @@ export const steps = ({
       },
     ],
   },
-  {
-    language: 'bash',
-    type: StepType.UPLOAD_SOURCE_MAPS,
-    configurations: [
-      {
-        description: tct(
-          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
-          {
-            guideLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/" />
-            ),
-          }
-        ),
-        code: `npx @sentry/wizard@latest -i sourcemaps`,
-      },
-    ],
-  },
+  getUploadSourceMapsStep(
+    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/'
+  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,

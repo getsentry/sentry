@@ -1,8 +1,8 @@
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -70,23 +70,9 @@ export const steps = ({
       },
     ],
   },
-  {
-    language: 'bash',
-    type: StepType.UPLOAD_SOURCE_MAPS,
-    configurations: [
-      {
-        description: tct(
-          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
-          {
-            guideLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
-            ),
-          }
-        ),
-        code: `npx @sentry/wizard@latest -i sourcemaps`,
-      },
-    ],
-  },
+  getUploadSourceMapsStep(
+    'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
+  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,
