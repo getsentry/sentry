@@ -1,13 +1,12 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import useApi from 'sentry/utils/useApi';
 
 describe('useApi', function () {
   it('provides an api client', function () {
     const {result} = reactHooks.renderHook(useApi);
 
-    expect(result.current).toBeInstanceOf(Client);
+    expect(result.current).toBeInstanceOf(MockApiClient);
   });
 
   it('cancels pending API requests when unmounted', function () {
@@ -31,7 +30,7 @@ describe('useApi', function () {
   });
 
   it('uses pass through API when provided', function () {
-    const myClient = new Client();
+    const myClient = new MockApiClient();
     const {unmount} = reactHooks.renderHook(useApi, {initialProps: {api: myClient}});
 
     jest.spyOn(myClient, 'clear');

@@ -1,9 +1,9 @@
-from django.conf.urls import url
+from django.urls import re_path
 
 from .webhook import GitHubEnterpriseWebhookEndpoint
 
 urlpatterns = [
-    url(
+    re_path(
         r"^webhook/$",
         GitHubEnterpriseWebhookEndpoint.as_view(),
     )

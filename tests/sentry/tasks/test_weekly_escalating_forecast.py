@@ -4,10 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytz
 
-from sentry.issues.escalating_group_forecast import (
-    DEFAULT_MINIMUM_CEILING_FORECAST,
-    EscalatingGroupForecast,
-)
+from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.models.group import Group, GroupStatus
 from sentry.tasks.weekly_escalating_forecast import run_escalating_forecast
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -27,10 +24,14 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             group_list.append(group)
         return group_list
 
-    @patch("sentry.analytics.record")
+    @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")
+    @patch("sentry.issues.escalating_group_forecast.logger")
     @patch("sentry.issues.escalating.query_groups_past_counts")
     def test_empty_escalating_forecast(
-        self, mock_query_groups_past_counts: MagicMock, record_mock: MagicMock
+        self,
+        mock_query_groups_past_counts: MagicMock,
+        mock_logger: MagicMock,
+        mock_generate_and_save_missing_forecasts: MagicMock,
     ) -> None:
         with self.tasks():
             group_list = self.create_archived_until_escalating_groups(num_groups=1)
@@ -38,14 +39,13 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             mock_query_groups_past_counts.return_value = {}
 
             run_escalating_forecast()
-            fetched_forecast = EscalatingGroupForecast.fetch(
-                group_list[0].project.id, group_list[0].id
+            group = group_list[0]
+            fetched_forecast = EscalatingGroupForecast.fetch(group.project.id, group.id)
+            assert fetched_forecast is None
+            assert mock_logger.exception.call_args.args[0] == (
+                f"Forecast does not exist for project id: {group.project.id} group id: {group.id}"
             )
-            assert fetched_forecast is not None
-            assert fetched_forecast.project_id == group_list[0].project.id
-            assert fetched_forecast.group_id == group_list[0].id
-            assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
-            record_mock.assert_called_with("issue_forecasts.saved", num_groups=0)
+        assert mock_generate_and_save_missing_forecasts.call_count == 1
 
     @patch("sentry.analytics.record")
     @patch("sentry.issues.forecasts.query_groups_past_counts")
@@ -67,7 +67,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
             assert fetched_forecast is not None
             assert fetched_forecast.project_id == group_list[0].project.id
             assert fetched_forecast.group_id == group_list[0].id
-            assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+            assert fetched_forecast.forecast == [100] * 14
             assert fetched_forecast.date_added.replace(
                 second=0, microsecond=0
             ) == approximate_date_added.replace(second=0, microsecond=0)
@@ -95,7 +95,7 @@ class TestWeeklyEscalatingForecast(APITestCase, SnubaTestCase):
                 assert fetched_forecast is not None
                 assert fetched_forecast.project_id == group_list[i].project.id
                 assert fetched_forecast.group_id == group_list[i].id
-                assert fetched_forecast.forecast == DEFAULT_MINIMUM_CEILING_FORECAST
+                assert fetched_forecast.forecast == [100] * 14
                 assert fetched_forecast.date_added.replace(
                     second=0, microsecond=0
                 ) == approximate_date_added.replace(second=0, microsecond=0)

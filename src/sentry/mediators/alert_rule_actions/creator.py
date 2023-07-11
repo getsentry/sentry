@@ -1,14 +1,17 @@
 from sentry.coreapi import APIError
-from sentry.mediators import external_requests
-from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+from sentry.mediators.external_requests.alert_rule_action_requester import (
+    AlertRuleActionRequester,
+    AlertRuleActionResult,
+)
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.utils.cache import memoize
 
 
 class AlertRuleActionCreator(Mediator):
-    install = Param("sentry.models.SentryAppInstallation")
+    install = Param(SentryAppInstallation)
     fields = Param(object, default=[])  # array of dicts
 
     def call(self) -> AlertRuleActionResult:
@@ -27,7 +30,7 @@ class AlertRuleActionCreator(Mediator):
         if uri is None:
             raise APIError("Sentry App request url not found")
 
-        self.response = external_requests.AlertRuleActionRequester.run(
+        self.response = AlertRuleActionRequester.run(
             install=self.install,
             uri=uri,
             fields=self.fields,

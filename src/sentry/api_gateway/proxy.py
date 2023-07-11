@@ -5,12 +5,11 @@ import logging
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
-from django.http import StreamingHttpResponse
+from django.http import HttpRequest, StreamingHttpResponse
 from requests import Response as ExternalResponse
 from requests import request as external_request
 from requests.exceptions import Timeout
 from rest_framework.exceptions import NotFound
-from rest_framework.request import Request
 
 from sentry.api.exceptions import RequestTimeout
 from sentry.silo.util import (
@@ -48,7 +47,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     return streamed_response
 
 
-def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
+def proxy_request(request: HttpRequest, org_slug: str) -> StreamingHttpResponse:
     """Take a django request object and proxy it to a remote location given an org_slug"""
     from sentry.types.region import get_region_for_organization
 
@@ -61,20 +60,24 @@ def proxy_request(request: Request, org_slug: str) -> StreamingHttpResponse:
     target_url = region.to_url(request.path)
     header_dict = clean_proxy_headers(request.headers)
     # TODO: use requests session for connection pooling capabilities
+    assert request.method is not None
     query_params = getattr(request, request.method, None)
-    request_args = {
-        "headers": header_dict,
-        "params": dict(query_params) if query_params is not None else None,
-        "files": getattr(request, "FILES", None),
-        "data": getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
-        "stream": True,
-        "timeout": settings.GATEWAY_PROXY_TIMEOUT,
-    }
     try:
-        resp: ExternalResponse = external_request(request.method, url=target_url, **request_args)
+        resp = external_request(
+            request.method,
+            url=target_url,
+            headers=header_dict,
+            params=dict(query_params) if query_params is not None else None,
+            files=getattr(request, "FILES", None),
+            data=getattr(request, "body", None) if not getattr(request, "FILES", None) else None,
+            stream=True,
+            timeout=settings.GATEWAY_PROXY_TIMEOUT,
+        )
     except Timeout:
         # remote silo timeout. Use DRF timeout instead
         raise RequestTimeout()
 
-    resp.headers = clean_outbound_headers(resp.headers)
+    new_headers = clean_outbound_headers(resp.headers)
+    resp.headers.clear()
+    resp.headers.update(new_headers)
     return _parse_response(resp, target_url)

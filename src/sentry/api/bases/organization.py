@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Set
+from typing import Any, Optional, Set, cast
 
 import sentry_sdk
 from django.core.cache import cache
@@ -19,10 +19,16 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
-from sentry.models import ApiKey, Organization, Project, ReleaseProject
+from sentry.models import Organization, Project, ReleaseProject
+from sentry.models.apikey import is_api_key_auth
 from sentry.models.environment import Environment
+from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.release import Release
-from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -44,28 +50,36 @@ class OrganizationPermission(SentryPermission):
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
     ) -> bool:
-        return (
-            organization.flags.require_2fa
-            and not request.user.has_2fa()
-            and not is_active_superuser(request)
-        )
+        if not organization.flags.require_2fa:
+            return False
+
+        if request.user.has_2fa():  # type: ignore
+            return False
+
+        if is_active_superuser(request):
+            return False
+
+        return True
 
     def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         # XXX(dcramer): this is very similar to the server-rendered views
         # logic for checking valid SSO
         if not request.access.requires_sso:
             return False
-        if not auth.has_completed_sso(request, organization.id):
+        if not auth.has_completed_sso(request, cast(int, organization.id)):
             return True
         if not request.access.sso_is_valid:
             return True
         return False
 
     def has_object_permission(
-        self, request: Request, view: object, organization: Organization
+        self,
+        request: Request,
+        view: object,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> bool:
         self.determine_access(request, organization)
-        allowed_scopes = set(self.scope_map.get(request.method, []))
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
     def is_member_disabled_from_limit(
@@ -94,9 +108,9 @@ class OrganizationEventPermission(OrganizationPermission):
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
     scope_map = {
-        "GET": ["project:read", "project:write", "project:admin", "project:releases"],
-        "POST": ["project:write", "project:admin", "project:releases"],
-        "PUT": ["project:write", "project:admin", "project:releases"],
+        "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
+        "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
+        "PUT": ["project:write", "project:admin", "project:releases", "org:ci"],
         "DELETE": ["project:admin", "project:releases"],
     }
 
@@ -182,6 +196,47 @@ class OrgAuthTokenPermission(OrganizationPermission):
     }
 
 
+class ControlSiloOrganizationEndpoint(Endpoint):
+    """
+    A base class for endpoints that use an organization scoping but lives in the control silo
+    """
+
+    permission_classes = (OrganizationPermission,)
+
+    def convert_args(
+        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        if resolve_region(request) is None:
+            subdomain = getattr(request, "subdomain", None)
+            if subdomain is not None and subdomain != organization_slug:
+                raise ResourceDoesNotExist
+
+        if not organization_slug:
+            raise ResourceDoesNotExist
+
+        organization_context = organization_service.get_organization_by_slug(
+            slug=organization_slug, only_visible=False, user_id=request.user.id  # type: ignore
+        )
+        if organization_context is None:
+            raise ResourceDoesNotExist
+
+        with sentry_sdk.start_span(op="check_object_permissions_on_organization"):
+            self.check_object_permissions(request, organization_context)
+
+        bind_organization_context(organization_context.organization)
+
+        # Track the 'active' organization when the request came from
+        # a cookie based agent (react app)
+        # Never track any org (regardless of whether the user does or doesn't have
+        # membership in that org) when the user is in active superuser mode
+        if request.auth is None and request.user and not is_active_superuser(request):
+            auth.set_active_org(request, organization_context.organization.slug)
+
+        kwargs["organization_context"] = organization_context
+        kwargs["organization"] = organization_context.organization
+        return (args, kwargs)
+
+
 class OrganizationEndpoint(Endpoint):
     permission_classes = (OrganizationPermission,)
 
@@ -231,7 +286,7 @@ class OrganizationEndpoint(Endpoint):
                 if not project_ids:
                     return []
             else:
-                project_ids = self.get_requested_project_ids_unchecked(request)
+                project_ids = self.get_requested_project_ids_unchecked(request)  # type: ignore
 
         return self._get_projects_by_id(
             project_ids,
@@ -276,10 +331,10 @@ class OrganizationEndpoint(Endpoint):
                     or include_all_accessible
                 ):
                     span.set_tag("mode", "has_project_access")
-                    func = request.access.has_project_access
+                    func = request.access.has_project_access  # type: ignore
                 else:
                     span.set_tag("mode", "has_project_membership")
-                    func = request.access.has_project_membership
+                    func = request.access.has_project_membership  # type: ignore
                 projects = [p for p in qs if func(p)]
 
         project_ids = {p.id for p in projects}
@@ -406,7 +461,7 @@ class OrganizationEndpoint(Endpoint):
 
         bind_organization_context(organization)
 
-        request._request.organization = organization
+        request._request.organization = organization  # type: ignore
 
         # Track the 'active' organization when the request came from
         # a cookie based agent (react app)
@@ -434,12 +489,19 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         detail in the parent class's method of the same name.
         """
         has_valid_api_key = False
-        if isinstance(request.auth, ApiKey):
-            if request.auth.organization_id != organization.id:
+        if is_api_key_auth(request.auth):
+            if request.auth.organization_id != organization.id:  # type: ignore
                 return []
-            has_valid_api_key = request.auth.has_scope(
+            has_valid_api_key = request.auth.has_scope(  # type: ignore
                 "project:releases"
-            ) or request.auth.has_scope("project:write")
+            ) or request.auth.has_scope(  # type: ignore
+                "project:write"
+            )
+
+        if is_org_auth_token_auth(request.auth):
+            if request.auth.organization_id != organization.id:  # type: ignore
+                return []
+            has_valid_api_key = request.auth.has_scope("org:ci")  # type: ignore
 
         if not (
             has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
@@ -474,8 +536,10 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if getattr(request, "user", None) and request.user.id:
             actor_id = "user:%s" % request.user.id
-        if getattr(request, "auth", None) and request.auth.id:
-            actor_id = "apikey:%s" % request.auth.id
+        if getattr(request, "auth", None) and getattr(request.auth, "id", None):
+            actor_id = "apikey:%s" % request.auth.id  # type: ignore
+        elif getattr(request, "auth", None) and getattr(request.auth, "entity_id", None):
+            actor_id = "apikey:%s" % request.auth.entity_id  # type: ignore
         if actor_id is not None:
             requested_project_ids = project_ids
             if requested_project_ids is None:

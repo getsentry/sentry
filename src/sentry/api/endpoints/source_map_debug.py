@@ -1,7 +1,7 @@
 from typing import List, Union
 from urllib.parse import urlparse
 
-from django.utils.encoding import force_bytes, force_text
+from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
 from rest_framework.exceptions import NotFound, ParseError
@@ -292,7 +292,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 SourceMapProcessingIssue.SOURCEMAP_NOT_FOUND, {"filename": filename}
             )
 
-        return force_text(sourcemap) if sourcemap is not None else None
+        return force_str(sourcemap) if sourcemap is not None else None
 
     def _unify_url(self, urlparts):
         return "~" + urlparts.path

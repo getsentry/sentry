@@ -232,6 +232,7 @@ class ProjectParams:
 - `browser-extensions`: Filter out errors known to be caused by browser extensions.
 - `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
+- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 - `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
 ways which then cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
@@ -245,7 +246,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
+        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
     )
 
     BROWSER_SDK_VERSION = OpenApiParameter(
@@ -305,6 +306,14 @@ Configures multiple options for the Javascript Loader Script.
         description="Activate or deactivate the client key.",
     )
 
+    IS_BOOKMARKED = OpenApiParameter(
+        name="isBookmarked",
+        location="query",
+        required=False,
+        type=bool,
+        description="Enables starring the project within the projects tab.",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -336,8 +345,8 @@ disable entirely set `rateLimit` to null.
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
         description="""
-A list specifying which legacy browser filters should be active. Anything excluded from the list
-will be turned off. The options are:
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10
@@ -376,5 +385,7 @@ class TeamParams:
         location="query",
         required=False,
         type=str,
-        description='Specify "0" to return team details that do not include projects.',
+        description="""
+Specify `"0"` to return team details that do not include projects.
+""",
     )

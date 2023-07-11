@@ -1,9 +1,9 @@
 import logging
 
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry import audit_log
 from sentry.api import client
@@ -25,14 +25,11 @@ MSG_RESTORE_SUCCESS = _("Organization restored successfully.")
 delete_logger = logging.getLogger("sentry.deletions.ui")
 
 
-from rest_framework.request import Request
-
-
 class RestoreOrganizationView(ControlSiloOrganizationView):
     required_scope = "org:admin"
     sudo_required = True
 
-    def determine_active_organization(self, request: Request, organization_slug=None) -> None:
+    def determine_active_organization(self, request: HttpRequest, organization_slug=None) -> None:
         # A simplified version than what comes from the base
         # OrganizationView. We need to grab an organization
         # that is in any state, not just VISIBLE.
@@ -44,7 +41,7 @@ class RestoreOrganizationView(ControlSiloOrganizationView):
         else:
             self.active_organization = None
 
-    def get(self, request: Request, organization) -> HttpResponse:
+    def get(self, request: HttpRequest, organization) -> HttpResponse:
         if organization.status == OrganizationStatus.ACTIVE:
             return self.redirect(Organization.get_url(organization.slug))
 
@@ -58,7 +55,7 @@ class RestoreOrganizationView(ControlSiloOrganizationView):
 
         return render_to_response("sentry/restore-organization.html", context, self.request)
 
-    def post(self, request: Request, organization) -> HttpResponse:
+    def post(self, request: HttpRequest, organization) -> HttpResponse:
         deletion_statuses = [
             OrganizationStatus.PENDING_DELETION,
             OrganizationStatus.DELETION_IN_PROGRESS,

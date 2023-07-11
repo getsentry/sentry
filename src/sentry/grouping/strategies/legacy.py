@@ -10,7 +10,6 @@ from sentry.grouping.strategies.base import (
     produces_variants,
     strategy,
 )
-from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.interfaces.exception import Exception as ChainedException
 from sentry.interfaces.exception import SingleException
@@ -168,13 +167,11 @@ def single_exception_legacy(
     type_component = GroupingComponent(
         id="type",
         values=[interface.type] if interface.type else [],
-        similarity_encoder=ident_encoder,
         contributes=False,
     )
     value_component = GroupingComponent(
         id="value",
         values=[interface.value] if interface.value else [],
-        similarity_encoder=text_shingle_encoder(5),
         contributes=False,
     )
     stacktrace_component = GroupingComponent(id="stacktrace")
@@ -269,7 +266,7 @@ def frame_legacy(
     # Safari throws [native code] frames in for calls like ``forEach``
     # whereas Chrome ignores these. Let's remove it from the hashing algo
     # so that they're more likely to group together
-    filename_component = GroupingComponent(id="filename", similarity_encoder=ident_encoder)
+    filename_component = GroupingComponent(id="filename")
     if interface.filename == "<anonymous>":
         filename_component.update(
             contributes=False, values=[interface.filename], hint="anonymous filename discarded"
@@ -300,7 +297,7 @@ def frame_legacy(
     # if we have a module we use that for grouping.  This will always
     # take precedence over the filename, even if the module is
     # considered unhashable.
-    module_component = GroupingComponent(id="module", similarity_encoder=ident_encoder)
+    module_component = GroupingComponent(id="module")
     if interface.module:
         if is_unhashable_module_legacy(interface, platform):
             module_component.update(
@@ -311,10 +308,6 @@ def frame_legacy(
                 ],
                 hint="ignored module",
             )
-
-            # <module> still contributes, though it should not contribute to
-            # similarity
-            module_component.similarity_encoder = None
         else:
             module_name, module_hint = remove_module_outliers_legacy(interface.module, platform)
             module_component.update(values=[module_name], hint=module_hint)
@@ -324,7 +317,7 @@ def frame_legacy(
             )
 
     # Context line when available is the primary contributor
-    context_line_component = GroupingComponent(id="context-line", similarity_encoder=ident_encoder)
+    context_line_component = GroupingComponent(id="context-line")
     if interface.context_line is not None:
         if len(interface.context_line) > 120:
             context_line_component.update(hint="discarded because line too long")
@@ -333,9 +326,9 @@ def frame_legacy(
         else:
             context_line_component.update(values=[interface.context_line])
 
-    symbol_component = GroupingComponent(id="symbol", similarity_encoder=ident_encoder)
-    function_component = GroupingComponent(id="function", similarity_encoder=ident_encoder)
-    lineno_component = GroupingComponent(id="lineno", similarity_encoder=ident_encoder)
+    symbol_component = GroupingComponent(id="symbol")
+    function_component = GroupingComponent(id="function")
+    lineno_component = GroupingComponent(id="lineno")
 
     # The context line grouping information is the most reliable one.
     # If we did not manage to find some information there, we want to
@@ -363,9 +356,6 @@ def frame_legacy(
                         )
                     ]
                 )
-                # <module> still contributes, though it should not contribute to
-                # similarity
-                function_component.similarity_encoder = None
             else:
                 function, function_hint = remove_function_outliers_legacy(func)
                 function_component.update(values=[function], hint=function_hint)

@@ -18,7 +18,7 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -26,17 +26,17 @@ import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrat
 
 import SentryFunctionRow from './sentryFunctionRow';
 
-type Props = Omit<AsyncView['props'], 'params'> & {
+type Props = Omit<DeprecatedAsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
 type Tab = 'public' | 'internal' | 'sentryfx';
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   applications: SentryApp[];
   tab: Tab;
 };
 
-class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
   analyticsView = 'developer_settings' as const;
 
   getDefaultState(): State {
@@ -60,10 +60,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   getTitle() {
     const {organization} = this.props;
-    return routeTitleGen(t('Developer Settings'), organization.slug, false);
+    return routeTitleGen(t('Custom Integrations'), organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const returnValue: [string, string, any?, any?][] = [
       ['applications', `/organizations/${organization.slug}/sentry-apps/`],
@@ -213,12 +213,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       tabs.push(['sentryfx', t('Sentry Function')]);
     }
 
-    const hasAuthTokens = organization.features.includes('org-auth-tokens');
-
     return (
       <div>
         <SettingsPageHeader
-          title={hasAuthTokens ? t('Custom Integrations') : t('Developer Settings')}
+          title={t('Custom Integrations')}
           body={
             <Fragment>
               {t(
