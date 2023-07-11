@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import re_path, reverse
 from rest_framework.permissions import AllowAny
@@ -144,7 +145,11 @@ class CustomerDomainMiddlewareTest(TestCase):
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
         request.subdomain = "sentry"
         request.session = {"activeorg": "test"}
-        response = CustomerDomainMiddleware(lambda request: request)(request)
+
+        def ignore_request(request: HttpRequest) -> HttpResponse:
+            raise NotImplementedError
+
+        response = CustomerDomainMiddleware(ignore_request)(request)
 
         assert request.session == {"activeorg": "sentry"}
         assert response.status_code == 302
