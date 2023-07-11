@@ -19,6 +19,7 @@ from typing_extensions import NotRequired
 
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, SearchFilter
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events import fields
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricOperationType
@@ -213,14 +214,17 @@ def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[s
 
 def _contains_on_demand_search_filters(query: str) -> bool:
     """Recursively checks if the query contains any non-standard search filters."""
+    try:
+        tokens = event_search.parse_search_query(query)
 
-    tokens = event_search.parse_search_query(query)
+        for token in tokens:
+            if _is_on_demand_search_filter(token):
+                return True
 
-    for token in tokens:
-        if _is_on_demand_search_filter(token):
-            return True
-
-    return False
+        return False
+    except InvalidSearchQuery as e:
+        logger.error(f"Failed to parse search query: {query}. Error: {e}")
+        return False
 
 
 def _is_on_demand_search_filter(token: QueryToken) -> bool:
