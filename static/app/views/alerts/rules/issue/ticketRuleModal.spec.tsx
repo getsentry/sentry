@@ -1,5 +1,6 @@
 import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
+import fetchMock from 'jest-fetch-mock';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -22,7 +23,9 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   };
 
   beforeEach(function () {
-    (addSuccessMessage as jest.Mock).mockReset();
+    fetchMock.enableMocks();
+    fetch.resetMocks();
+    addSuccessMessage.mockReset();
   });
 
   afterEach(function () {
@@ -81,7 +84,24 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
   };
 
-  const renderComponent = (data: Partial<IssueAlertRuleAction> = {}) => {
+  /**
+   * We need to use this alternate mocking scheme because `fetch` isn't available.
+   * @param names String[]
+   */
+  const addMockUsersAPICall = (names: string[] = []) => {
+    fetch.mockResponseOnce(
+      JSON.stringify(
+        names.map(name => {
+          return {
+            label: name,
+            value: name,
+          };
+        })
+      )
+    );
+  };
+
+  const renderComponent = (props: Partial<IssueAlertRuleAction> = {}) => {
     const {organization, routerContext} = initializeOrg();
     addMockConfigsAPICall({
       label: 'Reporter',
@@ -90,27 +110,21 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       type: 'select',
       name: 'reporter',
     });
-    const styledWrapper = styled(c => c.children);
+
+    const body = styled(c => c.children);
     return render(
       <TicketRuleModal
         {...modalElements}
         CloseButton={makeCloseButton(() => {})}
         closeModal={closeModal}
-        Body={styledWrapper()}
-        Footer={styledWrapper()}
+        Body={body()}
+        Footer={body()}
         formFields={{}}
         link=""
         ticketType=""
-        instance={{
-          name: 'integration',
-          id: '1',
-          label: 'label',
-          prompt: 'prompt',
-          integration: 1,
-          ...data,
-        }}
+        instance={{...(props.data || {}), integration: 1}}
         index={0}
-        onSubmitAction={jest.fn()}
+        onSubmitAction={() => {}}
         organization={organization}
       />,
       {context: routerContext}
@@ -157,9 +171,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     });
 
     it('should persist values when the modal is reopened', async function () {
-      renderComponent({
-        data: {reporter: 'a'},
-      });
+      renderComponent({data: {reporter: 'a'}});
       await submitSuccess();
     });
 
@@ -175,22 +187,12 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
 
-      // Component makes 1 request per character typed.
-      let txt = '';
-      for (const char of 'Joe') {
-        txt += char;
-        MockApiClient.addMockResponse({
-          url: `http://example.com?field=assignee&issuetype=10001&project=10000&query=${txt}`,
-          method: 'GET',
-          body: [{label: 'Joe', value: 'Joe'}],
-        });
-      }
+      addMockUsersAPICall(['Marcos']);
 
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
       selectEvent.openMenu(menu);
-      await userEvent.type(menu, 'Joe{Escape}');
-
-      await selectEvent.select(menu, 'Joe');
+      await userEvent.type(menu, 'Marc{Escape}');
+      await selectEvent.select(menu, 'Marcos');
 
       await submitSuccess();
     });
