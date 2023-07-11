@@ -302,6 +302,23 @@ def query_artifact_bundles_containing_file(
     return _maybe_renew_and_return_bundles(artifact_bundles)
 
 
+# NOTE on queries and index usage:
+# All the queries below return the `date_added` so we can do proper renewal and expiration.
+# Also, all the queries are sorted by `date_last_modified`, so we get the most
+# recently uploaded bundle.
+#
+# For all the queries below, we make sure that we are joining the
+# `ProjectArtifactBundle` table primarily for access control reasons.
+# While the project implies the `organization_id`, we put the `organization_id`
+# into some of the queries explicitly, primarily to optimize index usage.
+# The goal here is that this index can further restrict the search space.
+# For example, we assume that the `ReleaseArtifactBundle` has bad cardinality on
+# `release_name`, as a ton of projects might have a `"1.0.0"` release.
+# Restricting that to a single org may cut down the number of rows considered
+# significantly. We might even use the `organization_id` for that purpose on
+# multiple tables in a single query.
+
+
 def get_bundles_indexing_state(project: Project, release_name: str, dist_name: str):
     """
     Returns the number of total bundles, and the number of fully indexed bundles
@@ -312,10 +329,10 @@ def get_bundles_indexing_state(project: Project, release_name: str, dist_name: s
 
     for state, count in (
         ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
         )
         .values_list("indexing_state")
         .annotate(count=Count("*"))
@@ -340,7 +357,7 @@ def get_artifact_bundles_containing_debug_id(
             debugidartifactbundle__debug_id=debug_id,
         )
         .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:1]
+        .order_by("-date_last_modified", "-id")[:1]
     )
 
 
@@ -352,13 +369,14 @@ def get_artifact_bundles_containing_url(
     """
     return set(
         ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
-            artifactbundleindex__url=url,
-        ).values_list("id", "date_added")
-        # we want to always return the most recent bundle matching the file
+            projectartifactbundle__project_id=project.id,
+            artifactbundleindex__organization_id=project.organization.id,
+            artifactbundleindex__url__icontains=url,
+        )
+        .values_list("id", "date_added")
         .order_by("-date_last_modified", "-id")[:1]
     )
 
@@ -373,11 +391,11 @@ def get_artifact_bundles_by_release(
     """
     return set(
         ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
         )
         .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
+        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
     )
