@@ -1,9 +1,17 @@
+from rest_framework import status
 from rest_framework.authentication import get_authorization_header
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist, SentryAPIException
 from sentry.models import ApiToken, UserEmail
+
+
+class InsufficientScopesError(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "insufficient-scope"
+    message = "openid scope is required for userinfo access"
 
 
 @control_silo_endpoint
@@ -15,15 +23,15 @@ class OAuthUserInfoEndpoint(Endpoint):
         try:
             access_token = get_authorization_header(request).split()[1].decode("utf-8")
         except IndexError:
-            return Response("No access token found.", status=401)
+            raise ParameterValidationError("Bearer token not found in authorization header")
         try:
             token_details = ApiToken.objects.get(token=access_token)
         except ApiToken.DoesNotExist:
-            return Response(status=400)
+            raise ResourceDoesNotExist("Access token not found")
 
         scopes = token_details.get_scopes()
         if "openid" not in scopes:
-            return Response(status=403)
+            raise InsufficientScopesError
 
         user = token_details.user
         user_output = {"sub": user.id}

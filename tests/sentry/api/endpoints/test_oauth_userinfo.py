@@ -21,13 +21,17 @@ class OAuthUserInfoTest(APITestCase):
     def test_requires_access_token(self):
         response = self.client.get(self.path)
 
-        assert response.status_code == 401
-        assert response.data == "No access token found."
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == "parameter-validation-error"
+        assert (
+            response.data["detail"]["message"] == "Bearer token not found in authorization header"
+        )
 
     def test_declines_invalid_token(self):
         self.client.credentials(HTTP_AUTHORIZATION="Bearer  abcd")
         response = self.client.get(self.path)
-        assert response.status_code == 400
+        assert response.status_code == 404
+        assert response.data["detail"] == "Access token not found"
 
     def test_declines_if_no_openid_scope(self):
         token_without_openid_scope = ApiToken.objects.create(user=self.user, scope_list=[])
@@ -36,6 +40,8 @@ class OAuthUserInfoTest(APITestCase):
         response = self.client.get(self.path)
 
         assert response.status_code == 403
+        assert response.data["detail"]["code"] == "insufficient-scope"
+        assert response.data["detail"]["message"] == "openid scope is required for userinfo access"
 
     def test_gets_sub_with_openid_scope(self):
         """
