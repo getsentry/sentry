@@ -79,6 +79,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
+    ORGAUTHTOKEN_UPDATE = 16
 
     @classmethod
     def as_choices(cls):
@@ -101,6 +102,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITLAB = 3
     MSTEAMS = 4
     BITBUCKET = 5
+    VSTS = 6
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

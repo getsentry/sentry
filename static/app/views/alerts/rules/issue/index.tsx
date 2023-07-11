@@ -33,7 +33,8 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingMask from 'sentry/components/loadingMask';
 import {CursorHandler} from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
@@ -70,7 +71,7 @@ import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
 } from 'sentry/views/alerts/utils/constants';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import {getProjectOptions} from '../utils';
@@ -143,7 +144,7 @@ type Props = {
   onChangeTitle?: (data: string) => void;
 } & RouteComponentProps<RouteParams, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   configs: {
     actions: IssueAlertRuleActionTemplate[];
     conditions: IssueAlertRuleConditionTemplate[];
@@ -174,7 +175,7 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
   return rule?.hasOwnProperty('id') ?? false;
 }
 
-class IssueRuleEditor extends AsyncView<Props, State> {
+class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
   trackIncompatibleAnalytics: boolean = false;
   isUnmounted = false;
@@ -273,7 +274,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     return defaultState;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {
       location: {query},
       params: {ruleId},

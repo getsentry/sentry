@@ -45,6 +45,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
 
   const issueType = getIssueTypeFromOccurenceType(event.occurrence?.type);
   const hasConfigurableThresholds =
+    organization.features.includes('project-performance-settings-admin') &&
     issueType &&
     ![
       IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS, // TODO Abdullah Khan: Remove check when thresholds for these two issues are configurable.
@@ -66,7 +67,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
             size="xs"
           >
             <StyledSettingsIcon size="xs" />
-            Settings
+            Threshold Settings
           </LinkButton>
         )
       }

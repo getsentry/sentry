@@ -1,10 +1,10 @@
+from sentry.constants import ObjectStatus
 from sentry.models import (
     GroupRuleStatus,
     RegionScheduledDeletion,
     Rule,
     RuleActivity,
     RuleActivityType,
-    RuleStatus,
 )
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -33,7 +33,7 @@ class DeleteRuleTest(TestCase):
             run_scheduled_deletions()
 
         assert not Rule.objects.filter(
-            id=rule.id, project=project, status=RuleStatus.PENDING_DELETION
+            id=rule.id, project=project, status=ObjectStatus.PENDING_DELETION
         ).exists()
         assert not GroupRuleStatus.objects.filter(id=group_rule_status.id).exists()
         assert not RuleFireHistory.objects.filter(id=rule_fire_history.id).exists()

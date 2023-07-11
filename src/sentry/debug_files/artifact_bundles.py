@@ -9,7 +9,6 @@ from django.db import router
 from django.db.models import Count
 from django.utils import timezone
 
-from sentry import options
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
     ArtifactBundle,
@@ -114,17 +113,19 @@ def _index_urls_in_bundle(
             if url := info.get("url"):
                 urls_to_index.append(
                     ArtifactBundleIndex(
-                        # key:
-                        organization_id=organization_id,
-                        release_name=release,
-                        dist_name=dist,
-                        url=url,
-                        # value:
+                        # key/value:
                         artifact_bundle_id=artifact_bundle.id,
+                        url=url,
                         # metadata:
+                        organization_id=organization_id,
+                        date_added=artifact_bundle.date_added,
+                        # legacy:
+                        # TODO: We fill these in with empty-ish values before they are
+                        # dropped for good
+                        release_name="",
+                        dist_name="",
                         date_last_modified=artifact_bundle.date_last_modified
                         or artifact_bundle.date_added,
-                        date_added=artifact_bundle.date_added,
                     )
                 )
     finally:
@@ -168,12 +169,6 @@ def _index_urls_in_bundle(
 
 
 def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
-    if options.get("sourcemaps.artifact-bundles.enable-renewal") == 1.0:
-        with metrics.timer("artifact_bundle_renewal"):
-            renew_artifact_bundles(used_artifact_bundles)
-
-
-def renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -183,40 +178,46 @@ def renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
         # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
         if date_added > threshold_date:
             continue
-        metrics.incr("artifact_bundle_renewal.need_renewal")
-        # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
-        with atomic_transaction(
-            using=(
-                router.db_for_write(ArtifactBundle),
-                router.db_for_write(ProjectArtifactBundle),
-                router.db_for_write(ReleaseArtifactBundle),
-                router.db_for_write(DebugIdArtifactBundle),
-                router.db_for_write(ArtifactBundleIndex),
-            )
-        ):
-            # We check again for the date_added condition in order to achieve consistency, this is done because
-            # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
-            updated_rows_count = ArtifactBundle.objects.filter(
-                id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
-            # We want to make cascading queries only if there were actual changes in the db.
-            if updated_rows_count > 0:
-                ProjectArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                ReleaseArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                DebugIdArtifactBundle.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
-                ArtifactBundleIndex.objects.filter(
-                    artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-                ).update(date_added=now)
 
-        # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+        with metrics.timer("artifact_bundle_renewal"):
+            renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
+
+
+def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
+    metrics.incr("artifact_bundle_renewal.need_renewal")
+    # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(ProjectArtifactBundle),
+            router.db_for_write(ReleaseArtifactBundle),
+            router.db_for_write(DebugIdArtifactBundle),
+            router.db_for_write(ArtifactBundleIndex),
+        )
+    ):
+        # We check again for the date_added condition in order to achieve consistency, this is done because
+        # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
+        updated_rows_count = ArtifactBundle.objects.filter(
+            id=artifact_bundle_id, date_added__lte=threshold_date
+        ).update(date_added=now)
+        # We want to make cascading queries only if there were actual changes in the db.
         if updated_rows_count > 0:
-            metrics.incr("artifact_bundle_renewal.were_renewed")
+            ProjectArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ReleaseArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            DebugIdArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ArtifactBundleIndex.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+
+    # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+    if updated_rows_count > 0:
+        metrics.incr("artifact_bundle_renewal.were_renewed")
 
 
 # ===== Querying of Artifact Bundles =====
@@ -300,6 +301,23 @@ def query_artifact_bundles_containing_file(
     return _maybe_renew_and_return_bundles(artifact_bundles)
 
 
+# NOTE on queries and index usage:
+# All the queries below return the `date_added` so we can do proper renewal and expiration.
+# Also, all the queries are sorted by `date_last_modified`, so we get the most
+# recently uploaded bundle.
+#
+# For all the queries below, we make sure that we are joining the
+# `ProjectArtifactBundle` table primarily for access control reasons.
+# While the project implies the `organization_id`, we put the `organization_id`
+# into some of the queries explicitly, primarily to optimize index usage.
+# The goal here is that this index can further restrict the search space.
+# For example, we assume that the `ReleaseArtifactBundle` has bad cardinality on
+# `release_name`, as a ton of projects might have a `"1.0.0"` release.
+# Restricting that to a single org may cut down the number of rows considered
+# significantly. We might even use the `organization_id` for that purpose on
+# multiple tables in a single query.
+
+
 def get_bundles_indexing_state(project: Project, release_name: str, dist_name: str):
     """
     Returns the number of total bundles, and the number of fully indexed bundles
@@ -310,10 +328,10 @@ def get_bundles_indexing_state(project: Project, release_name: str, dist_name: s
 
     for state, count in (
         ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
         )
         .values_list("indexing_state")
         .annotate(count=Count("*"))
@@ -338,7 +356,7 @@ def get_artifact_bundles_containing_debug_id(
             debugidartifactbundle__debug_id=debug_id,
         )
         .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:1]
+        .order_by("-date_last_modified", "-id")[:1]
     )
 
 
@@ -349,15 +367,16 @@ def get_artifact_bundles_containing_url(
     Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
     """
     return set(
-        ArtifactBundleIndex.objects.filter(
-            organization_id=project.organization.id,
-            release_name=release_name,
-            dist_name=dist_name,
-            url=url,
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-        ).values_list("artifact_bundle_id", "date_added")
-        # we want to always return the most recent bundle matching the file
-        .order_by("-date_last_modified", "-artifact_bundle_id")[:1]
+        ArtifactBundle.objects.filter(
+            releaseartifactbundle__organization_id=project.organization.id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
+            artifactbundleindex__organization_id=project.organization.id,
+            artifactbundleindex__url__icontains=url,
+        )
+        .values_list("id", "date_added")
+        .order_by("-date_last_modified", "-id")[:1]
     )
 
 
@@ -371,11 +390,11 @@ def get_artifact_bundles_by_release(
     """
     return set(
         ArtifactBundle.objects.filter(
-            organization_id=project.organization.id,
-            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__organization_id=project.organization.id,
             releaseartifactbundle__release_name=release_name,
             releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
         )
         .values_list("id", "date_added")
-        .order_by("-date_uploaded")[:MAX_BUNDLES_QUERY]
+        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
     )

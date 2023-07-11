@@ -24,12 +24,12 @@ SENTRY_REGION_CONFIG = (
     Region(
         name="us", # user-friendly name of the region silo
         snowflake_id=1, # globally unique identifier of the region silo
-        address="https://<YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io", # full web address of the region silo
+        address="https://us.yourusername.ngrok.io", # full web address of the region silo
         category=RegionCategory.MULTI_TENANT, # MULTI_TENANT = many customers, SINGLE_TENTANT = single customer
         api_token="dev-region-silo-token" # An internal token used by the RPC for service calls
     ),
 )
-SENTRY_CONTROL_ADDRESS = "https://<YOUR-CONTROL-NGROK-SUBDOMAIN>.ngrok.io"
+SENTRY_CONTROL_ADDRESS = "https://yourusername.ngrok.io"
 ```
 
 1. Create the split databases for the two silo modes with `make create-db`
@@ -67,12 +67,12 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
     control-silo:
         proto: http
-        hostname: <YOUR-CONTROL-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8011
+        hostname: yourusername.ngrok.io
+        addr: 8001
     region-silo:
         proto: http
-        hostname: <YOUR-REGION-NGROK-SUBDOMAIN>.ngrok.io
-        addr: 8001
+        hostname: us.yourusername.ngrok.io
+        addr: 8011
 ```
 
 Now you can spin up all the tunnels in the file with:

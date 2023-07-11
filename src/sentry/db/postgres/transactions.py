@@ -19,7 +19,7 @@ def django_test_transaction_water_mark(using: str | None = None):
 
     This method has no effect in production.
     """
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.argv[0]:
         yield
         return
 
@@ -61,7 +61,7 @@ def in_test_hide_transaction_boundary():
     In tests, it hides 'in_test_assert_no_transaction' invocations against problematic code paths.
     Using this function is a huge code smell, often masking some other code smell, but not always possible to avoid.
     """
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.argv[0]:
         yield
         return
 
@@ -82,7 +82,7 @@ def in_test_assert_no_transaction(msg: str):
     execution time can have cause major performance issues by holding transactional resources open for long periods
     of time.
     """
-    if "pytest" not in sys.modules or not in_test_transaction_enforcement.enabled:
+    if "pytest" not in sys.argv[0] or not in_test_transaction_enforcement.enabled:
         return
 
     from sentry.testutils import hybrid_cloud
