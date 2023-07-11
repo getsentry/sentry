@@ -6,7 +6,7 @@ from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from sentry.models import Group, GroupOwner
-from sentry.signals import issue_assigned, issue_unassigned
+from sentry.signals import issue_assigned, issue_deleted, issue_unassigned
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -56,6 +56,14 @@ def post_save_log_group_attributes_changed(
                 _log_group_attributes_changed(Operation.UPDATED, "group", "unknown")
     except Exception:
         logger.error("failed to log group attributes after group post_save", exc_info=True)
+
+
+@issue_deleted.connect(weak=False)
+def on_issue_deleted_log_deleted(group, user, delete_type, **kwargs):
+    try:
+        _log_group_attributes_changed(Operation.DELETED, "group", "all")
+    except Exception:
+        logger.error("failed to log group attributes after group delete", exc_info=True)
 
 
 @issue_assigned.connect(weak=False)
