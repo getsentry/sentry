@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import re
 import sys
+from collections import defaultdict
 from contextlib import contextmanager
 from typing import (
     Any,
@@ -11,6 +13,7 @@ from typing import (
     Dict,
     Generator,
     Iterable,
+    List,
     MutableMapping,
     MutableSet,
     Set,
@@ -20,11 +23,11 @@ from typing import (
 from unittest import TestCase
 
 import pytest
+from django.apps import apps
 from django.conf import settings
-from django.db import connections, router
+from django.db import connections
 from django.db.models import Model
 from django.db.models.fields.related import RelatedField
-from django.db.models.signals import post_migrate
 from django.db.transaction import get_connection
 from django.test import override_settings
 
@@ -34,6 +37,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.deletions.base import BaseDeletionTask
 from sentry.models import Actor, NotificationSetting
 from sentry.silo import SiloMode
+from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.snowflake import SnowflakeIdMixin
@@ -324,36 +328,79 @@ def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     )
 
 
-# Listen to django's migration signal so that we're not trapped inside
-# test method transactions.
-post_migrate.connect(create_model_role_guards, dispatch_uid="create_model_role_guards", weak=False)
+_fencing_counters: MutableMapping[str, int] = defaultdict(int)
 
 
-def restrict_role(role: str, model: Any, revocation_type: str, using: str = "default") -> None:
-    if router.db_for_write(model) != using:
+@contextlib.contextmanager
+def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
+    """
+    Used to indicate that the wrapped block is safe to do
+    mutations on outbox backed records.
+
+    In production this context manager has no effect, but
+    in tests it emits 'fencing' queries that are audited at the
+    end of each test run by validate_protected_queries
+    """
+    if "pytest" not in sys.argv[0]:
+        yield
         return
 
-    using = router.db_for_write(model)
-    with get_connection(using).cursor() as connection:
-        connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
+    using = determine_using_by_silo_mode(using)
+    _fencing_counters[using] += 1
+
+    with get_connection(using).cursor() as conn:
+        fence_value = _fencing_counters[using]
+        conn.execute("SELECT %s", [f"start_role_override_{fence_value}"])
+        try:
+            yield
+        finally:
+            conn.execute("SELECT %s", [f"end_role_override_{fence_value}"])
+
+
+fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
 
 
 def protected_table(table: str, operation: str) -> re.Pattern:
     return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
 
 
-protected_operations = (
-    protected_table("sentry_organizationmember", "insert"),
-    protected_table("sentry_organizationmember", "update"),
-    protected_table("sentry_organizationmember", "delete"),
-    protected_table("sentry_organization", "insert"),
-    protected_table("sentry_organization", "update"),
-    protected_table("sentry_organizationmapping", "insert"),
-    protected_table("sentry_organizationmapping", "update"),
-    protected_table("sentry_organizationmembermapping", "insert"),
-)
+_protected_operations: List[re.Pattern] = []
 
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
+
+def get_protected_operations() -> List[re.Pattern]:
+    if len(_protected_operations):
+        return _protected_operations
+
+    # Protect Foreign Keys using hybrid cloud models from being deleted without using the
+    # privileged user. Deletion should only occur when the developer is actively aware
+    # of the need to generate outboxes.
+    seen_models: MutableSet[type] = set()
+    for app_config in apps.get_app_configs():
+        for model in iter_models(app_config.name):
+            for field in model._meta.fields:
+                if not isinstance(field, HybridCloudForeignKey):
+                    continue
+                fk_model = field.foreign_model
+                if fk_model is None or fk_model in seen_models:
+                    continue
+                seen_models.add(fk_model)
+                _protected_operations.append(protected_table(fk_model._meta.db_table, "delete"))
+
+    # Protect inserts/updates that require outbox messages.
+    _protected_operations.extend(
+        [
+            protected_table("sentry_organizationmember", "insert"),
+            protected_table("sentry_organizationmember", "update"),
+            protected_table("sentry_organizationmember", "delete"),
+            protected_table("sentry_organization", "insert"),
+            protected_table("sentry_organization", "update"),
+            protected_table("sentry_organizationmapping", "insert"),
+            protected_table("sentry_organizationmapping", "update"),
+            protected_table("sentry_organizationmembermapping", "insert"),
+        ]
+    )
+
+    return _protected_operations
 
 
 def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
@@ -376,7 +423,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
             else:
                 raise AssertionError("Invalid fencing operation encounted")
 
-        for protected in protected_operations:
+        for protected in get_protected_operations():
             if protected.match(sql):
                 if fence_depth == 0:
                     msg = [
@@ -401,8 +448,6 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
 
 
 def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
-    from django.apps import apps
-
     for app, app_models in apps.all_models.items():
         if app == app_name or app_name is None:
             for model in app_models.values():
