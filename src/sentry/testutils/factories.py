@@ -21,6 +21,7 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.event_manager import EventManager
 from sentry.incidents.logic import (
     create_alert_rule,
@@ -376,9 +377,10 @@ class Factories:
                 for team in teams:
                     project.add_team(team)
             if fire_project_created:
-                project_created.send(
-                    project=project, user=AnonymousUser(), default_rules=True, sender=Factories
-                )
+                with in_test_hide_transaction_boundary():
+                    project_created.send(
+                        project=project, user=AnonymousUser(), default_rules=True, sender=Factories
+                    )
         return project
 
     @staticmethod
@@ -937,16 +939,17 @@ class Factories:
 
         Factories.create_project(organization=organization)
 
-        install = SentryAppInstallationCreator(
-            slug=(slug or Factories.create_sentry_app(organization=organization).slug),
-            organization_id=organization.id,
-        ).run(
-            user=(user or Factories.create_user()),
-            request=None,
-        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            install = SentryAppInstallationCreator(
+                slug=(slug or Factories.create_sentry_app(organization=organization).slug),
+                organization_id=organization.id,
+            ).run(
+                user=(user or Factories.create_user()),
+                request=None,
+            )
 
-        install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
-        install.save()
+            install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
+            install.save()
         rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
         if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
 
