@@ -65,7 +65,7 @@ function normalizeData(
       let data: any[] = [];
 
       // if there is a nested object with properties that should be deleted
-      if (['widgets', 'filters'].includes(property)) {
+      if (['widgets'].includes(property)) {
         // get the object properties so that we can loop through them
         const type = getType(property);
         data = normalizeNestedObject(source[property], type);
@@ -118,11 +118,6 @@ function getType(property) {
         interval: '',
         queries: [],
         displayType: '',
-      };
-      break;
-    case 'filters':
-      structure = {
-        release: '',
       };
       break;
     case 'queries':
