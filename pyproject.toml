@@ -139,7 +139,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry.admin",
     "sentry.api.authentication",
     "sentry.api.base",
     "sentry.api.bases.avatar",
