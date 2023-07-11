@@ -12,6 +12,7 @@ export const migratedDocs = [
   'javascript-angular',
   'javascript-vue',
   'javascript-gatsby',
+  'javascript-ember',
 ];
 
 type SdkDocumentationProps = {
