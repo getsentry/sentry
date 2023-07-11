@@ -950,16 +950,18 @@ class Factories:
 
             install.status = SentryAppInstallationStatus.INSTALLED if status is None else status
             install.save()
-        rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
-        if not prevent_token_exchange and (install.sentry_app.status != SentryAppStatus.INTERNAL):
+            rpc_install = serialize_sentry_app_installation(install, install.sentry_app)
+            if not prevent_token_exchange and (
+                install.sentry_app.status != SentryAppStatus.INTERNAL
+            ):
 
-            token_exchange.GrantExchanger.run(
-                install=rpc_install,
-                code=install.api_grant.code,
-                client_id=install.sentry_app.application.client_id,
-                user=install.sentry_app.proxy_user,
-            )
-            install = SentryAppInstallation.objects.get(id=install.id)
+                token_exchange.GrantExchanger.run(
+                    install=rpc_install,
+                    code=install.api_grant.code,
+                    client_id=install.sentry_app.application.client_id,
+                    user=install.sentry_app.proxy_user,
+                )
+                install = SentryAppInstallation.objects.get(id=install.id)
         return install
 
     @staticmethod
@@ -1137,9 +1139,11 @@ class Factories:
             doc_integration = Factories.create_doc_integration()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(io.BytesIO(b"imaginethiswasphotobytes"))
-        return DocIntegrationAvatar.objects.create(
-            doc_integration=doc_integration, avatar_type=0, file_id=photo.id
-        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            return DocIntegrationAvatar.objects.create(
+                doc_integration=doc_integration, avatar_type=0, file_id=photo.id
+            )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
