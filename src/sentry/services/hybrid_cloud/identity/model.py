@@ -6,8 +6,6 @@ from typing import Optional
 
 from typing_extensions import TypedDict
 
-from sentry.identity.base import Provider
-from sentry.models.identity import IdentityProvider
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.identity import identity_service
 
