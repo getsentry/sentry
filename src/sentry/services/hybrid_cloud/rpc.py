@@ -143,7 +143,7 @@ class RpcMethodSignature:
 
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
         model_instance = self._parameter_model(**raw_arguments)
-        return model_instance.dict()
+        return model_instance.model_dump()
 
     def deserialize_arguments(self, serial_arguments: ArgumentDict) -> pydantic.BaseModel:
         try:
@@ -418,7 +418,7 @@ def dispatch_to_local_service(
 
     def result_to_dict(value: Any) -> Any:
         if isinstance(value, RpcModel):
-            return value.dict()
+            return value.model_dump()
 
         if isinstance(value, dict):
             return {key: result_to_dict(val) for key, val in value.items()}

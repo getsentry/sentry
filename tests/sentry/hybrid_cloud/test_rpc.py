@@ -116,7 +116,7 @@ class RpcServiceTest(TestCase):
             organization_id=serial_org.id,
             default_org_role=serial_org.default_role,
             user_id=user.id,
-            flags=RpcOrganizationMemberFlags().dict(),
+            flags=RpcOrganizationMemberFlags().model_dump(),
             role=None,
         )
 
@@ -163,7 +163,7 @@ class DispatchRemoteCallTest(TestCase):
     def test_region_to_control_happy_path(self, mock_urlopen):
         org = self.create_organization()
         response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
-        self._set_up_mock_response(mock_urlopen, response_value.dict())
+        self._set_up_mock_response(mock_urlopen, response_value.model_dump())
 
         result = dispatch_remote_call(
             None, "organization", "get_organization_by_id", {"id": org.id}
@@ -184,7 +184,7 @@ class DispatchRemoteCallTest(TestCase):
     def test_control_to_region_happy_path(self, mock_urlopen):
         user = self.create_user()
         serial = serialize_rpc_user(user)
-        self._set_up_mock_response(mock_urlopen, serial.dict())
+        self._set_up_mock_response(mock_urlopen, serial.model_dump())
 
         result = dispatch_remote_call(_REGIONS[0], "user", "get_user", {"id": 0})
         assert result == serial
@@ -195,7 +195,7 @@ class DispatchRemoteCallTest(TestCase):
     def test_control_to_region_with_list_result(self, mock_urlopen):
         users = [self.create_user() for _ in range(3)]
         serial = [serialize_rpc_user(user) for user in users]
-        self._set_up_mock_response(mock_urlopen, [m.dict() for m in serial])
+        self._set_up_mock_response(mock_urlopen, [m.model_dump() for m in serial])
 
         result = dispatch_remote_call(_REGIONS[0], "user", "get_many", {"filter": {}})
         assert result == serial
