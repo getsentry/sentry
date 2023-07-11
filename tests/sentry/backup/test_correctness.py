@@ -1,111 +1,25 @@
-from __future__ import annotations
-
-from difflib import unified_diff
 from pathlib import Path
-from typing import NamedTuple
 
 import pytest
 from click.testing import CliRunner
 from freezegun import freeze_time
 
-from sentry.runner.commands.backup import export, import_
+from sentry.runner.commands.backup import ComparatorFindings, export, import_, validate
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import unguarded_write
 from sentry.utils import json
-from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
+from sentry.utils.pytest.fixtures import django_db_all
 
 
-# TODO(team-ospo/#155): Figure out if we are going to use `pk` as part of the identifier, or some other kind of sequence number internal to the JSON export instead.
-class InstanceID(NamedTuple):
-    """Every entry in the generated backup JSON file should have a unique model+pk combination, which serves as its identifier."""
-
-    model: str
-    pk: int
-
-    def pretty(self) -> str:
-        return f"InstanceID(model: {self.model!r}, pk: {self.pk})"
+class ValidationError(Exception):
+    def __init__(self, info: ComparatorFindings):
+        super().__init__(info.pretty())
+        self.info = info
 
 
-class ComparatorFinding(NamedTuple):
-    """Store all information about a single failed matching between expected and actual output."""
-
-    name: str
-    on: InstanceID
-    reason: str = ""
-
-    def pretty(self) -> str:
-        return f"Finding(\n\tname: {self.name!r},\n\ton: {self.on.pretty()},\n\treason: {self.reason}\n)"
-
-
-class ComparatorFindings:
-    """A wrapper type for a list of 'ComparatorFinding' which enables pretty-printing in asserts."""
-
-    def __init__(self, findings: list[ComparatorFinding]):
-        self.findings = findings
-
-    def append(self, finding: ComparatorFinding) -> None:
-        self.findings.append(finding)
-
-    def pretty(self) -> str:
-        return "\n".join(f.pretty() for f in self.findings)
-
-
-JSON_PRETTY_PRINTER = JSONEncoder(
-    default=better_default_encoder, indent=2, ignore_nan=True, sort_keys=True
-)
-
-
-def json_lines(obj: JSONData) -> list[str]:
-    """Take a JSONData object and pretty-print it as JSON."""
-
-    return JSON_PRETTY_PRINTER.encode(obj).splitlines()
-
-
-# TODO(team-ospo/#155): Move this out of the test suite, and into its own standalone module, since eventually it will be used to compare live JSON as well.
-def validate(expect: JSONData, actual: JSONData) -> ComparatorFindings:
-    """Ensures that originally imported data correctly matches actual outputted data, and produces a list of reasons why not when it doesn't"""
-
-    findings = ComparatorFindings([])
-    exp_models = {}
-    act_models = {}
-    for model in expect:
-        id = InstanceID(model["model"], model["pk"])
-        exp_models[id] = model
-
-    # Ensure that the actual JSON contains no duplicates - we assume that the expected JSON did not.
-    for model in actual:
-        id = InstanceID(model["model"], model["pk"])
-        if id in act_models:
-            findings.append(ComparatorFinding("duplicate_entry", id))
-        else:
-            act_models[id] = model
-
-    # Report unexpected and missing entries in the actual JSON.
-    extra = sorted(act_models.keys() - exp_models.keys())
-    missing = sorted(exp_models.keys() - act_models.keys())
-    for id in extra:
-        del act_models[id]
-        findings.append(ComparatorFinding("unexpected_entry", id))
-    for id in missing:
-        del exp_models[id]
-        findings.append(ComparatorFinding("missing_entry", id))
-
-    # We only perform custom comparisons and JSON diffs on non-duplicate entries that exist in both
-    # outputs.
-    for id, act in act_models.items():
-        exp = exp_models[id]
-
-        # Finally, perform a diff on the remaining JSON.
-        diff = list(unified_diff(json_lines(exp["fields"]), json_lines(act["fields"]), n=3))
-        if diff:
-            findings.append(ComparatorFinding("json_diff", id, "\n    " + "\n    ".join(diff)))
-
-    return findings
-
-
-def import_then_export(tmp_path: Path, fixture_file_name: str) -> None:
+def import_export_then_validate(tmp_path: Path, fixture_file_name: str) -> None:
     """Test helper that validates that the originally imported data correctly matches actual
-    outputted data, and produces a list of reasons why not when it doesn't"""
+    outputted export data."""
 
     fixture_file_path = get_fixture_path("backup", fixture_file_name)
     with open(fixture_file_path) as backup_file:
@@ -126,10 +40,17 @@ def import_then_export(tmp_path: Path, fixture_file_name: str) -> None:
 
     res = validate(input, output)
     if res.findings:
-        raise AssertionError(res.pretty())
+        raise ValidationError(res)
 
 
-@pytest.mark.django_db(transaction=True, reset_sequences=True, databases="__all__")
+@django_db_all(transaction=True, reset_sequences=True)
 @freeze_time("2023-06-22T23:00:00.123Z")
-def test_fresh_install(tmp_path):
-    import_then_export(tmp_path, "fresh-install.json")
+def test_good_fresh_install_validation(tmp_path):
+    import_export_then_validate(tmp_path, "fresh-install.json")
+
+
+@django_db_all(transaction=True, reset_sequences=True)
+def test_bad_fresh_install_validation(tmp_path):
+    with pytest.raises(ValidationError) as excinfo:
+        import_export_then_validate(tmp_path, "fresh-install.json")
+    assert len(excinfo.value.info.findings) == 2
