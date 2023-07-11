@@ -1,11 +1,29 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 
 describe('getCustomFieldRenderer', function () {
   const {organization, router, routerContext} = initializeOrg();
+
+  const baseEventViewOptions: EventViewOptions = {
+    start: undefined,
+    end: undefined,
+    createdBy: TestStubs.User(),
+    display: undefined,
+    fields: [],
+    sorts: [],
+    query: '',
+    project: [],
+    environment: [],
+    yAxis: 'count()',
+    id: undefined,
+    name: undefined,
+    statsPeriod: '14d',
+    team: [],
+    topEvents: undefined,
+  };
 
   it('links trace ids to performance', async function () {
     const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
@@ -16,10 +34,11 @@ describe('getCustomFieldRenderer', function () {
           organization,
           location: router.location,
           eventView: new EventView({
+            ...baseEventViewOptions,
             fields: [{field: 'trace'}],
           }),
         }
-      ),
+      ) as React.ReactElement<any, any>,
       {context: routerContext}
     );
     await userEvent.click(await screen.findByText('abcd'));
@@ -43,11 +62,12 @@ describe('getCustomFieldRenderer', function () {
           organization,
           location: router.location,
           eventView: new EventView({
+            ...baseEventViewOptions,
             fields: [{field: 'id'}],
             project: [project.id],
           }),
         }
-      ),
+      ) as React.ReactElement<any, any>,
       {context: routerContext}
     );
 
@@ -67,6 +87,9 @@ describe('getCustomFieldRenderer', function () {
         topEvents: undefined,
         widths: [],
         yAxis: 'count()',
+        pageEnd: undefined,
+        pageStart: undefined,
+        statsPeriod: '14d',
       },
     });
   });
@@ -81,11 +104,12 @@ describe('getCustomFieldRenderer', function () {
           organization,
           location: router.location,
           eventView: new EventView({
+            ...baseEventViewOptions,
             fields: [{field: 'id'}],
             project: [project.id],
           }),
         }
-      ),
+      ) as React.ReactElement<any, any>,
       {context: routerContext}
     );
 
