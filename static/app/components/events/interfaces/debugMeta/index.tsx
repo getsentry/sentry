@@ -14,7 +14,7 @@ import {Button} from 'sentry/components/button';
 import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';

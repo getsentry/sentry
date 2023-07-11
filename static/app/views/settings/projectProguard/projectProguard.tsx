@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';

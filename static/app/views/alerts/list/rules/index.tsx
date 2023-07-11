@@ -10,7 +10,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

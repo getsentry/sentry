@@ -7,7 +7,7 @@ import DateTime from 'sentry/components/dateTime';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';

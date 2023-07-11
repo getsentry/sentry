@@ -13,7 +13,7 @@ import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

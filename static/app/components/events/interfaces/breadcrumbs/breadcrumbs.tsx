@@ -13,7 +13,7 @@ import {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';

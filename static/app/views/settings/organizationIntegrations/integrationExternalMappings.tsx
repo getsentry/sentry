@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconArrow, IconDelete, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
