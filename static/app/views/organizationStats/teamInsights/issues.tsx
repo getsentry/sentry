@@ -98,7 +98,7 @@ function TeamStatsIssues({location, router}: Props) {
               description={tct(
                 'The new, regressed, and [status] issues that were assigned to your team.',
                 {
-                  status: hasEscalatingIssues ? 'unarchived' : 'ignored',
+                  status: hasEscalatingIssues ? 'unarchived' : 'unignored',
                 }
               )}
             >

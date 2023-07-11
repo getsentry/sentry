@@ -178,13 +178,11 @@ function TeamIssuesBreakdown({
                     <ProjectBadgeContainer>
                       {project && <ProjectBadge avatarSize={18} project={project} />}
                     </ProjectBadgeContainer>
-                    {statuses.map(action => {
-                      return (
-                        <AlignRight key={action}>
-                          {projectTotals[projectId][action]}
-                        </AlignRight>
-                      );
-                    })}
+                    {statuses.map(action => (
+                      <AlignRight key={action}>
+                        {projectTotals[projectId][action]}
+                      </AlignRight>
+                    ))}
                     <AlignRight>{projectTotals[projectId].total}</AlignRight>
                   </Fragment>
                 );
