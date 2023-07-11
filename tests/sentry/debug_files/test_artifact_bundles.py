@@ -66,15 +66,16 @@ def get_artifact_bundles(project, release_name="", dist_name=""):
     )
 
 
-def get_indexed_files(project, release_name="", dist_name=""):
-    return list(
-        ArtifactBundleIndex.objects.filter(
-            organization_id=project.organization.id,
-            # projectartifactbundle__project_id=project.id,
-            release_name=release_name,
-            dist_name=dist_name,
-        )
-    )
+def get_indexed_files(project, release_name="", dist_name="", distinct=False):
+    query = ArtifactBundleIndex.objects.filter(
+        organization_id=project.organization.id,
+        artifact_bundle__projectartifactbundle__project_id=project.id,
+        artifact_bundle__releaseartifactbundle__release_name=release_name,
+        artifact_bundle__releaseartifactbundle__dist_name=dist_name,
+    ).order_by("url", "-date_last_modified")
+    if distinct:
+        query = query.distinct("url")
+    return list(query)
 
 
 class ArtifactLookupTest(TestCase):
@@ -103,7 +104,7 @@ class ArtifactLookupTest(TestCase):
         # the first upload will not index anything
         bundles = get_artifact_bundles(self.project, "1.0.0")
         assert len(bundles) == 1
-        indexed = ArtifactBundleIndex.objects.filter()
+        indexed = get_indexed_files(self.project, "1.0.0")
         assert len(indexed) == 0
 
         bundle = make_compressed_zip_file(
@@ -125,7 +126,7 @@ class ArtifactLookupTest(TestCase):
 
         bundles = get_artifact_bundles(self.project, "1.0.0")
         assert len(bundles) == 2
-        indexed = ArtifactBundleIndex.objects.filter().order_by("url")
+        indexed = get_indexed_files(self.project, "1.0.0", distinct=True)
         assert len(indexed) == 2
 
         assert indexed[0].url == "~/path/to/app.js"
@@ -150,7 +151,7 @@ class ArtifactLookupTest(TestCase):
         # the second upload will backfill everything that needs indexing
         bundles = get_artifact_bundles(self.project, "1.0.0")
         assert len(bundles) == 3
-        indexed = ArtifactBundleIndex.objects.filter().order_by("url")
+        indexed = get_indexed_files(self.project, "1.0.0", distinct=True)
         assert len(indexed) == 3
 
         # here, we use the more recent bundle for the shared file,

@@ -6,7 +6,16 @@ import {Organization, PlatformIntegration, Project, ProjectKey} from 'sentry/typ
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // Documents already migrated from sentry-docs to main sentry repository
-export const migratedDocs = ['javascript-react'];
+export const migratedDocs = [
+  'javascript-react',
+  'javascript-remix',
+  'javascript-angular',
+  'javascript-vue',
+  'javascript-gatsby',
+  'javascript-ember',
+  'javascript-svelte',
+  'javascript-sveltekit',
+];
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];

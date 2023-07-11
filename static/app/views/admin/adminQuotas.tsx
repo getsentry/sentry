@@ -2,22 +2,24 @@ import {Fragment} from 'react';
 
 import TextField from 'sentry/components/forms/fields/textField';
 import InternalStatChart from 'sentry/components/internalStatChart';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type Config = {
   backend: string;
   options: Record<string, string>;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   config: Config;
   resolution: string;
   since: number;
 };
 
-export default class AdminQuotas extends AsyncView<{}, State> {
+export default class AdminQuotas extends DeprecatedAsyncView<{}, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -26,7 +28,7 @@ export default class AdminQuotas extends AsyncView<{}, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['config', '/internal/quotas/']];
   }
 

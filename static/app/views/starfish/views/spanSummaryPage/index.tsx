@@ -5,7 +5,9 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +23,6 @@ import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/c
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -132,7 +133,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   return (
     <Layout.Page>
-      <StarfishPageFilterContainer>
+      <PageFiltersContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -270,17 +271,15 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               )}
 
-              {transaction && span?.group && (
-                <SampleList
-                  groupId={span.group}
-                  transactionName={transaction}
-                  transactionMethod={transactionMethod}
-                />
-              )}
+              <SampleList
+                groupId={span.group}
+                transactionName={transaction}
+                transactionMethod={transactionMethod}
+              />
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </StarfishPageFilterContainer>
+      </PageFiltersContainer>
     </Layout.Page>
   );
 }

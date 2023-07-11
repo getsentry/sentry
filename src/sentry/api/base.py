@@ -28,6 +28,7 @@ from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.silo import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.types.region import is_region_name
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -586,11 +587,11 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def resolve_region(request: Request):
+def resolve_region(request: Request) -> Optional[str]:
     subdomain = getattr(request, "subdomain", None)
     if subdomain is None:
         return None
-    if subdomain in {"us", "eu"}:
+    if is_region_name(subdomain):
         return subdomain
     return None
 

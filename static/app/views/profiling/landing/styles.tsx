@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {HeaderTitleLegend as _HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 

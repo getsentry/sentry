@@ -1,4 +1,4 @@
-from typing import Optional, TypedDict
+from typing import Any, Optional, TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +8,7 @@ from sentry.api.bases.organization_integrations import RegionOrganizationIntegra
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.models import Organization
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
@@ -20,7 +21,13 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
-    def get(self, request: Request, organization, integration_id) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization: Organization,
+        integration_id: int,
+        **kwds: Any,
+    ) -> Response:
         """
         Get the list of repositories available in an integration
         ````````````````````````````````````````````````````````
