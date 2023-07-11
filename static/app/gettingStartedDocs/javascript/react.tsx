@@ -1,8 +1,8 @@
-import ExternalLink from 'sentry/components/links/externalLink';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 
 // Configuration Start
 const replayIntegration = `
@@ -35,11 +35,11 @@ export const steps = ({
   {
     language: 'bash',
     type: StepType.INSTALL,
+    description: t(
+      'Sentry captures data by using an SDK within your application’s runtime.'
+    ),
     configurations: [
       {
-        description: t(
-          'Sentry captures data by using an SDK within your application’s runtime.'
-        ),
         code: `
         # Using yarn
         yarn add @sentry/react
@@ -53,11 +53,11 @@ export const steps = ({
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
+    description: t(
+      "Initialize Sentry as early as possible in your application's lifecycle."
+    ),
     configurations: [
       {
-        description: t(
-          "Initialize Sentry as early as possible in your application's lifecycle."
-        ),
         code: `
         Sentry.init({
           ${sentryInitContent}
@@ -70,31 +70,17 @@ export const steps = ({
       },
     ],
   },
-  {
-    language: 'bash',
-    type: StepType.UPLOAD_SOURCE_MAPS,
-    configurations: [
-      {
-        description: tct(
-          'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
-          {
-            guideLink: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/" />
-            ),
-          }
-        ),
-        code: `npx @sentry/wizard@latest -i sourcemaps`,
-      },
-    ],
-  },
+  getUploadSourceMapsStep(
+    'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
+  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,
+    description: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
     configurations: [
       {
-        description: t(
-          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-        ),
         code: `
         return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,

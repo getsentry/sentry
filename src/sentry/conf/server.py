@@ -1298,7 +1298,7 @@ SENTRY_FEATURES = {
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": False,
+    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # Enables automatically linking repositories using commit webhook data
@@ -1721,7 +1721,7 @@ SENTRY_PROJECT_KEY = None
 SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
+SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
@@ -2674,7 +2674,7 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
-STATUS_PAGE_ID = None
+STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
@@ -2713,6 +2713,7 @@ SENTRY_SDK_CONFIG = {
     "auto_enabling_integrations": False,
     "_experiments": {
         "custom_measurements": True,
+        "enable_backpressure_handling": True,
     },
 }
 

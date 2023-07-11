@@ -10,6 +10,11 @@ export const migratedDocs = [
   'javascript-react',
   'javascript-remix',
   'javascript-angular',
+  'javascript-vue',
+  'javascript-gatsby',
+  'javascript-ember',
+  'javascript-svelte',
+  'javascript-sveltekit',
 ];
 
 type SdkDocumentationProps = {
