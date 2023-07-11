@@ -53,8 +53,7 @@ describe('TableView > CellActions', function () {
     const firstRow = screen.getAllByRole('row')[1];
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
 
-    await userEvent.hover(within(emptyValueCell).getByTestId('cell-action-container'));
-    await userEvent.click(within(emptyValueCell).getByRole('button'));
+    await userEvent.click(within(emptyValueCell).getByRole('button', {name: 'Actions'}));
   }
 
   beforeEach(function () {
@@ -139,7 +138,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -156,7 +155,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, view);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -172,7 +171,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, view);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -187,7 +186,7 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -201,7 +200,9 @@ describe('TableView > CellActions', function () {
   it('handles exclude cell action on string value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -217,7 +218,9 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, view);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -232,7 +235,9 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, eventView);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -249,7 +254,9 @@ describe('TableView > CellActions', function () {
 
     renderComponent(initialData, rows, view);
     await openContextMenu(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -262,7 +269,9 @@ describe('TableView > CellActions', function () {
   it('handles greater than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(3);
-    await userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values greater than'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -275,44 +284,14 @@ describe('TableView > CellActions', function () {
   it('handles less than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(3);
-    await userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {name: 'Show values less than'})
+    );
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
         query: 'count():<9',
-      }),
-    });
-  });
-
-  it('handles go to transaction without project column selected', async function () {
-    rows.data[0]['project.name'] = 'project-slug';
-
-    renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
-      }),
-    });
-  });
-
-  it('handles go to transaction with project column selected', async function () {
-    rows.data[0].project = 'project-slug';
-
-    renderComponent(initialData, rows, eventView);
-    await openContextMenu(2);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
-
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: expect.objectContaining({
-        transaction: '/organizations/',
-        project: ['2'],
       }),
     });
   });
@@ -338,7 +317,7 @@ describe('TableView > CellActions', function () {
   it('handles go to release', async function () {
     renderComponent(initialData, rows, eventView);
     await openContextMenu(5);
-    await userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/v1.0.2/',

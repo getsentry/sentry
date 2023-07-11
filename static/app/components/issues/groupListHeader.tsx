@@ -4,25 +4,35 @@ import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import {GroupListColumn} from './groupList';
+
 type Props = {
   withChart: boolean;
   narrowGroups?: boolean;
-  showLastTriggered?: boolean;
+  withColumns?: GroupListColumn[];
 };
 
 function GroupListHeader({
   withChart = true,
   narrowGroups = false,
-  showLastTriggered = false,
+  withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (
     <PanelHeader disablePadding>
       <IssueWrapper>{t('Issue')}</IssueWrapper>
-      {withChart && <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>}
-      <EventUserWrapper>{t('events')}</EventUserWrapper>
-      <EventUserWrapper>{t('users')}</EventUserWrapper>
-      <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
-      {showLastTriggered && <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>}
+      {withChart && withColumns.includes('graph') && (
+        <ChartWrapper narrowGroups={narrowGroups}>{t('Graph')}</ChartWrapper>
+      )}
+      {withColumns.includes('event') && (
+        <EventUserWrapper>{t('events')}</EventUserWrapper>
+      )}
+      {withColumns.includes('users') && <EventUserWrapper>{t('users')}</EventUserWrapper>}
+      {withColumns.includes('assignee') && (
+        <AssigneeWrapper narrowGroups={narrowGroups}>{t('Assignee')}</AssigneeWrapper>
+      )}
+      {withColumns.includes('lastTriggered') && (
+        <EventUserWrapper>{t('Last Triggered')}</EventUserWrapper>
+      )}
     </PanelHeader>
   );
 }

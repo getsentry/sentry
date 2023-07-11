@@ -10,7 +10,6 @@ from typing import Mapping, Set
 
 import pytest
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.mock import RawSimpleIndexer
@@ -55,15 +54,8 @@ def use_case_id(request):
 
 
 @pytest.fixture
-def use_case_key(use_case_id):
+def writes_limiter_option_name(use_case_id):
     if use_case_id is UseCaseID.SESSIONS:
-        return UseCaseKey.RELEASE_HEALTH
-    return UseCaseKey.PERFORMANCE
-
-
-@pytest.fixture
-def writes_limiter_option_name(use_case_key):
-    if use_case_key is UseCaseKey.RELEASE_HEALTH:
         return "sentry-metrics.writes-limiter.limits.releasehealth"
     return "sentry-metrics.writes-limiter.limits.performance"
 
@@ -74,7 +66,7 @@ def assert_fetch_type_for_tag_string_set(
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 
 
-def test_static_and_non_static_strings_release_health(indexer, use_case_id, use_case_key):
+def test_static_and_non_static_strings_release_health(indexer, use_case_id):
     static_indexer = StaticStringIndexer(indexer)
     strings = {
         use_case_id: {
@@ -84,8 +76,8 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id, use_
     }
     results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(use_case_key, 2, "1.0.0")
-    v2 = indexer.resolve(use_case_key, 3, "2.0.0")
+    v1 = indexer.resolve(use_case_id, 2, "1.0.0")
+    v2 = indexer.resolve(use_case_id, 3, "2.0.0")
 
     assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
     assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
@@ -104,37 +96,113 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id, use_
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
 
 
-def test_static_and_non_static_strings_generic_metrics(indexer, use_case_id, use_case_key):
+def test_static_and_non_static_strings_generic_metrics(indexer):
     static_indexer = StaticStringIndexer(indexer)
     strings = {
-        use_case_id: {
-            2: {"release", "1.0.0"},
-            3: {"production", "environment", "release", "2.0.0"},
-        }
+        UseCaseID.TRANSACTIONS: {
+            1: {"production", "environment", "BBB", "CCC"},
+            2: {"AAA", "release", "1.0.0"},
+            3: {"production", "environment", "release", "AAA", "BBB"},
+            4: {"EEE"},
+        },
+        UseCaseID.SPANS: {
+            3: {"production", "environment", "BBB", "CCC"},
+            4: {"AAA", "release", "1.0.0"},
+            5: {"production", "environment", "release", "AAA", "BBB"},
+            6: {"EEE"},
+        },
     }
-    results = static_indexer.bulk_record(strings=strings)
+    static_string_params = [
+        (UseCaseID.TRANSACTIONS, 1, "production"),
+        (UseCaseID.TRANSACTIONS, 1, "environment"),
+        (UseCaseID.TRANSACTIONS, 2, "release"),
+        (UseCaseID.TRANSACTIONS, 3, "production"),
+        (UseCaseID.TRANSACTIONS, 3, "environment"),
+        (UseCaseID.TRANSACTIONS, 3, "release"),
+        (UseCaseID.SPANS, 3, "production"),
+        (UseCaseID.SPANS, 3, "environment"),
+        (UseCaseID.SPANS, 4, "release"),
+        (UseCaseID.SPANS, 5, "production"),
+        (UseCaseID.SPANS, 5, "environment"),
+        (UseCaseID.SPANS, 5, "release"),
+    ]
+    first_seen_strings_params = [
+        (UseCaseID.TRANSACTIONS, 1, "BBB"),
+        (UseCaseID.TRANSACTIONS, 1, "CCC"),
+        (UseCaseID.TRANSACTIONS, 2, "AAA"),
+        (UseCaseID.TRANSACTIONS, 2, "1.0.0"),
+        (UseCaseID.TRANSACTIONS, 3, "AAA"),
+        (UseCaseID.TRANSACTIONS, 3, "BBB"),
+        (UseCaseID.TRANSACTIONS, 4, "EEE"),
+        (UseCaseID.SPANS, 3, "BBB"),
+        (UseCaseID.SPANS, 3, "CCC"),
+        (UseCaseID.SPANS, 4, "AAA"),
+        (UseCaseID.SPANS, 4, "1.0.0"),
+        (UseCaseID.SPANS, 5, "AAA"),
+        (UseCaseID.SPANS, 5, "BBB"),
+        (UseCaseID.SPANS, 6, "EEE"),
+    ]
+    with override_options(
+        {
+            "sentry-metrics.writes-limiter.limits.spans.global": [],
+            "sentry-metrics.writes-limiter.limits.spans.per-org": [],
+            "sentry-metrics.writes-limiter.apply-uca-limiting": True,
+        },
+    ):
+        results = static_indexer.bulk_record(strings=strings)
 
-    v1 = indexer.resolve(use_case_key, 2, "1.0.0")
-    v2 = indexer.resolve(use_case_key, 3, "2.0.0")
+    first_seen_strings = {}
+    for params in first_seen_strings_params:
+        first_seen_strings[params] = static_indexer.resolve(*params)
 
-    assert results[use_case_id][2]["release"] == SHARED_STRINGS["release"]
-    assert results[use_case_id][3]["production"] == SHARED_STRINGS["production"]
-    assert results[use_case_id][3]["environment"] == SHARED_STRINGS["environment"]
-    assert results[use_case_id][3]["release"] == SHARED_STRINGS["release"]
+    for use_case_id, org_id, string in static_string_params:
+        assert results[use_case_id][org_id][string] == SHARED_STRINGS[string]
 
-    assert results[use_case_id][2]["1.0.0"] == v1
-    assert results[use_case_id][3]["2.0.0"] == v2
+    for (use_case_id, org_id, string), id in first_seen_strings.items():
+        assert results[use_case_id][org_id][string] == id
 
     meta = results.get_fetch_metadata()
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.HARDCODED, {"release"})
+
     assert_fetch_type_for_tag_string_set(
-        meta[use_case_id][3], FetchType.HARDCODED, {"release", "production", "environment"}
+        meta[UseCaseID.TRANSACTIONS][1], FetchType.HARDCODED, {"production", "environment"}
     )
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.FIRST_SEEN, {"1.0.0"})
-    assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][2],
+        FetchType.HARDCODED,
+        {"release"},
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][3],
+        FetchType.HARDCODED,
+        {"release", "production", "environment"},
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][3],
+        FetchType.HARDCODED,
+        {},
+    )
+
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][1], FetchType.FIRST_SEEN, {"BBB", "CCC"}
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][2],
+        FetchType.FIRST_SEEN,
+        {"AAA", "1.0.0"},
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][3],
+        FetchType.FIRST_SEEN,
+        {"AAA", "BBB"},
+    )
+    assert_fetch_type_for_tag_string_set(
+        meta[UseCaseID.TRANSACTIONS][4],
+        FetchType.FIRST_SEEN,
+        {"EEE"},
+    )
 
 
-def test_indexer(indexer, indexer_cache, use_case_id, use_case_key):
+def test_indexer(indexer, indexer_cache, use_case_id):
     org1_id = 1
     org2_id = 2
     strings = {"hello", "hey", "hi"}
@@ -156,15 +224,15 @@ def test_indexer(indexer, indexer_cache, use_case_id, use_case_key):
     results = indexer.bulk_record(use_case_strings).results
 
     org1_string_ids = {
-        raw_indexer.resolve(use_case_key, org1_id, "hello"),
-        raw_indexer.resolve(use_case_key, org1_id, "hey"),
-        raw_indexer.resolve(use_case_key, org1_id, "hi"),
+        raw_indexer.resolve(use_case_id, org1_id, "hello"),
+        raw_indexer.resolve(use_case_id, org1_id, "hey"),
+        raw_indexer.resolve(use_case_id, org1_id, "hi"),
     }
 
     assert None not in org1_string_ids
     assert len(org1_string_ids) == 3  # no overlapping ids
 
-    org2_string_id = raw_indexer.resolve(use_case_key, org2_id, "sup")
+    org2_string_id = raw_indexer.resolve(use_case_id, org2_id, "sup")
     assert org2_string_id not in org1_string_ids
 
     # verify org1 results and cache values
@@ -184,7 +252,7 @@ def test_indexer(indexer, indexer_cache, use_case_id, use_case_key):
     assert not results[use_case_id].results.get(999)
 
 
-def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id, use_case_key):
+def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id):
     """
     Test `resolve` and `reverse_resolve` methods
     """
@@ -198,22 +266,20 @@ def test_resolve_and_reverse_resolve(indexer, indexer_cache, use_case_id, use_ca
     indexer.bulk_record({use_case_id: org_strings})
 
     # test resolve and reverse_resolve
-    id = indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello")
+    id = indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello")
     assert id is not None
-    assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=id) == "hello"
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=id) == "hello"
 
     # test record on a string that already exists
     indexer.record(use_case_id=use_case_id, org_id=org1_id, string="hello")
-    assert indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="hello") == id
+    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="hello") == id
 
     # test invalid values
-    assert indexer.resolve(use_case_id=use_case_key, org_id=org1_id, string="beep") is None
-    assert indexer.reverse_resolve(use_case_id=use_case_key, org_id=org1_id, id=1234) is None
+    assert indexer.resolve(use_case_id=use_case_id, org_id=org1_id, string="beep") is None
+    assert indexer.reverse_resolve(use_case_id=use_case_id, org_id=org1_id, id=1234) is None
 
 
-def test_already_created_plus_written_results(
-    indexer, indexer_cache, use_case_id, use_case_key
-) -> None:
+def test_already_created_plus_written_results(indexer, indexer_cache, use_case_id) -> None:
     """
     Test that we correctly combine db read results with db write results
     for the same organization.
@@ -240,7 +306,7 @@ def test_already_created_plus_written_results(
     results = indexer.bulk_record(
         {use_case_id: {org_id: {"v1.2.0:xyz", "v1.2.1:xyz", "v1.2.2:xyz", "v1.2.3:xyz"}}},
     )
-    v3 = raw_indexer.resolve(use_case_key, org_id, "v1.2.3:xyz")
+    v3 = raw_indexer.resolve(use_case_id, org_id, "v1.2.3:xyz")
     expected_mapping["v1.2.3:xyz"] = v3
 
     assert len(results[use_case_id][org_id]) == len(expected_mapping) == 4
@@ -259,9 +325,7 @@ def test_already_created_plus_written_results(
     )
 
 
-def test_already_cached_plus_read_results(
-    indexer, indexer_cache, use_case_id, use_case_key
-) -> None:
+def test_already_cached_plus_read_results(indexer, indexer_cache, use_case_id) -> None:
     """
     Test that we correctly combine cached results with read results
     for the same organization.
@@ -279,8 +343,8 @@ def test_already_cached_plus_read_results(
     assert results[use_case_id][org_id]["boop"] == 11
 
     # confirm we did not write to the db if results were already cached
-    assert not raw_indexer.resolve(use_case_key, org_id, "beep")
-    assert not raw_indexer.resolve(use_case_key, org_id, "boop")
+    assert not raw_indexer.resolve(use_case_id, org_id, "beep")
+    assert not raw_indexer.resolve(use_case_id, org_id, "boop")
 
     bam = raw_indexer.record(use_case_id, org_id, "bam")
     assert bam is not None
@@ -297,6 +361,26 @@ def test_already_cached_plus_read_results(
     )
     assert_fetch_type_for_tag_string_set(
         fetch_meta[use_case_id][org_id], FetchType.DB_READ, {"bam"}
+    )
+
+
+def test_read_when_bulk_record(indexer, use_case_id):
+    strings = {
+        use_case_id: {
+            1: {"a"},
+            2: {"b", "c"},
+            3: {"d", "e", "f"},
+            4: {"g", "h", "i", "j"},
+            5: {"k", "l", "m", "n", "o"},
+        }
+    }
+    indexer.bulk_record(strings)
+    results = indexer.bulk_record(strings)
+    assert all(
+        str_meta_data.fetch_type is FetchType.DB_READ
+        for key_result in results.results.values()
+        for metadata in key_result.meta.values()
+        for str_meta_data in metadata.values()
     )
 
 
@@ -383,3 +467,36 @@ def test_rate_limited(indexer, use_case_id, writes_limiter_option_name):
 
     assert len(rate_limited_strings2) == 1
     assert len(rate_limited_strings - rate_limited_strings2) == 2
+
+
+def test_bulk_reverse_resolve(indexer):
+    """
+    Tests reverse resolve properly returns the corresponding strings
+    in the proper order when given a combination of shared and non-shared ids.
+    """
+    org_id = 7
+    use_case_id = UseCaseID.SESSIONS  # any use case would do
+    static_indexer = StaticStringIndexer(indexer)
+
+    a = indexer.record(use_case_id, org_id, "aaa")
+    b = indexer.record(use_case_id, org_id, "bbb")
+    c = indexer.record(use_case_id, org_id, "ccc")
+    production = SHARED_STRINGS["production"]
+    release = SHARED_STRINGS["release"]
+    environment = SHARED_STRINGS["environment"]
+    unknown1 = 6666
+    unknown2 = 6667
+
+    indexes = [a, production, b, unknown1, release, environment, c, unknown2]
+    # we expect the indexer to resolve the indexes to the original strings and return None for unknown indexes
+    expected_result = {
+        a: "aaa",
+        b: "bbb",
+        c: "ccc",
+        production: "production",
+        release: "release",
+        environment: "environment",
+    }
+    actual_result = static_indexer.bulk_reverse_resolve(use_case_id, org_id, indexes)
+
+    assert actual_result == expected_result

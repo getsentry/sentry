@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
 import {OrganizationIntegration} from 'sentry/types/integrations';
@@ -42,13 +43,13 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 type Props = {
   notificationType: string;
   organizations: Organization[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   identities: Identity[];
   notificationSettings: NotificationSettingsObject;
   organizationIntegrations: OrganizationIntegration[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const typeMappedChildren = {
   quota: [
@@ -70,7 +71,7 @@ const getQueryParams = (notificationType: string) => {
   return {type: notificationType};
 };
 
-class NotificationSettingsByType extends AsyncComponent<Props, State> {
+class NotificationSettingsByType extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -80,7 +81,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {notificationType} = this.props;
     return [
       [
@@ -98,6 +99,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     trackAnalytics('notification_settings.tuning_page_viewed', {
       organization: null,
       notification_type: this.props.notificationType,
@@ -326,6 +328,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
     return (
       <Fragment>
+        <SentryDocumentTitle title={title} />
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
         {hasSlack && unlinkedOrgs.length > 0 && (

@@ -110,13 +110,13 @@ function flatten(remaining: Array<Operation>): Operation {
   return term;
 }
 
-type parseResult = {
+type ParseResult = {
   error: string | undefined;
   result: Expression;
   tc: TokenConverter;
 };
 
-export function parseArithmetic(query: string): parseResult {
+export function parseArithmetic(query: string): ParseResult {
   const tc = new TokenConverter();
   try {
     const result = grammar.parse(query, {tc});

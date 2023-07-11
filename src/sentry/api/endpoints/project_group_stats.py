@@ -6,6 +6,7 @@ from sentry.api.base import EnvironmentMixin, StatsMixin, region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import Environment, Group
+from sentry.tsdb.base import TSDBModel
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -37,7 +38,7 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             return Response(status=204)
 
         data = tsdb.get_range(
-            model=tsdb.models.group,
+            model=TSDBModel.group,
             keys=group_ids,
             **self._parse_args(request, environment_id),
             tenant_ids={"organization_id": project.organization_id},

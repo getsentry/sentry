@@ -20,10 +20,10 @@ from sentry.integrations.bitbucket_server.repository import BitbucketServerRepos
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):
@@ -62,13 +62,18 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_compare_commits(self):
-        repo = Repository.objects.create(
-            provider="bitbucket_server",
-            name="sentryuser/newsdiffs",
-            organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
-            integration_id=self.integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                provider="bitbucket_server",
+                name="sentryuser/newsdiffs",
+                organization_id=self.organization.id,
+                config={
+                    "name": "sentryuser/newsdiffs",
+                    "project": "sentryuser",
+                    "repo": "newsdiffs",
+                },
+                integration_id=self.integration.id,
+            )
 
         responses.add(
             responses.GET,
@@ -104,13 +109,18 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_compare_commits_with_two_pages(self):
-        repo = Repository.objects.create(
-            provider="bitbucket_server",
-            name="sentryuser/newsdiffs",
-            organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
-            integration_id=self.integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                provider="bitbucket_server",
+                name="sentryuser/newsdiffs",
+                organization_id=self.organization.id,
+                config={
+                    "name": "sentryuser/newsdiffs",
+                    "project": "sentryuser",
+                    "repo": "newsdiffs",
+                },
+                integration_id=self.integration.id,
+            )
 
         responses.add(
             responses.GET,
@@ -229,13 +239,14 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         }
 
     def test_repository_external_slug(self):
-        repo = Repository.objects.create(
-            provider="bitbucket_server",
-            name="sentryuser/newsdiffs",
-            organization_id=self.organization.id,
-            config={"name": "sentryuser/newsdiffs"},
-            integration_id=self.integration.id,
-        )
+        with exempt_from_silo_limits():
+            repo = Repository.objects.create(
+                provider="bitbucket_server",
+                name="sentryuser/newsdiffs",
+                organization_id=self.organization.id,
+                config={"name": "sentryuser/newsdiffs"},
+                integration_id=self.integration.id,
+            )
 
         result = self.provider.repository_external_slug(repo)
         assert result == repo.name

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import random
 from abc import ABC, abstractmethod
 from collections import deque
 from typing import Any, Dict, Optional, Sequence, Tuple
@@ -12,9 +11,16 @@ from sentry.issues.grouptype import (
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
 )
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, get_span_evidence_value, total_span_time
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    get_notification_attachment_body,
+    get_span_evidence_value,
+    total_span_time,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -160,8 +166,10 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
+        # Only consider `db` spans when evaluating the duration threshold.
         total_duration_threshold = self.settings["total_duration_threshold"]
-        total_duration = total_span_time(offender_spans)
+        offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
+        total_duration = total_span_time(offender_db_spans)
         if total_duration < total_duration_threshold:
             return None
 
@@ -191,7 +199,17 @@ class ContinuingMNPlusOne(MNPlusOneState):
                 ),
                 "number_repeating_spans": str(len(offender_spans)),
             },
-            evidence_display=[],
+            evidence_display=[
+                IssueEvidence(
+                    name="Offending Spans",
+                    value=get_notification_attachment_body(
+                        "db",
+                        db_span["description"],
+                    ),
+                    # Has to be marked important to be displayed in the notifications
+                    important=True,
+                )
+            ],
         )
 
     def _first_db_span(self) -> Optional[Span]:
@@ -237,7 +255,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
 
     __slots__ = ("stored_problems", "state")
 
-    type: DetectorType = DetectorType.M_N_PLUS_ONE_DB
+    type = DetectorType.M_N_PLUS_ONE_DB
     settings_key = DetectorType.M_N_PLUS_ONE_DB
 
     def init(self):
@@ -252,7 +270,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return self.settings["detection_rate"] > random.random()
+        return self.settings["detection_enabled"]
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)

@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -45,6 +45,14 @@ const SCHEDULE_OPTIONS: RadioOption<string>[] = [
 const DEFAULT_MONITOR_TYPE = 'cron_job';
 const DEFAULT_CRONTAB = '0 0 * * *';
 
+// Maps the value from the SentryMemberTeamSelectorField -> the expected alert
+// rule key and vice-versa.
+//
+// XXX(epurkhiser): For whatever reason the rules API wants the team and member
+// to be capitalized.
+const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+
 export const DEFAULT_MAX_RUNTIME = 30;
 
 const getIntervals = (n: number): SelectValue<string>[] => [
@@ -64,39 +72,38 @@ type Props = {
   submitLabel?: string;
 };
 
-type TransformedData = {
-  config?: Partial<MonitorConfig>;
-};
+interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
+  alertRule?: Partial<Monitor['alertRule']>;
+  config?: Partial<Monitor['config']>;
+}
 
 /**
- * Transform config field values into the config object
+ * Transform sub-fields for what the API expects
  */
 function transformData(_data: Record<string, any>, model: FormModel) {
-  return model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
-    if (k === 'alertRule') {
+  const result = model.fields.toJSON().reduce<TransformedData>((data, [k, v]) => {
+    data.config ??= {};
+    data.alertRule ??= {};
+
+    if (k === 'alertRule.targets') {
       const alertTargets = (v as string[] | undefined)?.map(item => {
         // See SentryMemberTeamSelectorField to understand why these are strings
         const [type, id] = item.split(':');
 
-        // XXX(epurkhiser): For whateve reason the rules API wants the team and
-        // mebmer to be capitalized.
-        const targetType = {team: 'Team', member: 'Member'}[type];
+        const targetType = RULE_TARGET_MAP[type];
 
-        return {targetType, targetIdentifier: id};
+        return {targetType, targetIdentifier: Number(id)};
       });
 
-      data[k] = {targets: alertTargets};
+      data.alertRule.targets = alertTargets;
       return data;
     }
 
-    // We're only concerned with transforming the config
-    if (!k.startsWith('config.')) {
-      data[k] = v;
+    if (k === 'alertRule.environment') {
+      const environment = v === '' ? undefined : (v as string);
+      data.alertRule.environment = environment;
       return data;
     }
-
-    // Default to empty object
-    data.config ??= {};
 
     if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
       if (!Array.isArray(data.config.schedule)) {
@@ -105,18 +112,30 @@ function transformData(_data: Record<string, any>, model: FormModel) {
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.frequency') {
-      data.config.schedule![0] = parseInt(v as string, 10);
+      data.config.schedule[0] = parseInt(v as string, 10);
       return data;
     }
 
     if (Array.isArray(data.config.schedule) && k === 'config.schedule.interval') {
-      data.config.schedule![1] = v as IntervalConfig['schedule'][1];
+      data.config.schedule[1] = v as IntervalConfig['schedule'][1];
       return data;
     }
 
-    data.config[k.substring(7)] = v;
+    if (k.startsWith('config.')) {
+      data.config[k.substring(7)] = v;
+      return data;
+    }
+
+    data[k] = v;
     return data;
   }, {});
+
+  // If targets are not specified, don't send alert rule config to backend
+  if (!result.alertRule?.targets) {
+    result.alertRule = undefined;
+  }
+
+  return result;
 }
 
 /**
@@ -146,11 +165,6 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData, mapFormErrors}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const [crontabInput, setCrontabInput] = useState(
-    monitor?.config.schedule_type === ScheduleType.CRONTAB
-      ? monitor?.config.schedule
-      : DEFAULT_CRONTAB
-  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -184,7 +198,18 @@ function MonitorForm({
   const isSuperuser = isActiveSuperuser();
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
-  const parsedSchedule = crontabAsText(crontabInput);
+  const alertRuleTarget = monitor?.alertRule?.targets.map(
+    target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
+  );
+
+  const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
+  const alertRuleEnvs = [
+    {
+      label: 'All Environments',
+      value: '',
+    },
+    ...envOptions,
+  ];
 
   return (
     <Form
@@ -200,6 +225,8 @@ function MonitorForm({
               slug: monitor.slug,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
+              'alertRule.targets': alertRuleTarget,
+              'alertRule.environment': monitor.alertRule?.environment,
               ...formDataFromConfig(monitor.type, monitor.config),
             }
           : {
@@ -281,10 +308,18 @@ function MonitorForm({
           )}
           <Observer>
             {() => {
-              const schedule_type = form.current.getValue('config.schedule_type');
-              if (schedule_type === 'crontab') {
+              const scheduleType = form.current.getValue('config.schedule_type');
+
+              const parsedSchedule =
+                scheduleType === 'crontab'
+                  ? crontabAsText(
+                      form.current.getValue('config.schedule')?.toString() ?? ''
+                    )
+                  : null;
+
+              if (scheduleType === 'crontab') {
                 return (
-                  <ScheduleGroupInputs>
+                  <MultiColumnInput columns="1fr 2fr">
                     <StyledTextField
                       name="config.schedule"
                       placeholder="* * * * *"
@@ -292,7 +327,6 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
-                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -304,12 +338,12 @@ function MonitorForm({
                       inline={false}
                     />
                     {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
-                  </ScheduleGroupInputs>
+                  </MultiColumnInput>
                 );
               }
-              if (schedule_type === 'interval') {
+              if (scheduleType === 'interval') {
                 return (
-                  <ScheduleGroupInputs interval>
+                  <MultiColumnInput columns="auto 1fr 2fr">
                     <LabelText>{t('Every')}</LabelText>
                     <StyledNumberField
                       name="config.schedule.frequency"
@@ -329,7 +363,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
-                  </ScheduleGroupInputs>
+                  </MultiColumnInput>
                 );
               }
               return null;
@@ -362,35 +396,43 @@ function MonitorForm({
             inline={false}
           />
         </InputGroup>
-        {(monitor === undefined || monitor.config.alert_rule_id) && (
-          <Fragment>
-            <StyledListItem>{t('Notify members')}</StyledListItem>
-            <ListItemSubText>
-              {t(
-                'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
-              )}
-            </ListItemSubText>
-            <InputGroup>
-              {monitor === undefined ? (
-                <StyledSentryMemberTeamSelectorField
-                  name="alertRule"
-                  multiple
-                  stacked
-                  inline={false}
-                />
-              ) : (
-                <AlertLink
-                  priority="muted"
-                  to={normalizeUrl(
-                    `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
-                  )}
-                >
-                  {t('Customize this monitors notification configuration in Alerts')}
-                </AlertLink>
-              )}
-            </InputGroup>
-          </Fragment>
-        )}
+        <Fragment>
+          <StyledListItem>{t('Notify members')}</StyledListItem>
+          <ListItemSubText>
+            {t(
+              'Tell us who to notify when a check-in reaches the thresholds above or has an error. You can send notifications to members or teams.'
+            )}
+          </ListItemSubText>
+          <InputGroup>
+            {monitor?.config.alert_rule_id && (
+              <AlertLink
+                priority="muted"
+                to={normalizeUrl(
+                  `/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
+                )}
+              >
+                {t('Customize this monitors notification configuration in Alerts')}
+              </AlertLink>
+            )}
+            <MultiColumnInput columns="5fr 3fr">
+              <StyledSentryMemberTeamSelectorField
+                name="alertRule.targets"
+                multiple
+                stacked
+                inline={false}
+                menuPlacement="auto"
+              />
+              <StyledSelectField
+                name="alertRule.environment"
+                options={alertRuleEnvs}
+                stacked
+                inline={false}
+                menuPlacement="auto"
+                defaultValue=""
+              />
+            </MultiColumnInput>
+          </InputGroup>
+        </Fragment>
       </StyledList>
     </Form>
   );
@@ -447,11 +489,11 @@ const InputGroup = styled('div')`
   gap: ${space(1)};
 `;
 
-const ScheduleGroupInputs = styled('div')<{interval?: boolean}>`
+const MultiColumnInput = styled('div')<{columns?: string}>`
   display: grid;
   align-items: center;
   gap: ${space(1)};
-  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
+  grid-template-columns: ${p => p.columns};
 `;
 
 const CronstrueText = styled(LabelText)`

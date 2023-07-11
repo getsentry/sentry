@@ -1,27 +1,24 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 import urllib.response
 from abc import abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 from urllib.request import Request, urlopen
 
 import django.urls
 import pydantic
+import sentry_sdk
 from django.conf import settings
 
-from sentry.services.hybrid_cloud import (
-    ArgumentDict,
-    DelegatedBySiloMode,
-    InterfaceWithLifecycle,
-    RpcModel,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel, stubbed
 from sentry.silo import SiloMode
 from sentry.types.region import Region
-from sentry.utils import json
+from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.region import RegionResolution
@@ -231,7 +228,7 @@ def regional_rpc_method(
 _global_service_registry: Dict[str, DelegatingRpcService] = {}
 
 
-class RpcService(InterfaceWithLifecycle):
+class RpcService(abc.ABC):
     """A set of methods to be exposed as part of the RPC interface.
 
     Extend this class to declare a "base service" where the method interfaces are
@@ -383,9 +380,6 @@ class RpcService(InterfaceWithLifecycle):
         _global_service_registry[cls.key] = service
         return service
 
-    def close(self) -> None:
-        pass
-
 
 class RpcResolutionException(Exception):
     """Indicate that an RPC service or method name could not be resolved."""
@@ -421,7 +415,23 @@ def dispatch_to_local_service(
     service, method = _look_up_service_method(service_name, method_name)
     raw_arguments = service.deserialize_rpc_arguments(method_name, serial_arguments)
     result = method(**raw_arguments.__dict__)
-    return result.dict() if isinstance(result, RpcModel) else result
+
+    def result_to_dict(value: Any) -> Any:
+        if isinstance(value, RpcModel):
+            return value.dict()
+
+        if isinstance(value, dict):
+            return {key: result_to_dict(val) for key, val in value.items()}
+
+        if isinstance(value, Iterable) and not isinstance(value, str):
+            return [result_to_dict(item) for item in value]
+
+        return value
+
+    return {
+        "meta": {},  # reserved for future use
+        "value": result_to_dict(result),
+    }
 
 
 _RPC_CONTENT_CHARSET = "utf-8"
@@ -458,23 +468,36 @@ def dispatch_remote_call(
         "args": serial_arguments,
     }
 
-    with _fire_request(url, request_body, api_token) as response:
+    timer = metrics.timer(
+        "hybrid_cloud.dispatch_rpc.duration", tags={"service": service_name, "method": method_name}
+    )
+    span = sentry_sdk.start_span(
+        op="hybrid_cloud.dispatch_rpc", description=f"rpc to {service_name}.{method_name}"
+    )
+    with span, timer, _fire_request(url, request_body, api_token) as response:
         charset = response.headers.get_content_charset() or _RPC_CONTENT_CHARSET
+        metrics.incr("hybrid_cloud.dispatch_rpc.response_code", tags={"status": response.status})
         response_body = response.read().decode(charset)
+
     serial_response = json.loads(response_body)
-    return service.deserialize_rpc_response(method_name, serial_response)
+    return_value = serial_response["value"]
+    return (
+        None
+        if return_value is None
+        else service.deserialize_rpc_response(method_name, return_value)
+    )
 
 
 def _fire_request(url: str, body: Any, api_token: str) -> urllib.response.addinfourl:
     # TODO: Performance considerations (persistent connections, pooling, etc.)?
-
     data = json.dumps(body).encode(_RPC_CONTENT_CHARSET)
 
     request = Request(url)
     request.add_header("Content-Type", f"application/json; charset={_RPC_CONTENT_CHARSET}")
     request.add_header("Content-Length", str(len(data)))
-    request.add_header("Authorization", f"Bearer {api_token}")
-    return urlopen(request, data)  # type: ignore
+    # TODO(hybridcloud) Re-enable this when we've implemented RPC authentication
+    # request.add_header("Authorization", f"Bearer {api_token}")
+    return urlopen(request, data)
 
 
 @dataclass(frozen=True)

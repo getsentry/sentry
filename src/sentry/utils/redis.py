@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import logging
 import posixpath
 from copy import deepcopy
 from threading import Lock
+from typing import Generic, TypeVar
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -12,6 +15,7 @@ from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
 from rediscluster.exceptions import ClusterError
+from sentry_redis_tools import clients
 from sentry_redis_tools.failover_redis import FailoverRedis
 
 from sentry import options
@@ -104,6 +108,8 @@ class _RedisCluster:
         # https://redis.io/docs/reference/cluster-spec/#scaling-reads-using-replica-nodes
         readonly_mode = config.get("readonly_mode", False)
 
+        client_args = config.get("client_args") or {}
+
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
         def cluster_factory():
@@ -122,6 +128,7 @@ class _RedisCluster:
                     max_connections=16,
                     max_connections_per_node=True,
                     readonly_mode=readonly_mode,
+                    **client_args,
                 )
             else:
                 host = hosts[0].copy()
@@ -130,7 +137,7 @@ class _RedisCluster:
                     import_string(config["client_class"])
                     if "client_class" in config
                     else FailoverRedis
-                )(**host)
+                )(**host, **client_args)
 
         return SimpleLazyObject(cluster_factory)
 
@@ -138,13 +145,16 @@ class _RedisCluster:
         return "Redis Cluster"
 
 
-class ClusterManager:
+T = TypeVar("T")
+
+
+class ClusterManager(Generic[T]):
     def __init__(self, options_manager, cluster_type=_RBCluster):
         self.__clusters = {}
         self.__options_manager = options_manager
         self.__cluster_type = cluster_type()
 
-    def get(self, key):
+    def get(self, key) -> T:
         cluster = self.__clusters.get(key)
 
         # Do not access attributes of the `cluster` object to prevent
@@ -169,7 +179,9 @@ class ClusterManager:
 # completed, remove the rb ``clusters`` module variable and rename
 # redis_clusters to clusters.
 clusters = ClusterManager(options.default_manager)
-redis_clusters = ClusterManager(options.default_manager, _RedisCluster)
+redis_clusters: ClusterManager[clients.RedisCluster | clients.StrictRedis] = ClusterManager(
+    options.default_manager, _RedisCluster
+)
 
 
 def get_cluster_from_options(setting, options, cluster_manager=clusters):

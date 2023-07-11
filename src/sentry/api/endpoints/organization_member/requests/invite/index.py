@@ -9,10 +9,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
-from sentry.models import InviteStatus, OrganizationMember
+from sentry.models import InviteStatus, OrganizationMember, outbox_context
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
-from sentry.services.hybrid_cloud.organization import organization_service
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -31,7 +30,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization) -> Response:
         queryset = OrganizationMember.objects.filter(
-            Q(user__isnull=True),
+            Q(user_id__isnull=True),
             Q(invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value)
             | Q(invite_status=InviteStatus.REQUESTED_TO_JOIN.value),
             organization=organization,
@@ -75,16 +74,14 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         result = serializer.validated_data
 
-        rpc_org_member = organization_service.add_organization_member(
-            organization_id=organization.id,
-            default_org_role=organization.default_role,
-            email=result["email"],
-            role=result["role"],
-            inviter_id=request.user.id,
-            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
-        )
-        with transaction.atomic():
-            om = OrganizationMember.objects.get(id=rpc_org_member.id)
+        with outbox_context(transaction.atomic(), flush=False):
+            om = OrganizationMember.objects.create(
+                organization_id=organization.id,
+                role=result["role"] or organization.default_role,
+                email=result["email"],
+                inviter_id=request.user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
 
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
@@ -93,13 +90,13 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 ]
                 save_team_assignments(om, teams)
 
-            self.create_audit_entry(
-                request=request,
-                organization_id=organization.id,
-                target_object=om.id,
-                data=om.get_audit_log_data(),
-                event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
-            )
+        self.create_audit_entry(
+            request=request,
+            organization_id=organization.id,
+            target_object=om.id,
+            data=om.get_audit_log_data(),
+            event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
+        )
 
         async_send_notification(InviteRequestNotification, om, request.user)
 

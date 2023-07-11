@@ -1,7 +1,6 @@
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.models import ExternalActor, Integration
@@ -44,7 +43,7 @@ class SlackUnlinkTeamView(BaseView):
 
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature):
@@ -96,7 +95,7 @@ class SlackUnlinkTeamView(BaseView):
             )
 
         if not idp or not identity_service.get_identity(
-            provider_id=idp.id, identity_ext_id=params["slack_id"]
+            filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         ):
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 

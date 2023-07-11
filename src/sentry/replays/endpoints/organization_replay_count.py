@@ -17,8 +17,8 @@ from sentry.models import Organization
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import Dataset
 
 MAX_REPLAY_COUNT = 51
 MAX_VALS_PROVIDED = {
@@ -26,6 +26,8 @@ MAX_VALS_PROVIDED = {
     "transaction": 25,
     "replay_id": 100,
 }
+
+FILTER_HAS_A_REPLAY = "AND !replayId:''"
 
 
 @region_silo_endpoint
@@ -100,6 +102,9 @@ def get_replay_id_mappings(
 ) -> dict[str, list[str]]:
 
     select_column, value = get_select_column(request.GET.get("query"))
+    query = request.GET.get("query")
+
+    query = query + FILTER_HAS_A_REPLAY
 
     if select_column == "replay_id":
         # just return a mapping of replay_id:replay_id instead of hitting discover

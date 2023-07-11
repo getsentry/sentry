@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import Throttled
 from rest_framework.request import Request
@@ -12,10 +15,10 @@ from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
-    RESPONSE_NOTFOUND,
+    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
+from sentry.apidocs.parameters import GlobalParams, MonitorParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models import Project, ProjectKey
@@ -28,7 +31,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -63,8 +66,8 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     @extend_schema(
         operation_id="Create a new check-in",
         parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_SLUG,
+            GlobalParams.ORG_SLUG,
+            MonitorParams.MONITOR_SLUG,
         ],
         request=MonitorCheckInValidator,
         responses={
@@ -77,7 +80,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def post(
@@ -185,17 +188,36 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             except MonitorEnvironmentLimitsExceeded as e:
                 return self.respond({type(e).__name__: str(e)}, status=403)
 
+            # Infer the original start time of the check-in from the duration.
+            duration = result.get("duration")
+            date_added = start_time = timezone.now()
+            if duration is not None:
+                date_added -= timedelta(milliseconds=duration)
+
+            expected_time = None
+            if monitor_environment.last_checkin:
+                expected_time = monitor.get_next_scheduled_checkin(monitor_environment.last_checkin)
+
+            status = getattr(CheckInStatus, result["status"].upper())
+            monitor_config = monitor.get_validated_config()
+            timeout_at = get_timeout_at(monitor_config, status, date_added)
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
                 monitor_environment=monitor_environment,
-                duration=result.get("duration"),
-                status=getattr(CheckInStatus, result["status"].upper()),
+                duration=duration,
+                status=status,
+                date_added=date_added,
+                date_updated=start_time,
+                expected_time=expected_time,
+                timeout_at=timeout_at,
+                monitor_config=monitor_config,
             )
 
             signal_first_checkin(project, monitor)
 
-            if checkin.status == CheckInStatus.ERROR and monitor.status != ObjectStatus.DISABLED:
+            if checkin.status == CheckInStatus.ERROR:
                 monitor_failed = monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):

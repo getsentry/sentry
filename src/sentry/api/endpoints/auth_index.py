@@ -3,7 +3,6 @@ import logging
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
-from django.utils.http import is_safe_url
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
@@ -22,6 +21,7 @@ from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
+from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sentry.utils.settings import is_self_hosted
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
+    authentication_classes = (QuietBasicAuthentication, SessionAuthentication)
 
     permission_classes = ()
 
@@ -57,7 +57,7 @@ class AuthIndexEndpoint(Endpoint):
         If a user without a password is hitting this, it means they need to re-identify with SSO.
         """
         redirect = request.META.get("HTTP_REFERER", None)
-        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
         raise SsoRequired(

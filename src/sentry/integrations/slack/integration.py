@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Mapping, Sequence
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views import View
 
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -14,15 +14,19 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Integration, Organization
+from sentry.models import Integration
 from sentry.pipeline import NestedPipelineView
+from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganizationSummary,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 
-from ...services.hybrid_cloud.notifications import notifications_service
-from ...services.hybrid_cloud.organization import RpcUserOrganizationContext, organization_service
 from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
 from .utils import logger
@@ -69,8 +73,10 @@ metadata = IntegrationMetadata(
 )
 
 
-class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type: ignore
+class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient:
+        if not self.org_integration:
+            raise IntegrationError("Organization Integration does not exist")
         return SlackClient(org_integration_id=self.org_integration.id)
 
     def get_config_data(self) -> Mapping[str, str]:
@@ -97,7 +103,7 @@ class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):  # type:
             )
 
 
-class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
+class SlackIntegrationProvider(IntegrationProvider):
     key = "slack"
     name = "Slack"
     metadata = metadata
@@ -195,7 +201,10 @@ class SlackIntegrationProvider(IntegrationProvider):  # type: ignore
         return integration
 
     def post_install(
-        self, integration: Integration, organization: Organization, extra: Optional[Any] = None
+        self,
+        integration: Integration,
+        organization: RpcOrganizationSummary,
+        extra: Any | None = None,
     ) -> None:
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack

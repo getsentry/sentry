@@ -3,6 +3,7 @@ import {CellMeasurerCache} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import type {BreadcrumbTransactionEvent} from 'sentry/components/events/interfaces/breadcrumbs/types';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
@@ -28,6 +29,7 @@ type Props = {
   searchTerm: string;
   style: React.CSSProperties;
   meta?: Record<any, any>;
+  transactionEvents?: BreadcrumbTransactionEvent[];
 };
 
 export const Breadcrumb = memo(function Breadcrumb({
@@ -43,6 +45,7 @@ export const Breadcrumb = memo(function Breadcrumb({
   meta,
   isLastItem,
   cache,
+  transactionEvents,
 }: Props) {
   const sizingRef = useRef<HTMLDivElement | null>(null);
   const {type, description, color, level, category, timestamp} = breadcrumb;
@@ -79,6 +82,7 @@ export const Breadcrumb = memo(function Breadcrumb({
         breadcrumb={breadcrumb}
         searchTerm={searchTerm}
         meta={meta}
+        transactionEvents={transactionEvents}
       />
       <div>
         <Level level={level} searchTerm={searchTerm} />

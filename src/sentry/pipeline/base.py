@@ -11,10 +11,13 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.db.models import Model
-from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils.hashlib import md5_text
+from sentry.utils.sdk import bind_organization_context
 from sentry.web.helpers import render_to_response
 
+from ..models import Organization
+from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from . import PipelineProvider
 from .constants import PIPELINE_STATE_TTL
 from .store import PipelineSessionStore
@@ -78,9 +81,11 @@ class Pipeline(abc.ABC):
         if state.provider_model_id:
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
 
-        organization = None
+        organization: RpcOrganization | None = None
         if state.org_id:
-            organization = Organization.objects.get(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(id=state.org_id)
+            if org_context:
+                organization = org_context.organization
 
         provider_key = state.provider_key
 
@@ -94,12 +99,19 @@ class Pipeline(abc.ABC):
         self,
         request: Request,
         provider_key: str,
-        organization: Organization | None = None,
+        organization: Organization | RpcOrganization | None = None,
         provider_model: Model | None = None,
         config: Mapping[str, Any] | None = None,
     ) -> None:
+        if organization:
+            bind_organization_context(organization)
+
         self.request = request
-        self.organization = organization
+        self.organization: RpcOrganization | None = (
+            serialize_rpc_organization(organization)
+            if isinstance(organization, Organization)
+            else organization
+        )
         self.state = self.session_store_cls(request, self.pipeline_name, ttl=PIPELINE_STATE_TTL)
         self.provider_model = provider_model
         self.provider = self.get_provider(provider_key)

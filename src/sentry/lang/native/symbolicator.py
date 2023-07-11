@@ -40,6 +40,9 @@ class SymbolicatorTaskKind:
     def with_low_priority(self, is_low_priority: bool) -> "SymbolicatorTaskKind":
         return dataclasses.replace(self, is_low_priority=is_low_priority)
 
+    def with_js(self, is_js: bool) -> "SymbolicatorTaskKind":
+        return dataclasses.replace(self, is_js=is_js)
+
 
 class SymbolicatorPools(Enum):
     default = "default"

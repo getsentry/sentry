@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -9,13 +11,13 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
+    RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
-    RuleSnooze,
-    RuleStatus,
     SentryAppComponent,
     Team,
     User,
@@ -24,6 +26,7 @@ from sentry.models.integrations.sentry_app_installation import (
     SentryAppInstallation,
     prepare_ui_component,
 )
+from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import alert_rule_edited
@@ -55,10 +58,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         for action in serialized_rule.get("actions", []):
             if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
                 installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = SentryAppComponent(**action.get("_sentry_app_component"))
                 component = prepare_ui_component(
                     installation,
-                    component,
+                    SentryAppComponent(**action.get("_sentry_app_component")),
                     project.slug,
                     action.get("settings"),
                 )
@@ -201,15 +203,17 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         """
         Delete a rule
         """
-        rule.update(status=RuleStatus.PENDING_DELETION)
+        rule.update(status=ObjectStatus.PENDING_DELETION)
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )
+        scheduled = RegionScheduledDeletion.schedule(rule, days=0, actor=request.user)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=rule.id,
             event=audit_log.get_event_id("RULE_REMOVE"),
             data=rule.get_audit_log_data(),
+            transaction_id=scheduled.id,
         )
         return Response(status=202)

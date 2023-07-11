@@ -80,8 +80,12 @@ export default function DetailsSidebar({monitorEnv, monitor}: Props) {
         <MonitorIcon status={MonitorStatus.MISSED_CHECKIN} size={12} />
         <Text>
           {defined(checkin_margin)
-            ? tn('Check-ins %s min late', 'Check-ins %s mins late', checkin_margin)
-            : t('Check-ins that are late')}
+            ? tn(
+                'Check-ins missed after %s min',
+                'Check-ins missed after %s mins',
+                checkin_margin
+              )
+            : t('Check-ins that are missed')}
         </Text>
         <MonitorIcon status={MonitorStatus.ERROR} size={12} />
         <Text>

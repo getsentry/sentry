@@ -14,13 +14,13 @@ from sentry import VERSION, audit_log, http, options
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.models import (
     Integration,
-    Organization,
     OrganizationIntegration,
     Project,
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.http import absolute_uri
@@ -93,7 +93,9 @@ def get_payload_and_token(
     meta = payload["deployment"]["meta"]
 
     # look up the project so we can get the slug
-    project = Project.objects.get(id=sentry_project_id)
+    project = project_service.get_by_id(organization_id=organization_id, id=sentry_project_id)
+    if project is None:
+        raise Project.DoesNotExist
 
     # find the connected sentry app installation
     installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
@@ -131,6 +133,27 @@ class VercelWebhookEndpoint(Endpoint):
     def dispatch(self, request: Request, *args, **kwargs) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
+    def parse_new_external_id(self, request: Request) -> str:
+        payload = request.data["payload"]
+        # New Vercel request flow
+        external_id = (
+            payload.get("team")["id"]
+            if (payload.get("team") and payload.get("team") != {})
+            else payload["user"]["id"]
+        )
+        return external_id
+
+    def parse_old_external_id(self, request: Request) -> str:
+        # Old Vercel request flow
+        external_id = request.data.get("teamId") or request.data["userId"]
+        return external_id
+
+    def parse_external_id(self, request: Request) -> str:
+        try:
+            return self.parse_new_external_id(request)
+        except Exception:
+            return self.parse_old_external_id(request)
+
     def post(self, request: Request) -> Response:
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
@@ -156,11 +179,7 @@ class VercelWebhookEndpoint(Endpoint):
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
                 payload = request.data["payload"]
-                external_id = (
-                    payload.get("team")["id"]
-                    if (payload.get("team") and payload.get("team") != {})
-                    else payload["user"]["id"]
-                )
+                external_id = self.parse_new_external_id(request)
                 scope.set_tag("vercel_webhook.type", "new")
 
                 if event_type == "integration-configuration.removed":
@@ -169,7 +188,7 @@ class VercelWebhookEndpoint(Endpoint):
                 if event_type == "deployment.created":
                     return self._deployment_created(external_id, request)
             except Exception:
-                external_id = request.data.get("teamId") or request.data["userId"]
+                external_id = self.parse_old_external_id(request)
                 scope.set_tag("vercel_webhook.type", "old")
 
                 if event_type == "integration-configuration-removed":
@@ -184,15 +203,11 @@ class VercelWebhookEndpoint(Endpoint):
             # Try the new Vercel request. If it fails, try the old Vercel request
             try:
                 payload = request.data["payload"]
-                external_id = (
-                    payload.get("team")["id"]
-                    if (payload.get("team") and payload.get("team") != {})
-                    else payload["user"]["id"]
-                )
+                external_id = self.parse_new_external_id(request)
                 scope.set_tag("vercel_webhook.type", "new")
                 configuration_id = payload["configuration"]["id"]
             except Exception:
-                external_id = request.data.get("teamId") or request.data["userId"]
+                external_id = self.parse_old_external_id(request)
                 scope.set_tag("vercel_webhook.type", "old")
                 configuration_id = request.data.get("configurationId")
 
@@ -275,10 +290,9 @@ class VercelWebhookEndpoint(Endpoint):
                 organization_id=configuration["organization_id"], integration_id=integration.id
             ).delete()
 
-            organization = Organization.objects.get(id=configuration["organization_id"])
             create_audit_entry(
                 request=request,
-                organization=organization,
+                organization_id=configuration["organization_id"],
                 target_object=integration.id,
                 event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Vercel User",
@@ -334,11 +348,8 @@ class VercelWebhookEndpoint(Endpoint):
 
         orgs = {
             o.id: o
-            for o in organization_service.get_organizations(
-                user_id=None,
-                scope=None,
-                only_visible=False,
-                organization_ids=[oi.organization_id for oi in org_integrations],
+            for o in organization_mapping_service.get_many(
+                organization_ids=[oi.organization_id for oi in org_integrations]
             )
         }
 

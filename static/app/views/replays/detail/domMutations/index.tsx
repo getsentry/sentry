@@ -5,11 +5,11 @@ import {
   List as ReactVirtualizedList,
   ListRowProps,
 } from 'react-virtualized';
+import {useQuery} from '@tanstack/react-query';
 
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
-import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
 import DomMutationRow from 'sentry/views/replays/detail/domMutations/domMutationRow';
@@ -31,8 +31,16 @@ const cellMeasurer = {
   minHeight: 82,
 };
 
+function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
+  return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
+    enabled: Boolean(replay),
+    initialData: [],
+    cacheTime: Infinity,
+  });
+}
+
 function DomMutations({replay, startTimestampMs}: Props) {
-  const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  const {data: actions, isLoading} = useExtractedDomNodes({replay});
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const filterProps = useDomFilters({actions: actions || []});

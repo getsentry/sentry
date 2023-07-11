@@ -1,22 +1,20 @@
 import {Location} from 'history';
-import trimStart from 'lodash/trimStart';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {NewQuery, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getCurrentTrendParameter} from 'sentry/views/performance/trends/utils';
-import {getMiddleTimestamp} from 'sentry/views/starfish/utils/dates';
 
 const DEFAULT_STATS_PERIOD = '7d';
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
-export const TIME_SPENT_IN_SERVICE =
-  'equation|sum(transaction.duration) / total.transaction_duration';
+export const TIME_SPENT_IN_SERVICE = 'time_spent_percentage()';
 
 export const getDefaultStatsPeriod = (organization: Organization) => {
   if (organization?.features?.includes('performance-landing-page-stats-period')) {
@@ -63,7 +61,6 @@ function generateGenericPerformanceEventView(
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method',
-    projects: [],
     fields,
     version: 2,
   };
@@ -97,7 +94,6 @@ function generateGenericPerformanceEventView(
 
 export function generatePerformanceEventView(
   location: Location,
-  _: Project[],
   {isTrends = false, withStaticFilters = false} = {},
   organization: Organization
 ) {
@@ -115,54 +111,33 @@ export function generatePerformanceEventView(
 
 export function generateWebServiceEventView(
   location: Location,
-  _: Project[],
   {withStaticFilters = false} = {},
   organization: Organization
 ) {
   const {query} = location;
   const hasStartAndEnd = query.start && query.end;
-  const middleTimestamp = getMiddleTimestamp({
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
-    statsPeriod:
-      !query.statsPeriod && !hasStartAndEnd
-        ? getDefaultStatsPeriod(organization)
-        : decodeScalar(query.statsPeriod),
-  });
-
-  const deltaColName = `equation|(percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})-percentile_range(transaction.duration,0.50,greater,${middleTimestamp}))/percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`;
-  let orderby = decodeScalar(query.sort, `-${TIME_SPENT_IN_SERVICE}`);
-  const isDescending = orderby.startsWith('-');
-  const rawOrderby = trimStart(orderby, '-');
-  if (
-    rawOrderby.startsWith(
-      'equation|(percentile_range(transaction.duration,0.50,lessOrEquals,'
-    )
-  ) {
-    orderby = isDescending ? `-${deltaColName}` : deltaColName;
-  }
+  const orderby = decodeScalar(query.sort, `-time_spent_percentage`);
 
   const fields = [
     'transaction',
     'http.method',
-    'tpm()',
-    'p50()',
-    deltaColName,
-    'count_if(http.status_code,greaterOrEquals,500)',
-    TIME_SPENT_IN_SERVICE,
-    'total.transaction_duration',
+    'tps()',
+    'tps_percent_change()',
+    'p95(transaction.duration)',
+    'percentile_percent_change(transaction.duration,0.95)',
+    'http_error_count()',
+    'http_error_count_percent_change()',
+    'time_spent_percentage()',
     'sum(transaction.duration)',
-    `percentile_range(transaction.duration,0.50,lessOrEquals,${middleTimestamp})`,
-    `percentile_range(transaction.duration,0.50,greater,${middleTimestamp})`,
   ];
 
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction has:http.method transaction.op:http.server',
-    projects: [],
     fields,
     version: 2,
+    dataset: DiscoverDatasets.METRICS,
   };
 
   const widths = Array(savedQuery.fields.length).fill(COL_WIDTH_UNDEFINED);

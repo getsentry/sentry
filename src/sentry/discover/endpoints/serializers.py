@@ -13,8 +13,9 @@ from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
 from sentry.search.events.builder import QueryBuilder
+from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period, validate_interval
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, Dataset
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 
 class DiscoverQuerySerializer(serializers.Serializer):

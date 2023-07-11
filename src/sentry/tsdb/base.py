@@ -90,6 +90,8 @@ class TSDBModel(Enum):
     project_total_received_cors = 609
     # the number of events filtered because their group was discarded
     project_total_received_discarded = 610
+    # the number of events filtered because they refer to a healthcheck endpoint
+    project_total_healthcheck = 611
 
     servicehook_fired = 700
 
@@ -139,7 +141,6 @@ class BaseTSDB(Service):
                 "get_optimal_rollup_series",
                 "get_rollups",
                 "make_series",
-                "models",
                 "models_with_environment_support",
                 "normalize_to_epoch",
                 "rollup",
@@ -149,15 +150,13 @@ class BaseTSDB(Service):
         | __read_methods__
     )
 
-    models = TSDBModel
-
     models_with_environment_support = frozenset(
         [
-            models.project,
-            models.group,
-            models.release,
-            models.users_affected_by_group,
-            models.users_affected_by_project,
+            TSDBModel.project,
+            TSDBModel.group,
+            TSDBModel.release,
+            TSDBModel.users_affected_by_group,
+            TSDBModel.users_affected_by_project,
         ]
     )
 

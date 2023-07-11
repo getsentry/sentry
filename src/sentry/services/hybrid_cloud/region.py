@@ -46,6 +46,17 @@ class ByOrganizationObject(RegionResolution):
 
 
 @dataclass(frozen=True)
+class ByRegionName(RegionResolution):
+    """Resolve from an `str` parameter representing a region's name"""
+
+    parameter_name: str = "region_name"
+
+    def resolve(self, arguments: ArgumentDict) -> Region:
+        region_name = arguments[self.parameter_name]
+        return get_region_by_name(region_name)
+
+
+@dataclass(frozen=True)
 class ByOrganizationId(RegionResolution):
     """Resolve from an `int` parameter representing an organization ID."""
 

@@ -65,7 +65,7 @@ def run_scheduled_deletions():
                 if not affected:
                     continue
 
-                run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
+            run_deletion.delay(deletion_id=item.id, silo_mode=silo_mode.name)
 
 
 @instrumented_task(
@@ -153,5 +153,5 @@ def run_deletion(deletion_id, first_pass=True, silo_mode="CONTROL"):
             },
         )
         sentry_sdk.capture_exception(err)
-        if "pytest" in sys.modules:
+        if "pytest" in sys.argv[0]:
             raise err

@@ -226,6 +226,30 @@
 
       {% block table %}{% endblock %}
 
+      {% if replay_id and issue_replays_url %}
+      <div class="interface">
+        <h3 class="title">Session Replay</h3>
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>Session Replay:</th>
+              <td>
+                <a href="{{ issue_replays_url }}">
+                  <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="12px" height="12px"
+                    alt="Session Replay">
+                  See a replay of this issue
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+
       {% block stacktrace %}{% endblock %}
 
       {% if tags %}
@@ -249,7 +273,7 @@
 
     <p class="info-box">
       {% if snooze_alert %}
-         <a class='mute' href="{% absolute_uri snooze_alert_url %}">Mute for me</a>
+         <a class='mute' href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
       {% endif %}
       This email was triggered by
       {% for rule in rules %}

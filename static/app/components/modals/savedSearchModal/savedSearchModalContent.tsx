@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {SelectField, TextField} from 'sentry/components/forms';
+import SelectField from 'sentry/components/forms/fields/selectField';
+import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearchVisibility} from 'sentry/types';
@@ -11,29 +12,28 @@ type SavedSearchModalContentProps = {
   organization: Organization;
 };
 
-const DEFAULT_SORT_OPTIONS = [
-  IssueSortOptions.DATE,
-  IssueSortOptions.NEW,
-  IssueSortOptions.FREQ,
-  IssueSortOptions.PRIORITY,
-  IssueSortOptions.USER,
-];
-
 const SELECT_FIELD_VISIBILITY_OPTIONS = [
-  {value: SavedSearchVisibility.Owner, label: t('Only me')},
-  {value: SavedSearchVisibility.Organization, label: t('Users in my organization')},
+  {value: SavedSearchVisibility.OWNER, label: t('Only me')},
+  {value: SavedSearchVisibility.ORGANIZATION, label: t('Users in my organization')},
 ];
-
-function getSortOptions(organization: Organization) {
-  return organization?.features?.includes('issue-list-trend-sort')
-    ? [...DEFAULT_SORT_OPTIONS, IssueSortOptions.TREND]
-    : DEFAULT_SORT_OPTIONS;
-}
 
 export function SavedSearchModalContent({organization}: SavedSearchModalContentProps) {
   const canChangeVisibility = organization.access.includes('org:write');
+  const hasBetterPrioritySort = organization.features.includes(
+    'issue-list-better-priority-sort'
+  );
 
-  const selectFieldSortOptions = getSortOptions(organization).map(sortOption => ({
+  const sortOptions = [
+    IssueSortOptions.DATE,
+    IssueSortOptions.NEW,
+    ...(hasBetterPrioritySort
+      ? [IssueSortOptions.BETTER_PRIORITY]
+      : [IssueSortOptions.PRIORITY]), // show better priority for EA orgs
+    IssueSortOptions.FREQ,
+    IssueSortOptions.USER,
+  ];
+
+  const selectFieldSortOptions = sortOptions.map(sortOption => ({
     value: sortOption,
     label: getSortLabel(sortOption),
   }));

@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -19,16 +19,16 @@ type Props = {
   orgId: string;
   projectSlug: string;
   version: string;
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type State = {
   commits: Commit[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
+class CommitAuthorBreakdown extends DeprecatedAsyncComponent<Props, State> {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {orgId, projectSlug, version} = this.props;
 
     const commitsEndpoint = `/projects/${orgId}/${projectSlug}/releases/${encodeURIComponent(
@@ -54,7 +54,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
   renderBody() {
     // group commits by author
-    const groupedAuthorCommits = this.state.commits?.reduce(
+    const groupedAuthorCommits = this.state.commits?.reduce<GroupedAuthorCommits>(
       (authorCommitsAccumulator, commit) => {
         const email = commit.author?.email ?? 'unknown';
 
@@ -69,7 +69,7 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
 
         return authorCommitsAccumulator;
       },
-      {} as GroupedAuthorCommits
+      {}
     );
 
     // sort authors by number of commits

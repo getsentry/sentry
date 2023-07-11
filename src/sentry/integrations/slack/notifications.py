@@ -24,14 +24,14 @@ logger = logging.getLogger("sentry.notifications")
 SLACK_TIMEOUT = 5
 
 
-class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
+class SlackNotifyBasicMixin(NotifyBasicMixin):
     def send_message(self, channel_id: str, message: str) -> None:
         payload = {"channel": channel_id, "text": message}
         try:
             self.get_client().post("/chat.postMessage", data=payload, json=True)
         except ApiError as e:
             message = str(e)
-            if message != "Expired url":
+            if message not in ["Expired url", "channel_not_found"]:
                 logger.error("slack.slash-notify.response-error", extra={"error": message})
 
 
@@ -104,7 +104,8 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
 ) -> None:
-    """Send an "activity" or "alert rule" notification to a Slack user or team."""
+    """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
+    Sending Slack notifications to a channel is in integrations/slack/actions/notification.py"""
     with sentry_sdk.start_span(
         op="notification.send_slack", description="gen_channel_integration_map"
     ):

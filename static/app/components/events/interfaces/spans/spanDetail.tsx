@@ -99,7 +99,7 @@ function SpanDetail(props: Props) {
     // Run on mount.
 
     const {span, organization, event} = props;
-    if ('type' in span) {
+    if (!('op' in span)) {
       return;
     }
 
@@ -487,6 +487,9 @@ function SpanDetail(props: Props) {
               </Row>
               <Row title="Duration">{durationString}</Row>
               <Row title="Operation">{span.op || ''}</Row>
+              <Row title="Origin">
+                {span.origin !== undefined ? String(span.origin) : null}
+              </Row>
               <Row title="Same Process as Parent">
                 {span.same_process_as_parent !== undefined
                   ? String(span.same_process_as_parent)

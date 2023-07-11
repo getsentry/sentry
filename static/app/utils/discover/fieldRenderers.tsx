@@ -46,6 +46,9 @@ import {
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
+import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
@@ -102,7 +105,9 @@ type FieldFormatters = {
   duration: FieldFormatter;
   integer: FieldFormatter;
   number: FieldFormatter;
+  percent_change: FieldFormatter;
   percentage: FieldFormatter;
+  rate: FieldFormatter;
   size: FieldFormatter;
   string: FieldFormatter;
 };
@@ -163,6 +168,12 @@ export const DURATION_UNITS = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
+const RATE_UNIT_LABELS = {
+  '1/second': '/s',
+  '1/minute': '/min',
+  '1/hour': '/hr',
+};
+
 export const PERCENTAGE_UNITS = ['ratio', 'percent'];
 
 /**
@@ -216,6 +227,18 @@ export const FIELD_FORMATTERS: FieldFormatters = {
           ) : (
             emptyValue
           )}
+        </NumberContainer>
+      );
+    },
+  },
+  rate: {
+    isSortable: true,
+    renderFunc: (field, data, baggage) => {
+      const {unit} = baggage ?? {};
+
+      return (
+        <NumberContainer>
+          {`${formatFloat(data[field], 2)}${unit ? RATE_UNIT_LABELS[unit] : ''}`}
         </NumberContainer>
       );
     },
@@ -288,6 +311,12 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
+    },
+  },
+  percent_change: {
+    isSortable: true,
+    renderFunc: (fieldName, data) => {
+      return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
 };
@@ -624,14 +653,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   team_key_transaction: {
     sortField: null,
     renderFunc: (data, {organization}) => (
-      <Container>
-        <TeamKeyTransactionField
-          isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
-          organization={organization}
-          projectSlug={data.project}
-          transactionName={data.transaction}
-        />
-      </Container>
+      <TeamKeyTransactionField
+        isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
+        organization={organization}
+        projectSlug={data.project}
+        transactionName={data.transaction}
+      />
     ),
   },
   'trend_percentage()': {
@@ -673,6 +700,9 @@ type SpecialFunctionFieldRenderer = (
 ) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
 
 type SpecialFunctions = {
+  sps_percent_change: SpecialFunctionFieldRenderer;
+  time_spent_percentage: SpecialFunctionFieldRenderer;
+  tps_percent_change: SpecialFunctionFieldRenderer;
   user_misery: SpecialFunctionFieldRenderer;
 };
 
@@ -738,6 +768,22 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
           miserableUsers={miserableUsers}
         />
       </BarContainer>
+    );
+  },
+  // N.B. Do not colorize any throughput percent change renderers, since a
+  // change in throughput is not inherently good or bad
+  tps_percent_change: fieldName => data => {
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
+  },
+  sps_percent_change: fieldName => data => {
+    return <PercentChangeCell deltaValue={data[fieldName]} colorize={false} />;
+  },
+  time_spent_percentage: fieldName => data => {
+    return (
+      <TimeSpentCell
+        timeSpentPercentage={data[fieldName]}
+        totalSpanTime={data[`sum(${SpanMetricsFields.SPAN_SELF_TIME})`]}
+      />
     );
   },
 };
@@ -856,7 +902,7 @@ export const spanOperationRelativeBreakdownRenderer = (
                   }
                   event.stopPropagation();
                   const filter = stringToFilter(operationName);
-                  if (filter === SpanOperationBreakdownFilter.None) {
+                  if (filter === SpanOperationBreakdownFilter.NONE) {
                     return;
                   }
                   trackAnalytics('performance_views.relative_breakdown.selection', {

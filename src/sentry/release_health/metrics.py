@@ -45,7 +45,7 @@ from sentry.release_health.base import (
 )
 from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MetricField,
     MetricGroupByField,
@@ -75,7 +75,7 @@ MINUTE = 60  # 60 seconds
 HOUR = MINUTE * 60
 DAY = HOUR * 24
 LEGACY_SESSIONS_DEFAULT_ROLLUP = HOUR
-USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
+USE_CASE_ID = UseCaseID.SESSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -546,12 +546,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 max_date = max_date2
 
         if min_date is not None and max_date is not None:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": iso_format_snuba_datetime(min_date),
                 "sessions_upper_bound": iso_format_snuba_datetime(max_date),
             }
         else:
-            return {  # type: ignore
+            return {
                 "sessions_lower_bound": None,
                 "sessions_upper_bound": None,
             }
@@ -948,7 +948,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         )
         groups = raw_result["groups"]
         ret_val: Dict[ProjectRelease, List[List[int]]] = defaultdict(
-            lambda: _make_stats(start, granularity, buckets)  # type: ignore
+            lambda: _make_stats(start, granularity, buckets)
         )
 
         timestamps = [int(dt.timestamp()) for dt in raw_result["intervals"]]
@@ -1587,7 +1587,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         groups = raw_result["groups"]
         if len(groups) > 0:
-            return get_path(groups[0], "totals", "value", default=0)  # type: ignore
+            return get_path(groups[0], "totals", "value", default=0)
         else:
             return 0
 

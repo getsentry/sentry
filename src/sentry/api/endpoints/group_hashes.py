@@ -71,7 +71,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         return [self.__handle_result(user, project_id, group_id, result) for result in results]
 
     def __handle_result(self, user, project_id, group_id, result):
-        event = eventstore.get_event_by_id(project_id, result["event_id"])
+        event = eventstore.backend.get_event_by_id(project_id, result["event_id"])
 
         return {
             "id": result["primary_hash"],

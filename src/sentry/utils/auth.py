@@ -12,13 +12,13 @@ from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
-from django.utils.http import is_safe_url
 
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -145,7 +145,7 @@ def get_org_redirect_url(request: HttpRequest, active_organization: RpcOrganizat
 
     # TODO(dcramer): deal with case when the user cannot create orgs
     if active_organization:
-        return cast(str, Organization.get_url(active_organization.slug))
+        return Organization.get_url(active_organization.slug)
     if not features.has("organizations:create"):
         return "/auth/login/"
     return "/organizations/new/"
@@ -158,7 +158,7 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If there is a pending 2fa authentication bound to the session then
     # we need to go to the 2fa dialog.
     if has_pending_2fa(request):
-        return cast(str, reverse("sentry-2fa-dialog"))
+        return reverse("sentry-2fa-dialog")
 
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.
@@ -201,7 +201,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         else:
             allowed_hosts = set(allowed_hosts)
             allowed_hosts.add(url_host)
-    return cast(bool, is_safe_url(url, allowed_hosts=allowed_hosts))
+    return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
 
 
 def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
@@ -372,7 +372,7 @@ def set_active_org(request: HttpRequest, org_slug: str) -> None:
         request.session["activeorg"] = org_slug
 
 
-class EmailAuthBackend(ModelBackend):  # type: ignore
+class EmailAuthBackend(ModelBackend):
     """
     Authenticate against django.contrib.auth.models.User.
 

@@ -2,7 +2,6 @@ import logging
 from copy import copy
 from datetime import datetime
 
-from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
@@ -13,6 +12,7 @@ from sentry import audit_log, roles
 from sentry.api.base import ONE_DAY, region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
+from sentry.api.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.api.fields import AvatarField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
@@ -22,7 +22,7 @@ from sentry.api.serializers.models.organization import (
     TrustedRelaySerializer,
 )
 from sentry.api.serializers.rest_framework import ListField
-from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS
+from sentry.constants import LEGACY_RATE_LIMIT_OPTIONS, SentryAppStatus
 from sentry.datascrubbing import validate_pii_config_update
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
@@ -36,13 +36,14 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    OutboxFlushError,
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.models.integrations import SentryApp
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization_mapping import (
-    RpcOrganizationMappingUpdate,
-    organization_mapping_service,
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.utils.cache import memoize
 
@@ -51,6 +52,7 @@ ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
+ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -126,6 +128,12 @@ ORG_OPTIONS = (
         bool,
         org_serializers.AI_SUGGESTED_SOLUTION,
     ),
+    (
+        "githubPRBot",
+        "sentry:github_pr_bot",
+        bool,
+        org_serializers.GITHUB_PR_BOT_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -169,6 +177,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     isEarlyAdopter = serializers.BooleanField(required=False)
     aiSuggestedSolution = serializers.BooleanField(required=False)
     codecovAccess = serializers.BooleanField(required=False)
+    githubPRBot = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
@@ -194,6 +203,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     def validate_sensitiveFields(self, value):
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
+        if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
+            raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
     def validate_safeFields(self, value):
@@ -516,37 +527,17 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             context={"organization": organization, "user": request.user, "request": request},
         )
         if serializer.is_valid():
+            changed_data = {}
             try:
                 with transaction.atomic():
                     organization, changed_data = serializer.save()
-                    result = serializer.validated_data
-
-                    if "slug" in changed_data:
-                        organization_mapping_service.create(
-                            organization_id=organization.id,
-                            slug=organization.slug,
-                            name=organization.name,
-                            idempotency_key=result.get("idempotencyKey", ""),
-                            customer_id=organization.customer_id,
-                            region_name=settings.SENTRY_REGION or "us",
-                        )
-                    elif "name" in changed_data:
-                        organization_mapping_service.update(
-                            organization_id=organization.id,
-                            update=RpcOrganizationMappingUpdate(name=organization.name),
-                        )
-            # TODO(hybrid-cloud): This will need to be a more generic error
-            # when the internal RPC is implemented.
             except IntegrityError:
                 return self.respond(
                     {"slug": ["An organization with this slug already exists."]},
                     status=status.HTTP_409_CONFLICT,
                 )
-
-            # Send outbox message to clean up mappings after organization
-            # creation transaction
-            outbox = Organization.outbox_to_verify_mapping(organization.id)
-            outbox.save()
+            except OutboxFlushError:
+                pass
 
             if was_pending_deletion:
                 self.create_audit_entry(
@@ -584,24 +575,30 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond({"detail": ERR_NO_USER}, status=401)
         if organization.is_default:
             return self.respond({"detail": ERR_DEFAULT_ORG}, status=400)
+        if SentryApp.objects.filter(
+            owner_id=organization.id, status=SentryAppStatus.PUBLISHED
+        ).exists():
+            return self.respond({"detail": ERR_3RD_PARTY_PUBLISHED_APP}, status=400)
 
         with transaction.atomic():
-            updated = Organization.objects.filter(
-                id=organization.id, status=OrganizationStatus.ACTIVE
-            ).update(status=OrganizationStatus.PENDING_DELETION)
-            if updated:
-                organization.status = OrganizationStatus.PENDING_DELETION
+            updated_organization = mark_organization_as_pending_deletion_with_outbox_message(
+                org_id=organization.id
+            )
+
+            if updated_organization is not None:
                 schedule = ScheduledDeletion.schedule(organization, days=1, actor=request.user)
                 entry = self.create_audit_entry(
                     request=request,
-                    organization=organization,
-                    target_object=organization.id,
+                    organization=updated_organization,
+                    target_object=updated_organization.id,
                     event=audit_log.get_event_id("ORG_REMOVE"),
-                    data=organization.get_audit_log_data(),
+                    data=updated_organization.get_audit_log_data(),
                     transaction_id=schedule.guid,
                 )
-                organization.send_delete_confirmation(entry, ONE_DAY)
-                Organization.objects.uncache_object(organization.id)
+                updated_organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(updated_organization.id)
+
+            organization.status = OrganizationStatus.PENDING_DELETION
         context = serialize(
             organization,
             request.user,

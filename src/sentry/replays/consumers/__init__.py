@@ -7,7 +7,6 @@ from arroyo.backends.kafka.configuration import build_kafka_consumer_configurati
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from django.conf import settings
 
 from sentry.replays.consumers.recording import (
     ProcessReplayRecordingStrategyFactory,
@@ -52,7 +51,7 @@ def get_replays_recordings_consumer(
 def get_config(
     topic: str, group_id: str, auto_offset_reset: str, force_cluster: str | None
 ) -> MutableMapping[str, Any]:
-    cluster_name: str = force_cluster or settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_name: str = force_cluster or kafka_config.get_topic_definition(topic)["cluster"]
     return build_kafka_consumer_configuration(
         kafka_config.get_kafka_consumer_cluster_options(
             cluster_name,

@@ -1,10 +1,43 @@
+import {getCrumbDescriptionAndColor} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 // Replay SDK can send `data` that does not conform to our issue/event breadcrumbs
-type MaybeCrumbData = null | Record<string, unknown>;
+type MaybeCrumbData = null | Record<string, any>;
+
+function stringifyNodeAttributes(tagName: string, attributes: Record<string, string>) {
+  const attributesEntries = Object.entries(attributes);
+  return `${tagName}${
+    attributesEntries.length
+      ? attributesEntries.map(([attr, val]) => `[${attr}="${val}"]`).join('')
+      : ''
+  }`;
+}
+
+function getColor(crumb: Crumb) {
+  const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
+  if (crumb.category === 'ui.slowClickDetected') {
+    return getCrumbDescriptionAndColor(
+      crumbData!.endReason === 'timeout' ? BreadcrumbType.ERROR : BreadcrumbType.WARNING
+    ).color;
+  }
+
+  return crumb.color;
+}
+
+function getType(crumb: Crumb) {
+  const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
+
+  if (crumb.category === 'ui.slowClickDetected') {
+    return crumbData!.endReason === 'timeout'
+      ? BreadcrumbType.ERROR
+      : BreadcrumbType.WARNING;
+  }
+
+  return crumb.type;
+}
 
 /**
  * Generate breadcrumb descriptions based on type
@@ -38,9 +71,34 @@ export function getDescription(crumb: Crumb) {
     }
   }
 
-  if (crumb.category === 'replay.mutations') {
+  if (crumb.category === 'ui.slowClickDetected') {
+    const node = crumbData!.node as {attributes: Record<string, string>; tagName: string};
+    if (crumbData!.endReason !== 'timeout') {
+      return t(
+        'Click on %s took %s ms to have a visible effect',
+        stringifyNodeAttributes(node.tagName, node.attributes),
+        crumbData!.timeAfterClickMs
+      );
+    }
+
+    return t(
+      'Click on %s did not cause a visible effect within %s ms',
+      stringifyNodeAttributes(node.tagName, node.attributes),
+      crumbData!.timeAfterClickMs
+    );
+  }
+
+  if (crumb.category === 'replay.mutations' && !crumbData?.limit) {
     return t(
       'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
+      crumbData?.count
+    );
+  }
+
+  // Reached the mutation limit where we stop replays
+  if (crumb.category === 'replay.mutations' && crumbData?.limit) {
+    return t(
+      'A large number of mutations was detected (%s). Replay is now stopped to prevent poor performance for your customer.',
       crumbData?.count
     );
   }
@@ -73,6 +131,14 @@ export function getTitle(crumb: Crumb) {
     return crumb.message ?? crumb.description;
   }
   const [type, action] = crumb.category.split('.') || [];
+
+  if (action === 'slowClickDetected') {
+    if ((crumb.data as Record<string, unknown> | undefined)?.endReason === 'timeout') {
+      return 'Dead Click';
+    }
+    return 'Slow Click';
+  }
+
   if (type === 'ui') {
     return `User ${action || ''}`;
   }
@@ -88,11 +154,14 @@ export function getProjectSlug(crumb: Crumb) {
   }
   return null;
 }
+
 /**
  * Generate breadcrumb title + descriptions
  */
 export function getDetails(crumb: Crumb) {
   return {
+    color: getColor(crumb),
+    type: getType(crumb),
     title: getTitle(crumb),
     description: getDescription(crumb),
     projectSlug: getProjectSlug(crumb),

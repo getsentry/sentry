@@ -1,12 +1,11 @@
 from contextlib import contextmanager
 from typing import Iterable
-from unittest import mock
 
-from sentry.types.region import Region, _RegionMapping
+from sentry.types import region
 
 
 @contextmanager
-def override_regions(regions: Iterable[Region]):
+def override_regions(regions: Iterable[region.Region]):
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
@@ -15,10 +14,15 @@ def override_regions(regions: Iterable[Region]):
     because the region mapping may already be cached.
     """
 
-    mapping = _RegionMapping(regions)
+    mapping = region.GlobalRegionDirectory(list(regions))
 
-    def override() -> _RegionMapping:
+    def override() -> region.GlobalRegionDirectory:
         return mapping
 
-    with mock.patch("sentry.types.region._load_global_regions", new=override):
+    existing = region.load_global_regions
+    region.load_global_regions = override
+
+    try:
         yield
+    finally:
+        region.load_global_regions = existing

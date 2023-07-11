@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import ActivityAuthor from 'sentry/components/activity/author';
-import ActivityItem from 'sentry/components/activity/item';
+import {ActivityAuthor} from 'sentry/components/activity/author';
+import {ActivityItem} from 'sentry/components/activity/item';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {IconCopy} from 'sentry/icons';

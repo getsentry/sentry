@@ -1,9 +1,12 @@
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
+from functools import wraps
 from itertools import groupby
 from typing import (
     Any,
+    Callable,
+    Collection,
     Mapping,
     MutableMapping,
     MutableSequence,
@@ -18,7 +21,8 @@ from typing import (
 )
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.utils import metrics
 from sentry.utils.services import Service
 
 
@@ -395,6 +399,39 @@ class UseCaseKeyResults:
         return self.results[use_case_id]
 
 
+def to_use_case_id(use_case: Union[UseCaseID, UseCaseKey]) -> UseCaseID:
+    if isinstance(use_case, UseCaseKey):
+        use_case = REVERSE_METRIC_PATH_MAPPING[use_case]
+        metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
+    return use_case
+
+
+def metric_path_key_compatible_resolve(
+    resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
+    @wraps(resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
+    ) -> Optional[int]:
+        use_case_id = to_use_case_id(use_case_id)
+        return resolve_func(self, use_case_id, org_id, string)
+
+    return wrapper
+
+
+def metric_path_key_compatible_rev_resolve(
+    rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
+) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
+    @wraps(rev_resolve_func)
+    def wrapper(
+        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
+    ) -> Optional[str]:
+        use_case_id = to_use_case_id(use_case_id)
+        return rev_resolve_func(self, use_case_id, org_id, id)
+
+    return wrapper
+
+
 class StringIndexer(Service):
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -410,6 +447,7 @@ class StringIndexer(Service):
         "bulk_record",
         "resolve_shared_org",
         "reverse_shared_org_resolve",
+        "bulk_reverse_resolve",
     )
 
     def bulk_record(
@@ -449,25 +487,37 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
+    @metric_path_key_compatible_resolve
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: UseCaseKey, org_id: int, id: int) -> Optional[str]:
+    @metric_path_key_compatible_rev_resolve
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
+        This function is backwards compatible with UseCaseKey while call sites that still uses
+        UseCaseKey are being cleaned up, but callers should always use UseCaseID from now on.
 
         Returns None if the entry cannot be found.
+        """
+        raise NotImplementedError()
+
+    def bulk_reverse_resolve(
+        self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
+    ) -> Mapping[int, str]:
+        """Lookup the stored strings for multiple ids belonging to the same use-case and organisation.
+
+        Returns a mapping between the ids and their corresponding string values.
+        If an id can't be mapped the return value will not contain any entry for this id.
         """
         raise NotImplementedError()
 

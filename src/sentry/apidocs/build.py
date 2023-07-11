@@ -12,6 +12,17 @@ def get_old_json_paths(filename: str) -> json.JSONData:
     return old_raw_paths
 
 
+def get_old_json_components(filename: str) -> json.JSONData:
+    try:
+        with open(filename) as f:
+            old_raw_components = json.load(f)["components"]
+    except OSError:
+        raise Exception(
+            "Generate old OpenAPI files before running this command. Run `make build-api-docs` directly."
+        )
+    return old_raw_components
+
+
 OPENAPI_TAGS = [
     {
         "name": "Teams",

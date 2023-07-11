@@ -17,6 +17,7 @@ export interface OrganizationSummary {
   codecovAccess: boolean;
   dateCreated: string;
   features: string[];
+  githubPRBot: boolean;
   id: string;
   isEarlyAdopter: boolean;
   links: {
@@ -122,6 +123,8 @@ export interface Member {
     'sso:invalid': boolean;
     'sso:linked': boolean;
   };
+  // TODO: Move to global store
+  groupOrgRoles: {role: OrgRole; teamSlug: string}[];
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
   invite_link: string | null;
@@ -129,21 +132,28 @@ export interface Member {
   isOnlyOwner: boolean;
   name: string;
   orgRole: OrgRole['id'];
-  orgRoleList: OrgRole[]; // TODO: Move to global store
-  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
+  orgRoleList: OrgRole[];
   pending: boolean | undefined;
   projects: string[];
 
-  // Avoid using these keys
-  role: OrgRole['id']; // Deprecated: use orgRole
+  /**
+   * @deprecated use orgRole
+   */
+  role: OrgRole['id'];
   roleName: string;
-  roles: OrgRole[]; // Deprecated: use orgRoleList
+  /**
+   * @deprecated use orgRoleList
+   */
+  roles: OrgRole[];
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
     role: string | null;
     teamSlug: string;
   }[];
+  /**
+   * @deprecated use teamRoles
+   */
   teams: string[]; // # Deprecated, use teamRoles
   /**
    * User may be null when the member represents an invited member
@@ -199,20 +209,20 @@ export type SavedQueryVersions = 1 | 2;
 export interface NewQuery {
   fields: Readonly<string[]>;
   name: string;
-  projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
   dataset?: DiscoverDatasets;
   display?: string;
-  end?: string;
+  end?: string | Date;
   environment?: Readonly<string[]>;
   expired?: boolean;
   id?: string;
   interval?: string;
   orderby?: string;
+  projects?: Readonly<number[]>;
   query?: string;
   range?: string;
-  start?: string;
+  start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;
   topEvents?: string;
   utc?: boolean | string;

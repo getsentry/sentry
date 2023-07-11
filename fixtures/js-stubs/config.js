@@ -39,7 +39,8 @@ export function Config(params = {}) {
     sentryConfig: {
       dsn: 'test-dsn',
       release: '1.0.0.-dev',
-      whitelistUrls: [],
+      allowUrls: [],
+      tracePropagationTargets: [],
     },
     distPrefix: '',
     apmSampling: 1,

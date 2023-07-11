@@ -4,7 +4,7 @@ import {components} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SelectControl, {
   StylesConfig,
 } from 'sentry/components/forms/controls/selectControl';
@@ -62,6 +62,8 @@ type Props = ModalRenderProps & {
   organizations: Organization[];
 
   projects: Project[];
+
+  allowAllProjectsSelection?: boolean;
 };
 
 const selectStyles: StylesConfig = {
@@ -263,7 +265,7 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects} = this.props;
+    const {organization, projects, allowAllProjectsSelection} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
 
@@ -281,7 +283,7 @@ class ContextPickerModal extends Component<Props> {
         options: nonMemberProjects.map(p => ({
           value: p.slug,
           label: p.slug,
-          disabled: isSuperuser ? false : true,
+          disabled: allowAllProjectsSelection ? false : !isSuperuser,
         })),
       },
     ];
@@ -422,20 +424,25 @@ type ContainerProps = Omit<
   | 'onSelectOrganization'
   | 'integrationConfigs'
 > & {
+  allowAllProjectsSelection?: boolean;
   configUrl?: string;
+
   /**
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-} & AsyncComponent['props'];
+} & DeprecatedAsyncComponent['props'];
 
 type ContainerState = {
   organizations: Organization[];
   integrationConfigs?: Integration[];
   selectedOrganization?: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
+class ContextPickerModalContainer extends DeprecatedAsyncComponent<
+  ContainerProps,
+  ContainerState
+> {
   getDefaultState() {
     const storeState = OrganizationStore.get();
     return {
@@ -445,7 +452,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {configUrl} = this.props;
     if (configUrl) {
       return [['integrationConfigs', configUrl]];
@@ -484,6 +491,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
         organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
         integrationConfigs={integrationConfigs || []}
+        allowAllProjectsSelection={this.props.allowAllProjectsSelection}
       />
     );
   }

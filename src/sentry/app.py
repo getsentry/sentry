@@ -1,9 +1,14 @@
+from __future__ import annotations
+
 from threading import local
+from typing import Any
+
+from django.http.request import HttpRequest
 
 
 class State(local):
-    request = None
-    data = {}
+    request: HttpRequest | None = None
+    data: dict[str, Any] = {}
 
 
 env = State()

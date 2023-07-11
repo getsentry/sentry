@@ -68,6 +68,8 @@ export type MetaType = Record<string, ColumnType> & {
   units?: Record<string, string>;
 };
 export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  units: Record<string, string>;
+} & {
   isMetricsData?: boolean;
 };
 
@@ -302,7 +304,6 @@ class EventView {
   dataset?: DiscoverDatasets;
 
   constructor(props: {
-    additionalConditions: MutableSearch;
     createdBy: User | undefined;
     display: string | undefined;
     end: string | undefined;
@@ -317,11 +318,12 @@ class EventView {
     statsPeriod: string | undefined;
     team: Readonly<('myteams' | number)[]>;
     topEvents: string | undefined;
-    yAxis: string | string[] | undefined;
+    additionalConditions?: MutableSearch;
     dataset?: DiscoverDatasets;
     expired?: boolean;
     interval?: string;
     utc?: string | boolean | undefined;
+    yAxis?: string | string[] | undefined;
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
@@ -454,7 +456,7 @@ class EventView {
       fields,
       query: queryStringFromSavedQuery(saved),
       team: saved.teams ?? [],
-      project: saved.projects,
+      project: saved.projects ?? [],
       start: decodeScalar(start),
       end: decodeScalar(end),
       statsPeriod: decodeScalar(statsPeriod),
@@ -1066,7 +1068,7 @@ class EventView {
   }
 
   // returns query input for the search
-  getQuery(inputQuery: string | string[] | null | undefined): string {
+  getQuery(inputQuery: string | string[] | null | undefined = undefined): string {
     const queryParts: string[] = [];
 
     if (this.query) {

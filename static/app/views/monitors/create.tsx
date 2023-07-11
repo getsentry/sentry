@@ -4,20 +4,14 @@ import {browserHistory} from 'react-router';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
 
 import CronsFeedbackButton from './components/cronsFeedbackButton';
 import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] & {
-  organization: Organization;
-};
-
-function CreateMonitor({}: Props) {
+function CreateMonitor() {
   const {slug: orgSlug} = useOrganization();
 
   function onSubmitSuccess(data: Monitor) {

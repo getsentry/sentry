@@ -16,8 +16,8 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import DateArg
 from sentry.snuba import discover
+from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.snuba import Dataset
 
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",

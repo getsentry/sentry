@@ -3,7 +3,17 @@ from __future__ import annotations
 import logging
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, MutableMapping, Tuple
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+)
 
 from django.db import models
 
@@ -177,7 +187,7 @@ class ActionRegistration(metaclass=ABCMeta):
 
     @classmethod
     def serialize_available(
-        cls, organization: Organization, integrations: List[RpcIntegration] = None
+        cls, organization: Organization, integrations: Optional[List[RpcIntegration]] = None
     ) -> List[JSONData]:
         """
         Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.

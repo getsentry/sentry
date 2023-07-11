@@ -86,6 +86,7 @@ declare namespace Profiling {
       name: string;
       version: string;
     };
+    received: string;
     timestamp: string;
     release: Release | null;
     platform: string;

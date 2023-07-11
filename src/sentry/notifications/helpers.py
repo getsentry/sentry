@@ -203,7 +203,11 @@ def transform_to_notification_settings_by_recipient(
         ],
     ] = defaultdict(lambda: defaultdict(dict))
     for ns in notification_settings:
-        recipient = team_mapping[ns.team_id] if ns.team_id else user_mapping[ns.user_id]
+        if ns.team_id is not None:
+            recipient = team_mapping[ns.team_id]
+        else:
+            assert ns.user_id is not None
+            recipient = user_mapping[ns.user_id]
         scope_type = NotificationScopeType(ns.scope_type)
         value = NotificationSettingOptionValues(ns.value)
         provider = ExternalProviders(ns.provider)
@@ -270,9 +274,8 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user: User | None = None,
-    team: Team | None = None,
-    actor: RpcActor | None = None,
+    user: User | int | None = None,
+    team: Team | int | None = None,
     project: Project | int | None = None,
     organization: Organization | int | None = None,
 ) -> tuple[NotificationScopeType, int]:
@@ -286,17 +289,10 @@ def get_scope(
     if organization:
         return NotificationScopeType.ORGANIZATION, extract_id_from(organization)
 
-    if not actor:
-        if user is not None:
-            actor = RpcActor.from_object(user, fetch_actor=False)
-        if team is not None:
-            actor = RpcActor.from_object(team, fetch_actor=False)
-
-    if actor:
-        if actor.actor_type == ActorType.TEAM:
-            return NotificationScopeType.TEAM, extract_id_from(actor)
-        else:
-            return NotificationScopeType.USER, extract_id_from(actor)
+    if user is not None:
+        return NotificationScopeType.USER, extract_id_from(user)
+    if team is not None:
+        return NotificationScopeType.TEAM, extract_id_from(team)
 
     raise Exception("scope must be either user, team, organization, or project")
 
@@ -374,10 +370,11 @@ def get_user_subscriptions_for_groups(
     implicitly subscribed (or if they can subscribe at all.)
     """
     results = {}
+    actor = RpcActor.from_orm_user(user)
     for project_id, groups in groups_by_project.items():
         notification_settings_by_provider = get_values_by_provider(
             notification_settings_by_scope,
-            recipient=RpcActor.from_orm_user(user),
+            recipient=actor,
             parent_id=project_id,
             type=NotificationSettingTypes.WORKFLOW,
         )

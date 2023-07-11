@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {FieldObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -31,16 +32,16 @@ import {
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   organizations: Organization[];
 };
 
 type State = {
   legacyData: {[key: string]: string};
   notificationSettings: NotificationSettingsObject;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class NotificationSettings extends AsyncComponent<Props, State> {
+class NotificationSettings extends DeprecatedAsyncComponent<Props, State> {
   model = new FormModel();
 
   getDefaultState(): State {
@@ -51,7 +52,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
       ['notificationSettings', `/users/me/notification-settings/`],
       ['legacyData', '/users/me/notifications/'],
@@ -59,6 +60,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 
   componentDidMount() {
+    super.componentDidMount();
     // only tied to a user
     trackAnalytics('notification_settings.index_page_viewed', {
       organization: null,
@@ -185,8 +187,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   renderBody() {
     return (
       <Fragment>
-        <SettingsPageHeader title="Notifications" />
-        <TextBlock>Personal notifications sent by email or an integration.</TextBlock>
+        <SentryDocumentTitle title={t('Notifications')} />
+        <SettingsPageHeader title={t('Notifications')} />
+        <TextBlock>
+          {t('Personal notifications sent by email or an integration.')}
+        </TextBlock>
         <Form
           model={this.model}
           saveOnBlur

@@ -6,7 +6,7 @@ from typing import Any, Mapping, Union
 import sentry_sdk
 from arroyo import configure_metrics
 from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies import RunTaskInThreads, RunTaskWithMultiprocessing, TransformStep
+from arroyo.processing.strategies import RunTask, RunTaskInThreads, RunTaskWithMultiprocessing
 from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
@@ -86,7 +86,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
                 next_step=CommitOffsets(commit),
             )
 
-        return TransformStep(
+        return RunTask(
             function=initialize_message_context,
             next_step=step,
         )

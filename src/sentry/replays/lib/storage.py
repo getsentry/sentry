@@ -16,7 +16,8 @@ from django.db.utils import IntegrityError
 from google.api_core.exceptions import TooManyRequests
 
 from sentry import options
-from sentry.models.file import File, get_storage
+from sentry.models.files.file import File
+from sentry.models.files.utils import get_storage
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils import metrics
 
@@ -157,6 +158,8 @@ class StorageBlob(Blob):
         backend = options.get("replay.storage.backend")
         if backend:
             return {"backend": backend, "options": options.get("replay.storage.options")}
+        else:
+            return None
 
 
 def make_filename(segment: RecordingSegmentStorageMeta) -> str:

@@ -11,6 +11,7 @@ from sentry.integrations.notifications import get_context, get_integrations_by_c
 from sentry.models import Team, User
 from sentry.notifications.notifications.activity import (
     AssignedActivityNotification,
+    EscalatingActivityNotification,
     NoteActivityNotification,
     RegressionActivityNotification,
     ReleaseActivityNotification,
@@ -42,6 +43,7 @@ SUPPORTED_NOTIFICATION_TYPES = [
     ResolvedInReleaseActivityNotification,
     ReleaseActivityNotification,
     RegressionActivityNotification,
+    EscalatingActivityNotification,
 ]
 MESSAGE_BUILDERS = {
     "SlackNotificationsMessageBuilder": MSTeamsNotificationsMessageBuilder,

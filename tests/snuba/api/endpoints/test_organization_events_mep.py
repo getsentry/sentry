@@ -2122,46 +2122,68 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
-    def test_os_name_incompatible(self):
+    def test_http_error_rate(self):
         self.store_transaction_metric(
             1,
-            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            tags={
+                "transaction": "foo_transaction",
+                "transaction.status": "foobar",
+                "http.status_code": "500",
+            },
+            timestamp=self.min_ago,
+        )
+
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "bar_transaction", "http.status_code": "400"},
             timestamp=self.min_ago,
         )
 
         response = self.do_request(
             {
                 "field": [
-                    "os.name",
-                    "p90()",
+                    "http_error_rate()",
                 ],
-                "query": "transaction:foo_transaction",
                 "dataset": "metrics",
             }
         )
-        assert response.status_code == 400, response.content
-        assert response.data["detail"] == "os.name is unavailable"
 
-    def test_os_name_falls_back(self):
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["http_error_rate()"] == 0.5
+        meta = response.data["meta"]
+        assert meta["isMetricsData"]
+
+    def test_time_spent(self):
         self.store_transaction_metric(
             1,
             tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
             timestamp=self.min_ago,
         )
 
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "bar_transaction"},
+            timestamp=self.min_ago,
+        )
+
         response = self.do_request(
             {
                 "field": [
-                    "os.name",
-                    "p75()",
+                    "transaction",
+                    "time_spent_percentage()",
                 ],
-                "query": "transaction:foo_transaction",
-                "dataset": "metricsEnhanced",
+                "dataset": "metrics",
             }
         )
+
         assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["time_spent_percentage()"] == 0.5
         meta = response.data["meta"]
-        assert not meta["isMetricsData"]
+        assert meta["isMetricsData"]
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
@@ -2185,4 +2207,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
+        super().test_having_condition()
+
+    @pytest.mark.xfail(reason="Not supported")
+    def test_time_spent(self):
+        super().test_custom_measurement_size_filtering()
+
+    @pytest.mark.xfail(reason="Not supported")
+    def test_http_error_rate(self):
         super().test_having_condition()

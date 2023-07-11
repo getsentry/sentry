@@ -11,6 +11,7 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.snuba.dataset import Dataset
 from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 
@@ -32,7 +33,7 @@ class IntermediateSearchQueryPartial(Protocol):
 class SearchQueryPartial(Protocol):
     def __call__(
         self,
-        dataset: snuba.Dataset,
+        dataset: Dataset,
         selected_columns: Sequence[Any],
         filter_keys: Mapping[str, Sequence[int]],
         conditions: Sequence[Any],
@@ -122,7 +123,7 @@ def _query_params_for_error(
     )
 
     params = query_partial(
-        dataset=snuba.Dataset.Discover,
+        dataset=Dataset.Discover,
         selected_columns=selected_columns,
         filter_keys=filters,
         conditions=error_conditions,
@@ -183,13 +184,13 @@ def _query_params_for_perf(
             aggregations.insert(0, ["arrayJoin", ["group_ids"], "group_id"])
 
         params = query_partial(
-            dataset=snuba.Dataset.Discover,
+            dataset=Dataset.Discover,
             selected_columns=selected_columns,
             filter_keys=filters,
             conditions=transaction_conditions,
             aggregations=aggregations,
             condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.Transactions
+                snuba.get_snuba_column_name, dataset=Dataset.Transactions
             ),
         )
 
@@ -232,13 +233,13 @@ def _query_params_for_generic(
             filters["group_id"] = sorted(group_ids)
 
         params = query_partial(
-            dataset=snuba.Dataset.IssuePlatform,
+            dataset=Dataset.IssuePlatform,
             selected_columns=selected_columns,
             filter_keys=filters,
             conditions=conditions,
             aggregations=aggregations,
             condition_resolver=functools.partial(
-                snuba.get_snuba_column_name, dataset=snuba.Dataset.IssuePlatform
+                snuba.get_snuba_column_name, dataset=Dataset.IssuePlatform
             ),
         )
 
@@ -251,14 +252,8 @@ def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
     for group_category in GroupCategory:
         if group_category == GroupCategory.ERROR:
             strategy = _query_params_for_error
-        elif group_category == GroupCategory.PERFORMANCE:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PERFORMANCE]
-            )
         else:
-            strategy = functools.partial(
-                _query_params_for_generic, categories=[GroupCategory.PROFILE]
-            )
+            strategy = functools.partial(_query_params_for_generic, categories=[group_category])
         strategies[group_category.value] = strategy
     return strategies
 

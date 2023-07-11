@@ -1,117 +1,95 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import {Location} from 'history';
-import _orderBy from 'lodash/orderBy';
+import pick from 'lodash/pick';
 
-import DatePageFilter from 'sentry/components/datePageFilter';
-import SearchBar from 'sentry/components/searchBar';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {HOST} from 'sentry/views/starfish/utils/constants';
+import {fromSorts} from 'sentry/utils/discover/eventView';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {useLocation} from 'sentry/utils/useLocation';
+import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
+import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
+import {ModuleName} from 'sentry/views/starfish/types';
+import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
+import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
+import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors/spanOperationSelector';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
-import {getSpanListQuery, getSpansTrendsQuery} from './queries';
-import type {SpanDataRow, SpanTrendDataRow} from './spansTable';
-import SpansTable from './spansTable';
+import SpansTable, {isAValidSort} from './spansTable';
 
+const DEFAULT_SORT: Sort = {
+  kind: 'desc',
+  field: 'time_spent_percentage()',
+};
 const LIMIT: number = 25;
 
 type Props = {
-  location: Location;
-  onSelect: (row: SpanDataRow) => void;
+  moduleName?: ModuleName;
+  spanCategory?: string;
 };
 
-type State = {
-  orderBy: string;
+type Query = {
+  'span.action': string;
+  'span.domain': string;
+  'span.group': string;
+  'span.op': string;
+  [QueryParameterNames.SORT]: string;
 };
 
 export default function SpansView(props: Props) {
-  const location = props.location;
-  const pageFilter = usePageFilters();
-  const [state, setState] = useState<State>({orderBy: 'total_exclusive_time'});
+  const location = useLocation<Query>();
+  const appliedFilters = pick(location.query, [
+    'span.action',
+    'span.domain',
+    'span.op',
+    'span.group',
+  ]);
 
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [didConfirmSearch, setDidConfirmSearch] = useState<boolean>(false);
-  const {orderBy} = state;
-
-  const descriptionFilter = didConfirmSearch && searchTerm ? `${searchTerm}` : undefined;
-  const queryConditions = buildQueryFilterFromLocation(location);
-
-  const {isLoading: areSpansLoading, data: spansData} = useQuery<SpanDataRow[]>({
-    queryKey: ['spans', descriptionFilter, orderBy, pageFilter.selection.datetime],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpanListQuery(
-          descriptionFilter,
-          pageFilter.selection.datetime,
-          queryConditions,
-          orderBy,
-          LIMIT
-        )}&format=sql`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-  });
-
-  const groupIDs = spansData.map(({group_id}) => group_id);
-
-  const {isLoading: areSpansTrendsLoading, data: spansTrendsData} = useQuery<
-    SpanTrendDataRow[]
-  >({
-    queryKey: ['spansTrends', descriptionFilter],
-    queryFn: () =>
-      fetch(
-        `${HOST}/?query=${getSpansTrendsQuery(
-          descriptionFilter,
-          pageFilter.selection.datetime,
-          groupIDs
-        )}`
-      ).then(res => res.json()),
-    retry: false,
-    refetchOnWindowFocus: false,
-    initialData: [],
-    enabled: groupIDs.length > 0,
-  });
+  const sort =
+    fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
+    DEFAULT_SORT; // We only allow one sort on this table in this view
 
   return (
     <Fragment>
-      <FilterOptionsContainer>
-        <DatePageFilter alignDropdown="left" />
-      </FilterOptionsContainer>
-
-      <PaddedContainer>
-        <SearchBar
-          onChange={value => {
-            setSearchTerm(value);
-            setDidConfirmSearch(false);
-          }}
-          placeholder="Search Spans"
-          query={searchTerm}
-          onSearch={() => {
-            setDidConfirmSearch(true);
-          }}
-        />
-      </PaddedContainer>
+      <StyledPageFilterBar condensed>
+        <StarfishProjectSelector />
+        <StarfishDatePicker />
+      </StyledPageFilterBar>
 
       <PaddedContainer>
         <SpanTimeCharts
-          descriptionFilter={descriptionFilter || ''}
-          queryConditions={queryConditions}
+          moduleName={props.moduleName || ModuleName.ALL}
+          appliedFilters={appliedFilters}
+          spanCategory={props.spanCategory}
         />
       </PaddedContainer>
+      <FilterOptionsContainer>
+        <SpanOperationSelector
+          moduleName={props.moduleName}
+          value={appliedFilters['span.op'] || ''}
+          spanCategory={props.spanCategory}
+        />
+
+        <ActionSelector
+          moduleName={props.moduleName}
+          value={appliedFilters['span.action'] || ''}
+          spanCategory={props.spanCategory}
+        />
+
+        <DomainSelector
+          moduleName={props.moduleName}
+          value={appliedFilters['span.domain'] || ''}
+          spanCategory={props.spanCategory}
+        />
+      </FilterOptionsContainer>
 
       <PaddedContainer>
         <SpansTable
-          location={props.location}
-          queryConditions={queryConditions}
-          isLoading={areSpansLoading || areSpansTrendsLoading}
-          spansData={spansData}
-          orderBy={orderBy}
-          onSetOrderBy={newOrderBy => setState({orderBy: newOrderBy})}
-          spansTrendsData={spansTrendsData}
-          onSelect={props.onSelect}
+          moduleName={props.moduleName || ModuleName.ALL}
+          spanCategory={props.spanCategory}
+          sort={sort}
+          limit={LIMIT}
         />
       </PaddedContainer>
     </Fragment>
@@ -119,7 +97,7 @@ export default function SpansView(props: Props) {
 }
 
 const PaddedContainer = styled('div')`
-  margin: ${space(2)};
+  margin: 0 ${space(2)};
 `;
 
 const FilterOptionsContainer = styled(PaddedContainer)`
@@ -129,19 +107,7 @@ const FilterOptionsContainer = styled(PaddedContainer)`
   margin-bottom: ${space(2)};
 `;
 
-export const SPAN_FILTER_KEYS = ['action', 'span_operation', 'domain'];
-export const SPAN_FILTER_KEY_LABELS = {
-  action: 'Action',
-  span_operation: 'Operation',
-  domain: 'Domain',
-};
-
-const buildQueryFilterFromLocation = (location: Location) => {
-  const {query} = location;
-  const result = Object.keys(query)
-    .filter(key => SPAN_FILTER_KEYS.includes(key))
-    .map(key => {
-      return `${key} = '${query[key]}'`;
-    });
-  return result;
-};
+const StyledPageFilterBar = styled(PageFilterBar)`
+  margin: 0 ${space(2)};
+  margin-bottom: ${space(2)};
+`;

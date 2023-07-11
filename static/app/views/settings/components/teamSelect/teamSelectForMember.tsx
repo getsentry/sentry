@@ -93,7 +93,7 @@ function TeamSelect({
             team={team}
             member={{
               ...member,
-              orgRolesFromTeams: [{role: effectiveOrgRole, teamSlug: ''}],
+              groupOrgRoles: [{role: effectiveOrgRole, teamSlug: ''}],
               orgRole: selectedOrgRole,
               teamRoles: selectedTeamRoles,
             }}

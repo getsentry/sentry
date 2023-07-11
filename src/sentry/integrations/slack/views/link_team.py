@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from sentry import analytics
 from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -51,7 +50,7 @@ def build_team_linking_url(
     )
 
 
-class SelectTeamForm(forms.Form):  # type: ignore
+class SelectTeamForm(forms.Form):
     team = forms.ChoiceField(label="Team")
 
     def __init__(self, teams: Sequence[Team], *args: Any, **kwargs: Any):
@@ -131,7 +130,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
         ident = identity_service.get_identity(
-            provider_id=idp.id, identity_ext_id=params["slack_id"]
+            filter={"provider_id": idp.id, "identity_ext_id": params["slack_id"]}
         )
         if not ident:
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
@@ -179,7 +178,7 @@ class SlackLinkTeamView(BaseView):
             external_provider=ExternalProviders.SLACK,
             notification_type=NotificationSettingTypes.ISSUE_ALERTS,
             setting_option=NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_team(team),
+            team_id=team.id,
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         integration_service.send_message(

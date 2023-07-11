@@ -7,9 +7,9 @@ from django.conf import settings
 from django.db import ProgrammingError, models
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
-from bitfield import BitField
+from bitfield import TypedClassBitField
 from sentry import features, options
 from sentry.db.models import (
     BaseManager,
@@ -52,15 +52,15 @@ class ProjectKey(Model):
     label = models.CharField(max_length=64, blank=True, null=True)
     public_key = models.CharField(max_length=32, unique=True, null=True)
     secret_key = models.CharField(max_length=32, unique=True, null=True)
-    roles = BitField(
-        flags=(
-            # access to post events to the store endpoint
-            ("store", "Event API access"),
-            # read/write access to rest API
-            ("api", "Web API access"),
-        ),
-        default=["store"],
-    )
+
+    class roles(TypedClassBitField):
+        # access to post events to the store endpoint
+        store: bool
+        # read/write access to rest API
+        api: bool
+
+        bitfield_default = ["store"]
+
     status = BoundedPositiveIntegerField(
         default=0,
         choices=(
@@ -150,7 +150,7 @@ class ProjectKey(Model):
         if not self.secret_key:
             self.secret_key = ProjectKey.generate_api_key()
         if not self.label:
-            self.label = petname.Generate(2, " ", letters=10).title()
+            self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
     def get_dsn(self, domain=None, secure=True, public=False):
@@ -159,6 +159,7 @@ class ProjectKey(Model):
         if not public:
             key = f"{self.public_key}:{self.secret_key}"
         else:
+            assert self.public_key is not None
             key = self.public_key
 
         # If we do not have a scheme or domain/hostname, dsn is never valid

@@ -15,10 +15,11 @@ import DateRange from 'sentry/components/organizations/timeRangeSelector/dateRan
 import SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import {
   getAbsoluteSummary,
-  getDefaultRelativePeriods,
+  getArbitraryRelativePeriod,
+  getSortedRelativePeriods,
   timeRangeAutoCompleteFilter,
 } from 'sentry/components/organizations/timeRangeSelector/utils';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -83,6 +84,10 @@ export interface TimeRangeSelectorProps
    */
   end?: DateString;
   /**
+   * The largest date range (ie. end date - start date) allowed
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -92,9 +97,16 @@ export interface TimeRangeSelectorProps
    */
   relative?: string | null;
   /**
-   * Override defaults from DEFAULT_RELATIVE_PERIODS
+   * Override defaults. Accepts a function where defaultRelativeOptions =
+   * DEFAULT_RELATIVE_PERIODS, and arbitraryRelativeOptions contains the custom
+   * user-created periods (via the search box).
    */
-  relativeOptions?: Record<string, React.ReactNode>;
+  relativeOptions?:
+    | Record<string, React.ReactNode>
+    | ((props: {
+        arbitraryOptions: Record<string, React.ReactNode>;
+        defaultOptions: Record<string, React.ReactNode>;
+      }) => Record<string, React.ReactNode>);
   /**
    * Show absolute date selectors
    */
@@ -128,6 +140,7 @@ export function TimeRangeSelector({
   defaultAbsolute,
   defaultPeriod = DEFAULT_STATS_PERIOD,
   maxPickableDays = 90,
+  maxDateRange,
   disallowArbitraryRelativeRanges = false,
   trigger,
   menuWidth,
@@ -228,17 +241,21 @@ export function TimeRangeSelector({
     option => {
       // The absolute option was selected -> open absolute selector
       if (option.value === ABSOLUTE_OPTION_VALUE) {
-        setInternalValue(current => ({
-          ...current,
-          // Update default values for absolute selector
-          start: defaultAbsolute?.start
+        setInternalValue(current => {
+          const defaultStart = defaultAbsolute?.start
             ? defaultAbsolute.start
             : getPeriodAgo(
                 'hours',
                 parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
-              ).toDate(),
-          end: defaultAbsolute?.end ? defaultAbsolute.end : new Date(),
-        }));
+              ).toDate();
+          const defaultEnd = defaultAbsolute?.end ? defaultAbsolute.end : new Date();
+          return {
+            ...current,
+            // Update default values for absolute selector
+            start: start ? getInternalDate(start, utc) : defaultStart,
+            end: end ? getInternalDate(end, utc) : defaultEnd,
+          };
+        });
         setShowAbsoluteSelector(true);
         return;
       }
@@ -246,14 +263,26 @@ export function TimeRangeSelector({
       setInternalValue(current => ({...current, relative: option.value}));
       onChange?.({relative: option.value, start: undefined, end: undefined});
     },
-    [defaultAbsolute, defaultPeriod, relative, onChange]
+    [start, end, utc, defaultAbsolute, defaultPeriod, relative, onChange]
   );
 
+  const arbitraryRelativePeriods = getArbitraryRelativePeriod(relative);
+  const defaultRelativePeriods = {
+    ...DEFAULT_RELATIVE_PERIODS,
+    ...arbitraryRelativePeriods,
+  };
   return (
     <SelectorItemsHook
       shouldShowAbsolute={showAbsolute}
       shouldShowRelative={showRelative}
-      relativePeriods={relativeOptions ?? getDefaultRelativePeriods(relative)}
+      relativePeriods={getSortedRelativePeriods(
+        typeof relativeOptions === 'function'
+          ? relativeOptions({
+              defaultOptions: DEFAULT_RELATIVE_PERIODS,
+              arbitraryOptions: arbitraryRelativePeriods,
+            })
+          : relativeOptions ?? defaultRelativePeriods
+      )}
       handleSelectRelative={value => handleChange({value})}
     >
       {items => (
@@ -285,7 +314,7 @@ export function TimeRangeSelector({
           onKeyDown={e => e.key === 'Escape' && commitChanges()}
           trigger={
             trigger ??
-            (triggerProps => {
+            ((triggerProps, isOpen) => {
               const relativeSummary =
                 items.findIndex(item => item.value === relative) > -1
                   ? relative?.toUpperCase()
@@ -294,7 +323,12 @@ export function TimeRangeSelector({
                 start && end ? getAbsoluteSummary(start, end, utc) : relativeSummary;
 
               return (
-                <DropdownButton icon={<IconCalendar />} {...triggerProps}>
+                <DropdownButton
+                  {...triggerProps}
+                  isOpen={isOpen}
+                  size={selectProps.size}
+                  icon={<IconCalendar />}
+                >
                   <TriggerLabel>{selectProps.triggerLabel ?? defaultLabel}</TriggerLabel>
                 </DropdownButton>
               );
@@ -314,7 +348,12 @@ export function TimeRangeSelector({
                       organization={organization}
                       showTimePicker
                       onChange={val => {
-                        val.hasDateRangeErrors && setHasDateRangeErrors(true);
+                        if (val.hasDateRangeErrors) {
+                          setHasDateRangeErrors(true);
+                          return;
+                        }
+
+                        setHasDateRangeErrors(false);
                         setInternalValue(cur => ({
                           ...cur,
                           relative: null,
@@ -351,6 +390,7 @@ export function TimeRangeSelector({
                         });
                       }}
                       maxPickableDays={maxPickableDays}
+                      maxDateRange={maxDateRange}
                     />
                   </AbsoluteDateRangeWrap>
                 )}

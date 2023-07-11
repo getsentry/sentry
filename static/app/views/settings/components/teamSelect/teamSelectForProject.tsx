@@ -23,17 +23,11 @@ type Props = TeamSelectProps & {
    * Used when showing Teams for a Project
    */
   selectedTeams: Team[];
-  /**
-   * Message to display when the last team is removed
-   * if empty no confirm will be displayed.
-   */
-  confirmLastTeamRemoveMessage?: string;
 };
 
 function TeamSelect({
   disabled,
   canCreateTeam,
-  confirmLastTeamRemoveMessage,
   project,
   selectedTeams,
   organization,
@@ -47,17 +41,32 @@ function TeamSelect({
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
     }
 
-    const confirmMessage =
-      numTeams === 1 && confirmLastTeamRemoveMessage
-        ? confirmLastTeamRemoveMessage
-        : null;
+    // If the user is not a team-admin in any parent teams of this project, they will
+    // not be able to edit the configuration. Warn the user if this is their last team
+    // where they have team-admin role.
+    const isUserLastTeamWrite =
+      selectedTeams.reduce(
+        (count, team) => (team.access.includes('team:write') ? count + 1 : count),
+        0
+      ) === 1;
+    const isOnlyTeam = numTeams === 1;
+
+    const confirmMessage = isUserLastTeamWrite
+      ? t(
+          "This is the last team that grants Team Admin access to you for this project. After removing this team, you will not be able to edit this project's configuration."
+        )
+      : isOnlyTeam
+      ? t(
+          'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
+        )
+      : null;
 
     return (
       <React.Fragment>
         {selectedTeams.map(team => (
           <TeamRow
             key={team.slug}
-            disabled={disabled}
+            disabled={disabled || !team.access.includes('team:write')}
             confirmMessage={confirmMessage}
             organization={organization}
             team={team}

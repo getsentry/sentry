@@ -15,7 +15,7 @@ from django.conf import settings
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags
 from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
 
-metrics_skip_all_internal = getattr(settings, "SENTRY_METRICS_SKIP_ALL_INTERNAL", False)
+metrics_skip_all_internal = settings.SENTRY_METRICS_SKIP_ALL_INTERNAL
 metrics_skip_internal_prefixes = tuple(settings.SENTRY_METRICS_SKIP_INTERNAL_PREFIXES)
 
 __all__ = [
@@ -72,6 +72,7 @@ class InternalMetrics:
 
         def worker() -> None:
             from sentry import tsdb
+            from sentry.tsdb.base import TSDBModel
 
             while True:
                 key, instance, tags, amount, sample_rate = q.get()
@@ -81,7 +82,7 @@ class InternalMetrics:
                 else:
                     full_key = key
                 try:
-                    tsdb.incr(tsdb.models.internal, full_key, count=amount)
+                    tsdb.incr(TSDBModel.internal, full_key, count=amount)
                 except Exception:
                     logger = logging.getLogger("sentry.errors")
                     logger.exception("Unable to incr internal metric")

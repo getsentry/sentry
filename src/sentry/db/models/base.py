@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
@@ -25,11 +25,11 @@ __all__ = (
 )
 
 
-def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
+def sane_repr(*attrs: str) -> Callable[[object], str]:
     if "id" not in attrs and "pk" not in attrs:
         attrs = ("id",) + attrs
 
-    def _repr(self: models.Model) -> str:
+    def _repr(self: object) -> str:
         cls = type(self).__name__
 
         pairs = (f"{a}={getattr(self, a, None)!r}" for a in attrs)
@@ -39,11 +39,11 @@ def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
     return _repr
 
 
-class BaseModel(models.Model):  # type: ignore
+class BaseModel(models.Model):
     class Meta:
         abstract = True
 
-    objects = BaseManager[M]()
+    objects = BaseManager[M]()  # type: ignore
 
     update = update
 
@@ -57,7 +57,7 @@ class BaseModel(models.Model):  # type: ignore
         # Django decided that it shouldn't let us hash objects even though they have
         # memory addresses. We need that behavior, so let's revert.
         if self.pk:
-            return cast(int, models.Model.__hash__(self))
+            return models.Model.__hash__(self)
         return id(self)
 
     def __reduce__(
@@ -153,7 +153,7 @@ def get_model_if_available(app_config: AppConfig, model_name: str) -> Type[model
         return None
     assert isinstance(model, type) and issubclass(model, models.Model)
 
-    silo_limit = getattr(model._meta, "silo_limit", None)  # type: ignore
+    silo_limit = getattr(model._meta, "silo_limit", None)
     if silo_limit is not None:
         assert isinstance(silo_limit, ModelSiloLimit)
         if not silo_limit.is_available():
@@ -202,14 +202,14 @@ class ModelSiloLimit(SiloLimit):
 
         return handle
 
-    def __call__(self, model_class: ModelClass) -> Type[ModelClass]:
+    def __call__(self, model_class: Type[ModelClass]) -> Type[ModelClass]:
         if not (isinstance(model_class, type) and issubclass(model_class, models.Model)):
             raise TypeError("`@ModelSiloLimit ` must decorate a Model class")
 
         setattr(
             model_class,
             "objects",
-            create_silo_limited_copy(getattr(model_class, "objects"), self, self.read_only),
+            create_silo_limited_copy(getattr(model_class, "objects"), self),
         )
 
         # On the model (not manager) class itself, find all methods that are tagged

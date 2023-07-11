@@ -95,8 +95,7 @@ export class Profile {
 
   forEach(
     openFrame: (node: CallTreeNode, value: number) => void,
-    closeFrame: (node: CallTreeNode, value: number) => void,
-    filterFn?: (node: CallTreeNode) => boolean
+    closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
     const prevStack: CallTreeNode[] = [];
     let value = 0;
@@ -106,7 +105,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && !prevStack.includes(top)) {
         top = top.parent;
       }
 
@@ -119,18 +118,11 @@ export class Profile {
       let node: CallTreeNode | null = stackTop;
 
       while (node && !node.isRoot && node !== top) {
-        if (filterFn && !filterFn(node)) {
-          node = node.parent;
-          continue;
-        }
         toOpen.push(node);
         node = node.parent;
       }
 
       for (let i = toOpen.length - 1; i >= 0; i--) {
-        if (filterFn && !filterFn(toOpen[i])) {
-          continue;
-        }
         openFrame(toOpen[i], value);
         prevStack.push(toOpen[i]);
       }

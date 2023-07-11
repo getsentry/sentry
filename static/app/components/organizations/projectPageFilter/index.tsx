@@ -54,7 +54,7 @@ export interface ProjectPageFilterProps
   /**
    * Message to show in the menu footer
    */
-  footerMessage?: string;
+  footerMessage?: React.ReactNode;
   /**
    * Reset these URL params when we fire actions (custom routing only)
    */
@@ -361,8 +361,11 @@ export function ProjectPageFilter({
       menuFooterMessage={footerMessage}
       trigger={
         trigger ??
-        (triggerProps => (
+        ((triggerProps, isOpen) => (
           <ProjectPageFilterTrigger
+            {...triggerProps}
+            isOpen={isOpen}
+            size={selectProps.size}
             value={value}
             memberProjects={memberProjects}
             nonMemberProjects={nonMemberProjects}
@@ -378,7 +381,7 @@ export function ProjectPageFilter({
   );
 }
 
-function shouldCloseOnInteractOutside(target: HTMLElement) {
+function shouldCloseOnInteractOutside(target: Element) {
   // Don't close select menu when clicking on power hovercard ("Requires Business Plan")
   const powerHovercard = document.querySelector("[data-test-id='power-hovercard']");
   return !powerHovercard || !powerHovercard.contains(target);

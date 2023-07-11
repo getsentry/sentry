@@ -2,12 +2,15 @@ import logging
 from datetime import datetime, timedelta
 
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.db import router
 from django.db.models import Count
 from django.utils import timezone
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.tasks.base import instrumented_task
+from sentry.silo.base import SiloMode
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -21,7 +24,9 @@ logger = logging.getLogger(__name__)
     queue="hybrid_cloud.control_repair",
     default_retry_delay=5,
     max_retries=5,
-)  # type: ignore
+    silo_mode=SiloMode.CONTROL,
+)
+@retry
 def repair_mappings() -> None:
     metrics.incr("sentry.hybrid_cloud.tasks.organizationmapping.start", sample_rate=1.0)
     with metrics.timer("sentry.hybrid_cloud.tasks.organizationmapping.repair", sample_rate=1.0):
@@ -37,12 +42,13 @@ def _verify_mappings(expiration_threshold_time: datetime) -> None:
         org = organization_service.get_organization_by_id(
             id=mapping.organization_id, slug=mapping.slug
         )
-        if org is None and mapping.date_created <= expiration_threshold_time:
-            mapping.delete()
-        elif org is not None:
-            mapping.verified = True
-            mapping.idempotency_key = ""
-            mapping.save()
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+            if org is None and mapping.date_created <= expiration_threshold_time:
+                mapping.delete()
+            elif org is not None:
+                mapping.verified = True
+                mapping.idempotency_key = ""
+                mapping.save()
 
 
 def _remove_duplicate_mappings(expiration_threshold_time: datetime) -> None:
@@ -59,14 +65,15 @@ def _remove_duplicate_mappings(expiration_threshold_time: datetime) -> None:
         )
         organization_id = dupe["organization_id"]
 
-        # Organization exists in the region silo
-        found_org = organization_service.get_organization_by_id(id=organization_id)
-        if found_org is None:
-            # Delete all mappings.
-            OrganizationMapping.objects.filter(organization_id=organization_id).delete()
-            return
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+            # Organization exists in the region silo
+            found_org = organization_service.get_organization_by_id(id=organization_id)
+            if found_org is None:
+                # Delete all mappings.
+                OrganizationMapping.objects.filter(organization_id=organization_id).delete()
+                return
 
-        # Delete all expired mappings that don't match this org slug
-        OrganizationMapping.objects.filter(
-            organization_id=organization_id, date_created__lte=expiration_threshold_time
-        ).exclude(slug=found_org.organization.slug).delete()
+            # Delete all expired mappings that don't match this org slug
+            OrganizationMapping.objects.filter(
+                organization_id=organization_id, date_created__lte=expiration_threshold_time
+            ).exclude(slug=found_org.organization.slug).delete()

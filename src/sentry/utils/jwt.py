@@ -31,7 +31,7 @@ def peek_header(token: str) -> JSONData:
 
     :param token: The JWT token to extract the headers from.
     """
-    return pyjwt.get_unverified_header(token.encode("UTF-8"))  # type: ignore[no-untyped-call]
+    return pyjwt.get_unverified_header(token.encode("UTF-8"))
 
 
 def peek_claims(token: str) -> JSONData:
@@ -133,7 +133,7 @@ def rsa_key_from_jwk(jwk: str) -> str:
 
     :param jwk: The JSON Web Key as encoded JSON.
     """
-    key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)  # type: ignore[no-untyped-call]
+    key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     if isinstance(key, RSAPrivateKey):
         # The return type is verified in our own tests, this is fine.
         return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")

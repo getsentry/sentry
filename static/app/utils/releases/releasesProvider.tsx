@@ -1,11 +1,12 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Release} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import RequestError from 'sentry/utils/requestError/requestError';
 
 import useApi from '../useApi';
 
@@ -69,7 +70,7 @@ function ReleasesProvider({
         setLoading(false);
         setReleases(response);
       })
-      .catch((e: ResponseMeta) => {
+      .catch((e: RequestError) => {
         if (shouldCancelRequest) {
           setLoading(false);
           return;

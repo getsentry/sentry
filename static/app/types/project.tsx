@@ -25,7 +25,7 @@ export type Project = {
     symbolicationDegraded: boolean;
   };
   features: string[];
-  firstEvent: 'string' | null;
+  firstEvent: string | null;
   firstTransactionEvent: boolean;
   groupingAutoUpdate: boolean;
   groupingConfig: string;
@@ -38,12 +38,15 @@ export type Project = {
   isBookmarked: boolean;
   isInternal: boolean;
   isMember: boolean;
+  name: string;
   organization: Organization;
   plugins: Plugin[];
+
   processingIssues: number;
   relayPiiConfig: string;
 
   subjectTemplate: string;
+  team: Team;
   teams: Team[];
   builtinSymbolSources?: string[];
   dynamicSamplingRules?: DynamicSamplingRule[] | null;

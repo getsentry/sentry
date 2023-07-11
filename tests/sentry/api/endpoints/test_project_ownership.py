@@ -121,6 +121,16 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
 
+        # Test that we can reset autoAssignment for updating in non-UI use case
+        resp = self.client.put(self.path, {"autoAssignment": "Turn off Auto-Assignment"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is False
+        assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
+        assert resp.data["raw"] == "*.js admin@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is False
+
     def test_audit_log_entry(self):
         resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
         assert resp.status_code == 200
@@ -361,6 +371,12 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
+
+    def test_update_by_member_denied(self):
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"fallthrough": False})
+        assert resp.status_code == 403
 
     def test_turn_off_auto_assignment_clears_autoassignment_cache(self):
         ProjectOwnership.objects.create(

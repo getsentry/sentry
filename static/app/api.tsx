@@ -13,7 +13,8 @@ import {
 import {metric} from 'sentry/utils/analytics';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
-import createRequestError from 'sentry/utils/requestError/createRequestError';
+import RequestError from 'sentry/utils/requestError/requestError';
+import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 export class Request {
   /**
@@ -361,7 +362,7 @@ export class Client {
       const queryString = typeof data === 'string' ? data : qs.stringify(data);
 
       if (queryString.length > 0) {
-        fullUrl = fullUrl + (fullUrl.indexOf('?') !== -1 ? '&' : '?') + queryString;
+        fullUrl = fullUrl + (fullUrl.includes('?') ? '&' : '?') + queryString;
       }
     }
 
@@ -438,10 +439,10 @@ export class Client {
     });
 
     // Do not set the X-CSRFToken header when making a request outside of the
-    // current domain
+    // current domain. Because we use subdomains we loosely compare origins
     const absoluteUrl = new URL(fullUrl, window.location.origin);
-    const isSameOrigin = window.location.origin === absoluteUrl.origin;
-
+    const originUrl = new URL(window.location.origin);
+    const isSameOrigin = originUrl.hostname.endsWith(absoluteUrl.hostname);
     if (!csrfSafeMethod(method) && isSameOrigin) {
       headers.set('X-CSRFToken', getCsrfToken());
     }
@@ -520,33 +521,26 @@ export class Client {
           // There's no reason we should be here with a 200 response, but we get
           // tons of events from this codepath with a 200 status nonetheless.
           // Until we know why, let's do what is essentially some very fancy print debugging.
-          if (status === 200) {
-            const responseTextUndefined = responseText === undefined;
+          if (status === 200 && responseText) {
+            const parameterizedPath = sanitizePath(path);
+            const message = '200 treated as error';
 
-            // Pass a scope object rather than using `withScope` to avoid even
-            // the possibility of scope bleed.
             const scope = new Sentry.Scope();
-            scope.setTags({errorReason});
-
-            if (!responseTextUndefined) {
-              // Grab everything that could conceivably be helpful to know
-              scope.setExtras({
-                twoHundredErrorReason,
-                responseJSON,
-                responseText,
-                responseContentType,
-                errorReason,
-              });
-            }
-
-            const message = responseTextUndefined
-              ? '200 API response with undefined responseText'
-              : '200 treated as error';
-
+            scope.setTags({endpoint: `${method} ${parameterizedPath}`, errorReason});
+            scope.setExtras({
+              twoHundredErrorReason,
+              responseJSON,
+              responseText,
+              responseContentType,
+              errorReason,
+            });
             // Make sure all of these errors group, so we don't produce a bunch of noise
             scope.setFingerprint([message]);
 
-            Sentry.captureException(new Error(`${message}: ${method} ${path}`), scope);
+            Sentry.captureException(
+              new Error(`${message}: ${method} ${parameterizedPath}`),
+              scope
+            );
           }
 
           const shouldSkipErrorHandler =
@@ -597,11 +591,11 @@ export class Client {
           }
         },
         error: (resp: ResponseMeta) => {
-          const errorObjectToUse = createRequestError(
-            resp,
-            preservedError,
+          const errorObjectToUse = new RequestError(
             options.method,
-            path
+            path,
+            preservedError,
+            resp
           );
 
           // Although `this.request` logs all error responses, this error object can

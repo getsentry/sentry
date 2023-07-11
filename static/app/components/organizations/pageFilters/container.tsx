@@ -29,7 +29,7 @@ type InitializeUrlStateProps = Omit<
   'memberProjects' | 'queryParams' | 'router' | 'shouldEnforceSingleProject'
 >;
 
-type Props = InitializeUrlStateProps & {
+interface Props extends InitializeUrlStateProps {
   children?: React.ReactNode;
   /**
    * Custom alert message for the desynced filter state.
@@ -42,10 +42,6 @@ type Props = InitializeUrlStateProps & {
    */
   disablePersistence?: boolean;
   /**
-   * Whether to hide the desynced filter alert.
-   */
-  hideDesyncAlert?: boolean;
-  /**
    * Whether to hide the revert button in the desynced filter alert.
    */
   hideDesyncRevertButton?: boolean;
@@ -53,7 +49,7 @@ type Props = InitializeUrlStateProps & {
    * Slugs of projects to display in project selector
    */
   specificProjectSlugs?: string[];
-};
+}
 
 /**
  * The page filters container handles initialization of page filters for the
@@ -70,7 +66,6 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     skipInitializeUrlParams,
     disablePersistence,
     desyncedAlertMessage,
-    hideDesyncAlert,
     hideDesyncRevertButton,
   } = props;
   const router = useRouter();
@@ -142,7 +137,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     const oldSelectionQuery = extractSelectionParameters(lastQuery.current);
     const newSelectionQuery = extractSelectionParameters(location.query);
 
-    // XXX: This re-initialization is only required in new-page-filters
+    // XXX: This re-initialization is only required in new-page-filter
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
     if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
@@ -195,7 +190,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
 
   return (
     <Fragment>
-      {!hideDesyncAlert && (
+      {!organization.features.includes('new-page-filter') && (
         <DesyncedFilterAlert
           router={router}
           message={desyncedAlertMessage}

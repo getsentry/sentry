@@ -1,25 +1,29 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import omit from 'lodash/omit';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 
-import {openCreateTeamModal} from 'sentry/actionCreators/modal';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openCreateTeamModal, openModal} from 'sentry/actionCreators/modal';
+import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import PlatformPicker from 'sentry/components/platformPicker';
+import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
+import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
-import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {Team} from 'sentry/types';
+import {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import getPlatformName from 'sentry/utils/getPlatformName';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
@@ -27,12 +31,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import IssueAlertOptions from 'sentry/views/projectInstall/issueAlertOptions';
+import IssueAlertOptions, {
+  MetricValues,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
+import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
-const getCategoryName = (category?: string) =>
-  categoryList.find(({id}) => id === category)?.id;
-
-type PlatformName = React.ComponentProps<typeof PlatformIcon>['platform'];
 type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
@@ -40,41 +44,46 @@ type IssueAlertFragment = Parameters<
 function CreateProject() {
   const api = useApi();
   const organization = useOrganization();
-
   const location = useLocation();
-  const {query} = location;
+  const gettingStartedWithProjectContext = useContext(GettingStartedWithProjectContext);
+  const {teams} = useTeams();
 
-  const accessTeams = useTeams().teams.filter((team: Team) => team.hasAccess);
+  const autoFill =
+    location.query.referrer === 'getting-started' &&
+    location.query.project === gettingStartedWithProjectContext.project?.id;
+
+  const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
 
   useRouteAnalyticsEventNames(
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
 
-  const platformQuery = Array.isArray(query.platform)
-    ? query.platform[0]
-    : query.platform ?? null;
-
-  const platformName = getPlatformName(platformQuery);
-
-  const defaultCategory = getCategoryName(
-    Array.isArray(query.category) ? query.category[0] : query.category ?? undefined
+  const [projectName, setProjectName] = useState(
+    autoFill ? gettingStartedWithProjectContext.project?.name : ''
+  );
+  const [platform, setPlatform] = useState<OnboardingSelectedSDK | undefined>(
+    autoFill ? gettingStartedWithProjectContext.project?.platform : undefined
+  );
+  const [team, setTeam] = useState(
+    autoFill
+      ? gettingStartedWithProjectContext.project?.teamSlug ?? accessTeams?.[0]?.slug
+      : accessTeams?.[0]?.slug
   );
 
-  const [projectName, setProjectName] = useState(platformName ?? '');
-  const [platform, setPlatform] = useState(platformName ? platformQuery : '');
-  const [team, setTeam] = useState(query.team || accessTeams?.[0]?.slug);
-
-  const [error, setError] = useState(false);
+  const [errors, setErrors] = useState(false);
   const [inFlight, setInFlight] = useState(false);
 
   const [alertRuleConfig, setAlertRuleConfig] = useState<IssueAlertFragment | undefined>(
     undefined
   );
 
+  const frameworkSelectionEnabled = !!organization?.features.includes(
+    'onboarding-sdk-selection'
+  );
+
   const createProject = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+    async (selectedFramework?: OnboardingSelectedSDK) => {
       const {slug} = organization;
       const {
         shouldCreateCustomRule,
@@ -86,14 +95,24 @@ function CreateProject() {
         defaultRules,
       } = alertRuleConfig || {};
 
+      const selectedPlatform = selectedFramework ?? platform;
+
+      if (!selectedPlatform) {
+        addErrorMessage(t('Please select a platform in Step 1'));
+        return;
+      }
+
       setInFlight(true);
 
       try {
-        const projectData = await api.requestPromise(`/teams/${slug}/${team}/projects/`, {
+        const url = team
+          ? `/teams/${slug}/${team}/projects/`
+          : `/organizations/${slug}/experimental/projects/`;
+        const projectData = await api.requestPromise(url, {
           method: 'POST',
           data: {
             name: projectName,
-            platform,
+            platform: selectedPlatform.key,
             default_rules: defaultRules ?? true,
           },
         });
@@ -128,16 +147,34 @@ function CreateProject() {
 
         ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
-        const platformKey = platform || 'other';
+        if (team) {
+          addSuccessMessage(
+            tct('Created project [project]', {
+              project: `${projectData.slug}`,
+            })
+          );
+        } else {
+          addSuccessMessage(
+            tct('Created [project] under new team [team]', {
+              project: `${projectData.slug}`,
+              team: `#${projectData.team_slug}`,
+            })
+          );
+        }
 
         browserHistory.push(
           normalizeUrl(
-            `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
+            `/organizations/${organization.slug}/projects/${projectData.slug}/getting-started/`
           )
         );
       } catch (err) {
         setInFlight(false);
-        setError(err.responseJSON.detail);
+        setErrors(err.responseJSON);
+        addErrorMessage(
+          tct('Failed to create project [project]', {
+            project: `${projectName}`,
+          })
+        );
 
         // Only log this if the error is something other than:
         // * The user not having access to create a project, or,
@@ -153,38 +190,131 @@ function CreateProject() {
     [api, alertRuleConfig, organization, platform, projectName, team]
   );
 
-  function handlePlatformChange(platformKey: PlatformName | null) {
-    if (!platformKey) {
-      setPlatform(null);
+  const handleProjectCreation = useCallback(async () => {
+    const selectedPlatform = platform;
+
+    if (!selectedPlatform) {
+      addErrorMessage(t('Please select a platform in Step 1'));
+      return;
+    }
+
+    if (
+      selectedPlatform.type !== 'language' ||
+      !Object.values(SupportedLanguages).includes(
+        selectedPlatform.language as SupportedLanguages
+      )
+    ) {
+      createProject();
+      return;
+    }
+
+    const {FrameworkSuggestionModal, modalCss} = await import(
+      'sentry/components/onboarding/frameworkSuggestionModal'
+    );
+
+    openModal(
+      deps => (
+        <FrameworkSuggestionModal
+          {...deps}
+          organization={organization}
+          selectedPlatform={selectedPlatform}
+          onConfigure={selectedFramework => {
+            createProject(selectedFramework);
+          }}
+          onSkip={createProject}
+        />
+      ),
+      {
+        modalCss,
+        onClose: () => {
+          trackAnalytics('project_creation.select_framework_modal_close_button_clicked', {
+            platform: selectedPlatform.key,
+            organization,
+          });
+        },
+      }
+    );
+  }, [platform, createProject, organization]);
+
+  function handlePlatformChange(selectedPlatform: Platform | null) {
+    if (!selectedPlatform?.id) {
+      setPlatform(undefined);
       setProjectName('');
       return;
     }
 
-    const userModifiedName = projectName && projectName !== platform;
-    const newName = userModifiedName ? projectName : platformKey;
+    const userModifiedName = !!projectName && projectName !== platform?.key;
+    const newName = userModifiedName ? projectName : selectedPlatform.id;
 
-    setPlatform(platformKey);
+    setPlatform({
+      ...omit(selectedPlatform, 'id'),
+      key: selectedPlatform.id,
+    });
+
     setProjectName(newName);
   }
 
   const {shouldCreateCustomRule, conditions} = alertRuleConfig || {};
+  const {canCreateProject} = useProjectCreationAccess({organization, teams: accessTeams});
+
+  const canCreateTeam = organization.access.includes('project:admin');
+  const isOrgMemberWithNoAccess = accessTeams.length === 0 && !canCreateTeam;
 
   const canSubmitForm =
     !inFlight &&
-    team &&
+    (team || isOrgMemberWithNoAccess) &&
+    canCreateProject &&
     projectName !== '' &&
     (!shouldCreateCustomRule || conditions?.every?.(condition => condition.value));
+
+  const alertFrequencyDefaultValues = useMemo(() => {
+    if (!autoFill) {
+      return {};
+    }
+
+    const alertRules = gettingStartedWithProjectContext.project?.alertRules;
+
+    if (alertRules?.length === 0) {
+      return {
+        alertSetting: String(RuleAction.CREATE_ALERT_LATER),
+      };
+    }
+
+    if (
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition') ||
+      alertRules?.[0].conditions?.[0].id?.endsWith('EventUniqueUserFrequencyCondition')
+    ) {
+      return {
+        alertSetting: String(RuleAction.CUSTOMIZED_ALERTS),
+        interval: String(alertRules?.[0].conditions?.[0].interval),
+        threshold: String(alertRules?.[0].conditions?.[0].value),
+        metric: alertRules?.[0].conditions?.[0].id?.endsWith('EventFrequencyCondition')
+          ? MetricValues.ERRORS
+          : MetricValues.USERS,
+      };
+    }
+
+    return {
+      alertSetting: String(RuleAction.ALERT_ON_EVERY_ISSUE),
+    };
+  }, [gettingStartedWithProjectContext, autoFill]);
 
   const createProjectForm = (
     <Fragment>
       <Layout.Title withMargins>
         {t('3. Name your project and assign it a team')}
       </Layout.Title>
-      <CreateProjectForm onSubmit={createProject}>
+      <CreateProjectForm
+        onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
+          // Prevent the page from reloading
+          event.preventDefault();
+          frameworkSelectionEnabled ? handleProjectCreation() : createProject();
+        }}
+      >
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
           <ProjectNameInputWrap>
-            <StyledPlatformIcon platform={platform ?? ''} size={20} />
+            <StyledPlatformIcon platform={platform?.key ?? 'other'} size={20} />
             <ProjectNameInput
               type="text"
               name="name"
@@ -195,33 +325,38 @@ function CreateProject() {
             />
           </ProjectNameInputWrap>
         </div>
-        <div>
-          <FormLabel>{t('Team')}</FormLabel>
-          <TeamSelectInput>
-            <TeamSelector
-              name="select-team"
-              menuPlacement="auto"
-              clearable={false}
-              value={team}
-              placeholder={t('Select a Team')}
-              onChange={choice => setTeam(choice.value)}
-              teamFilter={(filterTeam: Team) => filterTeam.hasAccess}
-            />
-            <Button
-              borderless
-              data-test-id="create-team"
-              icon={<IconAdd isCircled />}
-              onClick={() =>
-                openCreateTeamModal({
-                  organization,
-                  onClose: ({slug}) => setTeam(slug),
-                })
-              }
-              title={t('Create a team')}
-              aria-label={t('Create a team')}
-            />
-          </TeamSelectInput>
-        </div>
+        {!isOrgMemberWithNoAccess && (
+          <div>
+            <FormLabel>{t('Team')}</FormLabel>
+            <TeamSelectInput>
+              <TeamSelector
+                name="select-team"
+                aria-label={t('Select a Team')}
+                menuPlacement="auto"
+                clearable={false}
+                value={team}
+                placeholder={t('Select a Team')}
+                onChange={choice => setTeam(choice.value)}
+                teamFilter={(tm: Team) => tm.access.includes('team:admin')}
+              />
+              {canCreateTeam && (
+                <Button
+                  borderless
+                  data-test-id="create-team"
+                  icon={<IconAdd isCircled />}
+                  onClick={() =>
+                    openCreateTeamModal({
+                      organization,
+                      onClose: ({slug}) => setTeam(slug),
+                    })
+                  }
+                  title={t('Create a team')}
+                  aria-label={t('Create a team')}
+                />
+              )}
+            </TeamSelectInput>
+          </div>
+        )}
         <div>
           <Button
             type="submit"
@@ -237,9 +372,7 @@ function CreateProject() {
   );
 
   return (
-    <Fragment>
-      {error && <Alert type="error">{error}</Alert>}
-
+    <Access access={canCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <Layout.Title withMargins>{t('Create a new project in 3 steps')}</Layout.Title>
         <HelpText>
@@ -254,19 +387,30 @@ function CreateProject() {
         </HelpText>
         <Layout.Title withMargins>{t('1. Choose your platform')}</Layout.Title>
         <PlatformPicker
-          platform={platform}
-          defaultCategory={defaultCategory}
-          setPlatform={selectedPlatform =>
-            handlePlatformChange(selectedPlatform?.id ?? null)
-          }
+          platform={platform?.key}
+          defaultCategory={platform?.category}
+          setPlatform={handlePlatformChange}
           organization={organization}
           showOther
+          noAutoFilter
         />
-        <IssueAlertOptions onChange={updatedData => setAlertRuleConfig(updatedData)} />
-
+        <IssueAlertOptions
+          {...alertFrequencyDefaultValues}
+          onChange={updatedData => setAlertRuleConfig(updatedData)}
+        />
         {createProjectForm}
+
+        {errors && (
+          <Alert type="error">
+            {Object.keys(errors).map(key => (
+              <div key={key}>
+                <strong>{startCase(key)}</strong>: {errors[key]}
+              </div>
+            ))}
+          </Alert>
+        )}
       </div>
-    </Fragment>
+    </Access>
   );
 }
 

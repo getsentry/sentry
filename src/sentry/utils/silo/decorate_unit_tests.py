@@ -117,6 +117,7 @@ class TestCaseMap:
 
     @cached_property
     def file_map(self) -> Mapping[TestCaseFunction, List[str]]:
+        groups: dict[str | None, dict[str, list[TestCaseFunction]]]
         groups = defaultdict(lambda: defaultdict(list))
         for c in self.cases:
             groups[c.package][c.module].append(c)
@@ -179,9 +180,7 @@ class TestCaseMap:
         )
         yield None, undecorated_count
 
-    def add_decorators(
-        self, condition: Callable[[TestCaseMatch], (str | None)] | None = None
-    ) -> int:
+    def add_decorators(self, condition: Callable[[TestCaseMatch], (str | None)]) -> int:
         count = 0
         for match in self.case_matches:
             decorator = condition(match)
@@ -196,7 +195,7 @@ class TestCaseMap:
 class TestCaseMatch:
     path: str
     case: TopLevelTestCase
-    decorators: Tuple[str]
+    decorators: Tuple[str, ...]
 
     def add_decorator(self, decorator: str) -> bool:
         logger.info(

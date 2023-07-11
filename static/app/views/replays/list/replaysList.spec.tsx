@@ -132,6 +132,6 @@ describe('ReplayList', () => {
     });
 
     await waitFor(() => expect(screen.getByTestId('replay-table')).toBeInTheDocument());
-    expect(mockUseReplayList).toHaveBeenCalledTimes(1);
+    expect(mockUseReplayList).toHaveBeenCalled();
   });
 });

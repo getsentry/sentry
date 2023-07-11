@@ -309,7 +309,7 @@ describe('IssueList', function () {
         <IssueListWithStores
           {...routerProps}
           {...defaultProps}
-          organization={{...organization, features: ['escalating-issues-ui']}}
+          organization={{...organization, features: ['escalating-issues']}}
         />,
         {
           context: routerContext,
@@ -519,7 +519,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       };
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -591,7 +591,7 @@ describe('IssueList', function () {
         query: 'assigned:me level:fatal',
         sort: 'date',
         isPinned: true,
-        visibility: SavedSearchVisibility.Organization,
+        visibility: SavedSearchVisibility.ORGANIZATION,
       });
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',

@@ -20,6 +20,11 @@ from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingT
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
+non_default_owner_scopes = ["org:ci", "openid", "email", "profile"]
+default_owner_scopes = frozenset(
+    filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
+)
+
 mock_options_as_features = {
     "sentry:set_no_value": [
         ("frontend-flag-1-1", lambda opt: True),
@@ -51,6 +56,7 @@ class OrganizationSerializerTest(TestCase):
         assert result["id"] == str(organization.id)
         assert result["features"] == {
             "advanced-search",
+            "assign-to-me",
             "change-alerts",
             "crash-rate-alerts",
             "custom-symbol-sources",
@@ -141,7 +147,7 @@ class DetailedOrganizationSerializerTest(TestCase):
 
         assert result["id"] == str(organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
@@ -159,7 +165,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
 
         assert result["id"] == str(self.organization.id)
         assert result["role"] == "owner"
-        assert result["access"] == settings.SENTRY_SCOPES
+        assert result["access"] == default_owner_scopes
         assert result["relayPiiConfig"] is None
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1

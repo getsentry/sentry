@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
-import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {Alert, AlertProps} from 'sentry/components/alert';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
@@ -38,26 +38,27 @@ import IntegrationStatus from './integrationStatus';
 
 type Tab = 'overview' | 'configurations';
 
-type AlertType = React.ComponentProps<typeof Alert> & {
+interface AlertType extends AlertProps {
   text: string;
-};
+}
 
 type State = {
   tab: Tab;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{integrationSlug: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State
-> extends AsyncComponent<P, S> {
+> extends DeprecatedAsyncComponent<P, S> {
   tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {
+    super.componentDidMount();
     const {location} = this.props;
     const value = location.query.tab === 'configurations' ? 'configurations' : 'overview';
     // eslint-disable-next-line react/no-did-mount-set-state

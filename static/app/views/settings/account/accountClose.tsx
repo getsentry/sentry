@@ -14,7 +14,7 @@ import {
 } from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -51,9 +51,9 @@ type OwnedOrg = {
   singleOwner: boolean;
 };
 
-type Props = AsyncView['props'];
+type Props = DeprecatedAsyncView['props'];
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   organizations: OwnedOrg[] | null;
   /**
    * Org slugs that will be removed
@@ -61,14 +61,14 @@ type State = AsyncView['state'] & {
   orgsToRemove: Set<string> | null;
 };
 
-class AccountClose extends AsyncView<Props, State> {
+class AccountClose extends DeprecatedAsyncView<Props, State> {
   leaveRedirectTimeout: number | undefined = undefined;
 
   componentWillUnmount() {
     window.clearTimeout(this.leaveRedirectTimeout);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/?owner=1']];
   }
 
@@ -83,6 +83,10 @@ class AccountClose extends AsyncView<Props, State> {
     return this.state.organizations
       ?.filter(({singleOwner}) => singleOwner)
       ?.map(({organization}) => organization.slug);
+  }
+
+  getTitle() {
+    return t('Close Account');
   }
 
   handleChange = (
@@ -149,7 +153,7 @@ class AccountClose extends AsyncView<Props, State> {
 
     return (
       <div>
-        <SettingsPageHeader title="Close Account" />
+        <SettingsPageHeader title={this.getTitle()} />
 
         <TextBlock>
           {t('This will permanently remove all associated data for your user')}.

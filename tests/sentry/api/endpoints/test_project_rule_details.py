@@ -8,19 +8,11 @@ import responses
 from freezegun import freeze_time
 from pytz import UTC
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import strip_channel_name
-from sentry.models import (
-    Environment,
-    Integration,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleFireHistory,
-    RuleSnooze,
-    RuleStatus,
-    User,
-)
-from sentry.models.actor import get_actor_for_user
+from sentry.models import Environment, Integration, Rule, RuleActivity, RuleActivityType
+from sentry.models.actor import Actor, get_actor_for_user
+from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -37,7 +29,7 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
     owner_id = payload.get("owner")
     if owner_id:
         with exempt_from_silo_limits():
-            assert rule.owner == User.objects.get(id=owner_id).actor
+            assert Actor.objects.get(id=rule.owner_id)
     else:
         assert rule.owner is None
 
@@ -147,12 +139,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
     def test_with_snooze_rule(self):
-        RuleSnooze.objects.create(
-            user_id=self.user.id,
-            owner_id=self.user.id,
-            rule=self.rule,
-            until=None,
-        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=self.rule)
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -164,12 +151,7 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
     def test_with_snooze_rule_everyone(self):
         user2 = self.create_user("user2@example.com")
-
-        RuleSnooze.objects.create(
-            owner_id=user2.id,
-            rule=self.rule,
-            until=None,
-        )
+        self.snooze_rule(owner_id=user2.id, rule=self.rule)
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200
@@ -224,6 +206,35 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
             == self.sentry_app_installation.uuid
         )
         assert response.data["actions"][0]["disabled"] is True
+
+    def test_with_deleted_sentry_app(self):
+        actions = [
+            {
+                "id": "sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction",
+                "sentryAppInstallationUuid": "123-uuid-does-not-exist",
+                "settings": [
+                    {"name": "title", "value": "An alert"},
+                    {"summary": "Something happened here..."},
+                    {"name": "points", "value": "3"},
+                    {"name": "assignee", "value": "Nisanthan"},
+                ],
+            }
+        ]
+        data = {
+            "conditions": [],
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        responses.add(responses.GET, "http://example.com/sentry/members", json={}, status=404)
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        # Action with deleted SentryApp is removed
+        assert response.data["actions"] == []
 
     @freeze_time()
     def test_last_triggered(self):
@@ -748,11 +759,11 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "DELETE"
 
     def test_simple(self):
+        rule = self.create_project_rule(self.project)
         self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=202
+            self.organization.slug, rule.project.slug, rule.id, status_code=202
         )
-        self.rule.refresh_from_db()
-        assert self.rule.status == RuleStatus.PENDING_DELETION
-        assert RuleActivity.objects.filter(
-            rule=self.rule, type=RuleActivityType.DELETED.value
+        rule.refresh_from_db()
+        assert not Rule.objects.filter(
+            id=self.rule.id, project=self.project, status=ObjectStatus.PENDING_DELETION
         ).exists()

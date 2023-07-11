@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import namedtuple
 from datetime import datetime
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -22,12 +22,10 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
     InvalidField,
-    IPAddress,
     ListField,
     Number,
     QueryConfig,
@@ -58,7 +56,7 @@ def query_replays_collection(
     sort: Optional[str],
     limit: Optional[str],
     offset: Optional[str],
-    search_filters: List[SearchFilter],
+    search_filters: Sequence[SearchFilter],
     organization: Optional[Organization] = None,
     actor: Optional[Any] = None,
 ) -> dict:
@@ -75,24 +73,24 @@ def query_replays_collection(
     paginators = make_pagination_values(limit, offset)
 
     # Attempt to eager return with subquery.
-    if features.has("organizations:session-replay-index-subquery", organization, actor=actor):
-        try:
-            response = query_replays_dataset_with_subquery(
-                project_ids=project_ids,
-                start=start,
-                end=end,
-                fields=fields,
-                environments=environment,
-                search_filters=search_filters,
-                sort=sort,
-                pagination=paginators,
-                tenant_ids=tenant_ids,
-            )
-            return response["data"]
-        except ParseError:
-            # Subquery could not continue because it found search filters which required
-            # aggregation to satisfy.
-            pass
+
+    try:
+        response = query_replays_dataset_with_subquery(
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            fields=fields,
+            environments=environment,
+            search_filters=search_filters,
+            sort=sort,
+            pagination=paginators,
+            tenant_ids=tenant_ids,
+        )
+        return response["data"]
+    except ParseError:
+        # Subquery could not continue because it found search filters which required
+        # aggregation to satisfy.
+        pass
 
     response = query_replays_dataset(
         project_ids=project_ids,
@@ -609,13 +607,6 @@ class ReplaySubqueryConfig(QueryConfig):
     sdk_name = String(field_alias="sdk.name")
     sdk_version = String(field_alias="sdk.version")
     started_at = String(is_filterable=False)
-    user = String(field_alias="user", query_alias="user_name")
-    user_email = String(field_alias="user.email")
-    user_id = String(field_alias="user.id")
-    user_ip_address = IPAddress(field_alias="user.ip", query_alias="ip_address_v4")
-    user_name = String(field_alias="user.username")
-
-    tags = Tag(field_alias="*", tag_key_alias="tags.key", tag_value_alias="tags.value")
 
     # we have to explicitly define the rest of the fields as invalid fields or else
     # they will be parsed as tags for the subquery
@@ -643,6 +634,13 @@ class ReplaySubqueryConfig(QueryConfig):
     trace = InvalidField(query_alias="traceIds")
     urls = InvalidField(query_alias="urls_sorted")
     url = InvalidField(query_alias="urls_sorted")
+
+    # User fields, removing from subquery eligibility for now.
+    user = InvalidField(field_alias="user", query_alias="user_name")
+    user_email = InvalidField(field_alias="user.email")
+    user_id = InvalidField(field_alias="user.id")
+    user_name = InvalidField(field_alias="user.username")
+    user_ip_address = InvalidField(field_alias="user.ip", query_alias="ip_address_v4")
 
 
 # Pagination.
@@ -793,6 +791,17 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "click.textContent": ["click.text"],
     "click.title": ["click.title"],
     "click.selector": [
+        "click.alt",
+        "click.aria_label",
+        "click.classes",
+        "click.id",
+        "click.role",
+        "click.tag",
+        "click.testid",
+        "click.text",
+        "click.title",
+    ],
+    "clicks": [
         "click.alt",
         "click.aria_label",
         "click.classes",
@@ -977,7 +986,7 @@ def select_from_fields(fields: List[str]) -> List[Union[Column, Function]]:
     return [QUERY_ALIAS_COLUMN_MAP[alias] for alias in collect_aliases(fields)]
 
 
-def _extract_children(expression: ParenExpression) -> Generator[None, None, str]:
+def _extract_children(expression: ParenExpression) -> Generator[str, None, None]:
     for child in expression.children:
         if isinstance(child, SearchFilter):
             yield child

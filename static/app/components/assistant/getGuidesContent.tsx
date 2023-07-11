@@ -261,12 +261,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'explain_archive_button_issue_details',
       requiredTargets: ['issue_details_archive_button'],
+      dateThreshold: new Date('2023-07-05'),
       steps: [
         {
-          title: t('Introducing Archive'),
+          title: t('Ignore is Now Archive'),
           target: 'issue_details_archive_button',
           description: t(
-            "Archive your issues. We'll bring them back up if they escalate."
+            "Archive this issue to move it out of the stream - but don't worry, we'll bring it back if it escalates."
           ),
           dismissText: t('Go Away'),
         },
@@ -275,6 +276,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'explain_archive_tab_issue_stream',
       requiredTargets: ['issue_stream_archive_tab'],
+      dateThreshold: new Date('2023-07-05'),
       steps: [
         {
           title: t('Nothing to see here'),

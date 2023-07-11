@@ -136,6 +136,7 @@ class TeamProjectsCreateTest(APITestCase):
         response = self.client.post(path, data={"name": "Test Project", "slug": "test-project"})
 
         assert response.status_code == 409, response.content
+        assert response.data == {"detail": "A project with this slug already exists."}
 
     def test_with_invalid_platform(self):
         user = self.create_user()

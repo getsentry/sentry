@@ -46,7 +46,7 @@ function TagsPageContent(props: Props) {
   const {eventView, location, organization, projects} = props;
 
   const [aggregateColumn, setAggregateColumn] = useState(
-    getTransactionField(SpanOperationBreakdownFilter.None, projects, eventView)
+    getTransactionField(SpanOperationBreakdownFilter.NONE, projects, eventView)
   );
 
   return (

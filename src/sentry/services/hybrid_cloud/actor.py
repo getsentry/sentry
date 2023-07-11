@@ -3,21 +3,25 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
+from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, List, MutableMapping, Optional, Union
 
-from sentry.models.actor import get_actor_id_for_user
+from sentry.models.actor import ACTOR_TYPES, get_actor_for_user, get_actor_id_for_user
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.organization import RpcTeam
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import Actor, Team, User
 
 
 class ActorType(str, Enum):
     USER = "User"
     TEAM = "Team"
+
+
+ActorTarget = Union["RpcActor", "User", "RpcUser", "Team", "RpcTeam"]
 
 
 class RpcActor(RpcModel):
@@ -33,7 +37,6 @@ class RpcActor(RpcModel):
     """Whether this actor is a User or Team"""
 
     slug: Optional[str] = None
-    is_superuser: bool = False
 
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
@@ -43,14 +46,68 @@ class RpcActor(RpcModel):
         return hash((self.id, self.actor_type))
 
     @classmethod
-    def from_object(
-        cls, obj: Union["RpcActor", "User", "Team", "RpcUser", "RpcTeam"], fetch_actor: bool = True
-    ) -> "RpcActor":
+    def many_from_object(cls, objects: Iterable[ActorTarget]) -> List["RpcActor"]:
+        """
+        Create a list of RpcActor instaces based on a collection of 'objects'
+
+        Objects will be grouped by the kind of actor they would be related to.
+        Queries for actors are batched to increase efficiency. Users that are
+        missing actors will have actors generated.
+        """
+        from sentry.models.actor import Actor
+        from sentry.models.team import Team
+        from sentry.models.user import User
+
+        result: List["RpcActor"] = []
+        grouped_by_type: MutableMapping[str, List[int]] = defaultdict(list)
+        team_slugs: MutableMapping[int, str] = {}
+        for obj in objects:
+            if isinstance(obj, cls):
+                result.append(obj)
+            if isinstance(obj, (User, RpcUser)):
+                grouped_by_type[ActorType.USER].append(obj.id)
+            if isinstance(obj, (Team, RpcTeam)):
+                team_slugs[obj.id] = obj.slug
+                grouped_by_type[ActorType.TEAM].append(obj.id)
+
+        if grouped_by_type[ActorType.TEAM]:
+            actors = Actor.objects.filter(
+                type=ACTOR_TYPES["team"], team__in=grouped_by_type[ActorType.TEAM]
+            )
+            for actor in actors:
+                result.append(
+                    RpcActor(
+                        actor_id=actor.id,
+                        id=actor.team_id,
+                        actor_type=ActorType.TEAM,
+                        slug=team_slugs.get(actor.team_id),
+                    )
+                )
+
+        if grouped_by_type[ActorType.USER]:
+            user_ids = grouped_by_type[ActorType.USER]
+            missing = set(user_ids)
+            actors = Actor.objects.filter(type=ACTOR_TYPES["user"], user_id__in=user_ids)
+            for actor in actors:
+                missing.remove(actor.user_id)
+                result.append(
+                    RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
+                )
+            if len(missing):
+                for user_id in missing:
+                    actor = get_actor_for_user(user_id)
+                    result.append(
+                        RpcActor(actor_id=actor.id, id=actor.user_id, actor_type=ActorType.USER)
+                    )
+        return result
+
+    @classmethod
+    def from_object(cls, obj: ActorTarget, fetch_actor: bool = True) -> "RpcActor":
         """
         fetch_actor: whether to make an extra query or call to fetch the actor id
                      Without the actor_id the RpcActor acts as a tuple of id and type.
         """
-        from sentry.models import Team, User
+        from sentry.models import Actor, Team, User
 
         if isinstance(obj, cls):
             return obj
@@ -62,38 +119,41 @@ class RpcActor(RpcModel):
             return cls.from_rpc_user(obj, fetch_actor=fetch_actor)
         if isinstance(obj, RpcTeam):
             return cls.from_rpc_team(obj)
+        if isinstance(obj, Actor):
+            return cls.from_orm_actor(obj)
         raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
     def from_orm_user(cls, user: "User", fetch_actor: bool = True) -> "RpcActor":
-        actor_id = (
-            get_actor_id_for_user(user)
-            if fetch_actor
-            else user.actor_id
-            if hasattr(user, "actor_id")
-            else None
-        )
+        actor_id = None
+        if fetch_actor:
+            actor_id = get_actor_id_for_user(user)
         return cls(
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
+        )
+
+    @classmethod
+    def from_orm_actor(cls, actor: "Actor") -> "RpcActor":
+        actor_type = ActorType.USER if actor.type == ACTOR_TYPES["user"] else ActorType.TEAM
+        model_id = actor.user_id if actor_type == ActorType.USER else actor.team_id
+
+        return cls(
+            id=model_id,
+            actor_id=actor.id,
+            actor_type=actor_type,
         )
 
     @classmethod
     def from_rpc_user(cls, user: RpcUser, fetch_actor: bool = True) -> "RpcActor":
-        actor_id = (
-            get_actor_id_for_user(user)
-            if fetch_actor
-            else user.actor_id
-            if hasattr(user, "actor_id")
-            else None
-        )
+        actor_id = None
+        if fetch_actor:
+            actor_id = get_actor_id_for_user(user)
         return cls(
             id=user.id,
             actor_id=actor_id,
             actor_type=ActorType.USER,
-            is_superuser=user.is_superuser,
         )
 
     @classmethod

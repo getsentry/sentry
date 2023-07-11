@@ -1,28 +1,30 @@
 from __future__ import annotations
 
+import abc
 import inspect
 import logging
 from typing import Any, Mapping, Protocol
 
 from django.http import (
+    HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseNotFound,
     HttpResponseRedirect,
 )
+from django.http.response import HttpResponseBase
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import options
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import Organization, OrganizationStatus, Project, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
@@ -32,6 +34,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloLimit
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.auth import is_valid_redirect, make_login_link_with_redirect
@@ -49,7 +53,7 @@ class _HasRespond(Protocol):
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         ...
 
 
@@ -62,7 +66,7 @@ class OrganizationMixin:
     # as it's only used in a single location and over complicates the rest of
     # the code
     def determine_active_organization(
-        self, request: Request, organization_slug: str | None = None
+        self, request: HttpRequest, organization_slug: str | None = None
     ) -> None:
         """
         Using the current request and potentially optional organization_slug, 'determines'
@@ -97,15 +101,15 @@ class OrganizationMixin:
         self.active_organization = active_organization
 
     def _lookup_organizations(
-        self, is_implicit: bool, organization_slug: str | None, request: Request
+        self, is_implicit: bool, organization_slug: str | None, request: HttpRequest
     ) -> tuple[RpcUserOrganizationContext | None, RpcOrganizationSummary | None]:
         active_organization: RpcUserOrganizationContext | None = self._try_superuser_org_lookup(
             organization_slug, request
         )
         backup_organization: RpcOrganizationSummary | None = None
-        if active_organization is None:
-            organizations = organization_service.get_organizations(
-                user_id=request.user.id, scope=None, only_visible=True
+        if active_organization is None and request.user.id is not None:
+            organizations = user_service.get_organizations(
+                user_id=request.user.id, only_visible=True
             )
 
             if organizations:
@@ -121,7 +125,7 @@ class OrganizationMixin:
         is_implicit: bool,
         organization_slug: str,
         organizations: list[RpcOrganizationSummary],
-        request: Request,
+        request: HttpRequest,
     ) -> RpcUserOrganizationContext | None:
         try:
             backup_org: RpcOrganizationSummary | None = next(
@@ -142,7 +146,7 @@ class OrganizationMixin:
         return None
 
     def _try_superuser_org_lookup(
-        self, organization_slug: str | None, request: Request
+        self, organization_slug: str | None, request: HttpRequest
     ) -> RpcUserOrganizationContext | None:
         active_organization: RpcUserOrganizationContext | None = None
         if organization_slug is not None:
@@ -152,15 +156,15 @@ class OrganizationMixin:
                 )
         return active_organization
 
-    def _find_implicit_slug(self, request: Request) -> str | None:
+    def _find_implicit_slug(self, request: HttpRequest) -> str | None:
         organization_slug = request.session.get("activeorg")
         if request.subdomain is not None and request.subdomain != organization_slug:
             # Customer domain is being used, set the subdomain as the requesting org slug.
             organization_slug = request.subdomain
-        return organization_slug  # type: ignore[no-any-return]
+        return organization_slug
 
     def is_not_2fa_compliant(
-        self, request: Request, organization: RpcOrganization | Organization
+        self, request: HttpRequest, organization: RpcOrganization | Organization
     ) -> bool:
         return (
             organization.flags.require_2fa
@@ -169,12 +173,12 @@ class OrganizationMixin:
         )
 
     def is_member_disabled_from_limit(
-        self, request: Request, organization: RpcUserOrganizationContext | RpcOrganization
+        self, request: HttpRequest, organization: RpcUserOrganizationContext | RpcOrganization
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_team(
-        self, request: Request, organization: RpcOrganization, team_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, team_slug: str
     ) -> Team | None:
         """
         Returns the currently selected team for the request or None
@@ -191,7 +195,7 @@ class OrganizationMixin:
         return team
 
     def get_active_project(
-        self, request: Request, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
     ) -> Project | None:
         try:
             project = Project.objects.get(slug=project_slug, organization=organization)
@@ -203,7 +207,7 @@ class OrganizationMixin:
 
         return project
 
-    def redirect_to_org(self: _HasRespond, request: Request) -> HttpResponse:
+    def redirect_to_org(self: _HasRespond, request: HttpRequest) -> HttpResponseBase:
         from sentry import features
 
         using_customer_domain = request and is_using_customer_domain(request)
@@ -246,7 +250,7 @@ class OrganizationMixin:
         return HttpResponseRedirect(url)
 
 
-class BaseView(View, OrganizationMixin):  # type: ignore[misc]
+class BaseView(View, OrganizationMixin):
     auth_required = True
     # TODO(dcramer): change sudo so it can be required only on POST
     sudo_required = False
@@ -269,8 +273,8 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt  # type: ignore[misc]
-    def dispatch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    @csrf_exempt
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
         A note on the CSRF protection process.
 
@@ -334,25 +338,25 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
 
         return self.handle(request, *args, **kwargs)
 
-    def test_csrf(self, request: Request) -> HttpResponse:
-        middleware = CsrfViewMiddleware()
+    def test_csrf(self, request: HttpRequest) -> HttpResponse:
+        middleware = CsrfViewMiddleware(placeholder_get_response)
         return middleware.process_view(request, self.dispatch, [request], {})
 
-    def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
+    def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:
         return access.DEFAULT
 
     def convert_args(
-        self, request: Request, *args: Any, **kwargs: Any
+        self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         return (args, kwargs)
 
-    def handle(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def handle(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
-    def is_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
+    def is_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
         return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
-    def handle_auth_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         auth.initiate_login(request, next_url=request.get_full_path())
         if "organization_slug" in kwargs:
             redirect_to = reverse("sentry-auth-organization", args=[kwargs["organization_slug"]])
@@ -360,38 +364,40 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
             redirect_to = auth.get_login_url()
         return self.redirect(redirect_to, headers={"X-Robots-Tag": "noindex, nofollow"})
 
-    def is_sudo_required(self, request: Request, *args: Any, **kwargs: Any) -> bool:
+    def is_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
         return self.sudo_required and not request.is_sudo()
 
-    def handle_sudo_required(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_sudo_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return redirect_to_sudo(request.get_full_path())
 
-    def has_permission(self, request: Request, *args: Any, **kwargs: Any) -> bool:
+    def has_permission(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
         return True
 
     def handle_permission_required(
-        self, request: Request, *args: Any, **kwargs: Any
+        self, request: HttpRequest, *args: Any, **kwargs: Any
     ) -> HttpResponse:
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def handle_not_2fa_compliant(self, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+    def handle_not_2fa_compliant(
+        self, request: HttpRequest, *args: Any, **kwargs: Any
+    ) -> HttpResponse:
         redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def get_no_permission_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-login")  # type: ignore[no-any-return]
+    def get_no_permission_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
+        return reverse("sentry-login")
 
-    def get_not_2fa_compliant_url(self, request: Request, *args: Any, **kwargs: Any) -> str:
-        return reverse("sentry-account-settings-security")  # type: ignore[no-any-return]
+    def get_not_2fa_compliant_url(self, request: HttpRequest, *args: Any, **kwargs: Any) -> str:
+        return reverse("sentry-account-settings-security")
 
-    def get_context_data(self, request: Request, **kwargs: Any) -> dict[str, Any]:
+    def get_context_data(self, request: HttpRequest, **kwargs: Any) -> dict[str, Any]:
         context = csrf(request)
-        return context  # type: ignore[no-any-return]
+        return context
 
     def respond(
         self, template: str, context: dict[str, Any] | None = None, status: int = 200
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         default_context = self.default_context
         if context:
             default_context.update(context)
@@ -406,10 +412,10 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return res
 
     def get_team_list(self, user: User, organization: Organization) -> list[Team]:
-        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)  # type: ignore[no-any-return]
+        return Team.objects.get_for_user(organization=organization, user=user, with_projects=True)
 
     def create_audit_entry(
-        self, request: Request, transaction_id: int | None = None, **kwargs: Any
+        self, request: HttpRequest, transaction_id: int | None = None, **kwargs: Any
     ) -> object:
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
 
@@ -418,12 +424,8 @@ class BaseView(View, OrganizationMixin):  # type: ignore[misc]
         return self.redirect(redirect_uri)
 
 
-class OrganizationView(BaseView):
+class AbstractOrganizationView(BaseView, abc.ABC):
     """
-    A deprecated view used by endpoints that act on behalf of an organization.
-    In the future, we should move endpoints to either of the subclasses, RegionSilo* or ControlSilo*, and
-    move out any ORM specific logic into the correct silo view.  This will likely become an ABC that shares some
-    common logic.
     The 'organization' keyword argument is automatically injected into the resulting dispatch, but currently the
     typing of 'organization' will vary based on the subclass.  It may either be an RpcOrganization or an orm
     Organization based on the subclass.  Be mindful during this transition of the typing.
@@ -432,19 +434,19 @@ class OrganizationView(BaseView):
     required_scope: str | None = None
     valid_sso_required = True
 
-    def get_access(self, request: Request, *args: Any, **kwargs: Any) -> access.Access:
+    def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:
         if self.active_organization is None:
             return access.DEFAULT
         return access.from_request_org_and_scopes(
             request=request, rpc_user_org_context=self.active_organization
         )
 
-    def get_context_data(self, request: Request, organization: RpcOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(self, request: HttpRequest, organization: RpcOrganization | Organization, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
         context = super().get_context_data(request)
         context["organization"] = organization
         return context
 
-    def has_permission(self, request: Request, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: HttpRequest, organization: RpcOrganization | Organization, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if organization is None:
             return False
         if self.valid_sso_required:
@@ -463,7 +465,7 @@ class OrganizationView(BaseView):
         return True
 
     def is_auth_required(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self, request: HttpRequest, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> bool:
         result = super().is_auth_required(request, *args, **kwargs)
         if result:
@@ -490,7 +492,7 @@ class OrganizationView(BaseView):
 
         return False
 
-    def handle_permission_required(self, request: Request, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+    def handle_permission_required(self, request: HttpRequest, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
         if organization and self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
@@ -527,7 +529,7 @@ class OrganizationView(BaseView):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
+    def needs_sso(self, request: HttpRequest, organization: Organization | RpcOrganization) -> bool:
         if not organization:
             return False
         # XXX(dcramer): this branch should really never hit
@@ -543,58 +545,49 @@ class OrganizationView(BaseView):
             return True
         return False
 
-    def _lookup_orm_org(self) -> Organization | None:
-        """
-        Used by convert_args to convert the hybrid cloud safe active_organization object into an org ORM.
-        This should really only be used by the Region or Monolith silo modes -- calling this in a Control silo
-        endpoint or codepath will result in exceptions.
-        :return:
-        """
-        organization: Organization | None = None
-        if self.active_organization:
-            try:
-                organization = Organization.objects.get(id=self.active_organization.organization.id)
-            except Organization.DoesNotExist:
-                pass
-        return organization
+    @abc.abstractmethod
+    def _get_organization(self) -> Organization | RpcOrganization | None:
+        raise NotImplementedError
 
     def convert_args(
-        self, request: Request, organization_slug: str | None = None, *args: Any, **kwargs: Any
+        self, request: HttpRequest, organization_slug: str | None = None, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
         if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
+            kwargs["organization"] = self._get_organization()
 
-        return args, kwargs
-
-
-class RegionSiloOrganizationView(OrganizationView):
-    """
-    A view which has direct ORM access to organization objects.  In practice, **only endpoints that exist in the
-    region silo should use this class**.  When All endpoints have been convert / tested against region silo compliance,
-    the base class (OrganizationView) will likely disappear and only either ControlSilo* or RegionSilo* classes will
-    remain.
-    """
-
-    def convert_args(
-        self, request: Any, organization_slug: str | None = None, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        if "organization" not in kwargs:
-            kwargs["organization"] = self._lookup_orm_org()
-
-        return args, kwargs
-
-
-class ControlSiloOrganizationView(OrganizationView):
-    def convert_args(
-        self, request: Any, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        kwargs["organization"] = (
-            self.active_organization.organization if self.active_organization else None
-        )
         return super().convert_args(request, *args, **kwargs)
 
 
-class ProjectView(RegionSiloOrganizationView):
+class OrganizationView(AbstractOrganizationView):
+    """
+    A view which has direct ORM access to organization objects.  Only endpoints that exist in the
+    region silo should use this class.
+    """
+
+    def _get_organization(self) -> Organization | None:
+        if not self.active_organization:
+            return None
+        try:
+            return Organization.objects.get(id=self.active_organization.organization.id)
+        except Organization.DoesNotExist:
+            return None
+        except SiloLimit.AvailabilityError as e:
+            raise SiloLimit.AvailabilityError(
+                f"{type(self).__name__} should extend ControlSiloOrganizationView?"
+            ) from e
+
+
+class ControlSiloOrganizationView(AbstractOrganizationView):
+    """A view which accesses organization objects over RPC.
+
+    Only endpoints on the control silo should use this class (but it works anywhere).
+    """
+
+    def _get_organization(self) -> RpcOrganization | None:
+        return self.active_organization.organization if self.active_organization else None
+
+
+class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
     matching URL pattern must pass 'org_slug' as well as 'project_slug'.
@@ -605,7 +598,7 @@ class ProjectView(RegionSiloOrganizationView):
     - project
     """
 
-    def get_context_data(self, request: Request, organization: Organization, project: Project, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
+    def get_context_data(self, request: HttpRequest, organization: Organization, project: Project, **kwargs: Any) -> dict[str, Any]:  # type: ignore[override]
         from sentry.api.serializers import serialize
 
         context = super().get_context_data(request, organization)
@@ -613,7 +606,7 @@ class ProjectView(RegionSiloOrganizationView):
         context["processing_issues"] = serialize(project).get("processingIssues", 0)
         return context
 
-    def has_permission(self, request: Request, organization: Organization, project: Project, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
+    def has_permission(self, request: HttpRequest, organization: Organization, project: Project, *args: Any, **kwargs: Any) -> bool:  # type: ignore[override]
         if project is None:
             return False
         rv = super().has_permission(request, organization)
@@ -636,11 +629,11 @@ class ProjectView(RegionSiloOrganizationView):
             return False
         return True
 
-    def convert_args(self, request: Request, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
-            organization = self._lookup_orm_org()
+            organization = self._get_organization()
 
             if organization:
                 active_project = self.get_active_project(
@@ -653,10 +646,10 @@ class ProjectView(RegionSiloOrganizationView):
         return args, kwargs
 
 
-class AvatarPhotoView(View):  # type: ignore[misc]
+class AvatarPhotoView(View):
     model: type[AvatarBase]
 
-    def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         avatar_id = kwargs["avatar_id"]
         try:
             avatar = self.model.objects.get(ident=avatar_id)

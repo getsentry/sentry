@@ -9,10 +9,9 @@ from django.utils import timezone
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.snuba.dataset import EntityKey
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
-from sentry.testutils import SnubaTestCase, TestCase
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
@@ -28,7 +27,7 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsLayerTest(BaseMetricsTestCase, cls):
+    class MetricsLayerTest(BaseMetricsTestCase, cls):  # type: ignore[valid-type]
         __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
         adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation
@@ -1151,22 +1150,17 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
         proj = self.create_project(organization=org)
 
         # Insert a different set metric:
-        self._send_buckets(
-            [
-                {
-                    "org_id": org.id,
-                    "project_id": proj.id,
-                    "metric_id": 666,  # any other metric ID
-                    "timestamp": time.time(),
-                    "tags": {},
-                    "type": "s",
-                    "value": [1, 2, 3],
-                    "retention_days": 90,
-                    "sentry_received_timestamp": time.time(),
-                }
-            ],
-            entity=EntityKey.MetricsSets.value,
-        )
+        for value in 1, 2, 3:
+            self.store_metric(
+                org_id=org.id,
+                project_id=proj.id,
+                name="foobarbaz",  # any other metric ID
+                timestamp=int(time.time()),
+                tags={},
+                type="set",
+                value=value,
+                use_case_id=UseCaseID.SESSIONS,
+            )
 
         assert (
             self.backend.get_project_releases_count(

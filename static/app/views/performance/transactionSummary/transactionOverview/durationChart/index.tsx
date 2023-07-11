@@ -31,13 +31,7 @@ type Props = ViewProps & {
   queryExtras?: Record<string, string>;
 };
 
-enum DurationFunctionField {
-  P50 = 'p50',
-  P75 = 'p75',
-  P95 = 'p95',
-  P99 = 'p99',
-  p100 = 'p100',
-}
+const yAxisValues = ['p50', 'p75', 'p95', 'p99', 'p100'];
 
 /**
  * Fetch and render a stacked area chart that shows duration percentiles over
@@ -117,7 +111,7 @@ function DurationChart({
 
   const header = (
     <HeaderTitleLegend>
-      {currentFilter === SpanOperationBreakdownFilter.None
+      {currentFilter === SpanOperationBreakdownFilter.NONE
         ? t('Duration Breakdown')
         : tct('Span Operation Breakdown - [operationName]', {
             operationName: currentFilter,
@@ -132,7 +126,7 @@ function DurationChart({
     </HeaderTitleLegend>
   );
 
-  const yAxis = Object.values(DurationFunctionField).map(v => `${v}(${parameter})`);
+  const yAxis = yAxisValues.map(v => `${v}(${parameter})`);
 
   return (
     <Fragment>

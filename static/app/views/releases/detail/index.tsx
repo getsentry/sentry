@@ -6,7 +6,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Alert} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -35,7 +35,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getReleaseBounds, ReleaseBounds, searchReleaseVersion} from '../utils';
 
@@ -68,9 +68,9 @@ type State = {
   deploys: Deploy[];
   release: ReleaseWithHealth;
   sessions: SessionApiResponse | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ReleasesDetail extends AsyncView<Props, State> {
+class ReleasesDetail extends DeprecatedAsyncView<Props, State> {
   shouldReload = true;
 
   getTitle() {
@@ -111,14 +111,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, location, params, releaseMeta} = this.props;
 
     const basePath = `/organizations/${organization.slug}/releases/${encodeURIComponent(
       params.release
     )}/`;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'release',
         basePath,
@@ -238,14 +238,14 @@ class ReleasesDetail extends AsyncView<Props, State> {
 type ReleasesDetailContainerProps = Omit<Props, 'releaseMeta'>;
 type ReleasesDetailContainerState = {
   releaseMeta: ReleaseMeta | null;
-} & AsyncComponent['state'];
-class ReleasesDetailContainer extends AsyncComponent<
+} & DeprecatedAsyncComponent['state'];
+class ReleasesDetailContainer extends DeprecatedAsyncComponent<
   ReleasesDetailContainerProps,
   ReleasesDetailContainerState
 > {
   shouldReload = true;
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization, params} = this.props;
     // fetch projects this release belongs to
     return [
@@ -259,6 +259,7 @@ class ReleasesDetailContainer extends AsyncComponent<
   }
 
   componentDidMount() {
+    super.componentDidMount();
     this.removeGlobalDateTimeFromUrl();
     this.props.setRouteAnalyticsParams({release: this.props.params.release});
   }

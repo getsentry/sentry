@@ -95,7 +95,7 @@ export class AssigneeSelectorDropdown extends Component<
     };
   }
 
-  componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
+  UNSAFE_componentWillReceiveProps(nextProps: AssigneeSelectorDropdownProps) {
     const loading = GroupStore.hasStatus(nextProps.id, 'assignTo');
     if (nextProps.id !== this.props.id || loading !== this.state.loading) {
       const group = GroupStore.get(this.props.id);

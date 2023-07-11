@@ -18,7 +18,7 @@ class OrganizationMemberSerializerTest(TestCase):
         self.user_2 = self.create_user("bar@localhost", username="bar")
 
         self.org = self.create_organization(owner=self.owner_user)
-        self.org.member_set.create(user=self.user_2)
+        self.org.member_set.create(user_id=self.user_2.id)
         self.team = self.create_team(organization=self.org, members=[self.owner_user, self.user_2])
         self.team_2 = self.create_team(organization=self.org, members=[self.user_2])
         self.project = self.create_project(teams=[self.team])
@@ -26,8 +26,8 @@ class OrganizationMemberSerializerTest(TestCase):
 
     def _get_org_members(self):
         return list(
-            self.org.member_set.filter(user__in=[self.owner_user, self.user_2]).order_by(
-                "user__email"
+            self.org.member_set.filter(user_id__in=[self.owner_user.id, self.user_2.id]).order_by(
+                "user_email"
             )
         )
 
@@ -67,11 +67,11 @@ class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest)
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
 
-        assert len(result["orgRolesFromTeams"]) == 3
-        assert result["orgRolesFromTeams"][0]["role"]["id"] == "owner"
-        assert result["orgRolesFromTeams"][0]["teamSlug"] == owner_team.slug
-        assert result["orgRolesFromTeams"][1]["role"]["id"] == "manager"
-        assert result["orgRolesFromTeams"][2]["role"]["id"] == "manager"
+        assert len(result["groupOrgRoles"]) == 3
+        assert result["groupOrgRoles"][0]["role"]["id"] == "owner"
+        assert result["groupOrgRoles"][0]["teamSlug"] == owner_team.slug
+        assert result["groupOrgRoles"][1]["role"]["id"] == "manager"
+        assert result["groupOrgRoles"][2]["role"]["id"] == "manager"
 
 
 @region_silo_test(stable=True)
@@ -106,7 +106,10 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
             self.user_2,
             OrganizationMemberWithTeamsSerializer(),
         )
-        expected_teams = [[self.team.slug, self.team_2.slug], [self.team.slug]]
+        expected_teams = [
+            [self.team.slug, self.team_2.slug],
+            [self.team.slug],
+        ]
         expected_team_roles = [
             [
                 {"teamSlug": self.team.slug, "role": None},

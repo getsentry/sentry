@@ -3,7 +3,12 @@ from sentry.models import Organization, User
 from sentry.models.userreport import UserReport
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.query import RangeQuerySetWrapper, bulk_delete_objects
+from sentry.utils.query import (
+    RangeQuerySetWrapper,
+    RangeQuerySetWrapperWithProgressBar,
+    RangeQuerySetWrapperWithProgressBarApprox,
+    bulk_delete_objects,
+)
 
 
 class InIexactQueryTest(TestCase):
@@ -19,6 +24,8 @@ class InIexactQueryTest(TestCase):
 
 @control_silo_test(stable=True)
 class RangeQuerySetWrapperTest(TestCase):
+    range_wrapper = RangeQuerySetWrapper
+
     def test_basic(self):
         total = 10
 
@@ -27,8 +34,8 @@ class RangeQuerySetWrapperTest(TestCase):
 
         qs = User.objects.all()
 
-        assert len(list(RangeQuerySetWrapper(qs, step=2))) == total
-        assert len(list(RangeQuerySetWrapper(qs, limit=5))) == 5
+        assert len(list(self.range_wrapper(qs, step=2))) == total
+        assert len(list(self.range_wrapper(qs, limit=5))) == 5
 
     def test_loop_and_delete(self):
         total = 10
@@ -37,10 +44,24 @@ class RangeQuerySetWrapperTest(TestCase):
 
         qs = User.objects.all()
 
-        for user in RangeQuerySetWrapper(qs, step=2):
+        for user in self.range_wrapper(qs, step=2):
             user.delete()
 
         assert User.objects.all().count() == 0
+
+    def test_empty(self):
+        qs = User.objects.all()
+        assert len(list(self.range_wrapper(qs, step=2))) == 0
+
+
+@control_silo_test(stable=True)
+class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
+    range_wrapper = RangeQuerySetWrapperWithProgressBar
+
+
+@control_silo_test(stable=True)
+class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
+    range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 
 
 class BulkDeleteObjectsTest(TestCase):

@@ -1,3 +1,5 @@
+from typing import Any
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -188,7 +190,7 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, *args: Any, **kwds: Any) -> Response:
         query_params = self.get_query_parameters(request)
 
         return Response(

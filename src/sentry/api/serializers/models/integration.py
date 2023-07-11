@@ -31,7 +31,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 
 
 @register(Integration)
-class IntegrationSerializer(Serializer):  # type: ignore
+class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
@@ -95,7 +95,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 
 @register(OrganizationIntegration)
-class OrganizationIntegrationSerializer(Serializer):  # type: ignore
+class OrganizationIntegrationSerializer(Serializer):
     def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
@@ -178,7 +178,7 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         return serialized_integration
 
 
-class IntegrationProviderSerializer(Serializer):  # type: ignore
+class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:

@@ -22,7 +22,6 @@ import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import {
-  IconArchive,
   IconCheckmark,
   IconEllipsis,
   IconMute,
@@ -89,9 +88,8 @@ export function Actions(props: Props) {
     group.status === 'resolved' ? group.statusDetails.autoResolved : undefined;
   const isIgnored = status === 'ignored';
 
-  const hasEscalatingIssues = organization.features.includes('escalating-issues-ui');
+  const hasEscalatingIssues = organization.features.includes('escalating-issues');
   const hasDeleteAccess = organization.access.includes('event:admin');
-  const disabledMarkReviewed = organization.features.includes('remove-mark-reviewed');
 
   const {
     delete: deleteCap,
@@ -413,18 +411,13 @@ export function Actions(props: Props) {
             disabled: disabled || group.subscriptionDetails?.disabled,
             onAction: onToggleSubscribe,
           },
-          ...(disabledMarkReviewed
-            ? []
-            : [
-                {
-                  key: 'mark-review',
-                  label: t('Mark reviewed'),
-                  disabled: !group.inbox || disabled,
-                  details:
-                    !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
-                  onAction: () => onUpdate({inbox: false}),
-                },
-              ]),
+          {
+            key: 'mark-review',
+            label: t('Mark reviewed'),
+            disabled: !group.inbox || disabled,
+            details: !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
+            onAction: () => onUpdate({inbox: false}),
+          },
           {
             key: 'share',
             label: t('Share'),
@@ -502,13 +495,7 @@ export function Actions(props: Props) {
           }
           size="sm"
           icon={
-            isResolved ? (
-              <IconCheckmark />
-            ) : hasEscalatingIssues ? (
-              <IconArchive />
-            ) : (
-              <IconMute />
-            )
+            hasEscalatingIssues ? null : isResolved ? <IconCheckmark /> : <IconMute />
           }
           disabled={disabled || isAutoResolved}
           onClick={() =>
@@ -534,7 +521,6 @@ export function Actions(props: Props) {
                 isArchived={isIgnored}
                 onUpdate={onUpdate}
                 disabled={disabled}
-                disableTooltip
               />
             </GuideAnchor>
           ) : (
@@ -544,12 +530,10 @@ export function Actions(props: Props) {
               onUpdate={onUpdate}
               disabled={disabled}
               size="sm"
-              disableTooltip
             />
           )}
           <GuideAnchor target="resolve" position="bottom" offset={20}>
             <ResolveActions
-              disableTooltip
               disabled={disabled}
               disableDropdown={disabled}
               hasRelease={hasRelease}

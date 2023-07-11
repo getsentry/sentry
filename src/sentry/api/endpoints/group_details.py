@@ -28,7 +28,7 @@ from sentry.models import Activity, Group, GroupSeen, GroupSubscriptionManager, 
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.groupowner import get_owner_details
 from sentry.plugins.base import plugins
-from sentry.plugins.bases import IssueTrackingPlugin2
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
@@ -222,17 +222,17 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             if "forecast" in expand and features.has(
                 "organizations:escalating-issues", group.organization
             ):
-                fetched_forecast = EscalatingGroupForecast.fetch(
-                    group.project_id, group.id
-                ).to_dict()
-                data.update(
-                    {
-                        "forecast": {
-                            "data": fetched_forecast.get("forecast"),
-                            "date_added": fetched_forecast.get("date_added"),
+                fetched_forecast = EscalatingGroupForecast.fetch(group.project_id, group.id)
+                if fetched_forecast:
+                    fetched_forecast = fetched_forecast.to_dict()
+                    data.update(
+                        {
+                            "forecast": {
+                                "data": fetched_forecast.get("forecast"),
+                                "date_added": fetched_forecast.get("date_added"),
+                            }
                         }
-                    }
-                )
+                    )
 
             action_list = self._get_actions(request, group)
             data.update(

@@ -98,7 +98,10 @@ function PreviewTable({
   return (
     <IssuesReplayCountProvider groupIds={previewGroups || []}>
       <Panel>
-        <GroupListHeader withChart={false} showLastTriggered />
+        <GroupListHeader
+          withChart={false}
+          withColumns={['assignee', 'event', 'lastTriggered', 'users']}
+        />
         <PanelBody>{renderBody()}</PanelBody>
       </Panel>
       {renderPagination()}

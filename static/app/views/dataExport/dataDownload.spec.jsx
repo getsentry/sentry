@@ -21,7 +21,7 @@ describe('DataDownload', function () {
     });
 
   it('should send a request to the data export endpoint', function () {
-    const getValid = getDataExportDetails(DownloadStatus.Valid);
+    const getValid = getDataExportDetails(DownloadStatus.VALID);
 
     render(<DataDownload params={mockRouteParams} />);
     expect(getValid).toHaveBeenCalledTimes(1);
@@ -44,7 +44,7 @@ describe('DataDownload', function () {
   });
 
   it("should render the 'Early' view when appropriate", function () {
-    const status = DownloadStatus.Early;
+    const status = DownloadStatus.EARLY;
     getDataExportDetails({status});
 
     render(<DataDownload params={mockRouteParams} />);
@@ -55,8 +55,8 @@ describe('DataDownload', function () {
   });
 
   it("should render the 'Expired' view when appropriate", function () {
-    const status = DownloadStatus.Expired;
-    const response = {status, query: {type: ExportQueryType.IssuesByTag}};
+    const status = DownloadStatus.EXPIRED;
+    const response = {status, query: {type: ExportQueryType.ISSUES_BY_TAG}};
     getDataExportDetails(response);
 
     render(<DataDownload params={mockRouteParams} />);
@@ -68,7 +68,7 @@ describe('DataDownload', function () {
   });
 
   it("should render the 'Valid' view when appropriate", function () {
-    const status = DownloadStatus.Valid;
+    const status = DownloadStatus.VALID;
     getDataExportDetails({dateExpired, status});
 
     render(<DataDownload params={mockRouteParams} />);
@@ -85,12 +85,12 @@ describe('DataDownload', function () {
   });
 
   it('should render the Open in Discover button when needed', function () {
-    const status = DownloadStatus.Valid;
+    const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
       status,
       query: {
-        type: ExportQueryType.Discover,
+        type: ExportQueryType.DISCOVER,
         info: {},
       },
     });
@@ -100,12 +100,12 @@ describe('DataDownload', function () {
   });
 
   it('should not render the Open in Discover button when not needed', function () {
-    const status = DownloadStatus.Valid;
+    const status = DownloadStatus.VALID;
     getDataExportDetails({
       dateExpired,
       status,
       query: {
-        type: ExportQueryType.IssuesByTag,
+        type: ExportQueryType.ISSUES_BY_TAG,
         info: {},
       },
     });

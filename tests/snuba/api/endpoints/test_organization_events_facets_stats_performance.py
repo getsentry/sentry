@@ -27,7 +27,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         for i in range(5):
             self.store_transaction(
                 tags=[["color", "blue"], ["many", "yes"]],
-                duration=4000,
+                duration=2000 * i,
                 lcp=3000,
                 timestamp=timestamps[i % 4],
             )
@@ -108,7 +108,8 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             "count_delta": -1.0,
             "count_range_1": 5,
             "count_range_total": 5,
-            "sum_correlation": 0.9718819143525331,
+            "sum_correlation": 0.9532990871284259,
+            "p75_correlation": 0.9951357233775535,
         }
 
         assert data["color,blue"]

@@ -29,7 +29,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         )
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @responses.activate
     def test_basic_flow(self):
@@ -76,7 +76,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert not Identity.objects.filter(external_id=external_id_2, user=user2).exists()
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def setUp(self):
         super().setUp()

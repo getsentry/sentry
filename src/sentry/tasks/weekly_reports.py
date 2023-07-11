@@ -2,7 +2,7 @@ import heapq
 import logging
 from datetime import timedelta
 from functools import partial, reduce
-from typing import MutableMapping
+from typing import MutableMapping, Tuple
 
 import sentry_sdk
 from django.db.models import Count
@@ -26,8 +26,6 @@ from sentry.models import (
     Group,
     GroupHistory,
     GroupHistoryStatus,
-    GroupInbox,
-    GroupInboxReason,
     GroupStatus,
     Organization,
     OrganizationMember,
@@ -35,8 +33,9 @@ from sentry.models import (
     User,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
@@ -74,19 +73,21 @@ class ProjectContext:
     dropped_error_count = 0
     accepted_transaction_count = 0
     dropped_transaction_count = 0
+    accepted_replay_count = 0
+    dropped_replay_count = 0
 
     # Removed after organizations:escalating-issues GA
     all_issue_count = 0
     existing_issue_count = 0
     reopened_issue_count = 0
     new_issue_count = 0
-
-    # For organizations:issue-states
-    new_inbox_count = 0
-    ongoing_inbox_count = 0
-    escalating_inbox_count = 0
-    regression_inbox_count = 0
-    total_inbox_count = 0
+    # we merged organizations:issue-states flag to organizations:escalating-issues, so delete when
+    # organizations:escalating-issues GA
+    new_substatus_count = 0
+    ongoing_substatus_count = 0
+    escalating_substatus_count = 0
+    regression_substatus_count = 0
+    total_substatus_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -98,13 +99,24 @@ class ProjectContext:
         # Array of (Group, count)
         self.key_performance_issues = []
 
+        self.key_replay_events = []
+
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
         self.transaction_count_by_day = {}
+        # Dictionary of { timestamp: count }
+        self.replay_count_by_day = {}
 
     def __repr__(self):
-        return f"{self.key_errors}, Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]\nTransactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]"
+        return "\n".join(
+            [
+                f"{self.key_errors}, ",
+                f"Errors: [Accepted {self.accepted_error_count}, Dropped {self.dropped_error_count}]",
+                f"Transactions: [Accepted {self.accepted_transaction_count} Dropped {self.dropped_transaction_count}]",
+                f"Replays: [Accepted {self.accepted_replay_count} Dropped {self.dropped_replay_count}]",
+            ]
+        )
 
 
 def check_if_project_is_empty(project_ctx):
@@ -119,6 +131,8 @@ def check_if_project_is_empty(project_ctx):
         and not project_ctx.dropped_error_count
         and not project_ctx.accepted_transaction_count
         and not project_ctx.dropped_transaction_count
+        and not project_ctx.accepted_replay_count
+        and not project_ctx.dropped_replay_count
     )
 
 
@@ -136,6 +150,7 @@ def check_if_ctx_is_empty(ctx):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     if timestamp is None:
         # The time that the report was generated
@@ -160,6 +175,7 @@ def schedule_organizations(dry_run=False, timestamp=None, duration=None):
     max_retries=5,
     acks_late=True,
 )
+@retry
 def prepare_organization_report(
     timestamp, duration, organization_id, dry_run=False, target_user=None, email_override=None
 ):
@@ -167,7 +183,7 @@ def prepare_organization_report(
     set_tag("org.slug", organization.slug)
     set_tag("org.id", organization_id)
     ctx = OrganizationReportContext(timestamp, duration, organization)
-    has_issue_states = features.has("organizations:issue-states", organization)
+    has_issue_states = features.has("organizations:escalating-issues", organization)
 
     # Run organization passes
     with sentry_sdk.start_span(op="weekly_reports.user_project_ownership"):
@@ -176,8 +192,10 @@ def prepare_organization_report(
         project_event_counts_for_organization(ctx)
 
     if has_issue_states:
-        with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_inbox_summaries"):
-            organization_project_issue_inbox_summaries(ctx)
+        with sentry_sdk.start_span(
+            op="weekly_reports.organization_project_issue_substatus_summaries"
+        ):
+            organization_project_issue_substatus_summaries(ctx)
     else:
         with sentry_sdk.start_span(op="weekly_reports.organization_project_issue_summaries"):
             organization_project_issue_summaries(ctx)
@@ -243,7 +261,7 @@ def project_event_counts_for_organization(ctx):
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION, DataCategory.REPLAY],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
@@ -265,6 +283,13 @@ def project_event_counts_for_organization(ctx):
             else:
                 project_ctx.accepted_transaction_count += total
                 project_ctx.transaction_count_by_day[timestamp] = total
+        elif dat["category"] == DataCategory.REPLAY:
+            # Replay outcome
+            if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
+                project_ctx.dropped_replay_count += total
+            else:
+                project_ctx.accepted_replay_count += total
+                project_ctx.replay_count_by_day[timestamp] = total
         else:
             # Error outcome
             if dat["outcome"] == Outcome.RATE_LIMITED or dat["outcome"] == Outcome.FILTERED:
@@ -342,30 +367,27 @@ def organization_project_issue_summaries(ctx):
         )
 
 
-def organization_project_issue_inbox_summaries(ctx: OrganizationReportContext):
-    inbox_counts = (
-        GroupInbox.objects.filter(
-            organization_id=ctx.organization.id,
-            reason__in=[
-                GroupInboxReason.NEW.value,
-                GroupInboxReason.ESCALATING.value,
-                GroupInboxReason.ONGOING.value,
-                GroupInboxReason.REGRESSION.value,
-            ],
+def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext):
+    substatus_counts = (
+        Group.objects.filter(
+            project__organization_id=ctx.organization.id,
+            last_seen__gte=ctx.start,
+            last_seen__lt=ctx.end,
+            status=GroupStatus.UNRESOLVED,
         )
-        .values("project_id", "reason")
-        .annotate(total=Count("reason"))
+        .values("project_id", "substatus")
+        .annotate(total=Count("substatus"))
     )
-    for count in inbox_counts:
-        if count["reason"] == GroupInboxReason.NEW.value:
-            ctx.projects[count["project_id"]].new_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.ESCALATING.value:
-            ctx.projects[count["project_id"]].escalating_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.ONGOING.value:
-            ctx.projects[count["project_id"]].ongoing_inbox_count = count["total"]
-        if count["reason"] == GroupInboxReason.REGRESSION.value:
-            ctx.projects[count["project_id"]].regression_inbox_count = count["total"]
-        ctx.projects[count["project_id"]].total_inbox_count += count["total"]
+    for item in substatus_counts:
+        if item["substatus"] == GroupSubStatus.NEW:
+            ctx.projects[item["project_id"]].new_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ESCALATING:
+            ctx.projects[item["project_id"]].escalating_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.ONGOING:
+            ctx.projects[item["project_id"]].ongoing_substatus_count = item["total"]
+        if item["substatus"] == GroupSubStatus.REGRESSED:
+            ctx.projects[item["project_id"]].regression_substatus_count = item["total"]
+        ctx.projects[item["project_id"]].total_substatus_count += item["total"]
 
 
 # Project passes
@@ -412,26 +434,8 @@ def fetch_key_error_groups(ctx):
     for group in Group.objects.filter(id__in=all_key_error_group_ids).all():
         group_id_to_group[group.id] = group
 
-    group_id_to_group_inbox = {}
     group_id_to_group_history = {}
-    if features.has("organizations:issue-states", ctx.organization):
-        group_inbox = (
-            GroupInbox.objects.filter(
-                group_id__in=all_key_error_group_ids,
-                organization_id=ctx.organization.id,
-                reason__in=[
-                    GroupInboxReason.NEW.value,
-                    GroupInboxReason.ESCALATING.value,
-                    GroupInboxReason.ONGOING.value,
-                    GroupInboxReason.REGRESSION.value,
-                ],
-            )
-            .order_by("group_id", "-date_added")
-            .distinct("group_id")
-            .all()
-        )
-        group_id_to_group_inbox = {g.group_id: g for g in group_inbox}
-    else:
+    if not features.has("organizations:escalating-issues", ctx.organization):
         group_history = (
             GroupHistory.objects.filter(
                 group_id__in=all_key_error_group_ids, organization_id=ctx.organization.id
@@ -452,7 +456,6 @@ def fetch_key_error_groups(ctx):
                     (
                         group_id_to_group.get(group_id),
                         group_id_to_group_history.get(group_id, None),
-                        group_id_to_group_inbox.get(group_id, None),
                         count,
                     )
                     for group_id, count in project_ctx.key_errors
@@ -682,19 +685,25 @@ group_status_to_color = {
     GroupHistoryStatus.DELETED_AND_DISCARDED: "#DBD6E1",
     GroupHistoryStatus.REVIEWED: "#FAD473",
     GroupHistoryStatus.NEW: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_UNTIL_ESCALATING: "",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
+    GroupHistoryStatus.ARCHIVED_FOREVER: "#FAD473",
 }
-group_inbox_to_color = {
-    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.08)",
-    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.08)",
-    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.09)",
-    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
-}
-group_inbox_to_color_border = {
-    GroupInboxReason.NEW: "rgba(245, 176, 0, 0.55)",
-    GroupInboxReason.REGRESSION: "rgba(108, 95, 199, 0.5)",
-    GroupInboxReason.ESCALATING: "rgba(245, 84, 89, 0.5)",
-    GroupInboxReason.ONGOING: "rgba(219, 214, 225, 1)",
-}
+
+
+def get_group_status_badge(group: Group) -> Tuple[str, str, str]:
+    """
+    Returns a tuple of (text, background_color, border_color)
+    Should be similar to GroupStatusBadge.tsx in the frontend
+    """
+    if group.status == GroupStatus.UNRESOLVED:
+        if group.substatus == GroupSubStatus.NEW:
+            return ("New", "rgba(245, 176, 0, 0.08)", "rgba(245, 176, 0, 0.55)")
+        if group.substatus == GroupSubStatus.REGRESSED:
+            return ("Regressed", "rgba(108, 95, 199, 0.08)", "rgba(108, 95, 199, 0.5)")
+        if group.substatus == GroupSubStatus.ESCALATING:
+            return ("Escalating", "rgba(245, 84, 89, 0.09)", "rgba(245, 84, 89, 0.5)")
+    return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
 def render_template_context(ctx, user):
@@ -714,23 +723,38 @@ def render_template_context(ctx, user):
         # If user is None, or if the user is not a member of the organization, we assume that the email was directed to a user who joined all teams.
         user_projects = ctx.projects.values()
 
+    has_issue_states = features.has("organizations:escalating-issues", ctx.organization)
+    has_replay_graph = features.has("organizations:session-replay", ctx.organization)
+    has_replay_section = features.has(
+        "organizations:session-replay", ctx.organization
+    ) and features.has("organizations:session-replay-weekly-email", ctx.organization)
+
     # Render the first section of the email where we had the table showing the
     # number of accepted/dropped errors/transactions for each project.
     def trends():
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
             return reduce(
-                lambda a, b: (a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]),
+                lambda a, b: (
+                    a[0] + b[0],
+                    a[1] + b[1],
+                    a[2] + b[2],
+                    a[3] + b[3],
+                    a[4] + b[4],
+                    a[5] + b[5],
+                ),
                 [
                     (
                         project_ctx.accepted_error_count,
                         project_ctx.dropped_error_count,
                         project_ctx.accepted_transaction_count,
                         project_ctx.dropped_transaction_count,
+                        project_ctx.accepted_replay_count,
+                        project_ctx.dropped_replay_count,
                     )
                     for project_ctx in project_ctxs
                 ],
-                (0, 0, 0, 0),
+                (0, 0, 0, 0, 0, 0),
             )
 
         # Highest volume projects go first
@@ -745,7 +769,10 @@ def render_template_context(ctx, user):
             total_dropped_error,
             total_transaction,
             total_dropped_transaction,
+            total_replays,
+            total_dropped_replays,
         ) = sum_event_counts(projects_associated_with_user)
+
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
         projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
@@ -762,6 +789,8 @@ def render_template_context(ctx, user):
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "dropped_transaction_count": project_ctx.dropped_transaction_count,
                 "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "dropped_replay_count": project_ctx.dropped_replay_count,
+                "accepted_replay_count": project_ctx.accepted_replay_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -772,6 +801,8 @@ def render_template_context(ctx, user):
                 others_dropped_error,
                 others_transaction,
                 others_dropped_transaction,
+                others_replays,
+                others_dropped_replays,
             ) = sum_event_counts(projects_not_taken)
             legend.append(
                 {
@@ -781,6 +812,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": others_error,
                     "dropped_transaction_count": others_dropped_transaction,
                     "accepted_transaction_count": others_transaction,
+                    "dropped_replay_count": others_dropped_replays,
+                    "accepted_replay_count": others_replays,
                 }
             )
         if len(projects_taken) > 1:
@@ -792,6 +825,8 @@ def render_template_context(ctx, user):
                     "accepted_error_count": total_error,
                     "dropped_transaction_count": total_dropped_transaction,
                     "accepted_transaction_count": total_transaction,
+                    "dropped_replay_count": total_dropped_replays,
+                    "accepted_replay_count": total_replays,
                 }
             )
 
@@ -804,6 +839,7 @@ def render_template_context(ctx, user):
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
                     "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "replay_count": project_ctx.replay_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -823,6 +859,12 @@ def render_template_context(ctx, user):
                                 projects_not_taken,
                             )
                         ),
+                        "replay_count": sum(
+                            map(
+                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
+                                projects_not_taken,
+                            )
+                        ),
                     }
                 )
             series.append((to_datetime(t), project_series))
@@ -831,11 +873,15 @@ def render_template_context(ctx, user):
             "series": series,
             "total_error_count": total_error,
             "total_transaction_count": total_transaction,
+            "total_replay_count": total_replays,
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
+            ),
+            "replay_maximum": max(  # The max replay count on any single day
+                sum(value["replay_count"] for value in values) for timestamp, values in series
             )
             if len(projects_taken) > 0
             else 0,
@@ -861,7 +907,7 @@ def render_template_context(ctx, user):
                             "project_id": project_ctx.project.id,
                         },
                     )
-                for group, group_history, group_inbox, count in project_ctx.key_errors:
+                for group, group_history, count in project_ctx.key_errors:
                     if ctx.organization.slug == "sentry":
                         logger.info(
                             "render_template_context.all_key_errors.found_error",
@@ -872,9 +918,10 @@ def render_template_context(ctx, user):
                             },
                         )
 
-                    group_inbox_reason = (
-                        GroupInboxReason(group_inbox.reason) if group_inbox else None
+                    (substatus, substatus_color, substatus_border_color,) = (
+                        get_group_status_badge(group) if has_issue_states else (None, None, None)
                     )
+
                     yield {
                         "count": count,
                         "group": group,
@@ -884,15 +931,9 @@ def render_template_context(ctx, user):
                         "status_color": group_status_to_color[group_history.status]
                         if group_history
                         else group_status_to_color[GroupHistoryStatus.NEW],
-                        "inbox_reason": group_inbox_reason.name.capitalize()
-                        if group_inbox_reason
-                        else None,
-                        "inbox_color": group_inbox_to_color[group_inbox_reason]
-                        if group_inbox_reason
-                        else group_inbox_to_color[GroupInboxReason.NEW],
-                        "inbox_color_border": group_inbox_to_color_border[group_inbox_reason]
-                        if group_inbox_reason
-                        else group_inbox_to_color_border[GroupInboxReason.NEW],
+                        "group_substatus": substatus,
+                        "group_substatus_color": substatus_color,
+                        "group_substatus_border_color": substatus_border_color,
                     }
 
         return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
@@ -934,39 +975,43 @@ def render_template_context(ctx, user):
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
 
+    def key_replays():
+        return []
+
     def issue_summary():
         all_issue_count = 0
         existing_issue_count = 0
         reopened_issue_count = 0
         new_issue_count = 0
-        new_inbox_count = 0
-        escalating_inbox_count = 0
-        ongoing_inbox_count = 0
-        regression_inbox_count = 0
-        total_inbox_count = 0
+        new_substatus_count = 0
+        escalating_substatus_count = 0
+        ongoing_substatus_count = 0
+        regression_substatus_count = 0
+        total_substatus_count = 0
         for project_ctx in user_projects:
             all_issue_count += project_ctx.all_issue_count
             existing_issue_count += project_ctx.existing_issue_count
             reopened_issue_count += project_ctx.reopened_issue_count
             new_issue_count += project_ctx.new_issue_count
-            new_inbox_count += project_ctx.new_inbox_count
-            escalating_inbox_count += project_ctx.escalating_inbox_count
-            ongoing_inbox_count += project_ctx.ongoing_inbox_count
-            regression_inbox_count += project_ctx.regression_inbox_count
-            total_inbox_count += project_ctx.total_inbox_count
+            new_substatus_count += project_ctx.new_substatus_count
+            escalating_substatus_count += project_ctx.escalating_substatus_count
+            ongoing_substatus_count += project_ctx.ongoing_substatus_count
+            regression_substatus_count += project_ctx.regression_substatus_count
+            total_substatus_count += project_ctx.total_substatus_count
         return {
             "all_issue_count": all_issue_count,
             "existing_issue_count": existing_issue_count,
             "reopened_issue_count": reopened_issue_count,
             "new_issue_count": new_issue_count,
-            "new_inbox_count": new_inbox_count,
-            "escalating_inbox_count": escalating_inbox_count,
-            "ongoing_inbox_count": ongoing_inbox_count,
-            "regression_inbox_count": regression_inbox_count,
-            "total_inbox_count": total_inbox_count,
+            "new_substatus_count": new_substatus_count,
+            "escalating_substatus_count": escalating_substatus_count,
+            "ongoing_substatus_count": ongoing_substatus_count,
+            "regression_substatus_count": regression_substatus_count,
+            "total_substatus_count": total_substatus_count,
         }
 
     return {
+        "has_replay_graph": has_replay_graph,
         "organization": ctx.organization,
         "start": date_format(ctx.start),
         "end": date_format(ctx.end),
@@ -974,6 +1019,7 @@ def render_template_context(ctx, user):
         "key_errors": key_errors(),
         "key_transactions": key_transactions(),
         "key_performance_issues": key_performance_issues(),
+        "key_replays": key_replays() if has_replay_section else [],
         "issue_summary": issue_summary(),
     }
 

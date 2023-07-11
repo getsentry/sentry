@@ -173,7 +173,7 @@ function SummaryContent({
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
 
-    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
       const fields = [
         // Remove the extra field columns
         ...sortedEventView.fields.slice(0, transactionsListTitles.length),
@@ -294,7 +294,7 @@ function SummaryContent({
   // update header titles of transactions list
 
   const operationDurationTableTitle =
-    spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+    spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE
       ? t('operation duration')
       : `${spanOperationBreakdownFilter} duration`;
 
@@ -305,14 +305,14 @@ function SummaryContent({
   // field renderer to be used to generate the relative ops breakdown
   let durationField = SPAN_OP_RELATIVE_BREAKDOWN_FIELD;
 
-  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.NONE) {
     durationField = filterToField(spanOperationBreakdownFilter)!;
   }
 
   // add ops breakdown duration column as the 3rd column
   fields.splice(2, 0, {field: durationField});
 
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
     fields.push(
       ...SPAN_OP_BREAKDOWN_FIELDS.map(field => {
         return {field};
@@ -370,6 +370,7 @@ function SummaryContent({
             totalValue={totalCount}
             currentFilter={spanOperationBreakdownFilter}
             withoutZerofill={hasPerformanceChartInterpolation}
+            project={project}
           />
           <TransactionsList
             location={location}
@@ -489,7 +490,7 @@ function getFilterOptions({
   p95: number;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 }): DropdownOption[] {
-  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+  if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.NONE) {
     return [
       {
         sort: {kind: 'asc', field: 'transaction.duration'},

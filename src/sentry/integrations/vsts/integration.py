@@ -3,13 +3,12 @@ from __future__ import annotations
 import logging
 import re
 from time import time
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Collection, Mapping, MutableMapping, Sequence
 
 from django import forms
-from django.db.models import QuerySet
-from django.utils.translation import ugettext as _
+from django.http import HttpResponse
+from django.utils.translation import gettext as _
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
@@ -36,17 +35,20 @@ from sentry.models import (
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
     IntegrationProviderError,
 )
+from sentry.silo import SiloMode
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
 from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
-from .client import VstsApiClient
+from .client import VstsApiClient, VstsSetupApiClient
 from .repository import VstsRepositoryProvider
 
 DESCRIPTION = """
@@ -108,7 +110,7 @@ metadata = IntegrationMetadata(
 logger = logging.getLogger("sentry.integrations")
 
 
-class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):  # type: ignore
+class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     logger = logger
     comment_key = "sync_comments"
     outbound_status_key = "sync_status_forward"
@@ -129,7 +131,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def get_repositories(self, query: str | None = None) -> Sequence[Mapping[str, str]]:
         try:
-            repos = self.get_client().get_repos(self.instance)
+            repos = self.get_client(base_url=self.instance).get_repos()
         except (ApiError, IdentityNotValid) as e:
             raise IntegrationError(self.message_from_error(e))
         data = []
@@ -142,27 +144,41 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
             )
         return data
 
-    def get_unmigratable_repositories(self) -> QuerySet:
-        return Repository.objects.filter(
-            organization_id=self.organization_id, provider="visualstudio"
-        ).exclude(external_id__in=[r["identifier"] for r in self.get_repositories()])
+    def get_unmigratable_repositories(self) -> Collection[RpcRepository]:
+        repos = repository_service.get_repositories(
+            organization_id=self.organization_id, providers=["visualstudio"]
+        )
+        identifiers_to_exclude = {r["identifier"] for r in self.get_repositories()}
+        return [repo for repo in repos if repo.external_id not in identifiers_to_exclude]
 
     def has_repo_access(self, repo: Repository) -> bool:
-        client = self.get_client()
+        client = self.get_client(base_url=self.instance)
         try:
             # since we don't actually use webhooks for vsts commits,
             # just verify repo access
-            client.get_repo(self.instance, repo.config["name"], project=repo.config["project"])
+            client.get_repo(repo.config["name"], project=repo.config["project"])
         except (ApiError, IdentityNotValid):
             return False
         return True
 
-    def get_client(self) -> VstsApiClient:
-        if self.default_identity is None:
-            self.default_identity = self.get_default_identity()
+    def get_client(self, base_url: str | None = None) -> VstsApiClient:
+        if base_url is None:
+            base_url = self.instance
+        if SiloMode.get_current_mode() != SiloMode.REGION:
+            if self.default_identity is None:
+                self.default_identity = self.get_default_identity()
+            self.check_domain_name(self.default_identity)
 
-        self.check_domain_name(self.default_identity)
-        return VstsApiClient(self.default_identity, VstsIntegrationProvider.oauth_redirect_url)
+        if self.org_integration is None:
+            raise Exception("self.org_integration is not defined")
+        if self.org_integration.default_auth_id is None:
+            raise Exception("self.org_integration.default_auth_id is not defined")
+        return VstsApiClient(
+            base_url=base_url,
+            oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
+            org_integration_id=self.org_integration.id,
+            identity_id=self.org_integration.default_auth_id,
+        )
 
     def check_domain_name(self, default_identity: Identity) -> None:
         if re.match("^https://.+/$", self.model.metadata["domain_name"]):
@@ -175,19 +191,19 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         self.model.save()
 
     def get_organization_config(self) -> Sequence[Mapping[str, Any]]:
-        client = self.get_client()
         instance = self.model.metadata["domain_name"]
+        client = self.get_client(base_url=instance)
 
         project_selector = []
         all_states_set = set()
         try:
-            projects = client.get_projects(instance)
+            projects = client.get_projects()
             for idx, project in enumerate(projects):
                 project_selector.append({"value": project["id"], "label": project["name"]})
                 # only request states for the first 5 projects to limit number
                 # of requests
                 if idx <= 5:
-                    project_states = client.get_work_item_states(instance, project["id"])["value"]
+                    project_states = client.get_work_item_states(project["id"])["value"]
                     for state in project_states:
                         all_states_set.add(state["name"])
 
@@ -317,21 +333,17 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     @property
     def instance(self) -> str:
-        # Explicitly typing to satisfy mypy.
-        instance_: str = self.model.metadata["domain_name"]
-        return instance_
+        return self.model.metadata["domain_name"]
 
     @property
     def default_project(self) -> str | None:
         try:
-            # Explicitly typing to satisfy mypy.
-            default_project_: str = self.model.metadata["default_project"]
+            return self.model.metadata["default_project"]
         except KeyError:
             return None
-        return default_project_
 
 
-class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
+class VstsIntegrationProvider(IntegrationProvider):
     key = "vsts"
     name = "Azure DevOps"
     metadata = metadata
@@ -356,19 +368,19 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
     def post_install(
         self,
         integration: IntegrationModel,
-        organization: Organization,
+        organization: RpcOrganizationSummary,
         extra: Mapping[str, Any] | None = None,
     ) -> None:
-        repo_ids = Repository.objects.filter(
+        repos = repository_service.get_repositories(
             organization_id=organization.id,
-            provider__in=["visualstudio", "integrations:vsts"],
-            integration_id__isnull=True,
-        ).values_list("id", flat=True)
+            providers=["visualstudio", "integrations:vsts"],
+            has_integration=False,
+        )
 
-        for repo_id in repo_ids:
+        for repo in repos:
             migrate_repo.apply_async(
                 kwargs={
-                    "repo_id": repo_id,
+                    "repo_id": repo.id,
                     "integration_id": integration.id,
                     "organization_id": organization.id,
                 }
@@ -434,7 +446,9 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             ).exists()
 
         except (IntegrationModel.DoesNotExist, AssertionError, KeyError):
-            subscription_id, subscription_secret = self.create_subscription(base_url, oauth_data)
+            subscription_id, subscription_secret = self.create_subscription(
+                base_url=base_url, oauth_data=oauth_data
+            )
             integration["metadata"]["subscription"] = {
                 "id": subscription_id,
                 "secret": subscription_secret,
@@ -443,12 +457,16 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
         return integration
 
     def create_subscription(
-        self, instance: str | None, oauth_data: Mapping[str, Any]
+        self, base_url: str | None, oauth_data: Mapping[str, Any]
     ) -> tuple[int, str]:
-        client = VstsApiClient(Identity(data=oauth_data), self.oauth_redirect_url)
+        client = VstsSetupApiClient(
+            base_url=base_url,
+            oauth_redirect_url=self.oauth_redirect_url,
+            access_token=oauth_data["access_token"],
+        )
         shared_secret = generate_token()
         try:
-            subscription = client.create_subscription(instance, shared_secret)
+            subscription = client.create_subscription(shared_secret=shared_secret)
         except ApiError as e:
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
@@ -462,9 +480,9 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
                     },
                 )
                 raise IntegrationProviderError(
-                    "You do not have sufficient account access to create webhooks\n"
-                    "on the selected Azure DevOps organization.\n"
-                    "Please check with the owner of this Azure DevOps account."
+                    "Sentry cannot communicate with this Azure DevOps organization.\n"
+                    "Please ensure third-party app access via OAuth is enabled \n"
+                    "in the organization's security policy."
                 )
             raise e
 
@@ -496,9 +514,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
                 },
             )
         if response.status_code == 200:
-            # Explicitly typing to satisfy mypy.
-            location_url: str | None = response.json()["locationUrl"]
-            return location_url
+            return response.json()["locationUrl"]
 
         logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
         return None
@@ -512,7 +528,7 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
 
 
 class AccountConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline: Pipeline) -> Response:
+    def dispatch(self, request: Request, pipeline: Pipeline) -> HttpResponse:
         account_id = request.POST.get("account")
         if account_id is not None:
             state_accounts: Sequence[Mapping[str, Any]] | None = pipeline.fetch_state(
@@ -576,7 +592,7 @@ class AccountConfigView(PipelineView):
         return None
 
 
-class AccountForm(forms.Form):  # type: ignore
+class AccountForm(forms.Form):
     def __init__(self, accounts: Sequence[Mapping[str, str]], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["account"] = forms.ChoiceField(

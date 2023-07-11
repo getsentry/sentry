@@ -13,10 +13,10 @@ from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from sentry_relay import RelayError, parse_release
 
-from sentry import features, options
+from sentry import features
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     ArrayField,
@@ -30,12 +30,13 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager import BaseManager
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
     Activity,
     ArtifactBundle,
-    BaseManager,
     CommitFileChange,
     GroupInbox,
     GroupInboxRemoveAction,
@@ -81,7 +82,6 @@ class ReleaseProjectModelManager(BaseManager):
         # in the project.
         if (
             features.has("organizations:dynamic-sampling", project.organization)
-            and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
@@ -260,8 +260,8 @@ class ReleaseQuerySet(BaseQuerySet):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
-        environments: List[str] = None,
+        project_ids: Optional[Sequence[int]] = None,
+        environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         from sentry.models import ReleaseProjectEnvironment, ReleaseStages
         from sentry.search.events.filter import to_list
@@ -405,7 +405,7 @@ class ReleaseModelManager(BaseManager):
         organization_id: int,
         operator: str,
         value,
-        project_ids: Sequence[int] = None,
+        project_ids: Optional[Sequence[int]] = None,
         environments: Optional[List[str]] = None,
     ) -> models.QuerySet:
         return self.get_queryset().filter_by_stage(
@@ -551,12 +551,16 @@ class Release(Model):
 
     SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         """Make sure that specialized releases are only comparable to the same
         other specialized release.  This for instance lets us treat them
         separately for serialization purposes.
         """
-        return Model.__eq__(self, other) and self._for_project_id == other._for_project_id
+        return (
+            # don't treat `NotImplemented` as truthy
+            Model.__eq__(self, other) is True
+            and self._for_project_id == other._for_project_id
+        )
 
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
@@ -934,7 +938,7 @@ class Release(Model):
                     router.db_for_write(CommitAuthor),
                     router.db_for_write(Commit),
                 )
-            ):
+            ), in_test_hide_transaction_boundary():
                 # TODO(dcramer): would be good to optimize the logic to avoid these
                 # deletes but not overly important
                 ReleaseCommit.objects.filter(release=self).delete()
@@ -1203,12 +1207,15 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_artifacts_in_artifact_bundles(self):
-        """Counts the number of artifacts in the artifact bundles associated with this release."""
+    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
+        """
+        Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
+        """
         qs = (
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 releaseartifactbundle__release_name=self.version,
+                projectartifactbundle__project_id__in=project_ids,
             )
             .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
             .values_list("releaseartifactbundle__release_name", "count")

@@ -36,7 +36,7 @@ function initialize(project, query, additionalFeatures: string[] = []) {
     initialData.router.location
   );
 
-  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.None;
+  const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
   const transactionName = 'example-transaction';
 
   return {

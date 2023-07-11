@@ -2,13 +2,19 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import datetime
+import threading
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
+from typing import Any, ContextManager, Generator, Iterable, List, Mapping, Type, TypeVar
 
-from django.db import connections, models, router, transaction
-from django.db.models import Max
+import sentry_sdk
+from django import db
+from django.db import OperationalError, connections, models, router, transaction
+from django.db.models import Max, Min
+from django.db.transaction import Atomic
 from django.dispatch import Signal
+from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -20,6 +26,11 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.db.postgres.transactions import (
+    django_test_transaction_water_mark,
+    in_test_assert_no_transaction,
+)
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
@@ -27,6 +38,10 @@ from sentry.utils import metrics
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
 _T = TypeVar("_T")
+
+
+class OutboxFlushError(Exception):
+    pass
 
 
 class OutboxScope(IntEnum):
@@ -61,26 +76,39 @@ class OutboxCategory(IntEnum):
     SENTRY_APP_INSTALLATION_UPDATE = 10
     TEAM_UPDATE = 11
     ORGANIZATION_INTEGRATION_UPDATE = 12
-    ORGANIZATION_MEMBER_CREATE = 13
+    ORGANIZATION_MEMBER_CREATE = 13  # Unused
+    SEND_SIGNAL = 14
+    ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
+    ORGAUTHTOKEN_UPDATE = 16
 
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
 
 
+@dataclasses.dataclass
+class OutboxWebhookPayload:
+    method: str
+    path: str
+    uri: str
+    headers: Mapping[str, Any]
+    body: str
+
+
 class WebhookProviderIdentifier(IntEnum):
     SLACK = 0
     GITHUB = 1
+    JIRA = 2
+    GITLAB = 3
+    MSTEAMS = 4
+    BITBUCKET = 5
+    VSTS = 6
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
     if v is None:
         raise ValueError(f"Attribute {k} was None, but it needed to be set!")
     return v
-
-
-class OutboxFlushError(Exception):
-    pass
 
 
 class OutboxBase(Model):
@@ -100,7 +128,7 @@ class OutboxBase(Model):
         return (
             cls.objects.values(*cls.sharding_columns)
             .annotate(
-                scheduled_for=Max("scheduled_for"),
+                scheduled_for=Min("scheduled_for"),
                 id=Max("id"),
             )
             .filter(scheduled_for__lte=timezone.now())
@@ -109,7 +137,8 @@ class OutboxBase(Model):
 
     @classmethod
     def prepare_next_from_shard(cls, row: Mapping[str, Any]) -> OutboxBase | None:
-        with transaction.atomic(savepoint=False):
+        using = router.db_for_write(cls)
+        with transaction.atomic(using=using, savepoint=False):
             next_outbox: OutboxBase | None
             next_outbox = (
                 cls(**row).selected_messages_in_shard().order_by("id").select_for_update().first()
@@ -131,8 +160,13 @@ class OutboxBase(Model):
     def key_from(self, attrs: Iterable[str]) -> Mapping[str, Any]:
         return {k: _ensure_not_null(k, getattr(self, k)) for k in attrs}
 
-    def selected_messages_in_shard(self) -> models.QuerySet:
-        return self.objects.filter(**self.key_from(self.sharding_columns))
+    def selected_messages_in_shard(
+        self, latest_shard_row: OutboxBase | None = None
+    ) -> models.QuerySet:
+        filters: Mapping[str, Any] = (
+            {} if latest_shard_row is None else dict(id__lte=latest_shard_row.id)
+        )
+        return self.objects.filter(**self.key_from(self.sharding_columns), **filters)
 
     def select_coalesced_messages(self) -> models.QuerySet:
         return self.objects.filter(**self.key_from(self.coalesced_columns))
@@ -160,22 +194,47 @@ class OutboxBase(Model):
     scheduled_for = models.DateTimeField(null=False, default=THE_PAST)
 
     def last_delay(self) -> datetime.timedelta:
-        return max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1))
+        return min(
+            max(self.scheduled_for - self.scheduled_from, datetime.timedelta(seconds=1)),
+            datetime.timedelta(hours=1),
+        )
 
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
 
     def save(self, **kwds: Any):
+        if _outbox_context.flushing_enabled:
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
+
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
         super().save(**kwds)
 
     @contextlib.contextmanager
+    def process_shard(
+        self, latest_shard_row: OutboxBase | None
+    ) -> Generator[OutboxBase | None, None, None]:
+        flush_all: bool = not bool(latest_shard_row)
+        next_shard_row: OutboxBase | None
+        using: str = db.router.db_for_write(type(self))
+        with transaction.atomic(using=using), django_test_transaction_water_mark(using=using):
+            try:
+                next_shard_row = (
+                    self.selected_messages_in_shard(latest_shard_row=latest_shard_row)
+                    .select_for_update(nowait=flush_all)
+                    .first()
+                )
+            except OperationalError as e:
+                if "LockNotAvailable" in str(e):
+                    # If a non task flush process is running already, allow it to proceed without contention.
+                    next_shard_row = None
+                else:
+                    raise e
+
+            yield next_shard_row
+
+    @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
-        # Do not, use a select for update here -- it is tempting, but a major performance issue.
-        # we should simply accept the occasional multiple sends than to introduce hard locking.
-        # so long as all objects sent are committed, and so long as any concurrent changes to data
-        # result in a future processing, we should always converge on non stale values.
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
 
@@ -185,6 +244,7 @@ class OutboxBase(Model):
             deleted_count, _ = (
                 self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
             )
+
             tags = {"category": OutboxCategory(self.category).name}
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -200,28 +260,48 @@ class OutboxBase(Model):
                     "outbox.send_signal.duration",
                     tags={"category": OutboxCategory(coalesced.category).name},
                 ):
-                    coalesced.send_signal()
+                    try:
+                        coalesced.send_signal()
+                    except Exception as e:
+                        sentry_sdk.capture_exception(e)
+                        raise OutboxFlushError(f"Could not flush shard {repr(coalesced)}") from e
+
                 return True
         return False
 
     @abc.abstractmethod
-    def send_signal(self):
+    def send_signal(self) -> None:
         pass
 
-    def drain_shard(self, max_updates_to_drain: int | None = None):
-        runs = 0
-        next_row: OutboxBase | None = self.selected_messages_in_shard().first()
-        while next_row is not None and (
-            max_updates_to_drain is None or runs < max_updates_to_drain
-        ):
-            runs += 1
-            next_row.process()
-            next_row: OutboxBase | None = self.selected_messages_in_shard().first()
+    def drain_shard(
+        self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
+    ) -> None:
+        in_test_assert_no_transaction(
+            "drain_shard should only be called outside of any active transaction!"
+        )
+        # When we are flushing in a local context, we don't care about outboxes created concurrently --
+        # at best our logic depends on previously created outboxes.
+        latest_shard_row: OutboxBase | None = None
+        if not flush_all:
+            latest_shard_row = self.selected_messages_in_shard().last()
+            # If we're not flushing all possible shards, and we don't see any immediately values,
+            # drop.
+            if latest_shard_row is None:
+                return
 
-        if next_row is not None:
-            raise OutboxFlushError(
-                f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
-            )
+        shard_row: OutboxBase | None
+        while True:
+            with self.process_shard(latest_shard_row) as shard_row:
+                if shard_row is None:
+                    break
+
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
+
+                shard_row.process()
+
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
 
 
 # Outboxes bound from region silo -> control silo
@@ -233,6 +313,7 @@ class RegionOutbox(OutboxBase):
             payload=self.payload,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     sharding_columns = ("shard_scope", "shard_identifier")
@@ -264,7 +345,7 @@ class RegionOutbox(OutboxBase):
         """
         return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
 
-    __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
+    __repr__ = sane_repr(*coalesced_columns)
 
 
 # Outboxes bound from control silo -> region silo
@@ -288,6 +369,7 @@ class ControlOutbox(OutboxBase):
             region_name=self.region_name,
             object_identifier=self.object_identifier,
             shard_identifier=self.shard_identifier,
+            shard_scope=self.shard_scope,
         )
 
     class Meta:
@@ -310,9 +392,26 @@ class ControlOutbox(OutboxBase):
             ("region_name", "shard_scope", "shard_identifier", "id"),
         )
 
-    __repr__ = sane_repr(
-        "region_name", "shard_scope", "shard_identifier", "category", "object_identifier"
-    )
+    __repr__ = sane_repr(*coalesced_columns)
+
+    def get_webhook_payload_from_request(self, request: HttpRequest) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=request.method,
+            path=request.get_full_path(),
+            uri=request.get_raw_uri(),
+            headers={k: v for k, v in request.headers.items()},
+            body=request.body.decode(encoding="utf-8"),
+        )
+
+    @classmethod
+    def get_webhook_payload_from_outbox(cls, payload: Mapping[str, Any]) -> OutboxWebhookPayload:
+        return OutboxWebhookPayload(
+            method=payload.get("method"),
+            path=payload.get("path"),
+            uri=payload.get("uri"),
+            headers=payload.get("headers"),
+            body=payload.get("body"),
+        )
 
     @classmethod
     def for_webhook_update(
@@ -320,7 +419,7 @@ class ControlOutbox(OutboxBase):
         *,
         webhook_identifier: WebhookProviderIdentifier,
         region_names: List[str],
-        payload=Mapping[str, Any],
+        request: HttpRequest,
     ) -> Iterable[ControlOutbox]:
         for region_name in region_names:
             result = cls()
@@ -329,7 +428,8 @@ class ControlOutbox(OutboxBase):
             result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
-            result.payload = payload
+            payload: OutboxWebhookPayload = result.get_webhook_payload_from_request(request)
+            result.payload = dataclasses.asdict(payload)
             yield result
 
     @classmethod
@@ -355,5 +455,41 @@ def outbox_silo_modes() -> List[SiloMode]:
     return result
 
 
-process_region_outbox = Signal(providing_args=["payload", "object_identifier"])
-process_control_outbox = Signal(providing_args=["payload", "region_name", "object_identifier"])
+class OutboxContext(threading.local):
+    flushing_enabled: bool | None = None
+
+
+_outbox_context = OutboxContext()
+
+
+@contextlib.contextmanager
+def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
+
+    # If we don't specify our flush, use the outer specified override
+    if flush is None:
+        flush = _outbox_context.flushing_enabled
+        # But if there is no outer override, default to True
+        if flush is None:
+            flush = True
+
+    assert not flush or inner, "Must either set a transaction or flush=False"
+
+    original = _outbox_context.flushing_enabled
+
+    if inner:
+        with in_test_psql_role_override("postgres", using=inner.using), inner:
+            _outbox_context.flushing_enabled = flush
+            try:
+                yield
+            finally:
+                _outbox_context.flushing_enabled = original
+    else:
+        _outbox_context.flushing_enabled = flush
+        try:
+            yield
+        finally:
+            _outbox_context.flushing_enabled = original
+
+
+process_region_outbox = Signal()  # ["payload", "object_identifier"]
+process_control_outbox = Signal()  # ["payload", "region_name", "object_identifier"]

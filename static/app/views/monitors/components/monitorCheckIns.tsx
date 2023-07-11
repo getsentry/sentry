@@ -11,6 +11,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -22,6 +23,7 @@ import {
   Monitor,
   MonitorEnvironment,
 } from 'sentry/views/monitors/types';
+import {statusToText} from 'sentry/views/monitors/utils';
 
 type Props = {
   monitor: Monitor;
@@ -38,14 +40,6 @@ const checkStatusToIndicatorStatus: Record<
   [CheckInStatus.IN_PROGRESS]: 'muted',
   [CheckInStatus.MISSED]: 'warning',
   [CheckInStatus.TIMEOUT]: 'error',
-};
-
-const statusToText: Record<CheckInStatus, string> = {
-  [CheckInStatus.OK]: t('Okay'),
-  [CheckInStatus.ERROR]: t('Failed'),
-  [CheckInStatus.IN_PROGRESS]: t('In Progress'),
-  [CheckInStatus.MISSED]: t('Missed'),
-  [CheckInStatus.TIMEOUT]: t('Timed Out'),
 };
 
 function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
@@ -104,7 +98,24 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
               <Text>{statusToText[checkIn.status]}</Text>
             </Status>
             {checkIn.status !== CheckInStatus.MISSED ? (
-              <DateTime date={checkIn.dateCreated} timeOnly />
+              <div>
+                {monitor.config.timezone ? (
+                  <Tooltip
+                    title={
+                      <DateTime
+                        date={checkIn.dateCreated}
+                        forcedTimezone={monitor.config.timezone}
+                        timeZone
+                        timeOnly
+                      />
+                    }
+                  >
+                    {<DateTime date={checkIn.dateCreated} timeOnly />}
+                  </Tooltip>
+                ) : (
+                  <DateTime date={checkIn.dateCreated} timeOnly />
+                )}
+              </div>
             ) : (
               emptyCell
             )}

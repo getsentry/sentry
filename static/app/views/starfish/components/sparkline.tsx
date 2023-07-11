@@ -1,17 +1,21 @@
+import {Theme} from '@emotion/react';
 import {LineChart} from 'echarts/charts';
 import * as echarts from 'echarts/core';
 import {SVGRenderer} from 'echarts/renderers';
 import ReactEChartsCore from 'echarts-for-react/lib/core';
+import moment from 'moment';
 
-import {Series} from 'sentry/types/echarts';
+import MarkLine from 'sentry/components/charts/components/markLine';
+import {Series, SeriesDataUnit} from 'sentry/types/echarts';
 
 type SparklineProps = {
   series: Series;
   color?: string | string[];
+  markLine?: Series;
   width?: number;
 };
 
-export default function Sparkline({series, width, color}: SparklineProps) {
+export default function Sparkline({series, width, color, markLine}: SparklineProps) {
   echarts.use([LineChart, SVGRenderer]);
 
   if (!series.data) {
@@ -30,7 +34,7 @@ export default function Sparkline({series, width, color}: SparklineProps) {
       echarts={echarts}
       option={{
         color,
-        series: [valueSeries],
+        series: [valueSeries, markLine],
         xAxis: {
           show: false,
           data: series.data.map(datum => datum.name),
@@ -122,4 +126,65 @@ export function MultiSparkline({
       theme="theme_name"
     />
   );
+}
+
+export function generateMarkLine(
+  title: string,
+  position: string,
+  data: SeriesDataUnit[],
+  theme: Theme
+) {
+  const index = data.findIndex(item => {
+    return (
+      Math.abs(moment.duration(moment(item.name).diff(moment(position))).asSeconds()) <
+      86400
+    );
+  });
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          xAxis: index,
+        },
+      ],
+      label: {
+        show: false,
+      },
+    }),
+  };
+}
+
+export function generateHorizontalLine(title: string, position: number, theme: Theme) {
+  return {
+    seriesName: title,
+    type: 'line',
+    color: theme.blue300,
+    data: [],
+    xAxisIndex: 0,
+    yAxisIndex: 0,
+    markLine: MarkLine({
+      silent: true,
+      animation: false,
+      lineStyle: {color: theme.blue300, type: 'dotted'},
+      data: [
+        {
+          yAxis: position,
+        },
+      ],
+      label: {
+        show: true,
+        position: 'insideStart',
+        formatter: title,
+      },
+    }),
+  };
 }

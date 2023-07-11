@@ -130,7 +130,12 @@ class SlackRequest:
                 provider_type="slack", provider_ext_id=self.team_id
             )
             self._identity = (
-                identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+                identity_service.get_identity(
+                    filter={
+                        "provider_id": provider.id,
+                        "identity_ext_id": self.user_id,
+                    }
+                )
                 if provider
                 else None
             )
@@ -171,9 +176,7 @@ class SlackRequest:
         if not (signature and timestamp):
             return False
 
-        # Explicitly typing to satisfy mypy.
-        valid: bool = check_signing_secret(signing_secret, self.request.body, timestamp, signature)
-        return valid
+        return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token

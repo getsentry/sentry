@@ -24,6 +24,7 @@ class AuditLogEventRegisterTest(TestCase):
             "team.remove",
             "project.create",
             "project.edit",
+            "project.change-performance-issue-detection",
             "project.remove",
             "project.remove-with-origin",
             "project.request-transfer",
@@ -75,6 +76,9 @@ class AuditLogEventRegisterTest(TestCase):
             "notification_action.create",
             "notification_action.edit",
             "notification_action.remove",
+            "team-and-project.created",
+            "org-auth-token.create",
+            "org-auth-token.remove",
         ]
 
         assert set(audit_log.get_api_names()) == set(audit_log_api_name_list)

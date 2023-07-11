@@ -1,16 +1,27 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+import sentry_sdk
 from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.serializers.models.release import get_users_for_authors
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
-from sentry.models import Commit, CommitAuthor, Project, RepositoryProjectPathConfig
+from sentry.models import (
+    Commit,
+    CommitAuthor,
+    Project,
+    PullRequest,
+    Repository,
+    RepositoryProjectPathConfig,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.pullrequest import PullRequestCommit
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.groupowner import process_suspect_commits
@@ -23,7 +34,86 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 1
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 DEBOUNCE_CACHE_KEY = lambda group_id: f"process-commit-context-{group_id}"
+DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
+PR_COMMENT_WINDOW = 7  # days
+
 logger = logging.getLogger(__name__)
+
+
+def queue_comment_task_if_needed(
+    commit: Commit, group_owner: GroupOwner, repo: Repository, installation: IntegrationInstallation
+):
+    from sentry.tasks.integrations.github.pr_comment import github_comment_workflow
+
+    logger.info(
+        "github.pr_comment.queue_comment_check",
+        extra={"organization_id": commit.organization_id, "merge_commit_sha": commit.key},
+    )
+
+    # client will raise an Exception if the request is not successful
+    try:
+        response = installation.get_client().get_pullrequest_from_commit(
+            repo=repo.name, sha=commit.key
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+        return
+
+    if not isinstance(response, list) or len(response) != 1:
+        # the response should return a single PR, return if multiple
+        if len(response) > 1:
+            logger.info(
+                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+                extra={
+                    "organization_id": commit.organization_id,
+                    "repository_id": repo.id,
+                    "commit_sha": commit.key,
+                },
+            )
+        return
+
+    merge_commit_sha = response[0]["merge_commit_sha"]
+
+    pr_query = PullRequest.objects.filter(
+        organization_id=commit.organization_id, merge_commit_sha=merge_commit_sha
+    )
+    if not pr_query.exists():
+        logger.info(
+            "github.pr_comment.queue_comment_check.missing_pr",
+            extra={
+                "organization_id": commit.organization_id,
+                "repository_id": repo.id,
+                "commit_sha": commit.key,
+            },
+        )
+        return
+
+    pr = pr_query.get()
+    if pr.date_added >= datetime.now(tz=timezone.utc) - timedelta(days=PR_COMMENT_WINDOW) and (
+        not pr.pullrequestcomment_set.exists()
+        or group_owner.group_id not in pr.pullrequestcomment_set.get().group_ids
+    ):
+        lock = locks.get(
+            DEBOUNCE_PR_COMMENT_LOCK_KEY(pr.id), duration=10, name="queue_comment_task"
+        )
+        with lock.acquire():
+            cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(pullrequest_id=pr.id)
+            if cache.get(cache_key) is not None:
+                return
+
+            # create PR commit row for suspect commit and PR
+            PullRequestCommit.objects.get_or_create(commit=commit, pull_request=pr)
+
+            logger.info(
+                "github.pr_comment.queue_comment_workflow",
+                extra={"pullrequest_id": pr.id, "project_id": group_owner.project_id},
+            )
+
+            cache.set(cache_key, True, PR_COMMENT_TASK_TTL)
+
+            github_comment_workflow.delay(pullrequest_id=pr.id, project_id=group_owner.project_id)
 
 
 @instrumented_task(
@@ -147,7 +237,7 @@ def process_commit_context(
                 )
                 return
 
-            found_contexts = find_commit_context_for_event(
+            found_contexts, installation = find_commit_context_for_event(
                 code_mappings=code_mappings,
                 frame=frame,
                 extra={
@@ -270,6 +360,30 @@ def process_commit_context(
                     "date_added": timezone.now()
                 },  # Updates date of an existing owner, since we just matched them with this new event
             )
+
+            if features.has(
+                "organizations:pr-comment-bot", project.organization
+            ) and OrganizationOption.objects.get_value(
+                organization=project.organization,
+                key="sentry:github_pr_bot",
+                default=True,
+            ):
+                logger.info(
+                    "github.pr_comment",
+                    extra={"organization_id": project.organization_id},
+                )
+                repo = Repository.objects.filter(id=commit.repository_id)
+                if (
+                    installation is not None
+                    and repo.exists()
+                    and repo.get().provider == "integrations:github"
+                ):
+                    queue_comment_task_if_needed(commit, group_owner, repo.get(), installation)
+                else:
+                    logger.info(
+                        "github.pr_comment.incorrect_repo_config",
+                        extra={"organization_id": project.organization_id},
+                    )
 
             if created:
                 # If owners exceeds the limit, delete the oldest one.

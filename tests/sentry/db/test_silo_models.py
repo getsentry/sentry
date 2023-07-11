@@ -1,5 +1,4 @@
 from sentry.api.serializers.base import registry
-from sentry.models import Actor, OrganizationMember, User
 from sentry.testutils.silo import (
     validate_models_have_silos,
     validate_no_cross_silo_deletions,
@@ -7,10 +6,7 @@ from sentry.testutils.silo import (
 )
 
 decorator_exemptions = set()
-fk_exemptions = {
-    (OrganizationMember, User),
-    (User, Actor),
-}
+fk_exemptions = set()
 
 
 def test_models_have_silos():

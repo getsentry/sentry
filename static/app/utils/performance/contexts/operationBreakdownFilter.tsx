@@ -6,7 +6,7 @@ const OpBreakdownFilterContext = createContext<{
   opBreakdownFilter: SpanOperationBreakdownFilter;
   setOpBreakdownFilter: (filter: SpanOperationBreakdownFilter) => void;
 }>({
-  opBreakdownFilter: SpanOperationBreakdownFilter.None,
+  opBreakdownFilter: SpanOperationBreakdownFilter.NONE,
   setOpBreakdownFilter: (_: SpanOperationBreakdownFilter) => {},
 });
 
@@ -21,7 +21,7 @@ export function OpBreakdownFilterProvider({
   return (
     <OpBreakdownFilterContext.Provider
       value={{
-        opBreakdownFilter: opBreakdownFilter ?? SpanOperationBreakdownFilter.None,
+        opBreakdownFilter: opBreakdownFilter ?? SpanOperationBreakdownFilter.NONE,
         setOpBreakdownFilter,
       }}
     >

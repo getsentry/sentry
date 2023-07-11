@@ -9,7 +9,7 @@ import msgpack
 import sentry_sdk
 from django.conf import settings
 from pytz import UTC
-from symbolic import ProguardMapper  # type: ignore
+from symbolic.proguard import ProguardMapper
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -23,6 +23,7 @@ from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
+from sentry.utils.sdk import set_measurement
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
@@ -32,7 +33,7 @@ class VroomTimeout(Exception):
     pass
 
 
-@instrumented_task(  # type: ignore
+@instrumented_task(
     name="sentry.profiles.task.process_profile",
     queue="profiles.process",
     autoretry_for=(VroomTimeout,),  # Retry when vroom returns a GCS timeout
@@ -92,6 +93,11 @@ def process_profile_task(
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
+    if "version" in profile:
+        set_measurement("profile.samples", len(profile["profile"]["samples"]))
+        set_measurement("profile.stacks", len(profile["profile"]["stacks"]))
+        set_measurement("profile.frames", len(profile["profile"]["frames"]))
+
     if not _symbolicate_profile(profile, project):
         return
 
@@ -100,6 +106,11 @@ def process_profile_task(
 
     if not _normalize_profile(profile, organization, project):
         return
+
+    if "version" in profile:
+        set_measurement("profile.samples.processed", len(profile["profile"]["samples"]))
+        set_measurement("profile.stacks.processed", len(profile["profile"]["stacks"]))
+        set_measurement("profile.frames.processed", len(profile["profile"]["frames"]))
 
     if not _push_profile_to_vroom(profile, project):
         return
@@ -140,6 +151,9 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
             # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
             # See comments in the function for why this happens.
             raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(profile)
+
+            set_measurement("profile.frames.sent", len(frames_sent))
+
             modules, stacktraces, success = run_symbolicate(
                 project=project,
                 profile=profile,
@@ -432,7 +446,7 @@ def _process_symbolicator_results_for_sample(
             stack: List[Any],
         ) -> List[Any]:
             # remove bottom frames we can't symbolicate
-            if frames[-1].get("instruction_addr", "") == "0xffffffffc":
+            if frames[stack[-1]].get("instruction_addr", "") == "0xffffffffc":
                 return stack[:-2]
             return stack
 
@@ -450,24 +464,34 @@ def _process_symbolicator_results_for_sample(
     if len(frames_sent) > 0:
         raw_frames = profile["profile"]["frames"]
         new_frames = []
+        symbolicated_frame_idx = 0
 
         for idx in range(len(raw_frames)):
-            if idx in frames_sent:
-                for frame_idx in symbolicated_frames_dict[idx]:
-                    new_frames.append(symbolicated_frames[frame_idx])
-            else:
+            # If we didn't send the frame to symbolicator, add the raw frame.
+            if idx not in frames_sent:
                 new_frames.append(raw_frames[idx])
+                continue
+
+            # If we sent it to symbolicator, add the current symbolicated frame
+            # to new_frames.
+            # This works since symbolicated_frames are in the same order
+            # as raw_frames (except some frames are not sent).
+            for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
+                new_frames.append(symbolicated_frames[frame_idx])
+
+            # go to the next symbolicated frame result
+            symbolicated_frame_idx += 1
 
         new_frames_count = (
             len(raw_frames)
-            - len(symbolicated_frames_dict)
             + sum([len(frames) for frames in symbolicated_frames_dict.values()])
+            - len(symbolicated_frames_dict)
         )
 
         assert len(new_frames) == new_frames_count
 
         profile["profile"]["frames"] = new_frames
-    else:
+    elif symbolicated_frames:
         profile["profile"]["frames"] = symbolicated_frames
 
     if profile["platform"] in SHOULD_SYMBOLICATE:
@@ -566,6 +590,9 @@ The sorting order is callee to caller (child to parent)
 def get_frame_index_map(frames: List[dict[str, Any]]) -> dict[int, List[int]]:
     index_map: dict[int, List[int]] = {}
     for i, frame in enumerate(frames):
+        # In case we don't have an `original_index` field, we default to using
+        # the index of the frame in order to still produce a data structure
+        # with the right shape.
         index_map.setdefault(frame.get("original_index", i), []).append(i)
     return index_map
 
@@ -594,6 +621,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0
             )
+            method.setdefault("data", {})
             if len(mapped) == 1:
                 new_frame = mapped[0]
                 method.update(
@@ -604,6 +632,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         "source_line": new_frame.line,
                     }
                 )
+                method["data"]["deobfuscation_status"] = "deobfuscated"
             elif len(mapped) > 1:
                 bottom_class = mapped[-1].class_name
                 method["inline_frames"] = [
@@ -614,13 +643,17 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
                         if bottom_class == new_frame.class_name
                         else None,
                         "source_line": new_frame.line,
+                        "data": {"deobfuscation_status": "deobfuscated"},
                     }
                     for new_frame in mapped
                 ]
             else:
-                mapped = mapper.remap_class(method["class_name"])
-                if mapped:
-                    method["class_name"] = mapped
+                mapped_class = mapper.remap_class(method["class_name"])
+                if mapped_class:
+                    method["class_name"] = mapped_class
+                    method["data"]["deobfuscation_status"] = "partial"
+                else:
+                    method["data"]["deobfuscation_status"] = "missing"
 
 
 @metrics.wraps("process_profile.track_outcome")

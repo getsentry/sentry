@@ -2,22 +2,26 @@ from __future__ import annotations
 
 import contextlib
 import functools
+import threading
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type, cast
+from typing import Any, Callable, Generator, List, Mapping, Optional, Sequence, Tuple, Type
+
+from django.db import connections, transaction
+from django.db.backends.base.base import BaseDatabaseWrapper
 
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud import DelegatedBySiloMode, InterfaceWithLifecycle, hc_test_stub
+from sentry.services.hybrid_cloud import DelegatedBySiloMode, hc_test_stub
 from sentry.silo import SiloMode
-from sentry.testutils.silo import exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class use_real_service:
-    service: InterfaceWithLifecycle
+    service: object
     silo_mode: SiloMode | None
     context: contextlib.ExitStack
 
-    def __init__(self, service: InterfaceWithLifecycle, silo_mode: SiloMode | None):
+    def __init__(self, service: object, silo_mode: SiloMode | None):
         self.silo_mode = silo_mode
         self.service = service
         self.context = contextlib.ExitStack()
@@ -28,18 +32,10 @@ class use_real_service:
         if isinstance(self.service, DelegatedBySiloMode):
             if self.silo_mode is not None:
                 self.context.enter_context(override_settings(SILO_MODE=self.silo_mode))
-                self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, self.silo_mode),
-                    )
-                )
+                self.context.enter_context(self.service.with_replacement(None, self.silo_mode))
             else:
                 self.context.enter_context(
-                    cast(
-                        Any,
-                        self.service.with_replacement(None, SiloMode.get_current_mode()),
-                    )
+                    self.service.with_replacement(None, SiloMode.get_current_mode())
                 )
         else:
             raise ValueError("Service needs to be a DelegatedBySiloMode object, but it was not!")
@@ -63,8 +59,8 @@ class use_real_service:
 
 @contextlib.contextmanager
 def service_stubbed(
-    service: InterfaceWithLifecycle,
-    stub: Optional[InterfaceWithLifecycle],
+    service: object,
+    stub: Optional[object],
     silo_mode: Optional[SiloMode] = None,
 ) -> Generator[None, None, None]:
     """
@@ -99,7 +95,7 @@ def enforce_inter_silo_max_calls(max_calls: int) -> Generator[None, None, None]:
 
 
 class HybridCloudTestMixin:
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping(self, org_member: OrganizationMember, expected=None):
         org_member.refresh_from_db()
         org_member_mapping_query = OrganizationMemberMapping.objects.filter(
@@ -115,15 +111,6 @@ class HybridCloudTestMixin:
         # only either user_id or email should have a value, but not both.
         assert (email is None and user_id) or (email and user_id is None)
 
-        assert (
-            OrganizationMember.objects.filter(
-                organization_id=org_member.organization_id,
-                user_id=user_id,
-                email=email,
-            ).count()
-            == 1
-        )
-
         assert org_member_mapping.role == org_member.role
         if org_member.inviter_id:
             assert org_member_mapping.inviter_id == org_member.inviter_id
@@ -134,7 +121,7 @@ class HybridCloudTestMixin:
             for key, expected_value in expected.items():
                 assert getattr(org_member_mapping, key) == expected_value
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_org_member_mapping_not_exists(self, org_member: OrganizationMember):
         email = org_member.email
         user_id = org_member.user_id
@@ -145,3 +132,96 @@ class HybridCloudTestMixin:
             organization_id=org_member.organization_id,
             organizationmember_id=org_member.id,
         ).exists()
+
+
+class SimulatedTransactionWatermarks(threading.local):
+    state: dict[str, int] = {}
+
+    @staticmethod
+    def get_transaction_depth(connection: BaseDatabaseWrapper) -> int:
+        total = len(connection.savepoint_ids)
+        if connection.in_atomic_block:
+            total += 1
+        return total
+
+    def connection_above_watermark(
+        self, using: str | None = None, connection: BaseDatabaseWrapper | None = None
+    ) -> bool:
+        if connection is None:
+            connection = transaction.get_connection(using)
+        return self.get_transaction_depth(connection) > self.state.get(connection.alias, 0)
+
+
+simulated_transaction_watermarks = SimulatedTransactionWatermarks()
+
+
+@contextlib.contextmanager
+def simulate_on_commit(request: Any):
+    """
+    Deal with the fact that django TestCase class is both used heavily, and also, complicates our ability to
+    correctly test on_commit hooks.  Allows the use of django_test_transaction_water_mark to create a 'simulated'
+    level of outer transaction that fires on_commit hooks, allowing for logic dependent on this behavior (usually
+    outbox processing) to correctly detect which savepoint should call the `on_commit` hook.
+    """
+
+    from django.db import transaction
+    from django.test import TestCase as DjangoTestCase
+
+    request_node_cls = request.node.cls
+    is_django_test_case = request_node_cls is not None and issubclass(
+        request_node_cls, DjangoTestCase
+    )
+    simulated_transaction_watermarks.state = {}
+
+    _old_atomic_exit = transaction.Atomic.__exit__
+    _old_transaction_on_commit = transaction.on_commit
+
+    def maybe_flush_commit_hooks(connection: BaseDatabaseWrapper):
+        if connection.closed_in_transaction or connection.needs_rollback:
+            return
+
+        if simulated_transaction_watermarks.connection_above_watermark(connection=connection):
+            return
+
+        old_validate = connection.validate_no_atomic_block
+        connection.validate_no_atomic_block = lambda: None  # type: ignore
+        try:
+            connection.run_and_clear_commit_hooks()
+        finally:
+            connection.validate_no_atomic_block = old_validate  # type: ignore
+
+    def new_atomic_exit(self, exc_type, *args, **kwds):
+        _old_atomic_exit(self, exc_type, *args, **kwds)
+        if exc_type is not None:
+            return
+        connection = transaction.get_connection(self.using)
+        maybe_flush_commit_hooks(connection)
+
+    def new_atomic_on_commit(func, using=None):
+        _old_transaction_on_commit(func, using)
+        maybe_flush_commit_hooks(transaction.get_connection(using))
+
+    for conn in connections.all():
+        # This value happens to match the number of outer transactions in
+        # a django test case.  Unfortunately, the timing of when setup is called
+        # vs when that final outer transaction is added makes it impossible to
+        # sample the value directly -- we just have to specify it here.
+        # That said, there are tests that would fail if this number were wrong.
+        if is_django_test_case:
+            simulated_transaction_watermarks.state[conn.alias] = 2
+        else:
+            simulated_transaction_watermarks.state[
+                conn.alias
+            ] = simulated_transaction_watermarks.get_transaction_depth(conn)
+
+    functools.update_wrapper(new_atomic_exit, _old_atomic_exit)
+    functools.update_wrapper(new_atomic_on_commit, _old_transaction_on_commit)
+    transaction.Atomic.__exit__ = new_atomic_exit  # type: ignore
+    transaction.on_commit = new_atomic_on_commit
+    setattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks", maybe_flush_commit_hooks)
+    try:
+        yield
+    finally:
+        transaction.Atomic.__exit__ = _old_atomic_exit  # type: ignore
+        transaction.on_commit = _old_transaction_on_commit
+        delattr(BaseDatabaseWrapper, "maybe_flush_commit_hooks")

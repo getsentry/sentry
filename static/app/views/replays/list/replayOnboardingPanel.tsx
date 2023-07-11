@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
+import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import {Tooltip} from 'sentry/components/tooltip';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {IconInfo} from 'sentry/icons';
@@ -20,6 +20,7 @@ import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useRep
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useTeams} from 'sentry/utils/useTeams';
 
 type Breakpoints = {
   large: string;
@@ -43,7 +44,8 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const canCreateProjects = organization.access.includes('project:admin');
+  const {teams} = useTeams();
+  const {canCreateProject} = useProjectCreationAccess({organization, teams});
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -66,7 +68,7 @@ export default function ReplayOnboardingPanel() {
   // disable "setup" if the current selected pageFilters are not supported
   const primaryActionDisabled =
     primaryAction === 'create'
-      ? !canCreateProjects
+      ? !canCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
   const breakpoints = preferences.collapsed
@@ -113,25 +115,13 @@ export default function ReplayOnboardingPanel() {
       <OnboardingPanel
         image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}
       >
-        <Feature
-          features={['session-replay-ga']}
-          organization={organization}
-          renderDisabled={() => (
-            <SetupReplaysCTA
-              orgSlug={organization.slug}
-              primaryAction={primaryAction}
-              disabled={primaryActionDisabled}
-            />
-          )}
-        >
-          <OnboardingCTAHook organization={organization}>
-            <SetupReplaysCTA
-              orgSlug={organization.slug}
-              primaryAction={primaryAction}
-              disabled={primaryActionDisabled}
-            />
-          </OnboardingCTAHook>
-        </Feature>
+        <OnboardingCTAHook organization={organization}>
+          <SetupReplaysCTA
+            orgSlug={organization.slug}
+            primaryAction={primaryAction}
+            disabled={primaryActionDisabled}
+          />
+        </OnboardingCTAHook>
       </OnboardingPanel>
     </Fragment>
   );
@@ -177,7 +167,7 @@ export function SetupReplaysCTA({
       <Tooltip
         title={
           <span data-test-id="create-project-tooltip">
-            {t('Only admins, managers, and owners, can create projects.')}
+            {t('You do not have permission to create a project.')}
           </span>
         }
         disabled={!disabled}

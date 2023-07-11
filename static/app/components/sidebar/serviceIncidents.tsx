@@ -76,7 +76,7 @@ function ServiceIncidents({
     return null;
   }
 
-  const active = currentPanel === SidebarPanelKey.ServiceIncidents;
+  const active = currentPanel === SidebarPanelKey.SERVICE_INCIDENTS;
   const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
 
   if (isEmpty) {

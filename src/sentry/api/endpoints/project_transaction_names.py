@@ -7,8 +7,9 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.utils import get_date_range_from_stats_period
+from sentry.ingest.transaction_clusterer import ClustererNamespace
+from sentry.ingest.transaction_clusterer import rules as rule_store
 from sentry.ingest.transaction_clusterer.datasource import redis, snuba
-from sentry.ingest.transaction_clusterer.rules import get_redis_rules, get_rules
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 
 
@@ -30,31 +31,35 @@ class ProjectTransactionNamesCluster(ProjectEndpoint):
         limit = int(params.get("limit", 1000))
         merge_threshold = int(params.get("threshold", 100))
         return_all_names = params.get("returnAllNames")
+        namespace = params.get("namespace")
 
-        if datasource == "redis":
-            # NOTE: redis ignores the time range parameters
-            transaction_names = islice(redis.get_transaction_names(project), limit)
+        if namespace == "spans":
+            namespace = ClustererNamespace.SPANS
+            data = redis.get_span_descriptions(project)
         else:
-            transaction_names = snuba.fetch_unique_transaction_names(
-                project,
-                (start, end),
-                limit,
-            )
+            namespace = ClustererNamespace.TRANSACTIONS
+            if datasource == "redis":
+                # NOTE: redis ignores the time range parameters
+                data = islice(redis.get_transaction_names(project), limit)
+            else:
+                data = snuba.fetch_unique_transaction_names(
+                    project,
+                    (start, end),
+                    limit,
+                )
 
-        transaction_names = list(transaction_names)
+        data = list(data)
 
         clusterer = TreeClusterer(merge_threshold=merge_threshold)
-        clusterer.add_input(transaction_names)
+        clusterer.add_input(data)
 
         return Response(
             {
                 "rules": clusterer.get_rules(),
                 "meta": {
-                    "unique_transaction_names": transaction_names
-                    if return_all_names
-                    else len(transaction_names),
-                    "rules_redis": get_redis_rules(project),
-                    "rules_projectoption": get_rules(project),
+                    "unique_transaction_names": data if return_all_names else len(data),
+                    "rules_redis": rule_store.get_redis_rules(namespace, project),
+                    "rules_projectoption": rule_store.get_rules(namespace, project),
                 },
             }
         )

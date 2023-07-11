@@ -18,8 +18,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -39,7 +38,7 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -47,7 +46,7 @@ import {
 import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
-  PROJECT_PERFORMANCE_TYPE,
+  ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
 import {
@@ -91,7 +90,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   selection: PageFilters;
 };
 
-class ReleaseOverview extends AsyncView<Props> {
+class ReleaseOverview extends DeprecatedAsyncView<Props> {
   getTitle() {
     const {params, organization} = this.props;
     return routeTitleGen(
@@ -202,7 +201,7 @@ class ReleaseOverview extends AsyncView<Props> {
     baseQuery: NewQuery
   ): EventView {
     const eventView =
-      performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND
+      performanceType === ProjectPerformanceType.FRONTEND
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
@@ -211,25 +210,25 @@ class ReleaseOverview extends AsyncView<Props> {
               `p75(${WebVital.FID})`,
               `p75(${WebVital.LCP})`,
               `p75(${WebVital.CLS})`,
-              `p75(${SpanOpBreakdown.SpansHttp})`,
-              `p75(${SpanOpBreakdown.SpansBrowser})`,
-              `p75(${SpanOpBreakdown.SpansResource})`,
+              `p75(${SpanOpBreakdown.SPANS_HTTP})`,
+              `p75(${SpanOpBreakdown.SPANS_BROWSER})`,
+              `p75(${SpanOpBreakdown.SPANS_RESOURCE})`,
             ],
           }) as EventView)
-        : performanceType === PROJECT_PERFORMANCE_TYPE.BACKEND
+        : performanceType === ProjectPerformanceType.BACKEND
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
           }) as EventView)
-        : performanceType === PROJECT_PERFORMANCE_TYPE.MOBILE
+        : performanceType === ProjectPerformanceType.MOBILE
         ? (EventView.fromSavedQuery({
             ...baseQuery,
             fields: [
               ...baseQuery.fields,
-              `p75(${MobileVital.AppStartCold})`,
-              `p75(${MobileVital.AppStartWarm})`,
-              `p75(${MobileVital.FramesSlow})`,
-              `p75(${MobileVital.FramesFrozen})`,
+              `p75(${MobileVital.APP_START_COLD})`,
+              `p75(${MobileVital.APP_START_WARM})`,
+              `p75(${MobileVital.FRAMES_SLOW})`,
+              `p75(${MobileVital.FRAMES_FROZEN})`,
             ],
           }) as EventView)
         : (EventView.fromSavedQuery({
@@ -437,6 +436,13 @@ class ReleaseOverview extends AsyncView<Props> {
             shouldFilterSessionsInTimeWindow: true,
           };
 
+          const defaultDateTimeSelected = !period && !start && !end;
+
+          const releaseBoundsLabel =
+            releaseBounds.type === 'clamped'
+              ? t('Clamped Release Period')
+              : t('Entire Release Period');
+
           return (
             <SessionsRequest {...sessionsRequestProps}>
               {({
@@ -468,31 +474,38 @@ class ReleaseOverview extends AsyncView<Props> {
                           )}
                           <ReleaseDetailsPageFilters>
                             <EnvironmentPageFilter />
-                            <PageTimeRangeSelector
-                              organization={organization}
-                              relative={period ?? ''}
+                            <TimeRangeSelector
+                              relative={
+                                period ??
+                                (defaultDateTimeSelected ? RELEASE_PERIOD_KEY : null)
+                              }
                               start={start ?? null}
                               end={end ?? null}
                               utc={utc ?? null}
-                              onUpdate={this.handleDateChange}
-                              relativeOptions={
+                              onChange={this.handleDateChange}
+                              menuTitle={t('Filter Time Range')}
+                              triggerLabel={
+                                defaultDateTimeSelected ? releaseBoundsLabel : null
+                              }
+                              relativeOptions={({defaultOptions, arbitraryOptions}) =>
                                 releaseBounds.type !== 'ancient'
                                   ? {
                                       [RELEASE_PERIOD_KEY]: (
                                         <Fragment>
-                                          {releaseBounds.type === 'clamped'
-                                            ? t('Clamped Release Period')
-                                            : t('Entire Release Period')}{' '}
-                                          (
-                                          <DateTime
-                                            date={releaseBounds.releaseStart}
-                                          /> -{' '}
-                                          <DateTime date={releaseBounds.releaseEnd} />)
+                                          {releaseBoundsLabel}
+                                          <br />
+                                          <ReleaseBoundsDescription
+                                            primary={defaultDateTimeSelected}
+                                          >
+                                            <DateTime date={releaseBounds.releaseStart} />
+                                            –<DateTime date={releaseBounds.releaseEnd} />
+                                          </ReleaseBoundsDescription>
                                         </Fragment>
                                       ),
-                                      ...DEFAULT_RELATIVE_PERIODS,
+                                      ...defaultOptions,
+                                      ...arbitraryOptions,
                                     }
-                                  : DEFAULT_RELATIVE_PERIODS
+                                  : {...defaultOptions, ...arbitraryOptions}
                               }
                               defaultPeriod={
                                 releaseBounds.type !== 'ancient'
@@ -730,6 +743,11 @@ const ReleaseDetailsPageFilters = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
+`;
+
+const ReleaseBoundsDescription = styled('span')<{primary: boolean}>`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => (p.primary ? p.theme.activeText : p.theme.subText)};
 `;
 
 export default withApi(withPageFilters(withOrganization(ReleaseOverview)));

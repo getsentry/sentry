@@ -21,6 +21,9 @@ class OrganizationAuthProvidersEndpoint(OrganizationEndpoint):
         """
         provider_list = []
         for k, v in manager:
-            provider_list.append({"key": k, "name": v.name, "requiredFeature": v.required_feature})
+            if not v.is_partner:
+                provider_list.append(
+                    {"key": k, "name": v.name, "requiredFeature": v.required_feature}
+                )
 
         return Response(serialize(provider_list, request.user))

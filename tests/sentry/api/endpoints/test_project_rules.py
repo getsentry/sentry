@@ -8,7 +8,8 @@ import responses
 from django.test import override_settings
 from rest_framework import status
 
-from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
+from sentry.constants import ObjectStatus
+from sentry.models import Environment, Rule, RuleActivity, RuleActivityType
 from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
 from sentry.models.user import User
 from sentry.testutils import APITestCase
@@ -189,8 +190,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
 
-    @override_settings(MAX_ISSUE_ALERTS_PER_PROJECT=1)
-    def test_exceed_limit(self):
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    def test_exceed_limit_fast_conditions(self):
         conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
         Rule.objects.filter(project=self.project).delete()
@@ -207,9 +208,45 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             conditions=conditions,
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-        assert resp.data == "You may not exceed 1 rules per project"
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
         # Make sure pending deletions don't affect the process
-        Rule.objects.filter(project=self.project).update(status=RuleStatus.PENDING_DELETION)
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
+        self.run_test(conditions=conditions, actions=actions)
+
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    def test_exceed_limit_slow_conditions(self):
+        conditions = [
+            {
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
+                "interval": "1h",
+                "value": 100,
+                "comparisonType": "count",
+            }
+        ]
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        Rule.objects.filter(project=self.project).delete()
+        self.run_test(conditions=conditions, actions=actions)
+        resp = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            frequency=30,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="any",
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert (
+            resp.data["conditions"][0]
+            == "You may not exceed 1 rules with this type of condition per project."
+        )
+        # Make sure pending deletions don't affect the process
+        Rule.objects.filter(project=self.project).update(status=ObjectStatus.PENDING_DELETION)
         self.run_test(conditions=conditions, actions=actions)
 
     def test_owner_perms(self):

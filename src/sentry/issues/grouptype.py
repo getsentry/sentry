@@ -6,21 +6,20 @@ from datetime import timedelta
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
-from django.conf import settings
-
 from sentry import features
 from sentry.features.base import OrganizationFeature
-from sentry.utils import metrics, redis
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
-    from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
 
 class GroupCategory(Enum):
     ERROR = 1
     PERFORMANCE = 2
-    PROFILE = 3
+    PROFILE = 3  # deprecated, merging with PERFORMANCE
+    CRON = 4
+    REPLAY = 5
 
 
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
@@ -100,7 +99,6 @@ class NoiseConfig:
 
 @dataclass(frozen=True)
 class GroupType:
-
     type_id: int
     slug: str
     description: str
@@ -292,12 +290,15 @@ class PerformanceLargeHTTPPayloadGroupType(PerformanceGroupTypeDefaults, GroupTy
     category = GroupCategory.PERFORMANCE.value
 
 
+# 2000 was ProfileBlockingFunctionMainThreadType
+
+
 @dataclass(frozen=True)
 class ProfileFileIOGroupType(GroupType):
     type_id = 2001
     slug = "profile_file_io_main_thread"
     description = "File I/O on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -305,7 +306,7 @@ class ProfileImageDecodeGroupType(GroupType):
     type_id = 2002
     slug = "profile_image_decode_main_thread"
     description = "Image Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
 @dataclass(frozen=True)
@@ -313,32 +314,70 @@ class ProfileJSONDecodeType(GroupType):
     type_id = 2003
     slug = "profile_json_decode_main_thread"
     description = "JSON Decoding on Main Thread"
-    category = GroupCategory.PROFILE.value
+    category = GroupCategory.PERFORMANCE.value
 
 
-def reduce_noise(
-    new_grouphashes: Set[str],
-    performance_problems_by_hash: Dict[str, PerformanceProblem],
-    project: Project,
-) -> Set[str]:
+@dataclass(frozen=True)
+class ProfileCoreDataExperimentalType(GroupType):
+    type_id = 2004
+    slug = "profile_core_data_main_exp"
+    description = "Core Data on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
 
-    groups_to_ignore = set()
-    cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
-    client = redis.redis_clusters.get(cluster_key)
 
-    for new_grouphash in new_grouphashes:
-        group_type = performance_problems_by_hash[new_grouphash].type
-        noise_config = group_type.noise_config
-        if not noise_config:
-            continue
+# 2005 was ProfileRegexExperimentalType
 
-        if noise_config.ignore_limit and not should_create_group(
-            group_type, client, new_grouphash, project
-        ):
-            groups_to_ignore.add(new_grouphash)
 
-    new_grouphashes = new_grouphashes - groups_to_ignore
-    return new_grouphashes
+@dataclass(frozen=True)
+class ProfileViewIsSlowExperimentalType(GroupType):
+    type_id = 2006
+    slug = "profile_view_is_slow_experimental"
+    description = "View Render/Layout/Update is slow"
+    category = GroupCategory.PERFORMANCE.value
+
+
+@dataclass(frozen=True)
+class ProfileRegexType(GroupType):
+    type_id = 2007
+    slug = "profile_regex_main_thread"
+    description = "Regex on Main Thread"
+    category = GroupCategory.PERFORMANCE.value
+    release = True
+
+
+@dataclass(frozen=True)
+class MonitorCheckInFailure(GroupType):
+    type_id = 4001
+    slug = "monitor_check_in_failure"
+    description = "Monitor Check In Failed"
+    category = GroupCategory.CRON.value
+    released = True
+
+
+@dataclass(frozen=True)
+class MonitorCheckInTimeout(GroupType):
+    type_id = 4002
+    slug = "monitor_check_in_timeout"
+    description = "Monitor Check In Timeout"
+    category = GroupCategory.CRON.value
+    released = True
+
+
+@dataclass(frozen=True)
+class MonitorCheckInMissed(GroupType):
+    type_id = 4003
+    slug = "monitor_check_in_missed"
+    description = "Monitor Check In Missed"
+    category = GroupCategory.CRON.value
+    released = True
+
+
+@dataclass(frozen=True)
+class ReplayDeadClickType(GroupType):
+    type_id = 5001
+    slug = "replay_click_dead"
+    description = "Dead Click Detected"
+    category = GroupCategory.REPLAY.value
 
 
 @metrics.wraps("noise_reduction.should_create_group", sample_rate=1.0)

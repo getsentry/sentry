@@ -2,6 +2,7 @@ from django.conf import settings
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
+from sentry.app import env
 from sentry.models import InviteStatus
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
@@ -11,7 +12,7 @@ TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
 TEAM_ADMIN = settings.SENTRY_TEAM_ROLES[1]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -227,6 +228,31 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
+    def test_superuser(self):
+        user = self.create_user(username="foo", is_superuser=True)
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+
+        req = self.make_request()
+        req.user = user
+        req.superuser.set_logged_in(req.user)
+        env.request = req
+
+        result = serialize(team, user)
+        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        organization.flags.allow_joinleave = False
+        organization.save()
+        result = serialize(team, user)
+        # after changing to allow_joinleave=False
+        assert result["access"] == TEAM_ADMIN["scopes"]
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
     def test_member_on_owner_team(self):
         user = self.create_user(username="foo")
         organization = self.create_organization()
@@ -294,7 +320,7 @@ class TeamSerializerTest(TestCase):
         assert result["teamRole"] == TEAM_ADMIN["id"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamWithProjectsSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user(username="foo")
@@ -325,7 +351,7 @@ class TeamWithProjectsSerializerTest(TestCase):
         }
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class TeamSCIMSerializerTest(TestCase):
     def test_simple_with_members(self):
         user = self.create_user(username="foo")

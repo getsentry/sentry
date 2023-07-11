@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from rest_framework import permissions
 from rest_framework.request import Request
@@ -26,22 +26,22 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-class RelayPermission(permissions.BasePermission):  # type: ignore[misc]
+class RelayPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return getattr(request, "relay", None) is not None
 
 
-class SystemPermission(permissions.BasePermission):  # type: ignore[misc]
+class SystemPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return is_system_auth(request.auth)
 
 
-class NoPermission(permissions.BasePermission):  # type: ignore[misc]
+class NoPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         return False
 
 
-class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
+class ScopedPermission(permissions.BasePermission):
     """
     Permissions work depending on the type of authentication:
 
@@ -64,17 +64,17 @@ class ScopedPermission(permissions.BasePermission):  # type: ignore[misc]
     def has_permission(self, request: Request, view: object) -> bool:
         # session-based auth has all scopes for a logged in user
         if not getattr(request, "auth", None):
-            return request.user.is_authenticated  # type: ignore[no-any-return]
+            return request.user.is_authenticated
 
         allowed_scopes: set[str] = set(self.scope_map.get(request.method, []))
         current_scopes = request.auth.get_scopes()
         return any(s in allowed_scopes for s in current_scopes)
 
-    def has_object_permission(self, request: Request, view: object, obj: object) -> bool:
+    def has_object_permission(self, request: Request, view: object, obj: Any) -> bool:
         return False
 
 
-class SuperuserPermission(permissions.BasePermission):  # type: ignore[misc]
+class SuperuserPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view: object) -> bool:
         if is_active_superuser(request):
             return True
@@ -105,7 +105,9 @@ class SentryPermission(ScopedPermission):
     # For now, this wide typing allows incremental rollout of those changes.  Be mindful how you use
     # organization in this method to stay compatible with all 3 paths.
     def determine_access(
-        self, request: Request, organization: RpcUserOrganizationContext | Organization | int
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | Organization | RpcOrganization | int,
     ) -> None:
         from sentry.api.base import logger
 

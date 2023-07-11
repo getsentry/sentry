@@ -5,7 +5,7 @@ import {semverCompare} from 'sentry/utils/versions';
 type Opts = {
   minVersion: string;
   organization: Organization;
-  projectId: string;
+  projectId: string[];
 };
 
 function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
@@ -19,18 +19,27 @@ function useProjectSdkNeedsUpdate({minVersion, organization, projectId}: Opts):
     } {
   const sdkUpdates = useProjectSdkUpdates({
     organization,
-    projectId,
+    projectId: null,
   });
 
   if (sdkUpdates.type !== 'resolved') {
     return {isFetching: true, needsUpdate: undefined};
   }
 
-  if (!sdkUpdates.data?.sdkVersion) {
+  if (!sdkUpdates.data?.length) {
     return {isFetching: true, needsUpdate: undefined};
   }
 
-  const needsUpdate = semverCompare(sdkUpdates.data?.sdkVersion || '', minVersion) === -1;
+  const selectedProjects = sdkUpdates.data.filter(sdkUpdate =>
+    projectId.includes(sdkUpdate.projectId)
+  );
+
+  const needsUpdate =
+    selectedProjects.length > 0 &&
+    selectedProjects.every(
+      sdkUpdate => semverCompare(sdkUpdate.sdkVersion || '', minVersion) === -1
+    );
+
   return {isFetching: false, needsUpdate};
 }
 

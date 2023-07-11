@@ -1,4 +1,5 @@
 import math
+import uuid
 from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
@@ -13,7 +14,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
 from sentry.discover.models import TeamKeyTransaction
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold, ReleaseStages
 from sentry.models.transaction_threshold import (
     ProjectTransactionThresholdOverride,
@@ -89,7 +90,7 @@ class OrganizationEventsEndpointTestBase(APITestCase, SnubaTestCase):
 
 
 @region_silo_test
-class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
+class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, PerformanceIssueTestCase):
     def test_no_projects(self):
         response = self.do_request({})
 
@@ -605,50 +606,31 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase):
             {"project.name": self.project.slug, "id": "a" * 32, "count()": 1}
         ]
 
-    def test_performance_issue_ids_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:undefined",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-
-    def test_has_performance_issue_ids(self):
-        data = load_data(
-            platform="transaction",
-            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
-        )
-        self.store_event(data=data, project_id=self.project.id)
-
+    def test_performance_short_group_id(self):
+        event = self.create_performance_issue()
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "has:performance.issue_ids",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
+    def test_multiple_performance_short_group_ids_filter(self):
+        event1 = self.create_performance_issue()
+        event2 = self.create_performance_issue()
+
         query = {
             "field": ["count()"],
             "statsPeriod": "1h",
-            "query": "!has:performance.issue_ids",
+            "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
+            "dataset": "issuePlatform",
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        assert response.data["data"][0]["count()"] == 0
-
-    def test_performance_issue_ids_array_with_undefined(self):
-        query = {
-            "field": ["count()"],
-            "statsPeriod": "2h",
-            "query": "performance.issue_ids:[1,2,3,undefined]",
-            "project": [self.project.id],
-        }
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
+        assert response.data["data"][0]["count()"] == 2
 
     def test_event_id_with_in_search(self):
         self.store_event(
@@ -5897,13 +5879,14 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "project": "python",
                         "release": "backend@1",
                         "platform.name": "python",
-                        "retention_days": 90,
                         "package": "lib_foo",
                         "environment": "development",
-                        "p95()": 92592143.6,
                         "p50()": 34695708.0,
-                        "p99()": 103764495.12000002,
                         "p75()": 45980969.0,
+                        "p95()": 92592143.6,
+                        "p99()": 103764495.12000002,
+                        "avg()": 51235123.0,
+                        "sum()": 951283182.0,
                         "examples()": [
                             "6919e4076b4a46bbaf1f3ef1f0666147",
                             "b04bafc378ea421b83b8680fd1caea52",
@@ -5941,10 +5924,6 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "String",
                     },
                     {
-                        "name": "retention_days",
-                        "type": "UInt16",
-                    },
-                    {
                         "name": "package",
                         "type": "String",
                     },
@@ -5953,11 +5932,15 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "String",
                     },
                     {
-                        "name": "p95()",
+                        "name": "p50()",
                         "type": "Float64",
                     },
                     {
-                        "name": "p50()",
+                        "name": "p75()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "p95()",
                         "type": "Float64",
                     },
                     {
@@ -5965,7 +5948,11 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
                         "type": "Float64",
                     },
                     {
-                        "name": "p75()",
+                        "name": "avg()",
+                        "type": "Float64",
+                    },
+                    {
+                        "name": "sum()",
                         "type": "Float64",
                     },
                     {
@@ -5989,13 +5976,14 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
             "platform.name",
             "environment",
             "release",
-            "retention_days",
             "count()",
             "examples()",
             "p50()",
             "p75()",
             "p95()",
             "p99()",
+            "avg()",
+            "sum()",
         ]
 
         query = {
@@ -6013,6 +6001,24 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(OrganizationEventsEn
         assert set(fields) == data_keys
         assert set(fields) == field_keys
         assert set(fields) == unit_keys
+        assert response.data["meta"]["units"] == {
+            "transaction": None,
+            "project": None,
+            "function": None,
+            "package": None,
+            "is_application": None,
+            "platform.name": None,
+            "environment": None,
+            "release": None,
+            "count()": None,
+            "examples()": None,
+            "p50()": "nanosecond",
+            "p75()": "nanosecond",
+            "p95()": "nanosecond",
+            "p99()": "nanosecond",
+            "avg()": "nanosecond",
+            "sum()": "nanosecond",
+        }
 
 
 @region_silo_test
@@ -6028,8 +6034,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"issue.id:{event.group.id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6095,8 +6100,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 1
 
@@ -6110,8 +6114,7 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
             "query": f"project:{event1.group.project.slug} issue:[{event1.group.qualified_short_id},{event2.group.qualified_short_id}]",
             "dataset": "issuePlatform",
         }
-        with self.options({"performance.issues.create_issues_through_platform": True}):
-            response = self.do_request(query)
+        response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
 
@@ -6149,3 +6152,70 @@ class OrganizationEventsIssuePlatformDatasetEndpointTest(
         assert len(data) == 1
         result = {r["user.display"] for r in data}
         assert result == {user_data["email"]}
+
+    def test_all_events_fields(self):
+        user_data = {
+            "id": self.user.id,
+            "username": "user",
+            "email": "hellboy@bar.com",
+            "ip_address": "127.0.0.1",
+        }
+        replay_id = str(uuid.uuid4())
+        profile_id = str(uuid.uuid4())
+        event = self.create_performance_issue(
+            contexts={
+                "trace": {
+                    "trace_id": str(uuid.uuid4().hex),
+                    "span_id": "933e5c9a8e464da9",
+                    "type": "trace",
+                },
+                "replay": {"replay_id": replay_id},
+                "profile": {"profile_id": profile_id},
+            },
+            user_data=user_data,
+        )
+
+        query = {
+            "field": [
+                "id",
+                "transaction",
+                "title",
+                "release",
+                "environment",
+                "user.display",
+                "device",
+                "os",
+                "url",
+                "runtime",
+                "replayId",
+                "profile.id",
+                "transaction.duration",
+                "timestamp",
+            ],
+            "statsPeriod": "1h",
+            "query": f"project:{event.group.project.slug} issue:{event.group.qualified_short_id}",
+            "dataset": "issuePlatform",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+
+        data = response.data["data"][0]
+
+        assert data == {
+            "id": event.event_id,
+            "transaction": event.transaction,
+            "project.name": event.project.name.lower(),
+            "title": event.group.title,
+            "release": event.release,
+            "environment": event.get_environment().name,
+            "user.display": user_data["email"],
+            "device": "Mac",
+            "os": "",
+            "url": event.interfaces.data["request"].full_url,
+            "runtime": dict(event.get_raw_data()["tags"])["runtime"],
+            "replayId": replay_id.replace("-", ""),
+            "profile.id": profile_id.replace("-", ""),
+            "transaction.duration": 3000,
+            "timestamp": event.datetime.replace(microsecond=0).isoformat(),
+        }

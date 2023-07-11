@@ -24,8 +24,10 @@ from sentry.models import (
 )
 from sentry.search.utils import tokenize_query
 from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.services.hybrid_cloud.organization_actions.impl import (
+    create_organization_with_outbox_message,
+)
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import org_setup_complete, terms_accepted
 
 
@@ -105,15 +107,23 @@ class OrganizationIndexEndpoint(Endpoint):
             for key, value in tokens.items():
                 if key == "query":
                     value = " ".join(value)
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=[value], is_verified=False)
+                    }
                     queryset = queryset.filter(
                         Q(name__icontains=value)
                         | Q(slug__icontains=value)
-                        | Q(members__email__iexact=value)
+                        | Q(member_set__user_id__in=user_ids)
                     )
                 elif key == "slug":
                     queryset = queryset.filter(in_iexact("slug", value))
                 elif key == "email":
-                    queryset = queryset.filter(in_iexact("members__email", value))
+                    user_ids = {
+                        u.id
+                        for u in user_service.get_many_by_email(emails=value, is_verified=False)
+                    }
+                    queryset = queryset.filter(Q(member_set__user_id__in=user_ids))
                 elif key == "platform":
                     queryset = queryset.filter(
                         project__in=ProjectPlatform.objects.filter(platform__in=value).values(
@@ -207,22 +217,14 @@ class OrganizationIndexEndpoint(Endpoint):
             try:
 
                 with transaction.atomic():
-                    org = Organization.objects.create(name=result["name"], slug=result.get("slug"))
-
-                    organization_mapping_service.create(
-                        organization_id=org.id,
-                        slug=org.slug,
-                        name=org.name,
-                        idempotency_key=result.get("idempotencyKey", ""),
-                        region_name=settings.SENTRY_REGION or "us",
+                    org = create_organization_with_outbox_message(
+                        create_options={"name": result["name"], "slug": result.get("slug")}
                     )
-                    rpc_org_member = organization_service.add_organization_member(
+                    om = OrganizationMember.objects.create(
                         organization_id=org.id,
-                        default_org_role=org.default_role,
                         user_id=request.user.id,
                         role=roles.get_top_dog().id,
                     )
-                    om = OrganizationMember.objects.get(id=rpc_org_member.id)
 
                     if result.get("defaultTeam"):
                         team = org.team_set.create(name=org.name)
@@ -231,23 +233,23 @@ class OrganizationIndexEndpoint(Endpoint):
                             team=team, organizationmember=om, is_active=True
                         )
 
-                    org_setup_complete.send_robust(
-                        instance=org, user=request.user, sender=self.__class__
-                    )
+                org_setup_complete.send_robust(
+                    instance=org, user=request.user, sender=self.__class__
+                )
 
-                    self.create_audit_entry(
-                        request=request,
-                        organization=org,
-                        target_object=org.id,
-                        event=audit_log.get_event_id("ORG_ADD"),
-                        data=org.get_audit_log_data(),
-                    )
+                self.create_audit_entry(
+                    request=request,
+                    organization=org,
+                    target_object=org.id,
+                    event=audit_log.get_event_id("ORG_ADD"),
+                    data=org.get_audit_log_data(),
+                )
 
-                    analytics.record(
-                        "organization.created",
-                        org,
-                        actor_id=request.user.id if request.user.is_authenticated else None,
-                    )
+                analytics.record(
+                    "organization.created",
+                    org,
+                    actor_id=request.user.id if request.user.is_authenticated else None,
+                )
 
             # TODO(hybrid-cloud): We'll need to catch a more generic error
             # when the internal RPC is implemented.

@@ -179,7 +179,9 @@ function generateReleaseMarkLine(
         formatter: hideLabel ? '' : title,
         // @ts-expect-error weird echart types
         font: 'Rubik',
-        fontSize: 11,
+        fontSize: 14,
+        color: theme.chartLabel,
+        backgroundColor: theme.chartOther,
       },
       data: [
         {

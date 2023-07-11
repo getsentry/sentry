@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {urlEncode} from '@sentry/utils';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -13,6 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
+import {generateBaseControlSiloUrl} from 'sentry/utils';
 import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
@@ -20,22 +22,26 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 // installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   organization?: Organization;
   provider?: IntegrationProvider;
   selectedOrgSlug?: string;
 };
 
-export default class IntegrationOrganizationLink extends AsyncView<Props, State> {
+export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
+  Props,
+  State
+> {
   disableErrorReport = false;
+  controlSiloApi = new Client({baseUrl: generateBaseControlSiloUrl() + '/api/0'});
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['organizations', '/organizations/']];
   }
 
@@ -103,8 +109,8 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         Organization,
         {providers: IntegrationProvider[]}
       ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
-        this.api.requestPromise(
+        this.controlSiloApi.requestPromise(`/organizations/${orgSlug}/`),
+        this.controlSiloApi.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),
       ]);
@@ -131,19 +137,25 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
     const orgId = organization && organization.slug;
-    this.props.router.push(
-      normalizeUrl(`/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`)
+    const normalizedUrl = normalizeUrl(
+      `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
+    );
+    window.location.assign(
+      `${organization?.links.organizationUrl || ''}${normalizedUrl}`
     );
   };
 
   // non-Github redirects to the extension view where the backend will finish the installation
   finishInstallation = () => {
     // add the selected org to the query parameters and then redirect back to configure
-    const {selectedOrgSlug} = this.state;
+    const {selectedOrgSlug, organization} = this.state;
     const query = {orgSlug: selectedOrgSlug, ...this.queryParams};
     this.trackInstallationStart();
+    // need to send to control silo to finish the installation
     window.location.assign(
-      `/extensions/${this.integrationSlug}/configure/?${urlEncode(query)}`
+      `${organization?.links.organizationUrl || ''}/extensions/${
+        this.integrationSlug
+      }/configure/?${urlEncode(query)}`
     );
   };
 

@@ -75,7 +75,7 @@ export function highlightNode({
     return null;
   }
 
-  // @ts-ignore This builds locally, but fails in CI -- ignoring for now
+  // @ts-expect-error This builds locally, but fails in CI -- ignoring for now
   const {top, left, width, height} = node.getBoundingClientRect();
   const highlightColor = color ?? DEFAULT_HIGHLIGHT_COLOR;
 

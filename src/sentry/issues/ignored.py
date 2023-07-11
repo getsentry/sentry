@@ -7,17 +7,20 @@ from typing import Any, Dict, Sequence, TypedDict
 
 from django.utils import timezone
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.issues.forecasts import generate_and_save_forecasts
 from sentry.models import (
     Group,
     GroupInboxRemoveAction,
     GroupSnooze,
+    GroupStatus,
     Project,
     User,
     remove_group_from_inbox,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
+from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -122,9 +125,14 @@ def handle_ignored(
                     "actor_id": user.id if user.is_authenticated else None,
                 },
             )
-            serialized_user = user_service.serialize_many(
-                filter=dict(user_ids=[user.id]), as_user=user
+
+            Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+                substatus=GroupSubStatus.UNTIL_CONDITION_MET, status=GroupStatus.IGNORED
             )
+            with in_test_hide_transaction_boundary():
+                serialized_user = user_service.serialize_many(
+                    filter=dict(user_ids=[user.id]), as_user=user
+                )
             new_status_details = IgnoredStatusDetails(
                 ignoreCount=ignore_count,
                 ignoreUntil=ignore_until,
@@ -135,6 +143,5 @@ def handle_ignored(
             )
     else:
         GroupSnooze.objects.filter(group__in=group_ids).delete()
-        ignore_until = None
 
     return new_status_details

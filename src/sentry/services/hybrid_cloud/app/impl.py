@@ -121,7 +121,7 @@ class DatabaseBackedAppService(AppService):
         type: str,
         group_by: str = "sentry_app_id",
     ) -> Mapping[str, Any]:
-        return SentryAppInstallation.objects.get_related_sentry_app_components(  # type: ignore
+        return SentryAppInstallation.objects.get_related_sentry_app_components(
             organization_ids=organization_ids,
             sentry_app_ids=sentry_app_ids,
             type=type,
@@ -133,7 +133,9 @@ class DatabaseBackedAppService(AppService):
             SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
         ]
     ):
-        def base_query(self) -> QuerySet:
+        def base_query(self, ids_only: bool = False) -> QuerySet:
+            if ids_only:
+                return SentryAppInstallation.objects
             return SentryAppInstallation.objects.select_related("sentry_app")
 
         def filter_arg_validator(
@@ -196,6 +198,3 @@ class DatabaseBackedAppService(AppService):
             return serialize_sentry_app(SentryApp.objects.get(application_id=api_application_id))
         except SentryApp.DoesNotExist:
             return None
-
-    def close(self) -> None:
-        pass

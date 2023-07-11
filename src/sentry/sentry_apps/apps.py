@@ -15,6 +15,7 @@ from sentry_sdk.api import push_scope
 from sentry import analytics, audit_log
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import (
     ApiApplication,
     ApiToken,
@@ -83,7 +84,6 @@ class SentryAppUpdater:
     allowed_origins: List[str] | None = None
     popularity: int | None = None
     features: List[str] | None = None
-    # user = Param("sentry.models.User")
 
     def run(self, user: User) -> SentryApp:
         with transaction.atomic():
@@ -100,9 +100,9 @@ class SentryAppUpdater:
             self._update_overview()
             self._update_allowed_origins()
             new_schema_elements = self._update_schema()
-            self._update_service_hooks()
             self._update_popularity(user=user)
             self.sentry_app.save()
+        self._update_service_hooks()
         self.record_analytics(user, new_schema_elements)
         return self.sentry_app
 
@@ -274,7 +274,7 @@ class SentryAppCreator:
             ), "Internal apps should not require installation verification"
 
     def run(self, *, user: User, request: Request | None = None) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
             api_app = self._create_api_application(proxy=proxy)
@@ -302,7 +302,7 @@ class SentryAppCreator:
                 {"name": [f"Name {self.name} is already taken, please use another."]}
             )
 
-        return slug  # type: ignore
+        return slug
 
     def _create_proxy_user(self, slug: str) -> User:
         # need a proxy user name that will always be unique

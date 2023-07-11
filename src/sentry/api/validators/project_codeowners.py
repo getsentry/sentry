@@ -9,6 +9,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
+    User,
     UserEmail,
     actor_type_to_string,
 )
@@ -61,7 +62,10 @@ def validate_codeowners_associations(
     for external_actor in external_actors:
         type = actor_type_to_string(external_actor.actor.type)
         if type == "user":
-            user: RpcUser = external_actor.actor.resolve()
+            try:
+                user: RpcUser = external_actor.actor.resolve()
+            except User.DoesNotExist:
+                continue
             organization_members_ids = OrganizationMember.objects.filter(
                 user_id=user.id, organization_id=project.organization_id
             ).values_list("id", flat=True)

@@ -6,7 +6,6 @@ import pytest
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.metrics import SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -50,7 +49,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
     )
     def test_metric_details(self):
@@ -115,7 +114,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
 
     @patch("sentry.snuba.metrics.datasource.get_mri", mocked_mri_resolver(["foo.bar"], get_mri))
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(["foo.bar"], get_public_name_from_mri),
     )
     def test_metric_details_metric_does_not_have_data(self):
@@ -134,7 +133,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.status_code == 404
         assert (
             response.data["detail"]
-            == f"The following metrics ['{SessionMetricKey.CRASH_FREE_RATE.value}'] "
+            == f"The following metrics ['{SessionMRI.CRASH_FREE_RATE.value}'] "
             f"do not exist in the dataset"
         )
 
@@ -191,7 +190,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(
             ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
         ),
@@ -228,7 +227,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         mocked_mri_resolver(["metric_foo_doe", "derived_metric.multiple_metrics"], get_mri),
     )
     @patch(
-        "sentry.snuba.metrics.datasource.get_public_name_from_mri",
+        "sentry.snuba.metrics.get_public_name_from_mri",
         mocked_mri_resolver(
             ["metric_foo_doe", "derived_metric.multiple_metrics"], get_public_name_from_mri
         ),
@@ -242,8 +241,6 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         """
         mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS_2
         org_id = self.project.organization.id
-        use_key_id = UseCaseID.SESSIONS
-        metric_id = _indexer_record(org_id, "metric_foo_doe")
 
         self.store_session(
             self.build_session(
@@ -254,24 +251,17 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
                 errors=2,
             )
         )
-        self._send_buckets(
-            [
-                {
-                    "org_id": org_id,
-                    "project_id": self.project.id,
-                    "metric_id": metric_id,
-                    "timestamp": (time.time() // 60 - 2) * 60,
-                    "tags": {
-                        resolve_weak(use_key_id, org_id, "release"): _indexer_record(
-                            org_id, "fooww"
-                        ),
-                    },
-                    "type": "c",
-                    "value": 5,
-                    "retention_days": 90,
-                },
-            ],
-            entity="metrics_counters",
+        self.store_metric(
+            org_id=org_id,
+            project_id=self.project.id,
+            type="counter",
+            name="metric_foo_doe",
+            timestamp=(time.time() // 60 - 2) * 60,
+            tags={
+                "release": "foow",
+            },
+            value=5,
+            use_case_id=UseCaseID.SESSIONS,
         )
         response = self.get_success_response(
             self.organization.slug,

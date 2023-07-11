@@ -44,15 +44,15 @@ type Props = {
 };
 
 enum BreadcrumbSort {
-  Newest = 'newest',
-  Oldest = 'oldest',
+  NEWEST = 'newest',
+  OLDEST = 'oldest',
 }
 
 const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
 const sortOptions = [
-  {label: t('Newest'), value: BreadcrumbSort.Newest},
-  {label: t('Oldest'), value: BreadcrumbSort.Oldest},
+  {label: t('Newest'), value: BreadcrumbSort.NEWEST},
+  {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
 
 function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
@@ -61,7 +61,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.Newest
+    BreadcrumbSort.NEWEST
   );
 
   const entryIndex = event.entries.findIndex(
@@ -249,7 +249,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     // Breadcrumbs come back from API sorted oldest -> newest.
     // Need to `reverse()` instead of sort by timestamp because crumbs with
     // exact same timestamp will appear out of order.
-    return sort === BreadcrumbSort.Newest
+    return sort === BreadcrumbSort.NEWEST
       ? [...filteredBreadcrumbs].reverse()
       : filteredBreadcrumbs;
   }, [

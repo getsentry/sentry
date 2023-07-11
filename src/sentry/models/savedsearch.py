@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -17,8 +17,8 @@ class SortOptions:
     PRIORITY = "priority"
     FREQ = "freq"
     USER = "user"
-    TREND = "trend"
     INBOX = "inbox"
+    BETTER_PRIORITY = "betterPriority"
 
     @classmethod
     def as_choices(cls):
@@ -28,8 +28,8 @@ class SortOptions:
             (cls.PRIORITY, _("Priority")),
             (cls.FREQ, _("Events")),
             (cls.USER, _("Users")),
-            (cls.TREND, _("Relative Change")),
             (cls.INBOX, _("Date Added")),
+            (cls.BETTER_PRIORITY, _("Better Priority")),
         )
 
 
@@ -68,7 +68,7 @@ class SavedSearch(Model):
 
     # Global searches exist for ALL organizations. A savedsearch marked with
     # is_global does NOT have an associated organization_id
-    is_global = models.NullBooleanField(null=True, default=False, db_index=True)
+    is_global = models.BooleanField(null=True, default=False, db_index=True)
 
     # Creator of the saved search. When visibility is
     # Visibility.{OWNER,OWNER_PINNED} this field is used to constrain who the

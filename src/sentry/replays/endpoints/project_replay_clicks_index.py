@@ -74,6 +74,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                organization_id=project.organization.id,
             )
 
         return self.paginate(
@@ -91,6 +92,7 @@ def query_replay_clicks(
     limit: int,
     offset: int,
     search_filters: SearchFilter,
+    organization_id: int,
 ):
     """Query replay clicks.
 
@@ -152,6 +154,7 @@ def query_replay_clicks(
             offset=Offset(offset),
             granularity=Granularity(3600),
         ),
+        tenant_ids={"organization_id": organization_id, "referrer": "replay-backend-web"},
     )
     return raw_snql_query(snuba_request, REFERRER)
 

@@ -14,7 +14,9 @@ class NoteActivityNotification(GroupActivityNotification):
     template_path = "sentry/emails/activity/note"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        return str(self.activity.data["text"]), {}, {}
+        # Notes may contain {} characters so we should escape them.
+        text = str(self.activity.data["text"]).replace("{", "{{").replace("}", "}}")
+        return text, {}, {}
 
     @property
     def title(self) -> str:

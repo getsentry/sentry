@@ -90,27 +90,27 @@ export function treeResultLocator<T>({
     }
 
     switch (token.type) {
-      case Token.Filter:
+      case Token.FILTER:
         nodeVisitor(token.key);
         nodeVisitor(token.value);
         break;
-      case Token.KeyExplicitTag:
+      case Token.KEY_EXPLICIT_TAG:
         nodeVisitor(token.key);
         break;
-      case Token.KeyAggregate:
+      case Token.KEY_AGGREGATE:
         nodeVisitor(token.name);
         token.args && nodeVisitor(token.args);
         nodeVisitor(token.argsSpaceBefore);
         nodeVisitor(token.argsSpaceAfter);
         break;
-      case Token.LogicGroup:
+      case Token.LOGIC_GROUP:
         token.inner.forEach(nodeVisitor);
         break;
-      case Token.KeyAggregateArgs:
+      case Token.KEY_AGGREGATE_ARGS:
         token.args.forEach(v => nodeVisitor(v.value));
         break;
-      case Token.ValueNumberList:
-      case Token.ValueTextList:
+      case Token.VALUE_NUMBER_LIST:
+      case Token.VALUE_TEXT_LIST:
         token.items.forEach((v: any) => nodeVisitor(v.value));
         break;
       default:
@@ -152,18 +152,18 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
     }
 
     switch (token.type) {
-      case Token.Filter:
+      case Token.FILTER:
         return transform({
           ...token,
           key: nodeVisitor(token.key),
           value: nodeVisitor(token.value),
         });
-      case Token.KeyExplicitTag:
+      case Token.KEY_EXPLICIT_TAG:
         return transform({
           ...token,
           key: nodeVisitor(token.key),
         });
-      case Token.KeyAggregate:
+      case Token.KEY_AGGREGATE:
         return transform({
           ...token,
           name: nodeVisitor(token.name),
@@ -171,18 +171,18 @@ export function treeTransformer({tree, transform}: TreeTransformerOpts) {
           argsSpaceBefore: nodeVisitor(token.argsSpaceBefore),
           argsSpaceAfter: nodeVisitor(token.argsSpaceAfter),
         });
-      case Token.LogicGroup:
+      case Token.LOGIC_GROUP:
         return transform({
           ...token,
           inner: token.inner.map(nodeVisitor),
         });
-      case Token.KeyAggregateArgs:
+      case Token.KEY_AGGREGATE_ARGS:
         return transform({
           ...token,
           args: token.args.map(v => ({...v, value: nodeVisitor(v.value)})),
         });
-      case Token.ValueNumberList:
-      case Token.ValueTextList:
+      case Token.VALUE_NUMBER_LIST:
+      case Token.VALUE_TEXT_LIST:
         return transform({
           ...token,
           // TODO(ts): Not sure why `v` cannot be inferred here
@@ -208,16 +208,16 @@ type GetKeyNameOpts = {
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
-  key: TokenResult<Token.KeySimple | Token.KeyExplicitTag | Token.KeyAggregate>,
+  key: TokenResult<Token.KEY_SIMPLE | Token.KEY_EXPLICIT_TAG | Token.KEY_AGGREGATE>,
   options: GetKeyNameOpts = {}
 ) => {
   const {aggregateWithArgs} = options;
   switch (key.type) {
-    case Token.KeySimple:
+    case Token.KEY_SIMPLE:
       return key.value;
-    case Token.KeyExplicitTag:
+    case Token.KEY_EXPLICIT_TAG:
       return key.key.value;
-    case Token.KeyAggregate:
+    case Token.KEY_AGGREGATE:
       return aggregateWithArgs
         ? `${key.name.value}(${key.args ? key.args.text : ''})`
         : key.name.value;

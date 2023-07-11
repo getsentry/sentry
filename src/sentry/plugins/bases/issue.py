@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django import forms
 from django.conf import settings
 from django.utils.html import format_html
@@ -26,7 +28,7 @@ class IssueTrackingPlugin(Plugin):
     create_issue_template = "sentry/plugins/bases/issue/create_issue.html"
     not_configured_template = "sentry/plugins/bases/issue/not_configured.html"
     needs_auth_template = "sentry/plugins/bases/issue/needs_auth.html"
-    auth_provider = None
+    auth_provider: str | None = None
     can_unlink_issues = False
     can_link_existing_issues = False
 

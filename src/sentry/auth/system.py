@@ -30,7 +30,7 @@ def get_system_token() -> str:
     if not token:
         token = uuid4().hex
         options.set("sentry:system-token", token)
-    return token  # type: ignore[no-any-return]
+    return token
 
 
 class SystemToken:

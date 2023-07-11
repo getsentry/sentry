@@ -18,7 +18,7 @@ export function OrgRoleInfo({
   organization: Organization;
 }) {
   const {orgRoleList} = organization;
-  const {orgRole, orgRolesFromTeams} = member;
+  const {orgRole, groupOrgRoles} = member;
 
   const orgRoleFromMember = useMemo(() => {
     const role = orgRoleList.find(r => r.id === orgRole);
@@ -26,9 +26,9 @@ export function OrgRoleInfo({
   }, [orgRole, orgRoleList]);
 
   const effectiveOrgRole = useMemo(() => {
-    const memberOrgRoles = orgRolesFromTeams.map(r => r.role.id).concat([orgRole]);
+    const memberOrgRoles = groupOrgRoles.map(r => r.role.id).concat([orgRole]);
     return getEffectiveOrgRole(memberOrgRoles, orgRoleList);
-  }, [orgRole, orgRolesFromTeams, orgRoleList]);
+  }, [orgRole, groupOrgRoles, orgRoleList]);
 
   useEffect(() => {
     if (!orgRoleFromMember) {
@@ -48,21 +48,21 @@ export function OrgRoleInfo({
         scope.setExtra('context', {
           memberId: member.id,
           orgRoleFromMember,
-          orgRolesFromTeams,
+          groupOrgRoles,
           orgRoleList,
           effectiveOrgRole,
         });
         Sentry.captureException(new Error('OrgMember has no effectiveOrgRole.'));
       });
     }
-  }, [effectiveOrgRole, member, orgRoleFromMember, orgRolesFromTeams, orgRoleList]);
+  }, [effectiveOrgRole, member, orgRoleFromMember, groupOrgRoles, orgRoleList]);
 
   // This code path should not happen, so this weird UI is fine.
   if (!orgRoleFromMember) {
     return <Fragment>{t('Error Role')}</Fragment>;
   }
 
-  if (orgRolesFromTeams.length === 0) {
+  if (groupOrgRoles.length === 0) {
     return <Fragment>{orgRoleFromMember.name}</Fragment>;
   }
 
@@ -87,7 +87,7 @@ export function OrgRoleInfo({
 
       <div>
         <div>{t('Teams')}:</div>
-        {orgRolesFromTeams
+        {groupOrgRoles
           .sort((a, b) => a.teamSlug.localeCompare(b.teamSlug))
           .map(r => (
             <TeamRow key={r.teamSlug}>

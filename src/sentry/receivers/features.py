@@ -1,13 +1,15 @@
-import time
+from __future__ import annotations
 
 from django.db.models.signals import post_save
 
 from sentry import analytics
 from sentry.adoption import manager
 from sentry.models import FeatureAdoption, GroupTombstone, Organization
-from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
+from sentry.plugins.bases.issue import IssueTrackingPlugin
+from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.receivers.rules import DEFAULT_RULE_DATA, DEFAULT_RULE_LABEL
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
@@ -18,8 +20,6 @@ from sentry.signals import (
     event_processed,
     first_event_received,
     inbound_filter_toggled,
-    inbox_in,
-    inbox_out,
     integration_added,
     integration_issue_created,
     integration_issue_linked,
@@ -155,11 +155,11 @@ def record_project_created(project, user, **kwargs):
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(member, organization, **kwargs):
+def record_member_joined(organization_id: int, user_id: int, **kwargs):
     FeatureAdoption.objects.record(
-        organization_id=member.organization_id, feature_slug="invite_team", complete=True
+        organization_id=organization_id, feature_slug="invite_team", complete=True
     )
-    analytics.record("organization.joined", user_id=member.user.id, organization_id=organization.id)
+    analytics.record("organization.joined", user_id=user_id, organization_id=organization_id)
 
 
 @issue_assigned.connect(weak=False)
@@ -494,13 +494,14 @@ def record_issue_archived(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_escalating.connect(weak=False)
-def record_issue_escalating(project, group, event, **kwargs):
+def record_issue_escalating(project, group, event, was_until_escalating, **kwargs):
     analytics.record(
         "issue.escalating",
         organization_id=project.organization_id,
         project_id=project.id,
         group_id=group.id,
-        event_id=event.event_id,
+        event_id=event.event_id if event else None,
+        was_until_escalating=was_until_escalating,
     )
 
 
@@ -538,68 +539,51 @@ def record_issue_reviewed(project, user, group, **kwargs):
     )
 
 
-@inbox_in.connect(weak=False)
-def record_inbox_in(project, user, group, reason, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        "inbox.issue_in",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        reason=reason,
-    )
-
-
-@inbox_out.connect(weak=False)
-def record_inbox_out(project, user, group, action, inbox_date_added, referrer, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
-        default_user_id = project.organization.get_default_owner().id
-
-    analytics.record(
-        "inbox.issue_out",
-        user_id=user_id,
-        default_user_id=default_user_id,
-        organization_id=project.organization_id,
-        group_id=group.id,
-        action=action,
-        inbox_in_ts=int(time.mktime(inbox_date_added.timetuple())),
-        referrer=referrer,
-    )
-
-
 @team_created.connect(weak=False)
-def record_team_created(organization, user, team, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
+def record_team_created(
+    organization=None,
+    user=None,
+    team=None,
+    organization_id=None,
+    user_id=None,
+    team_id=None,
+    **kwargs,
+):
+    if organization is None:
+        organization = Organization.objects.get(id=organization_id)
+
+    if team_id is None:
+        team_id = team.id
+
+    if user_id is None and user and user.is_authenticated:
+        user_id = user.id
+    if user_id is None:
         default_user_id = organization.get_default_owner().id
+    else:
+        default_user_id = user_id
 
     analytics.record(
         "team.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
-        team_id=team.id,
+        team_id=team_id,
     )
 
 
 @integration_added.connect(weak=False)
-def record_integration_added(integration, organization, user, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
+def record_integration_added(
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs
+):
+    organization = Organization.objects.get(id=organization_id)
+    integration = integration_service.get_integration(integration_id=integration_id)
+    assert integration, f"integration_added called for missing integration: {integration_id}"
+
+    if user_id is not None:
+        default_user_id = user_id
     else:
-        user_id = None
         default_user_id = organization.get_default_owner().id
+
     analytics.record(
         "integration.added",
         user_id=user_id,

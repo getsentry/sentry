@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import logging
 
-from django.db import IntegrityError
 from django.db.models import F
 from django.urls import reverse
 
@@ -13,7 +12,7 @@ from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import ApiKey, AuditLogEntry, Organization, OrganizationMember, User, UserEmail
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.tasks.base import instrumented_task
+from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 
@@ -86,12 +85,13 @@ class OrganizationComplianceTask(abc.ABC):
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
         def remove_member(member):
-            user = member.user
+            user = user_service.get_user(user_id=member.user_id)
             logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
-            try:
-                organization_service.remove_user(organization_id=org_id, user_id=user.id)
-            except (AssertionError, IntegrityError):
+            removed_member = organization_service.remove_user(
+                organization_id=org_id, user_id=user.id
+            )
+            if removed_member is None:
                 logger.warning(
                     f"Could not remove {self.log_label} noncompliant user from org",
                     extra=logging_data,
@@ -108,13 +108,13 @@ class OrganizationComplianceTask(abc.ABC):
                     data=member.get_audit_log_data(),
                     organization_id=org_id,
                     target_object=org_id,
-                    target_user=user,
+                    target_user_id=user.id,
                 )
                 org = Organization.objects.get_from_cache(id=org_id)
                 self.call_to_action(org, user, member)
 
-        for member in OrganizationMember.objects.select_related("user").filter(
-            organization_id=org_id, user__isnull=False
+        for member in OrganizationMember.objects.filter(
+            organization_id=org_id, user_id__isnull=False
         ):
             if not self.is_compliant(member):
                 remove_member(member)
@@ -124,7 +124,10 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     log_label = "2FA"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        return member.user.has_2fa()
+        user = user_service.get_user(user_id=member.user_id)
+        if user:
+            return user.has_2fa()
+        return False
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         # send invite to setup 2fa
@@ -148,6 +151,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
     TwoFactorComplianceTask().remove_non_compliant_members(
         org_id, actor_id, actor_key_id, ip_address
@@ -158,8 +162,10 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     log_label = "verified email"
 
     def is_compliant(self, member: OrganizationMember) -> bool:
-        # TODO(hybridcloud) this is doing a join from member to user
-        return UserEmail.objects.get_primary_email(member.user).is_verified
+        user = user_service.get_user(id=member.user_id)
+        if user:
+            return UserEmail.objects.get_primary_email(user).is_verified
+        return False
 
     def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         import django.contrib.auth.models
@@ -173,6 +179,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
         elif not isinstance(user, User):
             raise TypeError(user)
 
+        # TODO(hybridcloud) This compliance task is using data from both silos.
         email = UserEmail.objects.get_primary_email(user)
         email_context = {
             "confirm_url": absolute_uri(
@@ -201,6 +208,7 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     default_retry_delay=60 * 5,
     max_retries=5,
 )
+@retry
 def remove_email_verification_non_compliant_members(
     org_id, actor_id=None, actor_key_id=None, ip_address=None
 ):

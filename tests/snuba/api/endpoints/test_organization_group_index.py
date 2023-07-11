@@ -1,6 +1,6 @@
 import functools
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 from dateutil.parser import parse as parse_datetime
@@ -49,7 +49,6 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
-from sentry.search.snuba.executors import PrioritySortWeights
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -154,83 +153,26 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        aggregate_kwargs: PrioritySortWeights = {
-            "log_level": 3,
-            "frequency": 5,
-            "has_stacktrace": 5,
+        aggregate_kwargs: dict = {
+            "log_level": "3",
+            "has_stacktrace": "5",
+            "relative_volume": "1",
+            "event_halflife_hours": "4",
+            "issue_halflife_hours": "4",
+            "v2": "true",
+            "norm": "False",
         }
 
         response = self.get_success_response(
-            sort="better priority",
+            sort="betterPriority",
             query="is:unresolved",
             limit=25,
             start=iso_format(before_now(days=1)),
             end=iso_format(before_now(seconds=1)),
-            aggregate_kwargs={"better_priority": aggregate_kwargs},
+            **aggregate_kwargs,
         )
         assert len(response.data) == 2
         assert [item["id"] for item in response.data] == [str(group.id), str(group_2.id)]
-
-    def test_sort_by_trend(self):
-        group = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=10)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        ).group
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=10)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(hours=13)),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-        )
-
-        group_2 = self.store_event(
-            data={
-                "timestamp": iso_format(before_now(seconds=5)),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        ).group
-        self.store_event(
-            data={
-                "timestamp": iso_format(before_now(hours=13)),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-        )
-        self.login_as(user=self.user)
-
-        response = self.get_success_response(
-            sort="trend",
-            query="is:unresolved",
-            limit=1,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-        )
-        assert len(response.data) == 1
-        assert [item["id"] for item in response.data] == [str(group.id)]
-
-        header_links = parse_link_header(response["Link"])
-        cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_success_response(
-            sort="trend",
-            query="is:unresolved",
-            limit=1,
-            start=iso_format(before_now(days=1)),
-            end=iso_format(before_now(seconds=1)),
-            cursor=cursor,
-        )
-        assert [item["id"] for item in response.data] == [str(group_2.id)]
 
     def test_sort_by_inbox(self):
         group_1 = self.store_event(
@@ -1727,7 +1669,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["inbox"]["reason"] == GroupInboxReason.UNIGNORED.value
         assert response.data[0]["inbox"]["reason_details"] == snooze_details
 
-    @with_feature("organizations:issue-states")
+    @with_feature("organizations:escalating-issues")
     def test_inbox_fields_issue_states(self):
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1996,7 +1938,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             query="is:unresolved",
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(
                 query="is:ongoing"
             )  # (status=unresolved, substatus=(ongoing))
@@ -2049,7 +1991,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             self.get_response, sort_by="date", limit=10, expand="inbox", collapse="stats"
         )
 
-        with Feature("organizations:issue-states"):
+        with Feature("organizations:escalating-issues"):
             response1 = get_query_response(query="is:escalating")
             response2 = get_query_response(query="is:new")
             response3 = get_query_response(query="is:regressed")
@@ -3205,7 +3147,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -3239,7 +3181,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.merge_groups")
-    @patch("sentry.issues.merge.eventstream")
+    @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(self, mock_eventstream, merge_groups, mock_uuid4):
         eventstream_state = object()
         mock_eventstream.start_merge = Mock(return_value=eventstream_state)
@@ -3431,11 +3373,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             org = args[0]
         return super().get_response(org, **kwargs)
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3457,7 +3398,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}
             )
 
-        mock_eventstream_api.start_delete_groups.assert_called_once_with(
+        mock_eventstream.start_delete_groups.assert_called_once_with(
             group1.project_id, [group1.id, group2.id]
         )
 
@@ -3483,7 +3424,13 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
                     qs_params={"id": [group1.id, group2.id], "group4": group4.id}
                 )
 
-        mock_eventstream_task.end_delete_groups.assert_called_once_with(eventstream_state)
+        # XXX(markus): Something is sending duplicated replacements to snuba --
+        # once from within tasks.deletions.groups and another time from
+        # sentry.deletions.defaults.groups
+        assert mock_eventstream.end_delete_groups.call_args_list == [
+            call(eventstream_state),
+            call(eventstream_state),
+        ]
 
         assert response.status_code == 204
 
@@ -3499,11 +3446,10 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert Group.objects.filter(id=group4.id).exists()
         assert GroupHash.objects.filter(group_id=group4.id).exists()
 
-    @patch("sentry.api.helpers.group_index.delete.eventstream")
-    @patch("sentry.eventstream")
-    def test_delete_performance_issue_by_id(self, mock_eventstream_task, mock_eventstream_api):
+    @patch("sentry.eventstream.backend")
+    def test_delete_performance_issue_by_id(self, mock_eventstream):
         eventstream_state = {"event_stream_state": uuid4()}
-        mock_eventstream_api.start_delete_groups = Mock(return_value=eventstream_state)
+        mock_eventstream.start_delete_groups = Mock(return_value=eventstream_state)
 
         group1 = self.create_group(
             status=GroupStatus.RESOLVED, type=PerformanceSlowDBQueryGroupType.type_id

@@ -4,7 +4,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import ProjectExpectCtReports from 'sentry/views/settings/projectSecurityHeaders/expectCt';
 
 describe('ProjectExpectCtReports', function () {
-  const {router, organization, project} = initializeOrg();
+  const {organization, project, routerProps} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/expect-ct/`;
 
   beforeEach(function () {
@@ -19,11 +19,7 @@ describe('ProjectExpectCtReports', function () {
   it('renders', function () {
     const {container} = render(
       <ProjectExpectCtReports
-        route={{}}
-        routeParams={{}}
-        router={router}
-        routes={router.routes}
-        params={{projectId: project.slug}}
+        {...routerProps}
         location={TestStubs.location({pathname: url})}
         organization={organization}
       />

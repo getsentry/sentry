@@ -3,10 +3,12 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
 
 from django.conf import settings
 
+from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
+from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -138,10 +140,23 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                payload["project_id"] = project_id
-                payload["replay_id"] = replay_id
-                payload["dom_tree"] = payload.pop("message")
-                logger.info("sentry.replays.slow_click", extra=payload)
+                # Log the event for tracking.
+                log = event["data"].get("payload", {}).copy()
+                log["project_id"] = project_id
+                log["replay_id"] = replay_id
+                log["dom_tree"] = log.pop("message")
+                logger.info("sentry.replays.slow_click", extra=log)
+
+                report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
+                continue
+            elif category == "ui.multiClick":
+                # Log the event for tracking.
+                log = event["data"].get("payload", {}).copy()
+                log["project_id"] = project_id
+                log["replay_id"] = replay_id
+                log["dom_tree"] = log.pop("message")
+                logger.info("sentry.replays.slow_click", extra=log)
+                continue
             elif category == "ui.click":
                 node = payload.get("data", {}).get("node")
                 if node is None:
@@ -171,6 +186,13 @@ def get_user_actions(
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
             if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
                 event_payload_data = event["data"]["payload"]["data"]
+
+                # The data key is sometimes submitted as an string. If any type other than a
+                # dictionary is provided default the value to an empty dict.
+                #
+                # TODO: Refactor this area in a later release.
+                if not isinstance(event_payload_data, dict):
+                    event_payload_data = {}
 
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
@@ -205,6 +227,17 @@ def get_user_actions(
             log["project_id"] = project_id
             log["replay_id"] = replay_id
             logger.info("SDK Options:", extra=log)
+        # log large dom mutation breadcrumb events 1/100 times
+        if (
+            event.get("type") == 5
+            and event.get("data", {}).get("tag") == "breadcrumb"
+            and event.get("data", {}).get("payload", {}).get("category") == "replay.mutations"
+            and random.randint(0, 99) < 1
+        ):
+            log = event["data"].get("payload", {}).copy()
+            log["project_id"] = project_id
+            log["replay_id"] = replay_id
+            logger.info("Large DOM Mutations List:", extra=log)
 
     return result
 
@@ -222,7 +255,7 @@ def _initialize_publisher() -> KafkaPublisher:
     global replay_publisher
 
     if replay_publisher is None:
-        config = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_REPLAY_EVENTS]
+        config = kafka_config.get_topic_definition(settings.KAFKA_INGEST_REPLAY_EVENTS)
         replay_publisher = KafkaPublisher(
             kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )

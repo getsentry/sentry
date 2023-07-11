@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import router, transaction
 from django.http import Http404
 from rest_framework import status
 from rest_framework.request import Request
@@ -36,7 +36,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        with transaction.atomic():
+        with transaction.atomic(using=router.db_for_write(SentryAppInstallationToken)):
             try:
                 install_token = SentryAppInstallationToken.objects.get(api_token=api_token)
                 sentry_app_installation = install_token.sentry_app_installation

@@ -27,6 +27,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
+          "type": "invalid-key",
           "reason": "Invalid key. \"os\" is not a supported search key."
         },
         "key": {"type": "keySimple", "value": "os", "quoted": false},
@@ -64,6 +65,7 @@
         "filter": "numeric",
         "negated": false,
         "invalid": {
+          "type": "invalid-key",
           "reason": "Invalid key. \"transaction.duration\" is not a supported search key."
         },
         "key": {"type": "keySimple", "value": "transaction.duration", "quoted": false},

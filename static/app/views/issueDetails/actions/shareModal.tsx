@@ -23,8 +23,6 @@ interface ShareIssueModalProps extends ModalRenderProps {
   onToggle: () => void;
   organization: Organization;
   projectSlug: string;
-  disabled?: boolean;
-  disabledReason?: string;
 }
 
 type UrlRef = React.ElementRef<typeof AutoSelectText>;
@@ -137,9 +135,7 @@ function ShareIssueModal({
                 title={t('Copy to clipboard')}
                 borderless
                 size="sm"
-                onClick={() => {
-                  urlRef.current?.selectText();
-                }}
+                onClick={handleCopy}
                 aria-label={t('Copy to clipboard')}
               />
 

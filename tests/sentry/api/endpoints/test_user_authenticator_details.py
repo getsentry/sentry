@@ -9,7 +9,8 @@ from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
 from rest_framework import status
 
-from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
+from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase

@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import FormField from 'sentry/components/forms/formField';
+import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 import {Organization} from 'sentry/types';
 import {
   Aggregation,
@@ -28,7 +28,7 @@ import {
 } from './constants';
 import {Dataset} from './types';
 
-type Props = Omit<FormField['props'], 'children'> & {
+type Props = Omit<FormFieldProps, 'children'> & {
   organization: Organization;
   alertType?: AlertType;
   /**

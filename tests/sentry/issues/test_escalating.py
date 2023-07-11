@@ -28,7 +28,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
 
 
-class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
+class BaseGroupCounts(SnubaTestCase, TestCase):
     def _create_events_for_group(
         self,
         project_id: Optional[int] = None,
@@ -48,7 +48,9 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
 
         last_event = None
         for _ in range(count):
-            data["timestamp"] = (datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)).timestamp()  # type: ignore[assignment]
+            data["timestamp"] = (
+                datetime_reset_zero - timedelta(hours=hours_ago, minutes=min_ago)
+            ).timestamp()
             data["event_id"] = uuid4().hex
             # assert_no_errors is necessary because of SDK and server time differences due to freeze gun
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
@@ -57,7 +59,7 @@ class BaseGroupCounts(SnubaTestCase, TestCase):  # type: ignore[misc]
 
 class HistoricGroupCounts(
     BaseGroupCounts,
-    PerformanceIssueTestCase,  # type: ignore[misc]
+    PerformanceIssueTestCase,
     SearchIssueTestMixin,
 ):
     """Test that querying Snuba for the hourly counts for groups works as expected."""
@@ -90,22 +92,20 @@ class HistoricGroupCounts(
         )
         assert len(Group.objects.all()) == 2
 
-        with self.options({"performance.issues.send_to_issues_platform": True}):
-            perf_event = self.create_performance_issue()
-
+        perf_event = self.create_performance_issue()
         error_event = self._create_events_for_group()
 
         # store_search_issue created two groups
         assert len(Group.objects.all()) == 4
         assert profile_error_event.group.issue_category == GroupCategory.ERROR
         assert error_event.group.issue_category == GroupCategory.ERROR
-        assert profile_issue_occurrence.group.issue_category == GroupCategory.PROFILE  # type: ignore[union-attr]
+        assert profile_issue_occurrence.group.issue_category == GroupCategory.PERFORMANCE
         assert perf_event.group.issue_category == GroupCategory.PERFORMANCE
 
         profile_issue_occurrence_bucket = {
             "count()": 1,
-            "group_id": profile_issue_occurrence.group.id,  # type: ignore[union-attr]
-            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),  # type: ignore[union-attr]
+            "group_id": profile_issue_occurrence.group.id,
+            "hourBucket": to_start_of_hour(profile_issue_occurrence.group.first_seen),
             "project_id": self.project.id,
         }
 
@@ -206,7 +206,7 @@ def test_datetime_number_of_days() -> None:
 
 
 class DailyGroupCountsEscalating(BaseGroupCounts):
-    def save_mock_escalating_group_forecast(  # type: ignore[no-untyped-def]
+    def save_mock_escalating_group_forecast(
         self, group: Group, forecast_values=List[int], date_added=datetime
     ) -> None:
         """Save mock data for escalating group forecast in nodestore"""
@@ -237,7 +237,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             self.save_mock_escalating_group_forecast(
                 group=archived_group, forecast_values=forecast_values, date_added=datetime.now()
             )
-            assert is_escalating(archived_group)
+            assert is_escalating(archived_group) == (True, 5)
 
             # Test cache
             assert (
@@ -263,8 +263,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
                 forecast_values=forecast_values,
                 date_added=datetime.now() - timedelta(days=1),
             )
-            group_is_escalating = is_escalating(group)
-            assert not group_is_escalating
+            assert is_escalating(group) == (False, None)
             assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
             assert group.status == GroupStatus.IGNORED
             assert not GroupInbox.objects.filter(group=group).exists()
@@ -277,3 +276,26 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
 
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count(group) == 1
+
+    @freeze_time(TIME_YESTERDAY)
+    def test_is_forecast_out_of_range(self) -> None:
+        """
+        Test that when an archived until escalating issue does not have a forecast that is in range,
+        the last forecast is used as a fallback and an error is reported
+        """
+        with self.feature("organizations:escalating-issues") and patch(
+            "sentry.issues.escalating_group_forecast.logger"
+        ) as logger:
+            event = self._create_events_for_group(count=2)
+            archived_group = event.group
+            self.archive_until_escalating(archived_group)
+
+            # The escalating forecast was added 15 days ago, and thus is out of the 14 day range
+            forecast_values = [10] * 13 + [1]
+            self.save_mock_escalating_group_forecast(
+                group=archived_group,
+                forecast_values=forecast_values,
+                date_added=datetime.now() - timedelta(15),
+            )
+            assert is_escalating(archived_group) == (True, 1)
+            logger.error.assert_called_once_with("Forecast list index is out of range")
