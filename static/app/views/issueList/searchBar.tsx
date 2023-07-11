@@ -109,20 +109,6 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
-        title: t('Assignee'),
-        desc: t('Filter by team or member.'),
-        value: 'assigned_or_suggested:',
-      },
-      {
-        type: ItemType.RECOMMENDED,
-        kind: FieldKind.FIELD,
-        title: t('Release'),
-        desc: t('Filter by release version.'),
-        value: 'release:',
-      },
-      {
-        type: ItemType.RECOMMENDED,
-        kind: FieldKind.FIELD,
         title: t('Level'),
         desc: t('Filter by fatal, error, etc.'),
         value: 'level:',
@@ -130,9 +116,23 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       {
         type: ItemType.RECOMMENDED,
         kind: FieldKind.FIELD,
+        title: t('Assignee'),
+        desc: t('Filter by team or member.'),
+        value: 'assigned_or_suggested:',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
         title: t('Unhandled'),
         desc: t('Filter by unhandled events.'),
         value: 'error.unhandled:true ',
+      },
+      {
+        type: ItemType.RECOMMENDED,
+        kind: FieldKind.FIELD,
+        title: t('Release'),
+        desc: t('Filter by release version.'),
+        value: 'release:',
       },
       {
         type: ItemType.RECOMMENDED,
@@ -162,17 +162,29 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
 
 export default withIssueTags(IssueListSearchBar);
 
+// Using grid-template-rows to order the items top to bottom, then left to right
 const RecommendedWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: ${space(1.5)};
-  padding: ${space(1.5)};
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+  padding: ${space(1)};
 
   & > li {
     ${p => p.theme.overflowEllipsis}
     border-radius: ${p => p.theme.borderRadius};
     border: 1px solid ${p => p.theme.border};
-    padding: ${space(1.5)} ${space(2)};
+    padding: ${space(1)} ${space(1.5)};
     margin: 0;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-rows: 1fr 1fr;
+    gap: ${space(1.5)};
+    padding: ${space(1.5)};
+
+    & > li {
+      padding: ${space(1.5)} ${space(2)};
+    }
   }
 `;

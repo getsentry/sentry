@@ -348,7 +348,7 @@ function DropdownItem({
   } else if (item.type === ItemType.RECOMMENDED) {
     children = (
       <RecommendedItem>
-        <div>{item.title}</div>
+        <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
         {item.desc && (
           <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
         )}
@@ -659,6 +659,10 @@ const IconOpenWithMargin = styled(IconOpen)`
 
 const RecommendedItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const RecommendedItemTitle = styled('div')`
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const RecommendedItemDescription = styled('div')`
