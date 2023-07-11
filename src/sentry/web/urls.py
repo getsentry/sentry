@@ -207,6 +207,11 @@ urlpatterns += [
                     name="sentry-login",
                 ),
                 re_path(
+                    r"^v2/login/$",
+                    generic_react_page_view,
+                    name="sentry-v2-login",
+                ),
+                re_path(
                     r"^login/(?P<organization_slug>[^/]+)/$",
                     AuthOrganizationLoginView.as_view(),
                     name="sentry-auth-organization",

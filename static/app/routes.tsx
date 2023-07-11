@@ -10,7 +10,7 @@ import {
 import memoize from 'lodash/memoize';
 
 import LazyLoad from 'sentry/components/lazyLoad';
-import {EXPERIMENTAL_SPA, usingCustomerDomain} from 'sentry/constants';
+import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
@@ -103,15 +103,6 @@ function buildRoutes() {
   //
   // ## The structure
   //
-  // * `experimentalSpaRoutes`
-  //
-  //   These routes are specifically for the experimental single-page-app mode,
-  //   where Sentry is run separate from Django. These are NOT part of the root
-  //   <App /> component.
-  //
-  //   Right now these are mainly used for authentication pages. In the future
-  //   they would be used for other pages like registration.
-  //
   // * `rootRoutes`
   //
   //   These routes live directly under the <App /> container, and generally
@@ -152,13 +143,6 @@ function buildRoutes() {
   //   they have redirects for. A good rule here is to place 'helper' redirects
   //   next to the routes they redirect to, and place 'legacy route' redirects
   //   for routes that have completely changed in this tree.
-
-  const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
-    <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
-      <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
-      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
-    </Route>
-  ) : null;
 
   const rootRoutes = (
     <Fragment>
@@ -2126,8 +2110,24 @@ function buildRoutes() {
     </Route>
   );
 
+  // const experimentalSpaRoutes = EXPERIMENTAL_SPA ? (
+  //   <Route path="/auth/login/" component={errorHandler(AuthLayout)}>
+  //     <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+  //     <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
+  //   </Route>
+  // ) : null;
+
+  // const authRoutes = <Route path="/auth/v2/login/" />;
+  const authRoutes = (
+    <Route path="/auth/v2/login/" component={errorHandler(AuthLayout)}>
+      <IndexRoute component={make(() => import('sentry/views/auth/login'))} />
+      <Route path=":orgId/" component={make(() => import('sentry/views/auth/login'))} />
+    </Route>
+  );
+
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationDetails)}>
+      {authRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
@@ -2280,14 +2280,11 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route>
-      {experimentalSpaRoutes}
-      <Route path="/" component={errorHandler(App)}>
-        {rootRoutes}
-        {organizationRoutes}
-        {legacyRedirectRoutes}
-        <Route path="*" component={errorHandler(RouteNotFound)} />
-      </Route>
+    <Route path="/" component={errorHandler(App)}>
+      {rootRoutes}
+      {organizationRoutes}
+      {legacyRedirectRoutes}
+      <Route path="*" component={errorHandler(RouteNotFound)} />
     </Route>
   );
 
