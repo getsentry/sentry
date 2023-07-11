@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
     settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
     reason="Requires DummyNewsletter.",
 )
-@control_silo_test
+@control_silo_test(stable=True)
 class UserSubscriptionsNewsletterTest(APITestCase):
     endpoint = "sentry-api-0-user-subscriptions"
     method = "put"

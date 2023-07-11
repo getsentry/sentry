@@ -3,7 +3,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserIdentityTest(APITestCase):
     endpoint = "sentry-api-0-user-identity"
     method = "get"

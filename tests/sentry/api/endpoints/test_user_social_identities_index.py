@@ -3,7 +3,7 @@ from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserSocialIdentitiesIndexTest(APITestCase):
     endpoint = "sentry-api-0-user-social-identities-index"
 
