@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
@@ -21,6 +22,7 @@ import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -675,7 +677,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
     const params = {orgId: organization.slug, projectId: project.slug};
     const projectEndpoint = this.getProjectEndpoint(params);
     const performanceIssuesEndpoint = this.getPerformanceIssuesEndpoint(params);
-    const {isSuperuser} = ConfigStore.get('user') || {};
+    const isSuperUser = isActiveSuperuser();
 
     return (
       <Fragment>
@@ -790,12 +792,21 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
             </Form>
           </Feature>
           <Feature features={['organizations:project-performance-settings-admin']}>
-            {isSuperuser && (
+            {isSuperUser && (
               <Form
                 saveOnBlur
                 allowUndo
                 initialData={this.state.performance_issue_settings}
                 apiMethod="PUT"
+                onSubmitError={error => {
+                  if (error.status === 403) {
+                    addErrorMessage(
+                      t(
+                        'This action requires active super user access. Please re-authenticate to make changes.'
+                      )
+                    );
+                  }
+                }}
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
@@ -803,7 +814,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                     '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
                   )}
                   fields={this.performanceIssueDetectorAdminFields}
-                  disabled={!isSuperuser}
+                  disabled={!isSuperUser}
                 />
               </Form>
             )}

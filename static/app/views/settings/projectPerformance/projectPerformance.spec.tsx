@@ -5,7 +5,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import ConfigStore from 'sentry/stores/configStore';
+import * as utils from 'sentry/utils/isActiveSuperuser';
 import ProjectPerformance, {
   allowedDurationValues,
   allowedPercentageValues,
@@ -150,7 +150,7 @@ describe('projectPerformance', function () {
   });
 
   it('renders detector threshold configuration - admin ui', async function () {
-    jest.spyOn(ConfigStore, 'get').mockReturnValue(TestStubs.User({isSuperuser: true}));
+    jest.spyOn(utils, 'isActiveSuperuser').mockReturnValue(true);
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
       method: 'GET',
