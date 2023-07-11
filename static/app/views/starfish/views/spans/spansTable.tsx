@@ -228,11 +228,15 @@ export function getColumns(moduleName: ModuleName, transaction?: string): Column
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
-    {
-      key: 'span.action',
-      name: action,
-      width: COL_WIDTH_UNDEFINED,
-    },
+    ...(moduleName === ModuleName.ALL
+      ? ([
+          {
+            key: 'span.action',
+            name: action,
+            width: COL_WIDTH_UNDEFINED,
+          },
+        ] as Column[])
+      : []),
     {
       key: 'span.domain',
       name: domain,
