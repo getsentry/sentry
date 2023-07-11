@@ -56,7 +56,6 @@ export const steps = ({
   {
     language: 'bash',
     type: StepType.INSTALL,
-
     description: (
       <InstallDescription>
         <div>
