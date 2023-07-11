@@ -20,6 +20,7 @@ class RpcIdentity(RpcModel):
     idp_id: int
     user_id: int
     external_id: str
+    data: str
 
 
 class IdentityFilterArgs(TypedDict, total=False):
