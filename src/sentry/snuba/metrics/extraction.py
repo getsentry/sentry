@@ -131,7 +131,6 @@ CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
-T = TypeVar("T")
 
 
 class ComparingRuleCondition(TypedDict):
@@ -323,6 +322,9 @@ def _map_field_name(search_key: str) -> str:
         return f"event.tags.{resolved[5:-1]}"
 
     raise ValueError(f"Unsupported query field {search_key}")
+
+
+T = TypeVar("T")
 
 
 class SearchQueryConverter:
