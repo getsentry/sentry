@@ -65,7 +65,6 @@ jobs:
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
-        id: setup
         with:
           pg-version: ${{ matrix.pg-version }}
 
