@@ -36,7 +36,6 @@ function IssueQuickTrace({event, location, organization, quickTrace}: Props) {
   if (isTraceMissing) {
     return (
       <QuickTraceWrapper>
-        {' '}
         <TraceLink event={event} noTrace />
       </QuickTraceWrapper>
     );
