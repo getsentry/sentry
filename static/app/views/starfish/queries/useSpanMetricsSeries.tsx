@@ -21,11 +21,10 @@ export type SpanMetrics = {
 };
 
 export const useSpanMetricsSeries = (
-  span?: Pick<IndexedSpan, 'group'>,
+  span: Pick<IndexedSpan, 'group'>,
   queryFilters: SpanSummaryQueryFilters = {},
   yAxis: string[] = [],
-  referrer = 'span-metrics-series',
-  enabled: boolean = true
+  referrer = 'span-metrics-series'
 ) => {
   const location = useLocation();
   const pageFilters = usePageFilters();
@@ -33,6 +32,9 @@ export const useSpanMetricsSeries = (
   const eventView = span
     ? getEventView(span, location, pageFilters.selection, yAxis, queryFilters)
     : undefined;
+
+  const enabled =
+    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({

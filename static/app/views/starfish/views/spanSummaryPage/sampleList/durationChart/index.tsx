@@ -67,8 +67,7 @@ function DurationChart({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics',
-    Boolean(groupId && transactionName && transactionMethod)
+    'sidebar-span-metrics'
   );
 
   const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(

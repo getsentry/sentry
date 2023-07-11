@@ -19,9 +19,9 @@ import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
 type Options = {
-  groupId?: string;
-  transactionMethod?: string;
-  transactionName?: string;
+  groupId: string;
+  transactionMethod: string;
+  transactionName: string;
 };
 
 export type SpanSample = Pick<
@@ -49,11 +49,10 @@ export const useSpanSamples = (options: Options) => {
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    groupId ? {group: groupId} : undefined,
+    {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'sidebar-span-metrics',
-    Boolean(groupId && transactionName && transactionMethod)
+    'sidebar-span-metrics'
   );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);
