@@ -1,8 +1,9 @@
+import dataclasses
 import logging
 import math
 import time
 from datetime import datetime, timedelta
-from typing import Generator, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Generator, Iterator, List, Mapping, Optional, Protocol, Tuple
 
 import sentry_sdk
 from snuba_sdk import (
@@ -32,6 +33,7 @@ from sentry.dynamic_sampling.tasks.helpers.sliding_window import (
     get_sliding_window_size,
 )
 from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
+from sentry.dynamic_sampling.tasks.utils import Timer
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -39,6 +41,216 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
+
+
+@dataclasses.dataclass
+class TaskContext:
+    name: str
+    num_seconds: float
+    context_data: Optional[Dict[str, Any]] = None
+
+    def __post_init__(self):
+        # always override
+        self.expiration_time = time.monotonic() + self.num_seconds
+
+    def set_current_context(self, function_id: str, execution_time: float, data: Any):
+        if self.context_data is None:
+            self.context_data = {}
+        self.context_data[function_id] = {
+            "executionTime": execution_time,
+            "data": data,
+        }
+
+    def get_current_context(self, function_id: str, default: Dict[str, Any] = None) -> Any:
+        if self.context_data is None:
+            return default
+        return self.context_data.get(function_id, default)
+
+
+class TimeoutException(Exception):
+    def __init__(self, task_context: TaskContext, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.task_context = task_context
+
+
+class ContextIterator(Protocol):
+    """
+    An iterator that also can return its current state ( used for logging)
+    """
+
+    def __iter__(self):
+        ...
+
+    def __next__(self):
+        ...
+
+    def get_current_state(self) -> Any:
+        """
+        Return some current iterator state that can be used for logging
+        The return value should be convertible to JSON
+        """
+        ...
+
+
+class TimedIterator(Iterator[Any]):
+    """
+    An iterator that wraps an existing ContextIterator.
+    It forces a stop if the max time (from the task context) has passed
+    It updates the task context with the current state of the inner iterator at each step
+    """
+
+    def __init__(self, context: TaskContext, name: str, inner: ContextIterator):
+        self.context = context
+        self.iterator_execution_time = Timer()
+        self.name = name
+        self.inner = inner
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if time.monotonic() > self.context.expiration_time:
+            raise TimeoutException(self.context)
+        with self.iterator_execution_time:
+            val = next(self.inner)
+            state = self.inner.get_current_state()
+            self.context.set_current_context(
+                self.name, self.iterator_execution_time.current(), state
+            )
+            return val
+
+
+class GetActiveOrgsWithProjectCounts:
+    """
+    Fetch organisations in batches.
+    A batch will return at max max_orgs elements
+    It will accumulate org ids in the list until either it accumulates max_orgs or the
+    number of projects in the already accumulated orgs is more than max_projects or there
+    are no more orgs
+    """
+
+    def __init__(
+        self, max_orgs: int = MAX_ORGS_PER_QUERY, max_projects: int = MAX_PROJECTS_PER_QUERY
+    ):
+        self.metric_id = indexer.resolve_shared_org(
+            str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
+        )
+        self.offset = 0
+        self.last_result: List[Tuple[int, int]] = []
+        self.done = False
+        self.max_orgs = max_orgs
+        self.max_projects = max_projects
+        self.orgs_fetched = 0
+        self.projects_fetched = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self._enough_results_cached():
+            # we have enough in the cache to satisfy the current iteration
+            return self._get_from_cache()
+
+        if not self.done:
+            # not enough for the current iteration and data still in the db top it up from db
+            query = (
+                Query(
+                    match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                    select=[
+                        Function("uniq", [Column("project_id")], "num_projects"),
+                        Column("org_id"),
+                    ],
+                    groupby=[
+                        Column("org_id"),
+                    ],
+                    where=[
+                        Condition(
+                            Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=1)
+                        ),
+                        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                        Condition(Column("metric_id"), Op.EQ, self.metric_id),
+                    ],
+                    granularity=Granularity(3600),
+                    orderby=[
+                        OrderBy(Column("org_id"), Direction.ASC),
+                    ],
+                )
+                .set_limit(CHUNK_SIZE + 1)
+                .set_offset(self.offset)
+            )
+            request = Request(
+                dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+            )
+            data = raw_snql_query(
+                request,
+                referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION.value,
+            )["data"]
+            count = len(data)
+            self.done = count <= CHUNK_SIZE
+            self.offset += CHUNK_SIZE
+            if not self.done:
+                data = data[:-1]
+            for row in data:
+                self.last_result.append((row["org_id"], row["num_projects"]))
+
+        if len(self.last_result) > 0:
+            # we have some data left return up to the max amount
+            return self._get_from_cache()  # we still have something left in cache
+        else:
+            # nothing left in the DB or cache
+            raise StopIteration()
+
+    def get_current_state(self):
+        """
+        Returns the current state of the iterator (how many orgs and projects it has iterated over)
+
+        part of the ContexIterator protocol
+
+        """
+        return {
+            "orgsFetched": self.orgs_fetched,
+            "projectsFetched": self.projects_fetched,
+        }
+
+    def _enough_results_cached(self):
+        """
+        Return true if we have enough data to return a full batch in the cache (i.e. last_result)
+        """
+
+        if len(self.last_result) >= self.max_orgs:
+            return True
+
+        total_projects = 0
+        for _, num_projects in self.last_result:
+            total_projects += num_projects
+            if num_projects >= self.max_projects:
+                return True
+        return False
+
+    def _get_orgs(self, orgs_and_counts):
+        """
+        Extracts the orgs from last_result
+        """
+        return [org for org, _ in orgs_and_counts]
+
+    def _get_from_cache(self):
+        """
+        Returns a batch from cache and removes the elements returned from the cache
+        """
+        count_projects = 0
+        for idx, (org_id, num_projects) in enumerate(self.last_result):
+            count_projects += num_projects
+            if idx >= self.max_orgs - 1 or count_projects >= self.max_projects:
+                # we got to the number of elements desired
+                ret_val = self.last_result[0 : idx + 1]
+                self.last_result = self._get_orgs(self.last_result[idx + 1 :])
+                self.orgs_fetched += idx
+                self.projects_fetched += count_projects
+                return ret_val
+        # if we hare here we haven't reached our max limit, return everything
+        ret_val = self._get_orgs(self.last_result)
+        self.last_result = []
+        return ret_val
 
 
 def get_active_orgs_with_projects_counts(

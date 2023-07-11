@@ -1,6 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, Optional
 
+from sentry.dynamic_sampling.tasks.common import TaskContext
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,24 @@ def log_sample_rate_source(
     logger.info(
         "dynamic_sampling.sample_rate_source",
         extra=extra,
+    )
+
+
+def log_task_timeout(context: TaskContext) -> None:
+    logger.error(
+        "dynamic_sampling.task_timeout",
+        extra={
+            "task": context.name,
+            "maxSeconds": context.num_seconds,
+            "data": context.context_data,
+        },
+    )
+
+
+def log_task_execution(context: TaskContext) -> None:
+    logger.info(
+        "dynamic_sampling.task_execution",
+        extra={"task": context.name, "data": context.context_data},
     )
 
 
