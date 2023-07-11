@@ -17,6 +17,9 @@ from .models import (
 
 logger = logging.getLogger("sentry")
 
+# default maximum runtime for a monitor, in minutes
+TIMEOUT = 30
+
 # This is the MAXIMUM number of MONITOR this job will check.
 #
 # NOTE: We should keep an eye on this as we have more and more usage of
