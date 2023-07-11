@@ -46,11 +46,11 @@ export const steps = ({
   {
     language: 'bash',
     type: StepType.INSTALL,
+    description: t(
+      'Sentry captures data by using an SDK within your application’s runtime.'
+    ),
     configurations: [
       {
-        description: t(
-          'Sentry captures data by using an SDK within your application’s runtime.'
-        ),
         code: `
         # Using yarn
         yarn add @sentry/remix
@@ -64,11 +64,11 @@ export const steps = ({
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
+    description: t(
+      'Import and initialize Sentry in your Remix entry points for both the client and server:'
+    ),
     configurations: [
       {
-        description: t(
-          'Import and initialize Sentry in your Remix entry points for both the client and server:'
-        ),
         code: `
         import { useLocation, useMatches } from "@remix-run/react";
         import * as Sentry from "@sentry/remix";
@@ -147,11 +147,11 @@ export default withSentry(App);
   {
     language: 'javascript',
     type: StepType.VERIFY,
+    description: t(
+      "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
+    ),
     configurations: [
       {
-        description: t(
-          "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
-        ),
         code: `
         return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,

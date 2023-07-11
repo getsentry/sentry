@@ -244,6 +244,7 @@ class GroupList extends Component<Props, State> {
       queryFilterDescription,
       narrowGroups,
       source,
+      query,
     } = this.props;
     const {loading, error, errorData, groups, memberList, pageLinks} = this.state;
 
@@ -308,6 +309,7 @@ class GroupList extends Component<Props, State> {
                   queryFilterDescription={queryFilterDescription}
                   narrowGroups={narrowGroups}
                   source={source}
+                  query={query}
                 />
               );
             })}

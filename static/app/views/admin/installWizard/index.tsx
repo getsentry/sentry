@@ -9,18 +9,18 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 import {getForm, getOptionDefault, getOptionField} from '../options';
 
-type Props = AsyncView['props'] & {
+type Props = DeprecatedAsyncView['props'] & {
   onConfigured: () => void;
 };
 
-type State = AsyncView['state'];
+type State = DeprecatedAsyncView['state'];
 
-export default class InstallWizard extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+export default class InstallWizard extends DeprecatedAsyncView<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['data', '/internal/options/?query=is:required']];
   }
 

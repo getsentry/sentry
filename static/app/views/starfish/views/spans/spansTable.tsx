@@ -11,6 +11,7 @@ import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -39,6 +40,7 @@ type Row = {
   'sps()': number;
   'sps_percent_change()': number;
   'time_spent_percentage()': number;
+  'time_spent_percentage(local)': number;
 };
 
 type Column = GridColumnHeader<keyof Row>;
@@ -65,6 +67,7 @@ export const SORTABLE_FIELDS = new Set([
   'sps()',
   'sps_percent_change()',
   'time_spent_percentage()',
+  'time_spent_percentage(local)',
   'http_error_count()',
   'http_error_count_percent_change()',
 ]);
@@ -114,7 +117,7 @@ export default function SpansTable({
         <GridEditable
           isLoading={isLoading}
           data={data as Row[]}
-          columnOrder={columnOrder ?? getColumns(moduleName)}
+          columnOrder={columnOrder ?? getColumns(moduleName, endpoint)}
           columnSortBy={[
             {
               key: sort.field,
@@ -209,7 +212,7 @@ function getActionHeader(moduleName: ModuleName) {
   return t('Action');
 }
 
-function getColumns(moduleName: ModuleName): Column[] {
+export function getColumns(moduleName: ModuleName, transaction?: string): Column[] {
   const action = getActionHeader(moduleName);
   const description = getDescriptionHeader(moduleName);
   const domain = getDomainHeader(moduleName);
@@ -269,12 +272,21 @@ function getColumns(moduleName: ModuleName): Column[] {
           } as Column,
         ]
       : []),
-    {
+  ];
+
+  if (defined(transaction)) {
+    order.push({
+      key: 'time_spent_percentage(local)',
+      name: DataTitles.timeSpent,
+      width: COL_WIDTH_UNDEFINED,
+    });
+  } else {
+    order.push({
       key: 'time_spent_percentage()',
       name: DataTitles.timeSpent,
       width: COL_WIDTH_UNDEFINED,
-    },
-  ];
+    });
+  }
 
   return order;
 }

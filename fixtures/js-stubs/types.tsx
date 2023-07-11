@@ -21,12 +21,10 @@ type OverridableStubList<Params = any, Result = Params> = (
 
 type TestStubFixtures = {
   AccessRequest: OverridableStub;
-  AccountAppearance: OverridableStub;
   AccountEmails: OverridableStubList;
   ActivityFeed: OverridableStub;
   AllAuthenticators: SimpleStub;
   ApiApplication: OverridableStub;
-  ApiKey: OverridableStub;
   ApiToken: OverridableStub;
   AsanaCreate: SimpleStub;
   AsanaPlugin: SimpleStub;
@@ -47,6 +45,7 @@ type TestStubFixtures = {
   DataScrubbingRelayPiiConfig: SimpleStub;
   DebugFile: OverridableStub;
   DebugSymbols: OverridableStub;
+  DeprecatedApiKey: OverridableStub;
   DetailedEvents: SimpleStub;
   DiscoverSavedQuery: OverridableStub;
   DocIntegration: OverridableStub;
