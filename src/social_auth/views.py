@@ -12,9 +12,9 @@ from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect
-from django.utils.http import is_safe_url
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from social_auth.decorators import dsa_view
 from social_auth.exceptions import AuthException
 from social_auth.utils import backend_setting, clean_partial_pipeline, setting
@@ -38,10 +38,10 @@ def auth(request, backend):
     if REDIRECT_FIELD_NAME in data:
         # Check and sanitize a user-defined GET/POST next field value
         redirect = data[REDIRECT_FIELD_NAME]
-        # NOTE: django-sudo's `is_safe_url` is much better at catching bad
+        # NOTE: django's `url_has_allowed_host_and_scheme` is much better at catching bad
         # redirections to different domains than social_auth's
         # `sanitize_redirect` call.
-        if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
+        if not url_has_allowed_host_and_scheme(redirect, allowed_hosts=(request.get_host(),)):
             redirect = DEFAULT_REDIRECT
         request.session[REDIRECT_FIELD_NAME] = redirect or DEFAULT_REDIRECT
 

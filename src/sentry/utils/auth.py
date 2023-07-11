@@ -12,13 +12,13 @@ from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
 from django.urls import resolve, reverse
-from django.utils.http import is_safe_url
 
 from sentry import options
 from sentry.models import Organization, User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.django_compat import url_has_allowed_host_and_scheme
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
@@ -201,7 +201,7 @@ def is_valid_redirect(url: str, allowed_hosts: Iterable[str] | None = None) -> b
         else:
             allowed_hosts = set(allowed_hosts)
             allowed_hosts.add(url_host)
-    return is_safe_url(url, allowed_hosts=allowed_hosts)
+    return url_has_allowed_host_and_scheme(url, allowed_hosts=allowed_hosts)
 
 
 def mark_sso_complete(request: HttpRequest, organization_id: int) -> None:
