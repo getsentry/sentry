@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.user import RpcAuthenticator, RpcAvatar, RpcUs
 def serialize_rpc_user(user: User) -> RpcUser:
     args = {
         field_name: getattr(user, field_name)
-        for field_name in RpcUser.__fields__
+        for field_name in RpcUser.model_fields
         if hasattr(user, field_name)
     }
     args["pk"] = user.pk

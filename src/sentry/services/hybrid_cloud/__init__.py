@@ -125,7 +125,7 @@ class RpcModel(pydantic.BaseModel):
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
-        return iter(cls.__fields__.keys())
+        return iter(cls.model_fields.keys())
 
     @classmethod
     def serialize_by_field_name(
