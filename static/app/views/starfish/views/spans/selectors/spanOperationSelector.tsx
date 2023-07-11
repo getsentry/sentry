@@ -7,8 +7,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName} from 'sentry/views/starfish/types';
+import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
 type Props = {
   value: string;
@@ -58,29 +58,22 @@ export function SpanOperationSelector({
 }
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const queryConditions: string[] = [];
-  queryConditions.push('has:span.description');
-  if (moduleName) {
-    queryConditions.push(`span.module:${moduleName}`);
-  }
+  const query = buildEventViewQuery(
+    moduleName,
+    location,
+    undefined,
+    undefined,
+    spanCategory
+  )
+    .filter(Boolean)
+    .join(' ');
 
-  if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
-  }
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      queryConditions.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      queryConditions.push(`span.category:${spanCategory}`);
-    }
-  }
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
       fields: ['span.op', 'count()'],
       orderby: '-count',
-      query: queryConditions.join(' '),
+      query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
