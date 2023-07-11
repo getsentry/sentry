@@ -14,7 +14,7 @@ from sentry.tasks.integrations.github.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
 
 
-class GithubCommentTestCase(IntegrationTestCase):
+class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
