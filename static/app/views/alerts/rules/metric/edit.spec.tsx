@@ -11,6 +11,8 @@ jest.mock('sentry/utils/analytics', () => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
+    mark: jest.fn(),
+    measure: jest.fn(),
     endTransaction: jest.fn(),
   },
 }));
