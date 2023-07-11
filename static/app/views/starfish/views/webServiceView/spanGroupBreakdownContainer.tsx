@@ -35,11 +35,6 @@ type Group = {
   'span.category': string;
 };
 
-export type Segment = Group & {
-  'p95(span.self_time)': number;
-  'sum(span.self_time)': number;
-};
-
 export type DataRow = {
   cumulativeTime: number;
   group: Group;
