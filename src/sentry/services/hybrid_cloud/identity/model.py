@@ -7,7 +7,9 @@ from typing import Optional
 from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.identity import identity_service
+
+if TYPE_CHECKING:
+    from sentry.identity.base import Provider
 
 
 class RpcIdentityProvider(RpcModel):
