@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';

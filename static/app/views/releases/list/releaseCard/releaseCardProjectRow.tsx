@@ -12,7 +12,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import Tag from 'sentry/components/tag';
 import {Tooltip} from 'sentry/components/tooltip';

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import Link from 'sentry/components/links/link';
 import SentryAppPublishRequestModal from 'sentry/components/modals/sentryAppPublishRequestModal';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import {space} from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';

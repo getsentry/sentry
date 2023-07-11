@@ -12,7 +12,7 @@ import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
 import {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';

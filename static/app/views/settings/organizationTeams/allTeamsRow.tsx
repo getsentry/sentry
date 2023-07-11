@@ -9,7 +9,7 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
