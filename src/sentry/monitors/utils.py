@@ -144,7 +144,7 @@ def fetch_associated_groups(
         },
     )
 
-    group_id_data: Dict[int, str] = {}
+    group_id_data: Dict[int, List[str]] = defaultdict(list)
     trace_groups: Dict[str, List[Dict[str, int]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
@@ -156,12 +156,12 @@ def fetch_associated_groups(
             assert trace_id_event_name is not None
 
             # create dict with group_id and trace_id
-            group_id_data[event["group_id"]] = event[trace_id_event_name]
+            group_id_data[event["group_id"]].append(event[trace_id_event_name])
 
         group_ids = group_id_data.keys()
         for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
-            trace_id = group_id_data[group.id]
-            trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
+            for trace_id in group_id_data[group.id]:
+                trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 
     return trace_groups
 
