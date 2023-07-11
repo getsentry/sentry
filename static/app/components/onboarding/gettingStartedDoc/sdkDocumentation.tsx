@@ -13,6 +13,7 @@ export const migratedDocs = [
   'javascript-vue',
   'javascript-gatsby',
   'javascript-ember',
+  'javascript-sveltekit',
 ];
 
 type SdkDocumentationProps = {
