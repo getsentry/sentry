@@ -445,6 +445,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             GlobalParams.slug("The slug for the project."),
             ProjectParams.platform("The platform for the project."),
             ProjectParams.IS_BOOKMARKED,
+            ProjectParams.OPTIONS,
         ],
         request=ProjectAdminSerializer,
         responses={
