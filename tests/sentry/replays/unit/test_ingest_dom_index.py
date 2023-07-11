@@ -181,7 +181,39 @@ def test_parse_replay_dead_click_actions():
                     },
                 },
             },
-        }
+        },
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickcount": 3,
+                        "endReason": "timeout",
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
     ]
     replay_actions = parse_replay_actions(1, "1", 30, events)
 
@@ -212,6 +244,11 @@ def test_parse_replay_dead_click_actions():
     assert action["is_rage"] == 0
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 36
+
+    # Second slow click had more than 2 clicks which makes it a rage+dead combo.
+    action = payload["clicks"][1]
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
 
 
 def test_parse_replay_rage_click_actions():
