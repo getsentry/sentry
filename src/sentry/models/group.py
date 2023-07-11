@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -812,3 +812,24 @@ def pre_save_group_default_substatus(instance, sender, *args, **kwargs):
                     "Invalid substatus for UNRESOLVED group",
                     extra={"substatus": instance.substatus},
                 )
+
+
+@receiver(
+    post_save, sender=Group, dispatch_uid="post_save_log_group_attributes_changed", weak=False
+)
+def post_save_log_group_attributes_changed(
+    instance, sender, created, update_fields, *args, **kwargs
+):
+    from sentry.issues.attributes import _log_create_or_update
+
+    try:
+        if created:
+            _log_create_or_update(True, "group", None)
+        else:
+            attributes_updated = {"status", "substatus", "first_seen", "num_comments"}.intersection(
+                update_fields
+            )
+            if attributes_updated:
+                _log_create_or_update(False, "group", "-".join(sorted(attributes_updated)))
+    except Exception:
+        logger.error("failed to log group attributes after group post_save", exc_info=True)
