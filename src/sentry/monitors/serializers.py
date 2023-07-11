@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
@@ -141,10 +141,10 @@ class MonitorCheckInSerializer(Serializer):
         prefetch_related_objects(item_list, "monitor_environment__environment")
 
         attrs = {}
-        if self._expand("groupIds") and self.start and self.end:
+        if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
             trace_ids = []
-            trace_groups: Dict[str, Set[int]] = defaultdict(set)
+            trace_groups: Dict[str, List[Dict[str, int]]] = defaultdict(list)
 
             for item in item_list:
                 if item.trace_id:
@@ -157,9 +157,7 @@ class MonitorCheckInSerializer(Serializer):
 
             attrs = {
                 item: {
-                    "groupIds": list(trace_groups.get(item.trace_id.hex, []))
-                    if item.trace_id
-                    else [],
+                    "groups": trace_groups.get(item.trace_id.hex, []) if item.trace_id else [],
                 }
                 for item in item_list
             }
@@ -180,8 +178,8 @@ class MonitorCheckInSerializer(Serializer):
             "monitorConfig": obj.monitor_config or {},
         }
 
-        if self._expand("groupIds"):
-            result["groupIds"] = attrs.get("groupIds", [])
+        if self._expand("groups"):
+            result["groups"] = attrs.get("groups", [])
 
         return result
 

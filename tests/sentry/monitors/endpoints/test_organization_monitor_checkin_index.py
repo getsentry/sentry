@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.models import Environment
+from sentry.models import Environment, Group
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -162,6 +162,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             project_id=self.project.id,
             timestamp=monitor.date_added,
         )
+        group = Group.objects.get(id=error.group_id)
 
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -182,12 +183,12 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         resp = self.get_success_response(
             self.organization.slug,
             monitor.slug,
-            **{"statsPeriod": "1d", "expand": ["groupIds"]},
+            **{"statsPeriod": "1d", "expand": ["groups"]},
         )
         assert len(resp.data) == 2
 
         # Newest first
         assert resp.data[0]["id"] == str(checkin2.guid)
-        assert resp.data[0]["groupIds"] == []
+        assert resp.data[0]["groups"] == []
         assert resp.data[1]["id"] == str(checkin1.guid)
-        assert resp.data[1]["groupIds"] == [error.group_id]
+        assert resp.data[1]["groups"] == [{"id": group.id, "shortId": group.qualified_short_id}]
