@@ -360,7 +360,9 @@ class IntegrationInstallation:
         """For Integrations that rely solely on user auth for authentication."""
         if self.org_integration is None or self.org_integration.default_auth_id is None:
             raise Identity.DoesNotExist
-        identity = identity_service.get_identity(id=self.org_integration.default_auth_id)
+        identity = identity_service.get_identity(
+            filter={"id": self.org_integration.default_auth_id}
+        )
         if identity is None:
             raise Identity.DoesNotExist
         return identity
