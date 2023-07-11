@@ -29,7 +29,8 @@ function SampleInfo(props: Props) {
       `p95(${SPAN_SELF_TIME})`,
       'time_spent_percentage(local)',
     ],
-    'span-summary-panel-metrics'
+    'span-summary-panel-metrics',
+    Boolean(groupId && transactionName && transactionMethod)
   );
 
   const style: CSSProperties = {

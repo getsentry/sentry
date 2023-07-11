@@ -24,7 +24,8 @@ export const useSpanMetrics = (
   span?: Pick<IndexedSpan, 'group'>,
   queryFilters: SpanSummaryQueryFilters = {},
   fields: string[] = [],
-  referrer: string = 'span-metrics'
+  referrer: string = 'span-metrics',
+  enabled: boolean = true
 ) => {
   const location = useLocation();
   const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
@@ -33,7 +34,7 @@ export const useSpanMetrics = (
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(span),
+    enabled: Boolean(span) && enabled,
     referrer,
   });
 

@@ -270,13 +270,11 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               )}
 
-              {transaction && span?.group && (
-                <SampleList
-                  groupId={span.group}
-                  transactionName={transaction}
-                  transactionMethod={transactionMethod}
-                />
-              )}
+              <SampleList
+                groupId={span.group}
+                transactionName={transaction}
+                transactionMethod={transactionMethod}
+              />
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
