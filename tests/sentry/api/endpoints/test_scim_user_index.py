@@ -488,7 +488,7 @@ class SCIMMemberIndexAzureTests(SCIMAzureTestCase):
         }
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class SCIMQueryParameterSerializerTest(unittest.TestCase):
     def test_defaults(self):
         serializer = SCIMQueryParamSerializer(data={})
