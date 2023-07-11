@@ -23,7 +23,7 @@ class RpcIdentity(RpcModel):
     idp_id: int  # IdentityProvider id
     user_id: int
     external_id: str
-    data: str
+    data: Dict[str, Any]
 
     def get_identity(self) -> "Provider":
         from sentry.identity import get
