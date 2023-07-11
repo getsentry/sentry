@@ -36,6 +36,7 @@ export interface IssueAlertRuleActionTemplate {
       }
     | SchemaFormConfig;
   link?: string;
+  prompt?: string;
   sentryAppInstallationUuid?: string;
   ticketType?: string;
 }
