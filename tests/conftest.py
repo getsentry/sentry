@@ -1,4 +1,5 @@
 import os
+from typing import MutableMapping
 
 import pytest
 from django.db import connections
@@ -195,3 +196,41 @@ def protect_hybrid_cloud_writes_and_deletes(request):
         for connection in connections.all():
             with connection.cursor() as cursor:
                 cursor.execute("SET ROLE 'postgres'")
+
+
+@pytest.fixture(autouse=True)
+def audit_hybrid_cloud_writes_and_deletes(request):
+    """
+    Ensure that write operations on hybrid cloud foreign keys are recorded
+    alongside outboxes or use a context manager to indicate that the
+    caller has considered outbox and didn't accidentally forget.
+
+    Generally you can avoid assertion errors from these checks by:
+
+    1. Running deletion/write logic within an `outbox_context`.
+    2. Using Model.delete()/save methods that create outbox messages in the
+       same transaction as a delete operation.
+
+    Scenarios that are generally always unsafe are  using
+    `QuerySet.delete()`, `QuerySet.update()` or raw SQL to perform
+    writes.
+
+    The User.delete() method is a good example of how to safely
+    delete records and generate outbox messages.
+    """
+    from sentry.testutils.silo import validate_protected_queries
+
+    debug_cursor_state: MutableMapping[str, bool] = {}
+    for conn in connections.all():
+        debug_cursor_state[conn.alias] = conn.force_debug_cursor
+
+        conn.queries_log.clear()
+        conn.force_debug_cursor = True
+
+    try:
+        yield
+    finally:
+        for conn in connections.all():
+            conn.force_debug_cursor = debug_cursor_state[conn.alias]
+
+            validate_protected_queries(conn.queries)
