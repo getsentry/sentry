@@ -255,7 +255,7 @@ _role_privileges_created: MutableMapping[str, bool] = {}
 
 def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     global _role_created
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.argv[0]:
         return
 
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey

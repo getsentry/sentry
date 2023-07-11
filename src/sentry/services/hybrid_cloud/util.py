@@ -19,7 +19,7 @@ class FunctionSiloLimit(SiloLimit):
         current_mode: SiloMode,
         available_modes: Iterable[SiloMode],
     ) -> Callable[..., Any]:
-        if "pytest" in sys.argv:
+        if "pytest" in sys.argv[0]:
             mode_str = ", ".join(str(m) for m in available_modes)
             message = (
                 f"Called {original_method.__name__} in "

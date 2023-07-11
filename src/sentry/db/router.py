@@ -75,7 +75,7 @@ class SiloRouter:
             self.__is_simulated = False
 
     def use_simulated(self, value: bool):
-        if "pytest" not in sys.modules:
+        if "pytest" not in sys.argv[0]:
             raise ValueError("Cannot mutate simulation mode outside of tests")
         self.__is_simulated = value
 
@@ -95,7 +95,7 @@ class SiloRouter:
 
             # If we're in tests raise an error, otherwise return 'no decision'
             # so that django skips migration operations that won't work.
-            if "pytest" in sys.argv:
+            if "pytest" in sys.argv[0]:
                 raise SiloConnectionUnavailableError(
                     f"Cannot resolve table {table} in {silo_mode}. "
                     f"Application silo mode is {active_mode} and simulated silos are not enabled."
