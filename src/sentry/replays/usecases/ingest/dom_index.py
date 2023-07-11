@@ -146,7 +146,8 @@ def get_user_actions(
                     "button",
                 )
                 if is_timeout_reason and is_target_tagname:
-                    click = create_click_event(payload, replay_id, is_dead=True, is_rage=False)
+                    is_rage = payload["data"].get("clickcount", 0) >= 3
+                    click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
                     if click is not None:
                         result.append(click)
 
