@@ -24,8 +24,6 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
   beforeEach(function () {
     fetchMock.enableMocks();
-    fetch.resetMocks();
-    addSuccessMessage.mockReset();
   });
 
   afterEach(function () {
@@ -89,7 +87,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
    * @param names String[]
    */
   const addMockUsersAPICall = (names: string[] = []) => {
-    fetch.mockResponseOnce(
+    (fetch as any).mockResponseOnce(
       JSON.stringify(
         names.map(name => {
           return {
