@@ -114,17 +114,19 @@ def _index_urls_in_bundle(
             if url := info.get("url"):
                 urls_to_index.append(
                     ArtifactBundleIndex(
-                        # key:
-                        organization_id=organization_id,
-                        release_name=release,
-                        dist_name=dist,
-                        url=url,
-                        # value:
+                        # key/value:
                         artifact_bundle_id=artifact_bundle.id,
+                        url=url,
                         # metadata:
+                        organization_id=organization_id,
+                        date_added=artifact_bundle.date_added,
+                        # legacy:
+                        # TODO: We fill these in with empty-ish values before they are
+                        # dropped for good
+                        release_name="",
+                        dist_name="",
                         date_last_modified=artifact_bundle.date_last_modified
                         or artifact_bundle.date_added,
-                        date_added=artifact_bundle.date_added,
                     )
                 )
     finally:
