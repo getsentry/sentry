@@ -20,7 +20,7 @@ import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/vie
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -190,7 +190,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
-      onDataZoom={useSortPageByHandler('-p95(span.self_time)')}
+      onDataZoom={useSortPageByHandler(`-p95(${SPAN_SELF_TIME})`)}
     />
   );
 }
@@ -270,14 +270,14 @@ const buildDiscoverQueryConditions = (
       return `${key}:${appliedFilters[key]}`;
     });
 
-  result.push('has:span.description');
+  result.push(`has:${SPAN_DESCRIPTION}`);
 
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:${moduleName}`);
+    result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    result.push('!span.op:db.redis');
+    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

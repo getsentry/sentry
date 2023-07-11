@@ -10,7 +10,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanMetrics = {
   interval: number;
@@ -70,7 +73,7 @@ function getEventView(
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${cleanGroupId}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''
