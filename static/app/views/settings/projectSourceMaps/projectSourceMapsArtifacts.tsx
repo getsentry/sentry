@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
