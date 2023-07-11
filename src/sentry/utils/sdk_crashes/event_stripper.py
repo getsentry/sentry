@@ -96,6 +96,10 @@ EVENT_DATA_ALLOWLIST = {
 def strip_event_data(
     event_data: NodeData, sdk_crash_detector: SDKCrashDetector
 ) -> Mapping[str, Any]:
+    """
+    This method keeps only properties based on the ALLOW_LIST. For frames, both the allow list applies,
+    and the method only keeps SDK frames and system library frames.
+    """
 
     frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
     if not frames:
