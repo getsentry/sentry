@@ -12,7 +12,7 @@ class UserNotificationDetailsTestBase(APITestCase):
         self.login_as(self.user)
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
     def test_lookup_self(self):
         self.get_success_response("me")
@@ -75,7 +75,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
         assert response.data.get("subscribeByDefault") is False
 
 
-@control_silo_test
+@control_silo_test(stable=True)
 class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
     method = "put"
 
