@@ -189,18 +189,17 @@ const routerFixtures = {
     ...params,
   }),
 
-  routeComponentProps: (
-    params: Partial<RouteComponentProps<any, any>> = {}
-  ): RouteComponentProps<{}, {}> => {
-    const router = TestStubs.router();
+  routeComponentProps: <RouteParams = {orgId: string; projectId: string}>(
+    params: Partial<RouteComponentProps<RouteParams, {}>> = {}
+  ): RouteComponentProps<RouteParams, {}> => {
+    const router = TestStubs.router(params);
     return {
-      location: TestStubs.location(),
-      params: router.params,
+      location: router.location,
+      params: router.params as RouteParams & {},
       routes: router.routes,
       route: router.routes[0],
       routeParams: router.params,
       router,
-      ...params,
     };
   },
 

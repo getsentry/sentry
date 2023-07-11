@@ -48,24 +48,7 @@ describe('Incident Rules Create', function () {
     render(
       <MetricRulesCreate
         {...TestStubs.routeComponentProps()}
-        eventView={
-          new EventView({
-            id: '',
-            createdBy: TestStubs.User(),
-            display: '',
-            project: [],
-            environment: [],
-            name: '',
-            query: '',
-            fields: [],
-            sorts: [],
-            statsPeriod: '14d',
-            team: [],
-            topEvents: undefined,
-            start: '',
-            end: '',
-          })
-        }
+        eventView={EventView.fromLocation(TestStubs.location())}
         params={{projectId: project.slug}}
         organization={organization}
         project={project}

@@ -88,7 +88,7 @@ describe('AlertRulesList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   it('displays list', async () => {
