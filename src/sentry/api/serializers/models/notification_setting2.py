@@ -22,7 +22,7 @@ class NotificationSettingsSerializer(Serializer):
         item_list: Iterable[Union["Team", "User"]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union["Team", "User"], Mapping[str, Iterable[Any]]]:
+    ) -> Mapping[Union["Team", "User"], Mapping[str, Set[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function

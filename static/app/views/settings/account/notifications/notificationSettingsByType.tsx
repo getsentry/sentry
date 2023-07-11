@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field} from 'sentry/components/forms/types';

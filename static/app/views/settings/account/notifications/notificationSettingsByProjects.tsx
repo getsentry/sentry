@@ -41,7 +41,8 @@ export type Props = {
   handleOrgChange: Function;
   organizationId: string;
   organizations: Organization[];
-} & NotificationSettingsByProjectsBaseProps & DeprecatedAsyncComponent['props'];
+} & NotificationSettingsByProjectsBaseProps &
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   projects: Project[];
