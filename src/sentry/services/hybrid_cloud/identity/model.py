@@ -6,7 +6,10 @@ from typing import Optional
 
 from typing_extensions import TypedDict
 
+from sentry.identity.base import Provider
+from sentry.models.identity import IdentityProvider
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.identity import identity_service
 
 
 class RpcIdentityProvider(RpcModel):
@@ -17,10 +20,18 @@ class RpcIdentityProvider(RpcModel):
 
 class RpcIdentity(RpcModel):
     id: int
-    idp_id: int
+    idp_id: int  # IdentityProvider id
     user_id: int
     external_id: str
     data: str
+
+    def get_identity(self) -> Provider:
+        from sentry.identity import get
+
+        identity_provider = identity_service.get_provider(provider_id=self.idp_id)
+        if identity_provider is None:
+            raise IdentityProvider.DoesNotExist
+        return get(identity_provider.type)
 
 
 class IdentityFilterArgs(TypedDict, total=False):
