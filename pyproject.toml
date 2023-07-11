@@ -139,7 +139,6 @@ ignore_missing_imports = true
 # - python3 -m tools.mypy_helpers.find_easiest_modules
 [[tool.mypy.overrides]]
 module = [
-    "sentry._importchecker",
     "sentry.admin",
     "sentry.api.authentication",
     "sentry.api.base",
@@ -403,7 +402,6 @@ module = [
     "sentry.api.validators.project_codeowners",
     "sentry.api.validators.servicehook",
     "sentry.apidocs.schema",
-    "sentry.app",
     "sentry.audit_log.manager",
     "sentry.auth.access",
     "sentry.auth.authenticators.base",
@@ -432,7 +430,6 @@ module = [
     "sentry.cache",
     "sentry.celery",
     "sentry.charts.chartcuterie",
-    "sentry.coreapi",
     "sentry.data_export.models",
     "sentry.data_export.processors.issues_by_tag",
     "sentry.data_export.tasks",
@@ -482,7 +479,6 @@ module = [
     "sentry.grouping.strategies.legacy",
     "sentry.grouping.strategies.newstyle",
     "sentry.grouping.variants",
-    "sentry.http",
     "sentry.identity",
     "sentry.identity.bitbucket.provider",
     "sentry.identity.github_enterprise.provider",
@@ -1091,7 +1087,6 @@ module = [
     "tests.sentry.api.endpoints.test_organization_activity",
     "tests.sentry.api.endpoints.test_organization_auth_provider_details",
     "tests.sentry.api.endpoints.test_organization_config_integrations",
-    "tests.sentry.api.endpoints.test_organization_dashboard_details",
     "tests.sentry.api.endpoints.test_organization_dashboard_widget_details",
     "tests.sentry.api.endpoints.test_organization_dashboards",
     "tests.sentry.api.endpoints.test_organization_details",
