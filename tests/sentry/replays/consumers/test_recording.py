@@ -129,6 +129,7 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
     def setUp(self):
         self.replay_id = uuid.uuid4().hex
         self.replay_recording_id = uuid.uuid4().hex
+        options.set("replay.storage.direct-storage-sample-rate", 0)
 
     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
         # Assert a recording segment model was created for filestore driver types.

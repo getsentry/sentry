@@ -7,7 +7,7 @@ from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
 from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -30,7 +30,7 @@ def generate_put_data(member: OrganizationMember, role: str = "") -> dict:
     return put_data
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
@@ -42,13 +42,14 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
     def test_cant_use_scim_even_with_authprovider(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        with exempt_from_silo_limits():
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(url)
         assert response.status_code == 403
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMMemberRoleUpdateTests(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-member-details"
 
@@ -329,7 +330,7 @@ class SCIMMemberRoleUpdateTests(SCIMTestCase):
         assert self.unrestricted_custom_role_member.flags["idp:role-restricted"]
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMMemberDetailsTests(SCIMTestCase):
     def test_user_details_get(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -354,9 +355,10 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -372,16 +374,17 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist):
+        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_dict(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -397,16 +400,17 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist):
+        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_with_bool_string(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -422,16 +426,17 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist):
+        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_with_dict_bool_string(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -447,16 +452,17 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist):
+        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_invalid_patch_op(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -473,9 +479,10 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -510,9 +517,10 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_delete_route(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
-        AuthIdentity.objects.create(
-            user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
-        )
+        with exempt_from_silo_limits():
+            AuthIdentity.objects.create(
+                user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
+            )
         url = reverse(
             "sentry-api-0-organization-scim-member-details",
             args=[self.organization.slug, member.id],
@@ -521,7 +529,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
-        with pytest.raises(AuthIdentity.DoesNotExist):
+        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_patch_inactive_alternate_schema(self):
@@ -655,7 +663,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
     # TODO: test patch with bad op
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
     def test_user_details_get_no_active(self):
         member = self.create_member(organization=self.organization, email="test.user@okta.local")
@@ -676,6 +684,7 @@ class SCIMMemberDetailsAzureTests(SCIMAzureTestCase):
         }
 
 
+@no_silo_test(stable=True)
 class SCIMUtilsTests(unittest.TestCase):
     def test_parse_filter_conditions_basic(self):
         fil = parse_filter_conditions('userName eq "user@sentry.io"')

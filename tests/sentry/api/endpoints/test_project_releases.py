@@ -20,6 +20,7 @@ from sentry.models import (
 )
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, TestCase
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -551,12 +552,20 @@ class ProjectReleaseCreateTest(APITestCase):
                 scope_list=["org:ci"],
                 date_last_used=None,
             )
-        response = self.client.post(
-            url,
-            data={"version": "1.2.1"},
-            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
-        )
+
+        with outbox_runner():
+            response = self.client.post(
+                url,
+                data={"version": "1.2.1"},
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
         assert response.status_code == 201, response.content
+
+        # Make sure org token usage was updated
+        with exempt_from_silo_limits():
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == project1.id
 
 
 @region_silo_test(stable=True)
