@@ -71,7 +71,7 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user, superuser=False)
 
-        response = self.get_success_response(qs_params={"organization_id": str(org.id)})
+        response = self.get_success_response(qs_params={"organizationId": str(org.id)})
         assert len(response.data) == 1
 
         assert response.data[0]["id"] == str(project.id)

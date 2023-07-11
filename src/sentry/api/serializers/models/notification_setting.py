@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models.notificationsetting import NotificationSetting
@@ -46,9 +46,9 @@ class NotificationSettingsSerializer(Serializer):
             user_ids=list(user_map.keys()),
         )
 
-        result: MutableMapping[
-            Union["Team", "User"], MutableMapping[str, Iterable[Any]]
-        ] = defaultdict(lambda: defaultdict(set))
+        result: MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
         for _, team in team_map.items():
             result[team]["settings"] = set()
         for _, user in user_map.items():
@@ -91,6 +91,7 @@ class NotificationSettingsSerializer(Serializer):
                         "email": "subscribe_only",
                         "slack": "subscribe_only"
                     }
+                }
             }
         }
 

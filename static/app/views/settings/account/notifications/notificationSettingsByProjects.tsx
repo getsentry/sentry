@@ -61,7 +61,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
         'projects',
         `/projects/`,
         {
-          query: {organization_id: this.props.organizationId},
+          query: {organizationId: this.props.organizationId},
         },
       ],
     ];
@@ -121,7 +121,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
           {canSearch &&
             this.renderSearchInput({
               stateKey: 'projects',
-              url: `/projects/?organization_id=${this.props.organizationId}`,
+              url: `/projects/?organizationId=${this.props.organizationId}`,
               placeholder: t('Search Projects'),
               children: renderSearch,
             })}

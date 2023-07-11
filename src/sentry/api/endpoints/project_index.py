@@ -55,7 +55,7 @@ class ProjectIndexEndpoint(Endpoint):
             else:
                 queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
 
-            org_id_filter = request.GET.get("organization_id", None)
+            org_id_filter = request.GET.get("organizationId", None)
             if org_id_filter:
                 queryset = queryset.filter(organization_id=org_id_filter)
 
