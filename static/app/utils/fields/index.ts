@@ -20,6 +20,7 @@ export enum FieldKey {
   ASSIGNED_OR_SUGGESTED = 'assigned_or_suggested',
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
+  BROWSER_VERSION = 'browser.version',
   CULPRIT = 'culprit',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -118,6 +119,7 @@ export enum FieldKey {
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  USER_SEGMENT = 'user.segment',
   APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
@@ -506,6 +508,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.BROWSER_VERSION]: {
+    desc: t('Version of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -980,6 +987,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.USER_USERNAME]: {
     desc: t('Username of the user'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.USER_SEGMENT]: {
+    desc: t('Segment of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

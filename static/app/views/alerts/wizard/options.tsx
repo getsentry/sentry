@@ -233,6 +233,43 @@ const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
   ...Object.values(ReplayClickFieldKey),
 ];
 
+export const ON_DEMAND_METRICS_SUPPORTED_TAGS = [
+  FieldKey.RELEASE,
+  FieldKey.DIST,
+  FieldKey.ENVIRONMENT,
+  FieldKey.TRANSACTION,
+  FieldKey.PLATFORM,
+
+  FieldKey.USER_EMAIL,
+  FieldKey.USER_ID,
+  FieldKey.USER_IP,
+  FieldKey.USER_USERNAME,
+  FieldKey.USER_SEGMENT,
+  FieldKey.GEO_CITY,
+  FieldKey.GEO_COUNTRY_CODE,
+  FieldKey.GEO_REGION,
+  FieldKey.GEO_SUBDIVISION,
+  FieldKey.HTTP_METHOD,
+
+  FieldKey.DEVICE_NAME,
+  FieldKey.DEVICE_FAMILY,
+  FieldKey.OS_NAME,
+  FieldKey.OS_KERNEL_VERSION,
+  FieldKey.BROWSER_NAME,
+  FieldKey.BROWSER_VERSION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.HTTP_STATUS_CODE,
+
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.RELEASE_BUILD,
+  FieldKey.RELEASE_PACKAGE,
+  FieldKey.RELEASE_VERSION,
+
+  ...Object.values(WebVital),
+  ...Object.values(MobileVital),
+] as FieldKey[];
+
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
 export function datasetSupportedTags(
@@ -259,7 +296,7 @@ export function datasetSupportedTags(
 
 function transactionSupportedTags(org: Organization) {
   if (org.features.includes('on-demand-metrics-extraction')) {
-    return [...TRANSACTION_SUPPORTED_TAGS, FieldKey.TRANSACTION_DURATION];
+    return ON_DEMAND_METRICS_SUPPORTED_TAGS;
   }
   return TRANSACTION_SUPPORTED_TAGS;
 }
