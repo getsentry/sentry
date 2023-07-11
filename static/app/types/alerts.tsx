@@ -53,7 +53,7 @@ export interface IssueAlertRuleAction
 
 export type IssueAlertRuleCondition = Omit<
   IssueAlertRuleConditionTemplate,
-  'formFields' | 'enabled' | 'name'
+  'formFields' | 'enabled' | 'prompt'
 > & {
   dynamic_form_fields?: IssueConfigField[];
 } & {
