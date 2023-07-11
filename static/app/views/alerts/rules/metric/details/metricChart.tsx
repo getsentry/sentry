@@ -29,7 +29,8 @@ import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'sentry/components/organizations/pageFilters/parse';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
