@@ -503,7 +503,7 @@ describe('EventView.fromSavedQuery()', function () {
   });
 });
 
-describe('EventView.fromNewQueryWithPageFilters', function () {
+describe('EventView.fromNewQueryWithPageFilters()', function () {
   const prebuiltQuery: NewQuery = {
     id: undefined,
     name: 'Page Filter Events',
