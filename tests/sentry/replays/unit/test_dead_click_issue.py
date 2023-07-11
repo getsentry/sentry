@@ -59,3 +59,18 @@ def test_report_dead_click_issue_mutation_reason():
 
     reported = report_dead_click_issue(project_id=1, replay_id="", event=event)
     assert reported is False
+
+
+@django_db_all
+def test_report_dead_click_issue_no_node_object():
+    event = {
+        "data": {
+            "payload": {
+                "data": {"endReason": "mutation"},
+                "message": "div.xyz > a",
+                "timestamp": time.time(),
+            }
+        }
+    }
+
+    assert report_dead_click_issue(project_id=1, replay_id="", event=event) is False

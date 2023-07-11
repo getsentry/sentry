@@ -540,19 +540,34 @@ def record_issue_reviewed(project, user, group, **kwargs):
 
 
 @team_created.connect(weak=False)
-def record_team_created(organization, user, team, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
-    else:
-        user_id = None
+def record_team_created(
+    organization=None,
+    user=None,
+    team=None,
+    organization_id=None,
+    user_id=None,
+    team_id=None,
+    **kwargs,
+):
+    if organization is None:
+        organization = Organization.objects.get(id=organization_id)
+
+    if team_id is None:
+        team_id = team.id
+
+    if user_id is None and user and user.is_authenticated:
+        user_id = user.id
+    if user_id is None:
         default_user_id = organization.get_default_owner().id
+    else:
+        default_user_id = user_id
 
     analytics.record(
         "team.created",
         user_id=user_id,
         default_user_id=default_user_id,
         organization_id=organization.id,
-        team_id=team.id,
+        team_id=team_id,
     )
 
 

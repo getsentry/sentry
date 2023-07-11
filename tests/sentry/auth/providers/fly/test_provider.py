@@ -1,6 +1,7 @@
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.partnership_config import ChannelName
 from sentry.auth.provider import MigratingIdentityId
 from sentry.models import AuthIdentity, AuthProvider
 from sentry.testutils import TestCase
@@ -11,7 +12,7 @@ from sentry.testutils.silo import control_silo_test
 class FlyOAuth2ProviderTest(TestCase):
     def setUp(self):
         self.auth_provider: AuthProvider = AuthProvider.objects.create(
-            provider="fly", organization_id=self.organization.id
+            provider=ChannelName.FLY_IO.value, organization_id=self.organization.id
         )
         super().setUp()
 
