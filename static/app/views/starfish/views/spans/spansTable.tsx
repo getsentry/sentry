@@ -9,6 +9,7 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -182,30 +183,30 @@ function renderBodyCell(
 
 function getDomainHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
-    return 'Host';
+    return t('Host');
   }
   if (moduleName === ModuleName.DB) {
-    return 'Table';
+    return t('Table');
   }
-  return 'Domain';
+  return t('Domain');
 }
 function getDescriptionHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
-    return 'URL';
+    return t('URL');
   }
   if (moduleName === ModuleName.DB) {
-    return 'Query';
+    return t('Query');
   }
-  return 'Description';
+  return t('Description');
 }
 function getActionHeader(moduleName: ModuleName) {
   if (moduleName === ModuleName.HTTP) {
-    return 'HTTP Method';
+    return t('HTTP Method');
   }
   if (moduleName === ModuleName.DB) {
-    return 'SQL Command';
+    return t('SQL Command');
   }
-  return 'Action';
+  return t('Action');
 }
 
 function getColumns(moduleName: ModuleName): Column[] {
