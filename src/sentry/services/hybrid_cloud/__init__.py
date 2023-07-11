@@ -25,6 +25,7 @@ from typing import (
 
 import pydantic
 import sentry_sdk
+from pydantic import ConfigDict
 from typing_extensions import Self
 
 from sentry.db.postgres.transactions import in_test_assert_no_transaction
@@ -103,7 +104,7 @@ def _hack_pydantic_type_validation() -> None:
     pydantic.fields.ModelField.validate = validate  # type: ignore
 
 
-_hack_pydantic_type_validation()
+# _hack_pydantic_type_validation()
 
 
 class ValueEqualityEnum(Enum):
@@ -120,9 +121,7 @@ class ValueEqualityEnum(Enum):
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
-    class Config:
-        orm_mode = True
-        use_enum_values = True
+    model_config = ConfigDict(from_attributes=True, use_enum_values=True)
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
