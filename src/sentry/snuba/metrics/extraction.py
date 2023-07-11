@@ -35,7 +35,6 @@ QUERY_HASH_KEY = "query_hash"
 # TODO: Streamline with dynamic sampling.
 RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
 
-
 # Maps from Discover's field names to event protocol paths. See Relay's
 # ``FieldValueProvider`` for supported fields. All fields need to be prefixed
 # with "event.".
@@ -186,7 +185,10 @@ def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[s
     if not dataset or not query:
         return False
 
-    return Dataset(dataset) == Dataset.PerformanceMetrics and "transaction.duration" in query
+    on_demand_query_fields = [_SEARCH_TO_PROTOCOL_FIELDS.keys(), "measurements"]
+    query_has_on_demand_fields = [s for s in on_demand_query_fields if s in query] is not None
+
+    return Dataset(dataset) == Dataset.PerformanceMetrics and query_has_on_demand_fields
 
 
 class OndemandMetricSpec:
