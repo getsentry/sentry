@@ -28,7 +28,11 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
-import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {
+  SpanMetrics,
+  SpanSummaryQueryFilters,
+  useSpanMetrics,
+} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
@@ -58,9 +62,9 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter = endpoint
-    ? {transactionName: endpoint, 'transaction.method': transactionMethod}
-    : undefined;
+  const queryFilter: SpanSummaryQueryFilters = endpoint
+    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
+    : {};
   const sort =
     fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT; // We only allow one sort on this table in this view

@@ -15,7 +15,7 @@ export type SpanMeta = {
 
 export const useSpanMeta = (
   group: string,
-  queryFilters: SpanSummaryQueryFilters = {},
+  queryFilters: SpanSummaryQueryFilters,
   referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
@@ -30,7 +30,7 @@ export const useSpanMeta = (
 function getEventView(
   groupId,
   location: Location,
-  queryFilters?: SpanSummaryQueryFilters
+  queryFilters: SpanSummaryQueryFilters
 ) {
   return EventView.fromNewQueryWithLocation(
     {

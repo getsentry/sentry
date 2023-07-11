@@ -21,20 +21,22 @@ export type SpanSummaryQueryFilters = {
 };
 
 export const useSpanMetrics = (
-  span?: Pick<IndexedSpan, 'group'>,
-  queryFilters: SpanSummaryQueryFilters = {},
+  span: Pick<IndexedSpan, 'group'>,
+  queryFilters: SpanSummaryQueryFilters,
   fields: string[] = [],
-  referrer: string = 'span-metrics',
-  enabled: boolean = true
+  referrer: string = 'span-metrics'
 ) => {
   const location = useLocation();
   const eventView = span ? getEventView(span, location, queryFilters, fields) : undefined;
+
+  const enabled =
+    Boolean(span?.group) && Object.values(queryFilters).every(value => Boolean(value));
 
   // TODO: Add referrer
   const result = useSpansQuery<SpanMetrics[]>({
     eventView,
     initialData: [],
-    enabled: Boolean(span) && enabled,
+    enabled,
     referrer,
   });
 
