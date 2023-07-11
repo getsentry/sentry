@@ -4,7 +4,7 @@ from sentry.testutils.silo import validate_protected_queries
 
 
 def test_validate_protected_queries__no_queries():
-    assert validate_protected_queries([]) is None
+    validate_protected_queries([])
 
 
 def test_validate_protected_queries__ok():
@@ -12,7 +12,7 @@ def test_validate_protected_queries__ok():
         {"sql": "SELECT * FROM sentry_organization"},
         {"sql": "UPDATE sentry_team SET slug = 'best-team' WHERE id = 1"},
     ]
-    assert validate_protected_queries(queries) is None
+    validate_protected_queries(queries)
 
 
 def test_validate_protected_queries__missing_fences():
@@ -35,7 +35,7 @@ def test_validate_protected_queries__with_single_fence():
         {"sql": "SELECT 'end_role_override_1'"},
         {"sql": 'UPDATE "sentry_team" SET "slug" = \'frontend\' WHERE "id" = 3'},
     ]
-    assert validate_protected_queries(queries) is None
+    validate_protected_queries(queries)
 
 
 def test_validate_protected_queries__multiple_fences():
@@ -50,7 +50,7 @@ def test_validate_protected_queries__multiple_fences():
         {"sql": 'UPDATE "sentry_organization" SET "slug" = \'another-oops\' WHERE "id" = 1'},
         {"sql": "SELECT 'end_role_override_2'"},
     ]
-    assert validate_protected_queries(queries) is None
+    validate_protected_queries(queries)
 
 
 def test_validate_protected_queries__nested_fences():
@@ -67,7 +67,7 @@ def test_validate_protected_queries__nested_fences():
         {"sql": 'UPDATE "sentry_team" SET "slug" = \'frontend\' WHERE "id" = 3'},
         {"sql": 'UPDATE "sentry_organizationmemberteam" SET "role" = \'member\' WHERE "id" = 3'},
     ]
-    assert validate_protected_queries(queries) is None
+    validate_protected_queries(queries)
 
     queries = [
         {"sql": 'SAVEPOINT "s123abc"'},

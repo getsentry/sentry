@@ -4,12 +4,13 @@ import contextlib
 import os
 import sys
 from collections import defaultdict
+from typing import MutableMapping
 
 from django.db.transaction import get_connection
 
 from sentry.silo.patches.silo_aware_transaction_patch import determine_using_by_silo_mode
 
-_fencing_counters = defaultdict(int)
+_fencing_counters: MutableMapping[str, int] = defaultdict(int)
 
 
 @contextlib.contextmanager
