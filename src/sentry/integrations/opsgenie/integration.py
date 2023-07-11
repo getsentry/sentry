@@ -7,6 +7,7 @@ from django import forms
 from django.contrib import messages
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
+from requests.exceptions import MissingSchema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -155,23 +156,32 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    # requires_feature_flag = True  # limited release
+    requires_feature_flag = True  # limited release
 
     def get_account_info(self, base_url, api_key):
         client = OpsgenieProxySetupClient(base_url=base_url, api_key=api_key)
         try:
             resp = client.get_account()
             return resp.json
-        except ApiError as e:
+        except ApiError as e1:
             logger.info(
                 "opsgenie.installation.get-account-info-failure",
                 extra={
                     "base_url": base_url,
-                    "error_message": str(e),
-                    "error_status": e.code,
+                    "error_message": str(e1),
+                    "error_status": e1.code,
                 },
             )
             raise IntegrationError("The requested Opsgenie account could not be found.")
+        except (ValueError, MissingSchema) as e2:
+            logger.info(
+                "opsgenie.installation.get-account-info-failure",
+                extra={
+                    "base_url": base_url,
+                    "error_message": str(e2),
+                },
+            )
+            raise IntegrationError("Invalid URL provided.")
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [InstallationGuideView(), InstallationConfigView(), OpsgenieFinishedView()]
