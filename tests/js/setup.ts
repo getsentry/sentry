@@ -4,7 +4,7 @@ import path from 'path';
 import {TextDecoder, TextEncoder} from 'util';
 
 import {ReactElement} from 'react';
-import type {InjectedRouter} from 'react-router';
+import type {InjectedRouter, RouteComponentProps} from 'react-router';
 import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import type {Location} from 'history';
 import MockDate from 'mockdate';
@@ -181,13 +181,20 @@ const routerFixtures = {
     ...params,
   }),
 
-  routerProps: (params = {}) => ({
-    location: TestStubs.location(),
-    params: {},
-    routes: [],
-    stepBack: () => {},
-    ...params,
-  }),
+  routerProps: (
+    params: Partial<RouteComponentProps<any, any>> = {}
+  ): RouteComponentProps<{}, {}> => {
+    const router = TestStubs.router();
+    return {
+      location: TestStubs.location(),
+      params: router.params,
+      routes: router.routes,
+      route: router.routes[0],
+      routeParams: router.params,
+      router,
+      ...params,
+    };
+  },
 
   routerContext: ([context, childContextTypes] = []) => ({
     context: {
