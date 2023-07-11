@@ -65,6 +65,7 @@ def test_validate_protected_queries__nested_fences():
         {"sql": "SELECT 'end_role_override_2'"},
         {"sql": "SELECT 'end_role_override_1'"},
         {"sql": 'UPDATE "sentry_team" SET "slug" = \'frontend\' WHERE "id" = 3'},
+        {"sql": 'UPDATE "sentry_organizationmemberteam" SET "role" = \'member\' WHERE "id" = 3'},
     ]
     assert validate_protected_queries(queries) is None
 

@@ -338,15 +338,19 @@ def restrict_role(role: str, model: Any, revocation_type: str, using: str = "def
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
 
 
+def protected_table(table: str, operation: str) -> re.Pattern:
+    return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
+
+
 protected_operations = (
-    ("sentry_organizationmember", "insert"),
-    ("sentry_organizationmember", "update"),
-    ("sentry_organizationmember", "delete"),
-    ("sentry_organization", "insert"),
-    ("sentry_organization", "update"),
-    ("sentry_organizationmapping", "insert"),
-    ("sentry_organizationmapping", "update"),
-    ("sentry_organizationmembermapping", "insert"),
+    protected_table("sentry_organizationmember", "insert"),
+    protected_table("sentry_organizationmember", "update"),
+    protected_table("sentry_organizationmember", "delete"),
+    protected_table("sentry_organization", "insert"),
+    protected_table("sentry_organization", "update"),
+    protected_table("sentry_organizationmapping", "insert"),
+    protected_table("sentry_organizationmapping", "update"),
+    protected_table("sentry_organizationmembermapping", "insert"),
 )
 
 fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
@@ -373,7 +377,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
                 raise AssertionError("Invalid fencing operation encounted")
 
         for protected in protected_operations:
-            if protected[0] in sql and sql.startswith(protected[1].upper()):
+            if protected.match(sql):
                 if fence_depth == 0:
                     msg = [
                         "Found protected operation without explicit outbox escape!",
