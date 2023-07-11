@@ -94,6 +94,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         dataset_label = request.GET.get("dataset", "discover")
         if dataset_label not in DATASET_OPTIONS:
             raise ParseError(detail=f"dataset must be one of: {', '.join(DATASET_OPTIONS.keys())}")
+        sentry_sdk.set_tag("query.dataset", dataset_label)
         return DATASET_OPTIONS[dataset_label]
 
     def get_snuba_dataclass(
