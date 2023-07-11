@@ -23,23 +23,14 @@ def schedule(cls, instance, days=30):
 
     model = type(instance)
     model_name = model.__name__
-    record, created = cls.objects.create_or_update(
+    cls.objects.update_or_create(
         app_label=instance._meta.app_label,
         model_name=model_name,
         object_id=instance.pk,
-        values={
-            "date_scheduled": timezone.now() + timedelta(days=days, hours=0),
-            "data": {},
-            "actor_id": None,
-        },
+        date_scheduled=timezone.now() + timedelta(days=days, hours=0),
+        data={},
+        actor_id=None,
     )
-    if not created:
-        record = cls.objects.get(
-            app_label=instance._meta.app_label,
-            model_name=model_name,
-            object_id=instance.pk,
-        )
-    return record
 
 
 def delete_rules(apps, schema_editor):
