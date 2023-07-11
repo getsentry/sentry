@@ -19,7 +19,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {ItemType} from 'sentry/components/smartSearchBar/types';

@@ -17,7 +17,7 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {Tooltip} from 'sentry/components/tooltip';

@@ -8,7 +8,7 @@ import {
   ChartControls,
   InlineContainer,
 } from 'sentry/components/charts/styles';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';

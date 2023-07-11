@@ -6,7 +6,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingError from 'sentry/components/loadingError';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {Group, Organization, Project} from 'sentry/types';
 

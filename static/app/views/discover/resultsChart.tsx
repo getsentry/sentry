@@ -11,7 +11,7 @@ import EventsChart from 'sentry/components/charts/eventsChart';
 import {getInterval, getPreviousSeriesName} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';

@@ -21,7 +21,7 @@ import {
   TWENTY_FOUR_HOURS,
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {NOT_AVAILABLE_MESSAGES} from 'sentry/constants/notAvailableMessages';
