@@ -36,10 +36,6 @@ type ConfigurationType = {
 export type StepProps = {
   configurations: ConfigurationType[];
   /**
-   * A brief description of the step
-   */
-  description: React.ReactNode;
-  /**
    * The language of the selected platform (python, javascript, etc)
    */
   language: string;
@@ -47,6 +43,10 @@ export type StepProps = {
    * The step type (install, configure, verify). The list can grow as we add more steps
    */
   type: StepType;
+  /**
+   * A brief description of the step
+   */
+  description?: React.ReactNode;
 };
 
 export function Step({type, configurations, description, language}: StepProps) {
