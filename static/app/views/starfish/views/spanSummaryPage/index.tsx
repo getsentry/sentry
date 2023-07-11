@@ -6,7 +6,8 @@ import * as qs from 'query-string';
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -270,13 +271,11 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               )}
 
-              {transaction && span?.group && (
-                <SampleList
-                  groupId={span.group}
-                  transactionName={transaction}
-                  transactionMethod={transactionMethod}
-                />
-              )}
+              <SampleList
+                groupId={span.group}
+                transactionName={transaction}
+                transactionMethod={transactionMethod}
+              />
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>

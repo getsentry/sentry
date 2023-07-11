@@ -1,5 +1,5 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 
 function EmptyState() {
