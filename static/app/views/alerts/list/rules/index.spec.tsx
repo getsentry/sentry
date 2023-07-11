@@ -1,9 +1,12 @@
+import type {Location} from 'history';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
@@ -24,19 +27,23 @@ describe('AlertRulesList', () => {
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/org-slug/combined-rules/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
-  const getComponent = (props = {}) => (
+  const getComponent = (
+    props: {location?: Location; organization?: Organization} = {}
+  ) => (
     <OrganizationContext.Provider value={props.organization ?? organization}>
       <AlertRulesList
+        {...TestStubs.routeComponentProps()}
         organization={props.organization ?? organization}
         params={{}}
-        location={{query: {}, search: ''}}
+        location={TestStubs.location({query: {}, search: ''})}
         router={router}
         {...props}
       />
     </OrganizationContext.Provider>
   );
 
-  const createWrapper = props => render(getComponent(props), {context: routerContext});
+  const createWrapper = (props = {}) =>
+    render(getComponent(props), {context: routerContext});
 
   beforeEach(() => {
     rulesMock = MockApiClient.addMockResponse({
@@ -81,7 +88,7 @@ describe('AlertRulesList', () => {
   afterEach(() => {
     act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
-    trackAnalytics.mockClear();
+    jest.restoreAllMocks();
   });
 
   it('displays list', async () => {
@@ -203,10 +210,10 @@ describe('AlertRulesList', () => {
     // Sort by the name column
     rerender(
       getComponent({
-        location: {
+        location: TestStubs.location({
           query: {asc: '1', sort: 'name'},
           search: '?asc=1&sort=name`',
-        },
+        }),
       })
     );
 
@@ -266,7 +273,12 @@ describe('AlertRulesList', () => {
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
     rerender(
-      getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
+      getComponent({
+        location: TestStubs.location({
+          query: {team: 'myteams'},
+          search: '?team=myteams`',
+        }),
+      })
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));

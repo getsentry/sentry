@@ -181,7 +181,15 @@ const routerFixtures = {
     ...params,
   }),
 
-  routerProps: (
+  routerProps: (params = {}) => ({
+    location: TestStubs.location(),
+    params: {},
+    routes: [],
+    stepBack: () => {},
+    ...params,
+  }),
+
+  routeComponentProps: (
     params: Partial<RouteComponentProps<any, any>> = {}
   ): RouteComponentProps<{}, {}> => {
     const router = TestStubs.router();

@@ -79,14 +79,24 @@ describe('ProjectAlertsCreate', function () {
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = render(
       <AlertsContainer>
-        <AlertBuilderProjectProvider params={params}>
+        <AlertBuilderProjectProvider
+          {...TestStubs.routeComponentProps()}
+          params={params}
+          organization={organization}
+          hasMetricAlerts={false}
+        >
           <ProjectAlertsCreate
+            {...TestStubs.routeComponentProps()}
+            hasMetricAlerts={false}
+            members={[]}
             params={params}
-            location={{
+            organization={organization}
+            project={project}
+            location={TestStubs.location({
               pathname: `/organizations/org-slug/alerts/rules/${project.slug}/new/`,
-              query: {createFromWizard: true},
+              query: {createFromWizard: 'true'},
               ...location,
-            }}
+            })}
             router={router}
           />
         </AlertBuilderProjectProvider>
@@ -106,15 +116,17 @@ describe('ProjectAlertsCreate', function () {
     const location = {query: {}};
     const wrapper = createWrapper(undefined, location);
     await waitFor(() => {
-      expect(wrapper.router.replace).toHaveBeenCalledWith({
-        pathname: '/organizations/org-slug/alerts/new/metric',
-        query: {
-          aggregate: 'count()',
-          dataset: 'events',
-          eventTypes: 'error',
-          project: 'project-slug',
-        },
-      });
+      expect(wrapper.router.replace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pathname: '/organizations/org-slug/alerts/new/metric',
+          query: {
+            aggregate: 'count()',
+            dataset: 'events',
+            eventTypes: 'error',
+            project: 'project-slug',
+          },
+        })
+      );
     });
   });
 
@@ -540,7 +552,7 @@ describe('ProjectAlertsCreate', function () {
         method: 'POST',
         body: [],
         headers: {
-          'X-Hits': 0,
+          'X-Hits': '0',
           Endpoint: 'endpoint',
         },
       });

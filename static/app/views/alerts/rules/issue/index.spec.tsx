@@ -1,4 +1,4 @@
-import {browserHistory} from 'react-router';
+import {browserHistory, PlainRoute} from 'react-router';
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -42,59 +42,59 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-const projectAlertRuleDetailsRoutes = [
+const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
   {
     path: '/',
   },
   {
     path: '/settings/',
-    name: 'Settings',
     indexRoute: {},
   },
   {
-    name: 'Organization',
     path: ':orgId/',
   },
   {
-    name: 'Project',
     path: 'projects/:projectId/',
   },
   {},
   {
-    indexRoute: {name: 'General'},
+    indexRoute: {},
   },
   {
-    name: 'Alert Rules',
     path: 'alerts/',
     indexRoute: {},
   },
   {
     path: 'rules/',
-    name: 'Rules',
-    component: null,
     indexRoute: {},
-    childRoutes: [
-      {path: 'new/', name: 'New'},
-      {path: ':ruleId/', name: 'Edit'},
-    ],
+    childRoutes: [{path: 'new/'}, {path: ':ruleId/'}],
   },
-  {path: ':ruleId/', name: 'Edit Alert Rule'},
+  {path: ':ruleId/'},
 ];
 
 const createWrapper = (props = {}) => {
   const {organization, project, routerContext, router} = initializeOrg(props);
   const params = {
     projectId: project.slug,
+    organizationId: organization.slug,
     ruleId: router.location.query.createFromDuplicate ? undefined : '1',
   };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
-    <ProjectAlerts organization={organization} project={project} params={params}>
+    <ProjectAlerts
+      {...TestStubs.routeComponentProps()}
+      organization={organization}
+      project={project}
+      params={params}
+    >
       <IssueRuleEditor
+        route={TestStubs.routeComponentProps().route}
+        routeParams={TestStubs.routeComponentProps().routeParams}
         params={params}
         location={router.location}
         routes={projectAlertRuleDetailsRoutes}
         router={router}
+        members={[]}
         onChangeTitle={onChangeTitleMock}
         project={project}
         userTeamIds={[]}
