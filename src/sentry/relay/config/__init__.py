@@ -40,6 +40,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import (
+    get_dynamic_metric_conditional_tagging_rules,
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
@@ -176,7 +177,10 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project,
+    full_config: bool = True,
+    v4_config: bool = False,
+    project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
@@ -194,7 +198,9 @@ def get_project_config(
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
         with metrics.timer("relay.config.get_project_config.duration"):
-            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+            return _get_project_config(
+                project, full_config=full_config, project_keys=project_keys, v4_config=v4_config
+            )
 
 
 def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
@@ -313,7 +319,10 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
+    project: Project,
+    full_config: bool = True,
+    v4_config: bool = False,
+    project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
@@ -353,8 +362,9 @@ def _get_project_config(
     # anything.
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    # Limit the number of custom measurements
-    add_experimental_config(config, "measurements", get_measurements_config)
+    if not v4_config:
+        # Limit the number of custom measurements
+        add_experimental_config(config, "measurements", get_measurements_config)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
@@ -385,8 +395,16 @@ def _get_project_config(
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
+        if v4_config:
+            get_conditional_rules = get_dynamic_metric_conditional_tagging_rules
+        else:
+            get_conditional_rules = get_metric_conditional_tagging_rules
+
         add_experimental_config(
-            config, "metricConditionalTagging", get_metric_conditional_tagging_rules, project
+            config,
+            "metricConditionalTagging",
+            get_conditional_rules,
+            project,
         )
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)

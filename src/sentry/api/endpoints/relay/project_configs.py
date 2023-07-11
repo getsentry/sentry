@@ -12,6 +12,8 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
+from sentry.relay.config.measurements import get_measurements_config
+from sentry.relay.config.metric_extraction import _HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -25,6 +27,13 @@ ProjectConfig = MutableMapping[str, Any]
 
 def _sample_apm():
     return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
+
+
+def get_global_config():
+    return {
+        "measurements": get_measurements_config(),
+        "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
+    }
 
 
 @region_silo_endpoint
@@ -53,7 +62,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_protocol_version", version)
 
         if version == "4":
-            return self._get_v4_config
+            return self._get_v4_config(request)
         elif self._should_use_v3(version, request):
             return self._get_v3_config(request)
         elif version in ["2", "3"]:
@@ -70,18 +79,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Unsupported version, we only support versions 1 to 4.", 400)
 
     def _get_v4_config(self, request):
-        res = self._post_or_schedule_by_key(request)
+        res = self._post_or_schedule_by_key(request, v4_config=True)
+
+        del res["measurements"]
+        del res["metricsConditionalTagging"]
+
         metrics.incr("relay.project_configs.post_v4.pending", amount=len(res["pending"]))
         metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
 
         if request.GET.get("global"):
-            res["global"] = {
-                "measurements": res["measurements"],
-                "metricsConditionalTagging": res["metricsConditionalTagging"],
-            }
-
-        del res["measurements"]
-        del res["metricsConditionalTagging"]
+            res["global"] = get_global_config()
 
         return Response(res, status=200)
 
@@ -137,13 +144,13 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return use_v3
 
-    def _post_or_schedule_by_key(self, request: Request):
+    def _post_or_schedule_by_key(self, request: Request, v4_config: bool = False):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         proj_configs = {}
         pending = []
         for key in public_keys:
-            computed = self._get_cached_or_schedule(key)
+            computed = self._get_cached_or_schedule(key, v4_config=v4_config)
             if not computed:
                 pending.append(key)
             else:
@@ -151,7 +158,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return {"configs": proj_configs, "pending": pending}
 
-    def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
+    def _get_cached_or_schedule(self, public_key, v4_config: bool = False) -> Optional[dict]:
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache.
@@ -162,7 +169,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if cached_config:
             return cached_config
 
-        schedule_build_project_config(public_key=public_key)
+        schedule_build_project_config(public_key=public_key, v4_config=v4_config)
         return None
 
     def _post_by_key(self, request: Request, full_config_requested):

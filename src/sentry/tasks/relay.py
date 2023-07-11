@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
     time_limit=10,  # Extra 5 seconds to remove the debounce key.
     expires=30,  # Relay stops waiting for this anyway.
 )
-def build_project_config(public_key=None, **kwargs):
+def build_project_config(public_key=None, v4_config: bool = False, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -46,7 +46,7 @@ def build_project_config(public_key=None, **kwargs):
             # avoid creating more tasks for it.
             projectconfig_cache.backend.set_many({public_key: {"disabled": True}})
         else:
-            config = compute_projectkey_config(key)
+            config = compute_projectkey_config(key, v4_config=v4_config)
             projectconfig_cache.backend.set_many({public_key: config})
 
     finally:
@@ -58,7 +58,7 @@ def build_project_config(public_key=None, **kwargs):
         )
 
 
-def schedule_build_project_config(public_key):
+def schedule_build_project_config(public_key, v4_config: bool = False):
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -78,7 +78,9 @@ def schedule_build_project_config(public_key):
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
     )
-    build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
+    build_project_config.delay(
+        public_key=public_key, tmp_scheduled=tmp_scheduled, v4_config=v4_config
+    )
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
@@ -176,7 +178,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     return configs
 
 
-def compute_projectkey_config(key):
+def compute_projectkey_config(key, v4_config: bool = False):
     """Computes a single config for the given :class:`ProjectKey`.
 
     :returns: A dict with the project config.
@@ -187,7 +189,9 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
+        return get_project_config(
+            key.project, project_keys=[key], full_config=True, v4_config=v4_config
+        ).to_dict()
 
 
 @instrumented_task(

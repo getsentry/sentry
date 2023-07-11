@@ -139,7 +139,8 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 )
 
 
-def get_metric_conditional_tagging_rules(
+# Only the rules that can change per project.
+def get_dynamic_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
     rules: List[MetricConditionalTaggingRule] = []
@@ -169,6 +170,14 @@ def get_metric_conditional_tagging_rules(
         rules.extend(_threshold_to_rules(threshold, []))
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
+
+    return rules
+
+
+def get_metric_conditional_tagging_rules(
+    project: Project,
+) -> Sequence[MetricConditionalTaggingRule]:
+    rules = get_dynamic_metric_conditional_tagging_rules(project)
 
     rules.extend(_HISTOGRAM_OUTLIER_RULES)
 
