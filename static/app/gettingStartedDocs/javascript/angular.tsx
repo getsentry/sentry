@@ -4,6 +4,7 @@ import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -155,6 +156,9 @@ export const steps = ({
       },
     ],
   },
+  getUploadSourceMapsStep(
+    'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/'
+  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,
@@ -170,12 +174,6 @@ export const steps = ({
 ];
 
 export const nextSteps = [
-  {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/',
-  },
   {
     id: 'angular-features',
     name: t('Angular Features'),

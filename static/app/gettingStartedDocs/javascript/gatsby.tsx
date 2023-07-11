@@ -54,11 +54,15 @@ export const steps = ({
     type: StepType.CONFIGURE,
     configurations: [
       {
-        description: tct(
-          'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically gatsby-config.js).',
-          {
-            code: <code />,
-          }
+        description: (
+          <div>
+            {tct(
+              'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
+              {
+                code: <code />,
+              }
+            )}
+          </div>
         ),
         code: `
         module.exports = {
@@ -71,7 +75,9 @@ export const steps = ({
         `,
       },
       {
-        description: tct('Then, configure your [code:Sentry.init]:', {code: <code />}),
+        description: (
+          <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
+        ),
         code: `
         import * as Sentry from "@sentry/gatsby";
 

@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Team} from 'sentry/types';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = RouteComponentProps<{teamId: string}, {}> & {
@@ -24,9 +24,9 @@ type Props = RouteComponentProps<{teamId: string}, {}> & {
   team: Team;
 };
 
-type State = AsyncView['state'];
+type State = DeprecatedAsyncView['state'];
 
-class TeamSettings extends AsyncView<Props, State> {
+class TeamSettings extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return 'Team Settings';
   }

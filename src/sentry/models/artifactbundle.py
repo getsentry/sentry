@@ -118,19 +118,25 @@ class ArtifactBundleIndex(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    release_name = models.CharField(max_length=250)
-    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
-    # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default=NULL_STRING)
-    url = models.TextField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
+
+    # TODO: legacy fields:
+    # These will eventually be removed in a migration, as they can be joined
+    # via the `{Release,}ArtifactBundle` tables.
+    release_name = models.CharField(max_length=250)
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     date_last_modified = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
+        # TODO: this index can be removed and maybe replaced with a different one
+        # The `ReleaseFile` table has a `release_id+name` index. Similarly, we could
+        # create a `artifact_bundle+url` index, though the effectiveness of that
+        # might be limited as we are primarily doing substring searches.
         index_together = (
             ("organization_id", "release_name", "dist_name", "url", "artifact_bundle"),
         )

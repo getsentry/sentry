@@ -5,7 +5,7 @@ import startCase from 'lodash/startCase';
 
 import Access from 'sentry/components/acl/access';
 import {Alert, AlertProps} from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
@@ -44,17 +44,17 @@ interface AlertType extends AlertProps {
 
 type State = {
   tab: Tab;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 type Props = {
   organization: Organization;
 } & RouteComponentProps<{integrationSlug: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 class AbstractIntegrationDetailedView<
   P extends Props = Props,
   S extends State = State
-> extends AsyncComponent<P, S> {
+> extends DeprecatedAsyncComponent<P, S> {
   tabs: Tab[] = ['overview', 'configurations'];
 
   componentDidMount() {

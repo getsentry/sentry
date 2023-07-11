@@ -114,17 +114,19 @@ def _index_urls_in_bundle(
             if url := info.get("url"):
                 urls_to_index.append(
                     ArtifactBundleIndex(
-                        # key:
-                        organization_id=organization_id,
-                        release_name=release,
-                        dist_name=dist,
-                        url=url,
-                        # value:
+                        # key/value:
                         artifact_bundle_id=artifact_bundle.id,
+                        url=url,
                         # metadata:
+                        organization_id=organization_id,
+                        date_added=artifact_bundle.date_added,
+                        # legacy:
+                        # TODO: We fill these in with empty-ish values before they are
+                        # dropped for good
+                        release_name="",
+                        dist_name="",
                         date_last_modified=artifact_bundle.date_last_modified
                         or artifact_bundle.date_added,
-                        date_added=artifact_bundle.date_added,
                     )
                 )
     finally:
@@ -349,15 +351,15 @@ def get_artifact_bundles_containing_url(
     Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
     """
     return set(
-        ArtifactBundleIndex.objects.filter(
+        ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
-            release_name=release_name,
-            dist_name=dist_name,
-            url=url,
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-        ).values_list("artifact_bundle_id", "date_added")
+            projectartifactbundle__project_id=project.id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            artifactbundleindex__url=url,
+        ).values_list("id", "date_added")
         # we want to always return the most recent bundle matching the file
-        .order_by("-date_last_modified", "-artifact_bundle_id")[:1]
+        .order_by("-date_last_modified", "-id")[:1]
     )
 
 
