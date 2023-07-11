@@ -10,6 +10,7 @@ import {QueryClient, QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import withOrganization from 'sentry/utils/withOrganization';
+import {ALLOWED_PROJECT_IDS_FOR_ORG_SLUG} from 'sentry/views/starfish/allowedProjects';
 
 type Props = {
   children: React.ReactChildren;
@@ -21,17 +22,21 @@ const queryClient = new QueryClient();
 function StarfishContainer({organization, children}: Props) {
   const location = useLocation();
   const router = useRouter();
-  const {slug} = organization;
-  const projectId =
-    slug === 'sentry' ? '1' : slug === 'peated' ? '4504120414765056' : null;
+
   useEffect(() => {
-    if (projectId && location.query.project !== projectId) {
+    const allowedProjectIDs: string[] =
+      ALLOWED_PROJECT_IDS_FOR_ORG_SLUG[organization.slug] ?? [];
+    const requestedProjectID: string = Array.isArray(location?.query?.project)
+      ? location.query.project[0]
+      : location.query.project ?? '';
+
+    if (allowedProjectIDs.length > 0 && !allowedProjectIDs.includes(requestedProjectID)) {
       router.replace({
         pathname: location.pathname,
-        query: {...location.query, project: projectId},
+        query: {...location.query, project: allowedProjectIDs[0]},
       });
     }
-  }, [location.pathname, location.query, projectId, router]);
+  }, [router, location, organization]);
 
   return (
     <Feature

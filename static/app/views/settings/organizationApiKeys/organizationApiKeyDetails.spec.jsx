@@ -8,7 +8,7 @@ describe('OrganizationApiKeyDetails', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: TestStubs.ApiKey(),
+      body: TestStubs.DeprecatedApiKey(),
     });
   });
 

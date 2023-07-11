@@ -24,6 +24,7 @@ class AuditLogEventRegisterTest(TestCase):
             "team.remove",
             "project.create",
             "project.edit",
+            "project.change-performance-issue-detection",
             "project.remove",
             "project.remove-with-origin",
             "project.request-transfer",

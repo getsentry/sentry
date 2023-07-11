@@ -47,6 +47,7 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
@@ -1724,12 +1725,20 @@ class OrganizationReleaseCreateTest(APITestCase):
                 scope_list=["org:ci"],
                 date_last_used=None,
             )
-        response = self.client.post(
-            url,
-            data={"version": "1.2.1", "projects": [project1.slug]},
-            HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
-        )
+
+        with outbox_runner():
+            response = self.client.post(
+                url,
+                data={"version": "1.2.1", "projects": [project1.slug]},
+                HTTP_AUTHORIZATION=f"Bearer {good_token_str}",
+            )
         assert response.status_code == 201, response.content
+
+        # Make sure org token usage was updated
+        with exempt_from_silo_limits():
+            org_token = OrgAuthToken.objects.get(token_hashed=hash_token(good_token_str))
+        assert org_token.date_last_used is not None
+        assert org_token.project_last_used_id == project1.id
 
     @patch("sentry.tasks.commits.fetch_commits")
     def test_api_token(self, mock_fetch_commits):

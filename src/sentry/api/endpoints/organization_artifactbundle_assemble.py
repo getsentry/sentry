@@ -6,9 +6,10 @@ from sentry import analytics, options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.utils import get_auth_api_token_type
 from sentry.constants import ObjectStatus
 from sentry.models import FileBlobOwner, Project
-from sentry.models.apitoken import is_api_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -147,7 +148,10 @@ class OrganizationArtifactBundleAssembleEndpoint(
             organization_id=organization.id,
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
-            auth_type="api_token" if is_api_token_auth(request.auth) else None,
+            auth_type=get_auth_api_token_type(request.auth),
         )
+
+        if is_org_auth_token_auth(request.auth):
+            update_org_auth_token_last_used(request.auth, project_ids)
 
         return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)

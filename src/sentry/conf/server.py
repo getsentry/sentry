@@ -1298,9 +1298,11 @@ SENTRY_FEATURES = {
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": False,
+    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # Enables automatically linking repositories using commit webhook data
+    "organizations:auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1335,6 +1337,8 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable Discord integration
     "organizations:integrations-discord": False,
+    # Enable Opsgenie integration
+    "organizations:integrations-opsgenie": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint rate limit
@@ -1558,6 +1562,7 @@ SENTRY_FEATURES = {
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-issue-emails": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -2094,6 +2099,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    "openid",
+    "profile",
+    "email",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2128,6 +2136,14 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("openid", "Confirms authentication status and provides basic information."),),
+    (
+        (
+            "profile",
+            "Read personal information like name, avatar, date of joining etc. Requires openid scope.",
+        ),
+    ),
+    (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -2684,6 +2700,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
+    "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
 )
 
 
@@ -2696,6 +2713,7 @@ SENTRY_SDK_CONFIG = {
     "auto_enabling_integrations": False,
     "_experiments": {
         "custom_measurements": True,
+        "enable_backpressure_handling": True,
     },
 }
 

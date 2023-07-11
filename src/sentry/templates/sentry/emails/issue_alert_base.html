@@ -226,6 +226,30 @@
 
       {% block table %}{% endblock %}
 
+      {% if replay_id and issue_replays_url %}
+      <div class="interface">
+        <h3 class="title">Session Replay</h3>
+        <table>
+          <colgroup>
+            <col style="width:130px;">
+          </colgroup>
+          <tbody>
+            <tr>
+              <th>Session Replay:</th>
+              <td>
+                <a href="{{ issue_replays_url }}">
+                  <img src="{% absolute_asset_url 'sentry' 'images/email/icon-play.png' %}" width="12px" height="12px"
+                    alt="Session Replay">
+                  See a replay of this issue
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+
       {% block stacktrace %}{% endblock %}
 
       {% if tags %}

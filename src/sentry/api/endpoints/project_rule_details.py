@@ -11,13 +11,13 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
     RegionScheduledDeletion,
     RuleActivity,
     RuleActivityType,
-    RuleStatus,
     SentryAppComponent,
     Team,
     User,
@@ -203,7 +203,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         """
         Delete a rule
         """
-        rule.update(status=RuleStatus.PENDING_DELETION)
+        rule.update(status=ObjectStatus.PENDING_DELETION)
         RuleActivity.objects.create(
             rule=rule, user_id=request.user.id, type=RuleActivityType.DELETED.value
         )

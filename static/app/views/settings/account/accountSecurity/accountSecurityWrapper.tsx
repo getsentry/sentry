@@ -2,7 +2,7 @@ import {cloneElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
 import {Authenticator, OrganizationSummary, UserEmail} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -12,16 +12,16 @@ const ENDPOINT = '/users/me/authenticators/';
 type Props = {
   children: React.ReactElement;
 } & RouteComponentProps<{authId: string}, {}> &
-  AsyncComponent['props'];
+  DeprecatedAsyncComponent['props'];
 
 type State = {
   emails: UserEmail[];
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
-class AccountSecurityWrapper extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+class AccountSecurityWrapper extends DeprecatedAsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [
       ['authenticators', ENDPOINT],
       ['organizations', '/organizations/'],
