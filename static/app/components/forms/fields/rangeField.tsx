@@ -57,7 +57,7 @@ function RangeField({
           aria-label={label}
           showThumbLabels
           value={value}
-          onBlur={onBlur}
+          onChangeEnd={val => onBlur(val, new MouseEvent(''))}
           onChange={val => fieldOnChange(val, new MouseEvent(''))}
         />
       )}
