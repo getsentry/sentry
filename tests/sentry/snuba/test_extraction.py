@@ -11,6 +11,12 @@ def test_is_on_demand_query_no_query():
     assert is_on_demand_query(Dataset.PerformanceMetrics, "") is False
 
 
+def test_is_on_demand_query_invalid_query():
+    assert is_on_demand_query(Dataset.PerformanceMetrics, "AND") is False
+    assert is_on_demand_query(Dataset.PerformanceMetrics, "(AND transaction.duration:>=1") is False
+    assert is_on_demand_query(Dataset.PerformanceMetrics, "transaction.duration:>=abc") is False
+
+
 def test_is_on_demand_query_true():
     dataset = Dataset.PerformanceMetrics
 
@@ -27,7 +33,7 @@ def test_is_on_demand_query_true():
     )
 
 
-def test_is_not_on_demand_false():
+def test_is_on_demand_query_false():
     dataset = Dataset.PerformanceMetrics
 
     assert is_on_demand_query(dataset, "") is False
