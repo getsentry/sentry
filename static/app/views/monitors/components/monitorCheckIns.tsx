@@ -5,6 +5,7 @@ import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
@@ -17,6 +18,9 @@ import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
   CheckIn,
   CheckInStatus,
@@ -44,12 +48,14 @@ const checkStatusToIndicatorStatus: Record<
 
 function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const queryKey = [
     `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
     {
       query: {
         per_page: '10',
         environment: monitorEnvs.map(e => e.name),
+        expand: 'groups',
         ...location.query,
       },
     },
@@ -82,6 +88,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
           t('Status'),
           t('Started'),
           t('Duration'),
+          t('Issues'),
           t('Attachment'),
           t('Timestamp'),
         ]}
@@ -124,6 +131,25 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
             ) : (
               emptyCell
             )}
+            {checkIn.groups && checkIn.groups?.length > 0 ? (
+              <IssuesContainer>
+                {checkIn.groups.map(({id, shortId}) => (
+                  <QuickContextHovercard
+                    dataRow={{
+                      ['issue.id']: id,
+                      issue: shortId,
+                    }}
+                    contextType={ContextType.ISSUE}
+                    organization={organization}
+                    key={id}
+                  >
+                    {<Link to={`/issues/${id}`}>{shortId}</Link>}
+                  </QuickContextHovercard>
+                ))}
+              </IssuesContainer>
+            ) : (
+              emptyCell
+            )}
             {checkIn.attachmentId ? (
               <Button
                 size="xs"
@@ -147,8 +173,12 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
 export default MonitorCheckIns;
 
 const Status = styled('div')`
+  line-height: 1.1;
+`;
+
+const IssuesContainer = styled('div')`
   display: flex;
-  align-items: center;
+  flex-direction: column;
 `;
 
 const Timestamp = styled(DateTime)`
