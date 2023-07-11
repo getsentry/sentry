@@ -6,7 +6,6 @@ function StarfishDatePicker() {
   const organization = useOrganization();
   return (
     <DatePageFilter
-      disallowArbitraryRelativeRanges
       defaultPeriod="24h"
       alignDropdown="left"
       onChange={({start, end, relative}) => {
