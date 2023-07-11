@@ -186,7 +186,7 @@ def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[s
         return False
 
     on_demand_query_fields = list(_SEARCH_TO_PROTOCOL_FIELDS.keys()) + ["measurements"]
-    query_has_on_demand_fields = [s for s in on_demand_query_fields if s in query] is not None
+    query_has_on_demand_fields = len([s for s in on_demand_query_fields if s in query]) > 0
 
     return Dataset(dataset) == Dataset.PerformanceMetrics and query_has_on_demand_fields
 
