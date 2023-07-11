@@ -10,8 +10,10 @@ from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class BitbucketRepositoryProviderTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -94,13 +96,14 @@ class BitbucketRepositoryProviderTest(TestCase):
         )
 
         organization = self.create_organization()
-        integration = Integration.objects.create(
-            provider="bitbucket",
-            external_id="bitbucket_external_id",
-            name="Hello world",
-            metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
-        )
-        integration.add_organization(organization)
+        with exempt_from_silo_limits():
+            integration = Integration.objects.create(
+                provider="bitbucket",
+                external_id="bitbucket_external_id",
+                name="Hello world",
+                metadata={"base_url": "https://api.bitbucket.org", "shared_secret": "23456789"},
+            )
+            integration.add_organization(organization)
         data = {
             "provider": "integrations:bitbucket",
             "identifier": full_repo_name,
@@ -134,6 +137,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             assert "requires an integration id" in str(e)
 
 
+@region_silo_test(stable=True)
 class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
     provider_name = "integrations:bitbucket"
 
@@ -182,7 +186,8 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        self.integration.delete()
+        with exempt_from_silo_limits():
+            self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
         assert response.status_code == 404
