@@ -49,7 +49,7 @@ class SiloMode(Enum):
         cases unless the exit_single_process_silo_context is explicitly embedded, ensuring that this single process
         silo mode simulates the boundaries explicitly between what would be separate processes in deployment.
         """
-        if "pytest" in sys.modules:
+        if "pytest" in sys.argv:
             assert (
                 single_process_silo_mode_state.mode is None
             ), "Re-entrant invariant broken! Use exit_single_process_silo_context to explicit pass 'fake' RPC boundaries."

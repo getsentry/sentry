@@ -95,7 +95,7 @@ class SiloRouter:
 
             # If we're in tests raise an error, otherwise return 'no decision'
             # so that django skips migration operations that won't work.
-            if "pytest" in sys.modules:
+            if "pytest" in sys.argv:
                 raise SiloConnectionUnavailableError(
                     f"Cannot resolve table {table} in {silo_mode}. "
                     f"Application silo mode is {active_mode} and simulated silos are not enabled."

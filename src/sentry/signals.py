@@ -91,7 +91,7 @@ class BetterSignal(Signal):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
-                if "pytest" in sys.modules:
+                if "pytest" in sys.argv:
                     if (
                         _receivers_that_raise is _AllReceivers.ALL
                         or receiver in _receivers_that_raise

@@ -153,5 +153,5 @@ def run_deletion(deletion_id, first_pass=True, silo_mode="CONTROL"):
             },
         )
         sentry_sdk.capture_exception(err)
-        if "pytest" in sys.modules:
+        if "pytest" in sys.argv:
             raise err

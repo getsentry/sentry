@@ -76,7 +76,7 @@ class IntegrationProxyClient(ApiClient):
         is_region_silo = SiloMode.get_current_mode() == SiloMode.REGION
         subnet_secret = getattr(settings, "SENTRY_SUBNET_SECRET", None)
         control_address = getattr(settings, "SENTRY_CONTROL_ADDRESS", None)
-        is_test_environment = "pytest" in sys.modules
+        is_test_environment = "pytest" in sys.argv
 
         if is_region_silo and subnet_secret and control_address:
             self._should_proxy_to_control = True
