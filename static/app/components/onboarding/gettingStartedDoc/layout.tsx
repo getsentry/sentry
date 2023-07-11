@@ -31,7 +31,7 @@ export type LayoutProps = {
   nextSteps?: NextStep[];
 };
 
-export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
+export function Layout({steps, nextSteps = [], newOrg}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -53,7 +53,7 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
           <Step key={step.type} {...step} />
         ))}
       </Steps>
-      {nextSteps && (
+      {nextSteps.length > 0 && (
         <Fragment>
           <Divider />
           <h4>{t('Next Steps')}</h4>
