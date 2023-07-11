@@ -798,7 +798,6 @@ module = [
     "sentry.rules.conditions.tagged_event",
     "sentry.rules.filters.assigned_to",
     "sentry.rules.filters.latest_release",
-    "sentry.rules.history.backends.postgres",
     "sentry.rules.history.endpoints.project_rule_group_history",
     "sentry.rules.history.endpoints.project_rule_stats",
     "sentry.rules.history.preview",
