@@ -141,7 +141,13 @@ function TrendChart({
   const trendDisplay = generateTrendFunctionAsString(trendFunction, trendParameter);
 
   const trendView = eventView.clone() as TrendView;
-  modifyTrendView(trendView, location, TrendChangeType.ANY, projects, organization);
+  modifyTrendView(
+    trendView,
+    location,
+    TrendChangeType.ANY,
+    projects,
+    shouldGetBreakpoint
+  );
 
   function transformTimeseriesData(
     data: EventsStatsData,
