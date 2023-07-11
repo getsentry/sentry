@@ -4,19 +4,32 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import RequestError from 'sentry/utils/requestError/requestError';
 
 describe('handleXhrErrorResponse', function () {
-  const stringError = {responseJSON: {detail: 'Error'}, status: 400};
-  const objError = {
+  const stringError = new RequestError('GET', '/api/0', new Error('dead'), {
     status: 400,
+    responseText: 'Error message',
+    statusText: 'Bad Request',
+    getResponseHeader: () => 'application/json',
+    responseJSON: {detail: 'Error message'},
+  });
+
+  const objError = new RequestError('GET', '/api/0', new Error('dead'), {
+    status: 400,
+    responseText: 'Error message',
+    statusText: 'Bad Request',
+    getResponseHeader: () => 'application/json',
     responseJSON: {detail: {code: 'api-err-code', message: 'Error message'}},
-  };
+  });
+
   beforeEach(function () {
     jest.clearAllMocks();
   });
 
   it('does nothing if we have invalid response', function () {
-    handleXhrErrorResponse('', null);
+    // cast to invalid type on purpose
+    handleXhrErrorResponse('', null as any);
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    handleXhrErrorResponse('', undefined);
+    // cast to invalid type on purpose
+    handleXhrErrorResponse('', undefined as any);
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
@@ -31,15 +44,21 @@ describe('handleXhrErrorResponse', function () {
   });
 
   it('ignores `sudo-required` errors', function () {
-    handleXhrErrorResponse('Sudo required error', {
-      status: 401,
-      responseJSON: {
-        detail: {
-          code: 'sudo-required',
-          detail: 'Sudo required',
+    handleXhrErrorResponse(
+      'Sudo required error',
+      new RequestError('GET', '/api/0', new Error('dead'), {
+        status: 401,
+        responseText: 'Sudo required',
+        statusText: 'Unauthorized',
+        getResponseHeader: () => 'application/json',
+        responseJSON: {
+          detail: {
+            code: 'sudo-required',
+            detail: 'Sudo required',
+          },
         },
-      },
-    });
+      })
+    );
     expect(Sentry.captureException).not.toHaveBeenCalled();
   });
 
@@ -53,6 +72,9 @@ describe('handleXhrErrorResponse', function () {
     };
     const err = new RequestError('GET', '/ball', new Error('API error'), {
       status,
+      getResponseHeader: () => 'application/json',
+      statusText: 'Not Found',
+      responseText: 'distraced-by-squirrel: Got distracted by a squirrel',
       responseJSON,
     });
 
