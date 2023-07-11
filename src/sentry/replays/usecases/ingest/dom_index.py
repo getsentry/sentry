@@ -140,8 +140,11 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
-                is_timeout_reason = payload["data"]["endReason"] == "timeout"
-                is_target_tagname = payload["data"]["node"]["tagName"] in ("a", "button")
+                is_timeout_reason = payload["data"].get("endReason") == "timeout"
+                is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
+                    "a",
+                    "button",
+                )
                 if is_timeout_reason and is_target_tagname:
                     click = create_click_event(payload, replay_id, is_dead=True, is_rage=False)
                     if click is not None:
