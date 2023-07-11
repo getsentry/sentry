@@ -156,7 +156,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
 
 function InfoItem({label, value}: {label: string; value: string}) {
   return (
-    <div style={{float: 'left'}}>
+    <div>
       <InfoLabel>{label}</InfoLabel>
       <InfoText>{value}</InfoText>
     </div>
@@ -230,13 +230,11 @@ const GraphPanel = styled('div')`
   display: block;
 `;
 
-type TextProps = {
+export const ExplorerText = styled('p')<{
   align?: string;
   color?: string;
   margin?: string;
-};
-
-export const ExplorerText = styled('p')<TextProps>`
+}>`
   margin-bottom: ${p => (p.margin ? p.margin : space(0))};
   color: ${p => p.color};
   text-align: ${p => p.align};
