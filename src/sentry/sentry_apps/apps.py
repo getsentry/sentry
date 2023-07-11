@@ -15,6 +15,7 @@ from sentry_sdk.api import push_scope
 from sentry import analytics, audit_log
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import (
     ApiApplication,
     ApiToken,
@@ -273,7 +274,7 @@ class SentryAppCreator:
             ), "Internal apps should not require installation verification"
 
     def run(self, *, user: User, request: Request | None = None) -> SentryApp:
-        with transaction.atomic():
+        with transaction.atomic(), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
             api_app = self._create_api_application(proxy=proxy)

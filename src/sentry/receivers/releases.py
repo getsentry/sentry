@@ -7,6 +7,7 @@ from django.db.models.signals import post_save, pre_save
 from django.utils import timezone
 
 from sentry import analytics
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models import (
     Activity,
     Commit,
@@ -95,7 +96,8 @@ def resolved_in_commit(instance, created, **kwargs):
         repo = None
 
     if instance.author:
-        user_list = list(instance.author.find_users())
+        with in_test_hide_transaction_boundary():
+            user_list = list(instance.author.find_users())
     else:
         user_list = ()
 
@@ -104,13 +106,14 @@ def resolved_in_commit(instance, created, **kwargs):
     self_assign_issue: str = "0"
     if user_list:
         acting_user = user_list[0]
-        self_assign_issue = get_option_from_list(
-            user_option_service.get_many(
-                filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
-            ),
-            key="self_assign_issue",
-            default="0",
-        )
+        with in_test_hide_transaction_boundary():
+            self_assign_issue = get_option_from_list(
+                user_option_service.get_many(
+                    filter={"user_ids": [acting_user.id], "keys": ["self_assign_issue"]}
+                ),
+                key="self_assign_issue",
+                default="0",
+            )
 
     for group in groups:
         try:
