@@ -1,6 +1,7 @@
 import {LocationDescriptorObject} from 'history';
 
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {PageFilters} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
@@ -14,8 +15,11 @@ function StarfishPageFilterContainer(props: {children: React.ReactNode}) {
   const location = useLocation();
   const {selection} = usePageFilters();
   const datetime = selection.datetime;
+  const {end, start, statsPeriod} = location.query;
 
-  const {endTime, startTime} = getDateFilters(selection);
+  const {endTime, startTime} = getDateFilters({
+    datetime: {end, start, period: statsPeriod},
+  } as PageFilters);
   const invalidDateFilters = endTime.diff(startTime, 'days') > MAXIMUM_DATE_RANGE;
   if (invalidDateFilters) {
     datetime.period = DEFAULT_STATS_PERIOD;

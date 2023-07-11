@@ -14,6 +14,7 @@ export const migratedDocs = [
   'javascript-gatsby',
   'javascript-ember',
   'javascript-svelte',
+  'javascript-sveltekit',
   'javascript',
 ];
 
