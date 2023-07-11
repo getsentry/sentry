@@ -5,7 +5,7 @@ describe('PluginsStore', function () {
     jest.spyOn(PluginsStore, 'trigger');
   });
   beforeEach(function () {
-    PluginsStore.trigger.mockReset();
+    jest.resetAllMocks();
   });
 
   afterEach(function () {});
@@ -34,7 +34,7 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: undefined});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
@@ -73,7 +73,7 @@ describe('PluginsStore', function () {
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: undefined});
 
       expect(PluginsStore.trigger).toHaveBeenCalledWith({
         loading: false,
@@ -164,7 +164,7 @@ describe('PluginsStore', function () {
         name: 'Amazon Sqs',
       });
 
-      PluginsStore.onUpdateError('amazon-sqs');
+      PluginsStore.onUpdateError('amazon-sqs', new Error('error'));
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({
         id: 'amazon-sqs',
