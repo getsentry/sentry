@@ -1,8 +1,8 @@
 import os
+from typing import MutableMapping
 
 import pytest
-from django.db import connections, reset_queries
-from django.test import override_settings
+from django.db import connections
 
 from sentry.silo import SiloMode
 
@@ -220,10 +220,17 @@ def audit_hybrid_cloud_writes_and_deletes(request):
     """
     from sentry.testutils.silo import validate_protected_queries
 
-    reset_queries()
-    with override_settings(DEBUG=True):
-        try:
-            yield
-        finally:
-            for connection in connections.all():
-                validate_protected_queries(connection.queries)
+    debug_cursor_state: MutableMapping[str, bool] = {}
+    for conn in connections.all():
+        debug_cursor_state[conn.alias] = conn.force_debug_cursor
+
+        conn.queries_log.clear()
+        conn.force_debug_cursor = True
+
+    try:
+        yield
+    finally:
+        for conn in connections.all():
+            conn.force_debug_cursor = debug_cursor_state[conn.alias]
+
+            validate_protected_queries(conn.queries)
