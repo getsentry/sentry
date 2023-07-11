@@ -9,7 +9,6 @@ function StarfishDatePicker() {
   return (
     <DatePageFilter
       maxDateRange={MAXIMUM_DATE_RANGE}
-      disallowArbitraryRelativeRanges
       relativeOptions={{
         '1h': t('Last hour'),
         '12h': t('Last 12 hours'),
