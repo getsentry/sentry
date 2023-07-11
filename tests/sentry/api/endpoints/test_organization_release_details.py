@@ -21,8 +21,9 @@ from sentry.models import (
     Repository,
 )
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -1034,7 +1035,7 @@ class UpdateReleaseDetailsTest(APITestCase):
     def test_org_auth_token(self):
         org = self.organization
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
