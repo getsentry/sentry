@@ -1,9 +1,10 @@
-import {Fragment} from 'react';
+import React, {Fragment, useCallback, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
@@ -37,6 +38,7 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
+import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
 import {getSelectedTransaction} from 'sentry/views/performance/utils';
 
 import Chart from './chart';
@@ -44,6 +46,7 @@ import {
   NormalizedTrendsTransaction,
   TrendChangeType,
   TrendFunctionField,
+  TrendParameter,
   TrendParameterColumn,
   TrendsStats,
   TrendView,
@@ -312,7 +315,7 @@ function ChangedTransactions(props: Props) {
                           api={api}
                           currentTrendFunction={currentTrendFunction}
                           currentTrendColumn={currentTrendColumn}
-                          trendView={props.trendView}
+                          trendView={trendView}
                           organization={organization}
                           transaction={transaction}
                           key={transaction.transaction}
@@ -327,6 +330,8 @@ function ChangedTransactions(props: Props) {
                             organization,
                             trendChangeType
                           )}
+                          isLoading={isLoading}
+                          trendParameter={trendParameter}
                         />
                       ))}
                     </Fragment>
@@ -356,6 +361,7 @@ type TrendsListItemProps = {
   currentTrendFunction: string;
   handleSelectTransaction: (transaction: NormalizedTrendsTransaction) => void;
   index: number;
+  isLoading: boolean;
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -363,6 +369,7 @@ type TrendsListItemProps = {
   transaction: NormalizedTrendsTransaction;
   transactions: NormalizedTrendsTransaction[];
   trendChangeType: TrendChangeType;
+  trendParameter: TrendParameter;
   trendView: TrendView;
 };
 
@@ -379,8 +386,13 @@ function TrendsListItem(props: TrendsListItemProps) {
     projects,
     handleSelectTransaction,
     trendView,
+    statsData,
+    isLoading,
+    trendParameter,
   } = props;
   const color = trendToColor[trendChangeType].default;
+
+  const [openedTransaction, setOpenedTransaction] = useState<null | string>(null);
 
   const selectedTransaction = getSelectedTransaction(
     location,
@@ -428,110 +440,128 @@ function TrendsListItem(props: TrendsListItemProps) {
     trendChangeType === TrendChangeType.IMPROVED ? previousDuration : currentDuration;
 
   return (
-    <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
-      <ItemRadioContainer color={color}>
-        {transaction.count_range_1 && transaction.count_range_2 ? (
-          <Tooltip
-            title={
-              <TooltipContent>
-                <span>{t('Total Events')}</span>
-                <span>
-                  <Count value={transaction.count_range_1} />
-                  <StyledIconArrow direction="right" size="xs" />
-                  <Count value={transaction.count_range_2} />
-                </span>
-              </TooltipContent>
-            }
-            disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
-          >
+    <Fragment>
+      <ListItemContainer data-test-id={'trends-list-item-' + trendChangeType}>
+        <ItemRadioContainer color={color}>
+          {transaction.count_range_1 && transaction.count_range_2 ? (
+            <Tooltip
+              title={
+                <TooltipContent>
+                  <span>{t('Total Events')}</span>
+                  <span>
+                    <Count value={transaction.count_range_1} />
+                    <StyledIconArrow direction="right" size="xs" />
+                    <Count value={transaction.count_range_2} />
+                  </span>
+                </TooltipContent>
+              }
+              disableForVisualTest // Disabled tooltip in snapshots because of overlap order issues.
+            >
+              <RadioLineItem index={index} role="radio">
+                <Radio
+                  checked={isSelected}
+                  onChange={() => handleSelectTransaction(transaction)}
+                />
+              </RadioLineItem>
+            </Tooltip>
+          ) : (
             <RadioLineItem index={index} role="radio">
               <Radio
                 checked={isSelected}
                 onChange={() => handleSelectTransaction(transaction)}
               />
             </RadioLineItem>
+          )}
+        </ItemRadioContainer>
+        <TransactionSummaryLink {...props} onItemClicked={setOpenedTransaction} />
+        <ItemTransactionPercentage>
+          <Tooltip title={percentChangeExplanation}>
+            <Fragment>
+              {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
+              {formatPercentage(transaction.trend_percentage - 1, 0)}
+            </Fragment>
           </Tooltip>
-        ) : (
-          <RadioLineItem index={index} role="radio">
-            <Radio
-              checked={isSelected}
-              onChange={() => handleSelectTransaction(transaction)}
+        </ItemTransactionPercentage>
+        <DropdownLink
+          caret={false}
+          anchorRight
+          title={
+            <StyledButton
+              size="xs"
+              icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
+              aria-label={t('Actions')}
             />
-          </RadioLineItem>
-        )}
-      </ItemRadioContainer>
-      <TransactionSummaryLink {...props} />
-      <ItemTransactionPercentage>
-        <Tooltip title={percentChangeExplanation}>
-          <Fragment>
-            {trendChangeType === TrendChangeType.REGRESSION ? '+' : ''}
-            {formatPercentage(transaction.trend_percentage - 1, 0)}
-          </Fragment>
-        </Tooltip>
-      </ItemTransactionPercentage>
-      <DropdownLink
-        caret={false}
-        anchorRight
-        title={
-          <StyledButton
-            size="xs"
-            icon={<IconEllipsis data-test-id="trends-item-action" size="xs" />}
-            aria-label={t('Actions')}
-          />
-        }
-      >
-        {!organization.features.includes('performance-new-trends') && (
-          <Fragment>
-            <MenuItem
-              onClick={() =>
-                handleFilterDuration(
-                  location,
-                  organization,
-                  longestPeriodValue,
-                  FilterSymbols.LESS_THAN_EQUALS,
-                  trendChangeType,
-                  projects,
-                  trendView.project
-                )
-              }
-            >
-              <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
-            </MenuItem>
-            <MenuItem
-              onClick={() =>
-                handleFilterDuration(
-                  location,
-                  organization,
-                  longestPeriodValue,
-                  FilterSymbols.GREATER_THAN_EQUALS,
-                  trendChangeType,
-                  projects,
-                  trendView.project
-                )
-              }
-            >
-              <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
-            </MenuItem>
-          </Fragment>
-        )}
-        <MenuItem
-          onClick={() => handleFilterTransaction(location, transaction.transaction)}
+          }
         >
-          <MenuAction>{t('Hide from list')}</MenuAction>
-        </MenuItem>
-      </DropdownLink>
-      <ItemTransactionDurationChange>
-        {project && (
-          <Tooltip title={transaction.project}>
-            <IdBadge avatarSize={16} project={project} hideName />
-          </Tooltip>
-        )}
-        <CompareDurations {...props} />
-      </ItemTransactionDurationChange>
-      <ItemTransactionStatus color={color}>
-        <ValueDelta {...props} />
-      </ItemTransactionStatus>
-    </ListItemContainer>
+          {!organization.features.includes('performance-new-trends') && (
+            <Fragment>
+              <MenuItem
+                onClick={() =>
+                  handleFilterDuration(
+                    location,
+                    organization,
+                    longestPeriodValue,
+                    FilterSymbols.LESS_THAN_EQUALS,
+                    trendChangeType,
+                    projects,
+                    trendView.project
+                  )
+                }
+              >
+                <MenuAction>{t('Show \u2264 %s', longestDuration)}</MenuAction>
+              </MenuItem>
+              <MenuItem
+                onClick={() =>
+                  handleFilterDuration(
+                    location,
+                    organization,
+                    longestPeriodValue,
+                    FilterSymbols.GREATER_THAN_EQUALS,
+                    trendChangeType,
+                    projects,
+                    trendView.project
+                  )
+                }
+              >
+                <MenuAction>{t('Show \u2265 %s', longestDuration)}</MenuAction>
+              </MenuItem>
+            </Fragment>
+          )}
+          <MenuItem
+            onClick={() => handleFilterTransaction(location, transaction.transaction)}
+          >
+            <MenuAction>{t('Hide from list')}</MenuAction>
+          </MenuItem>
+        </DropdownLink>
+        <ItemTransactionDurationChange>
+          {project && (
+            <Tooltip title={transaction.project}>
+              <IdBadge avatarSize={16} project={project} hideName />
+            </Tooltip>
+          )}
+          <CompareDurations {...props} />
+        </ItemTransactionDurationChange>
+        <ItemTransactionStatus color={color}>
+          <ValueDelta {...props} />
+        </ItemTransactionStatus>
+      </ListItemContainer>
+      <Feature features={['performance-change-explorer']}>
+        <PerformanceChangeExplorer
+          collapsed={openedTransaction === null}
+          onClose={() => setOpenedTransaction(null)}
+          transaction={transaction}
+          trendChangeType={trendChangeType}
+          trendFunction={currentTrendFunction}
+          trendView={trendView}
+          statsData={statsData}
+          isLoading={isLoading}
+          organization={organization}
+          projects={projects}
+          trendParameter={trendParameter}
+          location={location}
+        />
+      </Feature>
+    </Fragment>
   );
 }
 
@@ -567,7 +597,9 @@ function ValueDelta({transaction, trendChangeType}: TrendsListItemProps) {
   );
 }
 
-type TransactionSummaryLinkProps = TrendsListItemProps & {};
+type TransactionSummaryLinkProps = TrendsListItemProps & {
+  onItemClicked: React.Dispatch<React.SetStateAction<null | string>>;
+};
 
 function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
   const {
@@ -577,6 +609,7 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     projects,
     location,
     currentTrendFunction,
+    onItemClicked: onTransactionSelection,
   } = props;
   const summaryView = eventView.clone();
   const projectID = getTrendProjectId(transaction, projects);
@@ -592,6 +625,21 @@ function TransactionSummaryLink(props: TransactionSummaryLinkProps) {
     },
   });
 
+  const handleClick = useCallback(() => {
+    onTransactionSelection(transaction.transaction);
+  }, [onTransactionSelection, transaction.transaction]);
+
+  if (organization.features.includes('performance-change-explorer')) {
+    return (
+      <ItemTransactionName
+        to=""
+        data-test-id="item-transaction-name"
+        onClick={handleClick}
+      >
+        {transaction.transaction}
+      </ItemTransactionName>
+    );
+  }
   return (
     <ItemTransactionName to={target} data-test-id="item-transaction-name">
       {transaction.transaction}

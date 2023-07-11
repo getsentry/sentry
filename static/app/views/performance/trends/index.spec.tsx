@@ -124,7 +124,8 @@ function _initializeData(
 function initializeTrendsData(
   projects: null | any[] = null,
   query = {},
-  includeDefaultQuery = true
+  includeDefaultQuery = true,
+  extraFeatures?: string[]
 ) {
   const _projects = Array.isArray(projects)
     ? projects
@@ -132,7 +133,9 @@ function initializeTrendsData(
         TestStubs.Project({id: '1', firstTransactionEvent: false}),
         TestStubs.Project({id: '2', firstTransactionEvent: true}),
       ];
-  const features = ['transaction-event', 'performance-view'];
+  const features = extraFeatures
+    ? ['transaction-event', 'performance-view', ...extraFeatures]
+    : ['transaction-event', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects: _projects,
@@ -211,6 +214,7 @@ describe('Performance > Trends', function () {
             count_range_1: 'integer',
             count_range_2: 'integer',
             count_percentage: 'percentage',
+            breakpoint: 'number',
             trend_percentage: 'percentage',
             trend_difference: 'number',
             aggregate_range_1: 'duration',
@@ -224,6 +228,7 @@ describe('Performance > Trends', function () {
               count_range_1: 2,
               count_range_2: 6,
               count_percentage: 3,
+              breakpoint: 1686967200,
               trend_percentage: 1.9235225955967554,
               trend_difference: 797,
               aggregate_range_1: 863,
@@ -236,6 +241,7 @@ describe('Performance > Trends', function () {
               count_range_1: 20,
               count_range_2: 40,
               count_percentage: 2,
+              breakpoint: 1686967200,
               trend_percentage: 1.204968944099379,
               trend_difference: 66,
               aggregate_range_1: 322,
@@ -243,6 +249,34 @@ describe('Performance > Trends', function () {
               transaction: '/api/0/internal/health/',
             },
           ],
+        },
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'p95()': 1010.9232499999998,
+            'p50()': 47.34580982348902,
+            'tps()': 3.7226926286168966,
+          },
+        ],
+        meta: {
+          fields: {
+            'p95()': 'duration',
+            '950()': 'duration',
+            'tps()': 'number',
+          },
+          units: {
+            'p95()': 'millisecond',
+            'p50()': 'millisecond',
+            'tps()': null,
+          },
+          isMetricsData: true,
+          tips: {},
+          dataset: 'metrics',
         },
       },
     });
@@ -304,8 +338,40 @@ describe('Performance > Trends', function () {
 
     expect(summaryLink.closest('a')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29'
+      '/organizations/org-slug/performance/summary/?display=trend&project=1&query=tpm%28%29%3A%3E0.01%20transaction.duration%3A%3E0%20transaction.duration%3A%3C15min%20count_percentage%28%29%3A%3E0.25%20count_percentage%28%29%3A%3C4%20trend_percentage%28%29%3A%3E0%25%20confidence%28%29%3A%3E6&referrer=performance-transaction-summary&statsPeriod=14d&transaction=%2Forganizations%2F%3AorgId%2Fperformance%2F&trendFunction=p50&unselectedSeries=p100%28%29'
     );
+  });
+
+  it('view summary menu action opens performance change explorer with feature flag', async function () {
+    const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
+    const data = initializeTrendsData(projects, {project: ['1']}, true, [
+      'performance-change-explorer',
+    ]);
+
+    render(
+      <TrendsIndex location={data.router.location} organization={data.organization} />,
+      {
+        context: data.routerContext,
+        organization: data.organization,
+      }
+    );
+
+    const transactions = await screen.findAllByTestId('trends-list-item-improved');
+    expect(transactions).toHaveLength(2);
+    const firstTransaction = transactions[0];
+
+    const summaryLink = within(firstTransaction).getByTestId('item-transaction-name');
+
+    expect(summaryLink.closest('a')).not.toHaveAttribute('href');
+
+    await clickEl(summaryLink);
+    await waitFor(() => {
+      expect(screen.getByText('Ongoing Improvement')).toBeInTheDocument();
+      expect(screen.getByText('Throughput')).toBeInTheDocument();
+      expect(screen.getByText('P95')).toBeInTheDocument();
+      expect(screen.getByText('P50')).toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+    });
   });
 
   it('hide from list menu action modifies query', async function () {

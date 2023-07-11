@@ -116,6 +116,10 @@ export const trendToColor = {
     lighter: theme.red200,
     default: theme.red300,
   },
+  neutral: {
+    lighter: theme.yellow200,
+    default: theme.yellow300,
+  },
   // TODO remove this once backend starts sending
   // TrendChangeType.IMPROVED as change type
   improvement: {
