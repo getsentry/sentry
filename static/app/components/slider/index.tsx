@@ -203,28 +203,28 @@ function BaseSlider(
       : [min, state.values[0]];
 
   return (
-    <SliderGroup {...groupProps} className={className}>
-      {label && (
-        <SliderLabelWrapper className="label-container">
-          <SliderLabel {...labelProps}>{label}</SliderLabel>
-          <SliderLabelOutput {...outputProps}>
-            {nThumbs > 1
-              ? `${getFormattedValue(selectedRange[0])}–${getFormattedValue(
-                  selectedRange[1]
-                )}`
-              : getFormattedValue(selectedRange[1])}
-          </SliderLabelOutput>
-        </SliderLabelWrapper>
-      )}
+    <Tooltip
+      title={disabledReason}
+      disabled={!disabled}
+      skipWrapper
+      isHoverable
+      position="bottom"
+      offset={8}
+    >
+      <SliderGroup {...groupProps} className={className}>
+        {label && (
+          <SliderLabelWrapper className="label-container">
+            <SliderLabel {...labelProps}>{label}</SliderLabel>
+            <SliderLabelOutput {...outputProps}>
+              {nThumbs > 1
+                ? `${getFormattedValue(selectedRange[0])}–${getFormattedValue(
+                    selectedRange[1]
+                  )}`
+                : getFormattedValue(selectedRange[1])}
+            </SliderLabelOutput>
+          </SliderLabelWrapper>
+        )}
 
-      <Tooltip
-        title={disabledReason}
-        disabled={!disabled}
-        skipWrapper
-        isHoverable
-        position="bottom"
-        offset={8}
-      >
         <SliderTrack
           ref={trackRef}
           {...trackProps}
@@ -281,6 +281,7 @@ function BaseSlider(
               index={index}
               state={state}
               trackRef={trackRef}
+              isDisabled={disabled}
               showLabel={showThumbLabels && !label}
               getFormattedValue={getFormattedValue}
               isRequired={required}
@@ -292,8 +293,8 @@ function BaseSlider(
             />
           ))}
         </SliderTrack>
-      </Tooltip>
-    </SliderGroup>
+      </SliderGroup>
+    </Tooltip>
   );
 }
 
