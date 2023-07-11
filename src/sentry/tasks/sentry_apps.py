@@ -47,6 +47,7 @@ TASK_OPTIONS = {
     "queue": "app_platform",
     "default_retry_delay": (60 * 5),  # Five minutes.
     "max_retries": 3,
+    "record_timing": True,
 }
 CONTROL_TASK_OPTIONS = {
     "queue": "app_platform.control",
