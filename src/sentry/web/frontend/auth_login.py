@@ -319,7 +319,7 @@ class AuthLoginView(BaseView):
 
         # Single org mode -- send them to the org-specific handler
         if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = organization_service.get_default_region()
+            org = organization_service.get_default_organization()
             next_uri = reverse("sentry-auth-organization", args=[org.slug])
             return HttpResponseRedirect(next_uri)
 

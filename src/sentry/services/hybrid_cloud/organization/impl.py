@@ -110,7 +110,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
-    def get_default_region(self):
+    def get_default_organization(self):
         return Organization.get_default()
 
     def check_membership_by_email(
