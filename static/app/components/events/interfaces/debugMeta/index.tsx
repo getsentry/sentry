@@ -100,7 +100,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     this.openImageDetailsModal();
   }
 
-  componentDidUpdate(_prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     if (
       this.state.isOpen ||
       (prevState.filteredImages.length === 0 && this.state.filteredImages.length > 0)
@@ -109,6 +109,11 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     }
 
     this.openImageDetailsModal();
+
+    if (this.props.event?.id !== prevProps.event?.id) {
+      this.getRelevantImages();
+      this.updateGrid();
+    }
   }
 
   componentWillUnmount() {
