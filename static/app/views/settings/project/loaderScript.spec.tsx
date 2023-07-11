@@ -6,25 +6,36 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
 
-describe('LoaderScript', function () {
-  let org, project, projectKeys;
+function getMockData() {
+  const org = TestStubs.Organization();
+  const project = TestStubs.Project();
 
-  beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.Project();
-    projectKeys = TestStubs.ProjectKeys();
+  return {org, project};
+}
 
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
-      method: 'GET',
-      body: projectKeys,
-    });
+function mockApi({
+  org,
+  project,
+  projectKeys,
+}: {
+  org: Organization;
+  project: Project;
+  projectKeys: ProjectKey[];
+}) {
+  MockApiClient.clearMockResponses();
+  MockApiClient.addMockResponse({
+    url: `/projects/${org.slug}/${project.slug}/keys/`,
+    method: 'GET',
+    body: projectKeys,
   });
+}
 
+describe('LoaderScript', function () {
   it('renders error', async function () {
+    const {org, project} = getMockData();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
@@ -42,12 +53,9 @@ describe('LoaderScript', function () {
   });
 
   it('renders empty', async function () {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
-      method: 'GET',
-      body: [],
-    });
+    const {org, project} = getMockData();
+
+    mockApi({org, project, projectKeys: []});
 
     render(<LoaderScript organization={org} project={project} />);
 
@@ -59,8 +67,12 @@ describe('LoaderScript', function () {
   });
 
   it('renders for single project', async function () {
-    const projectKey = projectKeys[0];
-    projectKeys = [projectKey];
+    const {org, project} = getMockData();
+    const projectKey = TestStubs.ProjectKeys()[0];
+    const projectKeys = [projectKey];
+
+    mockApi({org, project, projectKeys});
+
     render(<LoaderScript organization={org} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -75,7 +87,8 @@ describe('LoaderScript', function () {
   });
 
   it('renders multiple keys', async function () {
-    const multipleProjectKeys = TestStubs.ProjectKeys([
+    const {org, project} = getMockData();
+    const projectKeys = TestStubs.ProjectKeys([
       {
         dsn: {
           secret:
@@ -114,42 +127,35 @@ describe('LoaderScript', function () {
       },
     ]);
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
-      method: 'GET',
-      body: multipleProjectKeys,
-    });
+    mockApi({org, project, projectKeys});
 
     render(<LoaderScript organization={org} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(
-      screen.getByText(`Client Key: ${multipleProjectKeys[0].name}`)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(`Client Key: ${multipleProjectKeys[1].name}`)
-    ).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[0].name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[1].name}`)).toBeInTheDocument();
 
-    const allLoaderScripts = screen.getAllByRole('textbox', {name: 'Loader Script'}) as HTMLInputElement[]
-    ];
-    expect(allLoaderScripts).toHaveLength(2)
+    const allLoaderScripts = screen.getAllByRole('textbox', {
+      name: 'Loader Script',
+    }) as HTMLInputElement[];
+
+    expect(allLoaderScripts).toHaveLength(2);
   });
 
   it('allows to update key settings', async function () {
+    const {org, project} = getMockData();
+    const baseKey = TestStubs.ProjectKeys()[0];
     const projectKey = {
-      ...projectKeys[0],
+      ...baseKey,
       dynamicSdkLoaderOptions: {
-        ...projectKeys[0].dynamicSdkLoaderOptions,
+        ...baseKey.dynamicSdkLoaderOptions,
         hasReplay: true,
       },
     };
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
-      method: 'GET',
-      body: [projectKey],
-    });
+    mockApi({org, project, projectKeys: [projectKey]});
+
     const mockPut = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
       method: 'PUT',
@@ -216,7 +222,8 @@ describe('LoaderScript', function () {
   });
 
   it('allows to update one of multiple keys', async function () {
-    const multipleProjectKeys = TestStubs.ProjectKeys([
+    const {org, project} = getMockData();
+    const projectKeys = TestStubs.ProjectKeys([
       {
         dsn: {
           secret:
@@ -254,15 +261,9 @@ describe('LoaderScript', function () {
         },
       },
     ]);
+    const projectKey = projectKeys[1];
 
-    MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
-      method: 'GET',
-      body: multipleProjectKeys,
-    });
-
-    const projectKey = multipleProjectKeys[1];
-
+    mockApi({org, project, projectKeys});
     const mockPut = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
       method: 'PUT',

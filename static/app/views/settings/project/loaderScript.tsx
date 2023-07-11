@@ -1,8 +1,9 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -29,18 +30,27 @@ export function ProjectLoaderScript({
     data: projectKeys,
     isLoading,
     error,
+    refetch: refetchProjectKeys,
   } = useApiQuery<ProjectKey[]>([apiEndpoint], {
     staleTime: 0,
   });
 
-  function updateProjectKey(projectKey: ProjectKey) {
-    const existingPos = updatedProjectKeys.findIndex(key => key.id === projectKey.id);
-const newUpdatedProjectKeys = existingPos > -1 ? [...updatedProjectKeys].map((updatedProjectKey, index) => {
-return index === existingPos ? projectKey : updatedProjectKey
-}) : [...updatedProjectKeys, projectKey]
+  const handleUpdateProjectKey = useCallback(
+    (projectKey: ProjectKey) => {
+      const existingProjectIndex = updatedProjectKeys.findIndex(
+        key => key.id === projectKey.id
+      );
+      const newUpdatedProjectKeys =
+        existingProjectIndex > -1
+          ? [...updatedProjectKeys].map((updatedProjectKey, index) => {
+              return index === existingProjectIndex ? projectKey : updatedProjectKey;
+            })
+          : [...updatedProjectKeys, projectKey];
 
-setUpdatedProjectKeys(newUpdatedProjectKeys)
-  }
+      setUpdatedProjectKeys(newUpdatedProjectKeys);
+    },
+    [updatedProjectKeys]
+  );
 
   return (
     <div>
@@ -48,35 +58,44 @@ setUpdatedProjectKeys(newUpdatedProjectKeys)
 
       <TextBlock>
         {tct(
-          'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [link:Learn more about the Loader Script]. Note: The Loader Script is bound to a Client Key (DSN), to create a new Script, go to the Client Keys page.',
+          'The Loader Script is the easiest way to initialize the Sentry SDK. The Loader Script automatically keeps your Sentry SDK up to date and offers configuration for different Sentry features. [docsLink:Learn more about the Loader Script]. Note: The Loader Script is bound to a Client Key (DSN), to create a new Script, go to the [clientKeysLink:Client Keys page].',
           {
-            link: (
+            docsLink: (
               <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/loader/" />
+            ),
+            clientKeysLink: (
+              <Link
+                to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
+              />
             ),
           }
         )}
       </TextBlock>
 
       {isLoading && <LoadingIndicator />}
-      {!!error && <LoadingError message={t('Failed to load project keys.')} />}
+      {!!error && (
+        <LoadingError
+          message={t('Failed to load project keys.')}
+          onRetry={refetchProjectKeys}
+        />
+      )}
       {!isLoading && !error && !projectKeys?.length && (
         <EmptyMessage title={t('There are no keys active for this project.')} />
       )}
 
-      {projectKeys?.length &&
-        projectKeys.map(key => {
-          const actualKey =
-            updatedProjectKeys.find(updatedKey => updatedKey.id === key.id) ?? key;
-          return (
-            <LoaderItem
-              key={actualKey.id}
-              organization={organization}
-              project={project}
-              projectKey={actualKey}
-              updateProjectKey={updateProjectKey}
-            />
-          );
-        })}
+      {projectKeys?.map(key => {
+        const actualKey =
+          updatedProjectKeys.find(updatedKey => updatedKey.id === key.id) ?? key;
+        return (
+          <LoaderItem
+            key={actualKey.id}
+            organization={organization}
+            project={project}
+            projectKey={actualKey}
+            updateProjectKey={handleUpdateProjectKey}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -96,11 +115,11 @@ function LoaderItem({
     <Panel>
       <PanelHeader hasButtons>
         <div>{tct('Client Key: [name]', {name: projectKey.name})}</div>
-        <Button
+        <LinkButton
           to={`/settings/${organization.slug}/projects/${project.slug}/keys/${projectKey.id}/`}
         >
           {t('View Key Details')}
-        </Button>
+        </LinkButton>
       </PanelHeader>
       <PanelBody>
         <PanelAlert type="info" showIcon>
