@@ -278,12 +278,9 @@ def get_stream_processor(
         )
 
     strategy_factory_cls = import_string(consumer_definition["strategy_factory"])
-    logical_topic = consumer_definition["topic"]
-    if not isinstance(logical_topic, str):
-        logical_topic = logical_topic()
-
-    if topic is None:
-        topic = logical_topic
+    configured_physical_topic = consumer_definition["topic"]
+    if not isinstance(configured_physical_topic, str):
+        configured_physical_topic = configured_physical_topic()
 
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
@@ -297,14 +294,20 @@ def get_stream_processor(
     from arroyo.backends.kafka.consumer import KafkaConsumer
     from arroyo.commit import ONCE_PER_SECOND
     from arroyo.types import Topic
-    from django.conf import settings
 
     from sentry.utils import kafka_config
 
-    topic_def = settings.KAFKA_TOPICS[logical_topic]
+    topic_def = kafka_config.get_topic_definition(
+        configured_physical_topic, supports_newstyle_topic_name=True
+    )
+
     assert topic_def is not None
+
     if cluster is None:
         cluster = topic_def["cluster"]
+
+    if topic is None:
+        topic = topic_def["topic_name"]
 
     def build_consumer_config(group_id: str):
         assert cluster is not None

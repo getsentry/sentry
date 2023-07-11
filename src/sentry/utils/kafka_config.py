@@ -2,7 +2,7 @@ from typing import Any, MutableMapping, Optional
 
 from django.conf import settings
 
-from sentry.conf.types.topic_definition import TopicDefinition
+from sentry.conf.types.topic_definition import NormalizedTopicDefinition
 
 SUPPORTED_KAFKA_CONFIGURATION = (
     # Check https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
@@ -105,11 +105,18 @@ def _validate_topic_definitions() -> None:
 _validate_topic_definitions()
 
 
-def get_topic_definition(cluster: str) -> TopicDefinition:
-    defn = settings.KAFKA_TOPICS.get(cluster)
+def get_topic_definition(
+    topic_name: str, supports_newstyle_topic_name: bool = False
+) -> NormalizedTopicDefinition:
+    defn = settings.KAFKA_TOPICS.get(topic_name)
     if defn is not None:
-        return defn
-    elif cluster == settings.KAFKA_OUTCOMES_BILLING:
-        return get_topic_definition(settings.KAFKA_OUTCOMES)
+        if "topic_name" in defn and not supports_newstyle_topic_name:
+            raise RuntimeError("topic_name is defined, but application code does not support it.")
+
+        return {"topic_name": defn.get("topic_name") or topic_name, "cluster": defn["cluster"]}
+    elif topic_name == settings.KAFKA_OUTCOMES_BILLING:
+        return get_topic_definition(
+            settings.KAFKA_OUTCOMES, supports_newstyle_topic_name=supports_newstyle_topic_name
+        )
     else:
-        raise ValueError(f"Unknown {cluster=}")
+        raise ValueError(f"Unknown {topic_name=}")

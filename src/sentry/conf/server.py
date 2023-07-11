@@ -3035,13 +3035,31 @@ KAFKA_CLUSTERS: dict[str, dict[str, Any]] = {
 }
 
 # These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
-# which contains cluster mappings for these topics. Follow these steps to
-# override a kafka topic name:
+# which contains cluster mappings for these topics. Due to historical reasons
+# there are two ways to override topics.
+#
+# old way:
 #
 #  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
+#
+#       KAFKA_EVENTS = "ingest-events-2"
+#
 #  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
 #     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
 #     pick up the change.
+#
+# new way:
+#
+# 1. keep `KAFKA_EVENTS` constant as-is
+# 2. KAFKA_TOPICS[KAFKA_EVENTS]['topic_name'] = "ingest-events-2"
+#
+# the new way is only supported by unified consumers (in fact they support both
+# approaches), not legacy consumers or any producers you might have. Sentry
+# will yell at you during startup (and crash) if you are using ["topic_name"]
+# even though it won't work.
+#
+# eventually, all KAFKA_ constants should be untouched, and only topic_name
+# should be used.
 
 KAFKA_EVENTS = "events"
 KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
