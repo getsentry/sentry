@@ -109,8 +109,28 @@ _AGGREGATE_TO_METRIC_TYPE = {
     "p99": "d",
 }
 
+# Query fields that on their own do not require on-demand metric extraction.
+_STANDARD_METRIC_FIELDS = [
+    "release",
+    "dist",
+    "environment",
+    "transaction",
+    "platform",
+    "transaction.status",
+    "transaction.op",
+    "http.method",
+    "http.status_code",
+    "browser.name",
+    "os.name",
+    "geo.country_code",
+]
+
 # Operators used in ``ComparingRuleCondition``.
 CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
+
+QueryOp = Literal["AND", "OR"]
+QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
+T = TypeVar("T")
 
 
 class ComparingRuleCondition(TypedDict):
@@ -181,14 +201,36 @@ def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
 
 
 def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[str]) -> bool:
-    """Returns ``True`` if the dataset and query combination can't be supported by standard metrics."""
+    """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
+
     if not dataset or not query:
         return False
 
-    on_demand_query_fields = list(_SEARCH_TO_PROTOCOL_FIELDS.keys()) + ["measurements"]
-    query_has_on_demand_fields = len([s for s in on_demand_query_fields if s in query]) > 0
+    return Dataset(dataset) == Dataset.PerformanceMetrics and _contains_on_demand_search_filters(
+        query
+    )
 
-    return Dataset(dataset) == Dataset.PerformanceMetrics and query_has_on_demand_fields
+
+def _contains_on_demand_search_filters(query: str) -> bool:
+    """Recursively checks if the query contains any non-standard search filters."""
+
+    tokens = event_search.parse_search_query(query)
+
+    for token in tokens:
+        if _is_on_demand_search_filter(token):
+            return True
+
+    return False
+
+
+def _is_on_demand_search_filter(token: QueryToken) -> bool:
+    if isinstance(token, SearchFilter):
+        return token.key.name not in _STANDARD_METRIC_FIELDS
+
+    if isinstance(token, ParenExpression):
+        return any([_is_on_demand_search_filter(c) for c in token.children])
+
+    return False
 
 
 class OndemandMetricSpec:
@@ -277,11 +319,6 @@ def _map_field_name(search_key: str) -> str:
         return f"event.tags.{resolved[5:-1]}"
 
     raise ValueError(f"Unsupported query field {search_key}")
-
-
-QueryOp = Literal["AND", "OR"]
-QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
-T = TypeVar("T")
 
 
 class SearchQueryConverter:
