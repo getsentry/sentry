@@ -5,7 +5,7 @@ import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
 import GettingStartedWithSvelteKit, {nextSteps, steps} from './sveltekit';
 
-describe('GettingStartedWithRemix', function () {
+describe('GettingStartedWithSvelteKit', function () {
   it('all products are selected', function () {
     const {container} = render(
       <GettingStartedWithSvelteKit
