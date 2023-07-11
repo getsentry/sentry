@@ -67,7 +67,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
             size="xs"
           >
             <StyledSettingsIcon size="xs" />
-            Settings
+            Threshold Settings
           </LinkButton>
         )
       }

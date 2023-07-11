@@ -158,17 +158,23 @@ class DispatchRemoteCallTest(TestCase):
         mock_response.read.return_value = serial_response
         mock_urlopen.return_value.__enter__.return_value = mock_response
 
-    @override_settings(SILO_MODE=SiloMode.REGION, DEV_HYBRID_CLOUD_RPC_SENDER=_REGION_SILO_CREDS)
     @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
     def test_region_to_control_happy_path(self, mock_urlopen):
         org = self.create_organization()
-        response_value = RpcUserOrganizationContext(organization=serialize_rpc_organization(org))
-        self._set_up_mock_response(mock_urlopen, response_value.dict())
 
-        result = dispatch_remote_call(
-            None, "organization", "get_organization_by_id", {"id": org.id}
-        )
-        assert result == response_value
+        with override_settings(
+            SILO_MODE=SiloMode.REGION,
+            DEV_HYBRID_CLOUD_RPC_SENDER=self._REGION_SILO_CREDS,
+        ):
+            response_value = RpcUserOrganizationContext(
+                organization=serialize_rpc_organization(org)
+            )
+            self._set_up_mock_response(mock_urlopen, response_value.dict())
+
+            result = dispatch_remote_call(
+                None, "organization", "get_organization_by_id", {"id": org.id}
+            )
+            assert result == response_value
 
     @override_settings(SILO_MODE=SiloMode.REGION, DEV_HYBRID_CLOUD_RPC_SENDER=_REGION_SILO_CREDS)
     @mock.patch("sentry.services.hybrid_cloud.rpc.urlopen")
