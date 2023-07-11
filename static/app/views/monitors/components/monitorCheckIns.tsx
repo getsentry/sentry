@@ -131,7 +131,7 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
             ) : (
               emptyCell
             )}
-            {checkIn.groups && checkIn.groups?.length > 0 ? (
+            {checkIn.groups && checkIn.groups.length > 0 ? (
               <IssuesContainer>
                 {checkIn.groups.map(({id, shortId}) => (
                   <QuickContextHovercard
