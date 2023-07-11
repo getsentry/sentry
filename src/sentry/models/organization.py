@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import IntEnum
-from re import match, split
+from re import compile
 from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
@@ -163,7 +163,7 @@ class InvalidRegionalSlugTargetException(Exception):
     pass
 
 
-region_prefix_regex = r"^(r[-|_|\s][a-zA-Z]{2}[-|_|\s])+(.*)"
+region_prefix_regex = compile(r"^(r[-|\s][a-zA-Z]{2}[-|\s])+(.*)")
 
 
 @region_silo_only_model
@@ -299,20 +299,20 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
         cls, slugify_target: str, truncate_region_prefix_collisions: bool = True
     ) -> str:
         sanitized_slug_target = slugify_target.lower().replace("_", "-").strip("-")
-        starts_with_region_prefix = match(region_prefix_regex, sanitized_slug_target)
+        starts_with_region_prefix = region_prefix_regex.match(sanitized_slug_target)
 
         if starts_with_region_prefix and truncate_region_prefix_collisions:
-            region_mod_split = split(region_prefix_regex, sanitized_slug_target)
+            region_mod_split = region_prefix_regex.split(sanitized_slug_target)
             sanitized_slug_target = region_mod_split[2]
 
         elif starts_with_region_prefix:
             raise InvalidRegionalSlugTargetException(
-                "Cannot slugify a slug that contains a region prefix"
+                "Cannot use a slug that contains a reserved prefix."
             )
 
         if not sanitized_slug_target:
             raise InvalidRegionalSlugTargetException(
-                "Slugify target specified either empty or only contains region prefixes"
+                "Requested slug either empty or only contains reserved prefixes."
             )
 
         local_region = get_local_region()
