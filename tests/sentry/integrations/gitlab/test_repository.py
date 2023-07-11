@@ -151,7 +151,8 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        self.integration.delete()
+        with exempt_from_silo_limits():
+            self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)
         assert response.status_code == 404
