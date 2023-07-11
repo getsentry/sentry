@@ -44,8 +44,8 @@ import {
   useEnvironmentsFromUrl,
 } from '../utils';
 
-const IssuePriorityFeedback = HookOrDefault({
-  hookName: 'component:issue-priority-feedback',
+const EscalatingIssuesFeedback = HookOrDefault({
+  hookName: 'component:escalating-issues-banner-feedback',
 });
 
 export interface GroupEventDetailsProps
@@ -238,7 +238,10 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                   return (
                     <StyledLayoutMain>
                       {renderGroupStatusBanner()}
-                      <IssuePriorityFeedback organization={organization} group={group} />
+                      <EscalatingIssuesFeedback
+                        organization={organization}
+                        group={group}
+                      />
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && (
                           <GroupEventHeader
