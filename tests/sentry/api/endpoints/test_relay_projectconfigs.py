@@ -2,7 +2,6 @@ import re
 from uuid import uuid4
 
 import pytest
-from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
@@ -184,7 +183,6 @@ def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_samp
 
 
 @django_db_all
-@override_settings(DEBUG=False)
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
@@ -260,7 +258,6 @@ def test_trusted_external_relays_should_receive_minimal_configs(
 
 
 @django_db_all
-@override_settings(DEBUG=False)
 def test_untrusted_external_relays_should_not_receive_configs(
     call_endpoint, default_project, no_internal_networks
 ):

@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpRequest
-from django.test import override_settings
 from rest_framework.exceptions import APIException
 from rest_framework.request import Request
 from sentry_sdk.utils import exc_info_from_error
@@ -54,7 +53,6 @@ class IntegrationEndpointTest(TestCase):
             assert resp.exception is True
 
     @patch("sentry.api.base.capture_exception")
-    @override_settings(DEBUG=False)
     def test_handle_exception_stdlib(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):
