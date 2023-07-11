@@ -29,7 +29,6 @@ export interface IssueAlertRuleActionTemplate {
   id: string;
   label: string;
   name: string;
-  prompt: string;
   actionType?: 'ticket' | 'sentryapp';
   formFields?:
     | {
@@ -54,7 +53,7 @@ export interface IssueAlertRuleAction
 
 export type IssueAlertRuleCondition = Omit<
   IssueAlertRuleConditionTemplate,
-  'formFields' | 'enabled' | 'prompt' | 'name'
+  'formFields' | 'enabled' | 'name'
 > & {
   dynamic_form_fields?: IssueConfigField[];
 } & {

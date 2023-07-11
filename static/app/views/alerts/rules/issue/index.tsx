@@ -347,6 +347,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         {
           id,
           label: CHANGE_ALERT_PLACEHOLDERS_LABELS[id],
+          name: 'A new issue is created',
         },
       ]);
     }
