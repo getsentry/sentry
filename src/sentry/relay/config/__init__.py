@@ -40,6 +40,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
 from sentry.models import Project, ProjectKey
 from sentry.relay.config.metric_extraction import (
+    _HISTOGRAM_OUTLIER_RULES,
     get_dynamic_metric_conditional_tagging_rules,
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
@@ -174,6 +175,13 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
     else:
         metrics.incr("relay.config.get_quotas", tags={"success": True}, sample_rate=1.0)
         return computed_quotas
+
+
+def get_global_config():
+    return {
+        "measurements": get_measurements_config(),
+        "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
+    }
 
 
 def get_project_config(

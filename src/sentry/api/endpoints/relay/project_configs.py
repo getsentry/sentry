@@ -12,8 +12,6 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
-from sentry.relay.config.measurements import get_measurements_config
-from sentry.relay.config.metric_extraction import _HISTOGRAM_OUTLIER_RULES
 from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
@@ -27,13 +25,6 @@ ProjectConfig = MutableMapping[str, Any]
 
 def _sample_apm():
     return random.random() < getattr(settings, "SENTRY_RELAY_ENDPOINT_APM_SAMPLING", 0)
-
-
-def get_global_config():
-    return {
-        "measurements": get_measurements_config(),
-        "metricsConditionalTagging": _HISTOGRAM_OUTLIER_RULES,
-    }
 
 
 @region_silo_endpoint
@@ -88,7 +79,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr("relay.project_configs.post_v4.fetched", amount=len(res["configs"]))
 
         if request.GET.get("global"):
-            res["global"] = get_global_config()
+            res["global"] = config.get_global_config()
 
         return Response(res, status=200)
 

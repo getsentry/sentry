@@ -139,7 +139,7 @@ _DEFAULT_THRESHOLD = _DefaultThreshold(
 )
 
 
-# Only the rules that can change per project.
+# Only the rules that can change per project, unlike the static ones.
 def get_dynamic_metric_conditional_tagging_rules(
     project: Project,
 ) -> Sequence[MetricConditionalTaggingRule]:
