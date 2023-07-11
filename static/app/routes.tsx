@@ -2126,7 +2126,6 @@ function buildRoutes() {
 
   const organizationRoutes = (
     <Route component={errorHandler(OrganizationDetails)}>
-      {authRoutes}
       {settingsRoutes}
       {projectsRoutes}
       {dashboardRoutes}
@@ -2279,11 +2278,15 @@ function buildRoutes() {
   );
 
   const appRoutes = (
-    <Route path="/" component={errorHandler(App)}>
-      {rootRoutes}
-      {organizationRoutes}
-      {legacyRedirectRoutes}
-      <Route path="*" component={errorHandler(RouteNotFound)} />
+    <Route>
+      {authRoutes}
+      {/* App is NOT a baseline default App. It's doing some org and auth checks and redirecting */}
+      <Route path="/" component={errorHandler(App)}>
+        {rootRoutes}
+        {organizationRoutes}
+        {legacyRedirectRoutes}
+        <Route path="*" component={errorHandler(RouteNotFound)} />
+      </Route>
     </Route>
   );
 
