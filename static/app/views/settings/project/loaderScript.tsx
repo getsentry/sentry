@@ -35,13 +35,11 @@ export function ProjectLoaderScript({
 
   function updateProjectKey(projectKey: ProjectKey) {
     const existingPos = updatedProjectKeys.findIndex(key => key.id === projectKey.id);
-    if (existingPos > -1) {
-      const updated = [...updatedProjectKeys];
-      updated[existingPos] = projectKey;
-      setUpdatedProjectKeys(updated);
-    } else {
-      setUpdatedProjectKeys([...updatedProjectKeys, projectKey]);
-    }
+const newUpdatedProjectKeys = existingPos > -1 ? [...updatedProjectKeys].map((updatedProjectKey, index) => {
+return index === existingPos ? projectKey : updatedProjectKey
+}) : [...updatedProjectKeys, projectKey]
+
+setUpdatedProjectKeys(newUpdatedProjectKeys)
   }
 
   return (

@@ -131,11 +131,9 @@ describe('LoaderScript', function () {
       screen.getByText(`Client Key: ${multipleProjectKeys[1].name}`)
     ).toBeInTheDocument();
 
-    const allLoaderScripts = screen.getAllByRole('textbox', {name: 'Loader Script'}) as [
-      HTMLInputElement,
-      HTMLInputElement
+    const allLoaderScripts = screen.getAllByRole('textbox', {name: 'Loader Script'}) as HTMLInputElement[]
     ];
-    expect(allLoaderScripts.length).toBe(2);
+    expect(allLoaderScripts).toHaveLength(2)
   });
 
   it('allows to update key settings', async function () {
