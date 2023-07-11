@@ -192,7 +192,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=RequireSingleOrganization())
     @abstractmethod
-    def get_default_organization(self):
+    def get_default_organization(self) -> RpcOrganization:
         pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
