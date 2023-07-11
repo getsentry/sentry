@@ -1721,7 +1721,7 @@ SENTRY_PROJECT_KEY = None
 SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
+SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
@@ -2674,7 +2674,7 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
-STATUS_PAGE_ID = None
+STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
