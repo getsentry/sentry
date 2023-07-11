@@ -5,8 +5,6 @@ from typing import TYPE_CHECKING, Dict
 
 from django.conf import settings
 from django.db import models, transaction
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -20,7 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.signals import issue_assigned
+from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -139,6 +137,10 @@ class GroupAssigneeManager(BaseManager):
             ):
                 sync_group_assignee_outbound(group, None, assign=False)
 
+            issue_unassigned.send_robust(
+                project=group.project, group=group, user=acting_user, sender=self.__class__
+            )
+
 
 @region_silo_only_model
 class GroupAssignee(Model):
@@ -184,27 +186,3 @@ class GroupAssignee(Model):
         from sentry.models import ActorTuple
 
         return ActorTuple.from_actor_identifier(self.assigned_actor_id())
-
-
-@receiver(
-    post_save,
-    sender=GroupAssignee,
-    dispatch_uid="post_save_log_group_assignee_attributes_changed",
-    weak=False,
-)
-def post_save_log_group_assignee_attributes_changed(
-    instance, sender, created, update_fields, *args, **kwargs
-):
-    from sentry.issues.attributes import _log_create_or_update
-
-    try:
-        if created:
-            _log_create_or_update(True, "group_assignee", None)
-        else:
-            attributes_updated = {"status", "substatus", "first_seen", "num_comments"}.intersection(
-                update_fields
-            )
-            if attributes_updated:
-                _log_create_or_update(False, "group_assignee", "-".join(sorted(attributes_updated)))
-    except Exception:
-        logger.error("failed to log group attributes after group_assignee post_save", exc_info=True)
