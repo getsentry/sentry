@@ -17,7 +17,6 @@ from urllib.parse import urlparse
 import sentry
 from sentry.conf.types.consumer_definition import ConsumerDefinition
 from sentry.conf.types.topic_definition import TopicDefinition
-from sentry.utils import json
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -624,6 +623,8 @@ USE_SILOS = os.environ.get("SENTRY_USE_SILOS", None)
 # List of the available regions, or a JSON string
 # that is parsed.
 SENTRY_REGION_CONFIG: Any = tuple()
+
+CONTROL_SILO_ADDRESS = ""
 
 # Fallback region name for monolith deployments
 SENTRY_MONOLITH_REGION: str = "--monolith--"
@@ -3441,7 +3442,6 @@ SENTRY_FUNCTIONS_REGION = "us-central1"
 
 # Settings related to SiloMode
 FAIL_ON_UNAVAILABLE_API_CALL = False
-DEV_HYBRID_CLOUD_RPC_SENDER = os.environ.get("SENTRY_DEV_HYBRID_CLOUD_RPC_SENDER", None)
 
 DISALLOWED_CUSTOMER_DOMAINS: list[str] = []
 
@@ -3474,14 +3474,12 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    # RPC authentication and address information
+    RPC_SHARED_SECRET = [
+        "a-long-value-that-is-shared-but-also-secret",
+    ]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
-    DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
-        {
-            "is_allowed": True,
-            "control_silo_api_token": "dev-control-silo-token",
-            "control_silo_address": f"http://127.0.0.1:{control_port}",
-        }
-    )
+    CONTROL_SILO_ADDRESS = f"http://127.0.0.1:{control_port}"
 
 
 # How long we should wait for a gateway proxy request to return before giving up
