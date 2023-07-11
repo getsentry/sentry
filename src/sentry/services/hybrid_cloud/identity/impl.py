@@ -82,6 +82,13 @@ class DatabaseBackedIdentityService(IdentityService):
             user_id=user_id, auth_provider__organization_id=organization_id
         ).delete()
 
+    def update_data(self, *, identity_id: int, data: Any) -> Optional[RpcIdentity]:
+        identity: Identity = Identity.objects.filter(id=identity_id).first()
+        if identity is None:
+            return None
+        identity.update(data=data)
+        return serialize_identity(identity)
+
     class _IdentityFilterQuery(
         FilterQueryDatabaseImpl[Identity, IdentityFilterArgs, RpcIdentity, None]
     ):
