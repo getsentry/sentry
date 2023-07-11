@@ -15,13 +15,6 @@ replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want
 replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.
 `;
 
-const performanceIntegration = `
-new Sentry.BrowserTracing({
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", "https:yourserver.io/api/"],
-}),
-`;
-
 const performanceOtherConfig = `
 // Performance Monitoring
 tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
@@ -35,17 +28,15 @@ export const steps = ({
   {
     language: 'bash',
     type: StepType.INSTALL,
+
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
         code: `
-        # Using yarn
-        yarn add @sentry/gatsby
-
-        # Using npm
-        npm install --save @sentry/gatsby
+        # Using ember-cli
+        ember install @sentry/ember
         `,
       },
     ],
@@ -53,48 +44,37 @@ export const steps = ({
   {
     language: 'javascript',
     type: StepType.CONFIGURE,
+    description: tct(
+      'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
+      {
+        code: <code />,
+      }
+    ),
     configurations: [
       {
-        description: (
-          <div>
-            {tct(
-              'Register the [code:@sentry/gatsby] plugin in your Gatsby configuration file (typically [code:gatsby-config.js]).',
-              {
-                code: <code />,
-              }
-            )}
-          </div>
-        ),
         code: `
-        module.exports = {
-          plugins: [
-            {
-              resolve: "@sentry/gatsby",
-            },
-          ],
-        };
-        `,
-      },
-      {
-        description: (
-          <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
-        ),
-        code: `
-        import * as Sentry from "@sentry/gatsby";
+        import Application from "@ember/application";
+        import Resolver from "ember-resolver";
+        import loadInitializers from "ember-load-initializers";
+        import config from "./config/environment";
+
+        import * as Sentry from "@sentry/ember";
 
         Sentry.init({
           ${sentryInitContent}
         });
 
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
+        export default class App extends Application {
+          modulePrefix = config.modulePrefix;
+          podModulePrefix = config.podModulePrefix;
+          Resolver = Resolver;
+        }
         `,
       },
     ],
   },
   getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/'
+    'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/'
   ),
   {
     language: 'javascript',
@@ -104,7 +84,7 @@ export const steps = ({
     ),
     configurations: [
       {
-        code: 'myUndefinedFunction();',
+        code: `myUndefinedFunction();`,
       },
     ],
   },
@@ -117,7 +97,7 @@ export const nextSteps = [
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/ember/performance/',
   },
   {
     id: 'session-replay',
@@ -125,7 +105,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/ember/session-replay/',
   },
 ];
 // Configuration End
@@ -136,17 +116,17 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithReact({
+export default function GettingStartedWithEmber({
   dsn,
-  activeProductSelection,
   newOrg,
+  activeProductSelection,
 }: Props) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
+
   let nextStepDocs = [...nextSteps];
 
   if (activeProductSelection.includes(ProductSolution.PERFORMANCE_MONITORING)) {
-    integrations.push(performanceIntegration.trim());
     otherConfigs.push(performanceOtherConfig.trim());
     nextStepDocs = nextStepDocs.filter(
       step => step.id !== ProductSolution.PERFORMANCE_MONITORING
@@ -173,7 +153,9 @@ export default function GettingStartedWithReact({
 
   return (
     <Layout
-      steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
+      steps={steps({
+        sentryInitContent: sentryInitContent.join('\n'),
+      })}
       nextSteps={nextStepDocs}
       newOrg={newOrg}
     />
