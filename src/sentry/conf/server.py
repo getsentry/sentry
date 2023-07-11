@@ -88,8 +88,6 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
-ADMIN_ENABLED = DEBUG
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -358,7 +356,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
