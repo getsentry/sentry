@@ -1,5 +1,6 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t} from 'sentry/locale';
 
@@ -108,6 +109,9 @@ export const steps = ({
       },
     ],
   },
+  getUploadSourceMapsStep(
+    'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/'
+  ),
   {
     language: 'javascript',
     type: StepType.VERIFY,
