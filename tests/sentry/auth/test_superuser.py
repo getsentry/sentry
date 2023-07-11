@@ -5,7 +5,6 @@ from unittest.mock import Mock, patch
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
-from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -26,6 +25,7 @@ from sentry.auth.superuser import (
     is_active_superuser,
 )
 from sentry.auth.system import SystemToken
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.middleware.superuser import SuperuserMiddleware
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -42,10 +42,6 @@ EXPIRE_TIME = timedelta(hours=4, minutes=1)
 INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
-
-
-def _get_response(request: HttpRequest) -> HttpResponse:
-    return HttpResponse("example response")
 
 
 @freeze_time(BASETIME)
@@ -310,7 +306,7 @@ class SuperuserTestCase(TestCase):
         delattr(request, "superuser")
         delattr(request, "is_superuser")
 
-        middleware = SuperuserMiddleware(_get_response)
+        middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert request.superuser.is_active
         assert request.is_superuser()
@@ -334,7 +330,7 @@ class SuperuserTestCase(TestCase):
         delattr(request, "superuser")
         delattr(request, "is_superuser")
 
-        middleware = SuperuserMiddleware(_get_response)
+        middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert not request.superuser.is_active
         assert not request.is_superuser()
@@ -350,7 +346,7 @@ class SuperuserTestCase(TestCase):
         delattr(request, "superuser")
         delattr(request, "is_superuser")
 
-        middleware = SuperuserMiddleware(_get_response)
+        middleware = SuperuserMiddleware(placeholder_get_response)
         middleware.process_request(request)
         assert not request.superuser.is_active
         assert not request.is_superuser()
