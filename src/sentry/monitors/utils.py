@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
 from django.db import transaction
 from django.utils import timezone
@@ -144,7 +144,7 @@ def fetch_associated_groups(
         },
     )
 
-    group_id_data: Dict[int, List[str]] = defaultdict(list)
+    group_id_data: Dict[int, Set[str]] = defaultdict(set)
     trace_groups: Dict[str, List[Dict[str, Union[int, str]]]] = defaultdict(list)
 
     result = raw_snql_query(snql_request, "api.serializer.checkins.trace-ids", use_cache=False)
@@ -156,7 +156,7 @@ def fetch_associated_groups(
             assert trace_id_event_name is not None
 
             # create dict with group_id and trace_id
-            group_id_data[event["group_id"]].append(event[trace_id_event_name])
+            group_id_data[event["group_id"]].add(event[trace_id_event_name])
 
         group_ids = group_id_data.keys()
         for group in Group.objects.filter(project_id=project_id, id__in=group_ids):
