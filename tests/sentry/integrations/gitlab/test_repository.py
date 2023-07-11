@@ -10,11 +10,11 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo import SiloMode
 from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
-@control_silo_test(stable=True)
+@region_silo_test(stable=True)
 class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
     provider_name = "integrations:gitlab"
 

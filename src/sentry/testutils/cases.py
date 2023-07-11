@@ -4,6 +4,8 @@ import responses
 import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.dates import to_timestamp
 
 __all__ = (
@@ -1973,7 +1975,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @assume_test_silo_mode(SiloMode.MONOLITH)
+    @assume_test_silo_mode(SiloMode.REGION)
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
