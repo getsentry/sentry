@@ -117,7 +117,7 @@ class Tags extends Component<Props, State> {
     } catch (err) {
       if (
         err.status !== 400 &&
-        err.responseJSON.detail !==
+        err.responseJSON?.detail !==
           'Invalid date range. Please try a more recent date range.'
       ) {
         Sentry.captureException(err);

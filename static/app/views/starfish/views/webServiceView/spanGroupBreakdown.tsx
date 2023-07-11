@@ -67,7 +67,7 @@ export function SpanGroupBreakdown({
     const totalTimeAtIndex = data.reduce((acc, datum) => acc + datum.data[i].value, 0);
     dataAsPercentages.forEach(segment => {
       const clone = {...segment.data[i]};
-      clone.value = clone.value / totalTimeAtIndex;
+      clone.value = totalTimeAtIndex === 0 ? 0 : clone.value / totalTimeAtIndex;
       segment.data[i] = clone;
     });
   }

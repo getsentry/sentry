@@ -269,7 +269,14 @@ def traces_sampler(sampling_context):
             pass
 
     # Default to the sampling rate in settings
-    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+    rate = float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+
+    # multiply everything with the overall multiplier
+    # till we get to 100% client sampling throughout
+    if settings.SENTRY_MULTIPLIER_APM_SAMPLING:
+        rate = min(1, rate * settings.SENTRY_MULTIPLIER_APM_SAMPLING)
+
+    return rate
 
 
 def before_send_transaction(event, _):
@@ -413,6 +420,15 @@ def configure_sdk():
                         skip_internal=False,
                         tags={"reason": "unsafe"},
                     )
+
+        def is_healthy(self):
+            if sentry4sentry_transport:
+                if not sentry4sentry_transport.is_healthy():
+                    return False
+            if sentry_saas_transport:
+                if not sentry_saas_transport.is_healthy():
+                    return False
+            return True
 
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration

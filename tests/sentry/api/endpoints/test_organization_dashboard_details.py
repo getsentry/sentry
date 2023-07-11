@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.urls import reverse
 
@@ -331,7 +334,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert list(response.data) == ["Dashboard with that title already exists."]
 
     def test_add_widget(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
@@ -382,7 +385,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(data["widgets"][5]["queries"][0], queries[0])
 
     def test_add_widget_with_field_aliases(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -416,7 +419,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 self.assert_serialized_widget_query(expected_query, actual_query)
 
     def test_add_widget_with_aggregates_and_columns(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -768,7 +771,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget(data["widgets"][0], widgets[0])
 
     def test_update_widget_add_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -806,7 +809,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         self.assert_serialized_widget_query(data["widgets"][0]["queries"][1], queries[1])
 
     def test_update_widget_remove_and_update_query(self):
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {

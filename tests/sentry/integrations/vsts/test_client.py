@@ -43,7 +43,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make a request with expired token
         integration.get_installation(
             integration.organizationintegration_set.first().organization_id
-        ).get_client().get_projects(self.vsts_base_url)
+        ).get_client(base_url=self.vsts_base_url).get_projects()
 
         # Second to last request, before the Projects request, was to refresh
         # the Access Token.
@@ -64,6 +64,41 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         ]
         assert identity.data["access_token"] == "new-access-token"
         assert identity.data["refresh_token"] == "new-refresh-token"
+        assert identity.data["expires"] > int(time())
+
+    @responses.activate
+    def test_does_not_refresh_valid_tokens(self):
+        self.assert_installation()
+        responses.reset()
+        integration = Integration.objects.get(provider="vsts")
+
+        # Make the Identity have a non-expired token
+        idp = IdentityProvider.objects.get(external_id=self.vsts_account_id)
+        identity = Identity.objects.get(idp_id=idp.id)
+        expires = int(time()) + int(123456789)
+        identity.data["expires"] = expires
+        access_token = identity.data["access_token"]
+        refresh_token = identity.data["refresh_token"]
+        identity.save()
+
+        # New values VSTS will return on refresh
+        self.access_token = "new-access-token"
+        self.refresh_token = "new-refresh-token"
+        self._stub_vsts()
+
+        # Make a request
+
+        integration.get_installation(
+            integration.organizationintegration_set.first().organization_id
+        ).get_client(base_url=self.vsts_base_url).get_projects()
+        assert len(responses.calls) == 1
+        assert (
+            responses.calls[0].request.url
+            == "https://myvstsaccount.visualstudio.com/_apis/projects?stateFilter=WellFormed&%24skip=0&%24top=100"
+        )
+        assert identity.data["access_token"] == access_token != self.access_token
+        assert identity.data["refresh_token"] == refresh_token != self.refresh_token
+        assert identity.data["expires"] == expires
 
     def test_project_pagination(self):
         def request_callback(request):
@@ -90,8 +125,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             integration.get_installation(
                 integration.organizationintegration_set.first().organization_id
             )
-            .get_client()
-            .get_projects(self.vsts_base_url)
+            .get_client(base_url=self.vsts_base_url)
+            .get_projects()
         )
         assert len(projects) == 220
 
@@ -122,12 +157,10 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         client = integration.get_installation(
             integration.organizationintegration_set.first().organization_id
-        ).get_client()
+        ).get_client(base_url=self.vsts_base_url)
 
         responses.calls.reset()
-        client.get_commits(
-            instance=self.vsts_base_url, repo_id=repo.external_id, commit="b", limit=10
-        )
+        client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
         assert len(responses.calls) == 1
 
@@ -234,14 +267,12 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.MONOLITH):
             client = VstsProxyApiTestClient(
-                base_url=installation.instance,
+                base_url=self.vsts_base_url,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
                 org_integration_id=installation.org_integration.id,
                 identity_id=installation.org_integration.default_auth_id,
             )
-            client.get_commits(
-                instance=self.vsts_base_url, repo_id=repo.external_id, commit="b", limit=10
-            )
+            client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1
             request = responses.calls[0].request
@@ -255,14 +286,12 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             client = VstsProxyApiTestClient(
-                base_url=installation.instance,
+                base_url=self.vsts_base_url,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
                 org_integration_id=installation.org_integration.id,
                 identity_id=installation.org_integration.default_auth_id,
             )
-            client.get_commits(
-                instance=self.vsts_base_url, repo_id=repo.external_id, commit="b", limit=10
-            )
+            client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1
             request = responses.calls[0].request
@@ -276,14 +305,12 @@ class VstsProxyApiClientTest(VstsIntegrationTestCase):
         responses.calls.reset()
         with override_settings(SILO_MODE=SiloMode.REGION):
             client = VstsProxyApiTestClient(
-                base_url=installation.instance,
+                base_url=self.vsts_base_url,
                 oauth_redirect_url=VstsIntegrationProvider.oauth_redirect_url,
                 org_integration_id=installation.org_integration.id,
                 identity_id=installation.org_integration.default_auth_id,
             )
-            client.get_commits(
-                instance=self.vsts_base_url, repo_id=repo.external_id, commit="b", limit=10
-            )
+            client.get_commits(repo_id=repo.external_id, commit="b", limit=10)
 
             assert len(responses.calls) == 1
             request = responses.calls[0].request

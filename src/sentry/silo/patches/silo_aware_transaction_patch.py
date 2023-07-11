@@ -41,7 +41,7 @@ def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> N
     return _default_on_commit(func, using)
 
 
-def determine_using_by_silo_mode(using):
+def determine_using_by_silo_mode(using: Optional[str]) -> str:
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
@@ -51,6 +51,7 @@ def determine_using_by_silo_mode(using):
 
     if not using:
         using = region_db if current_silo_mode == SiloMode.REGION else control_db
+        assert using
 
     both_silos_route_to_same_db = control_db == region_db
 
@@ -69,11 +70,17 @@ def determine_using_by_silo_mode(using):
 
 
 def patch_silo_aware_atomic():
+    global _default_on_commit, _default_get_connection, _default_atomic_impl
+
     current_django_version = get_version()
     assert current_django_version.startswith("2.2."), (
         "Newer versions of Django have an additional 'durable' parameter in atomic,"
         + " verify the signature before updating the version check."
     )
+
+    _default_atomic_impl = transaction.atomic
+    _default_on_commit = transaction.on_commit
+    _default_get_connection = transaction.get_connection
 
     transaction.atomic = siloed_atomic  # type:ignore
     transaction.on_commit = siloed_on_commit

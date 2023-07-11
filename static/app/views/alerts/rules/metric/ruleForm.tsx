@@ -10,11 +10,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -93,7 +93,7 @@ type Props = {
   sessionId?: string;
 } & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
-  } & AsyncComponent['props'];
+  } & DeprecatedAsyncComponent['props'];
 
 type State = {
   aggregate: string;
@@ -117,7 +117,7 @@ type State = {
   triggers: Trigger[];
   comparisonDelta?: number;
   uuid?: string;
-} & AsyncComponent['state'];
+} & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
@@ -138,7 +138,7 @@ function determineAlertDataset(
   return selectedDataset;
 }
 
-class RuleFormContainer extends AsyncComponent<Props, State> {
+class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
 
@@ -211,7 +211,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
@@ -841,7 +841,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonType,
       isQueryValid,
     };
-
     const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}

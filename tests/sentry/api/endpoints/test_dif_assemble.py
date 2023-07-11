@@ -191,9 +191,13 @@ class DifAssembleEndpoint(APITestCase):
             }
         )
 
-        file = assemble_file(
+        assemble_result = assemble_file(
             AssembleTask.DIF, self.project, "test", total_checksum, chunks, "project.dif"
-        )[0]
+        )
+
+        assert assemble_result is not None
+
+        file = assemble_result.bundle
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status != ChunkFileState.ERROR
         assert file.checksum == total_checksum

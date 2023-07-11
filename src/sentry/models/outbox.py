@@ -27,7 +27,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.db.postgres.transactions import (
+    django_test_transaction_water_mark,
+    in_test_assert_no_transaction,
+)
 from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
@@ -76,6 +79,7 @@ class OutboxCategory(IntEnum):
     ORGANIZATION_MEMBER_CREATE = 13  # Unused
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
+    ORGAUTHTOKEN_UPDATE = 16
 
     @classmethod
     def as_choices(cls):
@@ -98,6 +102,7 @@ class WebhookProviderIdentifier(IntEnum):
     GITLAB = 3
     MSTEAMS = 4
     BITBUCKET = 5
+    VSTS = 6
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:
@@ -199,7 +204,7 @@ class OutboxBase(Model):
 
     def save(self, **kwds: Any):
         if _outbox_context.flushing_enabled:
-            transaction.on_commit(lambda: self.drain_shard())
+            transaction.on_commit(lambda: self.drain_shard(), using=router.db_for_write(type(self)))
 
         tags = {"category": OutboxCategory(self.category).name}
         metrics.incr("outbox.saved", 1, tags=tags)
@@ -271,6 +276,9 @@ class OutboxBase(Model):
     def drain_shard(
         self, flush_all: bool = False, _test_processing_barrier: threading.Barrier | None = None
     ) -> None:
+        in_test_assert_no_transaction(
+            "drain_shard should only be called outside of any active transaction!"
+        )
         # When we are flushing in a local context, we don't care about outboxes created concurrently --
         # at best our logic depends on previously created outboxes.
         latest_shard_row: OutboxBase | None = None
@@ -292,8 +300,8 @@ class OutboxBase(Model):
 
                 shard_row.process()
 
-            if _test_processing_barrier:
-                _test_processing_barrier.wait()
+                if _test_processing_barrier:
+                    _test_processing_barrier.wait()
 
 
 # Outboxes bound from region silo -> control silo
@@ -469,7 +477,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres"), inner:
+        with in_test_psql_role_override("postgres", using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield

@@ -5,7 +5,7 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Step, StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import {Step, StepProps} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {
   ProductSelection,
   ProductSolution,
@@ -25,34 +25,13 @@ type NextStep = {
   name: string;
 };
 
-type CurrentSteps = [
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.INSTALL;
-  },
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.CONFIGURE;
-  },
-  {
-    code: string;
-    description: React.ReactNode;
-    language: string;
-    type: StepType.VERIFY;
-  }
-];
-
 export type LayoutProps = {
-  steps: CurrentSteps;
+  steps: StepProps[];
   newOrg?: boolean;
   nextSteps?: NextStep[];
 };
 
-export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
+export function Layout({steps, nextSteps = [], newOrg}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
@@ -71,16 +50,10 @@ export function Layout({steps, nextSteps, newOrg}: LayoutProps) {
       )}
       <Steps>
         {steps.map(step => (
-          <Step
-            key={step.type}
-            type={step.type}
-            description={step.description}
-            code={step.code}
-            language={step.language}
-          />
+          <Step key={step.type} {...step} />
         ))}
       </Steps>
-      {nextSteps && (
+      {nextSteps.length > 0 && (
         <Fragment>
           <Divider />
           <h4>{t('Next Steps')}</h4>
