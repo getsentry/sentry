@@ -24,6 +24,7 @@ from sentry.api.utils import generate_organization_url, is_member_disabled_from_
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ObjectStatus
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import Organization, OrganizationStatus, Project, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
@@ -338,10 +339,7 @@ class BaseView(View, OrganizationMixin):
         return self.handle(request, *args, **kwargs)
 
     def test_csrf(self, request: HttpRequest) -> HttpResponse:
-        def _fake_get_response(request: HttpRequest) -> HttpResponse:
-            raise AssertionError("this should be unreachable")
-
-        middleware = CsrfViewMiddleware(_fake_get_response)
+        middleware = CsrfViewMiddleware(placeholder_get_response)
         return middleware.process_view(request, self.dispatch, [request], {})
 
     def get_access(self, request: HttpRequest, *args: Any, **kwargs: Any) -> access.Access:

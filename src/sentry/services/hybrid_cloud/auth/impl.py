@@ -6,12 +6,12 @@ from typing import Any, List, Mapping
 from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models import Count, F, Q
-from django.http import HttpResponse
 
 from sentry import roles
 from sentry.auth.access import get_permissions_for_user
 from sentry.auth.system import SystemToken
 from sentry.middleware.auth import RequestAuthenticationMiddleware
+from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models import (
     ApiKey,
     ApiToken,
@@ -168,7 +168,7 @@ class DatabaseBackedAuthService(AuthService):
 
     def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
         fake_request = FakeAuthenticationRequest(request)
-        handler = RequestAuthenticationMiddleware(lambda _: HttpResponse("fake"))
+        handler = RequestAuthenticationMiddleware(placeholder_get_response)
         expired_user: User | None = None
         try:
             # Hahaha.  Yes.  You're reading this right.  I'm calling, the middleware, from the service method, that is
