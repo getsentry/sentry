@@ -54,6 +54,7 @@ import {
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
@@ -453,11 +454,11 @@ class MetricChart extends PureComponent<Props, State> {
     );
   }
 
-  renderEmpty() {
+  renderEmpty(placeholderText = '') {
     return (
       <ChartPanel>
         <PanelBody withPadding>
-          <Placeholder height="200px" />
+          <TriggerChartPlaceholder>{placeholderText}</TriggerChartPlaceholder>
         </PanelBody>
       </ChartPanel>
     );
@@ -500,6 +501,14 @@ class MetricChart extends PureComponent<Props, State> {
       dataset,
       newAlertOrQuery: false,
     });
+
+    if (isOnDemandMetricAlert(rule.query)) {
+      return this.renderEmpty(
+        t(
+          'This alert includes advanced conditions, which is a feature that is currently in early access. Charts are not yet supported at this time.'
+        )
+      );
+    }
 
     return isCrashFreeAlert(dataset) ? (
       <SessionsRequest
@@ -606,4 +615,10 @@ const ValueItem = styled('div')`
 /* Override padding to make chart appear centered */
 const StyledPanelBody = styled(PanelBody)`
   padding-right: 6px;
+`;
+
+const TriggerChartPlaceholder = styled(Placeholder)`
+  height: 200px;
+  text-align: center;
+  padding: ${space(3)};
 `;

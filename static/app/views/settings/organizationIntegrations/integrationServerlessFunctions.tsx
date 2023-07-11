@@ -2,7 +2,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {IntegrationWithConfig, Organization, ServerlessFunction} from 'sentry/types';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {space} from 'sentry/styles/space';
@@ -13,16 +13,16 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 import IntegrationServerlessRow from './integrationServerlessRow';
 
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   integration: IntegrationWithConfig;
   organization: Organization;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   serverlessFunctions: ServerlessFunction[];
 };
 
-class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
+class IntegrationServerlessFunctions extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -30,7 +30,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const orgSlug = this.props.organization.slug;
     return [
       [

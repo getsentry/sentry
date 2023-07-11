@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
-import AsyncComponent from 'sentry/components/asyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
@@ -49,7 +49,7 @@ const METRIC_CONDITION_MAP = {
 const DEFAULT_PLACEHOLDER_VALUE = '10';
 
 type StateUpdater = (updatedData: RequestDataFragment) => void;
-type Props = AsyncComponent['props'] & {
+type Props = DeprecatedAsyncComponent['props'] & {
   onChange: StateUpdater;
   organization: Organization;
   alertSetting?: string;
@@ -58,7 +58,7 @@ type Props = AsyncComponent['props'] & {
   threshold?: string;
 };
 
-type State = AsyncComponent['state'] & {
+type State = DeprecatedAsyncComponent['state'] & {
   alertSetting: string;
   // TODO(ts): When we have alert conditional types, convert this
   conditions: any;
@@ -116,7 +116,7 @@ function unpackConditions(conditions: any[]) {
   return {intervalChoices, interval: intervalChoices?.[0]?.[0]};
 }
 
-class IssueAlertOptions extends AsyncComponent<Props, State> {
+class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
@@ -259,7 +259,7 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
     });
   }
 
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     return [['conditions', `/projects/${this.props.organization.slug}/rule-conditions/`]];
   }
 

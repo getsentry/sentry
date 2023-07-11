@@ -23,7 +23,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -48,6 +48,8 @@ export const allowedSizeValues: number[] = [
   50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
   2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
 ]; // 50kb to 10MB in bytes
+
+export const projectDetectorSettingsId = 'detector-threshold-settings';
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
 
@@ -88,11 +90,11 @@ type ProjectThreshold = {
   id?: string;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   threshold: ProjectThreshold;
 };
 
-class ProjectPerformance extends AsyncView<Props, State> {
+class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -107,11 +109,11 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {params, organization} = this.props;
     const {projectId} = params;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'threshold',
         `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
@@ -779,7 +781,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Admin Detector Settings')}
+                  title={t(
+                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                  )}
                   fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
@@ -807,7 +811,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
-                  <div>
+                  <div id={projectDetectorSettingsId}>
                     <StyledPanelHeader>
                       {t('Performance Issues - Detector Threshold Settings')}
                     </StyledPanelHeader>

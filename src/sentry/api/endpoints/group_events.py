@@ -97,7 +97,7 @@ class GroupEventsEndpoint(GroupEndpoint, EnvironmentMixin):
         if environments:
             params["environment"] = [env.name for env in environments]
 
-        full = request.GET.get("full", False)
+        full = request.GET.get("full") in ("1", "true")
 
         def data_fn(offset: int, limit: int) -> Any:
             try:
