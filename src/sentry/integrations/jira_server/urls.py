@@ -3,6 +3,7 @@ from django.urls import re_path
 from .search import JiraServerSearchEndpoint
 from .webhooks import JiraServerIssueUpdatedWebhook
 
+# If updating/adding URLs here, make sure to update the JiraServerRequestParser as well
 urlpatterns = [
     re_path(
         r"^issue-updated/(?P<token>[^\/]+)/$",
