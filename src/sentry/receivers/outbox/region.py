@@ -30,6 +30,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_rpc_service
 from sentry.types.region import get_local_region
 
 
@@ -37,6 +38,12 @@ from sentry.types.region import get_local_region
 def process_audit_log_event(payload: Any, **kwds: Any):
     if payload is not None:
         log_rpc_service.record_audit_log(event=AuditLogEvent(**payload))
+
+
+@receiver(process_region_outbox, sender=OutboxCategory.ORGAUTHTOKEN_UPDATE)
+def process_orgauthtoken_update(payload: Any, **kwds: Any):
+    if payload is not None:
+        orgauthtoken_rpc_service.update_orgauthtoken(**payload)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.USER_IP_EVENT)
