@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.conf import settings
 from django.test import override_settings
@@ -5,7 +7,7 @@ from django.test import override_settings
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
+from sentry.silo import SiloLimit, SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import (
@@ -86,15 +88,28 @@ class RegionMappingTest(TestCase):
 
     def test_json_config_injection(self):
         clear_global_regions()
-        region_config = {
-            "name": "na",
-            "snowflake_id": 1,
-            "address": "http://na.testserver",
-            "category": RegionCategory.MULTI_TENANT.name,
-        }
-        with override_settings(SENTRY_REGION_CONFIG=[region_config]):
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            }
+        ]
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
             region = get_region_by_name("na")
         assert region.snowflake_id == 1
+
+    @patch("sentry.types.region.sentry_sdk")
+    def test_invalid_config(self, sentry_sdk_mock):
+        clear_global_regions()
+        region_config = ["invalid"]
+        assert sentry_sdk_mock.capture_exception.call_count == 0
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)), pytest.raises(
+            RegionConfigurationError
+        ):
+            get_region_by_name("na")
+        assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
@@ -129,5 +144,5 @@ class RegionMappingTest(TestCase):
             assert actual_regions == {"na"}
 
         with override_settings(SILO_MODE=SiloMode.REGION):
-            with pytest.raises(ValueError):
+            with pytest.raises(SiloLimit.AvailabilityError):
                 find_regions_for_user(user_id=user.id)

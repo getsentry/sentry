@@ -51,6 +51,7 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  CRON = 'cron',
   PROFILE = 'profile',
 }
 
@@ -74,6 +75,7 @@ export enum IssueType {
   PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
   PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
   PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
+  PROFILE_REGEX_MAIN_THREAD = 'profile_regex_main_thread',
 }
 
 export const getIssueTypeFromOccurenceType = (
@@ -88,6 +90,7 @@ export const getIssueTypeFromOccurenceType = (
     1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
     1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   };
   if (!typeId) {

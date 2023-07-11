@@ -14,7 +14,7 @@ export default function HTTPModule() {
       <PageErrorProvider>
         <Layout.Header>
           <Layout.HeaderContent>
-            <Layout.Title>{t('API')}</Layout.Title>
+            <Layout.Title>{t('API Calls')}</Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
 

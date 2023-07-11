@@ -59,7 +59,7 @@ type DateRangeChangeData = Parameters<
   React.ComponentProps<typeof DateRange>['onChange']
 >[0];
 
-const defaultProps = {
+const defaultProps: DefaultProps = {
   /**
    * Show absolute date selectors
    */
@@ -83,7 +83,15 @@ const defaultProps = {
   onChange: (() => {}) as (data: ChangeData) => void,
 };
 
-type Props = WithRouterProps & {
+interface DefaultProps {
+  defaultPeriod?: string;
+  maxPickableDays?: number;
+  onChange?: (data: ChangeData) => void;
+  showAbsolute?: boolean;
+  showRelative?: boolean;
+}
+
+export interface TimeRangeSelectorProps extends DefaultProps, WithRouterProps {
   /**
    * End date value for absolute date selector
    */
@@ -159,6 +167,10 @@ type Props = WithRouterProps & {
   label?: React.ReactNode;
 
   /**
+   * The maximum range (ie. endDate - startDate) allowed to be selected
+   */
+  maxDateRange?: number;
+  /**
    * The maximum number of days in the past you can pick
    */
   maxPickableDays?: number;
@@ -177,7 +189,7 @@ type Props = WithRouterProps & {
    * Show the pin button in the dropdown's header actions
    */
   showPin?: boolean;
-} & Partial<typeof defaultProps>;
+}
 
 type State = {
   hasChanges: boolean;
@@ -190,10 +202,10 @@ type State = {
   utc?: boolean | null;
 };
 
-class TimeRangeSelector extends PureComponent<Props, State> {
+class TimeRangeSelector extends PureComponent<TimeRangeSelectorProps, State> {
   static defaultProps = defaultProps;
 
-  constructor(props: Props) {
+  constructor(props: TimeRangeSelectorProps) {
     super(props);
 
     let start: Date | undefined = undefined;
@@ -227,7 +239,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
     }
   }
 
-  callCallback = (callback: Props['onChange'], datetime: ChangeData) => {
+  callCallback = (callback: TimeRangeSelectorProps['onChange'], datetime: ChangeData) => {
     if (typeof callback !== 'function') {
       return;
     }
@@ -433,6 +445,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
       label,
       relativeOptions,
       maxPickableDays,
+      maxDateRange,
       customDropdownButton,
       detached,
       disabled,
@@ -509,6 +522,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                         onChange={this.handleSelectDateRange}
                         onChangeUtc={this.handleUseUtc}
                         maxPickableDays={maxPickableDays}
+                        maxDateRange={maxDateRange}
                       />
                       <SubmitRow>
                         <MultipleSelectorSubmitRow

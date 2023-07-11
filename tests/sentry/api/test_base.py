@@ -16,6 +16,8 @@ from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.utils import json
 from sentry.utils.cursors import Cursor
 
 
@@ -162,15 +164,16 @@ class EndpointTest(APITestCase):
         org = self.create_organization()
         apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
-        request = self.make_request(method="GET")
-        request.META["HTTP_ORIGIN"] = "http://acme.example.com"
-        request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
-            apikey.key.encode("utf-8")
-        )
+        for http_origin in ["http://acme.example.com", "http://fakeacme.com"]:
+            request = self.make_request(method="GET")
+            request.META["HTTP_ORIGIN"] = http_origin
+            request.META["HTTP_AUTHORIZATION"] = b"Basic " + base64.b64encode(
+                apikey.key.encode("utf-8")
+            )
 
-        response = _dummy_endpoint(request)
-        response.render()
-        assert "Access-Control-Allow-Credentials" not in response
+            response = _dummy_endpoint(request)
+            response.render()
+            assert "Access-Control-Allow-Credentials" not in response
 
     def test_invalid_cors_without_auth(self):
         request = self.make_request(method="GET")
@@ -305,6 +308,37 @@ class CursorGenerationTest(APITestCase):
             ' rel="next"; results="true"; cursor="1492107369532:0:0"'
         )
 
+    def test_preserves_ssl_proto(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/", secure_scheme=True)
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options({"system.url-prefix": "https://testserver"}):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
+    def test_handles_customer_domains(self):
+        request = self.make_request(
+            method="GET", path="/api/0/organizations/", secure_scheme=True, subdomain="bebe"
+        )
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        with override_options(
+            {
+                "system.url-prefix": "https://testserver",
+                "system.organization-url-template": "https://{hostname}",
+            }
+        ):
+            result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<https://bebe.testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
     def test_unicode_path(self):
         request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
         endpoint = Endpoint()
@@ -401,14 +435,31 @@ class EndpointJSONBodyTest(APITestCase):
 
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self):
+        clear_global_regions()
+
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return resolve_region(request)
 
-        assert request_with_subdomain("us") == "us"
-        assert request_with_subdomain("eu") == "eu"
-        assert request_with_subdomain("sentry") is None
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "eu",
+                "snowflake_id": 1,
+                "address": "http://eu.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+        ]
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
+            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("eu") == "eu"
+            assert request_with_subdomain("sentry") is None
 
 
 class EndpointSiloLimitTest(APITestCase):
@@ -460,7 +511,7 @@ class FunctionSiloLimitTest(APITestCase):
             if expect_to_be_active:
                 decorated_function()
             else:
-                with raises(ValueError):
+                with raises(FunctionSiloLimit.AvailabilityError):
                     decorated_function()
 
     def test_with_active_mode(self):

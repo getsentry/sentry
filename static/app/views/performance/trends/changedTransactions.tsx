@@ -220,9 +220,11 @@ function ChangedTransactions(props: Props) {
 
   const {isLoading: isCardinalityCheckLoading, outcome} = useMetricsCardinalityContext();
 
+  const canUseMetricsTrends = withBreakpoint && !outcome?.forceTransactionsOnly;
+
   const trendView = props.trendView.clone();
   const chartTitle = getChartTitle(trendChangeType);
-  modifyTrendView(trendView, location, trendChangeType, projects, organization);
+  modifyTrendView(trendView, location, trendChangeType, projects, canUseMetricsTrends);
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
@@ -243,7 +245,7 @@ function ChangedTransactions(props: Props) {
       cursor={cursor}
       limit={5}
       setError={error => setError(error?.message)}
-      withBreakpoint={withBreakpoint && !outcome?.forceTransactionsOnly}
+      withBreakpoint={canUseMetricsTrends}
     >
       {({isLoading, trendsData, pageLinks}) => {
         const trendFunction = getCurrentTrendFunction(location);

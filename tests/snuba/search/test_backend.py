@@ -268,7 +268,10 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         self, query, expected_groups, expected_negative_groups=None, environments=None, user=None
     ):
         results = self.make_query(search_filter_query=query, environments=environments, user=user)
-        sort_key = lambda result: result.id
+
+        def sort_key(result):
+            return result.id
+
         assert sorted(results, key=sort_key) == sorted(expected_groups, key=sort_key)
 
         if expected_negative_groups is not None:
@@ -1072,8 +1075,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         ga.update(team=self.team, user_id=None)
         assert GroupAssignee.objects.get(id=ga.id).user_id is None
 
-        results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == {self.group2}
+        with Feature({"organizations:assign-to-me": False}):
+            results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
+            assert set(results) == {self.group2}
 
         # test when there should be no results
         other_user = self.create_user()
@@ -1112,12 +1116,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
 
-        self.run_test_query(
-            "assigned:me",
-            [my_team_group, self.group2],
-            user=self.user,
-        )
-        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                "assigned:me",
+                [my_team_group, self.group2],
+                user=self.user,
+            )
+            assert not GroupAssignee.objects.filter(
+                user_id=self.user.id, group=my_team_group
+            ).exists()
 
         with self.feature("organizations:assign-to-me"):
             self.run_test_query(
@@ -1153,13 +1160,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         GroupAssignee.objects.create(
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
-
-        self.run_test_query(
-            "assigned:[me]",
-            [my_team_group, self.group2],
-            user=self.user,
-        )
-        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                "assigned:[me]",
+                [my_team_group, self.group2],
+                user=self.user,
+            )
+            assert not GroupAssignee.objects.filter(
+                user_id=self.user.id, group=my_team_group
+            ).exists()
 
         with self.feature("organizations:assign-to-me"):
             self.run_test_query(
@@ -1214,22 +1223,23 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=self.user.id, group=self.group2, project=self.group2.project
         )
         ga_2.update(team=self.team, user_id=None)
-        self.run_test_query(
-            f"assigned:[{self.user.username}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
-        )
-        self.run_test_query(
-            f"assigned:[#{self.team.slug}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
-        )
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                f"assigned:[{self.user.username}, {other_user.username}]",
+                [self.group2, group_3],
+                [self.group1],
+            )
+            self.run_test_query(
+                f"assigned:[#{self.team.slug}, {other_user.username}]",
+                [self.group2, group_3],
+                [self.group1],
+            )
 
-        self.run_test_query(
-            f"assigned:[me, none, {other_user.username}]",
-            [self.group1, self.group2, group_3],
-            [],
-        )
+            self.run_test_query(
+                f"assigned:[me, none, {other_user.username}]",
+                [self.group1, self.group2, group_3],
+                [],
+            )
 
     def test_assigned_or_suggested_in_syntax(self):
         Group.objects.all().delete()
@@ -2618,7 +2628,8 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             },
             project_id=new_project.id,
         )
-        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+        # datetime(2017, 9, 6, 0, 0)
+        old_event.data["timestamp"] = 1504656000.0
 
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
@@ -2668,7 +2679,8 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             },
             project_id=new_project.id,
         )
-        old_event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+        # datetime(2017, 9, 6, 0, 0)
+        old_event.data["timestamp"] = 1504656000.0
 
         with self.feature("organizations:issue-list-better-priority-sort"):
             weights: PrioritySortWeights = {
@@ -3371,7 +3383,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         event_id_1 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_1),
+            self.build_occurrence_data(event_id=event_id_1, issue_title="File I/O on Main Thread"),
             {
                 "event_id": event_id_1,
                 "project_id": self.project.id,
@@ -3386,7 +3398,11 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         event_id_2 = uuid.uuid4().hex
         _, group_info = process_event_and_issue_occurrence(
-            self.build_occurrence_data(event_id=event_id_2, fingerprint=["put-me-in-group-2"]),
+            self.build_occurrence_data(
+                event_id=event_id_2,
+                fingerprint=["put-me-in-group-2"],
+                issue_title="File I/O on Main Thread",
+            ),
             {
                 "event_id": event_id_2,
                 "project_id": self.project.id,
@@ -3448,18 +3464,25 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         self.error_group_2 = error_event_2.group
 
     def test_no_feature(self):
-        results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+        results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
         assert list(results) == []
 
     def test_generic_query(self):
         with self.feature(
             ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
         ):
-            results = self.make_query(search_filter_query="issue.category:profile my_tag:1")
+            results = self.make_query(search_filter_query="issue.category:performance my_tag:1")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
             results = self.make_query(
                 search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
+            assert list(results) == [self.profile_group_1, self.profile_group_2]
+
+    def test_generic_query_message(self):
+        with self.feature(
+            ["organizations:issue-platform", ProfileFileIOGroupType.build_visible_feature_name()]
+        ):
+            results = self.make_query(search_filter_query="File I/O")
             assert list(results) == [self.profile_group_1, self.profile_group_2]
 
     def test_generic_query_perf(self):
@@ -3509,7 +3532,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
                 self.error_group_1,
             ]
             results = self.make_query(
-                search_filter_query="issue.category:[profile, error] my_tag:1"
+                search_filter_query="issue.category:[performance, error] my_tag:1"
             )
             assert list(results) == [
                 self.profile_group_1,
@@ -3534,7 +3557,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         ):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3545,7 +3568,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3556,7 +3579,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile my_tag:1",
+                search_filter_query="issue.category:performance my_tag:1",
                 sort_by="date",
                 limit=1,
                 cursor=results.next,
@@ -3575,7 +3598,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
         ):
             results = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.unhandled:0",
+                search_filter_query="issue.category:performance error.unhandled:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3583,7 +3606,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results2 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.unhandled:1",
+                search_filter_query="issue.category:performance error.unhandled:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3591,7 +3614,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             result3 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.handled:0",
+                search_filter_query="issue.category:performance error.handled:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3599,7 +3622,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results4 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.handled:1",
+                search_filter_query="issue.category:performance error.handled:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3607,7 +3630,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results5 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.main_thread:0",
+                search_filter_query="issue.category:performance error.main_thread:0",
                 sort_by="date",
                 limit=1,
                 count_hits=True,
@@ -3615,7 +3638,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
             results6 = self.make_query(
                 projects=[self.project],
-                search_filter_query="issue.category:profile error.main_thread:1",
+                search_filter_query="issue.category:performance error.main_thread:1",
                 sort_by="date",
                 limit=1,
                 count_hits=True,

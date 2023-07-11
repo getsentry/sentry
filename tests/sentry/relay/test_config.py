@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta
 from unittest import mock
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 
 import pytest
 import pytz
@@ -21,6 +21,7 @@ from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
 from sentry.models import ProjectKey, ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
@@ -134,15 +135,15 @@ SOME_EXCEPTION = RuntimeError("foo")
 @django_db_all
 @region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
-@mock.patch("sentry.relay.config.sentry_sdk")
-def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
+@mock.patch("sentry.relay.config.logger")
+def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
     # Key is missing from config:
     assert "dynamicSampling" not in cfg.to_dict()["config"]
-    assert mock_sentry_sdk.capture_exception.call_args == mock.call(SOME_EXCEPTION)
+    assert mock_logger.error.call_args == mock.call(ANY, exc_info=True)
 
 
 @django_db_all
@@ -640,32 +641,80 @@ def test_project_config_get_at_path(default_project):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "has_health_check, health_check_set",
-    [
-        (True, True),
-        (False, True),
-        (True, False),
-        (False, False),
-    ],
-    ids=[
-        "with_healthcheck, option set",
-        "without_healthcheck, option set",
-        "with_healthcheck, option not set",
-        "without_healthcheck, option not set",
-    ],
+    "health_check_set",
+    [True, False],
+    ids=["healthcheck set", "healthcheck not set"],
 )
-def test_healthcheck_filter(default_project, has_health_check, health_check_set):
+def test_healthcheck_filter(default_project, health_check_set):
     """
     Tests that the project config properly returns healthcheck filters when the
-    flag is set for the org and the user has enabled healthcheck filters.
+    user has enabled healthcheck filters.
     """
 
-    default_project.update_option("filters:health-check", "1" if health_check_set else "0")
-    with Feature({"organizations:health-check-filter": has_health_check}):
-        config = get_project_config(default_project).to_dict()["config"]
+    default_project.update_option("filters:filtered-transaction", "1" if health_check_set else "0")
+    config = get_project_config(default_project).to_dict()["config"]
 
     _validate_project_config(config)
     filter_settings = get_path(config, "filterSettings")
     config_has_health_check = "ignoreTransactions" in filter_settings
-    should_have_health_check_config = has_health_check and health_check_set
-    assert config_has_health_check == should_have_health_check_config
+    assert config_has_health_check == health_check_set
+    if health_check_set:
+        health_check_config = filter_settings["ignoreTransactions"]
+        # healthcheck is enabled
+        assert health_check_config["isEnabled"]
+        # we have some patterns
+        assert len(health_check_config["patterns"]) > 1
+
+
+@django_db_all
+def test_alert_metric_extraction_rules_empty(default_project):
+    features = {
+        "organizations:transaction-metrics-extraction": True,
+        "organizations:on-demand-metrics-extraction": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project).to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=False)
+        assert "metricExtraction" not in config
+
+
+@django_db_all
+def test_alert_metric_extraction_rules(default_project, factories):
+    # Alert compatible with out-of-the-box metrics. This should NOT be included
+    # in the config.
+    factories.create_alert_rule(
+        default_project.organization,
+        [default_project],
+        query="event.type:transaction environment:production",
+        dataset=Dataset.Transactions,
+    )
+
+    # Alert requiring an on-demand metric. This should be included in the config.
+    factories.create_alert_rule(
+        default_project.organization,
+        [default_project],
+        query="event.type:transaction transaction.duration:<10m",
+        dataset=Dataset.PerformanceMetrics,
+    )
+
+    features = {
+        "organizations:transaction-metrics-extraction": True,
+        "organizations:on-demand-metrics-extraction": True,
+    }
+
+    with Feature(features):
+        config = get_project_config(default_project).to_dict()["config"]
+        validate_project_config(json.dumps(config), strict=False)
+        assert config["metricExtraction"] == {
+            "version": 1,
+            "metrics": [
+                {
+                    "category": "transaction",
+                    "mri": "c:transactions/on_demand@none",
+                    "field": None,
+                    "condition": {"name": "event.duration", "op": "lt", "value": 600000.0},
+                    "tags": [{"key": "query_hash", "value": ANY}],
+                }
+            ],
+        }

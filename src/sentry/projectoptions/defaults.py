@@ -92,7 +92,8 @@ register(
     },
 )
 
-register(key="filters:health-check", default="1")
+# NOTE: this is the HealthCheck filter, the name should match Relay reason (which is filtered-transaction)
+register(key="filters:filtered-transaction", default="1")
 
 # Which user-defined tags should be copied from transaction events to the
 # extracted performance metrics.

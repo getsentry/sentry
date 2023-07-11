@@ -290,6 +290,11 @@ def get_orgs_with_project_counts(
         last_result = last_result[first_idx:]
         if not more_results:
             break
+    else:
+        log_query_timeout(
+            query="get_orgs_with_project_counts", offset=offset, timeout_seconds=MAX_SECONDS
+        )
+
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
 
@@ -369,7 +374,9 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
             }
 
     else:
-        log_query_timeout(query="fetch_project_transaction_totals", offset=offset)
+        log_query_timeout(
+            query="fetch_project_transaction_totals", offset=offset, timeout_seconds=MAX_SECONDS
+        )
 
     return None
 
@@ -495,7 +502,11 @@ def fetch_transactions_with_total_volumes(
                 }
             break
     else:
-        log_query_timeout(query="fetch_transactions_with_total_volumes", offset=offset)
+        log_query_timeout(
+            query="fetch_transactions_with_total_volumes",
+            offset=offset,
+            timeout_seconds=MAX_SECONDS,
+        )
 
     return None
 

@@ -23,6 +23,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseWithVersionSerializer,
 )
+from sentry.api.utils import get_auth_api_token_type
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Activity,
@@ -33,7 +34,7 @@ from sentry.models import (
     ReleaseStatus,
     SemverFilter,
 )
-from sentry.models.apitoken import is_api_token_auth
+from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -535,7 +536,7 @@ class OrganizationReleasesEndpoint(
                     ]
                 scope.set_tag("has_refs", bool(refs))
                 if refs:
-                    if not request.user.is_authenticated:
+                    if not request.user.is_authenticated and not request.auth:
                         scope.set_tag("failure_reason", "user_not_authenticated")
                         return Response(
                             {"refs": ["You must use an authenticated API token to fetch refs"]},
@@ -564,8 +565,13 @@ class OrganizationReleasesEndpoint(
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     created_status=status,
-                    auth_type="api_token" if is_api_token_auth(request.auth) else None,
+                    auth_type=get_auth_api_token_type(request.auth),
                 )
+
+                if is_org_auth_token_auth(request.auth):
+                    update_org_auth_token_last_used(
+                        request.auth, [project.id for project in projects]
+                    )
 
                 scope.set_tag("success_status", status)
                 return Response(serialize(release, request.user), status=status)

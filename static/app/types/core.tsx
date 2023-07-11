@@ -127,9 +127,9 @@ export type PageFilters = {
    * Currently selected time filter
    */
   datetime: {
-    end: DateString;
+    end: DateString | null;
     period: string | null;
-    start: DateString;
+    start: DateString | null;
     utc: boolean | null;
   };
   /**

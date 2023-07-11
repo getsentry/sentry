@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import random
 from typing import Any, Mapping, Optional
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.cocoa_sdk_crash_detector import CocoaSDKCrashDetector
+from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
 
@@ -19,6 +21,16 @@ class SDKCrashReporter:
 
 
 class SDKCrashDetection:
+    """
+    This class checks events for SDK crashes, a crash caused by a bug in one of our SDKs.
+    When it detects such an event, it only keeps essential data and stores the event in a
+    dedicated Sentry project only Sentry employees can access.
+
+    This class doesn't seek to detect severe bugs, such as the transport layer breaking or
+    the SDK continuously crashing. CI or other quality mechanisms should find such severe
+    bugs. Furthermore, the solution only targets SDKs maintained by us, Sentry.
+    """
+
     def __init__(
         self,
         sdk_crash_reporter: SDKCrashReporter,
@@ -27,40 +39,55 @@ class SDKCrashDetection:
         self.sdk_crash_reporter = sdk_crash_reporter
         self.cocoa_sdk_crash_detector = sdk_crash_detector
 
-    def detect_sdk_crash(self, event: Event, event_project_id: int) -> Optional[Event]:
+    def detect_sdk_crash(
+        self, event: Event, event_project_id: int, sample_rate: float
+    ) -> Optional[Event]:
+        """
+        Checks if the passed-in event is an SDK crash and stores the stripped event to a Sentry
+        project specified with event_project_id.
+
+        :param event: The event to check for an SDK crash.
+        :param event_project_id: The project ID to store the SDK crash event to if one is detected.
+        :param sample_rate: Sampling gets applied after an event is considered an SDK crash.
+        """
+
         should_detect_sdk_crash = (
             event.group
             and event.group.issue_category == GroupCategory.ERROR
-            and event.group.platform == "cocoa"
+            and self.cocoa_sdk_crash_detector.should_detect_sdk_crash(event.data)
         )
         if not should_detect_sdk_crash:
             return None
 
         context = get_path(event.data, "contexts", "sdk_crash_detection")
-        if context is not None and context.get("detected", False):
-            return None
-
-        # Getting the frames and checking if the event is unhandled might different per platform.
-        # We will change this once we implement this for more platforms.
-        is_unhandled = (
-            get_path(event.data, "exception", "values", -1, "mechanism", "data", "handled") is False
-        )
-        if is_unhandled is False:
+        if context is not None:
             return None
 
         frames = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
         if not frames:
             return None
 
-        # We still need to pass in the frames to validate it's an unhandled event coming from the Cocoa SDK.
-        # We will do this in a separate PR.
-        if self.cocoa_sdk_crash_detector.is_sdk_crash():
-            # We still need to strip event data for to avoid collecting PII. We will do this in a separate PR.
-            sdk_crash_event_data = event.data
+        if self.cocoa_sdk_crash_detector.is_sdk_crash(frames):
+            if random.random() >= sample_rate:
+                return None
+
+            sdk_crash_event_data = strip_event_data(event.data, self.cocoa_sdk_crash_detector)
 
             set_path(
-                sdk_crash_event_data, "contexts", "sdk_crash_detection", value={"detected": True}
+                sdk_crash_event_data,
+                "contexts",
+                "sdk_crash_detection",
+                value={
+                    "original_project_id": event.project.id,
+                    "original_event_id": event.event_id,
+                },
             )
+
+            sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
+            set_path(sdk_crash_event_data, "release", value=sdk_version)
+
+            # So Sentry can tell how many projects are impacted by this SDK crash
+            set_path(sdk_crash_event_data, "user", "id", value=event.project.id)
 
             return self.sdk_crash_reporter.report(sdk_crash_event_data, event_project_id)
 

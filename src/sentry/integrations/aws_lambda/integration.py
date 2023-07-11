@@ -5,12 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from botocore.exceptions import ClientError
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import analytics, options
-from sentry.api.serializers import serialize
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -22,6 +21,7 @@ from sentry.integrations.mixins import ServerlessMixin
 from sentry.models import Integration, OrganizationIntegration, User
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
@@ -258,7 +258,10 @@ class AwsLambdaProjectSelectPipelineView(PipelineView):
             return pipeline.next_step()
 
         projects = sorted(projects, key=lambda p: p.slug)
-        serialized_projects = [serialize(x, request.user) for x in projects]
+        serialized_projects = project_service.serialize_many(
+            organization_id=organization.id,
+            filter=dict(project_ids=[p.id for p in projects]),
+        )
         return self.render_react_view(
             request, "awsLambdaProjectSelect", {"projects": serialized_projects}
         )

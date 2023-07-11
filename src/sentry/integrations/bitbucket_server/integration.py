@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
 from django.core.validators import URLValidator
 from django.http import HttpResponse
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
@@ -29,7 +29,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.web.helpers import render_to_response
 
-from .client import BitbucketServer, BitbucketServerSetupClient
+from .client import BitbucketServerClient, BitbucketServerSetupClient
 from .repository import BitbucketServerRepositoryProvider
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
@@ -238,10 +238,10 @@ class BitbucketServerIntegration(IntegrationInstallation, RepositoryMixin):
             except Identity.DoesNotExist:
                 raise IntegrationError("Identity not found.")
 
-        return BitbucketServer(
-            self.model.metadata["base_url"],
-            self.default_identity.data,
-            self.model.metadata["verify_ssl"],
+        return BitbucketServerClient(
+            integration=self.model,
+            identity_id=self.org_integration.default_auth_id,
+            org_integration_id=self.org_integration.id,
         )
 
     @property

@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import GlobalModal from 'sentry/components/globalModal';
@@ -427,6 +433,49 @@ describe('EventTagsAndScreenshot', function () {
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${moreAttachments[2].id}/?download`
       );
+    });
+
+    it('can delete a screenshot', async function () {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/`,
+        body: attachments,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/1765467046/`,
+        method: 'DELETE',
+      });
+      render(
+        <EventTagsAndScreenshot
+          event={{...event, tags, contexts}}
+          organization={organization}
+          projectSlug={project.slug}
+          location={router.location}
+        />,
+        {organization}
+      );
+      renderGlobalModal();
+
+      // Open screenshot menu and select delete
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More screenshot actions'})
+      );
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+
+      // Selecting delete should open a confirmation modal
+      expect(
+        within(screen.getByRole('dialog')).getByText(
+          /are you sure you want to delete this image/i
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Confirm'})
+      );
+
+      // Screenshot should be removed after confirmation
+      expect(
+        screen.queryByRole('button', {name: 'View screenshot'})
+      ).not.toBeInTheDocument();
     });
 
     it('has context and attachments only', async function () {

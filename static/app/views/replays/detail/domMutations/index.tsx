@@ -35,6 +35,7 @@ function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
   return useQuery(['getDomNodes', replay], () => replay?.getDomNodes() ?? [], {
     enabled: Boolean(replay),
     initialData: [],
+    cacheTime: Infinity,
   });
 }
 

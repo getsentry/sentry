@@ -6,8 +6,9 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Form, TextField} from 'sentry/components/forms';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
+import TextField from 'sentry/components/forms/fields/textField';
+import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -17,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, OrgAuthToken} from 'sentry/types';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
+  getApiQueryData,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -103,23 +105,30 @@ function AuthTokenDetailsForm({
       );
 
       // Update get list query
-      setApiQueryData(
-        queryClient,
-        makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
-        (oldData: OrgAuthToken[] | undefined) => {
-          if (!Array.isArray(oldData)) {
+      if (
+        getApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug})
+        )
+      ) {
+        setApiQueryData(
+          queryClient,
+          makeFetchOrgAuthTokensForOrgQueryKey({orgSlug: organization.slug}),
+          (oldData: OrgAuthToken[] | undefined) => {
+            if (!Array.isArray(oldData)) {
+              return oldData;
+            }
+
+            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
+
+            if (existingToken) {
+              existingToken.name = name;
+            }
+
             return oldData;
           }
-
-          const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-
-          if (existingToken) {
-            existingToken.name = name;
-          }
-
-          return oldData;
-        }
-      );
+        );
+      }
 
       handleGoBack();
     },

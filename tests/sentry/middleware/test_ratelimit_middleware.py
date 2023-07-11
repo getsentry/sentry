@@ -3,10 +3,9 @@ from functools import cached_property
 from time import sleep, time
 from unittest.mock import patch
 
-from django.conf.urls import url
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
-from django.urls import reverse
+from django.urls import re_path, reverse
 from freezegun import freeze_time
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -325,10 +324,12 @@ class CallableRateLimitConfigEndpoint(Endpoint):
 
 
 urlpatterns = [
-    url(r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"),
-    url(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
-    url(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
-    url(
+    re_path(
+        r"^/ratelimit$", RateLimitHeaderTestEndpoint.as_view(), name="ratelimit-header-endpoint"
+    ),
+    re_path(r"^/race-condition$", RaceConditionEndpoint.as_view(), name="race-condition-endpoint"),
+    re_path(r"^/concurrent$", ConcurrentRateLimitedEndpoint.as_view(), name="concurrent-endpoint"),
+    re_path(
         r"^/callable-config$",
         CallableRateLimitConfigEndpoint.as_view(),
         name="callable-config-endpoint",
@@ -367,7 +368,7 @@ class TestRatelimitHeader(APITestCase):
             assert int(response["X-Sentry-Rate-Limit-Limit"]) == 2
             assert int(response["X-Sentry-Rate-Limit-Reset"]) == expected_reset_time
 
-    @patch("sentry.ratelimits.utils.get_rate_limit_key")
+    @patch("sentry.middleware.ratelimit.get_rate_limit_key")
     def test_omit_header(self, can_be_ratelimited_patch):
         """
         Ensure that functions that can't be rate limited don't have rate limit headers
@@ -378,9 +379,9 @@ class TestRatelimitHeader(APITestCase):
         """
         can_be_ratelimited_patch.return_value = None
         response = self.get_response()
-        assert "X-Sentry-Rate-Limit-Remaining" not in response._headers
-        assert "X-Sentry-Rate-Limit-Limit" not in response._headers
-        assert "X-Sentry-Rate-Limit-Reset" not in response._headers
+        assert not response.has_header("X-Sentry-Rate-Limit-Remaining")
+        assert not response.has_header("X-Sentry-Rate-Limit-Limit")
+        assert not response.has_header("X-Sentry-Rate-Limit-Reset")
 
     def test_header_race_condition(self):
         """Make sure concurrent requests don't affect each other's rate limit"""

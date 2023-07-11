@@ -22,12 +22,12 @@ describe('OrganizationApiKeys', function () {
     getMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/',
       method: 'GET',
-      body: [TestStubs.ApiKey()],
+      body: [TestStubs.DeprecatedApiKey()],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',
       method: 'GET',
-      body: TestStubs.ApiKey(),
+      body: TestStubs.DeprecatedApiKey(),
     });
     deleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/api-keys/1/',

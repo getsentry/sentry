@@ -3,7 +3,7 @@ from __future__ import annotations
 import responses
 import sentry_kafka_schemas
 
-from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.utils.dates import to_timestamp
 
 __all__ = (
@@ -137,7 +137,7 @@ from sentry.search.events.constants import (
     SPAN_METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.silo import SiloMode
 from sentry.snuba.metrics.datasource import get_series
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
@@ -154,7 +154,6 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import _snuba_pool
 
-from ..services.hybrid_cloud.actor import RpcActor
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..snuba.metrics import (
     MetricConditionField,
@@ -169,7 +168,7 @@ from . import assert_status_code
 from .factories import Factories
 from .fixtures import Fixtures
 from .helpers import AuthProvider, Feature, TaskRunner, override_options, parse_queries
-from .silo import exempt_from_silo_limits
+from .silo import assume_test_silo_mode
 from .skips import requires_snuba
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
@@ -239,15 +238,27 @@ class BaseTestCase(Fixtures):
         self.client.cookies[name].update({k.replace("_", "-"): v for k, v in params.items()})
 
     def make_request(
-        self, user=None, auth=None, method=None, is_superuser=False, path="/"
+        self,
+        user=None,
+        auth=None,
+        method=None,
+        is_superuser=False,
+        path="/",
+        secure_scheme=False,
+        subdomain=None,
     ) -> HttpRequest:
         request = HttpRequest()
+        if subdomain:
+            setattr(request, "subdomain", subdomain)
         if method:
             request.method = method
         request.path = path
         request.META["REMOTE_ADDR"] = "127.0.0.1"
         request.META["SERVER_NAME"] = "testserver"
         request.META["SERVER_PORT"] = 80
+        if secure_scheme:
+            secure_header = settings.SECURE_PROXY_SSL_HEADER
+            request.META[secure_header[0]] = secure_header[1]
 
         # order matters here, session -> user -> other things
         request.session = self.session
@@ -269,13 +280,13 @@ class BaseTestCase(Fixtures):
         self, user, organization_id=None, organization_ids=None, superuser=False, superuser_sso=True
     ):
         if isinstance(user, OrganizationMember):
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.CONTROL):
                 user = User.objects.get(id=user.user_id)
 
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
-        with exempt_from_silo_limits():
+        with override_settings(SILO_MODE=SiloMode.MONOLITH):
             login(request, user)
         request.user = user
 
@@ -424,7 +435,7 @@ class _AssertQueriesContext(CaptureQueriesContext):
 @override_settings(ROOT_URLCONF="sentry.web.urls")
 class TestCase(BaseTestCase, DjangoTestCase):
     # We need Django to flush all databases.
-    databases = "__all__"
+    databases: set[str] | str = "__all__"
 
     # Ensure that testcases that ask for DB setup actually make use of the
     # DB. If they don't, they're wasting CI time.
@@ -495,10 +506,16 @@ class TestCase(BaseTestCase, DjangoTestCase):
 
 
 class TransactionTestCase(BaseTestCase, DjangoTransactionTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     pass
 
 
 class PerformanceIssueTestCase(BaseTestCase):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
     def create_performance_issue(
         self,
         tags=None,
@@ -570,6 +587,9 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     When creating API tests, use a new class per endpoint-method pair. The class
     must set the string `endpoint`.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     method = "get"
 
@@ -982,7 +1002,7 @@ class IntegrationTestCase(TestCase):
         super().setUp()
 
         self.organization = self.create_organization(name="foo", owner=self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             rpc_organization = serialize_rpc_organization(self.organization)
 
         self.login_as(self.user)
@@ -1017,6 +1037,9 @@ class SnubaTestCase(BaseTestCase):
     Useful when you are working on acceptance tests or integration
     tests that require snuba.
     """
+
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
 
     def setUp(self):
         super().setUp()
@@ -1256,7 +1279,7 @@ class BaseMetricsTestCase(SnubaTestCase):
                     else to_timestamp(session["started"])
                 ),
                 value,
-                use_case_id=UseCaseKey.RELEASE_HEALTH,
+                use_case_id=UseCaseID.SESSIONS,
             )
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
@@ -1302,14 +1325,14 @@ class BaseMetricsTestCase(SnubaTestCase):
         tags: Dict[str, str],
         timestamp: int,
         value,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
     ):
         mapping_meta = {}
 
         def metric_id(key: str):
             assert isinstance(key, str)
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=key,
             )
@@ -1320,7 +1343,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_key(name):
             assert isinstance(name, str)
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=name,
             )
@@ -1331,11 +1354,11 @@ class BaseMetricsTestCase(SnubaTestCase):
         def tag_value(name):
             assert isinstance(name, str)
 
-            if use_case_id == UseCaseKey.PERFORMANCE:
+            if use_case_id == UseCaseID.TRANSACTIONS:
                 return name
 
             res = indexer.record(
-                use_case_id=REVERSE_METRIC_PATH_MAPPING[use_case_id],
+                use_case_id=use_case_id,
                 org_id=org_id,
                 string=name,
             )
@@ -1364,13 +1387,13 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": 2 if use_case_id == UseCaseKey.PERFORMANCE else 1,
+            "version": 2 if use_case_id == UseCaseID.TRANSACTIONS else 1,
         }
 
         msg["mapping_meta"] = {}
         msg["mapping_meta"][msg["type"]] = mapping_meta
 
-        if use_case_id == UseCaseKey.PERFORMANCE:
+        if use_case_id == UseCaseID.TRANSACTIONS:
             entity = f"generic_metrics_{type}s"
         else:
             entity = f"metrics_{type}s"
@@ -1442,7 +1465,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         name: str,
         tags: Dict[str, str],
         value: int,
-        use_case_id: UseCaseKey,
+        use_case_id: UseCaseID,
         type: Optional[str] = None,
         org_id: Optional[int] = None,
         project_id: Optional[int] = None,
@@ -1532,7 +1555,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseKey.PERFORMANCE,
+            use_case_id=UseCaseID.TRANSACTIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1559,7 +1582,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1613,6 +1636,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
     ENTITY_MAP = {
         "transaction.duration": "metrics_distributions",
         "span.duration": "metrics_distributions",
+        "span.self_time": "metrics_distributions",
         "measurements.lcp": "metrics_distributions",
         "measurements.fp": "metrics_distributions",
         "measurements.fcp": "metrics_distributions",
@@ -1656,7 +1680,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,
+        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,
     ):
         internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1684,19 +1708,19 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def store_span_metric(
         self,
         value: List[int] | int,
-        metric: str = "span.duration",
+        metric: str = "span.self_time",
         internal_metric: Optional[str] = None,
         entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[int] = None,
-        use_case_id: UseCaseKey = UseCaseKey.PERFORMANCE,  # TODO(wmak): this needs to be the span id
+        use_case_id: UseCaseID = UseCaseID.TRANSACTIONS,  # TODO(wmak): this needs to be the span id
     ):
         internal_metric = SPAN_METRICS_MAP[metric] if internal_metric is None else internal_metric
         entity = self.ENTITY_MAP[metric] if entity is None else entity
@@ -1724,7 +1748,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
 
     def wait_for_metric_count(
@@ -1751,7 +1775,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             data = get_series(
                 [project],
                 metrics_query=metrics_query,
-                use_case_id=UseCaseKey.PERFORMANCE,
+                use_case_id=UseCaseID.TRANSACTIONS,
             )
             count = data["groups"][0]["totals"][f"count({metric})"]
             if count >= total:
@@ -1949,7 +1973,7 @@ class IntegrationRepositoryTestCase(APITestCase):
     def add_create_repository_responses(self, repository_config):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.MONOLITH)
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
     ):
@@ -2314,19 +2338,19 @@ class SlackActivityNotificationTest(ActivityTestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         self.integration = install_slack(self.organization)
@@ -2378,19 +2402,19 @@ class MSTeamsActivityNotificationTest(ActivityTestCase):
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.WORKFLOW,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.ISSUE_ALERTS,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.MSTEAMS,
             NotificationSettingTypes.DEPLOY,
             NotificationSettingOptionValues.ALWAYS,
-            actor=RpcActor.from_orm_user(self.user),
+            user_id=self.user.id,
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
 
@@ -2463,7 +2487,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             },
             type="counter",
             value=1,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -2473,7 +2497,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             tags={"tag3": "value3"},
             type="counter",
             value=1,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -2487,7 +2511,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             },
             type="set",
             value=123,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -2497,7 +2521,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
             tags={},
             type="set",
             value=123,
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            use_case_id=UseCaseID.SESSIONS,
         )
 
 

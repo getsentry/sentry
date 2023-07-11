@@ -1,6 +1,6 @@
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, inline_serializer
 from rest_framework import serializers
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -232,6 +232,7 @@ class ProjectParams:
 - `browser-extensions`: Filter out errors known to be caused by browser extensions.
 - `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
+- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 - `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
 ways which then cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
@@ -245,7 +246,19 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
+        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
+    )
+
+    BROWSER_SDK_VERSION = OpenApiParameter(
+        name="browserSdkVersion",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+The Sentry Javascript SDK version to use. The currently supported options are:
+- `7.x`
+- `latest`
+""",
     )
 
     DEFAULT_RULES = OpenApiParameter(
@@ -256,13 +269,84 @@ incorrect or missing.
         description="Defaults to true where the behavior is to alert the user on every new issue. Setting this to false will turn this off and the user must create their own alerts to be notified of new issues.",
     )
 
+    DYNAMIC_SDK_LOADER_OPTIONS = OpenApiParameter(
+        name="dynamicSdkLoaderOptions",
+        location="query",
+        required=False,
+        type=inline_serializer(
+            name="DynamicSDKLoaderOptionsSerializer",
+            fields={
+                "hasReplay": serializers.BooleanField(required=False),
+                "hasPerformance": serializers.BooleanField(required=False),
+                "hasDebug": serializers.BooleanField(required=False),
+            },
+        ),
+        description="""
+Configures multiple options for the Javascript Loader Script.
+- `Performance Monitoring`
+- `Debug Bundles & Logging`
+- `Session Replay`: Note that the loader will load the ES6 bundle instead of the ES5 bundle.
+```json
+{
+    "dynamicSdkLoaderOptions": {
+        "hasReplay": true,
+        "hasPerformance": true,
+        "hasDebug": true
+    }
+}
+```
+""",
+    )
+
+    IS_ACTIVE = OpenApiParameter(
+        name="isActive",
+        location="query",
+        required=False,
+        type=bool,
+        description="Activate or deactivate the client key.",
+    )
+
+    IS_BOOKMARKED = OpenApiParameter(
+        name="isBookmarked",
+        location="query",
+        required=False,
+        type=bool,
+        description="Enables starring the project within the projects tab.",
+    )
+
+    RATE_LIMIT = OpenApiParameter(
+        name="rateLimit",
+        location="query",
+        required=False,
+        type=inline_serializer(
+            name="RateLimitParameterSerializer",
+            fields={
+                "window": serializers.IntegerField(required=False),
+                "count": serializers.IntegerField(required=False),
+            },
+        ),
+        description="""
+Applies a rate limit to cap the number of errors accepted during a given time window. To
+disable entirely set `rateLimit` to null.
+```json
+{
+    "rateLimit": {
+        "window": 7200, // time in seconds
+        "count": 1000 // error cap
+    }
+}
+```
+        """,
+    )
+
     SUB_FILTERS = OpenApiParameter(
         name="subfilters",
         location="query",
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
-        description="""A list specifying which legacy browser filters should be active. Anything excluded from
-                    the list will be turned off. The options are:
+        description="""
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10
@@ -273,6 +357,16 @@ incorrect or missing.
 - `android_pre_4`: Android Version 3 and lower
 """,
     )
+
+    @staticmethod
+    def key_id(description: str) -> OpenApiParameter:
+        return OpenApiParameter(
+            name="key_id",
+            location="path",
+            required=True,
+            type=str,
+            description=description,
+        )
 
     @staticmethod
     def platform(description: str) -> OpenApiParameter:
@@ -291,5 +385,7 @@ class TeamParams:
         location="query",
         required=False,
         type=str,
-        description='Specify "0" to return team details that do not include projects.',
+        description="""
+Specify `"0"` to return team details that do not include projects.
+""",
     )

@@ -1,9 +1,9 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from django.db import models
 from django.db.models import SET_NULL, Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext_lazy as _
 
 from sentry.db.models import (
     BaseManager,
@@ -276,4 +276,43 @@ def record_group_history(
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
+    )
+
+
+def bulk_record_group_history(
+    groups: List["Group"],
+    status: int,
+    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    release: Optional["Release"] = None,
+):
+    from sentry.models import Team, User
+    from sentry.services.hybrid_cloud.user import RpcUser
+
+    def get_prev_history_date(group, status):
+        prev_history = get_prev_history(group, status)
+        return prev_history.date_added if prev_history else None
+
+    actor_id = None
+    if actor:
+        if isinstance(actor, RpcUser) or isinstance(actor, User):
+            actor_id = get_actor_id_for_user(actor)
+        elif isinstance(actor, Team):
+            actor_id = actor.actor_id
+        else:
+            raise ValueError("record_group_history actor argument must be RPCUser or Team")
+
+    return GroupHistory.objects.bulk_create(
+        [
+            GroupHistory(
+                organization=group.project.organization,
+                group=group,
+                project=group.project,
+                release=release,
+                actor_id=actor_id,
+                status=status,
+                prev_history=get_prev_history(group, status),
+                prev_history_date=get_prev_history_date(group, status),
+            )
+            for group in groups
+        ]
     )

@@ -12,7 +12,7 @@ import pytz
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from sentry import eventtypes
 from sentry.db.models import NodeData
@@ -558,12 +558,12 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         if event_metadata:
             for value in event_metadata.values():
-                value_u = force_text(value, errors="replace")
+                value_u = force_str(value, errors="replace")
                 if value_u not in message:
                     message = f"{message} {value_u}"
 
         if culprit and culprit not in message:
-            culprit_u = force_text(culprit, errors="replace")
+            culprit_u = force_str(culprit, errors="replace")
             message = f"{message} {culprit_u}"
 
         return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
@@ -778,7 +778,7 @@ def augment_message_with_occurrence(message: str, occurrence: IssueOccurrence) -
     for attr in ("issue_title", "subtitle", "culprit"):
         value = getattr(occurrence, attr, "")
         if value and value not in message:
-            value = force_text(value, errors="replace")
+            value = force_str(value, errors="replace")
             message = f"{message} {value}"
     return message
 
@@ -814,8 +814,6 @@ class EventSubjectTemplateData:
         elif name == "title":
             if getattr(self.event, "occurrence", None):
                 return self.event.occurrence.issue_title
-            elif self.event.group and self.event.group.issue_category == GroupCategory.PERFORMANCE:
-                return self.event.group.issue_type.description
             else:
                 return self.event.title
 

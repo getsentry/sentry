@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
@@ -58,18 +59,18 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
   const theme = useTheme();
 
   const options: SelectOption<DataDisplayType>[] = [
+    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
     {label: 'Duration (p95)', value: DataDisplayType.DURATION_P95},
     {label: 'Total Duration', value: DataDisplayType.CUMULATIVE_DURATION},
-    {label: 'Percentages', value: DataDisplayType.PERCENTAGE},
   ];
 
   const [dataDisplayType, setDataDisplayType] = useState<DataDisplayType>(
-    DataDisplayType.DURATION_P95
+    DataDisplayType.PERCENTAGE
   );
 
   const {data: segments, isLoading: isSegmentsLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      selection,
+      location,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -83,7 +84,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
 
   const {data: cumulativeTime, isLoading: isCumulativeDataLoading} = useDiscoverQuery({
     eventView: getCumulativeTimeEventView(
-      selection,
+      location,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
       }`,
@@ -100,6 +101,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
     isError,
   } = useEventsStatsQuery({
     eventView: getEventView(
+      location,
       selection,
       `transaction.op:http.server ${transaction ? `transaction:${transaction}` : ''} ${
         transactionMethod ? `http.method:${transactionMethod}` : ''
@@ -202,6 +204,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const getEventView = (
+  location: Location,
   pageFilters: PageFilters,
   query: string,
   groups: string[],
@@ -213,39 +216,37 @@ const getEventView = (
       ? `p95(${SPAN_SELF_TIME})`
       : `sum(${SPAN_SELF_TIME})`;
 
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
-    yAxis: getTimeseries ? [yAxis] : [],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_self_time',
-    projects: [1],
-    version: 2,
-    topEvents: groups.length > 0 ? '4' : undefined,
-    interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`, ...groups],
+      yAxis: getTimeseries ? [yAxis] : [],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+      topEvents: groups.length > 0 ? '4' : undefined,
+      interval: getTimeseries ? getInterval(pageFilters.datetime, 'low') : undefined,
+    },
+    location
+  );
 };
 
 const getCumulativeTimeEventView = (
-  pageFilters: PageFilters,
+  location: Location,
   query: string,
   groups: string[]
 ) => {
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
-    query,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    orderby: '-sum_span_self_time',
-    projects: [1],
-    version: 2,
-    topEvents: groups.length > 0 ? '4' : undefined,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, ...groups],
+      query,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+      topEvents: groups.length > 0 ? '4' : undefined,
+    },
+    location
+  );
 };
