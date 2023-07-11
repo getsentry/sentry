@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.db import models
 from django.db.models import Q, QuerySet
@@ -238,6 +238,22 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
+def get_replay_count_for_group(group: Group) -> int:
+    events = eventstore.backend.get_events(
+        filter=eventstore.Filter(
+            conditions=[["replayId", "!=", None]],
+            project_ids=[group.project_id],
+            group_ids=[group.id],
+        ),
+        limit=1,
+        orderby=EventOrdering.MOST_HELPFUL,
+        referrer="Group.get_replay_count_for_group",
+        dataset=Dataset.Events,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    return events
+
+
 def get_helpful_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
@@ -260,7 +276,7 @@ def get_helpful_event_for_environments(
         all_conditions.extend(conditions)
 
     end = group.last_seen + timedelta(minutes=1)
-    start = end - timedelta(days=14)
+    start = end - timedelta(days=7)
 
     events = eventstore.get_events_snql(
         organization_id=group.project.organization_id,
@@ -398,19 +414,32 @@ class GroupManager(BaseManager):
         status: GroupStatus,
         substatus: GroupSubStatus | None,
         activity_type: ActivityType,
+        activity_data: Optional[Mapping[str, Any]] = None,
+        send_activity_notification: bool = True,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models import Activity
 
-        updated_count = (
-            self.filter(id__in=[g.id for g in groups])
-            .exclude(status=status)
-            .update(status=status, substatus=substatus)
+        to_be_updated = self.filter(id__in=[g.id for g in groups]).exclude(
+            status=status, substatus=substatus
         )
-        if updated_count:
-            for group in groups:
-                Activity.objects.create_group_activity(group, activity_type)
-                record_group_history_from_activity_type(group, activity_type.value)
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+
+        self.bulk_update(to_be_updated, ["status", "substatus"])
+
+        for group in to_be_updated:
+            group.status = status
+            group.substatus = substatus
+            Activity.objects.create_group_activity(
+                group,
+                activity_type,
+                data=activity_data,
+                send_notification=send_activity_notification,
+            )
+            record_group_history_from_activity_type(group, activity_type.value)
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -502,7 +531,7 @@ class Group(Model):
     time_spent_count = BoundedIntegerField(default=0)
     score = BoundedIntegerField(default=0)
     # deprecated, do not use. GroupShare has superseded
-    is_public = models.NullBooleanField(default=False, null=True)
+    is_public = models.BooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
@@ -589,6 +618,9 @@ class Group(Model):
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
+
+    def has_replays(self):
+        return get_replay_count_for_group(self) > 0
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic

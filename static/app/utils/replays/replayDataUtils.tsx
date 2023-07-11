@@ -1,5 +1,4 @@
 import invariant from 'invariant';
-import first from 'lodash/first';
 import {duration} from 'moment';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
@@ -15,7 +14,6 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import isValidDate from 'sentry/utils/date/isValidDate';
 import getMinMax from 'sentry/utils/getMinMax';
 import type {
-  RecordingEvent,
   ReplayCrumb,
   ReplayError,
   ReplayRecord,
@@ -72,26 +70,6 @@ export function mapResponseToReplayRecord(apiResponse: any): ReplayRecord {
       : {}),
     tags,
   };
-}
-
-export function rrwebEventListFactory(
-  replayRecord: ReplayRecord,
-  rrwebEvents: RecordingEvent[]
-) {
-  const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
-    type: 5, // EventType.Custom,
-    timestamp: replayRecord.finished_at.getTime(),
-    data: {
-      tag: 'replay-end',
-    },
-  } as RecordingEvent);
-
-  events.sort((a, b) => a.timestamp - b.timestamp);
-
-  const firstRRWebEvent = first(events) as RecordingEvent;
-  firstRRWebEvent.timestamp = replayRecord.started_at.getTime();
-
-  return events;
 }
 
 export function breadcrumbFactory(

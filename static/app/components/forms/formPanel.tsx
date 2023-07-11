@@ -2,7 +2,9 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {IconChevron} from 'sentry/icons';
 import {Scope} from 'sentry/types';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
@@ -29,6 +31,7 @@ type Props = {
    * The name of the field that should be highlighted
    */
   highlighted?: string;
+  initiallyCollapsed?: boolean;
   /**
    * Renders inside of PanelBody before PanelBody close
    */
@@ -52,9 +55,10 @@ function FormPanel({
   renderFooter,
   renderHeader,
   collapsible,
+  initiallyCollapsed = false,
   ...otherProps
 }: Props) {
-  const [collapsed, setCollapse] = useState(false);
+  const [collapsed, setCollapse] = useState(initiallyCollapsed);
   const handleCollapseToggle = useCallback(() => setCollapse(current => !current), []);
 
   return (
@@ -64,7 +68,11 @@ function FormPanel({
           {title}
           {collapsible && (
             <Collapse onClick={handleCollapseToggle}>
-              <IconChevron direction={collapsed ? 'down' : 'up'} size="xs" />
+              <IconChevron
+                data-test-id="form-panel-collapse-chevron"
+                direction={collapsed ? 'down' : 'up'}
+                size="xs"
+              />
             </Collapse>
           )}
         </PanelHeader>

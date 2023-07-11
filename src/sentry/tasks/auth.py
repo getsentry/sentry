@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import logging
 
-from django.db import IntegrityError
 from django.db.models import F
 from django.urls import reverse
 
@@ -89,9 +88,10 @@ class OrganizationComplianceTask(abc.ABC):
             user = user_service.get_user(user_id=member.user_id)
             logging_data = {"organization_id": org_id, "user_id": user.id, "member_id": member.id}
 
-            try:
-                organization_service.remove_user(organization_id=org_id, user_id=user.id)
-            except (AssertionError, IntegrityError):
+            removed_member = organization_service.remove_user(
+                organization_id=org_id, user_id=user.id
+            )
+            if removed_member is None:
                 logger.warning(
                     f"Could not remove {self.log_label} noncompliant user from org",
                     extra=logging_data,

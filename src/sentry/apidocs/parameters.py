@@ -232,6 +232,7 @@ class ProjectParams:
 - `browser-extensions`: Filter out errors known to be caused by browser extensions.
 - `localhost`: Filter out events coming from localhost. This applies to both IPv4 (``127.0.0.1``)
 and IPv6 (``::1``) addresses.
+- `filtered-transaction`: Filter out transactions for healthcheck and ping endpoints.
 - `web-crawlers`: Filter out known web crawlers. Some crawlers may execute pages in incompatible
 ways which then cause errors that are unlikely to be seen by a normal user.
 - `legacy-browser`: Filter out known errors from legacy browsers. Older browsers often give less
@@ -245,7 +246,7 @@ incorrect or missing.
         location="query",
         required=False,
         type=bool,
-        description="Toggle the browser-extensions, localhost, or web-crawlers filter on or off.",
+        description="Toggle the browser-extensions, localhost, filtered-transaction, or web-crawlers filter on or off.",
     )
 
     BROWSER_SDK_VERSION = OpenApiParameter(
@@ -305,6 +306,46 @@ Configures multiple options for the Javascript Loader Script.
         description="Activate or deactivate the client key.",
     )
 
+    IS_BOOKMARKED = OpenApiParameter(
+        name="isBookmarked",
+        location="query",
+        required=False,
+        type=bool,
+        description="Enables starring the project within the projects tab.",
+    )
+
+    OPTIONS = OpenApiParameter(
+        name="options",
+        location="query",
+        required=False,
+        type=inline_serializer(
+            name="OptionsSerializer",
+            fields={
+                "filters:react-hydration-errors": serializers.BooleanField(required=False),
+                "filters:blacklisted_ips": serializers.CharField(required=False),
+                "filters:releases": serializers.CharField(required=False),
+                "filters:error_messages": serializers.CharField(required=False),
+            },
+        ),
+        description="""
+Configure various project filters:
+- `Hydration Errors`: Filter out react hydration errors that are often unactionable
+- `IP Addresses`: Filter events from these IP addresses separated with newlines.
+- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+```json
+{
+    options: {
+        filters:react-hydration-errors: true,
+        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
+        filters:releases: "[!3]\\n4"
+        filters:error_messages: "TypeError*\\n*ConnectionError*"
+    }
+}
+```
+""",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",
@@ -336,8 +377,8 @@ disable entirely set `rateLimit` to null.
         required=False,
         type=build_typed_list(OpenApiTypes.STR),
         description="""
-A list specifying which legacy browser filters should be active. Anything excluded from the list
-will be turned off. The options are:
+Specifies which legacy browser filters should be active. Anything excluded from the list will be
+disabled. The options are:
 - `ie_pre_9`: Internet Explorer Version 8 and lower
 - `ie9`: Internet Explorer Version 9
 - `ie10`: Internet Explorer Version 10

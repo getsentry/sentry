@@ -1,3 +1,53 @@
+23.6.2
+------
+
+### Escalating Issues V1 (ongoing)
+
+This will allow marking an issue as archived until escalating.
+
+By: @scttcper (#51765, #51852, #52048, #51766, #51735, #51671, #51158, #51185, #51187)
+
+### Grouping Release (2023-01-01 config)
+
+Added new language/platform specific stack trace grouping enhancements rules that should make the default grouping experience better. This includes JavaScript, Python, PHP, Go, Java and Kotlin.
+
+By: @armenzg (#51040)
+
+### Search Shortcuts (ongoing)
+
+Make common searches more accessible and discoverable for users. [notion page](https://www.notion.so/sentry/Search-Shortcuts-fka-Assignee-Filter-on-Issue-Stream-648954e782d04805bc64f1983e5cbd16?pvs=4)
+
+By: @scttcper (#51564, #51565, #51194)
+
+### Various fixes & improvements
+
+- meta(routing) Sync with product-owners.yml in security-as-code@4447d434 (#52367) by @getsantry
+- fix(ui): Set lazy calendar component type (#52381) by @scttcper
+- chore(gh-comments): Drop pr window to 7 days for rollout (#51837) by @AniketDas-Tekky
+- ref(autocomplete): convert test to tsx (#52357) by @JonasBa
+- feat(functions): Tune function trends default threshold (#52346) by @Zylphrex
+- fix(starfish): Time spent local was always querying light time spent (#52374) by @shruthilayaj
+- ref(tests): convert test to tsx (#52368) by @JonasBa
+- feat(slack): slack channel lookup via schedule message (#52034) by @chloeho7
+- feat(crons): Change crons groupcategory name (#52037) by @rjo100
+- feat(perf-detector-threshold-configuration) Added frontend changes for more threshold configurations. (#52262) by @Abdkhan14
+- fix(hc): Prevent exception from siloed_atomic (#52326) by @RyanSkonnord
+- feat(escalating-issues): Update MsTeams integration to use Group substates (#51756) by @NisanthanNanthakumar
+- ref(crons): Remove references to crons-issue-platform flag (#52036) by @rjo100
+- Ref(generic-metrics): set default for index-tag-values to False (#52370) by @john-z-yang
+- feat(github-comments): use internal feature flag (#52002) by @cathteng
+- fix(ui): Export named constants from forms (#52361) by @scttcper
+- fix(mute-metric-alerts): Use incident link in metric alert emails for muting (#52363) by @roggenkemper
+- feat(starfish): API module consistency and continuity updaes (#52347) by @edwardgou-sentry
+- fix(mute-metric-alerts): Add query params to incident redirect (#52362) by @roggenkemper
+- fix(github-comments): update option toggle copy (#52354) by @cathteng
+- nit: Update fly build config (#52301) by @nhsiehgit
+- ref: django 3.x does not pass None groups to views any more (#52341) by @asottile-sentry
+- meta(routing) Sync with product-owners.yml in security-as-code@3d4fceac (#52355) by @getsantry
+- ref: make app label an identifier (#52342) by @asottile-sentry
+
+_Plus 790 more_
+
 23.6.1
 ------
 

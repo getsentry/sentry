@@ -28,10 +28,6 @@ TEST_REDIS_DB = 9
 def pytest_configure(config):
     import warnings
 
-    from django.utils.deprecation import RemovedInDjango30Warning  # type: ignore[attr-defined]
-
-    warnings.filterwarnings(action="ignore", category=RemovedInDjango30Warning)
-
     # This is just to filter out an obvious warning before the pytest session starts.
     warnings.filterwarnings(
         action="ignore",
@@ -72,6 +68,9 @@ def pytest_configure(config):
             # an actual migration.
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
+
+    # Ensure we can test secure ssl settings
+    settings.SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
     # silence (noisy) loggers by default when testing
     settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"  # type: ignore[index]

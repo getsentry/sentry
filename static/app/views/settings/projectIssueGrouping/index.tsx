@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventGroupingConfig, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -25,9 +25,9 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
 
 type State = {
   groupingConfigs: EventGroupingConfig[] | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectIssueGrouping extends AsyncView<Props, State> {
+class ProjectIssueGrouping extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -41,7 +41,7 @@ class ProjectIssueGrouping extends AsyncView<Props, State> {
     };
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization, project} = this.props;
     return [
       [

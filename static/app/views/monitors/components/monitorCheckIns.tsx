@@ -8,9 +8,10 @@ import Duration from 'sentry/components/duration';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils';
@@ -97,7 +98,24 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
               <Text>{statusToText[checkIn.status]}</Text>
             </Status>
             {checkIn.status !== CheckInStatus.MISSED ? (
-              <DateTime date={checkIn.dateCreated} timeOnly />
+              <div>
+                {monitor.config.timezone ? (
+                  <Tooltip
+                    title={
+                      <DateTime
+                        date={checkIn.dateCreated}
+                        forcedTimezone={monitor.config.timezone}
+                        timeZone
+                        timeOnly
+                      />
+                    }
+                  >
+                    {<DateTime date={checkIn.dateCreated} timeOnly />}
+                  </Tooltip>
+                ) : (
+                  <DateTime date={checkIn.dateCreated} timeOnly />
+                )}
+              </div>
             ) : (
               emptyCell
             )}

@@ -2,9 +2,21 @@ from __future__ import annotations
 
 import functools
 import inspect
+import re
 import sys
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    MutableMapping,
+    MutableSet,
+    Set,
+    Tuple,
+    Type,
+)
 from unittest import TestCase
 
 import pytest
@@ -164,6 +176,36 @@ region_silo_test = SiloModeTest(SiloMode.REGION, SiloMode.MONOLITH)
 
 
 @contextmanager
+def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
+    """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
+    test code in a special silo context.
+    In monolith mode, this context manager has no effect.
+    This context manager, should never be run outside of test contexts.  In fact, it depends on test code that will
+    not exist in production!
+    When run in either Region or Control silo modes, it forces the settings.SILO_MODE to the desired_silo.
+    Notably, this won't be thread safe, so again, only use this in factories and test cases, not code, or you'll
+    have a nightmare when your (threaded) acceptance tests bleed together and do whacky things :o)
+    Use this in combination with factories or test setup code to create models that don't correspond with your
+    given test mode.
+    """
+    # Only swapping the silo mode if we are already in a silo mode.
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        desired_silo = SiloMode.MONOLITH
+
+    overrides: MutableMapping[str, Any] = {}
+    if desired_silo != SiloMode.get_current_mode():
+        overrides["SILO_MODE"] = desired_silo
+    if desired_silo == SiloMode.REGION and not getattr(settings, "SENTRY_REGION"):
+        overrides["SENTRY_REGION"] = "na"
+
+    if overrides:
+        with override_settings(**overrides):
+            yield
+    else:
+        yield
+
+
+@contextmanager
 def exempt_from_silo_limits() -> Generator[None, None, None]:
     """Exempt test setup code from silo mode checks.
 
@@ -225,7 +267,7 @@ _role_privileges_created: MutableMapping[str, bool] = {}
 
 def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     global _role_created
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.argv[0]:
         return
 
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -294,6 +336,68 @@ def restrict_role(role: str, model: Any, revocation_type: str, using: str = "def
     using = router.db_for_write(model)
     with get_connection(using).cursor() as connection:
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
+
+
+def protected_table(table: str, operation: str) -> re.Pattern:
+    return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
+
+
+protected_operations = (
+    protected_table("sentry_organizationmember", "insert"),
+    protected_table("sentry_organizationmember", "update"),
+    protected_table("sentry_organizationmember", "delete"),
+    protected_table("sentry_organization", "insert"),
+    protected_table("sentry_organization", "update"),
+    protected_table("sentry_organizationmapping", "insert"),
+    protected_table("sentry_organizationmapping", "update"),
+    protected_table("sentry_organizationmembermapping", "insert"),
+)
+
+fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
+
+
+def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
+    """
+    Validate a list of queries to ensure that protected queries
+    are wrapped in role_override fence values.
+
+    See sentry.db.postgres.roles for where fencing queries come from.
+    """
+    fence_depth = 0
+    for query in queries:
+        sql = query["sql"]
+        match = fence_re.match(sql)
+        if match:
+            operation = match.group("operation")
+            if operation == "start":
+                fence_depth += 1
+            elif operation == "end":
+                fence_depth = max(fence_depth - 1, 0)
+            else:
+                raise AssertionError("Invalid fencing operation encounted")
+
+        for protected in protected_operations:
+            if protected.match(sql):
+                if fence_depth == 0:
+                    msg = [
+                        "Found protected operation without explicit outbox escape!",
+                        "",
+                        sql,
+                        "",
+                        "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
+                        "If you are confident that outboxes are being generated, wrap the "
+                        "operation that generates this query with the `in_test_psql_role_override` ",
+                        "context manager to resolve this failure. For example:",
+                        "",
+                        "with in_test_psql_role_override():",
+                        "    membership.delete()",
+                        "",
+                        "Full query log:",
+                        "",
+                    ]
+                    msg.extend([q["sql"] for q in queries])
+
+                    raise AssertionError("\n".join(msg))
 
 
 def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:

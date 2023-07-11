@@ -1,8 +1,11 @@
 import {useTheme} from '@emotion/react';
 
+import {t} from 'sentry/locale';
 import {EChartClickHandler, EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {P95_COLOR} from 'sentry/views/starfish/colours';
 import Chart from 'sentry/views/starfish/components/chart';
+import {isNearBaseline} from 'sentry/views/starfish/components/samplesTable/common';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanSample, useSpanSamples} from 'sentry/views/starfish/queries/useSpanSamples';
@@ -32,8 +35,19 @@ function DurationChart({
   transactionMethod,
 }: Props) {
   const theme = useTheme();
+  const {setPageError} = usePageError();
 
-  const getSampleSymbol = (duration: number, p95: number) => {
+  const getSampleSymbol = (
+    duration: number,
+    p95: number
+  ): {color: string; symbol: string} => {
+    if (isNearBaseline(duration, p95)) {
+      return {
+        symbol: 'path://M 0 0 V -8 L 5 0 L 0 8 L -5 0 L 0 -8',
+        color: theme.gray300,
+      };
+    }
+
     return duration > p95
       ? {
           symbol: 'path://M 5 4 L 0 -4 L -5 4 L 5 4',
@@ -45,18 +59,23 @@ function DurationChart({
         };
   };
 
-  const {isLoading, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+  const {
+    isLoading,
+    data: spanMetricsSeriesData,
+    error: spanMetricsSeriesError,
+  } = useSpanMetricsSeries(
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'sidebar-span-metrics'
   );
 
-  const {data: spanMetrics} = useSpanMetrics(
+  const {data: spanMetrics, error: spanMetricsError} = useSpanMetrics(
     {group: groupId},
-    {transactionName},
+    {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'span-summary-panel-samples-table-p95',
+    Boolean(groupId && transactionName && transactionMethod)
   );
 
   const p95 = spanMetrics?.[`p95(${SPAN_SELF_TIME})`] || 0;
@@ -145,6 +164,10 @@ function DurationChart({
       onMouseLeaveSample();
     }
   };
+
+  if (spanMetricsSeriesError || spanMetricsError) {
+    setPageError(t('An error has occured while loading chart data'));
+  }
 
   return (
     <div onMouseLeave={handleMouseLeave}>

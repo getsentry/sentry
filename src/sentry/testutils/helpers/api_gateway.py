@@ -2,8 +2,9 @@ from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
-from django.conf.urls import url
+from django.db import router
 from django.test import override_settings
+from django.urls import re_path
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -42,12 +43,12 @@ class RegionEndpoint(OrganizationEndpoint):
 
 
 urlpatterns = [
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/control/$",
         ControlEndpoint.as_view(),
         name="control-endpoint",
     ),
-    url(
+    re_path(
         r"^organizations/(?P<organization_slug>[^\/]+)/region/$",
         RegionEndpoint.as_view(),
         name="region-endpoint",
@@ -135,7 +136,7 @@ class ApiGatewayTestCase(APITestCase):
             adding_headers={"test": "header"},
         )
 
-        with in_test_psql_role_override("postgres"):
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.get(organization_id=self.organization.id).update(
                 region_name="region1"
             )

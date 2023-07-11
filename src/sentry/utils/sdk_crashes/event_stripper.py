@@ -82,6 +82,7 @@ EVENT_DATA_ALLOWLIST = {
             "family": Allow.SIMPLE_TYPE,
             "model": Allow.SIMPLE_TYPE,
             "arch": Allow.SIMPLE_TYPE,
+            "simulator": Allow.SIMPLE_TYPE,
         },
         "os": {
             "name": Allow.SIMPLE_TYPE,
@@ -95,19 +96,28 @@ EVENT_DATA_ALLOWLIST = {
 def strip_event_data(
     event_data: NodeData, sdk_crash_detector: SDKCrashDetector
 ) -> Mapping[str, Any]:
-    new_event_data = _strip_event_data_with_allowlist(event_data, EVENT_DATA_ALLOWLIST)
+    """
+    This method keeps only properties based on the ALLOW_LIST. For frames, both the allow list applies,
+    and the method only keeps SDK frames and system library frames.
+    """
 
-    if (new_event_data is None) or (new_event_data == {}):
+    frames = get_path(event_data, "exception", "values", -1, "stacktrace", "frames")
+    if not frames:
         return {}
 
-    frames = get_path(new_event_data, "exception", "values", -1, "stacktrace", "frames")
+    # We strip the frames first because applying the allowlist removes fields that are needed
+    # for deciding wether to keep a frame or not.
+    stripped_frames = _strip_frames(frames, sdk_crash_detector)
 
-    if frames is not None:
-        stripped_frames = _strip_frames(frames, sdk_crash_detector)
+    event_data_copy = dict(event_data)
+    event_data_copy["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
 
-        new_event_data["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
+    stripped_event_data = _strip_event_data_with_allowlist(event_data_copy, EVENT_DATA_ALLOWLIST)
 
-    return new_event_data
+    if not stripped_event_data:
+        return {}
+
+    return stripped_event_data
 
 
 def _strip_event_data_with_allowlist(

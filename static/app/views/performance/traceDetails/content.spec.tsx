@@ -103,7 +103,7 @@ describe('TraceDetailsContent', () => {
       );
 
       const errorContainer = errorText.parentElement;
-      expect(errorContainer).not.toBeNull();
+      expect(errorContainer).toBeInTheDocument();
     });
   });
 });

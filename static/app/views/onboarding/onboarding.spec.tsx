@@ -168,13 +168,14 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -260,13 +261,14 @@ describe('Onboarding', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/docs/javascript-react-with-error-monitoring/`,
-      body: null,
+      url: `/projects/org-slug/${reactProject.slug}/`,
+      body: [reactProject],
     });
 
     MockApiClient.addMockResponse({
-      url: `/projects/org-slug/${reactProject.slug}/`,
-      body: [reactProject],
+      url: `/projects/org-slug/${reactProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
     });
 
     MockApiClient.addMockResponse({
@@ -392,7 +394,7 @@ describe('Onboarding', function () {
     );
 
     // Select the React platform
-    await userEvent.click(screen.getByTestId('platform-javascript-react'));
+    await userEvent.click(screen.getByTestId('platform-javascript-vue'));
 
     // Click on 'configure SDK' button
     await userEvent.click(screen.getByRole('button', {name: 'Configure SDK'}));

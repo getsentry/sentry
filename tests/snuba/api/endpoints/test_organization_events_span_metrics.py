@@ -23,6 +23,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         super().setUp()
         self.min_ago = before_now(minutes=1)
         self.six_min_ago = before_now(minutes=6)
+        self.three_days_ago = before_now(days=3)
         self.features = {
             "organizations:starfish-view": True,
         }
@@ -59,7 +60,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         self.store_span_metric(
             1,
             internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.min_ago,
+            timestamp=self.three_days_ago,
         )
         response = self.do_request(
             {
@@ -67,6 +68,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                 "query": "",
                 "project": self.project.id,
                 "dataset": "spansMetrics",
+                "statsPeriod": "7d",
             }
         )
         assert response.status_code == 200, response.content
@@ -260,6 +262,24 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["transaction"] == "foo_transaction"
         assert data[1]["time_spent_percentage()"] == 0.2
         assert data[1]["transaction"] == "bar_transaction"
+        assert meta["dataset"] == "spansMetrics"
+
+    def test_time_spent_percentage_local(self):
+        response = self.do_request(
+            {
+                "field": ["time_spent_percentage(local)"],
+                "query": "",
+                "orderby": ["-time_spent_percentage(local)"],
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "10m",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["time_spent_percentage(local)"] is None
         assert meta["dataset"] == "spansMetrics"
 
     def test_http_error_rate_and_count(self):
