@@ -112,12 +112,6 @@ export const steps = ({
 
 export const nextSteps = [
   {
-    id: 'source-maps',
-    name: t('Source Maps'),
-    description: t('Learn how to enable readable stack traces in your Sentry errors.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/',
-  },
-  {
     id: 'performance-monitoring',
     name: t('Performance Monitoring'),
     description: t(
