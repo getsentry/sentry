@@ -104,13 +104,7 @@ class DatabaseBackedIdentityService(IdentityService):
             return Identity.objects
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], Optional[str]]:
-            return self._filter_has_any_key_validator(
-                "user_id",
-                "identity_ext_id",
-                "provider_id",
-                "provider_ext_id",
-                "provider_type",
-            )
+            return self._filter_has_any_key_validator(*IdentityFilterArgs.__annotations__.keys())
 
         def serialize_api(self, serializer: Optional[None]) -> Serializer:
             raise NotImplementedError("API Serialization not supported for IdentityService")
