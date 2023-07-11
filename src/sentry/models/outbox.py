@@ -26,7 +26,6 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     in_test_assert_no_transaction,
@@ -464,6 +463,7 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> ContextManager[None]:
+    from sentry.testutils.silo import unguarded_write
 
     # If we don't specify our flush, use the outer specified override
     if flush is None:
@@ -477,7 +477,7 @@ def outbox_context(inner: Atomic | None = None, flush: bool | None = None) -> Co
     original = _outbox_context.flushing_enabled
 
     if inner:
-        with in_test_psql_role_override("postgres", using=inner.using), inner:
+        with unguarded_write(using=inner.using), inner:
             _outbox_context.flushing_enabled = flush
             try:
                 yield

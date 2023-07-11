@@ -1,6 +1,5 @@
 import pytest
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.region import (
@@ -13,7 +12,7 @@ from sentry.services.hybrid_cloud.region import (
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, unguarded_write
 from sentry.types.region import Region, RegionCategory
 
 
@@ -27,7 +26,7 @@ class RegionResolutionTest(TestCase):
         self.target_region = self.regions[0]
         self.organization = self.create_organization()
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             org_mapping.region_name = self.target_region.name
             org_mapping.save()
 

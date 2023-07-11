@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.auth import manager
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import (
     INVITE_DAYS_VALID,
@@ -23,7 +22,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test, unguarded_write
 
 
 @region_silo_test(stable=True)
@@ -488,7 +487,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember.objects.get(
             user_id=self.user.id, organization=self.organization
         )
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             member.update(role="manager")
         assert member.get_allowed_org_roles_to_invite() == [
             roles.get("member"),

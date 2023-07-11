@@ -8,9 +8,9 @@ import pytest
 from click.testing import CliRunner
 from freezegun import freeze_time
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.runner.commands.backup import export, import_
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.silo import unguarded_write
 from sentry.utils import json
 from sentry.utils.json import JSONData, JSONEncoder, better_default_encoder
 
@@ -111,7 +111,7 @@ def import_then_export(tmp_path: Path, fixture_file_name: str) -> None:
     with open(fixture_file_path) as backup_file:
         input = json.load(backup_file)
 
-    with in_test_psql_role_override("postgres"):
+    with unguarded_write():
         rv = CliRunner().invoke(import_, [str(fixture_file_path)])
         assert rv.exit_code == 0, rv.output
 
