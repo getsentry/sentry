@@ -66,7 +66,7 @@ setUpdatedProjectKeys(newUpdatedProjectKeys)
       {projectKeys?.length &&
         projectKeys.map(key => {
           const actualKey =
-            updatedProjectKeys.find(updatedKey => updatedKey.id === key.id) || key;
+            updatedProjectKeys.find(updatedKey => updatedKey.id === key.id) ?? key;
           return (
             <LoaderItem
               key={actualKey.id}
