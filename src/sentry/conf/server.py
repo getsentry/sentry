@@ -1298,9 +1298,11 @@ SENTRY_FEATURES = {
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables separate filters for user and user's teams
-    "organizations:assign-to-me": False,
+    "organizations:assign-to-me": True,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # Enables automatically linking repositories using commit webhook data
+    "organizations:auto-repo-linking": False,
     # The overall flag for codecov integration, gated by plans.
     "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
@@ -1560,6 +1562,7 @@ SENTRY_FEATURES = {
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-issue-emails": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1718,7 +1721,7 @@ SENTRY_PROJECT_KEY = None
 SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
+SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
@@ -2096,6 +2099,9 @@ SENTRY_SCOPES = {
     "event:admin",
     "alerts:write",
     "alerts:read",
+    "openid",
+    "profile",
+    "email",
 }
 
 SENTRY_SCOPE_SETS = (
@@ -2130,6 +2136,14 @@ SENTRY_SCOPE_SETS = (
         ("alerts:write", "Read and write alerts"),
         ("alerts:read", "Read alerts"),
     ),
+    (("openid", "Confirms authentication status and provides basic information."),),
+    (
+        (
+            "profile",
+            "Read personal information like name, avatar, date of joining etc. Requires openid scope.",
+        ),
+    ),
+    (("email", "Read email address and verification status. Requires openid scope."),),
 )
 
 SENTRY_DEFAULT_ROLE = "member"
@@ -2660,7 +2674,7 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
-STATUS_PAGE_ID = None
+STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
@@ -2699,6 +2713,7 @@ SENTRY_SDK_CONFIG = {
     "auto_enabling_integrations": False,
     "_experiments": {
         "custom_measurements": True,
+        "enable_backpressure_handling": True,
     },
 }
 

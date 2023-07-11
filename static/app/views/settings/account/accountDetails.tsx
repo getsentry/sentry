@@ -8,13 +8,13 @@ import accountDetailsFields from 'sentry/data/forms/accountDetails';
 import accountPreferencesFields from 'sentry/data/forms/accountPreferences';
 import {t} from 'sentry/locale';
 import {User} from 'sentry/types';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 const ENDPOINT = '/users/me/';
 
-class AccountDetails extends AsyncView {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+class AccountDetails extends DeprecatedAsyncView {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     // local state is NOT updated when the form saves
     return [['user', ENDPOINT]];
   }

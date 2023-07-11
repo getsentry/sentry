@@ -304,13 +304,7 @@ class IssueListOverview extends Component<Props, State> {
     if (location.query.sort) {
       return location.query.sort as string;
     }
-
-    const hasBetterPrioritySort = this.props.organization.features.includes(
-      'issue-list-better-priority-sort'
-    );
-    return hasBetterPrioritySort
-      ? IssueSortOptions.BETTER_PRIORITY
-      : DEFAULT_ISSUE_STREAM_SORT;
+    return DEFAULT_ISSUE_STREAM_SORT;
   }
 
   getQuery(): string {

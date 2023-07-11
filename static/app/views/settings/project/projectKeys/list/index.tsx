@@ -17,7 +17,7 @@ import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -32,15 +32,15 @@ type Props = {
 
 type State = {
   keyList: ProjectKey[];
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class ProjectKeys extends AsyncView<Props, State> {
+class ProjectKeys extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
     return routeTitleGen(t('Client Keys'), projectId, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const {projectId} = this.props.params;
     return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];

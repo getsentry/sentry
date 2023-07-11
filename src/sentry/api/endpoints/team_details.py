@@ -11,7 +11,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import ScheduledDeletion, Team, TeamStatus
+from sentry.models import RegionScheduledDeletion, Team, TeamStatus
 
 
 class TeamSerializer(CamelSnakeModelSerializer):
@@ -147,7 +147,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
             slug=new_slug, status=TeamStatus.PENDING_DELETION
         )
         if updated:
-            scheduled = ScheduledDeletion.schedule(team, days=0, actor=request.user)
+            scheduled = RegionScheduledDeletion.schedule(team, days=0, actor=request.user)
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
