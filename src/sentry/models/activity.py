@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 from django.conf import settings
 from django.db import models
 from django.db.models import F
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -133,6 +134,9 @@ class Activity(Model):
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
             self.group.update(num_comments=F("num_comments") + 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
@@ -140,6 +144,9 @@ class Activity(Model):
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value:
             self.group.update(num_comments=F("num_comments") - 1)
+            post_save.send_robust(
+                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+            )
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)
