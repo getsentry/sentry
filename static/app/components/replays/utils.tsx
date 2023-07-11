@@ -1,6 +1,5 @@
-import {Crumb} from 'sentry/types/breadcrumbs';
 import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -96,43 +95,36 @@ export function countColumns(durationMs: number, width: number, minWidth: number
  * This function groups crumbs into columns based on the number of columns available
  * and the timestamp of the crumb.
  */
-export function getCrumbsByColumn(
-  startTimestampMs: number,
+export function getFramesByColumn(
   durationMs: number,
-  crumbs: Crumb[],
+  frames: ReplayFrame[],
   totalColumns: number
 ) {
   const safeDurationMs = isNaN(durationMs) ? 1 : durationMs;
 
-  const columnCrumbPairs = crumbs.map(breadcrumb => {
-    const {timestamp} = breadcrumb;
-    const timestampMilliSeconds = +new Date(String(timestamp));
-    const sinceStart = isNaN(timestampMilliSeconds)
-      ? 0
-      : timestampMilliSeconds - startTimestampMs;
-
+  const columnFramePairs = frames.map(frame => {
     const columnPositionCalc =
-      Math.floor((sinceStart / safeDurationMs) * (totalColumns - 1)) + 1;
+      Math.floor((frame.offsetMs / safeDurationMs) * (totalColumns - 1)) + 1;
 
     // Should start at minimum in the first column
     const column = Math.max(1, columnPositionCalc);
 
-    return [column, breadcrumb] as [number, Crumb];
+    return [column, frame] as [number, ReplayFrame];
   });
 
-  const crumbsByColumn = columnCrumbPairs.reduce<Map<number, Crumb[]>>(
-    (map, [column, breadcrumb]) => {
+  const framesByColumn = columnFramePairs.reduce<Map<number, ReplayFrame[]>>(
+    (map, [column, frame]) => {
       if (map.has(column)) {
-        map.get(column)?.push(breadcrumb);
+        map.get(column)?.push(frame);
       } else {
-        map.set(column, [breadcrumb]);
+        map.set(column, [frame]);
       }
       return map;
     },
     new Map()
   );
 
-  return crumbsByColumn;
+  return framesByColumn;
 }
 
 type FlattenedSpanRange = {

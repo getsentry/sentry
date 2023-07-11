@@ -2,11 +2,8 @@ import invariant from 'invariant';
 
 import isValidDate from 'sentry/utils/date/isValidDate';
 import type {ErrorFrame, RawReplayError} from 'sentry/utils/replays/types';
+import {isErrorFrame} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-function isErrorFrame(frame: ErrorFrame | undefined): frame is ErrorFrame {
-  return frame !== undefined;
-}
 
 export default function hydrateErrors(
   replayRecord: ReplayRecord,
