@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 
 describe('Incident Rules Create', function () {
@@ -46,6 +47,25 @@ describe('Incident Rules Create', function () {
 
     render(
       <MetricRulesCreate
+        {...TestStubs.routeComponentProps()}
+        eventView={
+          new EventView({
+            id: '',
+            createdBy: TestStubs.User(),
+            display: '',
+            project: [],
+            environment: [],
+            name: '',
+            query: '',
+            fields: [],
+            sorts: [],
+            statsPeriod: '14d',
+            team: [],
+            topEvents: undefined,
+            start: '',
+            end: '',
+          })
+        }
         params={{projectId: project.slug}}
         organization={organization}
         project={project}

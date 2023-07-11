@@ -76,10 +76,12 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
+        {...TestStubs.routeComponentProps()}
         params={{
           projectId: project.slug,
           ruleId: rule.id,
         }}
+        userTeamIds={[]}
         organization={organization}
         onChangeTitle={onChangeTitleMock}
         project={project}
@@ -170,11 +172,12 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
+        {...TestStubs.routeComponentProps()}
         params={{
-          orgId: organization.slug,
           projectId: project.slug,
           ruleId: rule.id,
         }}
+        userTeamIds={[]}
         organization={organization}
         onChangeTitle={() => {}}
         project={project}
@@ -229,8 +232,10 @@ describe('MetricRulesEdit', function () {
 
     render(
       <MetricRulesEdit
+        {...TestStubs.routeComponentProps()}
+        userTeamIds={[]}
+        onChangeTitle={() => {}}
         params={{
-          orgId: organization.slug,
           projectId: project.slug,
           ruleId: '1234',
         }}
