@@ -91,7 +91,7 @@ class InstallationConfigView(PipelineView):
 
                 pipeline.bind_state("installation_data", form_data)
 
-                return pipeline.finish_pipeline()
+                return pipeline.next_step()
         else:
             form = InstallationForm()
 

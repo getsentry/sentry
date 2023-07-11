@@ -39,7 +39,8 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
             "api_key"
         )
 
-        assert resp.status_code == 302
+        assert resp.status_code == 200
+        self.assertDialogSuccess(resp)
 
     @responses.activate
     def test_installation(self):
@@ -61,7 +62,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertContains(resp, "Step 2")
 
-        # Go to back to instructions
+        # Go back to instructions
         resp = self.client.get(self.init_path + "?goback=1")
         assert resp.status_code == 200
         self.assertContains(resp, "Step 1")
