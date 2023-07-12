@@ -35,6 +35,7 @@ import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {TransactionSamplesTable} from 'sentry/views/starfish/components/samplesTable/transactionSamplesTable';
 import {ModuleName} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import SpansTable from 'sentry/views/starfish/views/spans/spansTable';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
@@ -111,7 +112,10 @@ export default function EndpointOverview() {
         includePrevious={false}
         partial
         limit={5}
-        interval={getInterval(pageFilter.selection.datetime, 'low')}
+        interval={getInterval(
+          pageFilter.selection.datetime,
+          STARFISH_CHART_INTERVAL_FIDELITY
+        )}
         includeTransformedData
         environment={eventView.environment}
         project={eventView.project}

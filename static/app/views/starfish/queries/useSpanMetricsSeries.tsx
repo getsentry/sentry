@@ -11,6 +11,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 const {SPAN_GROUP} = SpanMetricsFields;
@@ -89,7 +90,7 @@ function getEventView(
       fields: [],
       yAxis,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      interval: getInterval(pageFilters.datetime, 'low'),
+      interval: getInterval(pageFilters.datetime, STARFISH_CHART_INTERVAL_FIDELITY),
       version: 2,
     },
     location

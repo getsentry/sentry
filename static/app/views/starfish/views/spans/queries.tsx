@@ -6,6 +6,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
 export const useErrorRateQuery = (queryString: string) => {
@@ -20,7 +21,10 @@ export const useErrorRateQuery = (queryString: string) => {
     version: 1,
     topEvents: '5',
     dataset: DiscoverDatasets.SPANS_METRICS,
-    interval: getInterval(pageFilter.selection.datetime, 'low'),
+    interval: getInterval(
+      pageFilter.selection.datetime,
+      STARFISH_CHART_INTERVAL_FIDELITY
+    ),
     yAxis: ['http_error_count()'],
   };
 
