@@ -33,36 +33,36 @@ export const DEFAULT_APP_ROUTE = usingCustomerDomain
   : '/organizations/:orgSlug/issues/';
 
 export const API_ACCESS_SCOPES = [
-  'project:read',
-  'project:write',
-  'project:admin',
-  'project:releases',
-  'team:read',
-  'team:write',
-  'team:admin',
-  'event:read',
-  'event:write',
-  'event:admin',
-  'org:read',
-  'org:write',
-  'org:admin',
-  'org:integrations',
-  'member:read',
-  'member:write',
-  'member:admin',
   'alerts:read',
   'alerts:write',
+  'event:admin',
+  'event:read',
+  'event:write',
+  'member:admin',
+  'member:read',
+  'member:write',
+  'org:admin',
+  'org:integrations',
+  'org:read',
+  'org:write',
+  'project:admin',
+  'project:read',
+  'project:releases',
+  'project:write',
+  'team:admin',
+  'team:read',
+  'team:write',
 ] as const;
 
 // Default API scopes when adding a new API token or org API token
 export const DEFAULT_API_ACCESS_SCOPES = [
-  'event:read',
   'event:admin',
+  'event:read',
+  'member:read',
+  'org:read',
   'project:read',
   'project:releases',
-  'org:read',
   'team:read',
-  'member:read',
 ];
 
 // These should only be used in the case where we cannot obtain roles through
