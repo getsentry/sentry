@@ -4,6 +4,7 @@ import keyBy from 'lodash/keyBy';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanSamplesTable} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
@@ -35,13 +36,17 @@ function SampleTable({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'span-summary-panel-samples-table-p95',
+    Boolean(groupId && transactionName && transactionMethod)
   );
   const organization = useOrganization();
+
+  const {setPageError} = usePageError();
 
   const {
     data: spans,
     isFetching: isFetchingSamples,
+    error: sampleError,
     refetch,
   } = useSpanSamples({
     groupId,
@@ -49,7 +54,11 @@ function SampleTable({
     transactionMethod,
   });
 
-  const {data: transactions, isFetching: isFetchingTransactions} = useTransactions(
+  const {
+    data: transactions,
+    isFetching: isFetchingTransactions,
+    error: transactionError,
+  } = useTransactions(
     spans.map(span => span['transaction.id']),
     'span-summary-panel-samples-table-transactions'
   );
@@ -85,6 +94,10 @@ function SampleTable({
     isFetchingSamples ||
     (!areNoSamples && isFetchingTransactions);
 
+  if (sampleError || transactionError) {
+    setPageError(t('An error has occured while loading the samples table'));
+  }
+
   return (
     <Fragment>
       <VisuallyCompleteWithData
@@ -98,7 +111,7 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
-              op: spanMetrics['span.op'],
+              op: spanMetrics[SPAN_OP],
               transaction: transactionsById[sample['transaction.id']],
             };
           })}

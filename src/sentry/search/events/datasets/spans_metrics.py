@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Callable, Mapping, Optional, Union
 
+import sentry_sdk
 from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
@@ -378,13 +379,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
+            query=self.builder.query if scope == "local" else None,
             selected_columns=["sum(span.self_time)"],
         )
-
-        total_query.columns += self.builder.resolve_groupby()
-
-        if scope == "local":
-            total_query.where = self.builder.where
+        sentry_sdk.set_tag("query.resolved_total", scope)
 
         total_results = total_query.run_query(
             Referrer.API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD.value

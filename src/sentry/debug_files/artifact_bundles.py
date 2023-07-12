@@ -1,23 +1,40 @@
-from collections import defaultdict
-from datetime import datetime
-from typing import DefaultDict, Dict, List, Set
+from __future__ import annotations
 
+from datetime import datetime, timedelta
+from typing import Dict, List, Set, Tuple
+
+import sentry_sdk
 from django.conf import settings
-from django.db import IntegrityError, router
-from django.db.models import Q
+from django.db import router
+from django.db.models import Count
+from django.utils import timezone
 
 from sentry.models.artifactbundle import (
+    INDEXING_THRESHOLD,
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
+    DebugIdArtifactBundle,
+    ProjectArtifactBundle,
+    ReleaseArtifactBundle,
 )
+from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+
+# The number of Artifact Bundles that we return in case of incomplete indexes.
+MAX_BUNDLES_QUERY = 5
+
+# Number of days that determine whether an artifact bundle is ready for being renewed.
+AVAILABLE_FOR_RENEWAL_DAYS = 30
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
 INDEXING_CACHE_TIMEOUT = 600
+
+
+# ===== Indexing of Artifact Bundles =====
 
 
 def get_redis_cluster_for_artifact_bundles():
@@ -60,147 +77,324 @@ def index_artifact_bundles_for_release(
     This indexes the contents of `artifact_bundles` into the database, using the given `release` and `dist` pair.
 
     Synchronization is achieved using a mixture of redis cache with transient state and a binary state in the database.
-
-    To avoid too much load and queries on the database, the provided `artifact_bundles` are first merged/deduplicated
-    into an in-memory structure.
-
-    Then, indexing of individual files happens in the following way:
-    - If a key already exists with a higher `date_last_modified`, it is ignored
-      as that indicates out-of-order calls of this method. We always want the
-      most up-to-date bundle to win.
-    - Otherwise, the key is created or updated to point to the `artifact_bundle`.
-
-    This function is idempotent and such property makes it suitable for a more flexible implementation on the calling
-    side.
     """
 
-    # First: we check if all the bundles to index, are actually not being indexed by someone else. We could also check
-    # if the bundles are actually not indexed in the db, but it's too expensive, and it will only save us some work in
-    # specific cases.
-    bundles_to_index = []
-
     for artifact_bundle in artifact_bundles:
-        # For each bundle we will atomically check if it is not in progress before actually marking it as
-        # `being indexed`. In order to do this atomic check, we will issue a single operation with cas semantics, which
-        # will apply the insertion only if the specific key doesn't exist.
-        if set_artifact_bundle_being_indexed_if_null(
-            organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
-        ):
-            bundles_to_index.append(artifact_bundle)
-        else:
-            # A different asynchronous job is taking care of this bundle.
-            metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
-
-    artifact_bundles = bundles_to_index
-    if not artifact_bundles:
-        return
-
-    # Second: we merge in-memory all the files of the bundles to index, in order to obtain the minimum set of changes
-    # that we can apply on the database (e.g., two bundles with identical files will end up with just the newest files
-    # actually indexed in the database).
-    files_to_index: Dict[str, ArtifactBundle] = {}
-
-    for artifact_bundle in artifact_bundles:
-        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
         try:
-            for info in archive.get_files().values():
-                url = info.get("url")
-                if url is None:
-                    continue
-
-                indexed = files_to_index.get(url)
-                # In order to obtain a deterministic total order of bundles, we want to first compare their date and
-                # then their id, just to discriminate in case of equal date.
-                bundle_ordering = (artifact_bundle.date_last_modified, artifact_bundle.id)
-                if not indexed or (indexed.date_last_modified, indexed.id) < bundle_ordering:
-                    files_to_index[url] = artifact_bundle
-        finally:
-            archive.close()
-
-    # Third: we commit the intended changes to the database, carefully merging with the state that already exists
-    # in the database. We do so grouping by bundle, using one atomic transaction for the indexing and setting of
-    # the indexed state as well.
-    urls_by_bundle: DefaultDict[ArtifactBundle, Set[str]] = defaultdict(set)
-    for url, bundle in files_to_index.items():
-        urls_by_bundle[bundle].add(url)
-
-    # The naming here is a bit confusing, it is the time we touched the index, and is used for partitioning the index
-    # table and auto-expiration.
-    date_added = datetime.now()
-
-    # Finally: we have to loop over all bundles, since we have to mark all the ones we inspected as `was_indexed`,
-    # irrespectively if we have urls to add for that bundle.
-    for artifact_bundle in artifact_bundles:
-        urls = urls_by_bundle.get(artifact_bundle, set())
-        # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
-        # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
-        with atomic_transaction(
-            using=(
-                router.db_for_write(ArtifactBundleIndex),
-                router.db_for_write(ArtifactBundle),
-            )
-        ):
-            is_bundle_not_indexed = ArtifactBundle.objects.filter(
-                id=artifact_bundle.id, indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value
-            ).exists()
-            # If the bundle was already indexed, we will skip insertion into the database.
-            if not is_bundle_not_indexed:
-                metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
+            if not set_artifact_bundle_being_indexed_if_null(
+                organization_id=organization_id, artifact_bundle_id=artifact_bundle.id
+            ):
+                # A different asynchronous job is taking care of this bundle.
+                metrics.incr("artifact_bundle_indexing.bundle_already_being_indexed")
                 continue
 
-            for url in urls:
-                key = {
-                    "organization_id": artifact_bundle.organization_id,
-                    "release_name": release,
-                    "dist_name": dist,
-                    "url": url,
-                }
-                value = {
-                    "date_last_modified": artifact_bundle.date_last_modified,
-                    "date_added": date_added,
-                    "artifact_bundle_id": artifact_bundle.id,
-                }
-                # Also here we want to perform the comparison by falling back to id in case of equal dates.
-                condition = Q(date_last_modified__lt=artifact_bundle.date_last_modified) | Q(
-                    date_last_modified=artifact_bundle.date_last_modified,
-                    artifact_bundle_id__lt=artifact_bundle.id,
+            _index_urls_in_bundle(organization_id, artifact_bundle, release, dist)
+        except Exception as e:
+            # We want to catch the error and continue execution, since we can try to index the other bundles.
+            metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
+            sentry_sdk.capture_exception(e)
+
+            # TODO: Do we want to `remove_artifact_bundle_indexing_state` here so that
+            # a different job can retry this? Probably not, as we want to at the very least
+            # debounce this in case there is a persistent error?
+
+
+def _index_urls_in_bundle(
+    organization_id: int,
+    artifact_bundle: ArtifactBundle,
+    release: str,
+    dist: str,
+):
+    # We first open up the bundle and extract all the things we want to index from it.
+    archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+    urls_to_index = []
+    try:
+        for info in archive.get_files().values():
+            if url := info.get("url"):
+                urls_to_index.append(
+                    ArtifactBundleIndex(
+                        # key/value:
+                        artifact_bundle_id=artifact_bundle.id,
+                        url=url,
+                        # metadata:
+                        organization_id=organization_id,
+                        date_added=artifact_bundle.date_added,
+                        # legacy:
+                        # TODO: We fill these in with empty-ish values before they are
+                        # dropped for good
+                        release_name="",
+                        dist_name="",
+                        date_last_modified=artifact_bundle.date_last_modified
+                        or artifact_bundle.date_added,
+                    )
                 )
+    finally:
+        archive.close()
 
-                # NOTE:
-                # Ideally, we would want a single atomic query for this upsert.
-                # This would be possible with postgres using:
-                # `INSERT INTO ... $key $value ON CONFLICT DO UPDATE SET $value WHERE $condition`.
-                # However, writing raw SQL would be too error-prone.
-                # The builtin `update_or_create` functionality is also not up for the task,
-                # as it does not support an additional update condition,
-                # and would do even more queries, so we split this up into two separate queries:
-                # - Try to update a matching row.
-                # - Otherwise, try to insert it.
-                # - Ignore any key conflicts. This happens if the row exists, but does not match the `condition`.
-                did_update = ArtifactBundleIndex.objects.filter(
-                    condition,
-                    **key,
-                ).update(**value)
-                # The `did_update` result will be 0 in case:
-                # 1. There is no value in the index
-                # 2. There is a value but has higher timestamp or bundle id
-                # We don't distinguish between them and since we don't, we might end up with duplicates into the
-                # database and since we don't have uniqueness constraints (partitioning doesn't support them), we must
-                # de-duplicate on the reading side.
-                if not did_update:
-                    try:
-                        ArtifactBundleIndex.objects.create(
-                            **key,
-                            **value,
-                        )
-                    except IntegrityError:
-                        pass
+    # We want to start a transaction for each bundle, so that in case of failures we keep consistency at the
+    # bundle level, and we also have to retry only the failed bundle in the future and not all the bundles.
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(ArtifactBundleIndex),
+        )
+    ):
+        # Since we use read committed isolation, the value we read here can change after query execution,
+        # but we have this check in place for analytics purposes.
+        bundle_was_indexed = ArtifactBundle.objects.filter(
+            id=artifact_bundle.id,
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
+        ).exists()
+        # If the bundle was already indexed, we will skip insertion into the database.
+        if bundle_was_indexed:
+            metrics.incr("artifact_bundle_indexing.bundle_was_already_indexed")
+            return
 
-            ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
-                indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+        # Insert the index
+        # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
+        # which is not quite that efficient. We want to have a fixed batch size,
+        # which will result in a fixed number of unique `INSERT` queries.
+        ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
+
+        # Mark the bundle as indexed
+        ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
+            indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
+        )
+
+        metrics.incr("artifact_bundle_indexing.bundles_indexed")
+        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls_to_index))
+
+
+# ===== Renewal of Artifact Bundles =====
+
+
+def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
+    # We take a snapshot in time that MUST be consistent across all updates.
+    now = timezone.now()
+    # We compute the threshold used to determine whether we want to renew the specific bundle.
+    threshold_date = now - timedelta(days=AVAILABLE_FOR_RENEWAL_DAYS)
+
+    for (artifact_bundle_id, date_added) in used_artifact_bundles.items():
+        # We perform the condition check also before running the query, in order to reduce the amount of queries to the database.
+        if date_added > threshold_date:
+            continue
+
+        with metrics.timer("artifact_bundle_renewal"):
+            renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
+
+
+def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
+    metrics.incr("artifact_bundle_renewal.need_renewal")
+    # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
+    with atomic_transaction(
+        using=(
+            router.db_for_write(ArtifactBundle),
+            router.db_for_write(ProjectArtifactBundle),
+            router.db_for_write(ReleaseArtifactBundle),
+            router.db_for_write(DebugIdArtifactBundle),
+            router.db_for_write(ArtifactBundleIndex),
+        )
+    ):
+        # We check again for the date_added condition in order to achieve consistency, this is done because
+        # the `can_be_renewed` call is using a time which differs from the one of the actual update in the db.
+        updated_rows_count = ArtifactBundle.objects.filter(
+            id=artifact_bundle_id, date_added__lte=threshold_date
+        ).update(date_added=now)
+        # We want to make cascading queries only if there were actual changes in the db.
+        if updated_rows_count > 0:
+            ProjectArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ReleaseArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            DebugIdArtifactBundle.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+            ArtifactBundleIndex.objects.filter(
+                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
+            ).update(date_added=now)
+
+    # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
+    if updated_rows_count > 0:
+        metrics.incr("artifact_bundle_renewal.were_renewed")
+
+
+# ===== Querying of Artifact Bundles =====
+
+
+def _maybe_renew_and_return_bundles(
+    bundles: Dict[int, Tuple[datetime, str]]
+) -> List[Tuple[int, str]]:
+    maybe_renew_artifact_bundles(
+        {id: date_added for id, (date_added, _resolved) in bundles.items()}
+    )
+
+    return [(id, resolved) for id, (_date_added, resolved) in bundles.items()]
+
+
+def query_artifact_bundles_containing_file(
+    project: Project,
+    release: str,
+    dist: str,
+    url: str,
+    debug_id: str | None,
+) -> List[Tuple[int, str]]:
+    """
+    This looks up the artifact bundles that satisfy the query consisting of
+    `release`, `dist`, `url` and `debug_id`.
+
+    This function should ideally return a single bundle containing the file matching
+    the query. However it can also return more than a single bundle in case no
+    complete index is available, in which case the N most recent bundles will be
+    returned under the assumption that one of those may contain the file.
+
+    Along the bundles `id`, it also returns the most-precise method the bundles
+    was resolved with.
+    """
+
+    if debug_id:
+        bundles = get_artifact_bundles_containing_debug_id(project, debug_id)
+        if bundles:
+            return _maybe_renew_and_return_bundles(
+                {id: (date_added, "debug-id") for id, date_added in bundles}
             )
 
-        # After the transaction was successful we could clean the redis cache, but it's fine to keep the value in
-        # there and wait for auto-expiration.
-        metrics.incr("artifact_bundle_indexing.bundles_indexed")
-        metrics.incr("artifact_bundle_indexing.urls_indexed", len(urls))
+    total_bundles, indexed_bundles = get_bundles_indexing_state(project, release, dist)
+
+    if not total_bundles:
+        return []
+
+    # If all the bundles for this release are fully indexed, we will only query
+    # the url index.
+    # Otherwise, if we are below the threshold, or only partially indexed, we
+    # want to return the N most recent bundles associated with the release,
+    # under the assumption that one of those should ideally contain the file we
+    # are looking for.
+    is_fully_indexed = total_bundles > INDEXING_THRESHOLD and indexed_bundles == total_bundles
+
+    if total_bundles > INDEXING_THRESHOLD and indexed_bundles < total_bundles:
+        metrics.incr("artifact_bundle_indexing.query_partial_index")
+        # TODO: spawn an async task to backfill non-indexed bundles
+        # lets do this in a different PR though :-)
+
+    # We keep track of all the discovered artifact bundles, by the various means of lookup.
+    # We are intentionally overwriting the `resolved` flag, as we want to rank these from
+    # coarse-grained to fine-grained.
+    artifact_bundles: Dict[int, Tuple[datetime, str]] = dict()
+
+    def update_bundles(bundles: Set[Tuple[int, datetime]], resolved: str):
+        for (bundle_id, date_added) in bundles:
+            artifact_bundles[bundle_id] = (date_added, resolved)
+
+    # First, get the N most recently uploaded bundles for the release,
+    # but only if the index is only partial:
+    if not is_fully_indexed:
+        bundles = get_artifact_bundles_by_release(project, release, dist)
+        update_bundles(bundles, "release")
+
+    # Then, we are matching by `url`:
+    if url:
+        bundles = get_artifact_bundles_containing_url(project, release, dist, url)
+        update_bundles(bundles, "index")
+
+    return _maybe_renew_and_return_bundles(artifact_bundles)
+
+
+# NOTE on queries and index usage:
+# All the queries below return the `date_added` so we can do proper renewal and expiration.
+# Also, all the queries are sorted by `date_last_modified`, so we get the most
+# recently uploaded bundle.
+#
+# For all the queries below, we make sure that we are joining the
+# `ProjectArtifactBundle` table primarily for access control reasons.
+# While the project implies the `organization_id`, we put the `organization_id`
+# into some of the queries explicitly, primarily to optimize index usage.
+# The goal here is that this index can further restrict the search space.
+# For example, we assume that the `ReleaseArtifactBundle` has bad cardinality on
+# `release_name`, as a ton of projects might have a `"1.0.0"` release.
+# Restricting that to a single org may cut down the number of rows considered
+# significantly. We might even use the `organization_id` for that purpose on
+# multiple tables in a single query.
+
+
+def get_bundles_indexing_state(project: Project, release_name: str, dist_name: str):
+    """
+    Returns the number of total bundles, and the number of fully indexed bundles
+    associated with the given `release` / `dist`.
+    """
+    total_bundles = 0
+    indexed_bundles = 0
+
+    for state, count in (
+        ArtifactBundle.objects.filter(
+            releaseartifactbundle__organization_id=project.organization.id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
+        )
+        .values_list("indexing_state")
+        .annotate(count=Count("*"))
+    ):
+        if state == ArtifactBundleIndexingState.WAS_INDEXED.value:
+            indexed_bundles = count
+        total_bundles += count
+
+    return (total_bundles, indexed_bundles)
+
+
+def get_artifact_bundles_containing_debug_id(
+    project: Project, debug_id: str
+) -> Set[Tuple[int, datetime]]:
+    """
+    Returns the most recently uploaded artifact bundle containing the given `debug_id`.
+    """
+    return set(
+        ArtifactBundle.objects.filter(
+            organization_id=project.organization.id,
+            projectartifactbundle__project_id=project.id,
+            debugidartifactbundle__debug_id=debug_id,
+        )
+        .values_list("id", "date_added")
+        .order_by("-date_last_modified", "-id")[:1]
+    )
+
+
+def get_artifact_bundles_containing_url(
+    project: Project, release_name: str, dist_name: str, url: str
+) -> Set[Tuple[int, datetime]]:
+    """
+    Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
+    """
+    return set(
+        ArtifactBundle.objects.filter(
+            releaseartifactbundle__organization_id=project.organization.id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
+            artifactbundleindex__organization_id=project.organization.id,
+            artifactbundleindex__url__icontains=url,
+        )
+        .values_list("id", "date_added")
+        .order_by("-date_last_modified", "-id")[:1]
+    )
+
+
+def get_artifact_bundles_by_release(
+    project: Project,
+    release_name: str,
+    dist_name: str,
+) -> Set[Tuple[int, datetime]]:
+    """
+    Returns up to N most recently uploaded bundles for the given `release` and `dist`.
+    """
+    return set(
+        ArtifactBundle.objects.filter(
+            releaseartifactbundle__organization_id=project.organization.id,
+            releaseartifactbundle__release_name=release_name,
+            releaseartifactbundle__dist_name=dist_name,
+            projectartifactbundle__project_id=project.id,
+        )
+        .values_list("id", "date_added")
+        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
+    )

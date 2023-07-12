@@ -25,7 +25,7 @@ import {
   OTHER_SPAN_GROUP_MODULE,
 } from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_MODULE} = SpanMetricsFields;
 const TOOLTIP_DELAY = 800;
 
 type Props = {
@@ -47,20 +47,19 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
 
   const [hoveredValue, setHoveredValue] = useState<DataRow | null>(null);
 
-  const topCategoryView = EventView.fromSavedQuery({
-    name: '',
-    fields: [`sum(${SPAN_SELF_TIME})`, 'span.category'],
-    query: `transaction.op:http.server ${
-      transaction ? `transaction:${transaction}` : ''
-    } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: selection.datetime.start ?? undefined,
-    end: selection.datetime.end ?? undefined,
-    range: selection.datetime.period ?? undefined,
-    orderby: '-sum_span_self_time',
-    projects: selection.projects,
-    version: 2,
-  });
+  const topCategoryView = EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [`sum(${SPAN_SELF_TIME})`, 'span.category'],
+      query: `transaction.op:http.server ${
+        transaction ? `transaction:${transaction}` : ''
+      } ${transactionMethod ? `transaction.method:${transactionMethod}` : ''}`,
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      orderby: '-sum_span_self_time',
+      version: 2,
+    },
+    location
+  );
 
   const totalView = topCategoryView
     .clone()
@@ -184,7 +183,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
             } else if (name === 'Other') {
               spansLinkQueryParams['!span.category'] = transformedData.map(r => r.name);
             } else {
-              spansLinkQueryParams['span.module'] = 'Other';
+              spansLinkQueryParams[SPAN_MODULE] = 'Other';
               spansLinkQueryParams['span.category'] = name;
             }
 

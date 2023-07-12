@@ -911,7 +911,7 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Flag to determine whether performance metrics indexer should index tag
 # values or not
 register(
-    "sentry-metrics.performance.index-tag-values", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
+    "sentry-metrics.performance.index-tag-values", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 
@@ -1259,6 +1259,31 @@ register(
     default=1000000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )  # 1MB
+register(
+    "performance.issues.db_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.file_io_on_main_thread.total_spans_duration_threshold",
+    default=16,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.uncompressed_asset.size_threshold",
+    default=500 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # 512 kilo bytes
+register(
+    "performance.issues.uncompressed_asset.duration_threshold",
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
+register(
+    "performance.issues.consecutive_db.min_time_saved_threshold",
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)  # ms
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1287,14 +1312,10 @@ register(
 )
 
 register("hybrid_cloud.outbox_rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Controls whether we allow people to upload artifact bundles instead of release bundles.
-register("sourcemaps.enable-artifact-bundles", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
 register("txnames.bump-lifetime-sample-rate", default=0.1, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Decides whether an incoming span triggers an update of the clustering rule applied to it.
 register("span_descs.bump-lifetime-sample-rate", default=0.25, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Decides whether artifact bundles asynchronous renewal is enabled.
-register("sourcemaps.artifact-bundles.enable-renewal", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # === Backpressure related runtime options ===
 

@@ -17,7 +17,7 @@ import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
-import {PanelTable} from 'sentry/components/panels';
+import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -379,10 +379,23 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: debugIdsUrl,
+            query: location.query,
+          }}
+          index
+          isActive={() => tabDebugIdBundlesActive}
+        >
           {t('Artifact Bundles')}
         </ListLink>
-        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: releaseBundlesUrl,
+            query: location.query,
+          }}
+          isActive={() => !tabDebugIdBundlesActive}
+        >
           {t('Release Bundles')}
         </ListLink>
       </NavTabs>

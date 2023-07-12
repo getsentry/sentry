@@ -43,17 +43,19 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'fnTrendCursor';
+const DEFAULT_CURSOR_NAME = 'fnTrendCursor';
 
 interface FunctionTrendsWidgetProps {
   trendFunction: 'p50()' | 'p75()' | 'p95()' | 'p99()';
   trendType: TrendType;
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function FunctionTrendsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   trendFunction,
   trendType,
@@ -65,16 +67,19 @@ export function FunctionTrendsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const fnTrendCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const trendsQuery = useProfileFunctionTrends({
     trendFunction,
@@ -216,7 +221,7 @@ function FunctionTrendsEntry({
 
   return (
     <Fragment>
-      <AccordionItem>
+      <StyledAccordionItem>
         {project && (
           <Tooltip title={project.name}>
             <IdBadge project={project} avatarSize={16} hideName />
@@ -242,7 +247,7 @@ function FunctionTrendsEntry({
           borderless
           onClick={() => setExpanded()}
         />
-      </AccordionItem>
+      </StyledAccordionItem>
       {isExpanded && (
         <FunctionTrendsChartContainer>
           <FunctionTrendsChart func={func} trendFunction={trendFunction} />
@@ -427,6 +432,11 @@ function getTooltipFormatter(label: string, baseline: number) {
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
+`;
+
+const StyledAccordionItem = styled(AccordionItem)`
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
 `;
 
 const FunctionName = styled(TextOverflow)`

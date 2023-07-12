@@ -4,7 +4,11 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanSummaryQueryFilters} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_OP, SPAN_ACTION, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP} =
+  SpanMetricsFields;
 
 export type SpanMeta = {
   'span.action': string;
@@ -35,7 +39,7 @@ function getEventView(
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${groupId}${
+      query: `${SPAN_GROUP}:${groupId}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''
@@ -44,9 +48,8 @@ function getEventView(
           ? ` transaction.method:${queryFilters?.['transaction.method']}`
           : ''
       }`,
-      fields: ['span.op', 'span.description', 'span.action', 'span.domain', 'count()'], // TODO: Failing to pass a field like `count()` causes an error
+      fields: [SPAN_OP, SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN, 'count()'], // TODO: Failing to pass a field like `count()` causes an error
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       version: 2,
     },
     location

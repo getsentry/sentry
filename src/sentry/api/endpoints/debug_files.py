@@ -1,6 +1,7 @@
 import logging
 import posixpath
 import re
+from typing import Sequence
 
 import jsonschema
 from django.db import router
@@ -20,6 +21,7 @@ from sentry.api.serializers import serialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.constants import DEBUG_FILES_ROLE_DEFAULT, KNOWN_DIF_FORMATS
+from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.models import (
     File,
     FileBlobOwner,
@@ -177,15 +179,23 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             q = Q()
 
-        file_format_q = Q()
-        for file_format in file_formats:
-            known_file_format = DIF_MIMETYPES.get(file_format)
-            if known_file_format:
-                file_format_q |= Q(file__headers__icontains=known_file_format)
+        if file_formats:
+            file_format_q = Q()
+            for file_format in file_formats:
+                known_file_format = DIF_MIMETYPES.get(file_format)
+                if known_file_format:
+                    file_format_q |= Q(file__headers__icontains=known_file_format)
+            q &= file_format_q
 
-        q &= file_format_q
+        q &= Q(project_id=project.id)
+        queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
+        def on_results(difs: Sequence[ProjectDebugFile]):
+            # NOTE: we are only refreshing files if there is direct query for specific files
+            if not query and not file_formats:
+                maybe_renew_debug_files(q, difs)
+
+            return serialize(difs, request.user)
 
         return self.paginate(
             request=request,
@@ -193,7 +203,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             order_by="-id",
             paginator_cls=OffsetPaginator,
             default_per_page=20,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=on_results,
         )
 
     def delete(self, request: Request, project) -> Response:

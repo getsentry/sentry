@@ -9,6 +9,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useRouter from 'sentry/utils/useRouter';
 import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colours';
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -19,7 +20,7 @@ import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/starfish/vie
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_MODULE, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 type Props = {
   appliedFilters: AppliedFilters;
@@ -140,6 +141,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
       tooltipFormatterOptions={{
         valueFormatter: value => formatThroughput(value),
       }}
+      onDataZoom={useSortPageByHandler('-sps()')}
     />
   );
 }
@@ -188,6 +190,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[P95_COLOR]}
+      onDataZoom={useSortPageByHandler(`-p95(${SPAN_SELF_TIME})`)}
     />
   );
 }
@@ -225,6 +228,7 @@ function ErrorChart({moduleName, filters}: ChartProps): JSX.Element {
       stacked
       isLineChart
       chartColors={[ERRORS_COLOR]}
+      onDataZoom={useSortPageByHandler('-http_error_count()')}
     />
   );
 }
@@ -247,7 +251,6 @@ const getEventView = (
       yAxis: ['sps()', `p50(${SPAN_SELF_TIME})`, `p95(${SPAN_SELF_TIME})`],
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,
-      projects: [1],
       interval: getInterval(pageFilters.datetime, 'low'),
       version: 2,
     },
@@ -267,12 +270,14 @@ const buildDiscoverQueryConditions = (
       return `${key}:${appliedFilters[key]}`;
     });
 
+  result.push(`has:${SPAN_DESCRIPTION}`);
+
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:${moduleName}`);
+    result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    result.push('!span.op:db.redis');
+    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {
@@ -285,6 +290,27 @@ const buildDiscoverQueryConditions = (
 
   return result.join(' ');
 };
+
+function useSortPageByHandler(sort: string) {
+  const router = useRouter();
+  const location = useLocation();
+  return (_, chartRef) => {
+    // This is kind of jank but we need to check if the chart is hovered because
+    // onDataZoom is fired for all charts when one chart is zoomed.
+    const hoveredEchartElement = Array.from(document.querySelectorAll(':hover')).find(
+      element => {
+        return element.classList.contains('echarts-for-react');
+      }
+    );
+    const echartElement = document.querySelector(`[_echarts_instance_="${chartRef.id}"]`);
+    if (hoveredEchartElement === echartElement) {
+      router.replace({
+        pathname: location.pathname,
+        query: {...location.query, spansSort: sort},
+      });
+    }
+  };
+}
 
 const ChartsContainer = styled('div')`
   display: flex;

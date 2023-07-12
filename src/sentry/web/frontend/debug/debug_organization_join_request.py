@@ -17,7 +17,7 @@ class DebugOrganizationJoinRequestEmailView(View):
             user_id=user_to_join.id,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        recipient = User(name="James Bond", actor_id=1)
+        recipient = User(name="James Bond")
         recipient_member = OrganizationMember(user_id=recipient.id, organization=org)
 
         notification = JoinRequestNotification(pending_member, user_to_join)

@@ -1,16 +1,17 @@
 import {ReactNode} from 'react';
 import {browserHistory} from 'react-router';
+import {Location} from 'history';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
-import {PageFilters} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_MODULE, SPAN_OP, SPAN_ACTION, SPAN_DESCRIPTION} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -25,10 +26,8 @@ export function ActionSelector({
 }: Props) {
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
-  const {selection} = usePageFilters();
-
   const location = useLocation();
-  const eventView = getEventView(moduleName, selection, spanCategory);
+  const eventView = getEventView(location, moduleName, spanCategory);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
 
@@ -43,8 +42,8 @@ export function ActionSelector({
     : [
         {value: '', label: 'All'},
         ...actions.map(datum => ({
-          value: datum['span.action'],
-          label: datum['span.action'],
+          value: datum[SPAN_ACTION],
+          label: datum[SPAN_ACTION],
         })),
       ];
 
@@ -60,7 +59,7 @@ export function ActionSelector({
           ...location,
           query: {
             ...location.query,
-            'span.action': newValue.value,
+            [SPAN_ACTION]: newValue.value,
           },
         });
       }}
@@ -83,18 +82,20 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   '': t('Action'),
 };
 
-function getEventView(
-  moduleName: ModuleName,
-  pageFilters: PageFilters,
-  spanCategory?: string
-) {
+function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
   const queryConditions: string[] = [];
+  queryConditions.push(`has:${SPAN_DESCRIPTION}`);
+
   if (moduleName) {
-    queryConditions.push('!span.action:""');
+    queryConditions.push(`has:${SPAN_ACTION}`);
+  }
+
+  if (![ModuleName.ALL, ModuleName.NONE].includes(moduleName)) {
+    queryConditions.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
+    queryConditions.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {
@@ -104,16 +105,15 @@ function getEventView(
       queryConditions.push(`span.category:${spanCategory}`);
     }
   }
-  return EventView.fromSavedQuery({
-    name: '',
-    fields: ['span.action', 'count()'],
-    orderby: '-count',
-    query: queryConditions.join(' '),
-    dataset: DiscoverDatasets.SPANS_METRICS,
-    start: pageFilters.datetime.start ?? undefined,
-    end: pageFilters.datetime.end ?? undefined,
-    range: pageFilters.datetime.period ?? undefined,
-    projects: [1],
-    version: 2,
-  });
+  return EventView.fromNewQueryWithLocation(
+    {
+      name: '',
+      fields: [SPAN_ACTION, 'count()'],
+      orderby: '-count',
+      query: queryConditions.join(' '),
+      dataset: DiscoverDatasets.SPANS_METRICS,
+      version: 2,
+    },
+    location
+  );
 }
