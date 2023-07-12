@@ -32,7 +32,7 @@ TRANSITION_AFTER_DAYS = 7
 ITERATOR_CHUNK = 10_000
 
 
-def skip_if_queue_has_items(func):
+def log_error_if_queue_has_items(func):
     """
     Prevent adding more tasks in queue if the queue is not empty.
     We want to prevent crons from scheduling more tasks than the workers
@@ -44,11 +44,10 @@ def skip_if_queue_has_items(func):
         def wrapped(*args, **kwargs):
             queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
             if queue_size > 0:
-                logger.exception(
+                logger.info(
                     f"{CELERY_ISSUE_STATES_QUEUE.name} queue size greater than 0.",
                     extra={"size": queue_size, "task": func.__name__},
                 )
-                return
 
             func(*args, **kwargs)
 
@@ -78,7 +77,7 @@ def get_daily_10min_bucket(now: datetime):
 )
 @retry(on=(OperationalError,))
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
-@skip_if_queue_has_items
+@log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
 
     now = datetime.now(tz=pytz.UTC)
@@ -124,7 +123,7 @@ def schedule_auto_transition_to_ongoing() -> None:
     acks_late=True,
 )
 @retry(on=(OperationalError,))
-@skip_if_queue_has_items
+@log_error_if_queue_has_items
 def auto_transition_issues_new_to_ongoing(
     project_ids: List[int],
     first_seen_lte: int,
@@ -165,7 +164,7 @@ def auto_transition_issues_new_to_ongoing(
     acks_late=True,
 )
 @retry(on=(OperationalError,))
-@skip_if_queue_has_items
+@log_error_if_queue_has_items
 def auto_transition_issues_regressed_to_ongoing(
     project_ids: List[int],
     date_added_lte: int,
@@ -210,7 +209,7 @@ def auto_transition_issues_regressed_to_ongoing(
     acks_late=True,
 )
 @retry(on=(OperationalError,))
-@skip_if_queue_has_items
+@log_error_if_queue_has_items
 def auto_transition_issues_escalating_to_ongoing(
     project_ids: List[int],
     date_added_lte: int,
