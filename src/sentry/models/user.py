@@ -43,14 +43,14 @@ class UserManager(BaseManager, DjangoUserManager):
         For a given organization, get the list of members that are only
         connected to a single integration.
         """
-        from sentry.models import OrganizationMember
+        from sentry.models import OrganizationMemberMapping
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 
-        org_user_ids = OrganizationMember.objects.filter(organization_id=organization_id).values(
-            "user_id"
-        )
+        org_user_ids = OrganizationMemberMapping.objects.filter(
+            organization_id=organization_id
+        ).values("user_id")
         org_members_with_provider = (
-            OrganizationMember.objects.values("user_id")
+            OrganizationMemberMapping.objects.values("user_id")
             .annotate(org_counts=Count("organization_id"))
             .filter(
                 user_id__in=Subquery(org_user_ids),
