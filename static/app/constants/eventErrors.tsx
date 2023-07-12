@@ -25,7 +25,6 @@ export enum HttpProcessingErrors {
 
 export enum GenericSchemaErrors {
   UNKNOWN_ERROR = 'unknown_error',
-
   INVALID_DATA = 'invalid_data',
   INVALID_ATTRIBUTE = 'invalid_attribute',
   MISSING_ATTRIBUTE = 'missing_attribute',

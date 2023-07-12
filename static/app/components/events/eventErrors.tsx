@@ -10,7 +10,11 @@ import findBestThread from 'sentry/components/events/interfaces/threads/threadSe
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
-import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
+import {
+  GenericSchemaErrors,
+  JavascriptProcessingErrors,
+  NativeProcessingErrors,
+} from 'sentry/constants/eventErrors';
 import {tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -25,7 +29,28 @@ import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/pro
 
 import {DataSection} from './styles';
 
-const ERRORS_TO_HIDE = [JavascriptProcessingErrors.JS_MISSING_SOURCE];
+const ERRORS_TO_HIDE = [
+  JavascriptProcessingErrors.JS_MISSING_SOURCE,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP,
+  JavascriptProcessingErrors.JS_INVALID_SOURCEMAP_LOCATION,
+  JavascriptProcessingErrors.JS_TOO_MANY_REMOTE_SOURCES,
+  JavascriptProcessingErrors.JS_INVALID_SOURCE_ENCODING,
+  GenericSchemaErrors.UNKNOWN_ERROR,
+  GenericSchemaErrors.INVALID_DATA,
+  GenericSchemaErrors.INVALID_ATTRIBUTE,
+  GenericSchemaErrors.MISSING_ATTRIBUTE,
+  GenericSchemaErrors.VALUE_TOO_LONG,
+  GenericSchemaErrors.FUTURE_TIMESTAMP,
+  GenericSchemaErrors.PAST_TIMESTAMP,
+  GenericSchemaErrors.CLOCK_DRIFT,
+  NativeProcessingErrors.NATIVE_NO_CRASHED_THREAD,
+  NativeProcessingErrors.NATIVE_INTERNAL_FAILURE,
+  NativeProcessingErrors.NATIVE_MISSING_SYSTEM_DSYM,
+  NativeProcessingErrors.NATIVE_MISSING_SYMBOL,
+  NativeProcessingErrors.NATIVE_SIMULATOR_FRAME,
+  NativeProcessingErrors.NATIVE_UNKNOWN_IMAGE,
+  NativeProcessingErrors.NATIVE_SYMBOLICATOR_FAILED,
+];
 
 const MAX_ERRORS = 100;
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
@@ -241,7 +266,13 @@ export function EventErrors({event, project, isShare}: EventErrorsProps) {
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
   const errors = [...otherErrors, ...proguardErrors].filter(
-    error => !ERRORS_TO_HIDE.includes(error.type as JavascriptProcessingErrors)
+    error =>
+      !ERRORS_TO_HIDE.includes(
+        error.type as
+          | JavascriptProcessingErrors
+          | GenericSchemaErrors
+          | NativeProcessingErrors
+      )
   );
 
   if (proguardErrorsLoading) {
