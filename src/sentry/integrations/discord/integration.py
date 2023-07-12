@@ -69,7 +69,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             "external_id": guild_id,
         }
 
-    def get_guild_name(self, guild_id: str) -> str | None:
+    def get_guild_name(self, guild_id: str) -> str:
         bot_token = options.get("discord.bot-token")
         url = DiscordClient.get_guild_url.format(guild_id=guild_id)
         headers = {"Authorization": f"Bot {bot_token}"}
@@ -77,7 +77,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
             response = DiscordClient().get(url, headers=headers)
             guild_name = response["name"]  # type:ignore
         except ApiError:
-            return None
+            return guild_id
         return guild_name
 
     def get_bot_install_url(self):

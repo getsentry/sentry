@@ -123,6 +123,6 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
 
         resp = provider.get_guild_name(guild_id)
-        assert resp is None
+        assert resp == "1234"
         mock_request = responses.calls[0].request
         assert mock_request.headers["Authorization"] == f"Bot {self.bot_token}"
