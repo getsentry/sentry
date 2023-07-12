@@ -49,7 +49,6 @@ export function StarfishProjectSelector() {
 
   return (
     <CompactSelect
-      disabled={!projectsLoaded}
       menuWidth={250}
       options={projectOptions}
       defaultValue={selectedOption?.value}
