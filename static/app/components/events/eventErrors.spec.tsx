@@ -27,14 +27,14 @@ describe('EventErrors', () => {
     const eventWithErrors = TestStubs.Event({
       errors: [
         {
-          type: 'invalid_data',
+          type: 'invalid_environment',
           data: {
             name: 'logentry',
           },
           message: 'no message present',
         },
         {
-          type: 'invalid_data',
+          type: 'invalid_environment',
           data: {
             name: 'breadcrumbs.values.2.data',
           },
