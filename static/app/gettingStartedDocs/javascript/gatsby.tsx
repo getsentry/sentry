@@ -1,4 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -131,17 +132,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithReact({
+export function GettingStartedWithGatsby({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -176,7 +171,9 @@ export default function GettingStartedWithReact({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithGatsby;
