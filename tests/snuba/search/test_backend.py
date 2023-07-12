@@ -365,20 +365,19 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group2]
 
     def test_better_priority_sort(self):
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 5,
-                "has_stacktrace": 5,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": False,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                aggregate_kwargs=weights,
-            )
+        weights: PrioritySortWeights = {
+            "log_level": 5,
+            "has_stacktrace": 5,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": False,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="betterPriority",
+            aggregate_kwargs=weights,
+        )
         assert list(results) == [self.group2, self.group1]
 
     def test_sort_with_environment(self):
@@ -2631,21 +2630,20 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 0,
-                "has_stacktrace": 0,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": False,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                projects=[new_project],
-                aggregate_kwargs=weights,
-            )
+        weights: PrioritySortWeights = {
+            "log_level": 0,
+            "has_stacktrace": 0,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": False,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="betterPriority",
+            projects=[new_project],
+            aggregate_kwargs=weights,
+        )
         recent_group = Group.objects.get(id=recent_event.group.id)
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
@@ -2682,21 +2680,20 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
         # datetime(2017, 9, 6, 0, 0)
         old_event.data["timestamp"] = 1504656000.0
 
-        with self.feature("organizations:issue-list-better-priority-sort"):
-            weights: PrioritySortWeights = {
-                "log_level": 0,
-                "has_stacktrace": 0,
-                "relative_volume": 1,
-                "event_halflife_hours": 4,
-                "issue_halflife_hours": 24 * 7,
-                "v2": True,
-                "norm": False,
-            }
-            results = self.make_query(
-                sort_by="betterPriority",
-                projects=[new_project],
-                aggregate_kwargs=weights,
-            )
+        weights: PrioritySortWeights = {
+            "log_level": 0,
+            "has_stacktrace": 0,
+            "relative_volume": 1,
+            "event_halflife_hours": 4,
+            "issue_halflife_hours": 24 * 7,
+            "v2": True,
+            "norm": False,
+        }
+        results = self.make_query(
+            sort_by="betterPriority",
+            projects=[new_project],
+            aggregate_kwargs=weights,
+        )
         recent_group = Group.objects.get(id=recent_event.group.id)
         old_group = Group.objects.get(id=old_event.group.id)
         assert list(results) == [recent_group, old_group]
@@ -2981,7 +2978,6 @@ class EventsBetterPriorityTest(SharedSnubaTest, OccurrenceTestMixin):
             [
                 "organizations:issue-platform",
                 ProfileFileIOGroupType.build_visible_feature_name(),
-                "organizations:issue-list-better-priority-sort",
             ]
         ):
             results = query_executor.snuba_search(

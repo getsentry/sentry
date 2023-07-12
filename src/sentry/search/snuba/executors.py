@@ -249,7 +249,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         aggregations = []
         for alias in required_aggregations:
             aggregation = self.aggregation_defs[alias]
-            if replace_better_priority_aggregation and alias == "better_priority":
+            if replace_better_priority_aggregation and alias in ["priority", "better_priority"]:
                 aggregation = self.aggregation_defs["better_priority_issue_platform"]
             if callable(aggregation):
                 if aggregate_kwargs:
@@ -303,9 +303,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                     conditions.append(converted_filter)
 
         if (
-            sort_field == "better_priority"
+            sort_field in ["priority", "better_priority"]
             and group_category is not GroupCategory.ERROR.value
-            and features.has("organizations:issue-list-better-priority-sort", organization)
         ):
             aggregations = self._prepare_aggregations(
                 sort_field, start, end, having, aggregate_kwargs, True
@@ -696,7 +695,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "date": "last_seen",
         "freq": "times_seen",
         "new": "first_seen",
-        "priority": "priority",
+        "priority": "better_priority",
         "user": "user_count",
         # We don't need a corresponding snuba field here, since this sort only happens
         # in Postgres
@@ -708,8 +707,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         "times_seen": ["count()", ""],
         "first_seen": ["multiply(toUInt64(min(timestamp)), 1000)", ""],
         "last_seen": ["multiply(toUInt64(max(timestamp)), 1000)", ""],
-        # https://github.com/getsentry/sentry/blob/804c85100d0003cfdda91701911f21ed5f66f67c/src/sentry/event_manager.py#L241-L271
-        "priority": ["toUInt64(plus(multiply(log(times_seen), 600), last_seen))", ""],
+        "priority": better_priority_aggregation,
         # Only makes sense with WITH TOTALS, returns 1 for an individual group.
         "total": ["uniq", ISSUE_FIELD_NAME],
         "user_count": ["uniq", "tags[sentry:user]"],
