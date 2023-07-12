@@ -12,6 +12,8 @@ import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
+  'http_error_count()': number;
+  'http_error_count_percent_change()': number;
   'p50(span.self_time)': number;
   'p95(span.self_time)': number;
   'percentile_percent_change(span.self_time, 0.95)': number;
@@ -72,6 +74,8 @@ function getEventView(
         `percentile_percent_change(${SPAN_SELF_TIME}, 0.95)`,
         'time_spent_percentage(local)',
         'transaction.op',
+        'http_error_count()',
+        'http_error_count_percent_change()',
       ],
       orderby: '-time_spent_percentage_local',
       dataset: DiscoverDatasets.SPANS_METRICS,

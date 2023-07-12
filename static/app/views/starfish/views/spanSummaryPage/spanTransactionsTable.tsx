@@ -120,7 +120,7 @@ export function SpanTransactionsTable({
         <GridEditable
           isLoading={isLoading}
           data={spanTransactionsWithMetrics}
-          columnOrder={COLUMN_ORDER}
+          columnOrder={getColumnOrder(span)}
           columnSortBy={[]}
           grid={{
             renderHeadCell: col => renderHeadCell({column: col, sort, location}),
@@ -180,7 +180,7 @@ function TransactionCell({span, row, endpoint, endpointMethod, location}: CellPr
   );
 }
 
-const COLUMN_ORDER: TableColumnHeader[] = [
+const getColumnOrder = (span: Pick<IndexedSpan, 'group'>): TableColumnHeader[] => [
   {
     key: 'transaction',
     name: 'Found In Endpoints',
@@ -206,6 +206,20 @@ const COLUMN_ORDER: TableColumnHeader[] = [
     name: DataTitles.change,
     width: COL_WIDTH_UNDEFINED,
   },
+  ...(span?.['span.op']?.startsWith('http')
+    ? ([
+        {
+          key: `http_error_count()`,
+          name: DataTitles.errorCount,
+          width: COL_WIDTH_UNDEFINED,
+        },
+        {
+          key: `http_error_count_percent_change()`,
+          name: DataTitles.change,
+          width: COL_WIDTH_UNDEFINED,
+        },
+      ] as TableColumnHeader[])
+    : []),
   {
     key: 'time_spent_percentage(local)',
     name: DataTitles.timeSpent,
