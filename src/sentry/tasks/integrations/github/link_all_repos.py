@@ -51,8 +51,13 @@ def link_all_repos(integration_id: int, organization_id: int):
         raise e
 
     binding_key = "integration-repository.provider"
-    provider_cls = bindings.get(binding_key).get("integrations:" + integration.provider)
-    provider = provider_cls(id=integration.provider)
+    provider_key = (
+        integration.provider
+        if integration.provider.startswith("integrations:")
+        else "integrations:" + integration.provider
+    )
+    provider_cls = bindings.get(binding_key).get(provider_key)
+    provider = provider_cls(id=provider_key)
 
     for repo in gh_repositories:
         try:

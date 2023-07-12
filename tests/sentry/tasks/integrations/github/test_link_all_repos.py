@@ -60,7 +60,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         for repo in repos:
             assert repo.organization_id == self.organization.id
-            assert repo.provider == "github"
+            assert repo.provider == "integrations:github"
 
         assert repos[0].name == "getsentry/sentry"
         assert repos[1].name == "getsentry/snuba"
@@ -97,7 +97,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         assert len(repos) == 1
 
         assert repos[0].organization_id == self.organization.id
-        assert repos[0].provider == "github"
+        assert repos[0].provider == "integrations:github"
 
         assert repos[0].name == "getsentry/snuba"
 
