@@ -10,12 +10,21 @@ import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {
+  SPAN_SELF_TIME,
+  SPAN_DESCRIPTION,
+  SPAN_GROUP,
+  SPAN_OP,
+  SPAN_DOMAIN,
+  SPAN_ACTION,
+  SPAN_MODULE,
+} = SpanMetricsFields;
+
 const SPAN_FILTER_KEYS = [
-  'span.op',
-  'span.domain',
-  'span.action',
-  '!span.module',
+  SPAN_OP,
+  SPAN_DOMAIN,
+  SPAN_ACTION,
+  `!${SPAN_MODULE}`,
   '!span.category',
 ];
 
@@ -86,10 +95,10 @@ function getEventView(
     .join(' ');
 
   const fields = [
-    'span.op',
-    'span.group',
-    'span.description',
-    'span.domain',
+    SPAN_OP,
+    SPAN_GROUP,
+    SPAN_DESCRIPTION,
+    SPAN_DOMAIN,
     'sps()',
     'sps_percent_change()',
     `sum(${SPAN_SELF_TIME})`,
@@ -142,7 +151,7 @@ function buildEventViewQuery(
         // When omitting database spans, explicitly allow `db.redis` spans, because
         // we're not including those spans in the database category
         const categoriesAsideFromDatabase = value.filter(v => v !== 'db');
-        return `(!span.category:db OR span.op:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
+        return `(!span.category:db OR ${SPAN_OP}:db.redis) !span.category:[${categoriesAsideFromDatabase.join(
           ','
         )}]`;
       }
@@ -150,14 +159,14 @@ function buildEventViewQuery(
       return `${key}:${isArray ? `[${value}]` : value}`;
     });
 
-  result.push('has:span.description');
+  result.push(`has:${SPAN_DESCRIPTION}`);
 
   if (moduleName !== ModuleName.ALL) {
-    result.push(`span.module:${moduleName}`);
+    result.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    result.push('!span.op:db.redis');
+    result.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (defined(spanCategory)) {
