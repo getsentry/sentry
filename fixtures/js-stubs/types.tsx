@@ -116,7 +116,6 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReleaseCounts: SimpleStub;
   Replay: typeof Replay;
   ReplayError: OverridableStub;
   ReplayList: OverridableStubList<ReplayListRecord>;
@@ -174,6 +173,7 @@ type TestStubFixtures = {
   TeamAlertsTriggered: SimpleStub;
   TeamIssuesBreakdown: SimpleStub;
   TeamIssuesReviewed: SimpleStub;
+  TeamReleaseCounts: SimpleStub;
   TeamResolutionTime: SimpleStub;
   TeamRoleList: OverridableStub;
   Tombstones: OverridableStubList;

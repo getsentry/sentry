@@ -1,4 +1,4 @@
-export function ReleaseCounts() {
+export function TeamReleaseCounts() {
   return {
     release_counts: {
       '2021-03-11': 1,

@@ -10,7 +10,7 @@ describe('TeamReleases', () => {
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.ReleaseCounts(),
+      body: TestStubs.TeamReleaseCounts(),
     });
 
     render(
@@ -54,7 +54,7 @@ describe('TeamReleases', () => {
 
     const releaseCountApi = MockApiClient.addMockResponse({
       url: `/teams/org-slug/team-slug/release-count/`,
-      body: TestStubs.ReleaseCounts(),
+      body: TestStubs.TeamReleaseCounts(),
     });
 
     render(
