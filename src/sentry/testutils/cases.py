@@ -4,8 +4,6 @@ import responses
 import sentry_kafka_schemas
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.dates import to_timestamp
 
 __all__ = (
