@@ -42,10 +42,10 @@ export const steps = ({
         language: 'bash',
         code: `
         # Using yarn
-        yarn add @sentry/react
+        yarn add @sentry/browser
 
         # Using npm
-        npm install --save @sentry/react
+        npm install --save @sentry/browser
         `,
       },
     ],
@@ -59,20 +59,16 @@ export const steps = ({
       {
         language: 'javascript',
         code: `
+        import * as Sentry from "@sentry/browser";
+
         Sentry.init({
           ${sentryInitContent}
         });
-
-        const container = document.getElementById(“app”);
-        const root = createRoot(container);
-        root.render(<App />)
         `,
       },
     ],
   },
-  getUploadSourceMapsStep(
-    'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
-  ),
+  getUploadSourceMapsStep('https://docs.sentry.io/platforms/javascript/sourcemaps/'),
   {
     type: StepType.VERIFY,
     description: t(
@@ -81,9 +77,7 @@ export const steps = ({
     configurations: [
       {
         language: 'javascript',
-        code: `
-        return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
-        `,
+        code: 'myUndefinedFunction();',
       },
     ],
   },
@@ -91,26 +85,12 @@ export const steps = ({
 
 export const nextSteps = [
   {
-    id: 'react-features',
-    name: t('React Features'),
-    description: t('Learn about our first class integration with the React framework.'),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/features/',
-  },
-  {
-    id: 'react-router',
-    name: t('React Router'),
-    description: t(
-      'Configure routing, so Sentry can generate parameterized transaction names for a better overview in Performance Monitoring.'
-    ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/configuration/integrations/react-router/',
-  },
-  {
     id: 'performance-monitoring',
     name: t('Performance Monitoring'),
     description: t(
       'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/performance/',
+    link: 'https://docs.sentry.io/platforms/javascript/performance/',
   },
   {
     id: 'session-replay',
@@ -118,7 +98,7 @@ export const nextSteps = [
     description: t(
       'Get to the root cause of an error or latency issue faster by seeing all the technical details related to that issue in one visual replay on your web application.'
     ),
-    link: 'https://docs.sentry.io/platforms/javascript/guides/react/session-replay/',
+    link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
   },
 ];
 // Configuration End
@@ -129,7 +109,7 @@ type Props = {
   newOrg?: boolean;
 };
 
-export default function GettingStartedWithReact({
+export default function GettingStartedWithJavaScript({
   dsn,
   activeProductSelection,
   newOrg,
