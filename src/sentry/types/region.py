@@ -202,7 +202,7 @@ def get_region_by_name(name: str) -> Region:
     try:
         return global_regions.by_name[name]
     except KeyError:
-        raise RegionResolutionError(f"{global_regions.regions=!r}")
+        raise RegionResolutionError(f"No region with name: {name!r}")
 
 
 def is_region_name(name: str) -> bool:
