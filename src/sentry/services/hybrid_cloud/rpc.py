@@ -233,8 +233,12 @@ def regional_rpc_method(
     """Decorate methods to be exposed as part of the RPC interface.
 
     In addition, resolves the region based on the resolve callback function.
-
     Should be applied only to methods of an RpcService subclass.
+
+    The `return_none_if_mapping_not_found` option indicates that, if we fail to find
+    a region in which to look for the queried object, the decorated method should
+    return `None` indicating that the queried object does not exist. This should be
+    set only on methods with an `Optional[...]` return type.
     """
 
     def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
