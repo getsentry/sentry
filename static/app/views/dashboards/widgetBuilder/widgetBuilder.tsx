@@ -230,7 +230,8 @@ function WidgetBuilder({
           orderby:
             defaultWidgetQuery.orderby ||
             (datasetConfig.getTableSortOptions
-              ? datasetConfig.getTableSortOptions(defaultWidgetQuery)[0].value
+              ? datasetConfig.getTableSortOptions(organization, defaultWidgetQuery)[0]
+                  .value
               : ''),
         },
       ];
