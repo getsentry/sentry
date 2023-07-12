@@ -43,7 +43,7 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         org = Organization.objects.create(name="name", slug="---downtown_canada---")
         assert org.slug == "downtown-canada"
 
-        # Only slugify on new instances of Organization
+        # Slugify on org slug changes in addition to initial create
         org.slug = "---downtown_canada---"
         org.save()
         org.refresh_from_db()
