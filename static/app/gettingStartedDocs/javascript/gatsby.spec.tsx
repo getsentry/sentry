@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithGatsby, {nextSteps, steps} from './gatsby';
+import {GettingStartedWithGatsby, nextSteps, steps} from './gatsby';
 
 describe('GettingStartedWithGatsby', function () {
   it('all products are selected', function () {
