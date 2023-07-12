@@ -10,11 +10,9 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.utils import metrics
 
 
 @region_silo_test(stable=True)
@@ -30,11 +28,6 @@ class LinkAllReposTestCase(IntegrationTestCase):
         self.app_id = "app_1"
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
-
-    def _is_rate_limited_error(self, e: Exception):
-        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github.link_all_repos.rate_limited_error")
-            return True
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
