@@ -39,6 +39,7 @@ RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRule
 # Maps from Discover's field names to event protocol paths. See Relay's
 # ``FieldValueProvider`` for supported fields. All fields need to be prefixed
 # with "event.".
+# List of UI supported search fields is defined in sentry/static/app/utils/fields/index.ts
 _SEARCH_TO_PROTOCOL_FIELDS = {
     # Top-level fields
     "release": "release",
@@ -63,7 +64,6 @@ _SEARCH_TO_PROTOCOL_FIELDS = {
     "os.name": "contexts.os.name",
     "os.version": "contexts.os.version",
     "browser.name": "contexts.browser.name",
-    "browser.version": "contexts.browser.version",
     "transaction.op": "contexts.trace.op",
     "transaction.status": "contexts.trace.status",
     "http.status_code": "contexts.response.status_code",
