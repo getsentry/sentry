@@ -58,14 +58,14 @@ export const steps = ({
     type: StepType.INSTALL,
     description: (
       <InstallDescription>
-        <div>
+        <p>
           {tct(
             "To use Sentry with your Angular application, you'll need [code:@sentry/angular-ivy] or [code:@sentry/angular], Sentry’s Browser Angular SDKs:",
             {
               code: <code />,
             }
           )}
-        </div>
+        </p>
         <List symbol="bullet">
           <ListItem>
             {tct("If you're using Angular 12 or newer, use [code:@sentry/angular-ivy]", {
@@ -78,11 +78,11 @@ export const steps = ({
             })}
           </ListItem>
         </List>
-        <div>
+        <p>
           {tct('Add the Sentry SDK as a dependency using [code:yarn] or [code:npm]:', {
             code: <code />,
           })}
-        </div>
+        </p>
       </InstallDescription>
     ),
     configurations: [

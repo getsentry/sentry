@@ -12,14 +12,18 @@ export const steps = ({
 } = {}): LayoutProps['steps'] => [
   {
     type: StepType.INSTALL,
-    description: tct(
-      'The Django integration adds support for the [link:Django Web Framework] from Version 1.6 upwards.',
-      {link: <ExternalLink href="https://www.djangoproject.com/" />}
+    description: (
+      <p>
+        {tct(
+          'The Django integration adds support for the [link:Django Web Framework] from Version 1.6 upwards.',
+          {link: <ExternalLink href="https://www.djangoproject.com/" />}
+        )}
+      </p>
     ),
     configurations: [
       {
         language: 'bash',
-        description: <div>{tct('Install [code:sentry-sdk]:', {code: <code />})}</div>,
+        description: <p>{tct('Install [code:sentry-sdk]:', {code: <code />})}</p>,
         code: 'pip install --upgrade sentry-sdk',
       },
     ],
@@ -27,12 +31,12 @@ export const steps = ({
   {
     type: StepType.CONFIGURE,
     description: (
-      <div>
+      <p>
         {tct(
           'To configure the SDK, initialize it with the Django integration in your [code:settings.py] file:',
           {code: <code />}
         )}
-      </div>
+      </p>
     ),
     configurations: [
       {
