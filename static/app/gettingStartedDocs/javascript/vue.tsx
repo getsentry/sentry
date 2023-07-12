@@ -34,13 +34,13 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/vue
@@ -52,7 +52,6 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
@@ -60,6 +59,7 @@ export const steps = ({
     configurations: [
       {
         description: <h5>V2</h5>,
+        language: 'javascript',
         code: `
         import { createApp } from "vue";
         import { createRouter } from "vue-router";
@@ -83,6 +83,7 @@ export const steps = ({
       },
       {
         description: <h5>V3</h5>,
+        language: 'javascript',
         code: `
         import Vue from "vue";
         import Router from "vue-router";
@@ -113,13 +114,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/vue/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: 'myUndefinedFunction();',
       },
     ],

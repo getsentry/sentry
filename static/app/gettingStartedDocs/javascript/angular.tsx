@@ -54,7 +54,6 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: (
       <InstallDescription>
@@ -87,6 +86,7 @@ export const steps = ({
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn (Angular 12+)
         yarn add @sentry/angular-ivy
@@ -102,13 +102,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       'You should init the Sentry browser SDK in your main.ts file as soon as possible during application load up, before initializing Angular:'
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         import { enableProdMode } from "@angular/core";
         import { platformBrowserDynamic } from "@angular/platform-browser-dynamic";
@@ -132,6 +132,7 @@ export const steps = ({
         description: t(
           "The Sentry Angular SDK exports a function to instantiate ErrorHandler provider that will automatically send JavaScript errors captured by the Angular's error handler."
         ),
+        language: 'javascript',
         code: `
         import { APP_INITIALIZER, ErrorHandler, NgModule } from "@angular/core";
         import { Router } from "@angular/router";
@@ -159,13 +160,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/angular/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `myUndefinedFunction();`,
       },
     ],

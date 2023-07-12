@@ -33,13 +33,13 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/gatsby
@@ -51,7 +51,6 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     configurations: [
       {
@@ -65,6 +64,7 @@ export const steps = ({
             )}
           </div>
         ),
+        language: 'javascript',
         code: `
         module.exports = {
           plugins: [
@@ -79,6 +79,7 @@ export const steps = ({
         description: (
           <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
         ),
+        language: 'javascript',
         code: `
         import * as Sentry from "@sentry/gatsby";
 
@@ -97,13 +98,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: 'myUndefinedFunction();',
       },
     ],
