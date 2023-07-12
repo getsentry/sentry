@@ -7,9 +7,9 @@ from rest_framework.request import Request
 
 from sentry import roles
 from sentry.api.exceptions import SentryAPIException, status
-from sentry.app import locks
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
+from sentry.locks import locks
 from sentry.models import Organization, OrganizationMember, OrganizationMemberTeam, Team
 from sentry.roles.manager import Role, TeamRole
 from sentry.utils.retries import TimedRetryPolicy

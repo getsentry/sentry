@@ -22,6 +22,18 @@ function mockProjectApiResponses(projects) {
     url: '/projects/org-slug/project-slug/',
     body: projects,
   });
+
+  MockApiClient.addMockResponse({
+    url: '/projects/org-slug/project-slug/keys/',
+    method: 'GET',
+    body: [TestStubs.ProjectKeys()[0]],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/projects/org-slug/project-slug/keys/${TestStubs.ProjectKeys()[0].public}/`,
+    method: 'PUT',
+    body: {},
+  });
 }
 
 describe('ProjectInstallPlatform', function () {

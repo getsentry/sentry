@@ -53,6 +53,7 @@ class OutboxScope(IntEnum):
     INTEGRATION_SCOPE = 5
     APP_SCOPE = 6
     TEAM_SCOPE = 7
+    PROVISION_SCOPE = 8
 
     def __str__(self):
         return self.name
@@ -80,6 +81,8 @@ class OutboxCategory(IntEnum):
     SEND_SIGNAL = 14
     ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE = 15
     ORGAUTHTOKEN_UPDATE = 16
+    PROVISION_ORGANIZATION = 17
+    PROVISION_SUBSCRIPTION = 18
 
     @classmethod
     def as_choices(cls):

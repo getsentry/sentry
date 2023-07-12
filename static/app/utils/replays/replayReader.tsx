@@ -27,11 +27,11 @@ import type {
   BreadcrumbFrame,
   ErrorFrame,
   MemoryFrame,
+  MultiClickFrame,
   OptionFrame,
   RecordingFrame,
   SpanFrame,
 } from 'sentry/utils/replays/types';
-import {BreadcrumbCategories} from 'sentry/utils/replays/types';
 import type {
   MemorySpan,
   NetworkSpan,
@@ -259,10 +259,13 @@ export default class ReplayReader {
             'ui.click',
             'replay.mutations',
             'ui.slowClickDetected',
-          ].includes(frame.category) || !BreadcrumbCategories.includes(frame.category)
+            'navigation',
+          ].includes(frame.category) ||
+          (frame.category === 'ui.multiClick' &&
+            (frame as MultiClickFrame).data.clickCount >= 3)
       ),
       ...this._sortedSpanFrames.filter(frame =>
-        ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+        ['navigation.navigate', 'navigation.reload', 'navigation.back_forward'].includes(
           frame.op
         )
       ),

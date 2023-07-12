@@ -91,7 +91,7 @@ class BetterSignal(Signal):
             try:
                 response = receiver(signal=self, sender=sender, **named)
             except Exception as err:
-                if "pytest" in sys.modules:
+                if "pytest" in sys.argv[0]:
                     if (
                         _receivers_that_raise is _AllReceivers.ALL
                         or receiver in _receivers_that_raise
@@ -120,7 +120,7 @@ event_received = BetterSignal()  # ["ip", "project"]
 event_accepted = BetterSignal()  # ["ip", "data", "project"]
 
 # Organization Onboarding Signals
-project_created = BetterSignal()  # ["project", "user", "default_rules"]
+project_created = BetterSignal()  # ["project", "user", "user_id", "default_rules"]
 first_event_pending = BetterSignal()  # ["project", "user"]
 
 first_event_received = BetterSignal()  # ["project", "event"]
@@ -174,7 +174,7 @@ comment_created = BetterSignal()  # ["project", "user", "group", "activity_data"
 comment_updated = BetterSignal()  # ["project", "user", "group", "activity_data"]
 comment_deleted = BetterSignal()  # ["project", "user", "group", "activity_data"]
 
-terms_accepted = BetterSignal()  # ["organization", "user", "ip_address"]
+terms_accepted = BetterSignal()  # ["organization", "organization_id", "user", "ip_address"]
 team_created = (
     BetterSignal()
 )  # ["organization", "user", "team", "team_id", "organization_id", "user_id"]

@@ -28,6 +28,10 @@ type ConfigurationType = {
    */
   code: string;
   /**
+   * The language of the code to be rendered (python, javascript, etc)
+   */
+  language: string;
+  /**
    * A brief description of the configuration
    */
   description?: React.ReactNode;
@@ -35,10 +39,6 @@ type ConfigurationType = {
 
 export type StepProps = {
   configurations: ConfigurationType[];
-  /**
-   * The language of the selected platform (python, javascript, etc)
-   */
-  language: string;
   /**
    * The step type (install, configure, verify). The list can grow as we add more steps
    */
@@ -49,7 +49,7 @@ export type StepProps = {
   description?: React.ReactNode;
 };
 
-export function Step({type, configurations, description, language}: StepProps) {
+export function Step({type, configurations, description}: StepProps) {
   return (
     <div>
       <h4>{StepTitle[type]}</h4>
@@ -58,8 +58,8 @@ export function Step({type, configurations, description, language}: StepProps) {
         {configurations.map((configuration, index) => (
           <Configuration key={index}>
             {configuration.description}
-            <CodeSnippet dark language={language}>
-              {language === 'javascript'
+            <CodeSnippet dark language={configuration.language}>
+              {configuration.language === 'javascript'
                 ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
                 : beautify.html(configuration.code, {indent_size: 2})}
             </CodeSnippet>

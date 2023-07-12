@@ -33,13 +33,13 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/react
@@ -51,13 +51,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: t(
       "Initialize Sentry as early as possible in your application's lifecycle."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         Sentry.init({
           ${sentryInitContent}
@@ -74,13 +74,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/react/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         return <button onClick={() => methodDoesNotExist()}>Break the world</button>;
         `,

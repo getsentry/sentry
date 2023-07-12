@@ -1,10 +1,13 @@
 from unittest.mock import patch
 
 import responses
+from pytest import raises
 from requests import PreparedRequest, Request
 
 from sentry.shared_integrations.client.base import BaseApiClient
+from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.socket import override_blacklist
 
 
 class BaseApiClientTest(TestCase):
@@ -55,3 +58,12 @@ class BaseApiClientTest(TestCase):
         assert put_response.call_count == 0
         self.client.get("https://example.com/get", prepared_request=prepared_request)
         assert put_response.call_count == 1
+
+    @responses.activate
+    @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
+    @override_blacklist("172.16.0.0/12")
+    def test_restricted_ip_address(self, mock_finalize_request):
+        assert not mock_finalize_request.called
+        with raises(ApiHostError):
+            self.client.get("https://172.31.255.255")
+        assert mock_finalize_request.called
