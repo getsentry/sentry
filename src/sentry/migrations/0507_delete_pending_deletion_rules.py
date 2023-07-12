@@ -27,9 +27,11 @@ def schedule(cls, instance, days=30):
         app_label=instance._meta.app_label,
         model_name=model_name,
         object_id=instance.pk,
-        date_scheduled=timezone.now() + timedelta(days=days, hours=0),
-        data={},
-        actor_id=None,
+        defaults={
+            "actor_id": None,
+            "data": {},
+            "date_scheduled": timezone.now() + timedelta(days=days, hours=0),
+        },
     )
 
 

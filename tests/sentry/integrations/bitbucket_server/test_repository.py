@@ -19,8 +19,9 @@ from fixtures.bitbucket_server import (
 from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
 from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
@@ -62,7 +63,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_compare_commits(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             repo = Repository.objects.create(
                 provider="bitbucket_server",
                 name="sentryuser/newsdiffs",
@@ -109,7 +110,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     @responses.activate
     def test_compare_commits_with_two_pages(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             repo = Repository.objects.create(
                 provider="bitbucket_server",
                 name="sentryuser/newsdiffs",
@@ -239,7 +240,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         }
 
     def test_repository_external_slug(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             repo = Repository.objects.create(
                 provider="bitbucket_server",
                 name="sentryuser/newsdiffs",
