@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from unittest import mock
 
 from sentry.models import ProjectOption
 from sentry.projectoptions import default_manager, defaults
@@ -6,21 +6,16 @@ from sentry.projectoptions.manager import WellKnownProjectOption
 from sentry.utils.pytest.fixtures import django_db_all
 
 
-@contextmanager
 def latest_epoch(value):
-    old = defaults.LATEST_EPOCH
-    try:
-        defaults.LATEST_EPOCH = value
-        yield
-    finally:
-        defaults.LATEST_EPOCH = old
+    return mock.patch.object(defaults, "LATEST_EPOCH", value)
 
 
 @django_db_all
+@latest_epoch(10)
 def test_defaults(default_project):
     default_manager.register(
         key="__sentry_test:test-option",
-        epoch_defaults={1: "whatever", 10: "new-value", 42: "latest-value"},
+        epoch_defaults={1: "whatever", 20: "new-value", 42: "latest-value"},
     )
 
     assert default_project.get_option("__sentry_test:test-option") == "whatever"
