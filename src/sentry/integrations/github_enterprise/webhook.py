@@ -14,6 +14,7 @@ from sentry.integrations.github.webhook import (
     InstallationEventWebhook,
     PullRequestEventWebhook,
     PushEventWebhook,
+    get_github_external_id,
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import json
@@ -27,12 +28,18 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
+def get_host(request: Request):
+    # XXX: There's lots of customers that are giving us an IP rather than a host name
+    # Use HTTP_X_REAL_IP in a follow up PR (#42405)
+    return request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
+
+
 def get_installation_metadata(event, host):
     if not host:
         return
-
+    external_id = get_github_external_id(event=event, host=host)
     integration = integration_service.get_integration(
-        external_id="{}:{}".format(host, event["installation"]["id"]),
+        external_id=external_id,
         provider="github_enterprise",
     )
     if integration is None:
@@ -111,9 +118,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         with configure_scope() as scope:
             meta = request.META
             try:
-                # XXX: There's lost of customers that are giving us an IP rather than a host name
-                # Use HTTP_X_REAL_IP in a follow up PR
-                host = meta["HTTP_X_GITHUB_ENTERPRISE_HOST"]
+                host = get_host(request=request)
             except KeyError:
                 logger.warning("github_enterprise.webhook.missing-enterprise-host")
                 logger.exception("Missing enterprise host.")

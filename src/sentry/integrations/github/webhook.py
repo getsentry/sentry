@@ -42,6 +42,11 @@ from .repository import GitHubRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 
+def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str:
+    external_id = event.get("installation", {}).get("id")
+    return f"{host}:{external_id}" if host else external_id
+
+
 class Webhook:
     provider = "github"
 
@@ -56,9 +61,7 @@ class Webhook:
         raise NotImplementedError
 
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
-        external_id = event.get("installation", {}).get("id")
-        if host:
-            external_id = f"{host}:{external_id}"
+        external_id = get_github_external_id(event=event, host=host)
 
         integration, installs = integration_service.get_organization_contexts(
             external_id=external_id, provider=self.provider

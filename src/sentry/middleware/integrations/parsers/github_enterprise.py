@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Mapping
 
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.github.webhook import get_github_external_id
+from sentry.integrations.github_enterprise.webhook import get_host
+from sentry.middleware.integrations.parsers.github import GithubRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
 
 logger = logging.getLogger(__name__)
 
 
-class GithubEnterpriseRequestParser(BaseRequestParser):
+class GithubEnterpriseRequestParser(GithubRequestParser):
     provider = "github_enterprise"
     webhook_identifier = WebhookProviderIdentifier.GITHUB_ENTERPRISE
+
+    def _get_external_id(self, event: Mapping[str, Any]) -> str:
+        return get_github_external_id(event=event, host=get_host(request=self.request))

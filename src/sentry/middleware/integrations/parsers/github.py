@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, Mapping
 
+from sentry.integrations.github.webhook import get_github_external_id
 from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -16,6 +18,10 @@ class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
 
+    def _get_external_id(self, event: Mapping[str, Any]) -> str:
+        """Overridden in GithubEnterpriseRequestParser"""
+        return get_github_external_id(event)
+
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
         if not self.is_json_request():
@@ -24,7 +30,7 @@ class GithubRequestParser(BaseRequestParser):
             event = json.loads(self.request.body.decode(encoding="utf-8"))
         except json.JSONDecodeError:
             return None
-        external_id = event.get("installation", {}).get("id")
+        external_id = self._get_external_id(event=event)
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
