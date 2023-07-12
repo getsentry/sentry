@@ -7,9 +7,10 @@ from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_
 from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationRepositoryTestCase
 from sentry.testutils.asserts import assert_commit_shape
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -69,7 +70,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
             json={"id": 99},
         )
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.REGION)
     def get_repository(self, **kwargs) -> Repository:
         return Repository.objects.get(**kwargs)
 

@@ -7,7 +7,8 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.models import Commit, CommitAuthor, GroupLink, PullRequest
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.silo import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 
@@ -116,12 +117,12 @@ class WebhookTest(GitLabTestCase):
         assert response.status_code == 204
 
     def test_push_event_multiple_organizations_one_missing_repo(self):
-        with exempt_from_silo_limits():
-            # Create a repo on the primary organization
-            repo = self.create_repo("getsentry/sentry")
+        # Create a repo on the primary organization
+        repo = self.create_repo("getsentry/sentry")
 
-            # Second org with no repo.
-            other_org = self.create_organization(owner=self.user)
+        # Second org with no repo.
+        other_org = self.create_organization(owner=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(other_org, self.user)
 
         response = self.client.post(
@@ -139,14 +140,16 @@ class WebhookTest(GitLabTestCase):
             assert commit.repository_id == repo.id
 
     def test_push_event_multiple_organizations(self):
-        with exempt_from_silo_limits():
-            # Create a repo on the primary organization
-            repo = self.create_repo("getsentry/sentry")
+        # Create a repo on the primary organization
+        repo = self.create_repo("getsentry/sentry")
 
-            # Second org with the same repo
-            other_org = self.create_organization(owner=self.user)
+        # Second org with the same repo
+        other_org = self.create_organization(owner=self.user)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(other_org, self.user)
-            other_repo = self.create_repo("getsentry/sentry", organization_id=other_org.id)
+
+        other_repo = self.create_repo("getsentry/sentry", organization_id=other_org.id)
 
         response = self.client.post(
             self.url,
