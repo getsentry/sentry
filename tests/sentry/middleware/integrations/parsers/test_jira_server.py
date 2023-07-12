@@ -53,7 +53,7 @@ class JiraServerRequestParserTest(TestCase):
             assert get_response_from_control_silo.called
 
         # Found the integration
-        with mock.patch(
+        with mock.patch(  # type: ignore[unreachable]
             "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
         ) as mock_get_integration:
             mock_get_integration.return_value = self.integration
@@ -95,4 +95,4 @@ class JiraServerRequestParserTest(TestCase):
         )
         with override_regions(self.region_config):
             response = parser.get_response()
-            assert json.loads(proxy_response.body) == json.loads(response.content)
+            assert json.loads(proxy_response.body) == json.loads(response.content)  # type: ignore
