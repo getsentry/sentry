@@ -52,7 +52,7 @@ def link_all_repos(
         if installation.is_rate_limited_error(e):
             return
 
-        metrics.incr("github.link_all_repos.api_error")
+        metrics.incr(f"{integration_key}.link_all_repos.api_error")
         raise e
 
     binding_key = "integration-repository.provider"
