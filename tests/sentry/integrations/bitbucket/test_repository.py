@@ -9,8 +9,9 @@ from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -96,7 +97,7 @@ class BitbucketRepositoryProviderTest(TestCase):
         )
 
         organization = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="bitbucket",
                 external_id="bitbucket_external_id",
@@ -186,7 +187,7 @@ class BitbucketCreateRepositoryTestCase(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)

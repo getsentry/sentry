@@ -3,8 +3,9 @@ from typing import Any
 
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
 from sentry.models import Identity, IdentityProvider, Integration, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.bitbucket.testutils import REFS_CHANGED_EXAMPLE
 
 PROVIDER = "bitbucket_server"
@@ -107,7 +108,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         )
 
     def test_simple(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
 
         self.create_repository()

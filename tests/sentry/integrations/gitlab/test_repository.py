@@ -20,35 +20,38 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     def setUp(self):
         super().setUp()
-        self.integration = Integration.objects.create(
-            provider="gitlab",
-            name="Example GitLab",
-            external_id="example.gitlab.com:getsentry",
-            metadata={
-                "instance": "example.gitlab.com",
-                "domain_name": "example.gitlab.com/getsentry",
-                "verify_ssl": False,
-                "base_url": "https://example.gitlab.com",
-                "webhook_secret": "secret-token-value",
-            },
-        )
-        identity = Identity.objects.create(
-            idp=IdentityProvider.objects.create(type="gitlab", config={}, external_id="1234567890"),
-            user=self.user,
-            external_id="example.gitlab.com:4",
-            data={"access_token": "1234567890"},
-        )
-        self.integration.add_organization(self.organization, self.user, identity.id)
-        self.integration.get_provider().setup()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration = Integration.objects.create(
+                provider="gitlab",
+                name="Example GitLab",
+                external_id="example.gitlab.com:getsentry",
+                metadata={
+                    "instance": "example.gitlab.com",
+                    "domain_name": "example.gitlab.com/getsentry",
+                    "verify_ssl": False,
+                    "base_url": "https://example.gitlab.com",
+                    "webhook_secret": "secret-token-value",
+                },
+            )
+            identity = Identity.objects.create(
+                idp=IdentityProvider.objects.create(
+                    type="gitlab", config={}, external_id="1234567890"
+                ),
+                user=self.user,
+                external_id="example.gitlab.com:4",
+                data={"access_token": "1234567890"},
+            )
+            self.integration.add_organization(self.organization, self.user, identity.id)
+            self.integration.get_provider().setup()
 
-        self.default_repository_config = {
-            "path_with_namespace": "getsentry/example-repo",
-            "name_with_namespace": "Get Sentry / Example Repo",
-            "path": "example-repo",
-            "id": "123",
-            "web_url": "https://example.gitlab.com/getsentry/projects/example-repo",
-        }
-        self.gitlab_id = 123
+            self.default_repository_config = {
+                "path_with_namespace": "getsentry/example-repo",
+                "name_with_namespace": "Get Sentry / Example Repo",
+                "path": "example-repo",
+                "id": "123",
+                "web_url": "https://example.gitlab.com/getsentry/projects/example-repo",
+            }
+            self.gitlab_id = 123
 
     @cached_property
     def provider(self):
@@ -151,7 +154,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
 
     def test_create_repository_data_integration_does_not_exist(self):
         integration_id = self.integration.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
         response = self.create_repository(self.default_repository_config, integration_id)

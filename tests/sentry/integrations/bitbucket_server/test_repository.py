@@ -28,7 +28,7 @@ from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 class BitbucketServerRepositoryProviderTest(APITestCase):
     @cached_property
     def integration(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="bitbucket_server",
                 name="Example Bitbucket",
