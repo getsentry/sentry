@@ -161,22 +161,18 @@ def fetch_projects_with_total_root_transaction_count_and_rates(
         ]
 
         keep_count = Function(
-            "countIf",
+            "sumIf",
             [
-                Function(
-                    "equals",
-                    [Column(transaction_tag), "keep"],
-                )
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "keep"]),
             ],
             alias="keep_count",
         )
         drop_count = Function(
-            "countIf",
+            "sumIf",
             [
-                Function(
-                    "equals",
-                    [Column(transaction_tag), "drop"],
-                )
+                Column("value"),
+                Function("equals", [Column(transaction_tag), "drop"]),
             ],
             alias="drop_count",
         )

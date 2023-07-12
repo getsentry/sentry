@@ -44,8 +44,10 @@ logger = logging.getLogger(__name__)
 
 
 class TimeoutException(Exception):
-    def __init__(self, task_context: TaskContext, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, task_context: TaskContext, *args):
+        super().__init__(
+            [task_context, *args],
+        )
         self.task_context = task_context
 
 
