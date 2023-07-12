@@ -183,7 +183,8 @@ class PushEventWebhook(Webhook):
             else:
                 author = authors[author_email]
             try:
-                author.preload_users()
+                if author is not None:
+                    author.preload_users()
                 with transaction.atomic():
                     Commit.objects.create(
                         repository_id=repo.id,
