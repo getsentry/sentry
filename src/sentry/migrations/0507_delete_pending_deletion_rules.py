@@ -24,12 +24,12 @@ def schedule(cls, instance, days=30):
     model = type(instance)
     model_name = model.__name__
     cls.objects.update_or_create(
+        app_label=instance._meta.app_label,
+        model_name=model_name,
         object_id=instance.pk,
-        data={},
-        actor_id=None,
         defaults={
-            "app_label": instance._meta.app_label,
-            "model_name": model_name,
+            "actor_id": None,
+            "data": {},
             "date_scheduled": timezone.now() + timedelta(days=days, hours=0),
         },
     )
