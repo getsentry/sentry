@@ -58,6 +58,7 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
         },
         {action: 'create'}
       );
+
     return [['integrationDetails', this.getEndPointString(), {query}]];
   }
 

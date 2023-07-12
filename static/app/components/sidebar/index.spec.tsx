@@ -5,6 +5,7 @@ import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import {SentryServiceStatus} from 'sentry/types';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -12,7 +13,15 @@ describe('Sidebar', function () {
   const {organization, router, routerContext} = initializeOrg();
   const broadcast = TestStubs.Broadcast();
   const user = TestStubs.User();
-  const apiMocks = {};
+  const apiMocks: {
+    broadcasts: jest.Mock;
+    broadcastsMarkAsSeen: jest.Mock;
+    sdkUpdates: jest.Mock;
+  } = {
+    broadcasts: jest.fn(),
+    broadcastsMarkAsSeen: jest.fn(),
+    sdkUpdates: jest.fn(),
+  };
 
   const location = {...router.location, ...{pathname: '/test/'}};
 
@@ -22,7 +31,8 @@ describe('Sidebar', function () {
     </OnboardingContextProvider>
   );
 
-  const renderSidebar = props => render(getElement(props), {context: routerContext});
+  const renderSidebar = (props = {}) =>
+    render(getElement(props), {context: routerContext});
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -37,6 +47,8 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
+
+    jest.restoreAllMocks();
   });
 
   it('renders', async function () {
@@ -74,7 +86,6 @@ describe('Sidebar', function () {
     await waitFor(() => expect(mock).toHaveBeenCalled());
 
     expect(window.location.assign).toHaveBeenCalledWith('/auth/login/');
-    window.location.assign.mockRestore();
   });
 
   it('can toggle help menu', async function () {
@@ -237,9 +248,15 @@ describe('Sidebar', function () {
     });
 
     it('can show Incidents in Sidebar Panel', async function () {
-      incidentActions.loadIncidents = jest.fn(() => ({
-        incidents: [TestStubs.ServiceIncident()],
-      }));
+      jest
+        .spyOn(incidentActions, 'loadIncidents')
+        .mockImplementation((): Promise<SentryServiceStatus | null> => {
+          return Promise.resolve({
+            incidents: [TestStubs.ServiceIncident()],
+            indicator: 'none',
+            url: '',
+          });
+        });
 
       const {container} = renderSidebar();
 

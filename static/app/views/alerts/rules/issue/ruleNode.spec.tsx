@@ -106,7 +106,7 @@ describe('RuleNode', () => {
     },
   };
 
-  const renderRuleNode = (node, data, org = organization) => {
+  const renderRuleNode = (node, data = {}, org = organization) => {
     return render(
       <RuleNode
         index={index}
@@ -114,8 +114,11 @@ describe('RuleNode', () => {
         data={{
           id: 'sentry.rules.mock',
           name: '(mock) A new issue is created',
+          label: '(mock) A new issue is created',
+          prompt: '',
           ...data,
         }}
+        disabled={false}
         organization={org}
         project={project}
         onDelete={onDelete}
