@@ -46,6 +46,7 @@ class RegionMappingTest(TestCase):
             with override_settings(SILO_MODE=SiloMode.REGION, SENTRY_REGION="na"):
                 assert get_local_region() == regions[0]
 
+        with override_regions(()):
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
                 # The relative address and the 0 id are the only important parts of this region value
                 assert get_local_region() == Region(
@@ -96,7 +97,10 @@ class RegionMappingTest(TestCase):
                 "category": RegionCategory.MULTI_TENANT.name,
             }
         ]
-        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
+        with override_settings(
+            SENTRY_REGION_CONFIG=json.dumps(region_config),
+            SENTRY_MONOLITH_REGION="na",
+        ):
             region = get_region_by_name("na")
         assert region.snowflake_id == 1
 

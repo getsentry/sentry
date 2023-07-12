@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Iterable
+from typing import Sequence
 
 from django.test.utils import override_settings
 
@@ -7,7 +7,7 @@ from sentry.types import region
 
 
 @contextmanager
-def override_regions(regions: Iterable[region.Region]):
+def override_regions(regions: Sequence[region.Region]):
     """Override the global set of existing regions.
 
     The overriding value takes the place of the `SENTRY_REGION_CONFIG` setting and
@@ -16,12 +16,18 @@ def override_regions(regions: Iterable[region.Region]):
     because the region mapping may already be cached.
     """
 
-    regions = list(regions)
+    @contextmanager
+    def fix_monolith_region_pointer():
+        # Set SENTRY_MONOLITH_REGION to make GlobalRegionDirectory validation happy.
+        # This won't affect the behavior of the Region.is_historic_monolith_region method;
+        # tests that rely on it must override SENTRY_MONOLITH_REGION in their own cases.
+        if regions:
+            with override_settings(SENTRY_MONOLITH_REGION=regions[0].name):
+                yield
+        else:
+            yield
 
-    # Set SENTRY_MONOLITH_REGION to make GlobalRegionDirectory validation happy.
-    # This won't affect the behavior of the Region.is_historic_monolith_region method;
-    # tests that rely on it must override SENTRY_MONOLITH_REGION in their own cases.
-    with override_settings(SENTRY_MONOLITH_REGION=regions[0].name):
+    with fix_monolith_region_pointer():
         mapping = region.GlobalRegionDirectory(regions)
 
     def override() -> region.GlobalRegionDirectory:
