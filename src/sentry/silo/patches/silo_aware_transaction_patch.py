@@ -41,7 +41,7 @@ def siloed_on_commit(func: Callable[..., Any], using: Optional[str] = None) -> N
     return _default_on_commit(func, using)
 
 
-def determine_using_by_silo_mode(using):
+def determine_using_by_silo_mode(using: Optional[str]) -> str:
     from sentry.models import ControlOutbox, RegionOutbox
     from sentry.silo import SiloMode
 
@@ -51,6 +51,7 @@ def determine_using_by_silo_mode(using):
 
     if not using:
         using = region_db if current_silo_mode == SiloMode.REGION else control_db
+        assert using
 
     both_silos_route_to_same_db = control_db == region_db
 

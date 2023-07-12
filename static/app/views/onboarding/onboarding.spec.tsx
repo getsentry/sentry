@@ -100,6 +100,12 @@ describe('Onboarding', function () {
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [TestStubs.ProjectKeys()[0]],
+    });
+
     jest
       .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
       .mockImplementation(() => {

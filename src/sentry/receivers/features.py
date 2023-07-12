@@ -148,7 +148,7 @@ def record_user_feedback(project, **kwargs):
 
 
 @project_created.connect(weak=False)
-def record_project_created(project, user, **kwargs):
+def record_project_created(project, **kwargs):
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_project", complete=True
     )

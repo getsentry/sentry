@@ -36,7 +36,8 @@ function SampleTable({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95'
+    'span-summary-panel-samples-table-p95',
+    Boolean(groupId && transactionName && transactionMethod)
   );
   const organization = useOrganization();
 
@@ -110,7 +111,7 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
-              op: spanMetrics['span.op'],
+              op: spanMetrics[SPAN_OP],
               transaction: transactionsById[sample['transaction.id']],
             };
           })}
