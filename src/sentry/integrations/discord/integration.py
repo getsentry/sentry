@@ -40,9 +40,11 @@ metadata = IntegrationMetadata(
 
 class DiscordIntegration(IntegrationInstallation):
     def get_client(self) -> DiscordClient:
+        org_integration_id = self.org_integration.id if self.org_integration else None
+
         return DiscordClient(
-            integration_id=self.model.id,
-            org_integration_id=self.org_integration.id,
+            integration_id=self.model.id,  # type:ignore
+            org_integration_id=org_integration_id,
         )
 
     def uninstall(self) -> None:
@@ -63,7 +65,7 @@ class DiscordIntegration(IntegrationInstallation):
 
         client = self.get_client()
         try:
-            client.leave_guild(self.model.external_id)
+            client.leave_guild(str(self.model.external_id))
         except ApiError as error:
             if error.code == 404:
                 # We have already been removed from the guild

@@ -51,4 +51,4 @@ class DiscordClient(IntegrationProxyClient):
         """
         Leave the given guild_id, if the bot is currently a member.
         """
-        return self.delete(self.users_guild_url.format(guild_id=guild_id))
+        self.delete(self.users_guild_url.format(guild_id=guild_id))
