@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import Link from 'sentry/components/links/link';
 import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire} from 'sentry/icons';
@@ -10,6 +11,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {Chart} from 'sentry/views/performance/trends/chart';
 import {
@@ -19,6 +24,7 @@ import {
   TrendsStats,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
@@ -100,6 +106,7 @@ function ExplorerBody(props: ExplorerBodyProps) {
     isLoading,
     location,
     organization,
+    projects,
   } = props;
   const breakpointDate = transaction.breakpoint
     ? moment(transaction.breakpoint * 1000).format('ddd, DD MMM YYYY HH:mm:ss z')
@@ -150,6 +157,18 @@ function ExplorerBody(props: ExplorerBodyProps) {
         trendView={trendView}
         organization={organization}
       />
+      <Link
+        to={getTransactionSummaryLink(
+          trendView,
+          transaction,
+          projects,
+          organization,
+          trendFunction,
+          trendParameter
+        )}
+      >
+        {t('View transaction summary')}
+      </Link>
     </Fragment>
   );
 }
@@ -181,6 +200,30 @@ function Header(props: HeaderProps) {
       </HeaderTextWrapper>
     </HeaderWrapper>
   );
+}
+
+function getTransactionSummaryLink(
+  eventView: TrendView,
+  transaction: NormalizedTrendsTransaction,
+  projects: Project[],
+  organization: Organization,
+  currentTrendFunction: string,
+  trendParameter: TrendParameter
+) {
+  const summaryView = eventView.clone();
+  const projectID = getTrendProjectId(transaction, projects);
+  const target = transactionSummaryRouteWithQuery({
+    orgSlug: organization.slug,
+    transaction: String(transaction.transaction),
+    query: summaryView.generateQueryStringObject(),
+    projectID,
+    display: DisplayModes.TREND,
+    trendFunction: currentTrendFunction,
+    additionalQuery: {
+      trendParameter: trendParameter.column,
+    },
+  });
+  return target;
 }
 
 const PanelBodyWrapper = styled('div')`
