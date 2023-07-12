@@ -196,6 +196,41 @@ class WebhookTest(GitLabTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
+    def test_push_event_create_commits_with_no_author_email(self):
+        repo = self.create_repo("getsentry/sentry")
+        push_event = json.loads(PUSH_EVENT)
+        push_event["commits"][0]["author"]["email"] = None
+
+        response = self.client.post(
+            self.url,
+            data=json.dumps(push_event),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        assert response.status_code == 204
+
+        commits = Commit.objects.all()
+        assert len(commits) == 2
+        for index, commit in enumerate(commits):
+            assert commit.key
+            assert commit.message
+            if index == 0:
+                assert commit.author is None
+            else:
+                assert commit.author
+            assert commit.date_added
+            assert commit.repository_id == repo.id
+            assert commit.organization_id == self.organization.id
+
+        authors = CommitAuthor.objects.all()
+        assert len(authors) == 1
+        for author in authors:
+            assert author.email
+            assert "example.org" in author.email
+            assert author.name
+            assert author.organization_id == self.organization.id
+
     def test_push_event_ignore_commit(self):
         self.create_repo("getsentry/sentry")
         response = self.client.post(
