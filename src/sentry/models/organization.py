@@ -4,6 +4,7 @@ from datetime import timedelta
 from enum import IntEnum
 from re import compile
 from typing import Collection, FrozenSet, Optional, Sequence
+from uuid import uuid4
 
 from django.conf import settings
 from django.db import models, transaction
@@ -311,9 +312,13 @@ class Organization(Model, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeId
             )
 
         if not sanitized_slug_target:
-            raise InvalidRegionalSlugTargetException(
-                "Requested slug either empty or only contains reserved prefixes."
-            )
+            if not truncate_region_prefix_collisions:
+                raise InvalidRegionalSlugTargetException(
+                    "Requested slug either empty or only contains reserved prefixes."
+                )
+
+            # If the slug is empty and slug truncation is disabled, use a new slug seed
+            sanitized_slug_target = uuid4().hex[:8]
 
         local_region = get_local_region()
         if local_region.name != settings.SENTRY_MONOLITH_REGION:

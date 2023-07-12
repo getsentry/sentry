@@ -591,3 +591,17 @@ class TestOrganizationRegionalSlugGeneration(TestCase):
             Organization.generate_regional_slug(
                 slugify_target="r de sluggy", truncate_region_prefix_collisions=False
             )
+
+    def test_slug_with_only_separators_with_truncation(self):
+        slug = Organization.generate_regional_slug(slugify_target="----")
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            assert slug.startswith("r-na-")
+        else:
+            assert not slug.startswith("r-na-")
+            assert len(slug) >= 8
+
+    def test_slug_with_only_separators_without_truncation(self):
+        with pytest.raises(InvalidRegionalSlugTargetException):
+            Organization.generate_regional_slug(
+                slugify_target="----", truncate_region_prefix_collisions=False
+            )

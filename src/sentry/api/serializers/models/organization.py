@@ -110,11 +110,6 @@ class BaseOrganizationSerializer(serializers.Serializer):
             )
         if value in RESERVED_ORGANIZATION_SLUGS:
             raise serializers.ValidationError(f'This slug "{value}" is reserved and not allowed.')
-        qs = Organization.objects.filter(slug=value)
-        if "organization" in self.context:
-            qs = qs.exclude(id=self.context["organization"].id)
-        if qs.exists():
-            raise serializers.ValidationError(f'The slug "{value}" is already in use.')
 
         contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
         if contains_whitespace:

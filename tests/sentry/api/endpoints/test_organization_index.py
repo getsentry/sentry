@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models import Authenticator, Organization, OrganizationMember, OrganizationStatus
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import region_silo_test
@@ -99,12 +100,24 @@ class OrganizationsListTest(OrganizationIndexTest):
         assert len(response.data) == 0
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     method = "post"
 
     def test_missing_params(self):
         self.get_error_response(status_code=400)
+
+    def assert_contains_region_prefix_in_region_silo(
+        self, slug: str, expected_slug_root: str, partial_match: bool = False
+    ):
+        slug_matcher = expected_slug_root
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            slug_matcher = f"r-na-{expected_slug_root}"
+
+        if partial_match:
+            assert slug.startswith(slug_matcher)
+        else:
+            assert slug == slug_matcher
 
     def test_valid_params(self):
         data = {"name": "hello world", "slug": "foobar"}
@@ -113,9 +126,14 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
         assert org.name == "hello world"
-        assert org.slug == "foobar"
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "foobar")
 
-        self.get_error_response(status_code=400, **data)
+        response2 = self.get_success_response(**data)
+        org2 = Organization.objects.get(id=response2.data["id"])
+        # We allow the same slug to be provided, but will modify it as necessary
+        #  in order to prevent a collision with another slug.
+        self.assert_contains_region_prefix_in_region_silo(org2.slug, "foobar", partial_match=True)
+        assert org2.slug != org.slug
 
     def test_slugs(self):
         valid_slugs = ["santry", "downtown-canada", "1234", "CaNaDa"]
@@ -123,7 +141,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             self.organization.refresh_from_db()
             response = self.get_success_response(name=input_slug, slug=input_slug)
             org = Organization.objects.get(id=response.data["id"])
-            assert org.slug == input_slug.lower()
+            self.assert_contains_region_prefix_in_region_silo(org.slug, input_slug.lower())
 
     def test_invalid_slugs(self):
         with self.options({"api.rate-limit.org-create": 9001}):
@@ -141,7 +159,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
-        assert org.slug == "hello-world"
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "hello-world")
 
     @patch(
         "sentry.api.endpoints.organization_member.requests.join.ratelimiter.is_limited",
@@ -150,34 +168,35 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
     def test_name_slugify(self, is_limited):
         response = self.get_success_response(name="---foo")
         org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo"
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "foo")
 
         org_slug_pattern = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$")
 
         response = self.get_success_response(name="---foo---")
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "foo-", partial_match=True)
         assert org_slug_pattern.match(org.slug)
 
         response = self.get_success_response(name="___foo___")
         org = Organization.objects.get(id=response.data["id"])
         assert org.slug != "foo-"
-        assert org.slug.startswith("foo-")
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "foo-", partial_match=True)
         assert org_slug_pattern.match(org.slug)
 
         response = self.get_success_response(name="foo_bar")
         org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "foo-bar"
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "foo-bar")
 
         response = self.get_success_response(name="----")
         org = Organization.objects.get(id=response.data["id"])
         assert len(org.slug) > 0
+        assert "----" not in org.slug
         assert org_slug_pattern.match(org.slug)
 
         response = self.get_success_response(name="CaNaDa")
         org = Organization.objects.get(id=response.data["id"])
-        assert org.slug == "canada"
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "canada")
         assert org_slug_pattern.match(org.slug)
 
     def test_required_terms_with_terms_url(self):
@@ -203,7 +222,8 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
 
         organization_id = response.data["id"]
         org = Organization.objects.get(id=organization_id)
-        assert org.slug == data["slug"]
+        self.assert_contains_region_prefix_in_region_silo(org.slug, "santry")
+        self.assert_contains_region_prefix_in_region_silo(org.slug, data["slug"])
         assert org.name == data["name"]
 
         # TODO(HC) Re-enable this check once organization mapping stabilizes
@@ -214,10 +234,6 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         #         name=data["name"],
         #         idempotency_key=data["idempotencyKey"],
         #     ).exists()
-
-    def test_slug_already_taken(self):
-        self.create_organization(slug="taken")
-        self.get_error_response(slug="taken", name="TaKeN", status_code=400)
 
     def test_add_organization_member(self):
         self.login_as(user=self.user)

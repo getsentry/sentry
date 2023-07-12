@@ -15,6 +15,7 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     update_organization_with_outbox_message,
     upsert_organization_by_org_id_with_outbox_message,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -37,6 +38,16 @@ class OrganizationUpdateTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
 
+    def assert_slug_matches(self, slug: str, expected_slug_root: str, partial_match: bool = False):
+        slug_matcher = expected_slug_root
+        if SiloMode.get_current_mode() == SiloMode.REGION:
+            slug_matcher = f"r-na-{expected_slug_root}"
+
+        if partial_match:
+            assert slug.startswith(slug_matcher)
+        else:
+            assert slug == slug_matcher
+
     def test_create_organization_with_outbox_message(self):
         with outbox_context(flush=False):
             org: Organization = create_organization_with_outbox_message(
@@ -48,8 +59,8 @@ class OrganizationUpdateTest(TestCase):
             )
 
         assert org.id
-        assert org.slug == "santry"
         assert org.name == "santry"
+        self.assert_slug_matches(org.slug, "santry")
         assert_outbox_update_message_exists(org=org, expected_count=1)
 
 

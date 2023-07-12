@@ -16,6 +16,7 @@ from sentry.api.serializers.models.organization import BaseOrganizationSerialize
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
+    InvalidRegionalSlugTargetException,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -257,6 +258,8 @@ class OrganizationIndexEndpoint(Endpoint):
                 return Response(
                     {"detail": "An organization with this slug already exists."}, status=409
                 )
+            except InvalidRegionalSlugTargetException as e:
+                return Response({"detail": str(e)}, status=400)
 
             # failure on sending this signal is acceptable
             if result.get("agreeTerms"):
