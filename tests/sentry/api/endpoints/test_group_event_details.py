@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from sentry.models import GroupStatus
 from sentry.models.release import Release
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -202,6 +203,31 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.event_c.event_id)
         assert response.data["previousEventID"] == str(self.event_b.event_id)
+        assert response.data["nextEventID"] is None
+
+    @with_feature("organizations:issue-details-most-helpful-event")
+    def test_event_release_semver_query(self):
+        event_g = self.store_event(
+            data={
+                "event_id": "1" * 32,
+                "environment": "staging",
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-4"],
+                "release": "test@1.2.3",
+            },
+            project_id=self.project_1.id,
+        )
+
+        release = Release.objects.filter(version="test@1.2.3").get()
+        assert release.version == "test@1.2.3"
+        assert release.is_semver_release
+
+        url = f"/api/0/issues/{event_g.group.id}/events/helpful/"
+        response = self.client.get(url, {"query": f"{SEMVER_ALIAS}:1.2.3"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(event_g.event_id)
+        assert response.data["previousEventID"] is None
         assert response.data["nextEventID"] is None
 
     @with_feature("organizations:issue-details-most-helpful-event")
