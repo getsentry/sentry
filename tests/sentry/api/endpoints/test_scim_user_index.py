@@ -9,10 +9,11 @@ from sentry import audit_log
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
+from sentry.silo import SiloMode
 from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -27,7 +28,7 @@ def merge_dictionaries(dict1, dict2):
     return {**dict1, **dict2}
 
 
-@control_silo_test
+@region_silo_test(stable=True)
 class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
     endpoint = "sentry-api-0-organization-scim-member-index"
 
@@ -67,9 +68,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "sentryOrgRole": self.organization.default_role,
         }
 
-        assert AuditLogEntry.objects.filter(
-            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
+            ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
         assert member.flags["idp:provisioned"]
@@ -103,9 +105,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "sentryOrgRole": "member",
         }
 
-        assert AuditLogEntry.objects.filter(
-            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
+            ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
         assert member.flags["idp:provisioned"]
@@ -156,9 +159,10 @@ class SCIMMemberIndexTests(SCIMTestCase, HybridCloudTestMixin):
             "sentryOrgRole": self.organization.default_role,
         }
 
-        assert AuditLogEntry.objects.filter(
-            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert AuditLogEntry.objects.filter(
+                target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
+            ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"
         assert not member.flags["idp:provisioned"]
