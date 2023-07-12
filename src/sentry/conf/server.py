@@ -88,8 +88,6 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
-ADMIN_ENABLED = DEBUG
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -358,7 +356,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -3253,8 +3250,8 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 # This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
-# How long is the migration phase for grouping updates?
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+# How long the migration phase for grouping lasts
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
 
