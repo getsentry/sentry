@@ -11,7 +11,7 @@ import GenericDiscoverQuery, {
  * An individual row in a DiscoverQuery result
  */
 export type TableDataRow = {
-  [key: string]: React.ReactText;
+  [key: string]: string | number | null | (string | number | null)[];
   id: string;
 };
 
