@@ -150,7 +150,7 @@ class NPlusOneAPICallsDetectorExtendedTest(TestCase):
     def test_does_not_detect_problems_with_low_total_duration_of_spans(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
         event["spans"] = self.create_eligible_spans(
-            100, 5
+            100, 10
         )  # total duration is 500ms, equal to default
 
         problems = self.find_problems(event)
@@ -165,7 +165,7 @@ class NPlusOneAPICallsDetectorExtendedTest(TestCase):
 
     def test_detects_problems_with_low_span_duration_high_total_duration(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
-        event["spans"] = self.create_eligible_spans(100, 5)  # total duration is 500ms
+        event["spans"] = self.create_eligible_spans(100, 10)  # total duration is 500ms
 
         problems = self.find_problems(event)
         assert len(problems) == 1
@@ -177,12 +177,12 @@ class NPlusOneAPICallsDetectorExtendedTest(TestCase):
 
     def test_does_not_detect_problems_with_low_span_count(self):
         event = get_event("n-plus-one-api-calls/n-plus-one-api-calls-in-issue-stream")
-        event["spans"] = self.create_eligible_spans(1000, 5)  # count is 5, greater than default
+        event["spans"] = self.create_eligible_spans(1000, 10)  # count is 5, greater than default
 
         problems = self.find_problems(event)
         assert len(problems) == 1
 
-        event["spans"] = self.create_eligible_spans(1000, 3)  # count is 3, lower than default
+        event["spans"] = self.create_eligible_spans(1000, 5)  # count is 3, lower than default
 
         problems = self.find_problems(event)
         assert problems == []
