@@ -411,9 +411,16 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
-interface GroupActivitySetEscalating extends GroupActivityBase {
+export interface GroupActivitySetEscalating extends GroupActivityBase {
   data: {
-    forecast: number;
+    expired_snooze?: {
+      count: number | null;
+      until: Date | null;
+      user_count: number | null;
+      user_window: number | null;
+      window: number | null;
+    };
+    forecast?: number;
   };
   type: GroupActivityType.SET_ESCALATING;
 }
