@@ -134,15 +134,9 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', async function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getByText('any')).toBeInTheDocument();
-      });
-      await waitFor(() => {
-        expect(screen.getByText('all')).toBeInTheDocument();
-      });
-      await waitFor(() => {
-        expect(screen.getByText('24 hours')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('any')).toBeInTheDocument();
+      expect(await screen.findByText('all')).toBeInTheDocument();
+      expect(await screen.findByText('24 hours')).toBeInTheDocument();
     });
 
     it('can remove filters', async function () {
