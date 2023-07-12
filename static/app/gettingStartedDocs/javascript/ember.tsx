@@ -26,14 +26,13 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
-
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using ember-cli
         ember install @sentry/ember
@@ -42,7 +41,6 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: tct(
       'You should [code:init] the Sentry SDK as soon as possible during your application load up in [code:app.js], before initializing Ember:',
@@ -52,6 +50,7 @@ export const steps = ({
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         import Application from "@ember/application";
         import Resolver from "ember-resolver";
@@ -77,13 +76,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/ember/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `myUndefinedFunction();`,
       },
     ],

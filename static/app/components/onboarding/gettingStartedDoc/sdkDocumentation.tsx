@@ -15,6 +15,7 @@ export const migratedDocs = [
   'javascript-ember',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript-nextjs',
   'javascript',
 ];
 
