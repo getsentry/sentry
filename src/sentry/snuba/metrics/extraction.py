@@ -124,6 +124,7 @@ _STANDARD_METRIC_FIELDS = [
     "browser.name",
     "os.name",
     "geo.country_code",
+    "event.type",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
@@ -206,34 +207,36 @@ def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[s
     if not dataset or not query:
         return False
 
-    return Dataset(dataset) == Dataset.PerformanceMetrics and _contains_on_demand_search_filters(
-        query
-    )
+    if Dataset(dataset) != Dataset.PerformanceMetrics:
+        return False
 
-
-def _contains_on_demand_search_filters(query: str) -> bool:
-    """Recursively checks if the query contains any non-standard search filters."""
     try:
-        tokens = event_search.parse_search_query(query)
-
-        for token in tokens:
-            if _is_on_demand_search_filter(token):
-                return True
-
-        return False
-    except InvalidSearchQuery as e:
-        logger.error(f"Failed to parse search query: {query}. Error: {e}")
+        return not _is_standard_metrics_compatible(event_search.parse_search_query(query))
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
 
 
-def _is_on_demand_search_filter(token: QueryToken) -> bool:
+def _is_standard_metrics_compatible(tokens: Sequence[QueryToken]) -> bool:
+    """
+    Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
+    """
+
+    for token in tokens:
+        if not _is_standard_metrics_search_filter(token):
+            return False
+
+    return True
+
+
+def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     if isinstance(token, SearchFilter):
-        return token.key.name not in _STANDARD_METRIC_FIELDS
+        return token.key.name in _STANDARD_METRIC_FIELDS
 
     if isinstance(token, ParenExpression):
-        return any([_is_on_demand_search_filter(c) for c in token.children])
+        return _is_standard_metrics_compatible(token.children)
 
-    return False
+    return True
 
 
 class OndemandMetricSpec:
