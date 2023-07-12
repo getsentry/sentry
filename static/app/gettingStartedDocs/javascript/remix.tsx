@@ -81,16 +81,20 @@ export const steps = ({
       },
       {
         language: 'javascript',
-        description: tct(
-          `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
-          {
-            action: (
-              <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
-            ),
-            loader: (
-              <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
-            ),
-          }
+        description: (
+          <div>
+            {tct(
+              `Initialize Sentry in your entry point for the server to capture exceptions and get performance metrics for your [action] and [loader] functions. You can also initialize Sentry's database integrations, such as Prisma, to get spans for your database calls:`,
+              {
+                action: (
+                  <ExternalLink href="https://remix.run/docs/en/v1/api/conventions#action" />
+                ),
+                loader: (
+                  <ExternalLink href="https://remix.run/docs/en/1.18.1/api/conventions#loader" />
+                ),
+              }
+            )}
+          </div>
         ),
         code: `
 
