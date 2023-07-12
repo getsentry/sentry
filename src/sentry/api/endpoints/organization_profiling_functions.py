@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from enum import Enum
 from typing import Any
@@ -25,8 +24,6 @@ from sentry.utils import json
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import bulk_snql_query
-
-_query_thread_pool = ThreadPoolExecutor(max_workers=10)
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
