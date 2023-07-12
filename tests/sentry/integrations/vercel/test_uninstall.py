@@ -343,3 +343,29 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         )
         assert response.status_code == 204
         assert not Integration.objects.filter(id=self.integration.id).exists()
+
+    @responses.activate
+    def test_uninstall_from_sentry_error(self):
+        """
+        Test that if we uninstall from Sentry and fail to remove the integration using Vercel's
+        delete integration endpoint, we continue and delete the integration in Sentry.
+        """
+        self.login_as(self.user)
+        with self.tasks():
+            config_id = "my_config_id"
+            responses.add(
+                responses.DELETE,
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
+                json={"error": {"message": "You don't have permission to access this resource."}},
+                status=403,
+            )
+            path = (
+                f"/api/0/organizations/{self.organization.slug}/integrations/{self.integration.id}/"
+            )
+            response = self.client.delete(path, format="json")
+        assert response.status_code == 204
+
+        assert not OrganizationIntegration.objects.filter(
+            integration=self.integration, status=ObjectStatus.ACTIVE
+        ).exists()
+        assert not Integration.objects.filter(id=self.integration.id).exists()
