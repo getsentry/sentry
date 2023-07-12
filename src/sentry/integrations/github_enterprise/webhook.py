@@ -28,10 +28,10 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 
-def get_host(request: Request):
+def get_host(request: Request) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    return request.META["HTTP_X_GITHUB_ENTERPRISE_HOST"]
+    return request.META.get("HTTP_X_GITHUB_ENTERPRISE_HOST")
 
 
 def get_installation_metadata(event, host):
@@ -117,9 +117,8 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         clear_tags_and_context()
         with configure_scope() as scope:
             meta = request.META
-            try:
-                host = get_host(request=request)
-            except KeyError:
+            host = get_host(request=request)
+            if not host:
                 logger.warning("github_enterprise.webhook.missing-enterprise-host")
                 logger.exception("Missing enterprise host.")
                 return HttpResponse(status=400)

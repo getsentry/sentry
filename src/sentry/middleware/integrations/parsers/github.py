@@ -31,6 +31,8 @@ class GithubRequestParser(BaseRequestParser):
         except json.JSONDecodeError:
             return None
         external_id = self._get_external_id(event=event)
+        if not external_id:
+            return None
         return Integration.objects.filter(external_id=external_id, provider=self.provider).first()
 
     def get_response(self):
