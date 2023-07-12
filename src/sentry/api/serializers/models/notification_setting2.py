@@ -58,7 +58,7 @@ class NotificationSettingsSerializer(Serializer):
             if notifications_setting.user_id:
                 target_user = user_map[notifications_setting.user_id]
                 result[target_user]["settings"].add(notifications_setting)
-            if notifications_setting.team_id:
+            elif notifications_setting.team_id:
                 target_team = team_map[notifications_setting.team_id]
                 result[target_team]["settings"].add(notifications_setting)
             else:
