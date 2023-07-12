@@ -1079,16 +1079,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule_auto_transition_new": {
-        "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job every 6 hours
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_transition_regressed": {
-        "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_archive_issues": {
