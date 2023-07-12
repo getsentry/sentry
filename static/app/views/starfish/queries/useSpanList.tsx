@@ -10,7 +10,8 @@ import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, SPAN_DOMAIN} =
+  SpanMetricsFields;
 
 export type SpanMetrics = {
   'http_error_count()': number;
@@ -79,10 +80,10 @@ function getEventView(
     .join(' ');
 
   const fields = [
-    'span.op',
-    'span.group',
-    'span.description',
-    'span.domain',
+    SPAN_OP,
+    SPAN_GROUP,
+    SPAN_DESCRIPTION,
+    SPAN_DOMAIN,
     'sps()',
     'sps_percent_change()',
     `sum(${SPAN_SELF_TIME})`,

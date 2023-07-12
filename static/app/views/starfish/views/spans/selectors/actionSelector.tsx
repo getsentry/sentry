@@ -7,9 +7,11 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_ACTION} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -40,8 +42,8 @@ export function ActionSelector({
     : [
         {value: '', label: 'All'},
         ...actions.map(datum => ({
-          value: datum['span.action'],
-          label: datum['span.action'],
+          value: datum[SPAN_ACTION],
+          label: datum[SPAN_ACTION],
         })),
       ];
 
@@ -57,7 +59,7 @@ export function ActionSelector({
           ...location,
           query: {
             ...location.query,
-            'span.action': newValue.value,
+            [SPAN_ACTION]: newValue.value,
           },
         });
       }}
@@ -93,7 +95,7 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: ['span.action', 'count()'],
+      fields: [SPAN_ACTION, 'count()'],
       orderby: '-count',
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,

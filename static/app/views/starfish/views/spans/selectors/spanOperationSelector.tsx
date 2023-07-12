@@ -6,9 +6,11 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_OP} = SpanMetricsFields;
 
 type Props = {
   value: string;
@@ -34,8 +36,8 @@ export function SpanOperationSelector({
   const options = [
     {value: '', label: 'All'},
     ...operations.map(datum => ({
-      value: datum['span.op'],
-      label: datum['span.op'],
+      value: datum[SPAN_OP],
+      label: datum[SPAN_OP],
     })),
   ];
 
@@ -49,7 +51,7 @@ export function SpanOperationSelector({
           ...location,
           query: {
             ...location.query,
-            'span.op': newValue.value,
+            [SPAN_OP]: newValue.value,
           },
         });
       }}
@@ -67,11 +69,10 @@ function getEventView(location: Location, moduleName: ModuleName, spanCategory?:
   )
     .filter(Boolean)
     .join(' ');
-
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      fields: ['span.op', 'count()'],
+      fields: [SPAN_OP, 'count()'],
       orderby: '-count',
       query,
       dataset: DiscoverDatasets.SPANS_METRICS,

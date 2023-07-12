@@ -190,7 +190,6 @@
     "jest-canvas-mock": "^2.4.0",
     "jest-environment-jsdom": "^29.4.1",
     "jest-fail-on-console": "^3.0.2",
-    "jest-fetch-mock": "^3.0.3",
     "jest-junit": "15.0.0",
     "jest-sentry-environment": "3.0.0",
     "postcss-jsx": "0.36.4",
