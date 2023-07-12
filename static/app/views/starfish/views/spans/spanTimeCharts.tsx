@@ -59,6 +59,7 @@ export function SpanTimeCharts({moduleName, appliedFilters, spanCategory}: Props
   const {isLoading} = useSpansQuery({
     eventView,
     initialData: [],
+    referrer: 'starfish.span-time-charts',
   });
 
   useSynchronizeCharts([!isLoading]);
@@ -103,6 +104,7 @@ function ThroughputChart({moduleName, filters}: ChartProps): JSX.Element {
   const {isLoading, data} = useSpansQuery({
     eventView,
     initialData: [],
+    referrer: 'starfish.span-time-charts',
   });
   const dataByGroup = {[label]: data};
 
@@ -156,6 +158,7 @@ function DurationChart({moduleName, filters}: ChartProps): JSX.Element {
   const {isLoading, data} = useSpansQuery({
     eventView,
     initialData: [],
+    referrer: 'starfish.span-time-charts',
   });
   const dataByGroup = {[label]: data};
 

@@ -26,7 +26,7 @@ export type SpanTransactionMetrics = {
 export const useSpanTransactionMetrics = (
   span: Pick<IndexedSpan, 'group'>,
   options: {sorts?: Sort[]; transactions?: string[]},
-  _referrer = 'span-transaction-metrics'
+  _referrer = 'starfish.span-transaction-metrics'
 ) => {
   const location = useLocation();
 

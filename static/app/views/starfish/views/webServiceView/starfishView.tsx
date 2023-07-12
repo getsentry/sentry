@@ -60,7 +60,7 @@ export function StarfishView(props: BasePerformanceViewProps) {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-homepage-charts"
+        referrer="starfish-web-service.homepage-charts"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
