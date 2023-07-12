@@ -5,9 +5,10 @@ from django.urls import reverse
 from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
 from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -401,7 +402,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data == {"allowedOrigins": ["'*' not allowed in origin"]}
 
     def test_members_cant_update(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "member"
             member_om.save()
@@ -411,7 +412,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.status_code == 403
 
     def test_create_integration_exceeding_scopes(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             member_om = OrganizationMember.objects.get(user_id=self.user.id, organization=self.org)
             member_om.role = "manager"
             member_om.save()
