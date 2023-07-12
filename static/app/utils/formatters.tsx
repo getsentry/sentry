@@ -300,5 +300,5 @@ export function formatAbbreviatedNumber(number: number | string) {
 }
 
 export function formatRate(value: number, rateUnit?: string) {
-  return `${value}/${rateUnit ?? 's'}`;
+  return `${value} /${rateUnit ?? 's'}`;
 }
