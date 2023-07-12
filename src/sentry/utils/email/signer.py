@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.core.signing import BadSignature, Signer
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
@@ -16,6 +20,10 @@ class _CaseInsensitiveSigner(Signer):
     clients (Airmail), treat email addresses as being case-insensitive,
     and sends the value as all lowercase.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("algorithm", "sha1")
+        super().__init__(*args, **kwargs)
 
     def signature(self, value: str) -> str:
         return super().signature(value).lower()
