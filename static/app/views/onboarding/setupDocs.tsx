@@ -226,6 +226,10 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
     currentPlatform === 'javascript'
   );
 
+  useEffect(() => {
+    setShowLoaderOnboarding(currentPlatform === 'javascript');
+  }, [currentPlatform]);
+
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
@@ -322,14 +326,6 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : showDocsWithProductSelection ? (
-            <DocWithProductSelection
-              organization={organization}
-              projectSlug={project.slug}
-              location={location}
-              currentPlatform={currentPlatform}
-              newOrg
-            />
           ) : showLoaderOnboarding ? (
             <Fragment>
               <SetupIntroduction
@@ -347,6 +343,14 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
                 close={hideLoaderOnboarding}
               />
             </Fragment>
+          ) : showDocsWithProductSelection ? (
+            <DocWithProductSelection
+              organization={organization}
+              projectSlug={project.slug}
+              location={location}
+              currentPlatform={currentPlatform}
+              newOrg
+            />
           ) : (
             <ProjectDocs
               platform={loadedPlatform}

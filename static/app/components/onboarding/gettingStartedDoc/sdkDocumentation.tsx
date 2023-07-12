@@ -15,6 +15,7 @@ export const migratedDocs = [
   'javascript-ember',
   'javascript-svelte',
   'javascript-sveltekit',
+  'javascript',
 ];
 
 type SdkDocumentationProps = {
@@ -46,7 +47,7 @@ export function SdkDocumentation({
   const platformPath =
     platform?.type === 'framework'
       ? platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
-      : platform?.id;
+      : `${platform?.language}/${platform?.id}`;
 
   const {
     data: projectKeys = [],
