@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithNextJs, {nextSteps, steps} from './nextjs';
+import {GettingStartedWithNextJs, nextSteps, steps} from './nextjs';
 
 describe('GettingStartedWithNextJs', function () {
   it('all products are selected', function () {

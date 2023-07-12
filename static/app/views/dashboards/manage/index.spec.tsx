@@ -44,9 +44,8 @@ describe('Dashboards > Detail', function () {
   it('denies access on missing feature', function () {
     render(
       <ManageDashboards
+        {...TestStubs.routeComponentProps()}
         organization={mockUnauthorizedOrg}
-        location={{query: {}}}
-        router={{}}
       />
     );
 
@@ -58,9 +57,8 @@ describe('Dashboards > Detail', function () {
 
     render(
       <ManageDashboards
+        {...TestStubs.routeComponentProps()}
         organization={mockAuthorizedOrg}
-        location={{query: {}}}
-        router={{}}
       />
     );
 
@@ -72,7 +70,7 @@ describe('Dashboards > Detail', function () {
   it('creates new dashboard', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
-    render(<ManageDashboards organization={org} location={{query: {}}} router={{}} />);
+    render(<ManageDashboards {...TestStubs.routeComponentProps()} organization={org} />);
 
     await userEvent.click(screen.getByTestId('dashboard-create'));
 
@@ -85,7 +83,7 @@ describe('Dashboards > Detail', function () {
   it('can sort', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
-    render(<ManageDashboards organization={org} location={{query: {}}} router={{}} />);
+    render(<ManageDashboards {...TestStubs.routeComponentProps()} organization={org} />);
 
     await selectEvent.select(
       screen.getByRole('button', {name: /sort by/i}),

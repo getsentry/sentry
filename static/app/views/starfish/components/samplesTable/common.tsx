@@ -36,9 +36,7 @@ export const isNearBaseline = (duration: number, p95: number) => {
   return diff < maxDiff;
 };
 
-export const PlaintextLabel = styled('div')``;
-
-export const ComparisonLabel = styled('span')<{value: number}>`
+const ComparisonLabel = styled('span')<{value: number}>`
   color: ${p =>
     p.value === 0 ? p.theme.subText : p.value < 0 ? p.theme.green400 : p.theme.red400};
   text-align: right;
