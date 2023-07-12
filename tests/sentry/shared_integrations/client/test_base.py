@@ -4,6 +4,8 @@ import responses
 from pytest import raises
 from requests import PreparedRequest, Request
 
+from sentry.exceptions import RestrictedIPAddress
+from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.testutils import TestCase
@@ -61,8 +63,9 @@ class BaseApiClientTest(TestCase):
 
     @responses.activate
     @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
+    @patch.object(Session, "send", side_effect=RestrictedIPAddress())
     @override_blacklist("172.16.0.0/12")
-    def test_restricted_ip_address(self, mock_finalize_request):
+    def test_restricted_ip_address(self, mock_finalize_request, mock_session_send):
         assert not mock_finalize_request.called
         with raises(ApiHostError):
             self.client.get("https://172.31.255.255")
