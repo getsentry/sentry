@@ -5,7 +5,7 @@ import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {PanelAlert} from 'sentry/components/panels';
+import PanelAlert from 'sentry/components/panels/panelAlert';
 import PluginList from 'sentry/components/pluginList';
 import {fields} from 'sentry/data/forms/projectAlerts';
 import {IconMail} from 'sentry/icons';

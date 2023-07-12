@@ -638,13 +638,13 @@ class ArtifactBundlePostAssembler(PostAssembler):
         # detail for now, as long as the indexing is idempotent.
         associated_bundles = list(
             ArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
+                releaseartifactbundle__organization_id=self.organization.id,
+                releaseartifactbundle__release_name=release,
+                releaseartifactbundle__dist_name=dist,
                 # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this
                 # async job, we want to use the `<=` condition for time, effectively saying give me all the bundles that
                 # were created now or in the past.
                 date_last_modified__lte=date_snapshot,
-                releaseartifactbundle__release_name=release,
-                releaseartifactbundle__dist_name=dist,
             )
         )
 

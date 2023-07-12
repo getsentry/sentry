@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
-import {PanelItem} from 'sentry/components/panels';
+import PanelItem from 'sentry/components/panels/panelItem';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import Tag from 'sentry/components/tag';
 import TeamSelector from 'sentry/components/teamSelector';

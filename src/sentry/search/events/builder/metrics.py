@@ -307,6 +307,11 @@ class MetricsQueryBuilder(QueryBuilder):
             granularity = 60
         return Granularity(granularity)
 
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Granularity]:
+        """This only is applicable to table queries, we can use multiple granularities across the time period, which
+        should improve performance"""
+        return [], self.granularity  # Not implemeted here yet, only in the spans queries for now
+
     def resolve_having(
         self, parsed_terms: ParsedTerms, use_aggregate_conditions: bool
     ) -> List[WhereType]:
@@ -497,7 +502,7 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba SDK.
         """
 
-        if not self.use_metrics_layer:
+        if not self.use_metrics_layer and not self._on_demand_spec:
             # The reasoning for this error is because if "use_metrics_layer" is false, the MQB will not generate the
             # snql dialect explained below as there is not need for that because it will directly generate normal snql
             # that can be returned via the "get_snql_query" method.
@@ -790,6 +795,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     offset = self.offset
                     referrer_suffix = "primary"
 
+                granularity_condition, new_granularity = self.resolve_split_granularity()
+                self.granularity = new_granularity
+                self.where += granularity_condition
+
                 query = Query(
                     match=query_details.entity,
                     select=select,
@@ -884,7 +893,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         and returns one or more equivalent snql query(ies).
         """
 
-        if self.use_metrics_layer:
+        if self.use_metrics_layer or self._on_demand_spec:
             from sentry.snuba.metrics import SnubaQueryBuilder
             from sentry.snuba.metrics.mqb_query_transformer import (
                 transform_mqb_query_to_metrics_query,

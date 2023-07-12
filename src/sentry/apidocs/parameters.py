@@ -314,6 +314,38 @@ Configures multiple options for the Javascript Loader Script.
         description="Enables starring the project within the projects tab.",
     )
 
+    OPTIONS = OpenApiParameter(
+        name="options",
+        location="query",
+        required=False,
+        type=inline_serializer(
+            name="OptionsSerializer",
+            fields={
+                "filters:react-hydration-errors": serializers.BooleanField(required=False),
+                "filters:blacklisted_ips": serializers.CharField(required=False),
+                "filters:releases": serializers.CharField(required=False),
+                "filters:error_messages": serializers.CharField(required=False),
+            },
+        ),
+        description="""
+Configure various project filters:
+- `Hydration Errors`: Filter out react hydration errors that are often unactionable
+- `IP Addresses`: Filter events from these IP addresses separated with newlines.
+- `Releases`: Filter events from these releases separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+- `Error Message`: Filter events by error messages separated with newlines. Allows [glob pattern matching](https://docs.sentry.io/product/data-management-settings/filtering/#glob-matching).
+```json
+{
+    options: {
+        filters:react-hydration-errors: true,
+        filters:blacklisted_ips: "127.0.0.1\\n192.168. 0.1"
+        filters:releases: "[!3]\\n4"
+        filters:error_messages: "TypeError*\\n*ConnectionError*"
+    }
+}
+```
+""",
+    )
+
     RATE_LIMIT = OpenApiParameter(
         name="rateLimit",
         location="query",

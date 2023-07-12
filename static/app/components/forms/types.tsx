@@ -1,10 +1,10 @@
 import {createFilter} from 'react-select';
 
 import type {AlertProps} from 'sentry/components/alert';
-import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import {ChoiceMapperProps} from 'sentry/components/forms/fields/choiceMapperField';
 import {SelectAsyncFieldProps} from 'sentry/components/forms/fields/selectAsyncField';
 import FormModel from 'sentry/components/forms/model';
+import {SliderProps} from 'sentry/components/slider';
 import {AvatarProject, Project, SelectValue} from 'sentry/types';
 
 export const FieldType = [
@@ -136,11 +136,7 @@ type NumberType = {type: 'number'} & {
   step?: number;
 };
 
-type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
-
-type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
-    value?: Pick<RangeSliderProps, 'value'>;
-  };
+type RangeType = {type: 'range'} & SliderProps;
 
 type FileType = {type: 'file'} & {
   accept?: string[];
