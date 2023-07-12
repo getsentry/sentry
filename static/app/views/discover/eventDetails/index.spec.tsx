@@ -9,7 +9,7 @@ import EventDetails from 'sentry/views/discover/eventDetails';
 describe('Discover > EventDetails', function () {
   const allEventsView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   const errorsView = EventView.fromSavedQuery(
-    ALL_VIEWS.find(view => view.name === 'Errors by Title')
+    ALL_VIEWS.find(view => view.name === 'Errors by Title')!
   );
 
   beforeEach(function () {
@@ -104,9 +104,13 @@ describe('Discover > EventDetails', function () {
   it('renders', async function () {
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          ...TestStubs.location(),
+          query: allEventsView.generateQueryStringObject(),
+        }}
       />
     );
     expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
@@ -115,9 +119,13 @@ describe('Discover > EventDetails', function () {
   it('renders a 404', async function () {
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:abad1'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          ...TestStubs.location(),
+          query: allEventsView.generateQueryStringObject(),
+        }}
       />
     );
 
@@ -127,9 +135,13 @@ describe('Discover > EventDetails', function () {
   it('renders a chart in grouped view', async function () {
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: errorsView.generateQueryStringObject()}}
+        location={{
+          ...TestStubs.location(),
+          query: errorsView.generateQueryStringObject(),
+        }}
       />
     );
     expect(await screen.findByText('Oh no something bad')).toBeInTheDocument();
@@ -144,9 +156,13 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={TestStubs.Organization()}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          ...TestStubs.location(),
+          query: allEventsView.generateQueryStringObject(),
+        }}
       />
     );
     expect(
@@ -168,9 +184,13 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
-        location={{query: allEventsView.generateQueryStringObject()}}
+        location={{
+          ...TestStubs.location(),
+          query: allEventsView.generateQueryStringObject(),
+        }}
       />,
       {context: routerContext}
     );
@@ -207,6 +227,7 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
@@ -246,9 +267,11 @@ describe('Discover > EventDetails', function () {
     });
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
+          ...TestStubs.location(),
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
       />,
@@ -280,13 +303,14 @@ describe('Discover > EventDetails', function () {
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
-          query: {...allEventsView.generateQueryStringObject(), homepage: true},
+          query: {...allEventsView.generateQueryStringObject(), homepage: '1'},
         },
       },
     });
 
     render(
       <EventDetails
+        {...TestStubs.routeComponentProps()}
         organization={organization}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
@@ -294,8 +318,11 @@ describe('Discover > EventDetails', function () {
       {context: routerContext, organization}
     );
 
-    expect((await screen.findByText('Discover')).pathname).toEqual(
-      '/organizations/org-slug/discover/homepage/'
+    const breadcrumb = await screen.findByTestId('breadcrumb-link');
+    expect(breadcrumb).toHaveTextContent('Discover');
+    expect(breadcrumb).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/?'))
     );
   });
 });
