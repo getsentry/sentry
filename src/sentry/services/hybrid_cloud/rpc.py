@@ -348,7 +348,7 @@ class RpcService(abc.ABC):
 
                 if cls.local_mode == SiloMode.REGION:
                     result = signature.resolve_to_region(kwargs)
-                    if result.is_early_halt is None:
+                    if result.is_early_halt:
                         return None
                     region = result.region
                 else:
