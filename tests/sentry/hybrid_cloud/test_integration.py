@@ -18,12 +18,15 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
     serialize_organization_integration,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 
 
 class BaseIntegrationServiceTest(TestCase):
-    @exempt_from_silo_limits()
+    # TODO(hybrid-cloud): Refactor this to use individual assume_test_silos
+    #  for each colocated model init.
+    @assume_test_silo_mode(SiloMode.MONOLITH)
     def setUp(self):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
@@ -243,7 +246,7 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
 
     def test_get_organization_context(self):
         new_org = self.create_organization()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             org_integration = self.integration3.add_organization(new_org)
 
         result_integration, result_org_integration = integration_service.get_organization_context(

@@ -8,20 +8,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {
-  SpanIndexedFields,
-  SpanIndexedFieldTypes,
-  SpanMetricsFields,
-} from 'sentry/views/starfish/types';
+import {SpanIndexedFields, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedFields;
 
 type Options = {
-  groupId?: string;
-  transactionMethod?: string;
-  transactionName?: string;
+  groupId: string;
+  transactionMethod: string;
+  transactionName: string;
 };
 
 export type SpanSample = Pick<
@@ -41,7 +37,7 @@ export const useSpanSamples = (options: Options) => {
   const location = useLocation();
 
   const query = new MutableSearch([
-    `span.group:${groupId}`,
+    `${SPAN_GROUP}:${groupId}`,
     `transaction:${transactionName}`,
     `transaction.method:${transactionMethod}`,
   ]);
@@ -49,7 +45,7 @@ export const useSpanSamples = (options: Options) => {
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    groupId ? {group: groupId} : undefined,
+    {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
     'api.starfish.sidebar-span-metrics'
@@ -83,9 +79,7 @@ export const useSpanSamples = (options: Options) => {
           ...d,
           timestamp: moment(d.timestamp).format(DATE_FORMAT),
         }))
-        .sort(
-          (a: SpanSample, b: SpanSample) => b['span.self_time'] - a['span.self_time']
-        );
+        .sort((a: SpanSample, b: SpanSample) => b[SPAN_SELF_TIME] - a[SPAN_SELF_TIME]);
     },
     refetchOnWindowFocus: false,
     enabled: Boolean(groupId && transactionName && !isLoadingSeries),

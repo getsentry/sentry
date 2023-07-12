@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithSvelte, {nextSteps, steps} from './svelte';
+import {GettingStartedWithSvelte, nextSteps, steps} from './svelte';
 
 describe('GettingStartedWithSvelte', function () {
   it('all products are selected', function () {

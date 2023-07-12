@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(name="sentry.tasks.reprocess_events", queue="events.reprocess_events")
 def reprocess_events(project_id, **kwargs):
-    from sentry import app
     from sentry.coreapi import insert_data_to_database_legacy
+    from sentry.locks import locks
     from sentry.models import ProcessingIssue
 
     lock_key = "events:reprocess_events:%s" % project_id
     have_more = False
-    lock = app.locks.get(lock_key, duration=60, name="reprocess_events")
+    lock = locks.get(lock_key, duration=60, name="reprocess_events")
 
     try:
         with lock.acquire():

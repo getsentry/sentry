@@ -110,7 +110,7 @@ function SampleTable({
           data={spans.map(sample => {
             return {
               ...sample,
-              op: spanMetrics['span.op'],
+              op: spanMetrics[SPAN_OP],
               transaction: transactionsById[sample['transaction.id']],
             };
           })}
