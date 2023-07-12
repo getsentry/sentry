@@ -99,7 +99,6 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
             missing_fields.append("release_name")
         if not proguard_uuid:
             missing_fields.append("proguard_uuid")
-
         if missing_fields:
             error_message = f"Missing required fields: {', '.join(missing_fields)}"
             return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
@@ -111,11 +110,19 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
                 data={"error": "Invalid proguard_uuid"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        difs = ProjectDebugFile.objects.find_by_debug_ids(project, [proguard_uuid])
+        if not difs:
+            return Response(
+                data={"error": "No matching proguard mapping file with this uuid found"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         try:
             ProguardArtifactRelease.objects.create(
                 organization_id=project.organization_id,
                 project_id=project.id,
                 release_name=release_name,
+                project_debug_file=difs[proguard_uuid],
                 proguard_uuid=proguard_uuid,
             )
             return Response(status=status.HTTP_201_CREATED)

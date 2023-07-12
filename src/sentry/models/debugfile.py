@@ -367,17 +367,18 @@ def _analyze_progard_filename(filename: str) -> Optional[str]:
 class ProguardArtifactRelease(Model):  # type: ignore
     __include_in_export__ = False
 
-    organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    organization_id = BoundedBigIntegerField()
+    project_id = BoundedBigIntegerField()
     release_name = models.CharField(max_length=250)
-    proguard_uuid = models.UUIDField()
+    proguard_uuid = models.UUIDField(db_index=True)
+    project_debug_file = FlexibleForeignKey("sentry.ProjectDebugFile")
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_proguardartifactrelease"
 
-        unique_together = (("organization_id", "project_id", "release_name", "proguard_uuid"),)
+        unique_together = (("project_id", "release_name", "proguard_uuid"),)
 
 
 class DifMeta:
