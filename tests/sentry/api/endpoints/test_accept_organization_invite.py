@@ -22,7 +22,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
 from sentry.types.region import Region, RegionCategory
 
 
@@ -54,7 +54,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         return reverse(url, args=[self.organization.slug] + args)
 
     def _require_2fa_for_organization(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.MONOLITH):
             self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
@@ -168,7 +168,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self.login_as(self.user)
 
-            with exempt_from_silo_limits(), outbox_context(flush=False):
+            with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
@@ -194,7 +194,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
         self.login_as(self.user)
 
-        with exempt_from_silo_limits(), outbox_context(flush=False):
+        with assume_test_silo_mode(SiloMode.REGION), outbox_context(flush=False):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
@@ -256,7 +256,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -276,7 +276,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with exempt_from_silo_limits(), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )
@@ -285,7 +285,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.is_pending, "should not have been accepted"
             assert om.token, "should not have been accepted"
@@ -304,7 +304,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             om = OrganizationMember.objects.get(id=om.id)
         assert not om.invite_approved
         assert om.is_pending
@@ -327,7 +327,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 204
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -343,7 +343,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 path = self._get_path(url, [om2.id, om2.token])
                 resp = self.client.post(path)
                 assert resp.status_code == 400
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 assert not OrganizationMember.objects.filter(id=om2.id).exists()
             self.assert_org_member_mapping_not_exists(org_member=om2)
 
@@ -370,7 +370,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
 
             self._assert_pending_invite_details_not_in_session(resp)
 
-            with exempt_from_silo_limits():
+            with assume_test_silo_mode(SiloMode.REGION):
                 om = OrganizationMember.objects.get(id=om.id)
             assert om.email is None
             assert om.user_id == user.id
@@ -397,6 +397,9 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
+    # TODO(hybrid-cloud): Split this test per URL in the future, as the
+    #  slug-less variant will not work in Control-Silo mode since we won't
+    #  know which region the org resides in and will return a 400 level error.
     def test_2fa_cookie_deleted_after_accept(self):
         urls = self._get_urls()
 

@@ -20,8 +20,9 @@ from sentry.models import (
     Release,
 )
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.silo import SiloMode
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test, unguarded_write
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -146,7 +147,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             auth_idp = AuthProvider.objects.create(
                 organization_id=self.organization.id, provider="dummy"
             )
@@ -498,7 +499,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True
     )
     def test_no_integration(self, check_signing_secret_mock):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
         resp = self.post_webhook()
         assert resp.status_code == 403
@@ -659,7 +660,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         )
 
     def test_identity_not_linked(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             Identity.objects.filter(user=self.user).delete()
         resp = self.post_webhook(action_data=[{"value": "approve_member"}], callback_id="")
 

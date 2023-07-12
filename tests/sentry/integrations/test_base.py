@@ -1,5 +1,6 @@
 from sentry.integrations import IntegrationInstallation
 from sentry.models import Identity, IdentityProvider
+from sentry.services.hybrid_cloud.identity.serial import serialize_identity
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils import TestCase
 
@@ -37,7 +38,7 @@ class IntegrationTestCase(TestCase):
 
         assert integration.model == self.model
         assert integration.org_integration == self.org_integration
-        assert integration.get_default_identity() == self.identity
+        assert integration.get_default_identity() == serialize_identity(self.identity)
 
     def test_model_default_fields(self):
         # These fields are added through the DefaultFieldsModel

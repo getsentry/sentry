@@ -17,7 +17,7 @@ from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
 
 
 class ExamplePlugin(IssuePlugin2):
@@ -412,7 +412,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
 
     @patch("sentry.mediators.plugins.Migrator.call")
     def test_disabled_plugin_when_fully_migrated(self, call, *args):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             Repository.objects.create(
                 organization_id=self.organization.id,
                 name="user/repo",

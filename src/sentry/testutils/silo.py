@@ -7,19 +7,7 @@ import re
 import sys
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    MutableMapping,
-    MutableSet,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import Any, Callable, Dict, Iterable, List, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
@@ -210,32 +198,6 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
         yield
 
 
-@contextmanager
-def exempt_from_silo_limits() -> Generator[None, None, None]:
-    """Exempt test setup code from silo mode checks.
-
-    This can be used to decorate functions that are used exclusively in setting
-    up test cases, so that those functions don't produce false exceptions from
-    writing to tables that wouldn't be allowed in a certain SiloModeTest case.
-
-    It can also be used as a context manager to enclose setup code within a test
-    method. Such setup code would ideally be moved to the test class's `setUp`
-    method or a helper function where possible, but this is available as a
-    kludge when that's too inconvenient. For example:
-
-    ```
-    @SiloModeTest(SiloMode.REGION)
-    class MyTest(TestCase):
-        def test_something(self):
-            with exempt_from_mode_limits():
-                org = self.create_organization()  # would be wrong if under test
-            do_something(org)  # the actual code under test
-    ```
-    """
-    with override_settings(SILO_MODE=SiloMode.MONOLITH):
-        yield
-
-
 def reset_test_role(role: str, using: str, create_role: bool) -> None:
     # Deprecated, will remove once getsentry is updated.
     connection_names = [conn.alias for conn in connections.all()]
@@ -274,7 +236,7 @@ _role_privileges_created: MutableMapping[str, bool] = {}
 def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     # Deprecated, will remove once getsentry is updated.
     global _role_created
-    if "pytest" not in sys.argv[0]:
+    if "pytest" not in sys.argv[0] or not settings.USE_ROLE_SWAPPING_IN_TESTS:
         return
 
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -346,6 +308,7 @@ def restrict_role(role: str, model: Any, revocation_type: str, using: str = "def
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
 
 
+fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
 _fencing_counters: MutableMapping[str, int] = defaultdict(int)
 
 
@@ -354,7 +317,6 @@ def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
     """
     Used to indicate that the wrapped block is safe to do
     mutations on outbox backed records.
-
     In production this context manager has no effect, but
     in tests it emits 'fencing' queries that are audited at the
     end of each test run by validate_protected_queries
@@ -373,9 +335,6 @@ def unguarded_write(using: str | None = None, *args: Any, **kwargs: Any):
             yield
         finally:
             conn.execute("SELECT %s", [f"end_role_override_{fence_value}"])
-
-
-fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
 
 
 def protected_table(table: str, operation: str) -> re.Pattern:
@@ -451,7 +410,7 @@ def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
                         "",
                         "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
                         "If you are confident that outboxes are being generated, wrap the "
-                        "operation that generates this query with the `unguarded_write` ",
+                        "operation that generates this query with the `unguarded_write()` ",
                         "context manager to resolve this failure. For example:",
                         "",
                         "with unguarded_write():",
