@@ -99,6 +99,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
             missing_fields.append("release_name")
         if not proguard_uuid:
             missing_fields.append("proguard_uuid")
+
         if missing_fields:
             error_message = f"Missing required fields: {', '.join(missing_fields)}"
             return Response(data={"error": error_message}, status=status.HTTP_400_BAD_REQUEST)

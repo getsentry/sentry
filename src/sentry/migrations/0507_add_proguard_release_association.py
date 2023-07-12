@@ -22,27 +22,35 @@ class Migration(CheckedMigration):
     #   change, it's completely safe to run the operation after the code has deployed.
     is_dangerous = False
 
-
     dependencies = [
-        ('sentry', '0506_null_boolean_fields'),
+        ("sentry", "0506_null_boolean_fields"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ProguardArtifactRelease',
+            name="ProguardArtifactRelease",
             fields=[
-                ('id', sentry.db.models.fields.bounded.BoundedBigAutoField(primary_key=True, serialize=False)),
-                ('organization_id', sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ('project_id', sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ('release_name', models.CharField(max_length=250)),
-                ('proguard_uuid', models.UUIDField(db_index=True)),
-                ('date_added', models.DateTimeField(default=django.utils.timezone.now)),
-                ('project_debug_file', sentry.db.models.fields.foreignkey.FlexibleForeignKey(on_delete=django.db.models.deletion.CASCADE, to='sentry.ProjectDebugFile')),
+                (
+                    "id",
+                    sentry.db.models.fields.bounded.BoundedBigAutoField(
+                        primary_key=True, serialize=False
+                    ),
+                ),
+                ("organization_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                ("project_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
+                ("release_name", models.CharField(max_length=250)),
+                ("proguard_uuid", models.UUIDField(db_index=True)),
+                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
+                (
+                    "project_debug_file",
+                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE, to="sentry.ProjectDebugFile"
+                    ),
+                ),
             ],
             options={
-                'db_table': 'sentry_proguardartifactrelease',
-                'unique_together': {('project_id', 'release_name', 'proguard_uuid')},
+                "db_table": "sentry_proguardartifactrelease",
+                "unique_together": {("project_id", "release_name", "proguard_uuid")},
             },
         ),
     ]
-
