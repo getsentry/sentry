@@ -147,8 +147,32 @@ def top_events_timeseries(
 
     if len(top_events["data"]) == limit and include_other:
         assert False, "Other is not supported"  # TODO: support other
-    else:
-        result = top_functions_builder.run_query(referrer)
+
+    result = top_functions_builder.run_query(referrer)
+    return format_top_events_timeseries_results(
+        result,
+        top_functions_builder,
+        params,
+        rollup,
+        top_events=top_events,
+        allow_empty=allow_empty,
+        zerofill_results=zerofill_results,
+        result_key_order=result_key_order,
+    )
+
+
+def format_top_events_timeseries_results(
+    result,
+    query_builder,
+    params,
+    rollup,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    result_key_order=None,
+):
+    if top_events is None:
+        assert top_events, "Need to provide top events"  # TODO: support this use case
 
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
@@ -166,10 +190,10 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = top_functions_builder.process_results(result)
+        result = query_builder.process_results(result)
 
         if result_key_order is None:
-            result_key_order = top_functions_builder.translated_groupby
+            result_key_order = query_builder.translated_groupby
 
         results: Dict[str, Any] = {}
 
