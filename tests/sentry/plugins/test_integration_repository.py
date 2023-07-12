@@ -7,7 +7,7 @@ from django.db import IntegrityError
 
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Repository
-from sentry.plugins.providers.integration_repository import RepoExists
+from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -67,7 +67,7 @@ class IntegrationRepositoryTestCase(TestCase):
     def test_create_repository__repo_exists(self, get_jwt):
         self._create_repo()
 
-        with pytest.raises(RepoExists):
+        with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)
 
     @patch("sentry.models.Repository.objects.create")
@@ -79,5 +79,5 @@ class IntegrationRepositoryTestCase(TestCase):
         mock_repo.side_effect = IntegrityError
         mock_on_delete.side_effect = IntegrationError
 
-        with pytest.raises(RepoExists):
+        with pytest.raises(RepoExistsError):
             self.provider.create_repository(self.config, self.organization)

@@ -19,7 +19,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 
 
-class RepoExists(APIException):
+class RepoExistsError(APIException):
     status_code = 400
     detail = {"errors": {"__all__": "A repository with that name already exists"}}
 
@@ -104,7 +104,7 @@ class IntegrationRepositoryProvider:
                 except IntegrationError:
                     pass
 
-                raise RepoExists
+                raise RepoExistsError
 
         return result, repo
 
