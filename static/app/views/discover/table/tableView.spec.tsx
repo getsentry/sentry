@@ -368,6 +368,10 @@ describe('TableView > CellActions', function () {
               'p99(measurements.custom.kilobyte)': 444.3,
             },
           ],
+          // the types defined here are a mix of Record<string, ColumnType> & Record<string, Record<string, type>>
+          // which means that we cannot use the secondary Record<string> type to define the units as the ColumnType narrows
+          // down to a string literal type. We need to use the Record<string, Record<string, type>> type to define the units
+          // @ts-expect-error
           meta: {
             title: 'string',
             'p99(measurements.custom.kibibyte)': 'size',
