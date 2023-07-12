@@ -22,7 +22,7 @@ class NotificationSettingsSerializer(Serializer):
         item_list: Iterable[Union["Team", "User"]],
         user: User,
         **kwargs: Any,
-    ) -> Mapping[Union["Team", "User"], Mapping[str, Set[Any]]]:
+    ) -> MutableMapping[Union["Team", "User"], MutableMapping[str, Set[Any]]]:
         """
         This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
@@ -55,13 +55,12 @@ class NotificationSettingsSerializer(Serializer):
             result[user]["settings"] = set()
 
         for notifications_setting in notifications_settings:
-            target = None
             if notifications_setting.user_id:
-                target = user_map[notifications_setting.user_id]
+                target_user = user_map[notifications_setting.user_id]
+                result[target_user]["settings"].add(notifications_setting)
             if notifications_setting.team_id:
-                target = team_map[notifications_setting.team_id]
-            if target:
-                result[target]["settings"].add(notifications_setting)
+                target_team = team_map[notifications_setting.team_id]
+                result[target_team]["settings"].add(notifications_setting)
             else:
                 raise ValueError(
                     f"NotificationSetting {notifications_setting.id} has neither team_id nor user_id"
