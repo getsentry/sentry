@@ -3,7 +3,7 @@ import responses
 from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
 from sentry.integrations.vercel import VercelClient
-from sentry.models import Integration, OrganizationIntegration
+from sentry.models import Integration, OrganizationIntegration, ScheduledDeletion
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
@@ -343,3 +343,49 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         )
         assert response.status_code == 204
         assert not Integration.objects.filter(id=self.integration.id).exists()
+
+    @responses.activate
+    def test_uninstall_from_sentry_error(self):
+        """
+        Test that if we uninstall from Sentry and fail to remove the integration using Vercel's
+        delete integration endpoint, we continue and delete the integration in Sentry.
+        """
+        org = self.create_organization(owner=self.user)
+        metadata = {
+            "access_token": "my_access_token",
+            "installation_id": "my_config_id",
+            "installation_type": "user",
+            "webhook_id": "my_webhook_id",
+            "configurations": {
+                "my_config_id": {
+                    "access_token": "my_access_token",
+                    "webhook_id": "my_webhook_id",
+                    "organization_id": org.id,
+                }
+            },
+        }
+        integration = Integration.objects.create(
+            provider="vercel",
+            external_id="vercel_user_id",
+            name="My Vercel Team",
+            metadata=metadata,
+        )
+        integration.add_organization(org)
+        oi = OrganizationIntegration.objects.get(integration=integration)
+
+        self.login_as(self.user)
+        with self.tasks():
+            config_id = "my_config_id"
+            responses.add(
+                responses.DELETE,
+                f"{VercelClient.base_url}{VercelClient.UNINSTALL % config_id}",
+                json={"error": {"message": "You don't have permission to access this resource."}},
+                status=403,
+            )
+            path = f"/api/0/organizations/{org.slug}/integrations/{integration.id}/"
+            response = self.client.delete(path, format="json")
+
+        assert response.status_code == 204
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration", object_id=oi.id
+        ).exists()
