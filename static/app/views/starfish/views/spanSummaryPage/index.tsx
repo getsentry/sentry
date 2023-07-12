@@ -29,12 +29,17 @@ import DurationCell from 'sentry/views/starfish/components/tableCells/durationCe
 import ThroughputCell from 'sentry/views/starfish/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMeta} from 'sentry/views/starfish/queries/useSpanMeta';
-import {SpanMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
+import {
+  SpanMetrics,
+  SpanSummaryQueryFilters,
+  useSpanMetrics,
+} from 'sentry/views/starfish/queries/useSpanMetrics';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import formatThroughput from 'sentry/views/starfish/utils/chartValueFormatters/formatThroughput';
 import {extractRoute} from 'sentry/views/starfish/utils/extractRoute';
 import {ROUTE_NAMES} from 'sentry/views/starfish/utils/routeNames';
+import {useChartSortPageBySpansHandler} from 'sentry/views/starfish/utils/useChartSortPageBySpansHandler';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
@@ -60,9 +65,9 @@ function SpanSummaryPage({params, location}: Props) {
   const {groupId} = params;
   const {transaction, transactionMethod, endpoint, endpointMethod} = location.query;
 
-  const queryFilter = endpoint
-    ? {transactionName: endpoint, 'transaction.method': transactionMethod}
-    : undefined;
+  const queryFilter: SpanSummaryQueryFilters = endpoint
+    ? {transactionName: endpoint, 'transaction.method': endpointMethod}
+    : {};
   const sort =
     fromSorts(location.query[QueryParameterNames.SORT]).filter(isAValidSort)[0] ??
     DEFAULT_SORT; // We only allow one sort on this table in this view
@@ -131,6 +136,10 @@ function SpanSummaryPage({params, location}: Props) {
   crumbs.push({
     label: title,
   });
+
+  const sortBySps = useChartSortPageBySpansHandler('-sps()');
+  const sortByP95 = useChartSortPageBySpansHandler('-p95(span.self_time)');
+  const sortByErrorCount = useChartSortPageBySpansHandler('-http_error_count()');
 
   return (
     <Layout.Page>
@@ -221,6 +230,7 @@ function SpanSummaryPage({params, location}: Props) {
                         tooltipFormatterOptions={{
                           valueFormatter: value => formatThroughput(value),
                         }}
+                        onDataZoom={sortBySps}
                       />
                     </ChartPanel>
                   </Block>
@@ -238,6 +248,7 @@ function SpanSummaryPage({params, location}: Props) {
                         chartColors={[P95_COLOR]}
                         isLineChart
                         definedAxisTicks={4}
+                        onDataZoom={sortByP95}
                       />
                     </ChartPanel>
                   </Block>
@@ -256,6 +267,7 @@ function SpanSummaryPage({params, location}: Props) {
                           chartColors={[ERRORS_COLOR]}
                           isLineChart
                           definedAxisTicks={4}
+                          onDataZoom={sortByErrorCount}
                         />
                       </ChartPanel>
                     </Block>

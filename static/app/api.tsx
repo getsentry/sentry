@@ -243,6 +243,11 @@ type ClientOptions = {
    * The base URL path to prepend to API request URIs.
    */
   baseUrl?: string;
+
+  /**
+   * Base set of headers to apply to each request
+   */
+  headers?: HeadersInit;
 };
 
 type HandleRequestErrorOptions = {
@@ -259,9 +264,16 @@ type HandleRequestErrorOptions = {
 export class Client {
   baseUrl: string;
   activeRequests: Record<string, Request>;
+  headers: HeadersInit;
+
+  static JSON_HEADERS = {
+    Accept: 'application/json; charset=utf-8',
+    'Content-Type': 'application/json',
+  };
 
   constructor(options: ClientOptions = {}) {
     this.baseUrl = options.baseUrl ?? '/api/0';
+    this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};
   }
 
@@ -432,11 +444,7 @@ export class Client {
     // GET requests may not have a body
     const body = method !== 'GET' ? data : undefined;
 
-    const headers = new Headers({
-      Accept: 'application/json; charset=utf-8',
-      'Content-Type': 'application/json',
-      ...options.headers,
-    });
+    const headers = new Headers(this.headers);
 
     // Do not set the X-CSRFToken header when making a request outside of the
     // current domain. Because we use subdomains we loosely compare origins

@@ -134,12 +134,9 @@ describe('ProjectAlertsCreate', function () {
     it('loads default values', async function () {
       createWrapper();
       expect(await screen.findByText('All Environments')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(screen.getAllByText('all')).toHaveLength(2);
-      });
-      await waitFor(() => {
-        expect(screen.getByText('24 hours')).toBeInTheDocument();
-      });
+      expect(await screen.findByText('any')).toBeInTheDocument();
+      expect(await screen.findByText('all')).toBeInTheDocument();
+      expect(await screen.findByText('24 hours')).toBeInTheDocument();
     });
 
     it('can remove filters', async function () {
@@ -158,7 +155,7 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      await userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -167,9 +164,14 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               actions: [],
-              conditions: [],
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
@@ -188,6 +190,8 @@ describe('ProjectAlertsCreate', function () {
         method: 'POST',
         body: TestStubs.ProjectAlertRule(),
       });
+      // delete node
+      await userEvent.click(screen.getByLabelText('Delete Node'));
 
       // Change name of alert rule
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -215,7 +219,7 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               actions: [],
               conditions: [],
               filterMatch: 'all',
@@ -245,7 +249,7 @@ describe('ProjectAlertsCreate', function () {
         'Send a notification to all legacy integrations',
       ]);
 
-      await userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
 
       await userEvent.click(screen.getByText('Save Rule'));
 
@@ -254,9 +258,14 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               actions: [],
-              conditions: [],
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
@@ -290,10 +299,13 @@ describe('ProjectAlertsCreate', function () {
         await selectEvent.select(screen.getByText('All Environments'), ['production']);
 
         // Change actionMatch and filterMatch dropdown
-        const allDropdowns = screen.getAllByText('all');
-        expect(allDropdowns).toHaveLength(2);
-        await selectEvent.select(allDropdowns[0], ['any']);
-        await selectEvent.select(allDropdowns[1], ['any']);
+        const anyDropdown = screen.getByText('any');
+        expect(anyDropdown).toBeInTheDocument();
+        const allDropdown = screen.getByText('all');
+        expect(allDropdown).toBeInTheDocument();
+
+        await selectEvent.select(anyDropdown, ['all']);
+        await selectEvent.select(allDropdown, ['any']);
 
         // Change name of alert rule
         await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
@@ -304,9 +316,14 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'any',
+              actionMatch: 'all',
               filterMatch: 'any',
-              conditions: [],
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               actions: [],
               filters: [],
               environment: 'production',
@@ -349,9 +366,14 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               actions: [],
-              conditions: [],
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               filterMatch: 'all',
               filters: [
                 {
@@ -382,6 +404,8 @@ describe('ProjectAlertsCreate', function () {
         // Change name of alert rule
         await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
         await userEvent.paste('myname');
+        // delete one condition
+        await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -396,7 +420,7 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               filterMatch: 'all',
               filters: [
                 {
@@ -443,11 +467,16 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
+              actionMatch: 'any',
               actions: [
                 {id: 'sentry.mail.actions.NotifyEmailAction', targetType: 'IssueOwners'},
               ],
-              conditions: [],
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               filterMatch: 'all',
               filters: [],
               frequency: '60',
@@ -489,8 +518,13 @@ describe('ProjectAlertsCreate', function () {
           expect.any(String),
           expect.objectContaining({
             data: {
-              actionMatch: 'all',
-              conditions: [],
+              actionMatch: 'any',
+              conditions: [
+                expect.objectContaining({
+                  id: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+                  name: 'A new issue is created',
+                }),
+              ],
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
@@ -508,20 +542,6 @@ describe('ProjectAlertsCreate', function () {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
       }
       expect(screen.getAllByText('3mo ago')[0]).toBeInTheDocument();
-
-      await selectEvent.select(screen.getByText('Add optional trigger...'), [
-        'A new issue is created',
-      ]);
-      await waitFor(() => {
-        expect(mock).toHaveBeenLastCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              endpoint: 'endpoint',
-            }),
-          })
-        );
-      });
     });
 
     it('invalid preview alert', async () => {
@@ -531,6 +551,9 @@ describe('ProjectAlertsCreate', function () {
         statusCode: 400,
       });
       createWrapper();
+      // delete existion condition
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+
       await waitFor(() => {
         expect(mock).toHaveBeenCalled();
       });
@@ -572,9 +595,10 @@ describe('ProjectAlertsCreate', function () {
 
     it('shows error for incompatible conditions', async () => {
       createWrapper();
-      await selectEvent.select(screen.getByText('Add optional trigger...'), [
-        'A new issue is created',
-      ]);
+      const anyDropdown = screen.getByText('any');
+      expect(anyDropdown).toBeInTheDocument();
+      await selectEvent.select(anyDropdown, ['all']);
+
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'The issue changes state from resolved to unresolved',
       ]);
@@ -591,12 +615,8 @@ describe('ProjectAlertsCreate', function () {
 
     it('test any filterMatch', async () => {
       createWrapper();
-      const allDropdowns = screen.getAllByText('all');
-      await selectEvent.select(screen.getByText('Add optional trigger...'), [
-        'A new issue is created',
-      ]);
-
-      await selectEvent.select(allDropdowns[1], ['any']);
+      const allDropdown = screen.getByText('all');
+      await selectEvent.select(allDropdown, ['any']);
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is older or newer than...',
       ]);
