@@ -115,6 +115,13 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             raise IntegrationError("Organization Integration does not exist")
         return GitHubAppsClient(integration=self.model, org_integration_id=self.org_integration.id)
 
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        if exc.json and RATE_LIMITED_MESSAGE in exc.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
+
+        return False
+
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
         domain_name = self.model.metadata["domain_name"]
@@ -310,18 +317,11 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
         link_all_repos.apply_async(
             kwargs={
-                "integration_provider": self,
+                "integration_key": self.key,
                 "integration_id": integration.id,
                 "organization_id": organization.id,
             }
         )
-
-    def is_rate_limited_error(self, e: ApiError) -> bool:
-        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr(f"{self.key}.link_all_repos.rate_limited_error")
-            return True
-
-        return False
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]

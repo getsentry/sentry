@@ -13,12 +13,15 @@ from sentry.snuba.sessions_v2 import isoformat_z
 from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import metrics
 
 
+@region_silo_test(stable=True)
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
+    key = "github"
 
     def setUp(self):
         super().setUp()
@@ -61,7 +64,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
@@ -103,7 +106,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
@@ -119,7 +122,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_integration(self, mock_metrics):
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=0,
             organization_id=self.organization.id,
         )
@@ -130,7 +133,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_organization(self, mock_metrics):
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=self.integration.id,
             organization_id=0,
         )
@@ -155,7 +158,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         with pytest.raises(ApiError):
             link_all_repos(
-                integration_provider=self.provider(),
+                integration_key=self.key,
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
             )
@@ -181,7 +184,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )
@@ -219,7 +222,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_provider=self.provider(),
+            integration_key=self.key,
             integration_id=self.integration.id,
             organization_id=self.organization.id,
         )

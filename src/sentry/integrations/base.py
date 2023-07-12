@@ -213,9 +213,6 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     ) -> None:
         pass
 
-    def is_rate_limited_error(self, e: ApiError) -> bool:
-        raise NotImplementedError
-
     def create_audit_log_entry(
         self,
         integration: Integration,
@@ -416,6 +413,9 @@ class IntegrationInstallation:
         else:
             self.logger.exception(str(exc))
             raise IntegrationError(self.message_from_error(exc)).with_traceback(sys.exc_info()[2])
+
+    def is_rate_limited_error(self, exc: Exception) -> bool:
+        return False
 
     @property
     def metadata(self) -> IntegrationMetadata:
