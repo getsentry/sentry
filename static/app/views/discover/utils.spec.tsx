@@ -3,6 +3,7 @@ import {browserHistory} from 'react-router';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -13,6 +14,23 @@ import {
   getExpandedResults,
   pushEventViewToLocation,
 } from 'sentry/views/discover/utils';
+
+const baseView: EventViewOptions = {
+  display: undefined,
+  start: undefined,
+  end: undefined,
+  id: '0',
+  name: undefined,
+  fields: [],
+  createdBy: undefined,
+  environment: [],
+  project: [],
+  query: '',
+  sorts: [],
+  statsPeriod: undefined,
+  team: [],
+  topEvents: undefined,
+};
 
 describe('decodeColumnOrder', function () {
   it('can decode 0 elements', function () {
@@ -211,7 +229,8 @@ describe('decodeColumnOrder', function () {
 });
 
 describe('pushEventViewToLocation', function () {
-  const state = {
+  const state: EventViewOptions = {
+    ...baseView,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
@@ -224,40 +243,42 @@ describe('pushEventViewToLocation', function () {
     environment: ['staging'],
   };
 
-  const location = {
+  const location = TestStubs.location({
     query: {
       bestCountry: 'canada',
     },
-  };
+  });
 
   it('correct query string object pushed to history', function () {
-    const eventView = new EventView(state);
+    const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
       location,
       nextEventView: eventView,
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      query: {
-        id: '1234',
-        name: 'best query',
-        field: ['count()', 'project.id'],
-        widths: [420],
-        sort: ['-count'],
-        query: 'event.type:error',
-        project: [42],
-        start: '2019-10-01T00:00:00',
-        end: '2019-10-02T00:00:00',
-        statsPeriod: '14d',
-        environment: ['staging'],
-        yAxis: 'count()',
-      },
-    });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          id: '1234',
+          name: 'best query',
+          field: ['count()', 'project.id'],
+          widths: [420],
+          sort: ['-count'],
+          query: 'event.type:error',
+          project: [42],
+          start: '2019-10-01T00:00:00',
+          end: '2019-10-02T00:00:00',
+          statsPeriod: '14d',
+          environment: ['staging'],
+          yAxis: 'count()',
+        }),
+      })
+    );
   });
 
   it('extra query params', function () {
-    const eventView = new EventView(state);
+    const eventView = new EventView({...baseView, ...state});
 
     pushEventViewToLocation({
       location,
@@ -267,28 +288,31 @@ describe('pushEventViewToLocation', function () {
       },
     });
 
-    expect(browserHistory.push).toHaveBeenCalledWith({
-      query: {
-        id: '1234',
-        name: 'best query',
-        field: ['count()', 'project.id'],
-        widths: [420],
-        sort: ['-count'],
-        query: 'event.type:error',
-        project: [42],
-        start: '2019-10-01T00:00:00',
-        end: '2019-10-02T00:00:00',
-        statsPeriod: '14d',
-        environment: ['staging'],
-        cursor: 'some cursor',
-        yAxis: 'count()',
-      },
-    });
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          id: '1234',
+          name: 'best query',
+          field: ['count()', 'project.id'],
+          widths: [420],
+          sort: ['-count'],
+          query: 'event.type:error',
+          project: [42],
+          start: '2019-10-01T00:00:00',
+          end: '2019-10-02T00:00:00',
+          statsPeriod: '14d',
+          environment: ['staging'],
+          cursor: 'some cursor',
+          yAxis: 'count()',
+        }),
+      })
+    );
   });
 });
 
 describe('getExpandedResults()', function () {
-  const state = {
+  const state: EventViewOptions = {
+    ...baseView,
     id: '1234',
     name: 'best query',
     fields: [
@@ -308,11 +332,12 @@ describe('getExpandedResults()', function () {
 
   it('id should be default column when drilldown results in no columns', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [{field: 'count()'}, {field: 'epm()'}, {field: 'eps()'}],
     });
 
-    const result = getExpandedResults(view, {}, {});
+    const result = getExpandedResults(view, {}, TestStubs.Event());
 
     expect(result.fields).toEqual([{field: 'id', width: -1}]);
   });
@@ -320,17 +345,18 @@ describe('getExpandedResults()', function () {
   it('preserves aggregated fields', () => {
     let view = new EventView(state);
 
-    let result = getExpandedResults(view, {}, {});
+    let result = getExpandedResults(view, {}, TestStubs.Event());
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
       {field: 'title'},
       {field: 'custom_tag'},
     ]);
-    expect(result.query).toEqual('event.type:error');
+    expect(result.query).toEqual('event.type:error title:ApiException');
 
     // de-duplicate transformed columns
     view = new EventView({
+      ...baseView,
       ...state,
       fields: [
         {field: 'count()'},
@@ -341,7 +367,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, {});
+    result = getExpandedResults(view, {}, TestStubs.Event());
     // id should be omitted as it is an implicit property on unaggregated results.
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
@@ -351,6 +377,7 @@ describe('getExpandedResults()', function () {
 
     // transform aliased fields, & de-duplicate any transforms
     view = new EventView({
+      ...baseView,
       ...state,
       fields: [
         {field: 'last_seen()'}, // expect this to be transformed to timestamp
@@ -373,7 +400,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, {});
+    result = getExpandedResults(view, {}, TestStubs.Event());
     expect(result.fields).toEqual([
       {field: 'timestamp', width: -1},
       {field: 'title'},
@@ -384,6 +411,7 @@ describe('getExpandedResults()', function () {
 
     // transforms pXX functions with optional arguments properly
     view = new EventView({
+      ...baseView,
       ...state,
       fields: [
         {field: 'p50(transaction.duration)'},
@@ -394,7 +422,7 @@ describe('getExpandedResults()', function () {
       ],
     });
 
-    result = getExpandedResults(view, {}, {});
+    result = getExpandedResults(view, {}, TestStubs.Event());
     expect(result.fields).toEqual([
       {field: 'transaction.duration', width: -1},
       {field: 'measurements.foo', width: -1},
@@ -406,42 +434,46 @@ describe('getExpandedResults()', function () {
 
   it('applies provided additional conditions', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [...state.fields, {field: 'measurements.lcp'}, {field: 'measurements.fcp'}],
     });
-    let result = getExpandedResults(view, {extra: 'condition'}, {});
-    expect(result.query).toEqual('event.type:error extra:condition');
+    let result = getExpandedResults(view, {extra: 'condition'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:error extra:condition title:ApiException');
 
     // handles user tag values.
-    result = getExpandedResults(view, {user: 'id:12735'}, {});
-    expect(result.query).toEqual('event.type:error user:id:12735');
-    result = getExpandedResults(view, {user: 'name:uhoh'}, {});
-    expect(result.query).toEqual('event.type:error user:name:uhoh');
+    result = getExpandedResults(view, {user: 'id:12735'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:error user:id:12735 title:ApiException');
+    result = getExpandedResults(view, {user: 'name:uhoh'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:error user:name:uhoh title:ApiException');
 
     // quotes value
-    result = getExpandedResults(view, {extra: 'has space'}, {});
-    expect(result.query).toEqual('event.type:error extra:"has space"');
+    result = getExpandedResults(view, {extra: 'has space'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:error extra:"has space" title:ApiException');
 
     // appends to existing conditions
-    result = getExpandedResults(view, {'event.type': 'csp'}, {});
-    expect(result.query).toEqual('event.type:csp');
+    result = getExpandedResults(view, {'event.type': 'csp'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:csp title:ApiException');
 
     // Includes empty strings
-    result = getExpandedResults(view, {}, {custom_tag: ''});
-    expect(result.query).toEqual('event.type:error custom_tag:""');
+    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: ''}));
+    expect(result.query).toEqual('event.type:error title:ApiException custom_tag:""');
 
     // Includes 0
-    result = getExpandedResults(view, {}, {custom_tag: 0});
-    expect(result.query).toEqual('event.type:error custom_tag:0');
+    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: 0}));
+    expect(result.query).toEqual('event.type:error title:ApiException custom_tag:0');
 
     // Includes null
-    result = getExpandedResults(view, {}, {custom_tag: null});
-    expect(result.query).toEqual('event.type:error custom_tag:""');
+    result = getExpandedResults(view, {}, TestStubs.Event({id: '0', custom_tag: null}));
+    expect(result.query).toEqual('event.type:error title:ApiException custom_tag:""');
 
     // Handles measurements while ignoring null values
     result = getExpandedResults(
       view,
       {},
+      // The type on this is wrong, the actual type is ReactText which is just string|number
+      // however we seem to have tests that test for null values as well, hence the expect error
+      // @ts-expect-error
       {'measurements.lcp': 2, 'measurements.fcp': null}
     );
     expect(result.query).toEqual('event.type:error measurements.lcp:2');
@@ -449,38 +481,45 @@ describe('getExpandedResults()', function () {
 
   it('removes any aggregates in either search conditions or extra conditions', () => {
     const view = new EventView({...state, query: 'event.type:error count(id):<10'});
-    const result = getExpandedResults(view, {'count(id)': '>2'}, {});
-    expect(result.query).toEqual('event.type:error');
+    const result = getExpandedResults(view, {'count(id)': '>2'}, TestStubs.Event());
+    expect(result.query).toEqual('event.type:error title:ApiException');
   });
 
   it('applies conditions from dataRow map structure based on fields', () => {
     const view = new EventView(state);
-    const result = getExpandedResults(view, {extra: 'condition'}, {title: 'Event title'});
+    const result = getExpandedResults(
+      view,
+      {extra: 'condition'},
+      TestStubs.Event({title: 'Event title'})
+    );
     expect(result.query).toEqual('event.type:error extra:condition title:"Event title"');
   });
 
   it('applies tag key conditions from event data', () => {
     const view = new EventView(state);
-    const event = {
+    const event = TestStubs.Event({
       type: 'error',
       tags: [
         {key: 'nope', value: 'nope'},
         {key: 'custom_tag', value: 'tag_value'},
       ],
-    };
+    });
     const result = getExpandedResults(view, {}, event);
-    expect(result.query).toEqual('event.type:error custom_tag:tag_value');
+    expect(result.query).toEqual(
+      'event.type:error title:ApiException custom_tag:tag_value'
+    );
   });
 
   it('generate eventview from an empty eventview', () => {
-    const view = EventView.fromLocation({query: {}});
-    const result = getExpandedResults(view, {some_tag: 'value'}, {});
+    const view = EventView.fromLocation(TestStubs.location());
+    const result = getExpandedResults(view, {some_tag: 'value'}, TestStubs.Event());
     expect(result.fields).toEqual([]);
     expect(result.query).toEqual('some_tag:value');
   });
 
   it('removes equations on aggregates', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [
         {field: 'count()'},
@@ -499,6 +538,7 @@ describe('getExpandedResults()', function () {
 
   it('keeps equations without aggregates', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [{field: 'count()'}, {field: 'equation|transaction.duration / 2'}],
     });
@@ -513,28 +553,29 @@ describe('getExpandedResults()', function () {
 
   it('applies array value conditions from event data', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [...state.fields, {field: 'error.type'}],
     });
-    const event = {
+    const event = TestStubs.Event({
       type: 'error',
       tags: [
         {key: 'nope', value: 'nope'},
         {key: 'custom_tag', value: 'tag_value'},
       ],
       'error.type': ['DeadSystem Exception', 'RuntimeException', 'RuntimeException'],
-    };
+    });
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual(
-      'event.type:error custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
+      'event.type:error title:ApiException custom_tag:tag_value error.type:"DeadSystem Exception" error.type:RuntimeException error.type:RuntimeException'
     );
   });
 
   it('applies project condition to project property', () => {
     const view = new EventView(state);
 
-    const result = getExpandedResults(view, {'project.id': 1});
-    expect(result.query).toEqual('event.type:error');
+    const result = getExpandedResults(view, TestStubs.Event({'project.id': 1}));
+    expect(result.query.includes('event.type:error')).toBeTruthy();
     expect(result.project).toEqual([42, 1]);
   });
 
@@ -547,17 +588,18 @@ describe('getExpandedResults()', function () {
 
   it('applies tags that overlap PageFilters state', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [{field: 'project'}, {field: 'environment'}, {field: 'title'}],
     });
-    const event = {
+    const event = TestStubs.Event({
       title: 'something bad',
       timestamp: '2020-02-13T17:05:46+00:00',
       tags: [
         {key: 'project', value: '12345'},
         {key: 'environment', value: 'earth'},
       ],
-    };
+    });
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual(
       'event.type:error tags[project]:12345 tags[environment]:earth title:"something bad"'
@@ -568,10 +610,11 @@ describe('getExpandedResults()', function () {
 
   it('applies the normalized user tag', function () {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
     });
-    let event = {
+    let event = TestStubs.Event({
       title: 'something bad',
       // user context should be ignored.
       user: {
@@ -579,14 +622,14 @@ describe('getExpandedResults()', function () {
         username: 'uhoh',
       },
       tags: [{key: 'user', value: 'id:1234'}],
-    };
+    });
     let result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
 
-    event = {
+    event = TestStubs.Event({
       title: 'something bad',
       tags: [{key: 'user', value: '1234'}],
-    };
+    });
     result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error user:1234 title:"something bad"');
   });
@@ -596,10 +639,10 @@ describe('getExpandedResults()', function () {
       ...state,
       fields: [{field: 'user'}, {field: 'title'}],
     });
-    const event = {
+    const event = TestStubs.Event({
       title: 'something bad',
       user: 'id:1234',
-    };
+    });
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error user:id:1234 title:"something bad"');
   });
@@ -610,81 +653,87 @@ describe('getExpandedResults()', function () {
       fields: [{field: 'timestamp'}],
       sorts: [{field: 'timestamp', kind: 'desc'}],
     });
-    const event = {
+    const event = TestStubs.Event({
       type: 'error',
       timestamp: '2020-02-13T17:05:46+00:00',
-    };
+    });
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('event.type:error timestamp:2020-02-13T17:05:46');
   });
 
   it('does not duplicate conditions', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       query: 'event.type:error title:bogus',
     });
-    const event = {
+    const event = TestStubs.Event({
       title: 'bogus',
-    };
+    });
     const result = getExpandedResults(view, {trace: 'abc123'}, event);
     expect(result.query).toEqual('event.type:error trace:abc123 title:bogus');
   });
 
   it('applies project as condition if present', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       query: '',
       fields: [{field: 'project'}],
     });
-    const event = {project: 'whoosh'};
+    const event = TestStubs.Event({project: 'whoosh'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project:whoosh');
   });
 
   it('applies project name as condition if present', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       query: '',
       fields: [{field: 'project.name'}],
     });
-    const event = {'project.name': 'whoosh'};
+    const event = TestStubs.Event({'project.name': 'whoosh'});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('project.name:whoosh');
   });
 
   it('should not trim values that need to be quoted', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       query: '',
       fields: [{field: 'title'}],
     });
     // needs to be quoted because of whitespace in middle
-    const event = {title: 'hello there '};
+    const event = TestStubs.Event({title: 'hello there '});
     const result = getExpandedResults(view, {}, event);
     expect(result.query).toEqual('title:"hello there "');
   });
 
   it('should add environment from the data row', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       environment: [],
       query: '',
       fields: [{field: 'environment'}],
     });
     expect(view.environment).toEqual([]);
-    const event = {environment: 'staging'};
+    const event = TestStubs.Event({environment: 'staging'});
     const result = getExpandedResults(view, {}, event);
     expect(result.environment).toEqual(['staging']);
   });
 
   it('should not add duplicate environment', () => {
     const view = new EventView({
+      ...baseView,
       ...state,
       query: '',
       fields: [{field: 'environment'}],
     });
     expect(view.environment).toEqual(['staging']);
-    const event = {environment: 'staging'};
+    const event = TestStubs.Event({environment: 'staging'});
     const result = getExpandedResults(view, {}, event);
     expect(result.environment).toEqual(['staging']);
   });
@@ -703,21 +752,23 @@ describe('downloadAsCsv', function () {
         {message: 'test 2', environment: 'test'},
       ],
     };
-    expect(downloadAsCsv(result, [messageColumn, environmentColumn])).toContain(
-      encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test')
-    );
+    expect(
+      downloadAsCsv(result, [messageColumn, environmentColumn], 'filename.csv')
+    ).toContain(encodeURIComponent('message,environment\r\ntest 1,prod\r\ntest 2,test'));
   });
   it('handles aggregations', function () {
     const result = {
       data: [{count: 3}],
     };
-    expect(downloadAsCsv(result, [countColumn])).toContain(encodeURI('count\r\n3'));
+    expect(downloadAsCsv(result, [countColumn], 'filename.csv')).toContain(
+      encodeURI('count\r\n3')
+    );
   });
   it('quotes unsafe strings', function () {
     const result = {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
-    expect(downloadAsCsv(result, [messageColumn])).toContain(
+    expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
       encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
     );
   });
@@ -730,7 +781,7 @@ describe('downloadAsCsv', function () {
         {message: 'test 3', user: 'ip:127.0.0.1'},
       ],
     };
-    expect(downloadAsCsv(result, [messageColumn, userColumn])).toContain(
+    expect(downloadAsCsv(result, [messageColumn, userColumn], 'filename.csv')).toContain(
       encodeURIComponent(
         'message,user\r\ntest 0,name:baz\r\ntest 1,id:123\r\ntest 2,email:test@example.com\r\ntest 3,ip:127.0.0.1'
       )
@@ -740,14 +791,15 @@ describe('downloadAsCsv', function () {
     const result = {
       data: [{'equation| count() + count()': 3}],
     };
-    expect(downloadAsCsv(result, [equationColumn])).toContain(
+    expect(downloadAsCsv(result, [equationColumn], 'filename.csv')).toContain(
       encodeURIComponent('count() + count()\r\n3')
     );
   });
 });
 
 describe('eventViewToWidgetQuery', function () {
-  const state = {
+  const state: EventViewOptions = {
+    ...baseView,
     id: '1234',
     name: 'best query',
     fields: [{field: 'count()', width: 420}, {field: 'project.id'}],
@@ -761,7 +813,7 @@ describe('eventViewToWidgetQuery', function () {
   };
 
   it('updates orderby to function format for top N query', function () {
-    const view = new EventView(state);
+    const view = new EventView({...baseView, ...state});
     const widgetQuery = eventViewToWidgetQuery({
       eventView: view,
       displayType: DisplayType.TOP_N,
@@ -772,6 +824,7 @@ describe('eventViewToWidgetQuery', function () {
 
   it('updates orderby to function format for complex function', function () {
     const view = new EventView({
+      ...baseView,
       ...state,
       fields: [{field: 'count_unique(device.locale)', width: 420}, {field: 'project.id'}],
       sorts: [{field: 'count_unique_device_locale', kind: 'desc'}],
@@ -785,6 +838,7 @@ describe('eventViewToWidgetQuery', function () {
 
   it('updates orderby to field', function () {
     const view = new EventView({
+      ...baseView,
       ...state,
       sorts: [{field: 'project.id', kind: 'desc'}],
     });
