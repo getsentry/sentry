@@ -1,8 +1,5 @@
 // eslint-disable-next-line simple-import-sort/imports
-import {browserHistory, createRoutes, match} from 'react-router';
-import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {Event} from '@sentry/types';
 
@@ -44,30 +41,8 @@ const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(routes?: Function) {
-  const integrations = [
-    new ExtraErrorData({
-      // 6 is arbitrary, seems like a nice number
-      depth: 6,
-    }),
-    new BrowserTracing({
-      ...(typeof routes === 'function'
-        ? {
-            routingInstrumentation: Sentry.reactRouterV3Instrumentation(
-              browserHistory as any,
-              createRoutes(routes()),
-              match
-            ),
-          }
-        : {}),
-      _experiments: {
-        enableInteractions: true,
-        enableHTTPTimings: true,
-        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
-      },
-    }),
-    new Sentry.BrowserProfilingIntegration(),
-  ];
+function getSentryIntegrations(_routes?: Function) {
+  const integrations = [];
 
   return integrations;
 }
@@ -91,7 +66,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `allowUrls`
      */
-    dsn: SPA_DSN || sentryConfig?.dsn,
+    dsn: 'https://b599b7eb32d74e98b5221444dfccb3cd@o1176005.ingest.sentry.io/4505358522515456',
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
      * variable for release string, useful if frontend is deployed separately
