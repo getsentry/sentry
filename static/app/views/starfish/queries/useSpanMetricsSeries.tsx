@@ -25,7 +25,7 @@ export type SpanMetrics = {
 
 export const useSpanMetricsSeries = (
   span: Pick<IndexedSpan, 'group'>,
-  queryFilters: SpanSummaryQueryFilters = {},
+  queryFilters: SpanSummaryQueryFilters,
   yAxis: string[] = [],
   referrer = 'span-metrics-series'
 ) => {
@@ -70,7 +70,7 @@ function getEventView(
   location: Location,
   pageFilters: PageFilters,
   yAxis: string[],
-  queryFilters?: SpanSummaryQueryFilters
+  queryFilters: SpanSummaryQueryFilters
 ) {
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
