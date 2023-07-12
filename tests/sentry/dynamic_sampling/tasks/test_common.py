@@ -1,11 +1,18 @@
 from datetime import timedelta
 
 import pytest
+from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling.tasks.common import TimedIterator, TimeoutException
+from sentry.dynamic_sampling.tasks.common import GetActiveOrgs, TimedIterator, TimeoutException
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
+from sentry.snuba.metrics import TransactionMRI
+from sentry.testutils import BaseMetricsLayerTestCase, SnubaTestCase, TestCase
 from sentry.utils.types import Any
+
+MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
 
 def test_timeout_exception():
@@ -65,3 +72,46 @@ def test_timed_iterator_with_timeout():
         # the next iteration will be at 4 seconds which is over time and should raise
         with pytest.raises(TimeoutException):
             next(it)
+
+
+@freeze_time(MOCK_DATETIME)
+class TestGetActiveOrgs(BaseMetricsLayerTestCase, TestCase, SnubaTestCase):
+    def setUp(self):
+
+        # create 10 orgs each with 10 transactions
+        for i in range(10):
+            org = self.create_organization(f"org-{i}")
+            for i in range(10):
+                project = self.create_project(organization=org)
+                self.store_performance_metric(
+                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    tags={"transaction": "foo_transaction", "decision": "keep"},
+                    minutes_before_now=30,
+                    value=1,
+                    project_id=project.id,
+                    org_id=org.id,
+                )
+
+    @property
+    def now(self):
+        return MOCK_DATETIME
+
+    def test_get_active_orgs_no_max_projects(self):
+        total_orgs = 0
+        for idx, orgs in enumerate(GetActiveOrgs(3)):
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            if idx in [0, 1, 2]:
+                assert num_orgs == 3  # first batch should be full
+            else:
+                assert num_orgs == 1  # second should contain the remaining 3
+        assert total_orgs == 10
+
+    def test_get_active_orgs_with_max_projects(self):
+        total_orgs = 0
+        for orgs in GetActiveOrgs(3, 18):
+            # we ask for max 18 proj (that's 2 org per request since one org has 10 )
+            num_orgs = len(orgs)
+            total_orgs += num_orgs
+            assert num_orgs == 2  # only 2 orgs since we limit the number of projects
+        assert total_orgs == 10

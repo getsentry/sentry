@@ -221,8 +221,8 @@ class GetActiveOrgs:
                 self.max_projects is not None and count_projects >= self.max_projects
             ):
                 # we got to the number of elements desired
-                ret_val = self.last_result[: idx + 1]
-                self.last_result = self._get_orgs(self.last_result[idx + 1 :])
+                ret_val = self._get_orgs(self.last_result[: idx + 1])
+                self.last_result = self.last_result[idx + 1 :]
                 self.orgs_fetched += idx
                 self.projects_fetched += count_projects
                 return ret_val
