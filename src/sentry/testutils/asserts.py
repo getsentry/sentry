@@ -1,7 +1,5 @@
 from typing import Optional
 
-from sentry.models import AuditLogEntry, CommitFileChange
-
 
 def assert_mock_called_once_with_partial(mock, *args, **kwargs):
     """
@@ -16,10 +14,11 @@ def assert_mock_called_once_with_partial(mock, *args, **kwargs):
         assert m_kwargs[kwarg] == kwargs[kwarg], (m_kwargs[kwarg], kwargs[kwarg])
 
 
-commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
-
-
 def assert_commit_shape(commit):
+    from sentry.models import CommitFileChange
+
+    commit_file_type_choices = {c[0] for c in CommitFileChange._meta.get_field("type").choices}
+
     assert commit["id"]
     assert commit["repository"]
     assert commit["author_email"]
@@ -40,6 +39,8 @@ def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
 
 
 def org_audit_log_exists(**kwargs):
+    from sentry.models import AuditLogEntry
+
     assert kwargs
     if "organization" in kwargs:
         kwargs["organization_id"] = kwargs.pop("organization").id
@@ -55,4 +56,6 @@ def assert_org_audit_log_does_not_exist(**kwargs):
 
 
 def delete_all_org_audit_logs():
+    from sentry.models import AuditLogEntry
+
     return AuditLogEntry.objects.all().delete()
