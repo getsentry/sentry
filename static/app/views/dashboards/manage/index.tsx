@@ -1,5 +1,6 @@
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {createDashboard} from 'sentry/actionCreators/dashboards';
