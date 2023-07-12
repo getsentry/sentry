@@ -10,7 +10,7 @@ import {
 
 import DashboardList from 'sentry/views/dashboards/manage/dashboardList';
 
-describe('Dashboards > DashboardList', function () {
+describe('Dashboards - DashboardList', function () {
   let dashboards, widgets, deleteMock, dashboardUpdateMock, createMock;
   const organization = TestStubs.Organization({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
@@ -128,6 +128,7 @@ describe('Dashboards > DashboardList', function () {
   it('renders an empty list', function () {
     render(
       <DashboardList
+        onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={[]}
         pageLinks=""
@@ -141,6 +142,7 @@ describe('Dashboards > DashboardList', function () {
   it('renders dashboard list', function () {
     render(
       <DashboardList
+        onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
@@ -155,6 +157,7 @@ describe('Dashboards > DashboardList', function () {
   it('returns landing page url for dashboards', function () {
     render(
       <DashboardList
+        onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
@@ -176,10 +179,11 @@ describe('Dashboards > DashboardList', function () {
   it('persists global selection headers', function () {
     render(
       <DashboardList
+        onDashboardsChange={jest.fn()}
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {statsPeriod: '7d'}}}
+        location={{...TestStubs.location(), query: {statsPeriod: '7d'}}}
       />,
       {context: routerContext}
     );
@@ -196,7 +200,7 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />,
       {context: routerContext}
@@ -233,7 +237,7 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={singleDashboard}
         pageLinks=""
-        location={{query: {}}}
+        location={TestStubs.location()}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -251,7 +255,7 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
@@ -277,7 +281,7 @@ describe('Dashboards > DashboardList', function () {
         organization={organization}
         dashboards={dashboards}
         pageLinks=""
-        location={{query: {}}}
+        location={{...TestStubs.location(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
       />
     );
