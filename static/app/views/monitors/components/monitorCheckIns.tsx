@@ -5,11 +5,12 @@ import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import Link from 'sentry/components/links/link';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import PanelTable from 'sentry/components/panels/panelTable';
+import ShortId from 'sentry/components/shortId';
 import StatusIndicator from 'sentry/components/statusIndicator';
 import Text from 'sentry/components/text';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -143,7 +144,19 @@ function MonitorCheckIns({monitor, monitorEnvs, orgId}: Props) {
                     organization={organization}
                     key={id}
                   >
-                    {<Link to={`/issues/${id}`}>{shortId}</Link>}
+                    {
+                      <StyledShortId
+                        shortId={shortId}
+                        avatar={
+                          <ProjectBadge
+                            project={monitor.project}
+                            hideName
+                            avatarSize={12}
+                          />
+                        }
+                        to={`/issues/${id}`}
+                      />
+                    }
                   </QuickContextHovercard>
                 ))}
               </IssuesContainer>
@@ -183,4 +196,8 @@ const IssuesContainer = styled('div')`
 
 const Timestamp = styled(DateTime)`
   color: ${p => p.theme.subText};
+`;
+
+const StyledShortId = styled(ShortId)`
+  justify-content: flex-start;
 `;
