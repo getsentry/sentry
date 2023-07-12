@@ -7,6 +7,7 @@ from django.urls import reverse
 from requests import PreparedRequest
 
 from sentry.models import Repository
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
@@ -88,13 +89,13 @@ class GitLabProxyApiClient(IntegrationProxyClient):
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
-        self.refreshed_identity = None
+        self.refreshed_identity: RpcIdentity | None = None
         self.base_url = self.metadata["base_url"]
         org_integration_id = installation.org_integration.id
         super().__init__(org_integration_id=org_integration_id, verify_ssl=verify_ssl)
 
     @property
-    def identity(self):
+    def identity(self) -> RpcIdentity:
         if self.refreshed_identity:
             return self.refreshed_identity
         return self.installation.get_default_identity()
@@ -121,7 +122,7 @@ class GitLabProxyApiClient(IntegrationProxyClient):
 
         https://github.com/doorkeeper-gem/doorkeeper/wiki/Enable-Refresh-Token-Credentials#testing-with-oauth2-gem
         """
-        return self.identity.get_provider().refresh_identity(
+        return self.identity.get_identity().refresh_identity(
             self.identity,
             refresh_token_url="{}{}".format(
                 self.base_url.rstrip("/"), GitLabApiClientPath.oauth_token
