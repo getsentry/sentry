@@ -73,8 +73,7 @@ describe('Discover > Landing', function () {
     render(
       <DiscoverLanding
         organization={TestStubs.Organization()}
-        location={{query: {}}}
-        router={{}}
+        {...TestStubs.routeComponentProps()}
       />
     );
 
@@ -84,7 +83,7 @@ describe('Discover > Landing', function () {
   it('has the right sorts', function () {
     const org = TestStubs.Organization({features});
 
-    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />);
+    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />);
 
     const expectedSorts = [
       'My Queries',
@@ -109,7 +108,7 @@ describe('Discover > Landing', function () {
   it('links back to the homepage', () => {
     const org = TestStubs.Organization({features});
 
-    render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />, {
+    render(<DiscoverLanding organization={org} {...TestStubs.routeComponentProps()} />, {
       context: TestStubs.routerContext(),
     });
 
