@@ -59,14 +59,6 @@ def update_organization_with_outbox_message(
         return org
 
 
-def upsert_organization_by_org_id_with_outbox_message(
-    *, org_id: int, upsert_data: OrganizationCreateAndUpdateOptions
-) -> Organization:
-    with outbox_context(transaction.atomic()):
-        org, created = Organization.objects.update_or_create(id=org_id, defaults=upsert_data)
-        return org
-
-
 def mark_organization_as_pending_deletion_with_outbox_message(
     *, org_id: int
 ) -> Optional[Organization]:

@@ -13,7 +13,6 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
     unmark_organization_as_pending_deletion_with_outbox_message,
     update_organization_with_outbox_message,
-    upsert_organization_by_org_id_with_outbox_message,
 )
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
@@ -33,20 +32,21 @@ def assert_outbox_update_message_exists(org: Organization, expected_count: int):
         assert org_update_outbox.category == OutboxCategory.ORGANIZATION_UPDATE
 
 
+def assert_slug_matches(slug: str, expected_slug_root: str, partial_match: bool = False):
+    slug_matcher = expected_slug_root
+    if SiloMode.get_current_mode() == SiloMode.REGION:
+        slug_matcher = f"r-na-{expected_slug_root}"
+
+    if partial_match:
+        assert slug.startswith(slug_matcher)
+    else:
+        assert slug == slug_matcher
+
+
 @region_silo_test(stable=True)
 class OrganizationUpdateTest(TestCase):
     def setUp(self):
         self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
-
-    def assert_slug_matches(self, slug: str, expected_slug_root: str, partial_match: bool = False):
-        slug_matcher = expected_slug_root
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            slug_matcher = f"r-na-{expected_slug_root}"
-
-        if partial_match:
-            assert slug.startswith(slug_matcher)
-        else:
-            assert slug == slug_matcher
 
     def test_create_organization_with_outbox_message(self):
         with outbox_context(flush=False):
@@ -60,7 +60,7 @@ class OrganizationUpdateTest(TestCase):
 
         assert org.id
         assert org.name == "santry"
-        self.assert_slug_matches(org.slug, "santry")
+        assert_slug_matches(org.slug, "santry")
         assert_outbox_update_message_exists(org=org, expected_count=1)
 
 
@@ -83,69 +83,6 @@ class OrganizationUpdateWithOutboxTest(TestCase):
     def test_update_with_missing_org_id(self):
         with pytest.raises(Organization.DoesNotExist):
             update_organization_with_outbox_message(org_id=1234, update_data={"name": "foobar"})
-
-
-@region_silo_test(stable=True)
-class OrganizationUpsertWithOutboxTest(TestCase):
-    def setUp(self):
-        self.org: Organization = self.create_organization(slug="sluggy", name="barfoo")
-
-    def test_upsert_queues_outbox_message_and_updates_org(self):
-        # The test fixture creates at least 1 org so comparing count before
-        # and after the upsert is the safest way to assert we haven't created
-        # a new entry.
-        previous_org_count = Organization.objects.count()
-        org_before_modification = Organization.objects.get(id=self.org.id)
-
-        with outbox_context(flush=False):
-            updated_org: Organization = upsert_organization_by_org_id_with_outbox_message(
-                org_id=self.org.id,
-                upsert_data={
-                    "slug": "foobar",
-                    "status": OrganizationStatus.DELETION_IN_PROGRESS,
-                },
-            )
-
-        assert Organization.objects.count() == previous_org_count
-        self.org.refresh_from_db()
-        assert updated_org.slug == self.org.slug == "foobar"
-        assert updated_org.name == self.org.name == "barfoo"
-        assert updated_org.status == self.org.status == OrganizationStatus.DELETION_IN_PROGRESS
-
-        assert (
-            updated_org.default_role
-            == self.org.default_role
-            == org_before_modification.default_role
-        )
-
-        assert_outbox_update_message_exists(org=self.org, expected_count=1)
-
-    def test_upsert_creates_organization_with_desired_id(self):
-        previous_org_count = Organization.objects.count()
-        org_before_modification = Organization.objects.get(id=self.org.id)
-        desired_org_id = 1234
-
-        with outbox_context(flush=False):
-            created_org: Organization = upsert_organization_by_org_id_with_outbox_message(
-                org_id=desired_org_id,
-                upsert_data={
-                    "slug": "random",
-                    "name": "rando",
-                    "status": OrganizationStatus.ACTIVE,
-                },
-            )
-        assert Organization.objects.count() == previous_org_count + 1
-        db_created_org = Organization.objects.get(id=desired_org_id)
-        assert db_created_org.slug == created_org.slug == "random"
-        assert db_created_org.status == created_org.status == OrganizationStatus.ACTIVE
-        assert db_created_org.name == created_org.name == "rando"
-
-        # Probably overly cautious, but assert that previous org has not been modified
-        self.org.refresh_from_db()
-        assert org_before_modification.slug == self.org.slug
-        assert org_before_modification.name == self.org.name
-        assert org_before_modification.status == self.org.status
-        assert_outbox_update_message_exists(org=db_created_org, expected_count=1)
 
 
 @region_silo_test(stable=True)
