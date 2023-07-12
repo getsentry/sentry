@@ -62,7 +62,7 @@ def find_channel_id_for_rule(
         extra={
             "integration_id": integration.id,
             "organization_id": organization.id,
-            rule_id: rule_id,
+            "rule_id": rule_id,
         },
     )
 
