@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, MutableMapping, Sequence
+from typing import Any, Mapping, Sequence
 
 from django import forms
 from django.http import HttpResponse
@@ -21,7 +21,7 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
 
-from .client import OpsgenieProxySetupClient
+from .client import OpsgenieSetupClient
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -74,7 +74,7 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
-        if "?goback=1" in request.GET:
+        if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
         if request.method == "POST":
@@ -116,8 +116,7 @@ class InstallationGuideView(PipelineView):
 
 
 class OpsgenieIntegration(IntegrationInstallation):
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        return super().update_organization_config(data)
+    pass
 
 
 class OpsgenieIntegrationProvider(IntegrationProvider):
@@ -126,10 +125,10 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # limited release
+    # requires_feature_flag = True  # limited release
 
     def get_account_info(self, base_url, api_key):
-        client = OpsgenieProxySetupClient(base_url=base_url, api_key=api_key)
+        client = OpsgenieSetupClient(base_url=base_url, api_key=api_key)
         try:
             resp = client.get_account()
             return resp.json

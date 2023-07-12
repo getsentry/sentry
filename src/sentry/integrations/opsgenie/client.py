@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.integrations.client import ApiClient
 
 OPSGENIE_API_VERSION = "/v2"
 
 
-class OpsgenieProxySetupClient(IntegrationProxyClient):
+class OpsgenieSetupClient(ApiClient):
     """
     API Client that doesn't require an installation.
     This client is used during integration setup to fetch data
