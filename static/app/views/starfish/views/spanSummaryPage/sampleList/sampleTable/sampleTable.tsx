@@ -36,8 +36,7 @@ function SampleTable({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'span-summary-panel-samples-table-p95',
-    Boolean(groupId && transactionName && transactionMethod)
+    'span-summary-panel-samples-table-p95'
   );
   const organization = useOrganization();
 
