@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pytest
+from django.db import router
 
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organization import Organization
@@ -20,14 +21,16 @@ class OrganizationMappingRepairTest(TestCase):
     def test_removes_expired_unverified(self):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.verified = False
-        mapping.date_created = expired_time
-        mapping.save()
 
-        phantom_mapping = self.create_organization_mapping(
-            Organization(id=123, slug="fake-slug"), date_created=expired_time, verified=False
-        )
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+            mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+            mapping.verified = False
+            mapping.date_created = expired_time
+            mapping.save()
+
+            phantom_mapping = self.create_organization_mapping(
+                Organization(id=123, slug="fake-slug"), date_created=expired_time, verified=False
+            )
 
         repair_mappings()
 
@@ -40,11 +43,12 @@ class OrganizationMappingRepairTest(TestCase):
         self.organization = Factories.create_organization()
         expired_time = datetime.now() - ORGANIZATION_MAPPING_EXPIRY
 
-        mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
-        mapping.verified = False
-        mapping.date_created = expired_time
-        mapping.idempotency_key = "1234"
-        mapping.save()
+        with in_test_psql_role_override("postgres", using=router.db_for_write(OrganizationMapping)):
+            mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
+            mapping.verified = False
+            mapping.date_created = expired_time
+            mapping.idempotency_key = "1234"
+            mapping.save()
 
         repair_mappings()
 

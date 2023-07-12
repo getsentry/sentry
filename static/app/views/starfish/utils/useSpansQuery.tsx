@@ -62,7 +62,7 @@ export function useSpansQuery<T = any[]>({
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-export function useWrappedDiscoverTimeseriesQuery<T>({
+function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,

@@ -234,7 +234,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         )
 
                 org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__
+                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
                 )
 
                 self.create_audit_entry(
@@ -262,7 +262,7 @@ class OrganizationIndexEndpoint(Endpoint):
             if result.get("agreeTerms"):
                 terms_accepted.send_robust(
                     user=request.user,
-                    organization=org,
+                    organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
                 )

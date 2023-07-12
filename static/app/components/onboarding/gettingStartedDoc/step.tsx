@@ -3,6 +3,7 @@ import beautify from 'js-beautify';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 export enum StepType {
   INSTALL = 'install',
@@ -27,49 +28,54 @@ type ConfigurationType = {
    */
   code: string;
   /**
-   * A brief description of the step
+   * The language of the code to be rendered (python, javascript, etc)
    */
-  description: React.ReactNode;
+  language: string;
+  /**
+   * A brief description of the configuration
+   */
+  description?: React.ReactNode;
 };
 
 export type StepProps = {
   configurations: ConfigurationType[];
   /**
-   * The language of the selected platform (python, javascript, etc)
-   */
-  language: string;
-  /**
    * The step type (install, configure, verify). The list can grow as we add more steps
    */
   type: StepType;
+  /**
+   * A brief description of the step
+   */
+  description?: React.ReactNode;
 };
 
-export function Step({type, configurations, language}: StepProps) {
+export function Step({type, configurations, description}: StepProps) {
   return (
     <div>
       <h4>{StepTitle[type]}</h4>
+      {description}
       <Configurations>
         {configurations.map((configuration, index) => (
-          <div key={index}>
-            <Description>{configuration.description}</Description>
-            <CodeSnippet dark language={language}>
-              {language === 'javascript'
+          <Configuration key={index}>
+            {configuration.description}
+            <CodeSnippet dark language={configuration.language}>
+              {configuration.language === 'javascript'
                 ? beautify.js(configuration.code, {indent_size: 2, e4x: true})
                 : beautify.html(configuration.code, {indent_size: 2})}
             </CodeSnippet>
-          </div>
+          </Configuration>
         ))}
       </Configurations>
     </div>
   );
 }
 
-const Configurations = styled('div')`
+const Configuration = styled('div')`
   display: flex;
   flex-direction: column;
   gap: 1rem;
 `;
 
-const Description = styled('div')`
-  margin-bottom: 1em;
+const Configurations = styled(Configuration)`
+  margin-top: ${space(2)};
 `;

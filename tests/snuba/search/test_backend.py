@@ -1075,8 +1075,9 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         ga.update(team=self.team, user_id=None)
         assert GroupAssignee.objects.get(id=ga.id).user_id is None
 
-        results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
-        assert set(results) == {self.group2}
+        with Feature({"organizations:assign-to-me": False}):
+            results = self.make_query(search_filter_query="assigned:%s" % self.user.username)
+            assert set(results) == {self.group2}
 
         # test when there should be no results
         other_user = self.create_user()
@@ -1115,12 +1116,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
 
-        self.run_test_query(
-            "assigned:me",
-            [my_team_group, self.group2],
-            user=self.user,
-        )
-        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                "assigned:me",
+                [my_team_group, self.group2],
+                user=self.user,
+            )
+            assert not GroupAssignee.objects.filter(
+                user_id=self.user.id, group=my_team_group
+            ).exists()
 
         with self.feature("organizations:assign-to-me"):
             self.run_test_query(
@@ -1156,13 +1160,15 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         GroupAssignee.objects.create(
             user_id=None, team_id=self.team.id, group=my_team_group, project=my_team_group.project
         )
-
-        self.run_test_query(
-            "assigned:[me]",
-            [my_team_group, self.group2],
-            user=self.user,
-        )
-        assert not GroupAssignee.objects.filter(user_id=self.user.id, group=my_team_group).exists()
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                "assigned:[me]",
+                [my_team_group, self.group2],
+                user=self.user,
+            )
+            assert not GroupAssignee.objects.filter(
+                user_id=self.user.id, group=my_team_group
+            ).exists()
 
         with self.feature("organizations:assign-to-me"):
             self.run_test_query(
@@ -1217,22 +1223,23 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             user_id=self.user.id, group=self.group2, project=self.group2.project
         )
         ga_2.update(team=self.team, user_id=None)
-        self.run_test_query(
-            f"assigned:[{self.user.username}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
-        )
-        self.run_test_query(
-            f"assigned:[#{self.team.slug}, {other_user.username}]",
-            [self.group2, group_3],
-            [self.group1],
-        )
+        with Feature({"organizations:assign-to-me": False}):
+            self.run_test_query(
+                f"assigned:[{self.user.username}, {other_user.username}]",
+                [self.group2, group_3],
+                [self.group1],
+            )
+            self.run_test_query(
+                f"assigned:[#{self.team.slug}, {other_user.username}]",
+                [self.group2, group_3],
+                [self.group1],
+            )
 
-        self.run_test_query(
-            f"assigned:[me, none, {other_user.username}]",
-            [self.group1, self.group2, group_3],
-            [],
-        )
+            self.run_test_query(
+                f"assigned:[me, none, {other_user.username}]",
+                [self.group1, self.group2, group_3],
+                [],
+            )
 
     def test_assigned_or_suggested_in_syntax(self):
         Group.objects.all().delete()
