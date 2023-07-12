@@ -110,6 +110,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
         except Organization.DoesNotExist:
             return None
 
+    def get_default_organization(self) -> RpcOrganization:
+        return serialize_rpc_organization(Organization.get_default())
+
     def check_membership_by_email(
         self, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
