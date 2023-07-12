@@ -187,7 +187,7 @@ def get_global_config():
 def get_project_config(
     project: Project,
     full_config: bool = True,
-    v4_config: bool = False,
+    version: str = "3",
     project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     """Constructs the ProjectConfig information.
@@ -207,7 +207,7 @@ def get_project_config(
         scope.set_tag("project", project.id)
         with metrics.timer("relay.config.get_project_config.duration"):
             return _get_project_config(
-                project, full_config=full_config, project_keys=project_keys, v4_config=v4_config
+                project, full_config=full_config, project_keys=project_keys, version=version
             )
 
 
@@ -329,7 +329,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
 def _get_project_config(
     project: Project,
     full_config: bool = True,
-    v4_config: bool = False,
+    version: str = "3",
     project_keys: Optional[Sequence[ProjectKey]] = None,
 ) -> "ProjectConfig":
     if project.status != ObjectStatus.ACTIVE:
@@ -368,9 +368,10 @@ def _get_project_config(
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
+
     add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
 
-    if not v4_config:
+    if version == "3":
         # Limit the number of custom measurements
         add_experimental_config(config, "measurements", get_measurements_config)
 
@@ -403,7 +404,7 @@ def _get_project_config(
         # This config key is technically not specific to _transaction_ metrics,
         # is however currently both only applied to transaction metrics in
         # Relay, and only used to tag transaction metrics in Sentry.
-        if v4_config:
+        if version == "4":
             get_conditional_rules = get_dynamic_metric_conditional_tagging_rules
         else:
             get_conditional_rules = get_metric_conditional_tagging_rules
