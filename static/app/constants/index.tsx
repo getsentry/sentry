@@ -56,13 +56,13 @@ export const API_ACCESS_SCOPES = [
 
 // Default API scopes when adding a new API token or org API token
 export const DEFAULT_API_ACCESS_SCOPES = [
-  'event:read',
   'event:admin',
+  'event:read',
+  'member:read',
+  'org:read',
   'project:read',
   'project:releases',
-  'org:read',
   'team:read',
-  'member:read',
 ];
 
 // These should only be used in the case where we cannot obtain roles through
