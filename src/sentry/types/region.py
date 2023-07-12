@@ -154,7 +154,7 @@ def load_from_config(region_config: Any) -> GlobalRegionDirectory:
         return GlobalRegionDirectory(region_objs)
     except Exception as e:
         sentry_sdk.capture_exception(e)
-        raise RegionConfigurationError("Unable to parse region_config.")
+        raise RegionConfigurationError("Unable to parse region_config.") from e
 
 
 _global_regions: GlobalRegionDirectory | None = None
@@ -188,11 +188,7 @@ def get_region_by_name(name: str) -> Region:
 
 
 def is_region_name(name: str) -> bool:
-    try:
-        get_region_by_name(name)
-        return True
-    except Exception:
-        return False
+    return name in load_global_regions().by_name
 
 
 @control_silo_function
