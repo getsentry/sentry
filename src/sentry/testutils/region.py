@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from django.test.utils import override_settings
 
@@ -40,3 +40,10 @@ def override_regions(regions: Sequence[region.Region]):
         yield
     finally:
         region.load_global_regions = existing
+
+
+@contextmanager
+def override_region_config(region_configs: Sequence[Mapping[str, Any]]):
+    region_objs = tuple(region.parse_raw_config(region_configs))
+    with override_regions(region_objs):
+        yield

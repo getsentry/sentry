@@ -141,7 +141,7 @@ class GlobalRegionDirectory:
             region.validate()
 
 
-def _parse_config(region_config: Any) -> Iterable[Region]:
+def parse_raw_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
         config_values = parse_obj_as(List[Region], json_config_values)
@@ -164,7 +164,7 @@ def _parse_config(region_config: Any) -> Iterable[Region]:
 
 def load_from_config(region_config: Any) -> GlobalRegionDirectory:
     try:
-        region_objs = list(_parse_config(region_config))
+        region_objs = list(parse_raw_config(region_config))
         return GlobalRegionDirectory(region_objs)
     except RegionConfigurationError as e:
         sentry_sdk.capture_exception(e)
