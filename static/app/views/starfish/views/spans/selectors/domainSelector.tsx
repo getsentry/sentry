@@ -30,7 +30,7 @@ export function DomainSelector({
   const {data: domains} = useSpansQuery<[{'span.domain': string}]>({
     eventView,
     initialData: [],
-    referrer: 'starfish.get-span-domains',
+    referrer: 'api.starfish.get-span-domains',
   });
 
   const options = [

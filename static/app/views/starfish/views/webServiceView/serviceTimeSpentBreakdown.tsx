@@ -70,7 +70,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
   const {data: segments} = useDiscoverQuery({
     eventView: topCategoryView,
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.span-category-breakdown',
+    referrer: 'api.starfish-web-service.span-category-breakdown',
     location,
     limit: 4,
   });
@@ -78,7 +78,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
   const {data: cumulativeTime} = useDiscoverQuery({
     eventView: totalView,
     orgSlug: organization.slug,
-    referrer: 'starfish-web-service.total-time',
+    referrer: 'api.starfish-web-service.total-time',
     location,
   });
 

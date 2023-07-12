@@ -52,7 +52,7 @@ export const useSpanSamples = (options: Options) => {
     groupId ? {group: groupId} : undefined,
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`],
-    'starfish.sidebar-span-metrics'
+    'api.starfish.sidebar-span-metrics'
   );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`p95(${SPAN_SELF_TIME})`]]);

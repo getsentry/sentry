@@ -33,7 +33,7 @@ export function ActionSelector({
     eventView,
     initialData: [],
     enabled: !useHTTPActions,
-    referrer: 'starfish.get-span-actions',
+    referrer: 'api.starfish.get-span-actions',
   });
 
   const options = useHTTPActions

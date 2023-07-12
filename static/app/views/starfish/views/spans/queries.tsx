@@ -29,7 +29,7 @@ export const useErrorRateQuery = (queryString: string) => {
   const result = useSpansQuery<{'http_error_count()': number; interval: number}[]>({
     eventView,
     initialData: [],
-    referrer: 'starfish.get-http-error-count',
+    referrer: 'api.starfish.get-http-error-count',
   });
 
   const formattedData = result?.data?.map(entry => {

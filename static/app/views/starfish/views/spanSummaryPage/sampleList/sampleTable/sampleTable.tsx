@@ -36,7 +36,7 @@ function SampleTable({
     {group: groupId},
     {transactionName, 'transaction.method': transactionMethod},
     [`p95(${SPAN_SELF_TIME})`, SPAN_OP],
-    'starfish.span-summary-panel-samples-table-p95'
+    'api.starfish.span-summary-panel-samples-table-p95'
   );
   const organization = useOrganization();
 
@@ -59,7 +59,7 @@ function SampleTable({
     error: transactionError,
   } = useTransactions(
     spans.map(span => span['transaction.id']),
-    'starfish.span-summary-panel-samples-table-transactions'
+    'api.starfish.span-summary-panel-samples-table-transactions'
   );
 
   const [loadedSpans, setLoadedSpans] = useState(false);

@@ -91,7 +91,7 @@ export default function SpansTable({
     spanCategory,
     [sort],
     limit,
-    'starfish.use-span-list',
+    'api.starfish.use-span-list',
     spansCursor
   );
 

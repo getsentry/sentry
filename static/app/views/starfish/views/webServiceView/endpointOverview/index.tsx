@@ -116,7 +116,7 @@ export default function EndpointOverview() {
         environment={eventView.environment}
         project={eventView.project}
         period={eventView.statsPeriod}
-        referrer="starfish-endpoint-overview"
+        referrer="api.starfish-web-service.starfish-endpoint-overview"
         start={eventView.start}
         end={eventView.end}
         organization={organization}
