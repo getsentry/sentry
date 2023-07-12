@@ -45,15 +45,13 @@ def post_save_log_group_attributes_changed(
         else:
             # we have no guarantees update_fields is used everywhere save() is called
             # we'll need to assume any of the attributes are updated in that case
-            attributes_updated = {"status", "substatus", "first_seen", "num_comments"}.intersection(
+            attributes_updated = {"status", "substatus", "num_comments"}.intersection(
                 update_fields or ()
             )
             if attributes_updated:
                 _log_group_attributes_changed(
                     Operation.UPDATED, "group", "-".join(sorted(attributes_updated))
                 )
-            else:
-                _log_group_attributes_changed(Operation.UPDATED, "group", "unknown")
     except Exception:
         logger.error("failed to log group attributes after group post_save", exc_info=True)
 
