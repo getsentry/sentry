@@ -3474,6 +3474,7 @@ if USE_SILOS:
             "api_token": "dev-region-silo-token",
         }
     ]
+    SENTRY_MONOLITH_REGION = SENTRY_REGION_CONFIG[0]["name"]
     control_port = os.environ.get("SENTRY_CONTROL_SILO_PORT", "8000")
     DEV_HYBRID_CLOUD_RPC_SENDER = json.dumps(
         {
