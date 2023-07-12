@@ -4,6 +4,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list/';
 import ListItem from 'sentry/components/list/listItem';
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import {t, tct} from 'sentry/locale';
@@ -31,7 +32,6 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: tct(
       'Configure your app automatically with the [wizardLink:Sentry wizard].',
@@ -43,12 +43,12 @@ export const steps = ({
     ),
     configurations: [
       {
+        language: 'bash',
         code: `npx @sentry/wizard -i sveltekit`,
       },
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     description: (
       <ConfigureDescription>
@@ -103,6 +103,7 @@ export const steps = ({
             </div>
           </ConfigureDescription>
         ),
+        language: 'javascript',
         code: `
         import * as Sentry from "@sentry/sveltekit";
 
@@ -114,13 +115,13 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: `
         <!-- +page.svelte -->
         <button type="button" on:click={unknownFunction}>Break the world</button>
@@ -156,17 +157,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithReact({
+export function GettingStartedWithSvelteKit({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -200,10 +195,12 @@ export default function GettingStartedWithReact({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithSvelteKit;
 
 const ConfigureDescription = styled('div')`
   display: flex;

@@ -4,7 +4,6 @@ import {tct} from 'sentry/locale';
 
 export function getUploadSourceMapsStep(guideLink: string) {
   return {
-    language: 'bash',
     type: StepType.UPLOAD_SOURCE_MAPS,
     description: tct(
       'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
@@ -14,6 +13,7 @@ export function getUploadSourceMapsStep(guideLink: string) {
     ),
     configurations: [
       {
+        language: 'bash',
         code: `npx @sentry/wizard@latest -i sourcemaps`,
       },
     ],
