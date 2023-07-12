@@ -163,20 +163,31 @@ class RpcMethodSignature:
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
 
-    def resolve_to_region(self, arguments: ArgumentDict) -> Region | None:
+    def resolve_to_region(self, arguments: ArgumentDict) -> _RegionResolutionResult:
         if self._region_resolution is None:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
         try:
             try:
-                return self._region_resolution.resolve(arguments)
+                region = self._region_resolution.resolve(arguments)
+                return _RegionResolutionResult(region)
             except RegionMappingNotFound:
                 if getattr(self._base_method, _REGION_RESOLUTION_OPTIONAL_RETURN_ATTR, False):
-                    return None
+                    return _RegionResolutionResult(None, is_early_halt=True)
                 else:
                     raise
         except Exception as e:
             raise RpcServiceUnimplementedException("Error while resolving region") from e
+
+
+@dataclass(frozen=True)
+class _RegionResolutionResult:
+    region: Region | None
+    is_early_halt: bool = False
+
+    def __post_init__(self) -> None:
+        if (self.region is None) != self.is_early_halt:
+            raise ValueError("region must be supplied if and only if not halting early")
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -336,9 +347,10 @@ class RpcService(abc.ABC):
                     )
 
                 if cls.local_mode == SiloMode.REGION:
-                    region = signature.resolve_to_region(kwargs)
-                    if region is None:
+                    result = signature.resolve_to_region(kwargs)
+                    if result.is_early_halt is None:
                         return None
+                    region = result.region
                 else:
                     region = None
 
