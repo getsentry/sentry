@@ -195,10 +195,11 @@ def clear_global_regions() -> None:
 
 def get_region_by_name(name: str) -> Region:
     """Look up a region by name."""
+    global_regions = load_global_regions()
     try:
-        return load_global_regions().by_name[name]
+        return global_regions.by_name[name]
     except KeyError:
-        raise RegionResolutionError(f"No region with name: {name!r}")
+        raise RegionResolutionError(f"{global_regions.regions=!r}")
 
 
 def is_region_name(name: str) -> bool:

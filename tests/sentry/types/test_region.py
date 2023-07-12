@@ -24,6 +24,9 @@ from sentry.utils import json
 
 
 class RegionMappingTest(TestCase):
+    def setUp(self) -> None:
+        clear_global_regions()
+
     def test_region_mapping(self):
         regions = [
             Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
@@ -54,7 +57,6 @@ class RegionMappingTest(TestCase):
                 )
 
     def test_get_region_for_organization(self):
-        clear_global_regions()
         regions = [
             Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
             Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
@@ -88,7 +90,6 @@ class RegionMappingTest(TestCase):
             valid_region.validate()
 
     def test_json_config_injection(self):
-        clear_global_regions()
         region_config = [
             {
                 "name": "na",
@@ -106,7 +107,6 @@ class RegionMappingTest(TestCase):
 
     @patch("sentry.types.region.sentry_sdk")
     def test_invalid_config(self, sentry_sdk_mock):
-        clear_global_regions()
         region_config = ["invalid"]
         assert sentry_sdk_mock.capture_exception.call_count == 0
         with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)), pytest.raises(
@@ -116,7 +116,6 @@ class RegionMappingTest(TestCase):
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
     def test_default_historic_region_setting(self):
-        clear_global_regions()
         monolith_region_name = "my_default_historic_monolith_region"
         with override_settings(
             SENTRY_REGION_CONFIG=json.dumps([]),
@@ -127,7 +126,6 @@ class RegionMappingTest(TestCase):
             assert region.is_historic_monolith_region()
 
     def test_invalid_historic_region_setting(self):
-        clear_global_regions()
         region_config = [
             {
                 "name": "na",
@@ -146,15 +144,6 @@ class RegionMappingTest(TestCase):
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
-        organization = self.create_organization(name="test name")
-        organization_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
-        organization_mapping.name = "test name"
-        organization_mapping.region_name = "na"
-        organization_mapping.idempotency_key = "test"
-
-        with in_test_psql_role_override("postgres"):
-            organization_mapping.save()
-
         region_config = [
             {
                 "name": "na",
@@ -164,8 +153,19 @@ class RegionMappingTest(TestCase):
             }
         ]
         with override_settings(
-            SILO_MODE=SiloMode.CONTROL, SENTRY_REGION_CONFIG=json.dumps(region_config)
+            SILO_MODE=SiloMode.CONTROL,
+            SENTRY_REGION_CONFIG=json.dumps(region_config),
+            SENTRY_MONOLITH_REGION="na",
         ):
+            organization = self.create_organization(name="test name")
+            organization_mapping = OrganizationMapping.objects.get(organization_id=organization.id)
+            organization_mapping.name = "test name"
+            organization_mapping.region_name = "na"
+            organization_mapping.idempotency_key = "test"
+
+            with in_test_psql_role_override("postgres"):
+                organization_mapping.save()
+
             user = self.create_user()
             organization_service.add_organization_member(
                 organization_id=organization.id,
