@@ -1400,7 +1400,6 @@ module = [
     "tests.sentry.tasks.deletion.test_groups",
     "tests.sentry.tasks.deletion.test_scheduled",
     "tests.sentry.tasks.integrations.github.test_pr_comment",
-    "tests.sentry.tasks.test_assemble",
     "tests.sentry.tasks.test_derive_code_mappings",
     "tests.sentry.tasks.test_groupowner",
     "tests.sentry.tasks.test_merge",

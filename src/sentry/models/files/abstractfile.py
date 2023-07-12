@@ -314,6 +314,7 @@ class AbstractFile(Model):
             self.checksum = new_checksum.hexdigest()
 
             if checksum != self.checksum:
+                tf.close()
                 raise AssembleChecksumMismatch("Checksum mismatch")
 
         metrics.timing("filestore.file-size", offset)
