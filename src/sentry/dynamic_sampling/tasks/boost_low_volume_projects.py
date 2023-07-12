@@ -41,6 +41,7 @@ from sentry.dynamic_sampling.tasks.common import (
 from sentry.dynamic_sampling.tasks.constants import (
     CHUNK_SIZE,
     DEFAULT_REDIS_CACHE_KEY_TTL,
+    MAX_PROJECTS_PER_QUERY,
     MAX_SECONDS,
     MAX_TRANSACTIONS_PER_PROJECT,
 )
@@ -78,7 +79,9 @@ def boost_low_volume_projects() -> None:
     fetch_projects_timer = Timer()
     iterator_name = GetActiveOrgs.__name__
     try:
-        for orgs in TimedIterator(context, iterator_name, GetActiveOrgs()):
+        for orgs in TimedIterator(
+            context, iterator_name, GetActiveOrgs(max_projects=MAX_PROJECTS_PER_QUERY)
+        ):
             for (
                 org_id,
                 projects_with_tx_count_and_rates,
