@@ -1,9 +1,12 @@
 import {useCallback, useEffect, useState} from 'react';
 
+import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {IconStar, IconUser} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Organization, TagCollection, Team, User} from 'sentry/types';
+import type {Organization, TagCollection, Team, User} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 
 export interface WithIssueTagsProps {
@@ -24,6 +27,22 @@ const getUsername = ({isManaged, username, email}: User) => {
   }
   return !isManaged && username ? username : email;
 };
+
+const escapeValue = (value: string): string => {
+  // Wrap in quotes if there is a space
+  return value.includes(' ') || value.includes('"')
+    ? `"${value.replace(/"/g, '\\"')}"`
+    : value;
+};
+
+function convertToSearchItem(value: string) {
+  const escapedValue = escapeValue(value);
+  return {
+    value: escapedValue,
+    desc: value,
+    type: ItemType.TAG_VALUE,
+  };
+}
 
 type WrappedComponentState = {
   tags: TagCollection;
@@ -55,15 +74,32 @@ function withIssueTags<Props extends WithIssueTagsProps>(
             .filter(team => team.isMember)
             .map(team => `#${team.slug}`);
 
-          const allAssigned = props.organization.features.includes('assign-to-me')
-            ? ['[me, my_teams, none]', ...usernames, ...teamnames]
-            : ['[me, none]', ...usernames, ...teamnames];
-
-          if (props.organization.features.includes('assign-to-me')) {
-            allAssigned.unshift('my_teams');
-          }
-          allAssigned.unshift('me');
-          usernames.unshift('me');
+          const meAndMyTeams = props.organization.features.includes('assign-to-me')
+            ? '[me, my_teams, none]'
+            : '[me, none]';
+          const suggestedValues: string[] = [
+            'me',
+            ...(props.organization.features.includes('assign-to-me') ? ['my_teams'] : []),
+            meAndMyTeams,
+            ...teamnames,
+          ];
+          const assigndValues: SearchGroup[] | string[] =
+            !props.organization.features.includes('issue-search-shortcuts')
+              ? [
+                  {
+                    title: t('Suggested Values'),
+                    type: 'header',
+                    icon: <IconStar size="xs" />,
+                    children: suggestedValues.map(convertToSearchItem),
+                  },
+                  {
+                    title: t('All Values'),
+                    type: 'header',
+                    icon: <IconUser size="xs" />,
+                    children: usernames.map(convertToSearchItem),
+                  },
+                ]
+              : [...suggestedValues, ...usernames];
 
           return {
             ...oldState,
@@ -73,17 +109,17 @@ function withIssueTags<Props extends WithIssueTagsProps>(
               ...newState.tags,
               assigned: {
                 ...(newState.tags?.assigned ?? oldState.tags?.assigned ?? {}),
-                values: allAssigned,
+                values: assigndValues,
               },
               bookmarks: {
                 ...(newState.tags?.bookmarks ?? oldState.tags?.bookmarks ?? {}),
-                values: usernames,
+                values: ['me', ...usernames],
               },
               assigned_or_suggested: {
                 ...(newState.tags?.assigned_or_suggested ??
                   oldState.tags.assigned_or_suggested ??
                   {}),
-                values: allAssigned,
+                values: assigndValues,
               },
             },
           };

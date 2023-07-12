@@ -94,7 +94,7 @@ export type Shortcut = {
 
 export type AutocompleteGroup = {
   recentSearchItems: SearchItem[] | undefined;
-  searchItems: SearchItem[];
+  searchItems: Array<SearchItem | SearchGroup>;
   tagName: string;
   type: ItemType;
 };

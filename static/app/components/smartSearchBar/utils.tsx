@@ -86,6 +86,7 @@ function getIconForTypeAndTag(type: ItemType, tagName: string) {
     case 'is':
       return <IconToggle size="xs" />;
     case 'assigned':
+    case 'assigned_or_suggested':
     case 'bookmarks':
       return <IconUser size="xs" />;
     case 'firstSeen':
@@ -152,8 +153,12 @@ interface SearchGroups {
   searchGroups: SearchGroup[];
 }
 
+function isSearchGroup(searchItem: SearchItem | SearchGroup): searchItem is SearchGroup {
+  return (searchItem as SearchGroup).children !== undefined;
+}
+
 export function createSearchGroups(
-  searchItems: SearchItem[],
+  searchGroupItems: Array<SearchItem | SearchGroup>,
   recentSearchItems: SearchItem[] | undefined,
   tagName: string,
   type: ItemType,
@@ -163,18 +168,40 @@ export function createSearchGroups(
   defaultSearchGroup?: SearchGroup,
   fieldDefinitionGetter: typeof getFieldDefinition = getFieldDefinition
 ): SearchGroups {
+  const searchGroup: SearchGroup = {
+    title: getTitleForType(type),
+    type: invalidTypes.includes(type) ? type : 'header',
+    icon: getIconForTypeAndTag(type, tagName),
+    children: [],
+  };
+
+  if (searchGroupItems.every(isSearchGroup)) {
+    // Autocomplete item has provided its own search groups
+    const searchGroups = searchGroupItems
+      .map(group => {
+        const {searchItems: filteredSearchItems} = filterSearchItems(
+          group.children,
+          recentSearchItems,
+          maxSearchItems,
+          queryCharsLeft
+        );
+        return {...group, children: filteredSearchItems};
+      })
+      .filter(group => group.children.length > 0);
+    return {
+      // Fallback to the blank search group when "no items found"
+      searchGroups: searchGroups.length ? searchGroups : [searchGroup],
+      flatSearchItems: searchGroups.flatMap(item => item.children ?? []),
+      activeSearchItem: -1,
+    };
+  }
+
+  const searchItems = searchGroupItems as SearchItem[];
   const fieldDefinition = fieldDefinitionGetter(tagName);
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
     filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
-
-  const searchGroup: SearchGroup = {
-    title: getTitleForType(type),
-    type: invalidTypes.includes(type) ? type : 'header',
-    icon: getIconForTypeAndTag(type, tagName),
-    children: filteredSearchItems,
-  };
 
   const recentSearchGroup: SearchGroup | undefined =
     filteredRecentSearchItems && filteredRecentSearchItems.length > 0
@@ -185,6 +212,8 @@ export function createSearchGroups(
           children: [...filteredRecentSearchItems],
         }
       : undefined;
+
+  searchGroup.children = filteredSearchItems;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {

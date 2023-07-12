@@ -1215,8 +1215,24 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
    * Returns array of tag values that substring match `query`; invokes `callback`
    * with results
    */
-  getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
-    (tag.values ?? [])
+  getPredefinedTagValues = (
+    tag: Tag,
+    query: string
+  ): AutocompleteGroup['searchItems'] => {
+    const groupOrValue = tag.values ?? [];
+
+    // Is an array of SearchGroup
+    if (groupOrValue.some(item => typeof item === 'object')) {
+      return (groupOrValue as SearchGroup[]).map(group => {
+        return {
+          ...group,
+          children: group.children?.filter(child => child.value?.includes(query)),
+        };
+      });
+    }
+
+    // Is an array of strings
+    return (groupOrValue as string[])
       .filter(value => value.includes(query))
       .map((value, i) => {
         const escapedValue = escapeValue(value);
@@ -1229,6 +1245,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
             : false,
         };
       });
+  };
 
   /**
    * Get recent searches
