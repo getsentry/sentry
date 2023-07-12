@@ -9,7 +9,7 @@ import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
 import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanTransactionMetrics = {
   'p50(span.self_time)': number;
@@ -51,7 +51,7 @@ function getEventView(
   const cleanGroupId = span.group.replaceAll('-', '').slice(-16);
 
   const search = new MutableSearch('');
-  search.addFilterValues('span.group', [cleanGroupId]);
+  search.addFilterValues(SPAN_GROUP, [cleanGroupId]);
   search.addFilterValues('transaction.op', ['http.server']);
 
   if (transactions.length > 0) {

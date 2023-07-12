@@ -13,7 +13,8 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import SearchBar from 'sentry/components/searchBar';
 import SentryAppIcon from 'sentry/components/sentryAppIcon';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';

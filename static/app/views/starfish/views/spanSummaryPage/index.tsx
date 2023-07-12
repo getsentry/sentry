@@ -5,7 +5,9 @@ import * as qs from 'query-string';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -21,7 +23,6 @@ import {ERRORS_COLOR, P95_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/c
 import Chart, {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
-import StarfishPageFilterContainer from 'sentry/views/starfish/components/pageFilterContainer';
 import {SpanDescription} from 'sentry/views/starfish/components/spanDescription';
 import {CountCell} from 'sentry/views/starfish/components/tableCells/countCell';
 import DurationCell from 'sentry/views/starfish/components/tableCells/durationCell';
@@ -42,7 +43,8 @@ import {
   SpanTransactionsTable,
 } from 'sentry/views/starfish/views/spanSummaryPage/spanTransactionsTable';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_OP, SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} =
+  SpanMetricsFields;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -73,10 +75,10 @@ function SpanSummaryPage({params, location}: Props) {
     {group: groupId},
     queryFilter,
     [
-      'span.op',
-      'span.description',
-      'span.action',
-      'span.domain',
+      SPAN_OP,
+      SPAN_DESCRIPTION,
+      SPAN_ACTION,
+      SPAN_DOMAIN,
       'count()',
       'sps()',
       `sum(${SPAN_SELF_TIME})`,
@@ -100,7 +102,7 @@ function SpanSummaryPage({params, location}: Props) {
   useSynchronizeCharts([!areSpanMetricsSeriesLoading]);
 
   const spanMetricsThroughputSeries = {
-    seriesName: span?.['span.op']?.startsWith('db') ? 'Queries' : 'Requests',
+    seriesName: span?.[SPAN_OP]?.startsWith('db') ? 'Queries' : 'Requests',
     data: spanMetricsSeriesData?.['sps()'].data,
   };
 
@@ -132,7 +134,7 @@ function SpanSummaryPage({params, location}: Props) {
 
   return (
     <Layout.Page>
-      <StarfishPageFilterContainer>
+      <PageFiltersContainer>
         <PageErrorProvider>
           <Layout.Header>
             <Layout.HeaderContent>
@@ -152,7 +154,7 @@ function SpanSummaryPage({params, location}: Props) {
                   <StarfishDatePicker />
                 </FilterOptionsContainer>
                 <BlockContainer>
-                  <Block title={t('Operation')}>{span?.['span.op']}</Block>
+                  <Block title={t('Operation')}>{span?.[SPAN_OP]}</Block>
                   <Block
                     title={t('Throughput')}
                     description={t('Throughput of this span per second')}
@@ -167,7 +169,7 @@ function SpanSummaryPage({params, location}: Props) {
                       milliseconds={spanMetrics?.[`p95(${SPAN_SELF_TIME})`]}
                     />
                   </Block>
-                  {span?.['span.op']?.startsWith('http') && (
+                  {span?.[SPAN_OP]?.startsWith('http') && (
                     <Block
                       title={t('5XX Responses')}
                       description={t('5XX responses in this span')}
@@ -189,7 +191,7 @@ function SpanSummaryPage({params, location}: Props) {
                 </BlockContainer>
               </BlockContainer>
 
-              {span?.['span.description'] && (
+              {span?.[SPAN_DESCRIPTION] && (
                 <BlockContainer>
                   <Block>
                     <Panel>
@@ -240,7 +242,7 @@ function SpanSummaryPage({params, location}: Props) {
                     </ChartPanel>
                   </Block>
 
-                  {span?.['span.op']?.startsWith('http') && (
+                  {span?.[SPAN_OP]?.startsWith('http') && (
                     <Block>
                       <ChartPanel title={DataTitles.errorCount}>
                         <Chart
@@ -270,17 +272,15 @@ function SpanSummaryPage({params, location}: Props) {
                 />
               )}
 
-              {transaction && span?.group && (
-                <SampleList
-                  groupId={span.group}
-                  transactionName={transaction}
-                  transactionMethod={transactionMethod}
-                />
-              )}
+              <SampleList
+                groupId={span.group}
+                transactionName={transaction}
+                transactionMethod={transactionMethod}
+              />
             </Layout.Main>
           </Layout.Body>
         </PageErrorProvider>
-      </StarfishPageFilterContainer>
+      </PageFiltersContainer>
     </Layout.Page>
   );
 }
@@ -374,7 +374,7 @@ const getDescriptionLabel = (location: Location, spanMeta: SpanMeta, title?: boo
     return title ? t('Query Summary') : t('Query');
   }
 
-  const spanOp = spanMeta['span.op'];
+  const spanOp = spanMeta[SPAN_OP];
   let label;
   if (spanOp?.startsWith('http')) {
     label = title ? t('URL Request Summary') : t('URL Request');

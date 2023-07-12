@@ -2,7 +2,8 @@ import {Fragment} from 'react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
-import {Panel, PanelBody} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import {t} from 'sentry/locale';
 import {Fingerprint} from 'sentry/stores/groupingStore';

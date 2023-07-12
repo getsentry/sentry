@@ -1,6 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import Form from 'sentry/components/forms/form';
-import {Panel, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 

@@ -2,9 +2,21 @@ from __future__ import annotations
 
 import functools
 import inspect
+import re
 import sys
 from contextlib import contextmanager
-from typing import Any, Callable, Generator, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    MutableMapping,
+    MutableSet,
+    Set,
+    Tuple,
+    Type,
+)
 from unittest import TestCase
 
 import pytest
@@ -255,7 +267,7 @@ _role_privileges_created: MutableMapping[str, bool] = {}
 
 def create_model_role_guards(app_config: Any, using: str, **kwargs: Any):
     global _role_created
-    if "pytest" not in sys.modules:
+    if "pytest" not in sys.argv[0]:
         return
 
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -324,6 +336,68 @@ def restrict_role(role: str, model: Any, revocation_type: str, using: str = "def
     using = router.db_for_write(model)
     with get_connection(using).cursor() as connection:
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
+
+
+def protected_table(table: str, operation: str) -> re.Pattern:
+    return re.compile(f'{operation}[^"]+"{table}"', re.IGNORECASE)
+
+
+protected_operations = (
+    protected_table("sentry_organizationmember", "insert"),
+    protected_table("sentry_organizationmember", "update"),
+    protected_table("sentry_organizationmember", "delete"),
+    protected_table("sentry_organization", "insert"),
+    protected_table("sentry_organization", "update"),
+    protected_table("sentry_organizationmapping", "insert"),
+    protected_table("sentry_organizationmapping", "update"),
+    protected_table("sentry_organizationmembermapping", "insert"),
+)
+
+fence_re = re.compile(r"select\s*\'(?P<operation>start|end)_role_override", re.IGNORECASE)
+
+
+def validate_protected_queries(queries: Iterable[Dict[str, str]]) -> None:
+    """
+    Validate a list of queries to ensure that protected queries
+    are wrapped in role_override fence values.
+
+    See sentry.db.postgres.roles for where fencing queries come from.
+    """
+    fence_depth = 0
+    for query in queries:
+        sql = query["sql"]
+        match = fence_re.match(sql)
+        if match:
+            operation = match.group("operation")
+            if operation == "start":
+                fence_depth += 1
+            elif operation == "end":
+                fence_depth = max(fence_depth - 1, 0)
+            else:
+                raise AssertionError("Invalid fencing operation encounted")
+
+        for protected in protected_operations:
+            if protected.match(sql):
+                if fence_depth == 0:
+                    msg = [
+                        "Found protected operation without explicit outbox escape!",
+                        "",
+                        sql,
+                        "",
+                        "Was not surrounded by role elevation queries, and could corrupt data if outboxes are not generated.",
+                        "If you are confident that outboxes are being generated, wrap the "
+                        "operation that generates this query with the `in_test_psql_role_override` ",
+                        "context manager to resolve this failure. For example:",
+                        "",
+                        "with in_test_psql_role_override():",
+                        "    membership.delete()",
+                        "",
+                        "Full query log:",
+                        "",
+                    ]
+                    msg.extend([q["sql"] for q in queries])
+
+                    raise AssertionError("\n".join(msg))
 
 
 def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
