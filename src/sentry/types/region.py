@@ -72,7 +72,6 @@ class Region:
             SiloMode.get_current_mode() != SiloMode.MONOLITH
             and self.category == RegionCategory.MULTI_TENANT
             and region_url_template is not None
-            and self.name != settings.SENTRY_MONOLITH_REGION
         ):
             expected_address = generate_region_url(self.name)
             if self.address != expected_address:
