@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import UserEmail
+from sentry.models import ApiGrant, UserEmail
 from sentry.utils import jwt as jwt_utils
 
 DEFAULT_EXPIRATION = timedelta(minutes=10)
@@ -36,7 +36,7 @@ class OpenIDToken:
         self.exp = exp if exp else default_expiration()
         self.iat = iat if iat else timezone.now()
 
-    def get_encrypted_id_token(self, grant):
+    def get_encrypted_id_token(self, grant: ApiGrant) -> str:
         headers = {
             "alg": "HS256",
             "typ": "JWT",
@@ -48,13 +48,13 @@ class OpenIDToken:
             "exp": self.exp,
             "iat": self.iat,
         }
-        user_details = self._get_user_details(grant)
+        user_details = self._get_user_details(grant=grant)
         claims.update(user_details)
         if self.nonce:
             claims["nonce"] = self.nonce
         return jwt_utils.encode(claims, self.shared_secret, headers={**headers, "alg": "HS256"})
 
-    def _get_user_details(self, grant):
+    def _get_user_details(self, grant: ApiGrant) -> dict:
         user_details = {}
         if grant.has_scope("profile"):
             profile_details = {
@@ -65,7 +65,11 @@ class OpenIDToken:
             }
             user_details.update(profile_details)
         if grant.has_scope("email"):
-            email = UserEmail.objects.get(user=grant.user)
-            email_details = {"email": email.email, "email_verified": email.is_verified}
-            user_details.update(email_details)
+            for user_email in UserEmail.objects.filter(user=grant.user):
+                if user_email.is_primary():
+                    email_details = {
+                        "email": user_email.email,
+                        "email_verified": user_email.is_verified,
+                    }
+                    user_details.update(email_details)
         return user_details
