@@ -26,7 +26,7 @@ class ApiHostError(ApiError):
 
     @classmethod
     def from_exception(cls, exception: RequestException) -> ApiHostError:
-        if hasattr(exception, "request"):
+        if getattr(exception, "request", None):
             return cls.from_request(exception.request)
         return cls("Unable to reach host")
 
