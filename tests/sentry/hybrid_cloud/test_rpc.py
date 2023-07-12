@@ -1,3 +1,4 @@
+from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -205,3 +206,11 @@ class DispatchRemoteCallTest(TestCase):
 
         result = dispatch_remote_call(_REGIONS[0], "user", "get_many", {"filter": {}})
         assert result == serial
+
+    @override_regions(_REGIONS)
+    @override_settings(SILO_MODE=SiloMode.CONTROL, DEV_HYBRID_CLOUD_RPC_SENDER={"is_allowed": True})
+    def test_early_halt_from_null_region_resolution(self):
+        with override_settings(SILO_MODE=SiloMode.CONTROL):
+            org_service_delgn = cast(OrganizationService, OrganizationService.create_delegation())
+        result = org_service_delgn.get_org_by_slug(slug="this_is_not_a_valid_slug")
+        assert result is None
