@@ -36,15 +36,11 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             project_id=p1.id,
             org_id=org1.id,
         )
-        results = fetch_projects_with_total_root_transaction_count_and_rates(
-            context, timer, org_ids=[org1.id]
-        )
-        assert results[org1.id] == [(p1.id, 1.0, 1, 0)]
 
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction", "decision": "drop"},
-            minutes_before_now=29,
+            minutes_before_now=30,
             value=3,
             project_id=p1.id,
             org_id=org1.id,
@@ -53,3 +49,60 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
             context, timer, org_ids=[org1.id]
         )
         assert results[org1.id] == [(p1.id, 4.0, 1, 3)]
+
+    def test_complex(self):
+        context = TaskContext("rebalancing", 20)
+        timer = Timer()
+        org1 = self.create_organization("test-org1")
+        p1_1 = self.create_project(organization=org1, name="p1_1")
+        p1_2 = self.create_project(organization=org1, name="p1_2")
+        org2 = self.create_organization("test-org2")
+        p2_1 = self.create_project(organization=org2, name="p2_1")
+        p2_2 = self.create_project(organization=org2, name="p2_2")
+
+        proj_orgs = [
+            {"org": org1, "projects": [p1_1, p1_2]},
+            {"org": org2, "projects": [p2_1, p2_2]},
+        ]
+
+        proj_counts = {"p1_1": (1, 2), "p1_2": (3, 4), "p2_1": (5, 6), "p2_2": (7, 8)}  # keep,drop
+
+        for org_info in proj_orgs:
+            org = org_info.get("org")
+            projects = org_info.get("projects")
+            for project in projects:
+                keep, drop = proj_counts[project.name]
+                self.store_performance_metric(
+                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    tags={"transaction": "foo_transaction", "decision": "keep"},
+                    minutes_before_now=29,
+                    value=keep,
+                    project_id=project.id,
+                    org_id=org.id,
+                )
+                self.store_performance_metric(
+                    name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
+                    tags={"transaction": "foo_transaction", "decision": "drop"},
+                    minutes_before_now=29,
+                    value=drop,
+                    project_id=project.id,
+                    org_id=org.id,
+                )
+        results = fetch_projects_with_total_root_transaction_count_and_rates(
+            context, timer, org_ids=[org1.id, org2.id]
+        )
+
+        assert len(results) == 2  # two orgs
+
+        org_1_results = results[org1.id]
+
+        assert len(org_1_results) == 2
+
+        # (p.id, total, keep, drop) == result
+        assert (p1_1.id, 3, 1, 2) in org_1_results
+        assert (p1_2.id, 7, 3, 4) in org_1_results
+
+        org_2_results = results[org2.id]
+        assert len(org_2_results) == 2
+        assert (p2_1.id, 11, 5, 6) in org_2_results
+        assert (p2_2.id, 15, 7, 8) in org_2_results
