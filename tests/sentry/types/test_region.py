@@ -115,6 +115,34 @@ class RegionMappingTest(TestCase):
             get_region_by_name("na")
         assert sentry_sdk_mock.capture_exception.call_count == 1
 
+    def test_default_historic_region_setting(self):
+        clear_global_regions()
+        monolith_region_name = "my_default_historic_monolith_region"
+        with override_settings(
+            SENTRY_REGION_CONFIG=json.dumps([]),
+            SENTRY_MONOLITH_REGION=monolith_region_name,
+        ):
+            region = get_region_by_name(monolith_region_name)
+            assert region.name == monolith_region_name
+            assert region.is_historic_monolith_region()
+
+    def test_invalid_historic_region_setting(self):
+        clear_global_regions()
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            }
+        ]
+        with override_settings(
+            SENTRY_REGION_CONFIG=json.dumps(region_config),
+            SENTRY_MONOLITH_REGION="nonexistent",
+        ):
+            with pytest.raises(RegionConfigurationError):
+                get_region_by_name("na")
+
     def test_find_regions_for_user(self):
         from sentry.types.region import find_regions_for_user
 
