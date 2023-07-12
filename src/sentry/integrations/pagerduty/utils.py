@@ -75,7 +75,9 @@ def send_incident_alert_notification(
     else:
         org_integration_id = org_integration.id
     integration_key = service.integration_key
-    client = PagerDutyProxyClient(org_integration_id=org_integration_id, integration_key=integration_key)
+    client = PagerDutyProxyClient(
+        org_integration_id=org_integration_id, integration_key=integration_key
+    )
     attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
     try:
         client.send_trigger(attachment)
