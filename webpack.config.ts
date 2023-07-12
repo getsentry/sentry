@@ -654,7 +654,7 @@ if (IS_UI_DEV_ONLY) {
     },
     proxy: [
       {
-        context: ['/api/', '/avatar/', '/organization-avatar/'],
+        context: ['/api/', '/avatar/', '/organization-avatar/', '/extensions/'],
         target: 'https://sentry.io',
         secure: false,
         changeOrigin: true,
