@@ -1,9 +1,16 @@
-from typing import Optional, TypedDict
+from typing import Optional, Tuple, TypedDict
 
 from django.db import transaction
 from django.db.models.expressions import CombinedExpression
 
-from sentry.models import Organization, OrganizationStatus, outbox_context
+from sentry import roles
+from sentry.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationMemberTeam,
+    OrganizationStatus,
+    outbox_context,
+)
 
 
 class OrganizationCreateAndUpdateOptions(TypedDict, total=False):
@@ -19,6 +26,26 @@ def create_organization_with_outbox_message(
 ) -> Organization:
     org: Organization = Organization.objects.create(**create_options)
     return org
+
+
+def create_organization_and_member_for_monolith(
+    organization_name,
+    user_id,
+    slug: str,
+) -> Tuple[Organization, OrganizationMember]:
+    org = create_organization_with_outbox_message(
+        create_options={"name": organization_name, "slug": slug}
+    )
+
+    team = org.team_set.create(name=org.name)
+
+    om = OrganizationMember.objects.create(
+        user_id=user_id, organization=org, role=roles.get_top_dog().id
+    )
+
+    OrganizationMemberTeam.objects.create(team=team, organizationmember=om, is_active=True)
+
+    return org, om
 
 
 def update_organization_with_outbox_message(
