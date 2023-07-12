@@ -79,7 +79,12 @@ def get_daily_10min_bucket(now: datetime):
 @monitor(monitor_slug="schedule_auto_transition_to_ongoing")
 @log_error_if_queue_has_items
 def schedule_auto_transition_to_ongoing() -> None:
-
+    """
+    This func will be instantiated by a cron every 10min.
+    We create 144 buckets, which comes from the 10min intervals in 24hrs.
+    We distribute all the orgs evenly in 144 buckets. For a given cron-tick's
+     10min interval, we fetch the orgs from that bucket and transition eligible Groups to ongoing
+    """
     now = datetime.now(tz=pytz.UTC)
 
     bucket = get_daily_10min_bucket(now)
