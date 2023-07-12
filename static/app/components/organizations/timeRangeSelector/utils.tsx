@@ -190,8 +190,9 @@ function timePeriodIsWithinLimit<T extends RelativeUnitsMapping>({
   }
 
   const daysMultiplier = supportedPeriods[unit].convertToDaysMultiplier;
+  const numberOfDays = amount * daysMultiplier;
 
-  return daysMultiplier * amount <= maxDays;
+  return numberOfDays <= maxDays;
 }
 
 /**
@@ -214,9 +215,11 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
     supportedPeriods,
     supportedUnits,
     maxDays,
+    maxDateRange,
   }: {
     supportedPeriods: T;
     supportedUnits: Array<keyof T & string>;
+    maxDateRange?: number;
     maxDays?: number;
   }
 ): ReturnType<typeof autoCompleteFilter> {
@@ -238,7 +241,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
         timePeriodIsWithinLimit({
           amount: userSuppliedAmount,
           unit,
-          maxDays,
+          maxDays: maxDateRange ?? maxDays,
           supportedPeriods,
         })
       )
@@ -285,6 +288,7 @@ export const timeRangeAutoCompleteFilter = function (
   items: ItemsBeforeFilter | null,
   filterValue: string,
   options: {
+    maxDateRange?: number;
     maxDays?: number;
     supportedPeriods?: RelativeUnitsMapping;
     supportedUnits?: RelativePeriodUnit[];

@@ -206,6 +206,7 @@ export function TimeRangeSelector({
           // on the search query
           timeRangeAutoCompleteFilter(items, search, {
             maxDays: maxPickableDays,
+            maxDateRange,
           });
 
       return filteredItems.map(item => ({
@@ -214,7 +215,15 @@ export function TimeRangeSelector({
         textValue: item.searchKey,
       }));
     },
-    [start, end, utc, search, maxPickableDays, disallowArbitraryRelativeRanges]
+    [
+      start,
+      end,
+      utc,
+      search,
+      maxPickableDays,
+      maxDateRange,
+      disallowArbitraryRelativeRanges,
+    ]
   );
 
   const commitChanges = useCallback(() => {
