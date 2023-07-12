@@ -56,6 +56,7 @@ export type IssueEventParameters = {
   'issue_details.external_issue_modal_opened': ExternalIssueParams;
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_status_docs_clicked': {};
+  'issue_details.open_replay_details_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -281,4 +282,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'device.classification.unclassified.ios.device':
     'Event from iOS device missing device.class',
   'device.classification.high.end.android.device': 'Event from high end Android device',
+  'issue_details.open_replay_details_clicked':
+    'Issue Details: Open Replay Details Clicked',
 };
