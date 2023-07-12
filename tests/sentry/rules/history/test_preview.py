@@ -565,7 +565,6 @@ class FrequencyConditionTest(
     def test_event_frequency_condition(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         prev_two_hour = timezone.now() - timedelta(hours=2)
-        group = None
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 group = self.store_event(

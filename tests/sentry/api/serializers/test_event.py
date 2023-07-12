@@ -274,6 +274,7 @@ class SimpleEventSerializerTest(TestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         result = serialize(event, None, SimpleEventSerializer())
 
         assert result["eventID"] == event.event_id

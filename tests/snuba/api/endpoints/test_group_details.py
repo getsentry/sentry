@@ -65,13 +65,13 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             data={"release": "1.1", "timestamp": iso_format(before_now(minutes=2))},
             project_id=self.project.id,
         )
-        event = None
-        for timestamp in last_release.values():
-            event = self.store_event(
+        event = [
+            self.store_event(
                 data={"release": "1.0a", "timestamp": iso_format(timestamp)},
                 project_id=self.project.id,
             )
-
+            for timestamp in last_release.values()
+        ][-1]
         group = event.group
 
         url = f"/api/0/issues/{group.id}/"

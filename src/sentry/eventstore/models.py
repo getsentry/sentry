@@ -21,7 +21,7 @@ from sentry.interfaces.base import Interface, get_interfaces
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import EventDict
-from sentry.snuba.events import Column, Columns
+from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
 from sentry.utils.cache import memoize
@@ -568,7 +568,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return cast(str, trim(message.strip(), settings.SENTRY_MAX_MESSAGE_LENGTH))
 
-    def _get_column_name(self, column: Column) -> str:
+    def _get_column_name(self, column: Columns) -> str:
         # Events are currently populated from the Events dataset
         return cast(str, column.value.event_name)
 
