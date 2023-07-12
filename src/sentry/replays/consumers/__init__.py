@@ -37,6 +37,8 @@ def get_replays_recordings_consumer(
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
+        # For information on configuring this consumer refer to this page:
+        #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
         processor_factory=ProcessReplayRecordingStrategyFactory(
             input_block_size=input_block_size,
             max_batch_size=max_batch_size,

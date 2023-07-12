@@ -49,6 +49,8 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         num_processes: int,
         output_block_size: int,
     ) -> None:
+        # For information on configuring this consumer refer to this page:
+        #   https://getsentry.github.io/arroyo/strategies/run_task_with_multiprocessing.html
         self.input_block_size = input_block_size
         self.max_batch_size = max_batch_size
         self.max_batch_time = max_batch_time
