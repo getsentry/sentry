@@ -309,7 +309,13 @@ class VercelIntegration(IntegrationInstallation):
 
     def uninstall(self):
         client = self.get_client()
-        client.uninstall(self.get_configuration_id())
+        try:
+            client.uninstall(self.get_configuration_id())
+        except ApiError as error:
+            if error.code == 403:
+                pass
+            else:
+                raise error
 
 
 class VercelIntegrationProvider(IntegrationProvider):
