@@ -1,7 +1,10 @@
 import styled from '@emotion/styled';
 
 import {FormattedCode} from 'sentry/views/starfish/components/formattedCode';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {highlightSql} from 'sentry/views/starfish/utils/highlightSql';
+
+const {SPAN_DESCRIPTION, SPAN_ACTION, SPAN_DOMAIN} = SpanMetricsFields;
 
 type SpanMeta = {
   'span.action': string;
@@ -15,16 +18,16 @@ export function SpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
     return <DatabaseSpanDescription spanMeta={spanMeta} />;
   }
 
-  return <DescriptionWrapper>{spanMeta['span.description']}</DescriptionWrapper>;
+  return <DescriptionWrapper>{spanMeta[SPAN_DESCRIPTION]}</DescriptionWrapper>;
 }
 
 function DatabaseSpanDescription({spanMeta}: {spanMeta: SpanMeta}) {
   return (
     <CodeWrapper>
       <FormattedCode>
-        {highlightSql(spanMeta['span.description'] || '', {
-          action: spanMeta['span.action'] || '',
-          domain: spanMeta['span.domain'] || '',
+        {highlightSql(spanMeta[SPAN_DESCRIPTION] || '', {
+          action: spanMeta[SPAN_ACTION] || '',
+          domain: spanMeta[SPAN_DOMAIN] || '',
         })}
       </FormattedCode>
     </CodeWrapper>

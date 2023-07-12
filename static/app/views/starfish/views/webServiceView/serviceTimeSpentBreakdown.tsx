@@ -25,7 +25,7 @@ import {
   OTHER_SPAN_GROUP_MODULE,
 } from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_MODULE} = SpanMetricsFields;
 const TOOLTIP_DELAY = 800;
 
 type Props = {
@@ -183,7 +183,7 @@ export function ServiceTimeSpentBreakdown({transaction, transactionMethod}: Prop
             } else if (name === 'Other') {
               spansLinkQueryParams['!span.category'] = transformedData.map(r => r.name);
             } else {
-              spansLinkQueryParams['span.module'] = 'Other';
+              spansLinkQueryParams[SPAN_MODULE] = 'Other';
               spansLinkQueryParams['span.category'] = name;
             }
 

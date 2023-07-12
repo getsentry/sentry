@@ -4,7 +4,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {IndexedSpan} from 'sentry/views/starfish/queries/types';
+import {SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
+
+const {SPAN_GROUP} = SpanMetricsFields;
 
 export type SpanMetrics = {
   [metric: string]: number | string;
@@ -52,7 +55,7 @@ function getEventView(
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
-      query: `span.group:${cleanGroupId}${
+      query: `${SPAN_GROUP}:${cleanGroupId}${
         queryFilters?.transactionName
           ? ` transaction:${queryFilters?.transactionName}`
           : ''

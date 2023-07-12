@@ -57,7 +57,8 @@ type Props = {
   spanCategory?: string;
 };
 
-const {SPAN_SELF_TIME} = SpanMetricsFields;
+const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_DOMAIN, SPAN_GROUP, SPAN_OP} =
+  SpanMetricsFields;
 
 export const SORTABLE_FIELDS = new Set([
   `p95(${SPAN_SELF_TIME})`,
@@ -144,7 +145,7 @@ function renderBodyCell(
   endpoint?: string,
   endpointMethod?: string
 ): React.ReactNode {
-  if (column.key === 'span.description') {
+  if (column.key === SPAN_DESCRIPTION) {
     const queryString = {
       ...location.query,
       endpoint,
@@ -152,16 +153,16 @@ function renderBodyCell(
     };
     return (
       <OverflowEllipsisTextContainer>
-        {row['span.group'] ? (
+        {row[SPAN_GROUP] ? (
           <Link
-            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${
-              row['span.group']
-            }${queryString ? `?${qs.stringify(queryString)}` : ''}`}
+            to={`/starfish/${extractRoute(location) ?? 'spans'}/span/${row[SPAN_GROUP]}${
+              queryString ? `?${qs.stringify(queryString)}` : ''
+            }`}
           >
-            {row['span.description'] || '<null>'}
+            {row[SPAN_DESCRIPTION] || '<null>'}
           </Link>
         ) : (
-          row['span.description'] || '<null>'
+          row[SPAN_DESCRIPTION] || '<null>'
         )}
       </OverflowEllipsisTextContainer>
     );
@@ -208,19 +209,19 @@ export function getColumns(moduleName: ModuleName, transaction?: string): Column
 
   const order: Column[] = [
     {
-      key: 'span.op',
+      key: SPAN_OP,
       name: 'Operation',
       width: 120,
     },
     {
-      key: 'span.description',
+      key: SPAN_DESCRIPTION,
       name: description,
       width: COL_WIDTH_UNDEFINED,
     },
     ...(moduleName !== ModuleName.ALL
       ? [
           {
-            key: 'span.domain',
+            key: SPAN_DOMAIN,
             name: domain,
             width: COL_WIDTH_UNDEFINED,
           } as Column,

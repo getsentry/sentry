@@ -6,9 +6,11 @@ import {
   PageErrorProvider,
 } from 'sentry/utils/performance/contexts/pageError';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 
 import SpansView from './spansView';
+
+const {SPAN_MODULE} = SpanMetricsFields;
 
 type Query = {
   'span.category'?: string;
@@ -19,9 +21,9 @@ export default function Spans() {
   const location = useLocation<Query>();
 
   const moduleName = Object.values(ModuleName).includes(
-    (location.query['span.module'] ?? '') as ModuleName
+    (location.query[SPAN_MODULE] ?? '') as ModuleName
   )
-    ? (location.query['span.module'] as ModuleName)
+    ? (location.query[SPAN_MODULE] as ModuleName)
     : ModuleName.ALL;
 
   const spanCategory = location.query['span.category'];
