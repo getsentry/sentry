@@ -9,7 +9,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import StarfishDatePicker from 'sentry/views/starfish/components/datePicker';
 import {StarfishProjectSelector} from 'sentry/views/starfish/components/starfishProjectSelector';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
@@ -17,6 +17,8 @@ import {SpanOperationSelector} from 'sentry/views/starfish/views/spans/selectors
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
 
 import SpansTable, {isAValidSort} from './spansTable';
+
+const {SPAN_ACTION, SPAN_DOMAIN, SPAN_OP, SPAN_GROUP} = SpanMetricsFields;
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',
@@ -40,10 +42,10 @@ type Query = {
 export default function SpansView(props: Props) {
   const location = useLocation<Query>();
   const appliedFilters = pick(location.query, [
-    'span.action',
-    'span.domain',
-    'span.op',
-    'span.group',
+    SPAN_ACTION,
+    SPAN_DOMAIN,
+    SPAN_OP,
+    SPAN_GROUP,
   ]);
 
   const sort =
@@ -67,19 +69,19 @@ export default function SpansView(props: Props) {
       <FilterOptionsContainer>
         <SpanOperationSelector
           moduleName={props.moduleName}
-          value={appliedFilters['span.op'] || ''}
+          value={appliedFilters[SPAN_OP] || ''}
           spanCategory={props.spanCategory}
         />
 
         <ActionSelector
           moduleName={props.moduleName}
-          value={appliedFilters['span.action'] || ''}
+          value={appliedFilters[SPAN_ACTION] || ''}
           spanCategory={props.spanCategory}
         />
 
         <DomainSelector
           moduleName={props.moduleName}
-          value={appliedFilters['span.domain'] || ''}
+          value={appliedFilters[SPAN_DOMAIN] || ''}
           spanCategory={props.spanCategory}
         />
       </FilterOptionsContainer>

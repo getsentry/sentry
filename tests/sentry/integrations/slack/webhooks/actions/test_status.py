@@ -77,6 +77,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 }
             ],
         }
+        assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=original_message,
@@ -125,6 +126,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
                 }
             ],
         }
+        assert event.group is not None
         resp = self.post_webhook(
             action_data=[status_action],
             original_message=original_message,

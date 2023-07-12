@@ -66,6 +66,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         search_url = reverse(
             "sentry-extensions-jira-search",
@@ -302,6 +303,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -334,6 +336,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -367,6 +370,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         installation = self.integration.get_installation(self.organization.id)
         installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=installation.org_integration.id,
@@ -410,6 +414,7 @@ class JiraIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
         label_default = "hi"
 
         installation = self.integration.get_installation(self.organization.id)
