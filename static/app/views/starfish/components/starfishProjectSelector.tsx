@@ -30,7 +30,14 @@ export function StarfishProjectSelector() {
     ) ?? projectOptions[0];
 
   const handleProjectChange = option =>
-    updateProjects([parseInt(option.value, 10)], router);
+    updateProjects([parseInt(option.value, 10)], router, {save: true});
+
+  if (
+    selection.projects.length > 1 ||
+    !allowedProjectIDs.includes(`${selection.projects[0]}`)
+  ) {
+    handleProjectChange(projectOptions[0]);
+  }
 
   return (
     <CompactSelect
