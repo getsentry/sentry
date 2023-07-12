@@ -303,6 +303,7 @@ const Slider = forwardRef(BaseSlider);
 export {Slider};
 
 const SliderGroup = styled('div')`
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
