@@ -1,8 +1,13 @@
 import {ParseResult, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {AggregationKey, FieldKey} from 'sentry/utils/fields';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-export function isValidOnDemandMetricAlert(aggregate: string, query: string): boolean {
-  if (!isOnDemandMetricAlert(query)) {
+export function isValidOnDemandMetricAlert(
+  dataset: Dataset,
+  aggregate: string,
+  query: string
+): boolean {
+  if (!isOnDemandMetricAlert(dataset, query)) {
     return true;
   }
 
@@ -32,9 +37,13 @@ const STANDARD_SEARCH_FIELD_KEYS = new Set([
 
 /**
  * We determine that an alert is an on-demand metric alert if the query contains
- * one of the tags that are supported for on-demand metrics
+ * one of the tags that are not supported by the standard metrics.
  */
-export function isOnDemandMetricAlert(query: string): boolean {
+export function isOnDemandMetricAlert(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.GENERIC_METRICS && hasNonStandardMetricSearchFilters(query);
+}
+
+export function hasNonStandardMetricSearchFilters(query: string): boolean {
   const tokens = parseSearch(query);
   if (!tokens) {
     return false;
