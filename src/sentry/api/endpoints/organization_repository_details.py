@@ -54,7 +54,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if result.get("status"):
             if result["status"] in ("visible", "active"):
                 update_kwargs["status"] = ObjectStatus.ACTIVE
-            elif result["status"] in ("hidden"):
+            elif result["status"] == "hidden":
                 update_kwargs["status"] = ObjectStatus.HIDDEN
             else:
                 raise NotImplementedError
