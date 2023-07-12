@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Callable, Dict, Optional
 
-from sentry.dynamic_sampling.tasks.common import TaskContext
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

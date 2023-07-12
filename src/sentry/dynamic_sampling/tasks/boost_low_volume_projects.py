@@ -31,8 +31,7 @@ from sentry.dynamic_sampling.rules.utils import (
     get_redis_client_for_ds,
 )
 from sentry.dynamic_sampling.tasks.common import (
-    GetActiveOrgsWithProjectCounts,
-    TaskContext,
+    GetActiveOrgs,
     TimedIterator,
     TimeoutException,
     are_equal_with_epsilon,
@@ -53,6 +52,7 @@ from sentry.dynamic_sampling.tasks.logging import (
     log_task_execution,
     log_task_timeout,
 )
+from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.dynamic_sampling.tasks.utils import Timer, dynamic_sampling_task
 from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
@@ -76,9 +76,9 @@ from sentry.utils.snuba import raw_snql_query
 def boost_low_volume_projects() -> None:
     context = TaskContext(boost_low_volume_projects.__name__, MAX_SECONDS)
     fetch_projects_timer = Timer()
-    iterator_name = GetActiveOrgsWithProjectCounts.__name__
+    iterator_name = GetActiveOrgs.__name__
     try:
-        for orgs in TimedIterator(context, iterator_name, GetActiveOrgsWithProjectCounts()):
+        for orgs in TimedIterator(context, iterator_name, GetActiveOrgs()):
             for (
                 org_id,
                 projects_with_tx_count_and_rates,
