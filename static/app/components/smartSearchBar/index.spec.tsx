@@ -1051,7 +1051,6 @@ describe('SmartSearchBar', function () {
         {
           type: ItemType.RECOMMENDED,
           title: 'Assignee',
-          desc: 'Filter by team or member.',
           value: 'assigned_or_suggested:',
         },
       ],
