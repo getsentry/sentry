@@ -26,10 +26,7 @@ class ApiTokensListTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.get(url)
         assert response.status_code == 200, response.content
-        assert (
-            response.get("cache-control")
-            == "max-age=0, no-cache, no-store, must-revalidate, private"
-        )
+        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
 
 
 @control_silo_test(stable=True)
@@ -55,10 +52,7 @@ class ApiTokensCreateTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.post(url, data={"scopes": ["event:read"]})
         assert response.status_code == 201
-        assert (
-            response.get("cache-control")
-            == "max-age=0, no-cache, no-store, must-revalidate, private"
-        )
+        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
 
 
 @control_silo_test(stable=True)
@@ -77,10 +71,7 @@ class ApiTokensDeleteTest(APITestCase):
         url = reverse("sentry-api-0-api-tokens")
         response = self.client.delete(url, data={"token": token.token})
         assert response.status_code == 204
-        assert (
-            response.get("cache-control")
-            == "max-age=0, no-cache, no-store, must-revalidate, private"
-        )
+        assert response.get("cache-control") == "max-age=0, no-cache, no-store, must-revalidate"
 
 
 @control_silo_test(stable=True)
