@@ -12,9 +12,10 @@ function renderMockRequests(
   organizationIntegrations: OrganizationIntegration[] = []
 ) {
   MockApiClient.addMockResponse({
-    url: '/users/me/notification-settings/?v2=serializer',
+    url: '/users/me/notification-settings/',
     method: 'GET',
     body: notificationSettings,
+    match: [MockApiClient.matchQuery({v2: 'serializer'})],
   });
 
   MockApiClient.addMockResponse({
