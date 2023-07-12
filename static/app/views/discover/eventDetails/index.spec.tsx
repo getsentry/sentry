@@ -318,11 +318,11 @@ describe('Discover > EventDetails', function () {
       {context: routerContext, organization}
     );
 
-    // @TODO this seems wrong, pathname is not a valid html attribute - we are likely
-    // bleeding props into the dom here...
-    // @ts-expect-error
-    expect((await screen.findByText('Discover')).pathname).toEqual(
-      '/organizations/org-slug/discover/homepage/'
+    const breadcrumb = await screen.findByTestId('breadcrumb-link');
+    expect(breadcrumb).toHaveTextContent('Discover');
+    expect(breadcrumb).toHaveAttribute(
+      'href',
+      expect.stringMatching(new RegExp('^/organizations/org-slug/discover/homepage/?'))
     );
   });
 });
