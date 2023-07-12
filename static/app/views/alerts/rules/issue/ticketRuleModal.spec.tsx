@@ -21,10 +21,6 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     Footer: p => p.children,
   };
 
-  beforeEach(function () {
-    jest.resetAllMocks();
-  });
-
   afterEach(function () {
     closeModal.mockReset();
     MockApiClient.clearMockResponses();
