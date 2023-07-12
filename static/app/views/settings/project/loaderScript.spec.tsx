@@ -1,3 +1,4 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
   screen,
@@ -9,25 +10,18 @@ import {t} from 'sentry/locale';
 import {Organization, Project, ProjectKey} from 'sentry/types';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
 
-function getMockData() {
-  const org = TestStubs.Organization();
-  const project = TestStubs.Project();
-
-  return {org, project};
-}
-
 function mockApi({
-  org,
+  organization,
   project,
   projectKeys,
 }: {
-  org: Organization;
+  organization: Organization;
   project: Project;
   projectKeys: ProjectKey[];
 }) {
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
-    url: `/projects/${org.slug}/${project.slug}/keys/`,
+    url: `/projects/${organization.slug}/${project.slug}/keys/`,
     method: 'GET',
     body: projectKeys,
   });
@@ -35,15 +29,15 @@ function mockApi({
 
 describe('LoaderScript', function () {
   it('renders error', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/`,
       method: 'GET',
       statusCode: 400,
     });
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -53,11 +47,11 @@ describe('LoaderScript', function () {
   });
 
   it('renders empty', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
 
-    mockApi({org, project, projectKeys: []});
+    mockApi({organization, project, projectKeys: []});
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -67,13 +61,13 @@ describe('LoaderScript', function () {
   });
 
   it('renders for single project', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
     const projectKey = TestStubs.ProjectKeys()[0];
     const projectKeys = [projectKey];
 
-    mockApi({org, project, projectKeys});
+    mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -87,7 +81,7 @@ describe('LoaderScript', function () {
   });
 
   it('renders multiple keys', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
     const projectKeys = TestStubs.ProjectKeys([
       {
         dsn: {
@@ -127,9 +121,9 @@ describe('LoaderScript', function () {
       },
     ]);
 
-    mockApi({org, project, projectKeys});
+    mockApi({organization, project, projectKeys});
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -144,7 +138,7 @@ describe('LoaderScript', function () {
   });
 
   it('allows to update key settings', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
     const baseKey = TestStubs.ProjectKeys()[0];
     const projectKey = {
       ...baseKey,
@@ -154,10 +148,10 @@ describe('LoaderScript', function () {
       },
     };
 
-    mockApi({org, project, projectKeys: [projectKey]});
+    mockApi({organization, project, projectKeys: [projectKey]});
 
     const mockPut = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       method: 'PUT',
       body: {
         ...projectKey,
@@ -168,7 +162,7 @@ describe('LoaderScript', function () {
       },
     });
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -209,7 +203,7 @@ describe('LoaderScript', function () {
     expect(performanceCheckbox).toBeChecked();
 
     expect(mockPut).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
+      `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           dynamicSdkLoaderOptions: {
@@ -222,7 +216,7 @@ describe('LoaderScript', function () {
   });
 
   it('allows to update one of multiple keys', async function () {
-    const {org, project} = getMockData();
+    const {organization, project} = initializeOrg();
     const projectKeys = TestStubs.ProjectKeys([
       {
         dsn: {
@@ -263,9 +257,9 @@ describe('LoaderScript', function () {
     ]);
     const projectKey = projectKeys[1];
 
-    mockApi({org, project, projectKeys});
+    mockApi({organization, project, projectKeys});
     const mockPut = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
+      url: `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       method: 'PUT',
       body: {
         ...projectKey,
@@ -276,7 +270,7 @@ describe('LoaderScript', function () {
       },
     });
 
-    render(<LoaderScript organization={org} project={project} />);
+    render(<LoaderScript organization={organization} project={project} />);
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -333,7 +327,7 @@ describe('LoaderScript', function () {
     ).toHaveLength(2);
 
     expect(mockPut).toHaveBeenCalledWith(
-      `/projects/${org.slug}/${project.slug}/keys/${projectKey.id}/`,
+      `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       expect.objectContaining({
         data: expect.objectContaining({
           dynamicSdkLoaderOptions: {

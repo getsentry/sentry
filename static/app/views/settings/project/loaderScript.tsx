@@ -10,19 +10,14 @@ import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panel
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {LoaderSettings} from 'sentry/views/settings/project/projectKeys/details/loaderSettings';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-export function ProjectLoaderScript({
-  organization,
-  project,
-}: {
-  organization: Organization;
-  project: Project;
-}) {
+export function ProjectLoaderScript({project}: {project: Project}) {
+  const organization = useOrganization();
   const apiEndpoint = `/projects/${organization.slug}/${project.slug}/keys/`;
   const [updatedProjectKeys, setUpdatedProjectKeys] = useState<ProjectKey[]>([]);
 
@@ -92,7 +87,7 @@ export function ProjectLoaderScript({
             organization={organization}
             project={project}
             projectKey={actualKey}
-            updateProjectKey={handleUpdateProjectKey}
+            onUpdateProjectKey={handleUpdateProjectKey}
           />
         );
       })}
@@ -104,12 +99,12 @@ function LoaderItem({
   organization,
   project,
   projectKey,
-  updateProjectKey,
+  onUpdateProjectKey,
 }: {
+  onUpdateProjectKey: (projectKey: ProjectKey) => void;
   organization: Organization;
   project: Project;
   projectKey: ProjectKey;
-  updateProjectKey: (projectKey: ProjectKey) => void;
 }) {
   return (
     <Panel>
@@ -131,11 +126,11 @@ function LoaderItem({
           keyId={projectKey.id}
           project={project}
           data={projectKey}
-          updateData={updateProjectKey}
+          updateData={onUpdateProjectKey}
         />
       </PanelBody>
     </Panel>
   );
 }
 
-export default withOrganization(ProjectLoaderScript);
+export default ProjectLoaderScript;
