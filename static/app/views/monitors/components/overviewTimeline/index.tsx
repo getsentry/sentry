@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
@@ -11,7 +11,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {CheckInTimeline} from 'sentry/views/monitors/components/overviewTimeline/checkInTimeline';
 import {
   GridLineOverlay,
   GridLineTimeLabels,
@@ -20,6 +19,7 @@ import {
 import {Monitor} from '../../types';
 import {scheduleAsText} from '../../utils';
 
+import {CheckInTimeline} from './checkInTimeline';
 import {MonitorBucketData, TimeWindow} from './types';
 import {getStartFromTimeWindow, timeWindowConfig} from './utils';
 
@@ -32,8 +32,8 @@ export function OverviewTimeline({monitorList}: Props) {
   const organization = useOrganization();
 
   const timeWindow: TimeWindow = location.query?.timeWindow ?? '24h';
-  const nowRef = useRef<Date>(new Date());
-  const start = getStartFromTimeWindow(nowRef.current, timeWindow);
+  const [endTime] = useState(() => new Date());
+  const start = getStartFromTimeWindow(endTime, timeWindow);
   const {elementRef, width: timelineWidth} = useDimensions<HTMLDivElement>();
 
   const handleResolutionChange = useCallback(
@@ -52,7 +52,7 @@ export function OverviewTimeline({monitorList}: Props) {
       monitorStatsQueryKey,
       {
         query: {
-          until: Math.floor(nowRef.current.getTime() / 1000),
+          until: Math.floor(endTime.getTime() / 1000),
           since: Math.floor(start.getTime() / 1000),
           monitor: monitorList.map(m => m.slug),
           resolution: `${rollup}s`,
@@ -82,15 +82,11 @@ export function OverviewTimeline({monitorList}: Props) {
         </SegmentedControl>
       </ListFilters>
       <TimelineWidthTracker ref={elementRef} />
-      <GridLineTimeLabels
-        timeWindow={timeWindow}
-        end={nowRef.current}
-        width={timelineWidth}
-      />
+      <GridLineTimeLabels timeWindow={timeWindow} end={endTime} width={timelineWidth} />
       <GridLineOverlay
         showCursor={!isLoading}
         timeWindow={timeWindow}
-        end={nowRef.current}
+        end={endTime}
         width={timelineWidth}
       />
 
@@ -104,7 +100,7 @@ export function OverviewTimeline({monitorList}: Props) {
               <CheckInTimeline
                 timeWindow={timeWindow}
                 bucketedData={monitorStats[monitor.slug]}
-                end={nowRef.current}
+                end={endTime}
                 start={start}
                 width={timelineWidth}
               />

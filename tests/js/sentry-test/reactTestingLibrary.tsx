@@ -27,7 +27,7 @@ type ProviderOptions = {
   router?: Partial<InjectedRouter>;
 };
 
-type Options = ProviderOptions & rtl.RenderOptions;
+interface Options extends ProviderOptions, rtl.RenderOptions {}
 
 function createProvider(contextDefs: Record<string, any>) {
   return class ContextProvider extends Component {

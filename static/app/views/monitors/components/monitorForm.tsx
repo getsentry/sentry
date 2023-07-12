@@ -245,6 +245,7 @@ function MonitorForm({
         <InputGroup>
           <StyledTextField
             name="name"
+            label={t('Name')}
             placeholder={t('My Cron Job')}
             required
             stacked
@@ -253,6 +254,7 @@ function MonitorForm({
           {monitor && (
             <StyledTextField
               name="slug"
+              label={t('Slug')}
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -266,6 +268,7 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
+            label={t('Project')}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -286,6 +289,7 @@ function MonitorForm({
         <InputGroup>
           <RadioField
             name="config.schedule_type"
+            label={t('Schedule Type')}
             choices={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
@@ -322,6 +326,7 @@ function MonitorForm({
                   <MultiColumnInput columns="1fr 2fr">
                     <StyledTextField
                       name="config.schedule"
+                      label={t('Crontab schedule')}
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
@@ -331,6 +336,7 @@ function MonitorForm({
                     />
                     <StyledSelectField
                       name="config.timezone"
+                      label={t('Schedule timezone')}
                       defaultValue="UTC"
                       options={timezoneOptions}
                       required
@@ -347,6 +353,7 @@ function MonitorForm({
                     <LabelText>{t('Every')}</LabelText>
                     <StyledNumberField
                       name="config.schedule.frequency"
+                      label={t('Interval frequency')}
                       placeholder="e.g. 1"
                       defaultValue="1"
                       required
@@ -355,6 +362,7 @@ function MonitorForm({
                     />
                     <StyledSelectField
                       name="config.schedule.interval"
+                      label={t('Interval unit')}
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
@@ -377,6 +385,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.checkin_margin"
+            label={t('Check-in margin')}
             placeholder="Defaults to 0 minutes"
             stacked
             inline={false}
@@ -391,6 +400,7 @@ function MonitorForm({
         <InputGroup>
           <StyledNumberField
             name="config.max_runtime"
+            label={t('Max runtime')}
             placeholder={`Defaults to ${DEFAULT_MAX_RUNTIME} minutes`}
             stacked
             inline={false}

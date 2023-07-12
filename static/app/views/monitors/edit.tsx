@@ -54,12 +54,9 @@ export default function EditMonitor() {
     );
   }
 
-  function getTitle() {
-    if (monitor) {
-      return `${monitor.name} - Crons - ${organization.slug}`;
-    }
-    return `Crons - ${organization.slug}`;
-  }
+  const pageTitle = monitor
+    ? `${monitor.name} - Crons - ${organization.slug}`
+    : `Crons - ${organization.slug}`;
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -70,7 +67,7 @@ export default function EditMonitor() {
   }
 
   return (
-    <SentryDocumentTitle title={getTitle()}>
+    <SentryDocumentTitle title={pageTitle}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>

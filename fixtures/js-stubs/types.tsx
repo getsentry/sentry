@@ -5,6 +5,7 @@ import type {
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
+import type {Monitor} from './monitor';
 import type {Replay} from './replay';
 
 type SimpleStub<T = any> = () => T;
@@ -15,6 +16,9 @@ type OverridableStub<Params = any, Result = Params> = (
   params?: Partial<Params>
 ) => Result;
 
+/**
+ * This is a interim helper while we transition these tyes over to
+ */
 type OverridableStubList<Params = any, Result = Params> = (
   params?: Array<Partial<Params>>
 ) => Result[];
@@ -89,6 +93,7 @@ type TestStubFixtures = {
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
+  Monitor: typeof Monitor;
   OrgOwnedApps: SimpleStub;
   OrgRoleList: OverridableStub;
   Organization: OverridableStub;

@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
@@ -20,7 +21,10 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('Incident Rules Form', () => {
-  let organization, project, routerContext;
+  let organization: Organization;
+  let project: Project;
+  let routerContext;
+
   const createWrapper = props =>
     render(
       <RuleFormContainer
@@ -207,10 +211,10 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      await userEvent.click(screen.getAllByText('Number of Errors').at(1));
+      await userEvent.click(screen.getAllByText('Number of Errors').at(1)!);
       await userEvent.click(await screen.findByText('Custom Metric'));
 
-      await userEvent.click(screen.getAllByText('event.type:transaction').at(1));
+      await userEvent.click(screen.getAllByText('event.type:transaction').at(1)!);
       await userEvent.click(await screen.findByText('event.type:error'));
       expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
       await userEvent.click(screen.getByLabelText('Save Rule'));

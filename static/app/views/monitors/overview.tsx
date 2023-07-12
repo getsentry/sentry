@@ -4,7 +4,7 @@ import * as qs from 'query-string';
 
 import onboardingImg from 'sentry-images/spot/onboarding-preview.svg';
 
-import {Button, ButtonProps} from 'sentry/components/button';
+import {LinkButton, LinkButtonProps} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -35,12 +35,12 @@ import {OverviewTimeline} from './components/overviewTimeline';
 import {Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
-function NewMonitorButton(props: ButtonProps) {
+function NewMonitorButton(props: Omit<LinkButtonProps, 'to'>) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
   return (
-    <Button
+    <LinkButton
       to={{
         pathname: `/organizations/${organization.slug}/crons/create/`,
         query: {project: selection.projects},
@@ -49,7 +49,7 @@ function NewMonitorButton(props: ButtonProps) {
       {...props}
     >
       {props.children}
-    </Button>
+    </LinkButton>
   );
 }
 
@@ -143,9 +143,9 @@ export default function Monitors() {
                 </p>
                 <OnboardingActions gap={1}>
                   <NewMonitorButton>{t('Set up first cron monitor')}</NewMonitorButton>
-                  <Button href="https://docs.sentry.io/product/crons" external>
+                  <LinkButton href="https://docs.sentry.io/product/crons" external>
                     {t('Read docs')}
-                  </Button>
+                  </LinkButton>
                 </OnboardingActions>
               </OnboardingPanel>
             )}
