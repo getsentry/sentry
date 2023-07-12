@@ -681,3 +681,10 @@ export function getAutoCompleteGroupForInvalidWildcard(searchText: string) {
     },
   ];
 }
+
+export function escapeTagValue(value: string): string {
+  // Wrap in quotes if there is a space
+  return value.includes(' ') || value.includes('"')
+    ? `"${value.replace(/"/g, '\\"')}"`
+    : value;
+}

@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {
   act,
   fireEvent,
@@ -38,7 +40,6 @@ describe('SmartSearchBar', function () {
       },
     };
 
-    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       body: [],
@@ -607,6 +608,105 @@ describe('SmartSearchBar', function () {
       expect(mockOnChange).toHaveBeenLastCalledWith('user:"id:1" ', expect.anything());
     });
     jest.useRealTimers();
+  });
+
+  it('autocompletes assigned from string values', async function () {
+    const mockOnChange = jest.fn();
+
+    render(
+      <SmartSearchBar
+        {...defaultProps}
+        query=""
+        onChange={mockOnChange}
+        supportedTags={{
+          assigned: {
+            key: 'assigned',
+            name: 'assigned',
+            predefined: true,
+            values: ['me', '[me, none]', '#team-a'],
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.type(textbox, 'assigned:', {delay: null});
+
+    await userEvent.click(await screen.findByRole('option', {name: /#team-a/}), {
+      delay: null,
+    });
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenLastCalledWith(
+        'assigned:#team-a ',
+        expect.anything()
+      );
+    });
+  });
+
+  it('autocompletes assigned from SearchGroup objects', async function () {
+    const mockOnChange = jest.fn();
+
+    render(
+      <SmartSearchBar
+        {...defaultProps}
+        query=""
+        onChange={mockOnChange}
+        supportedTags={{
+          assigned: {
+            key: 'assigned',
+            name: 'assigned',
+            predefined: true,
+            values: [
+              {
+                title: 'Suggested Values',
+                type: 'header',
+                icon: <Fragment />,
+                children: [
+                  {
+                    value: 'me',
+                    desc: 'me',
+                    type: ItemType.TAG_VALUE,
+                  },
+                ],
+              },
+              {
+                title: 'All Values',
+                type: 'header',
+                icon: <Fragment />,
+                children: [
+                  {
+                    value: '#team-a',
+                    desc: '#team-a',
+                    type: ItemType.TAG_VALUE,
+                  },
+                ],
+              },
+            ],
+          },
+        }}
+      />
+    );
+
+    const textbox = screen.getByRole('textbox');
+    await userEvent.type(textbox, 'assigned:', {delay: null});
+
+    expect(await screen.findByText('Suggested Values')).toBeInTheDocument();
+    expect(screen.getByText('All Values')).toBeInTheDocument();
+
+    // Filter down to "team"
+    await userEvent.type(textbox, 'team', {delay: null});
+
+    expect(screen.queryByText('Suggested Values')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('option', {name: /#team-a/}), {delay: null});
+
+    await waitFor(() => {
+      expect(mockOnChange).toHaveBeenLastCalledWith(
+        'assigned:#team-a ',
+        expect.anything()
+      );
+    });
   });
 
   it('autocompletes tag values (predefined values with spaces)', async function () {

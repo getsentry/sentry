@@ -71,6 +71,7 @@ import {
 import {
   addSpace,
   createSearchGroups,
+  escapeTagValue,
   filterKeysFromQuery,
   generateOperatorEntryMap,
   getAutoCompleteGroupForInvalidWildcard,
@@ -106,13 +107,6 @@ const generateOpAutocompleteGroup = (
     tagName: '',
     type: ItemType.TAG_OPERATOR,
   };
-};
-
-const escapeValue = (value: string): string => {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${value.replace(/"/g, '\\"')}"`
-    : value;
 };
 
 export type ActionProps = {
@@ -1199,7 +1193,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
       this.setState({noValueQuery});
 
       return values.map(value => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,
@@ -1235,7 +1229,7 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     return (groupOrValue as string[])
       .filter(value => value.includes(query))
       .map((value, i) => {
-        const escapedValue = escapeValue(value);
+        const escapedValue = escapeTagValue(value);
         return {
           value: escapedValue,
           desc: escapedValue,

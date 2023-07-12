@@ -1,5 +1,6 @@
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TagStore from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -76,12 +77,47 @@ describe('withIssueTags HoC', function () {
 
     expect(
       screen.getByText(
-        /assigned: me, \[me, none\], foo@example.com, joe@example.com, #best-team-na/
+        /assigned: me, \[me, none\], #best-team-na, foo@example.com, joe@example.com/
       )
     ).toBeInTheDocument();
 
     expect(
       screen.getByText(/bookmarks: me, foo@example.com, joe@example.com/)
     ).toBeInTheDocument();
+  });
+
+  it('groups assignees and puts suggestions first', function () {
+    const Container = withIssueTags(({tags}: MyComponentProps) => (
+      <div>
+        {(tags?.assigned?.values as SearchGroup[])?.map(searchGroup => (
+          <div data-test-id={searchGroup.title} key={searchGroup.title}>
+            {searchGroup.children?.map(item => item.desc).join(', ')}
+          </div>
+        ))}
+      </div>
+    ));
+    const organization = TestStubs.Organization({features: ['issue-search-shortcuts']});
+    render(<Container organization={organization} forwardedValue="value" />, {
+      organization,
+    });
+
+    act(() => {
+      TeamStore.loadInitialData([
+        TestStubs.Team({slug: 'best-team', name: 'Best Team', isMember: true}),
+        TestStubs.Team({slug: 'worst-team', name: 'Worst Team', isMember: false}),
+      ]);
+      MemberListStore.loadInitialData([
+        TestStubs.User(),
+        TestStubs.User({username: 'joe@example.com'}),
+      ]);
+    });
+
+    expect(screen.getByTestId('Suggested Values')).toHaveTextContent(
+      'me, [me, none], #best-team'
+    );
+
+    expect(screen.getByTestId('All Values')).toHaveTextContent(
+      'foo@example.com, joe@example.com, #worst-team'
+    );
   });
 });
