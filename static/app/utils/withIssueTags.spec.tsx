@@ -24,6 +24,7 @@ function MyComponent(props: MyComponentProps) {
 
 describe('withIssueTags HoC', function () {
   beforeEach(() => {
+    TeamStore.reset();
     TagStore.reset();
     MemberListStore.loadInitialData([]);
   });
@@ -97,19 +98,16 @@ describe('withIssueTags HoC', function () {
       </div>
     ));
     const organization = TestStubs.Organization({features: ['issue-search-shortcuts']});
+    TeamStore.loadInitialData([
+      TestStubs.Team({id: 1, slug: 'best-team', name: 'Best Team', isMember: true}),
+      TestStubs.Team({id: 2, slug: 'worst-team', name: 'Worst Team', isMember: false}),
+    ]);
+    MemberListStore.loadInitialData([
+      TestStubs.User(),
+      TestStubs.User({username: 'joe@example.com'}),
+    ]);
     render(<Container organization={organization} forwardedValue="value" />, {
       organization,
-    });
-
-    act(() => {
-      TeamStore.loadInitialData([
-        TestStubs.Team({slug: 'best-team', name: 'Best Team', isMember: true}),
-        TestStubs.Team({slug: 'worst-team', name: 'Worst Team', isMember: false}),
-      ]);
-      MemberListStore.loadInitialData([
-        TestStubs.User(),
-        TestStubs.User({username: 'joe@example.com'}),
-      ]);
     });
 
     expect(screen.getByTestId('Suggested Values')).toHaveTextContent(
