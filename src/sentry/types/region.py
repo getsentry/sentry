@@ -166,6 +166,9 @@ def load_from_config(region_config: Any) -> GlobalRegionDirectory:
     try:
         region_objs = list(_parse_config(region_config))
         return GlobalRegionDirectory(region_objs)
+    except RegionConfigurationError as e:
+        sentry_sdk.capture_exception(e)
+        raise
     except Exception as e:
         sentry_sdk.capture_exception(e)
         raise RegionConfigurationError("Unable to parse region_config.") from e
