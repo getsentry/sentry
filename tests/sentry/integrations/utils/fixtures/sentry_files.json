@@ -912,7 +912,6 @@
     "src/sentry/discover/models.py",
     "src/sentry/discover/tasks.py",
     "src/sentry/discover/utils.py",
-    "src/sentry/django_admin.py",
     "src/sentry/event_manager.py",
     "src/sentry/eventstore/__init__.py",
     "src/sentry/eventstore/base.py",
