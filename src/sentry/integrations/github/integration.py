@@ -310,14 +310,13 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
         link_all_repos.apply_async(
             kwargs={
-                "integration_name": self.key,
+                "integration_provider": self,
                 "integration_id": integration.id,
                 "organization_id": organization.id,
-                "is_rate_limited_error": self.is_rate_limited_error,
             }
         )
 
-    def is_rate_limited_error(self, e: Exception) -> bool:
+    def is_rate_limited_error(self, e: ApiError) -> bool:
         if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
             metrics.incr(f"{self.key}.link_all_repos.rate_limited_error")
             return True

@@ -61,10 +61,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=self.integration.id,
             organization_id=self.organization.id,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
 
         repos = Repository.objects.all()
@@ -104,10 +103,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=self.integration.id,
             organization_id=self.organization.id,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
 
         repos = Repository.objects.all()
@@ -121,10 +119,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_integration(self, mock_metrics):
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=0,
             organization_id=self.organization.id,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
         mock_metrics.incr.assert_called_with(
             "github.link_all_repos.error", tags={"type": "missing_integration"}
@@ -133,10 +130,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
     @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_organization(self, mock_metrics):
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=self.integration.id,
             organization_id=0,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
         mock_metrics.incr.assert_called_with(
             "github.link_all_repos.error", tags={"type": "missing_organization"}
@@ -159,15 +155,14 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         with pytest.raises(ApiError):
             link_all_repos(
-                integration_name="github",
+                integration_provider=self.provider(),
                 integration_id=self.integration.id,
                 organization_id=self.organization.id,
-                is_rate_limited_error=self._is_rate_limited_error,
             )
             mock_metrics.incr.assert_called_with("github.link_all_repos.api_error")
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @patch("tests.sentry.tasks.integrations.test_link_all_repos.metrics")
+    @patch("sentry.integrations.github.integration.metrics")
     @responses.activate
     def test_link_all_repos_api_error_rate_limited(self, mock_metrics, get_jwt):
         responses.add(
@@ -186,10 +181,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=self.integration.id,
             organization_id=self.organization.id,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
@@ -225,10 +219,9 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         link_all_repos(
-            integration_name="github",
+            integration_provider=self.provider(),
             integration_id=self.integration.id,
             organization_id=self.organization.id,
-            is_rate_limited_error=self._is_rate_limited_error,
         )
 
         assert mock_capture_exception.called
