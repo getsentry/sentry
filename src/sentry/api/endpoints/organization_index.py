@@ -234,7 +234,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         )
 
                 org_setup_complete.send_robust(
-                    instance=org, user=request.user, sender=self.__class__
+                    instance=org, user=request.user, sender=self.__class__, referrer="in-app"
                 )
 
                 self.create_audit_entry(
