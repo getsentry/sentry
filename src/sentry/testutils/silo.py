@@ -7,18 +7,7 @@ import re
 import sys
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    MutableMapping,
-    MutableSet,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import Any, Callable, Dict, Iterable, MutableMapping, MutableSet, Set, Tuple, Type
 from unittest import TestCase
 
 import pytest
@@ -205,32 +194,6 @@ def assume_test_silo_mode(desired_silo: SiloMode) -> Any:
         with override_settings(**overrides):
             yield
     else:
-        yield
-
-
-@contextmanager
-def exempt_from_silo_limits() -> Generator[None, None, None]:
-    """Exempt test setup code from silo mode checks.
-
-    This can be used to decorate functions that are used exclusively in setting
-    up test cases, so that those functions don't produce false exceptions from
-    writing to tables that wouldn't be allowed in a certain SiloModeTest case.
-
-    It can also be used as a context manager to enclose setup code within a test
-    method. Such setup code would ideally be moved to the test class's `setUp`
-    method or a helper function where possible, but this is available as a
-    kludge when that's too inconvenient. For example:
-
-    ```
-    @SiloModeTest(SiloMode.REGION)
-    class MyTest(TestCase):
-        def test_something(self):
-            with exempt_from_mode_limits():
-                org = self.create_organization()  # would be wrong if under test
-            do_something(org)  # the actual code under test
-    ```
-    """
-    with override_settings(SILO_MODE=SiloMode.MONOLITH):
         yield
 
 

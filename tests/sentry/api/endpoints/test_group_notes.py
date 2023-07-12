@@ -2,9 +2,10 @@ import datetime
 
 from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.silo import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.activity import ActivityType
 
 
@@ -243,7 +244,7 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         self.user.name = "Sentry Admin"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.save()
         self.login_as(user=self.user)
 

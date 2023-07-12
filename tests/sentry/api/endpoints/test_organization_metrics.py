@@ -7,12 +7,13 @@ from django.urls import reverse
 from sentry.models import ApiToken
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo import SiloMode
 from sentry.snuba.metrics.fields import DERIVED_METRICS, SingularEntityDerivedMetric
 from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -63,14 +64,14 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
     def test_permissions(self):
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=[])
 
         for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code == 403
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
         for endpoint in self.endpoints:

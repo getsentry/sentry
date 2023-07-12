@@ -1,13 +1,15 @@
 import dataclasses
+import functools
 import threading
 from datetime import datetime, timedelta
-from typing import ContextManager
+from typing import Any, Callable, ContextManager
 from unittest.mock import call, patch
 
 import pytest
 import pytz
 import responses
 from django.conf import settings
+from django.db import connections
 from django.test import RequestFactory
 from freezegun import freeze_time
 from pytest import raises
@@ -31,8 +33,20 @@ from sentry.testutils import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
-from sentry.types.region import Region, RegionCategory
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.types.region import Region, RegionCategory, get_local_region
+
+
+def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
+    def wrapper(*args: Any, **kwds: Any) -> Any:
+        try:
+            return c(*args, **kwds)
+        finally:
+            for connection in connections.all():
+                connection.close()
+
+    functools.update_wrapper(wrapper, c)
+    return wrapper
 
 
 @pytest.fixture(autouse=True, scope="function")
@@ -55,13 +69,14 @@ class ControlOutboxTest(TestCase):
 
     def test_control_sharding_keys(self):
         request = RequestFactory().get("/extensions/slack/webhook/")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             org = Factories.create_organization()
 
         user1 = Factories.create_user()
         user2 = Factories.create_user()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
+            expected_region_name = get_local_region().name
             om = OrganizationMember.objects.create(
                 organization_id=org.id,
                 user_id=user1.id,
@@ -102,8 +117,8 @@ class ControlOutboxTest(TestCase):
         }
 
         assert shards == {
-            (OutboxScope.USER_SCOPE.value, user1.id, settings.SENTRY_MONOLITH_REGION),
-            (OutboxScope.USER_SCOPE.value, user2.id, settings.SENTRY_MONOLITH_REGION),
+            (OutboxScope.USER_SCOPE.value, user1.id, expected_region_name),
+            (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
             (
                 OutboxScope.WEBHOOK_SCOPE.value,
                 WebhookProviderIdentifier.SLACK,
@@ -220,7 +235,9 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
         barrier: threading.Barrier = threading.Barrier(2, timeout=10)
         processing_thread = threading.Thread(
-            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread.start()
 
@@ -246,13 +263,17 @@ class OutboxDrainTest(TransactionTestCase):
 
         barrier: threading.Barrier = threading.Barrier(2, timeout=1)
         processing_thread_1 = threading.Thread(
-            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread_1.start()
 
         # This concurrent process will block on, and not duplicate, the effort of the first thread.
         processing_thread_2 = threading.Thread(
-            target=lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(_test_processing_barrier=barrier)
+            )
         )
 
         barrier.wait()
@@ -277,7 +298,9 @@ class OutboxDrainTest(TransactionTestCase):
             outbox1.save()
         barrier: threading.Barrier = threading.Barrier(2, timeout=10)
         processing_thread = threading.Thread(
-            target=lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
         )
         processing_thread.start()
 
@@ -309,12 +332,16 @@ class OutboxDrainTest(TransactionTestCase):
 
         barrier: threading.Barrier = threading.Barrier(2, timeout=1)
         processing_thread_1 = threading.Thread(
-            target=lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox1.drain_shard(_test_processing_barrier=barrier)
+            )
         )
         processing_thread_1.start()
 
         processing_thread_2 = threading.Thread(
-            target=lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            target=wrap_with_connection_closure(
+                lambda: outbox2.drain_shard(flush_all=True, _test_processing_barrier=barrier)
+            )
         )
 
         barrier.wait()
@@ -340,7 +367,7 @@ class RegionOutboxTest(TestCase):
             OrganizationMember(organization_id=12, id=15).outbox_for_update().save()
         assert RegionOutbox.objects.count() == 2
 
-        with exempt_from_silo_limits(), outbox_runner():
+        with outbox_runner():
             # drain outboxes
             pass
         assert RegionOutbox.objects.count() == 0

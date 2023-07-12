@@ -22,8 +22,9 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 class MockSuperUser:
@@ -68,29 +69,29 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         assert not self.has_object_perm("POST", self.org, user=user)
 
     def test_api_key_with_org_access(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_org_access(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(
                 organization_id=self.create_organization().id, scope_list=["org:read"]
             )
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_access(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(organization_id=self.org.id)
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert not self.has_object_perm("PUT", self.org, auth=key)
 
@@ -104,7 +105,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member")
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             TotpInterface().enroll(user)
         assert self.has_object_perm("GET", self.org, user=user)
 

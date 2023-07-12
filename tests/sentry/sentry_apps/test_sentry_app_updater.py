@@ -8,8 +8,9 @@ from sentry.coreapi import APIError
 from sentry.models import ApiToken, SentryApp, SentryAppComponent, ServiceHook
 from sentry.sentry_apps import expand_events
 from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
@@ -123,7 +124,7 @@ class TestUpdater(TestCase):
         )
         updater.run(self.user)
         assert set(sentry_app.events) == expand_events(["issue"])
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
         assert set(service_hook.events) == expand_events(["issue"])
 
@@ -138,7 +139,7 @@ class TestUpdater(TestCase):
         updater = SentryAppUpdater(sentry_app=sentry_app, webhook_url="http://example.com/hooks")
         updater.run(self.user)
         assert sentry_app.webhook_url == "http://example.com/hooks"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
         assert service_hook.url == "http://example.com/hooks"
         assert set(service_hook.events) == expand_events(["event.alert"])
@@ -194,13 +195,13 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ("issue",)
         updater.run(self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
         assert set(service_hook.events) == expand_events(["issue"])
@@ -210,10 +211,10 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url="https://sentry.io/hook"
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = SentryAppUpdater(sentry_app=internal_app)
         updater.webhook_url = ""
         updater.run(self.user)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0

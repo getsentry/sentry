@@ -31,9 +31,10 @@ from sentry.models import (
 )
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 # some relay keys
@@ -137,7 +138,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # make sure options are not cached the first time to get predictable number of database queries
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             sentry_options.delete("system.rate-limit")
             sentry_options.delete("store.symbolicate-event-lpq-always")
             sentry_options.delete("store.symbolicate-event-lpq-never")
@@ -197,7 +198,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -241,7 +242,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
@@ -788,7 +789,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()

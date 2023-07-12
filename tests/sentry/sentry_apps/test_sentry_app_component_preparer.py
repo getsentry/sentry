@@ -3,8 +3,9 @@ from unittest.mock import call, patch
 from sentry.models import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.silo import SiloMode
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -20,7 +21,7 @@ class TestPreparerIssueLink(TestCase):
         self.install = self.create_sentry_app_installation(slug=self.sentry_app.slug)
 
         self.component = self.sentry_app.components.first()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
             ).project_set.first()

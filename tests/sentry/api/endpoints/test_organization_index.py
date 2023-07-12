@@ -207,7 +207,7 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
         assert org.name == data["name"]
 
         # TODO(HC) Re-enable this check once organization mapping stabilizes
-        # with exempt_from_silo_limits():
+        # with assume_test_silo_mode(SiloMode.CONTROL):
         #     assert OrganizationMapping.objects.filter(
         #         organization_id=organization_id,
         #         slug=data["slug"],

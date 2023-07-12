@@ -12,8 +12,9 @@ from fixtures.github import (
 )
 from sentry import options
 from sentry.models import Commit, CommitAuthor, GroupLink, Integration, PullRequest, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -86,7 +87,7 @@ class PushEventWebhookTest(APITestCase):
         )
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="12345",
                 provider="github",
@@ -143,7 +144,7 @@ class PushEventWebhookTest(APITestCase):
         options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github",
                 external_id="12345",
@@ -221,7 +222,7 @@ class PushEventWebhookTest(APITestCase):
         )
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="12345",
                 provider="github",
@@ -240,7 +241,7 @@ class PushEventWebhookTest(APITestCase):
         )
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="99",
                 provider="github",
@@ -285,7 +286,7 @@ class PullRequestEventWebhook(APITestCase):
         options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github",
                 external_id="12345",
@@ -339,7 +340,7 @@ class PullRequestEventWebhook(APITestCase):
         options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github",
                 external_id="12345",
@@ -389,7 +390,7 @@ class PullRequestEventWebhook(APITestCase):
         options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 provider="github",
                 external_id="12345",

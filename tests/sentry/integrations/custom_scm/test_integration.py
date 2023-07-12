@@ -1,7 +1,8 @@
 from sentry.integrations.custom_scm import CustomSCMIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test(stable=True)
@@ -40,7 +41,7 @@ class CustomSCMIntegrationTest(IntegrationTestCase):
         Test that only repositories without both an integration and a provider
         are valid to be added.
         """
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             unknown_repo = Repository.objects.create(
                 name="my-org/some-repo", organization_id=self.organization.id
             )

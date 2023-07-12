@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -34,7 +34,6 @@ class AbstractServerlessTest(APITestCase):
         return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
-    @exempt_from_silo_limits()
     def sentry_dsn(self):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 

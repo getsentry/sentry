@@ -18,8 +18,9 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
+from sentry.silo import SiloMode
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -143,7 +144,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             enabled_dsn = ProjectKey.get_default(
                 project=Project.objects.get(id=project_id)
             ).get_dsn(public=True)
@@ -254,7 +255,7 @@ class VercelIntegrationTest(IntegrationTestCase):
 
         org = self.organization
         project_id = self.project.id
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             enabled_dsn = ProjectKey.get_default(
                 project=Project.objects.get(id=project_id)
             ).get_dsn(public=True)
@@ -381,7 +382,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         org = self.organization
         data = {"project_mappings": [[project_id, self.project_id]]}
         integration = Integration.objects.get(provider=self.provider.key)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             installation = integration.get_installation(org.id)
 
         dsn = ProjectKey.get_default(project=Project.objects.get(id=project_id))

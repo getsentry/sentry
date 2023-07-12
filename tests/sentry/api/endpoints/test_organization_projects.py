@@ -3,8 +3,9 @@ from base64 import b64encode
 from django.urls import reverse
 
 from sentry.models import ApiKey
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
 @region_silo_test(stable=True)
@@ -18,7 +19,7 @@ class OrganizationProjectsTestBase(APITestCase):
         ]
 
     def test_api_key(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             key = ApiKey.objects.create(
                 organization_id=self.organization.id, scope_list=["org:read"]
             )

@@ -19,7 +19,7 @@ from sentry.models import (
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils import IntegrationTestCase
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -213,7 +213,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -244,7 +244,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -273,7 +273,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -315,7 +315,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",
@@ -350,7 +350,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         external_id = 4
         integration = Integration.objects.get(provider=self.provider.key)
         instance = integration.metadata["instance"]
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 organization_id=self.organization.id,
                 name="Get Sentry / Example Repo",

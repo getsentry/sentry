@@ -6,7 +6,7 @@ from django.urls import reverse
 from sentry.models import Team
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils import SCIMTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import region_silo_test
 
 CREATE_TEAM_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
@@ -49,12 +49,12 @@ class SCIMGroupIndexTests(SCIMTestCase):
             "members": [],
             "meta": {"resourceType": "Group"},
         }
-        with exempt_from_silo_limits():
-            assert Team.objects.filter(id=team_id).exists()
-            assert Team.objects.get(id=team_id).slug == "test-scimv2"
-            assert Team.objects.get(id=team_id).name == "Test SCIMv2"
-            assert Team.objects.get(id=team_id).idp_provisioned
-            assert len(Team.objects.get(id=team_id).member_set) == 0
+
+        assert Team.objects.filter(id=team_id).exists()
+        assert Team.objects.get(id=team_id).slug == "test-scimv2"
+        assert Team.objects.get(id=team_id).name == "Test SCIMv2"
+        assert Team.objects.get(id=team_id).idp_provisioned
+        assert len(Team.objects.get(id=team_id).member_set) == 0
         mock_metrics.incr.assert_called_with(
             "sentry.scim.team.provision",
         )

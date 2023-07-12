@@ -20,7 +20,7 @@ from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits, no_silo_test
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
 
 
 def silo_from_user(
@@ -64,15 +64,15 @@ class AccessFactoryTestCase(TestCase):
             return access.from_request(*args, **kwds)
         return silo_from_request(*args, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_api_key(self, organization: Organization, **kwds):
         return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_provider(self, organization: Organization, **kwds):
         return AuthProvider.objects.create(organization_id=organization.id, **kwds)
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_identity(self, auth_provider: AuthProvider, user: User, **kwds):
         return AuthIdentity.objects.create(auth_provider=auth_provider, user=user, **kwds)
 
@@ -416,7 +416,7 @@ class FromUserTest(AccessFactoryTestCase):
 
     def test_superuser_permissions(self):
         user = self.create_user(is_superuser=True)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserPermission.objects.create(user=user, permission="test.permission")
 
         result = self.from_user(user)
@@ -544,7 +544,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -568,7 +568,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)
@@ -745,7 +745,7 @@ class FromSentryAppTest(AccessFactoryTestCase):
 
     def test_has_app_scopes(self):
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             app_with_scopes.update(scope_list=["team:read", "team:write"])
         self.create_sentry_app_installation(
             organization=self.org, slug=app_with_scopes.slug, user=self.user

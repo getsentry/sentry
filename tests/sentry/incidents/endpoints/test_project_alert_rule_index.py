@@ -14,12 +14,13 @@ from sentry.incidents.models import AlertRule, AlertRuleTrigger, AlertRuleTrigge
 from sentry.models import AuditLogEntry, Integration
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
@@ -131,7 +132,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             audit_log_entry = AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
             )
@@ -180,7 +181,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = Integration.objects.create(
                 provider="slack",
                 name="Team A",
@@ -242,7 +243,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
 
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = Integration.objects.create(
                 provider="slack",
                 name="Team A",
@@ -798,7 +799,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = Integration.objects.create(
                 provider="slack",
                 name="Team A",

@@ -14,7 +14,7 @@ from sentry.integrations.vsts.integration import VstsIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
-from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import json
 
 
@@ -141,7 +141,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
                 provider="visualstudio",
                 name="example",

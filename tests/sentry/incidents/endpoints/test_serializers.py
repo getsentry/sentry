@@ -30,10 +30,11 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.silo import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils import TestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.utils import json
 
 pytestmark = pytest.mark.sentry_metrics
@@ -106,7 +107,7 @@ class TestAlertRuleSerializer(TestCase):
         assert not serializer.is_valid()
         assert serializer.errors == errors
 
-    @exempt_from_silo_limits()
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def setup_slack_integration(self):
         self.integration = Integration.objects.create(
             external_id="1",
@@ -453,7 +454,7 @@ class TestAlertRuleSerializer(TestCase):
         # and that the rule is not created.
         base_params = self.valid_params.copy()
         base_params["name"] = "Aun1qu3n4m3"
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.create(
                 external_id="1",
                 provider="slack",
@@ -663,7 +664,7 @@ class TestAlertRuleSerializer(TestCase):
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
         # Reload user for actor
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)
         assert alert_rule.owner == get_actor_for_user(self.user)
         assert alert_rule.owner.type == ACTOR_TYPES["user"]
