@@ -31,8 +31,7 @@ from sentry.monitors.models import (
     MonitorLimitsExceeded,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
-from sentry.monitors.tasks import TIMEOUT
-from sentry.monitors.utils import signal_first_checkin, signal_first_monitor_created
+from sentry.monitors.utils import get_timeout_at, signal_first_checkin, signal_first_monitor_created
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -201,12 +200,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
             status = getattr(CheckInStatus, result["status"].upper())
             monitor_config = monitor.get_validated_config()
-
-            timeout_at = None
-            if status == CheckInStatus.IN_PROGRESS:
-                timeout_at = date_added.replace(second=0, microsecond=0) + timedelta(
-                    minutes=(monitor_config or {}).get("max_runtime") or TIMEOUT
-                )
+            timeout_at = get_timeout_at(monitor_config, status, date_added)
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,

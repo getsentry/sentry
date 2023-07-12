@@ -6,13 +6,15 @@ from sentry.utils.redis import redis_clusters
 from .base import EventProcessingStore
 
 
-def RedisClusterEventProcessingStore(**options) -> EventProcessingStore:
+class RedisClusterEventProcessingStore(EventProcessingStore):
     """
     Creates an instance of the processing store which uses a Redis Cluster
     client as its backend.
     """
-    return EventProcessingStore(
-        KVStorageCodecWrapper(
-            RedisKVStorage(redis_clusters.get(options.pop("cluster", "default"))), JSONCodec()
+
+    def __init__(self, **options):
+        super().__init__(
+            KVStorageCodecWrapper(
+                RedisKVStorage(redis_clusters.get(options.pop("cluster", "default"))), JSONCodec()
+            )
         )
-    )

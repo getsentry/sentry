@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import GettingStartedWithAngular, {nextSteps, steps} from './angular';
+import {GettingStartedWithAngular, nextSteps, steps} from './angular';
 
 describe('GettingStartedWithAngular', function () {
   it('all products are selected', function () {

@@ -44,6 +44,7 @@ class OpsGeniePluginTest(PluginTestCase):
             project_id=self.project.id,
         )
         group = event.group
+        assert group is not None
 
         rule = Rule.objects.create(project=self.project, label="my rule")
 

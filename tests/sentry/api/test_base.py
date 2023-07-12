@@ -16,6 +16,8 @@ from sentry.services.hybrid_cloud.util import FunctionSiloLimit
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.utils import json
 from sentry.utils.cursors import Cursor
 
 
@@ -433,14 +435,31 @@ class EndpointJSONBodyTest(APITestCase):
 
 class CustomerDomainTest(APITestCase):
     def test_resolve_region(self):
+        clear_global_regions()
+
         def request_with_subdomain(subdomain):
             request = self.make_request(method="GET")
             request.subdomain = subdomain
             return resolve_region(request)
 
-        assert request_with_subdomain("us") == "us"
-        assert request_with_subdomain("eu") == "eu"
-        assert request_with_subdomain("sentry") is None
+        region_config = [
+            {
+                "name": "na",
+                "snowflake_id": 1,
+                "address": "http://na.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+            {
+                "name": "eu",
+                "snowflake_id": 1,
+                "address": "http://eu.testserver",
+                "category": RegionCategory.MULTI_TENANT.name,
+            },
+        ]
+        with override_settings(SENTRY_REGION_CONFIG=json.dumps(region_config)):
+            assert request_with_subdomain("na") == "na"
+            assert request_with_subdomain("eu") == "eu"
+            assert request_with_subdomain("sentry") is None
 
 
 class EndpointSiloLimitTest(APITestCase):

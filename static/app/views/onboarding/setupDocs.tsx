@@ -216,23 +216,32 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
     'onboarding-heartbeat-footer'
   );
 
+  const products = useMemo<ProductSolution[]>(
+    () => (location.query.product ?? []) as ProductSolution[],
+    [location.query.product]
+  );
+
   // SDK instrumentation
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<OnboardingPlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
 
-  const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
+  const currentPlatformKey = loadedPlatform ?? project?.platform ?? 'other';
   const [showLoaderOnboarding, setShowLoaderOnboarding] = useState(
-    currentPlatform === 'javascript'
+    currentPlatformKey === 'javascript'
   );
+
+  useEffect(() => {
+    setShowLoaderOnboarding(currentPlatformKey === 'javascript');
+  }, [currentPlatformKey]);
 
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
   const showIntegrationOnboarding = integrationSlug && !integrationUseManualSetup;
   const showDocsWithProductSelection =
-    currentPlatform.match('^javascript-([A-Za-z]+)$') ??
-    (showLoaderOnboarding === false && currentPlatform === 'javascript');
+    currentPlatformKey.match('^javascript-([A-Za-z]+)$') ??
+    (showLoaderOnboarding === false && currentPlatformKey === 'javascript');
 
   const hideLoaderOnboarding = useCallback(() => {
     setShowLoaderOnboarding(false);
@@ -243,10 +252,10 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
 
     trackAnalytics('onboarding.js_loader_npm_docs_shown', {
       organization,
-      platform: currentPlatform,
+      platform: currentPlatformKey,
       project_id: project?.id,
     });
-  }, [organization, currentPlatform, project?.id]);
+  }, [organization, currentPlatformKey, project?.id]);
 
   const fetchData = useCallback(async () => {
     // TODO: add better error handling logic
@@ -310,6 +319,11 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
     return null;
   }
 
+  const currentPlatform = platforms.find(p => p.id === currentPlatformKey);
+  const platformName = currentPlatform?.name ?? '';
+  const loadLocalSdkDocumentation =
+    currentPlatform && migratedDocs.includes(currentPlatformKey);
+
   return (
     <Fragment>
       <Wrapper>
@@ -322,22 +336,14 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
                 setIntegrationUseManualSetup(true);
               }}
             />
-          ) : showDocsWithProductSelection ? (
-            <DocWithProductSelection
-              organization={organization}
-              projectSlug={project.slug}
-              location={location}
-              currentPlatform={currentPlatform}
-              newOrg
-            />
           ) : showLoaderOnboarding ? (
             <Fragment>
               <SetupIntroduction
                 stepHeaderText={t(
                   'Configure %s SDK',
-                  platforms.find(p => p.id === currentPlatform)?.name ?? ''
+                  platforms.find(p => p.id === currentPlatformKey)?.name ?? ''
                 )}
-                platform={currentPlatform}
+                platform={currentPlatformKey}
               />
               <SetupDocsLoader
                 organization={organization}
@@ -345,6 +351,20 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
                 location={location}
                 platform={loadedPlatform}
                 close={hideLoaderOnboarding}
+              />
+            </Fragment>
+          ) : loadLocalSdkDocumentation ? (
+            <Fragment>
+              <SetupIntroduction
+                stepHeaderText={t('Configure %s SDK', platformName)}
+                platform={currentPlatformKey}
+              />
+              <SdkDocumentation
+                platform={currentPlatform}
+                orgSlug={organization.slug}
+                projectSlug={project.slug}
+                activeProductSelection={products}
+                newOrg
               />
             </Fragment>
           ) : (
@@ -388,7 +408,7 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
               const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
               trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
                 organization,
-                platform: currentPlatform,
+                platform: currentPlatformKey,
                 project_id: project.id,
               });
               browserHistory.push(orgIssuesURL);
@@ -404,7 +424,7 @@ function SetupDocs({route, router, location, recentCreatedProject: project}: Ste
             const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
             trackAnalytics('growth.onboarding_clicked_setup_platform_later', {
               organization,
-              platform: currentPlatform,
+              platform: currentPlatformKey,
               project_id: project.id,
             });
             browserHistory.push(orgIssuesURL);
