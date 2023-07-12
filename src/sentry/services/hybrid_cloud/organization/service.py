@@ -25,6 +25,7 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
     ByRegionName,
+    RequireSingleOrganization,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -188,6 +189,11 @@ class OrganizationService(RpcService):
         ):
             return None
         return org_context
+
+    @regional_rpc_method(resolve=RequireSingleOrganization())
+    @abstractmethod
+    def get_default_organization(self) -> RpcOrganization:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod

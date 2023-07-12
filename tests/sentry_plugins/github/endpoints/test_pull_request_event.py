@@ -1,8 +1,9 @@
 from uuid import uuid4
 
 from sentry.models import OrganizationOption, PullRequest, Repository
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry_plugins.github.testutils import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
@@ -16,7 +17,7 @@ class PullRequestEventWebhook(APITestCase):
     def test_opened(self):
         project = self.project  # force creation
         user = self.create_user(email="alberto@sentry.io")
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             UserSocialAuth.objects.create(provider="github", user=user, uid=6752317)
         self.create_member(organization=project.organization, user=user, role="member")
 

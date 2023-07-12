@@ -4,9 +4,16 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
+from django.conf import settings
+
 from sentry.services.hybrid_cloud import ArgumentDict
 from sentry.services.hybrid_cloud.rpc import RpcServiceUnimplementedException
-from sentry.types.region import Region, RegionMappingNotFound, get_region_by_name
+from sentry.types.region import (
+    Region,
+    RegionMappingNotFound,
+    RegionResolutionError,
+    get_region_by_name,
+)
 
 
 class RegionResolutionStrategy(ABC):
@@ -84,6 +91,32 @@ class ByOrganizationIdAttribute(RegionResolutionStrategy):
         argument = arguments[self.parameter_name]
         organization_id = getattr(argument, self.attribute_name)
         return self._get_from_mapping(organization_id=organization_id)
+
+
+class RequireSingleOrganization(RegionResolutionStrategy):
+    """Resolve to the only region in a single-organization environment.
+
+    Calling a service method with this resolution strategy will cause an error if the
+    environment is not configured with the "single organization" or has more than one
+    region.
+    """
+
+    def resolve(self, arguments: ArgumentDict) -> Region:
+        from sentry.models import OrganizationMapping
+
+        if not settings.SENTRY_SINGLE_ORGANIZATION:
+            raise RegionResolutionError("Method is available only in single-org environment")
+
+        all_region_names = list(
+            OrganizationMapping.objects.all().values_list("region_name", flat=True).distinct()[:2]
+        )
+        if len(all_region_names) == 0:
+            return get_region_by_name(settings.SENTRY_MONOLITH_REGION)
+        if len(all_region_names) != 1:
+            raise RegionResolutionError("Expected single-org environment to have only one region")
+
+        (single_region_name,) = all_region_names
+        return get_region_by_name(single_region_name)
 
 
 class UnimplementedRegionResolution(RegionResolutionStrategy):
