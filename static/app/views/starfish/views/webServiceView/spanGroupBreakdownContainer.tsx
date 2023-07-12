@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {SelectOption} from 'sentry/components/compactSelect';
-import {Panel} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
@@ -23,7 +23,7 @@ import {SpanGroupBreakdown} from 'sentry/views/starfish/views/webServiceView/spa
 
 const {SPAN_SELF_TIME} = SpanMetricsFields;
 
-export const OTHER_SPAN_GROUP_MODULE = 'Other';
+const OTHER_SPAN_GROUP_MODULE = 'Other';
 export const NULL_SPAN_CATEGORY = t('custom');
 
 type Props = {
@@ -33,11 +33,6 @@ type Props = {
 
 type Group = {
   'span.category': string;
-};
-
-export type Segment = Group & {
-  'p95(span.self_time)': number;
-  'sum(span.self_time)': number;
 };
 
 export type DataRow = {

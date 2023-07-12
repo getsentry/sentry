@@ -90,6 +90,7 @@ export const getIssueTypeFromOccurenceType = (
     1009: IssueType.PERFORMANCE_CONSECUTIVE_HTTP,
     1010: IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
     1012: IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+    1013: IssueType.PERFORMANCE_DB_MAIN_THREAD,
     1015: IssueType.PERFORMANCE_LARGE_HTTP_PAYLOAD,
   };
   if (!typeId) {
@@ -410,9 +411,16 @@ interface GroupActivityAutoSetOngoing extends GroupActivityBase {
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
-interface GroupActivitySetEscalating extends GroupActivityBase {
+export interface GroupActivitySetEscalating extends GroupActivityBase {
   data: {
-    forecast: number;
+    expired_snooze?: {
+      count: number | null;
+      until: Date | null;
+      user_count: number | null;
+      user_window: number | null;
+      window: number | null;
+    };
+    forecast?: number;
   };
   type: GroupActivityType.SET_ESCALATING;
 }

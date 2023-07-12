@@ -38,15 +38,17 @@ import {
 } from './styles';
 
 const MAX_FUNCTIONS = 3;
-const CURSOR_NAME = 'slowFnCursor';
+const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
 interface SlowestFunctionsWidgetProps {
+  cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
   widgetHeight?: string;
 }
 
 export function SlowestFunctionsWidget({
+  cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
   widgetHeight,
@@ -56,16 +58,19 @@ export function SlowestFunctionsWidget({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   const slowFnCursor = useMemo(
-    () => decodeScalar(location.query[CURSOR_NAME]),
-    [location.query]
+    () => decodeScalar(location.query[cursorName]),
+    [cursorName, location.query]
   );
 
-  const handleCursor = useCallback((cursor, pathname, query) => {
-    browserHistory.push({
-      pathname,
-      query: {...query, [CURSOR_NAME]: cursor},
-    });
-  }, []);
+  const handleCursor = useCallback(
+    (cursor, pathname, query) => {
+      browserHistory.push({
+        pathname,
+        query: {...query, [cursorName]: cursor},
+      });
+    },
+    [cursorName]
+  );
 
   const functionsQuery = useProfileFunctions<FunctionsField>({
     fields: functionsFields,

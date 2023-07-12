@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
@@ -12,7 +13,10 @@ import JsonForm from 'sentry/components/forms/jsonForm';
 import {Field, JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Panel, PanelFooter, PanelHeader, PanelItem} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelFooter from 'sentry/components/panels/panelFooter';
+import PanelHeader from 'sentry/components/panels/panelHeader';
+import PanelItem from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -23,7 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
@@ -48,6 +52,8 @@ export const allowedSizeValues: number[] = [
   50000, 100000, 300000, 400000, 500000, 512000, 600000, 700000, 800000, 900000, 1000000,
   2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000,
 ]; // 50kb to 10MB in bytes
+
+export const projectDetectorSettingsId = 'detector-threshold-settings';
 
 type ProjectPerformanceSettings = {[key: string]: number | boolean};
 
@@ -88,11 +94,11 @@ type ProjectThreshold = {
   id?: string;
 };
 
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   threshold: ProjectThreshold;
 };
 
-class ProjectPerformance extends AsyncView<Props, State> {
+class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     const {projectId} = this.props.params;
 
@@ -107,11 +113,11 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return `/projects/${orgId}/${projectId}/performance-issues/configure/`;
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {params, organization} = this.props;
     const {projectId} = params;
 
-    const endpoints: ReturnType<AsyncView['getEndpoints']> = [
+    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
       [
         'threshold',
         `/projects/${organization.slug}/${projectId}/transaction-threshold/configure/`,
@@ -425,16 +431,19 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.N_PLUS_DB_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Total Duration'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 200ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 200ms'
+              'Setting the value to 100ms, means that an eligible event will be stored as a N+1 DB Query Issue only if the total duration of the involved spans exceeds 100ms'
             ),
             allowedValues: allowedDurationValues,
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.N_PLUS_DB_ENABLED]
             ),
+            tickValues: [0, allowedDurationValues.length - 1],
+            showTickLabels: true,
             formatLabel: formatDuration,
+            flexibleControlStateSize: true,
             disabledReason,
           },
         ],
@@ -445,11 +454,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.SLOW_DB_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Duration'),
             defaultValue: 1000, // ms
             help: t(
-              'Setting the value to 2s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved span exceeds 2s.'
+              'Setting the value to 1s, means that an eligible event will be stored as a Slow DB Query Issue only if the duration of the involved db span exceeds 1s.'
             ),
+            tickValues: [0, allowedDurationValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedDurationValues.slice(1),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.SLOW_DB_ENABLED]
@@ -465,12 +476,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.RENDER_BLOCKING_ASSET_RATIO,
             type: 'range',
-            label: t('FCP Ratio'),
+            label: t('Minimum FCP Ratio'),
             defaultValue: 0.33,
             help: t(
-              'Setting the value to 50%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 50% of First Contentful Paint (FCP).'
+              'Setting the value to 33%, means that an eligible event will be stored as a Large Render Blocking Asset Issue only if the duration of the involved span is at least 33% of First Contentful Paint (FCP).'
             ),
             allowedValues: allowedPercentageValues,
+            tickValues: [0, allowedPercentageValues.length - 1],
+            showTickLabels: true,
             disabled: !(
               hasAccess &&
               performanceSettings[DetectorConfigAdmin.RENDER_BLOCK_ASSET_ENABLED]
@@ -486,11 +499,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.LARGE_HTT_PAYLOAD_SIZE,
             type: 'range',
-            label: t('Size'),
+            label: t('Minimum Size'),
             defaultValue: 1000000, // 1MB in bytes
             help: t(
-              'Setting the value to 200KB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 200KB.'
+              'Setting the value to 1MB, means that an eligible event will be stored as a Large HTTP Payload Issue only if the involved HTTP span has a payload size that exceeds 1MB.'
             ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
@@ -507,11 +522,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.DB_ON_MAIN_THREAD_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 20fps.'
+              'Setting the value to 60fps, means that an eligible event will be stored as a DB on Main Thread Issue only if database spans on the main thread cause frame rate to drop below 60fps.'
             ),
+            tickValues: [0, 3],
+            showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100 to 20 fps in milliseconds
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.DB_MAIN_THREAD_ENABLED]
@@ -527,11 +544,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.FILE_IO_MAIN_THREAD_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Frame Rate Drop'),
             defaultValue: 16, // ms
             help: t(
-              'Setting the value to 20fps, means that an eligible event will be stored as a DB on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 20fps.'
+              'Setting the value to 60fps, means that an eligible event will be stored as a File I/O on Main Thread Issue only if File I/O spans on the main thread cause frame rate to drop below 60fps.'
             ),
+            tickValues: [0, 3],
+            showTickLabels: true,
             allowedValues: [10, 16, 33, 50], // representation of 100, 60, 30, 20 fps in milliseconds
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.FILE_IO_ENABLED]
@@ -550,8 +569,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
             label: t('Minimum Time Saved'),
             defaultValue: 100, // ms
             help: t(
-              'Setting the value to 500ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 500ms.'
+              'Setting the value to 100ms, means that an eligible event will be stored as a Consecutive DB Queries Issue only if the time saved by parallelizing the queries exceeds 100ms.'
             ),
+            tickValues: [0, allowedDurationValues.slice(0, 11).length - 1],
+            showTickLabels: true,
             allowedValues: allowedDurationValues.slice(0, 11),
             disabled: !(
               hasAccess && performanceSettings[DetectorConfigAdmin.CONSECUTIVE_DB_ENABLED]
@@ -567,11 +588,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_SIZE,
             type: 'range',
-            label: t('Size'),
+            label: t('Minimum Size'),
             defaultValue: 512000, // in kilobytes
             help: t(
-              'Setting the value to 1MB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 1MB.'
+              'Setting the value to 512KB, means that an eligible event will be stored as an Uncompressed Asset Issue only if the size of the uncompressed asset being transferred exceeds 512KB.'
             ),
+            tickValues: [0, allowedSizeValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedSizeValues.slice(1),
             disabled: !(
               hasAccess &&
@@ -583,11 +606,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
           {
             name: DetectorConfigCustomer.UNCOMPRESSED_ASSET_DURATION,
             type: 'range',
-            label: t('Duration'),
+            label: t('Minimum Duration'),
             defaultValue: 500, // in ms
             help: t(
-              'Setting the value to 200ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 200ms.'
+              'Setting the value to 500ms, means that an eligible event will be stored as an Uncompressed Asset Issue only if the duration of the span responsible for transferring the uncompressed asset exceeds 500ms.'
             ),
+            tickValues: [0, allowedDurationValues.slice(1).length - 1],
+            showTickLabels: true,
             allowedValues: allowedDurationValues.slice(1),
             disabled: !(
               hasAccess &&
@@ -776,10 +801,21 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 allowUndo
                 initialData={this.state.performance_issue_settings}
                 apiMethod="PUT"
+                onSubmitError={error => {
+                  if (error.status === 403) {
+                    addErrorMessage(
+                      t(
+                        'This action requires active super user access. Please re-authenticate to make changes.'
+                      )
+                    );
+                  }
+                }}
                 apiEndpoint={performanceIssuesEndpoint}
               >
                 <JsonForm
-                  title={t('Performance Issues - Admin Detector Settings')}
+                  title={t(
+                    '### INTERNAL ONLY ### - Performance Issues Admin Detector Settings'
+                  )}
                   fields={this.performanceIssueDetectorAdminFields}
                   disabled={!isSuperUser}
                 />
@@ -807,7 +843,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             >
               <Access access={requiredScopes} project={project}>
                 {({hasAccess}) => (
-                  <div>
+                  <div id={projectDetectorSettingsId}>
                     <StyledPanelHeader>
                       {t('Performance Issues - Detector Threshold Settings')}
                     </StyledPanelHeader>
