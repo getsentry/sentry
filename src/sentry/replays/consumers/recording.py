@@ -1,13 +1,13 @@
 import dataclasses
 import logging
 import random
-from typing import Any, Mapping, Union
+from typing import Any, Mapping
 
 import sentry_sdk
 from arroyo import configure_metrics
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import RunTask, RunTaskInThreads, RunTaskWithMultiprocessing
-from arroyo.processing.strategies.abstract import ProcessingStrategyFactory
+from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
@@ -61,10 +61,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
-        # Give mypy some help.
-        step: Union[
-            RunTaskWithMultiprocessing[MessageContext, Any], RunTaskInThreads[MessageContext, Any]
-        ]
+        step: ProcessingStrategy[MessageContext]
 
         if self.use_multi_proc:
             step = RunTaskWithMultiprocessing(
