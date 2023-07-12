@@ -35,8 +35,10 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.get("{}?{}".format(self.setup_path, urlencode({"name": name})))
 
         mock_api_key_verification = responses.calls[0].request
-        assert mock_api_key_verification.headers["Authorization"] == "GenieKey " + self.config.get(
-            "api_key"
+
+        assert (
+            mock_api_key_verification.headers["Authorization"]
+            == "GenieKey " + self.config["api_key"]
         )
 
         assert resp.status_code == 200
@@ -71,12 +73,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
     def test_invalid_key(self):
         provider = self.provider()
         bad_key = "bad"
-
-        responses.add(
-            responses.GET,
-            url="{}{}".format(self.config["base_url"].rstrip("/"), "/v2/account"),
-            status=500,
-        )
         with pytest.raises(IntegrationError) as error:
             provider.get_account_info(base_url=self.config["base_url"], api_key=bad_key)
         assert str(error.value) == "The requested Opsgenie account could not be found."
@@ -84,12 +80,6 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
     def test_invalid_url(self):
         provider = self.provider()
         bad_url = "bad.com"
-
-        responses.add(
-            responses.GET,
-            url=bad_url,
-        )
-
         with pytest.raises(IntegrationError) as error:
             provider.get_account_info(base_url=bad_url, api_key=self.config["api_key"])
         assert str(error.value) == "Invalid URL provided."

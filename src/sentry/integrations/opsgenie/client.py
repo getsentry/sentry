@@ -2,10 +2,7 @@ from __future__ import annotations
 
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 
-# from typing import Any, Mapping
-
-
-API_VERSION = "/v2"
+OPSGENIE_API_VERSION = "/v2"
 
 
 class OpsgenieProxySetupClient(IntegrationProxyClient):
@@ -24,7 +21,7 @@ class OpsgenieProxySetupClient(IntegrationProxyClient):
 
     @staticmethod
     def build_api_url(base_url, path):
-        return "{}{}{}".format(base_url.rstrip("/"), API_VERSION, path)
+        return "{}{}{}".format(base_url.rstrip("/"), OPSGENIE_API_VERSION, path)
 
     def build_url(self, path: str) -> str:
         path = self.build_api_url(self.base_url, path)

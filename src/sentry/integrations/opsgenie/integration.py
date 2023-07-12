@@ -23,9 +23,6 @@ from sentry.web.helpers import render_to_response
 
 from .client import OpsgenieProxySetupClient
 
-# from rest_framework.response import Response
-
-
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
 DESCRIPTION = """
@@ -71,16 +68,12 @@ class InstallationForm(forms.Form):
     )
     api_key = forms.CharField(
         label=("Opsgenie API Key"),
-        widget=forms.TextInput(
-            attrs={
-                "placeholder": _("5832fc6e14300a0d962240a8144466eef4ee93ef0d218477e55f11cf12fc3737")
-            }
-        ),
+        widget=forms.TextInput(),
     )
 
 
 class InstallationConfigView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
         if "goback" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
@@ -103,7 +96,7 @@ class InstallationConfigView(PipelineView):
 
 
 class InstallationGuideView(PipelineView):
-    def dispatch(self, request: Request, pipeline) -> HttpResponse:
+    def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
         if "completed_installation_guide" in request.GET:
             return pipeline.next_step()
         return render_to_response(
@@ -124,13 +117,6 @@ class InstallationGuideView(PipelineView):
 
 class OpsgenieIntegration(IntegrationInstallation):
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """
-        "config": [
-            {"team_name": team 1, "integration_key": team 1 API key, "id": team 1 ID},
-            {"team_name": team 2, "integration_key": team 2 API key, "id": team 2 ID}.
-            ...
-        ]
-        """
         return super().update_organization_config(data)
 
 
@@ -140,29 +126,29 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    requires_feature_flag = True  # limited release
+    # requires_feature_flag = True  # limited release
 
     def get_account_info(self, base_url, api_key):
         client = OpsgenieProxySetupClient(base_url=base_url, api_key=api_key)
         try:
             resp = client.get_account()
             return resp.json
-        except ApiError as e1:
+        except ApiError as api_error:
             logger.info(
                 "opsgenie.installation.get-account-info-failure",
                 extra={
                     "base_url": base_url,
-                    "error_message": str(e1),
-                    "error_status": e1.code,
+                    "error_message": str(api_error),
+                    "error_status": api_error.code,
                 },
             )
             raise IntegrationError("The requested Opsgenie account could not be found.")
-        except (ValueError, MissingSchema) as e2:
+        except (ValueError, MissingSchema) as url_error:
             logger.info(
                 "opsgenie.installation.get-account-info-failure",
                 extra={
                     "base_url": base_url,
-                    "error_message": str(e2),
+                    "error_message": str(url_error),
                 },
             )
             raise IntegrationError("Invalid URL provided.")
@@ -171,14 +157,11 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         return [InstallationGuideView(), InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
-        """
-        "metadata": {
-            "api_key": org-level API key
-            "base_url": should be https://api.opsgenie.com/ or https://api.eu.opsgenie.com/
-        }
-        """
-        api_key = state["installation_data"]["api_key"]
-        base_url = state["installation_data"]["base_url"]
+        try:
+            api_key = state["installation_data"]["api_key"]
+            base_url = state["installation_data"]["base_url"]
+        except KeyError:
+            raise IntegrationError("Something went wrong. Please try again.")
 
         account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
 
