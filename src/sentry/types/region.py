@@ -201,8 +201,8 @@ def get_region_by_name(name: str) -> Region:
     global_regions = load_global_regions()
     try:
         return global_regions.by_name[name]
-    except KeyError:
-        raise RegionResolutionError(f"No region with name: {name!r}")
+    except KeyError as e:
+        raise RegionResolutionError(f"No region with name: {name!r}") from e
 
 
 def is_region_name(name: str) -> bool:
