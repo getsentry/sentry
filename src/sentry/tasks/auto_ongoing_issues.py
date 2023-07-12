@@ -57,6 +57,18 @@ def skip_if_queue_has_items(func):
     return inner(func)
 
 
+def get_daily_10min_bucket(now: datetime):
+    """
+    If we split a day into 10min buckets, this function
+    returns the bucket that the given datetime is in.
+    """
+    bucket = now.hour * 6 + now.minute / 10
+    if bucket == 0:
+        bucket = 144
+
+    return bucket
+
+
 @instrumented_task(
     name="sentry.tasks.schedule_auto_transition_to_ongoing",
     queue="auto_transition_issue_states",
@@ -70,10 +82,13 @@ def skip_if_queue_has_items(func):
 def schedule_auto_transition_to_ongoing() -> None:
 
     now = datetime.now(tz=pytz.UTC)
+
+    bucket = get_daily_10min_bucket(now)
+
     seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
     for org in RangeQuerySetWrapper(Organization.objects.filter(status=OrganizationStatus.ACTIVE)):
-        if features.has("organizations:escalating-issues", org):
+        if features.has("organizations:escalating-issues", org) and org.id % 144 == bucket:
             project_ids = list(
                 Project.objects.filter(
                     organization_id=org.id, status=ObjectStatus.ACTIVE
