@@ -115,7 +115,11 @@ def provision_middleware():
     return middleware
 
 
-@override_settings(SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG, ROOT_URLCONF=__name__)
+@override_settings(
+    SENTRY_REGION_CONFIG=SENTRY_REGION_CONFIG,
+    SENTRY_MONOLITH_REGION=SENTRY_REGION_CONFIG[0].name,
+    ROOT_URLCONF=__name__,
+)
 class ApiGatewayTestCase(APITestCase):
     def setUp(self):
         super().setUp()
