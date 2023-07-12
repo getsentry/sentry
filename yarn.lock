@@ -7143,10 +7143,10 @@ jest-environment-node@^29.4.1:
     jest-mock "^29.4.1"
     jest-util "^29.4.1"
 
-jest-fail-on-console@^3.0.2:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/jest-fail-on-console/-/jest-fail-on-console-3.0.2.tgz#4ab3c5f1986702c1dfa099cbf303767818f6d916"
-  integrity sha512-8vpH03d9n41jKCF/rcQz/nf0ksK2hlnOXTY5VUMqliPHPfT9F7L9CYOyhFNSQ+o6Aszsuja0GAXt1jz6sfDM8w==
+jest-fail-on-console@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/jest-fail-on-console/-/jest-fail-on-console-3.1.1.tgz#4ca0d0cc8f11675e8e9f52159a37a6602a7e6c09"
+  integrity sha512-g9HGhKcWOz8lHeZhLCXGg+RD/7upngiKkkBrHimsO/tGB0qi++QZffOgybjeI2bDW1qgdFiJJEG6t/WeTlfmOw==
   dependencies:
     chalk "^4.1.0"
 
