@@ -130,9 +130,25 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
         problems = self.find_problems(create_event(spans))
         assert problems == []
 
-    def test_detects_consecutive_http_issue_with_low_duration(self):
-        event = self.create_issue_event(300)
-        problems = self.find_problems(event)
+    def test_detects_consecutive_http_issue_with_low_duration_spans(self):
+        spans = [
+            create_span(
+                "http.client", 300, "GET /api/0/organizations/endpoint1", "hash1"
+            ),  # spans with low durations, but min_time_saved
+            create_span(
+                "http.client", 300, "GET /api/0/organizations/endpoint2", "hash2"
+            ),  # exceeds threshold
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint3", "hash3"),
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint4", "hash4"),
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint5", "hash5"),
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint6", "hash6"),
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint7", "hash7"),
+            create_span("http.client", 300, "GET /api/0/organizations/endpoint8", "hash8"),
+        ]
+        spans = [
+            modify_span_start(span, 1000 * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        problems = self.find_problems(create_event(spans))
 
         assert len(problems) == 1
 
@@ -182,6 +198,9 @@ class ConsecutiveHTTPSpansDetectorExtendedTest(TestCase):
             ),
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
             ),
         ]
         spans = [modify_span_start(span, span_duration * spans.index(span)) for span in spans]
