@@ -24,7 +24,6 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.vsts.issues import VstsIssueSync
-from sentry.models import Identity
 from sentry.models import Integration as IntegrationModel
 from sentry.models import (
     IntegrationExternalProject,
@@ -34,6 +33,7 @@ from sentry.models import (
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
@@ -121,7 +121,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.org_integration: RpcOrganizationIntegration | None
-        self.default_identity: Identity | None = None
+        self.default_identity: RpcIdentity | None = None
 
     def reinstall(self) -> None:
         self.reinstall_repositories()
@@ -180,7 +180,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
             identity_id=self.org_integration.default_auth_id,
         )
 
-    def check_domain_name(self, default_identity: Identity) -> None:
+    def check_domain_name(self, default_identity: RpcIdentity) -> None:
         if re.match("^https://.+/$", self.model.metadata["domain_name"]):
             return
 
