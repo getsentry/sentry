@@ -39,7 +39,36 @@ metadata = IntegrationMetadata(
 
 
 class DiscordIntegration(IntegrationInstallation):
-    pass
+    def get_client(self) -> DiscordClient:
+        return DiscordClient(
+            integration_id=self.model.id,
+            org_integration_id=self.org_integration.id,
+        )
+
+    def uninstall(self) -> None:
+        # If this is the only org using this Discord server, we should remove
+        # the bot from the server.
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        installations = integration_service.get_organization_integrations(
+            integration_id=self.model.id,
+            providers=["discord"],
+        )
+
+        # Remove any installations pending deletion
+        active_installations = [i for i in installations if i.status not in (2, 3)]
+
+        if len(active_installations) > 1:
+            return
+
+        client = self.get_client()
+        try:
+            client.leave_guild(self.model.external_id)
+        except ApiError as error:
+            if error.code == 404:
+                # We have already been removed from the guild
+                return
+            raise error
 
 
 class DiscordIntegrationProvider(IntegrationProvider):
@@ -71,7 +100,7 @@ class DiscordIntegrationProvider(IntegrationProvider):
 
     def get_guild_name(self, guild_id: str) -> str:
         bot_token = options.get("discord.bot-token")
-        url = DiscordClient.get_guild_url.format(guild_id=guild_id)
+        url = DiscordClient.guild_url.format(guild_id=guild_id)
         headers = {"Authorization": f"Bot {bot_token}"}
         try:
             response = DiscordClient().get(url, headers=headers)
