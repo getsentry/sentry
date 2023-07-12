@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   fireEvent,
@@ -8,21 +10,25 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import TagStore from 'sentry/stores/tagStore';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import ColumnEditModal from 'sentry/views/discover/table/columnEditModal';
 
-const stubEl = props => <div>{props.children}</div>;
+const stubEl = styled(p => p.children);
 
 function mountModal({columns, onApply, customMeasurements}, initialData) {
   return render(
     <ColumnEditModal
-      Header={stubEl}
-      Footer={stubEl}
-      Body={stubEl}
+      CloseButton={makeCloseButton(() => {})}
+      Header={c => <div>{c.children}</div>}
+      Footer={stubEl()}
+      Body={stubEl()}
       organization={initialData.organization}
       columns={columns}
       onApply={onApply}
-      closeModal={() => void 0}
+      closeModal={jest.fn()}
+      measurementKeys={null}
       customMeasurements={customMeasurements}
     />,
     {context: initialData.routerContext}
@@ -61,17 +67,17 @@ const openMenu = async (row, column = 0) => {
 const selectByLabel = async (label, options) => {
   await openMenu(options.at);
   const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
-  const opt = menuOptions.find(e => e.textContent.includes(label));
-  await userEvent.click(opt);
+  const opt = menuOptions.find(e => e.textContent?.includes(label));
+  await userEvent.click(opt!);
 };
 
 describe('Discover -> ColumnEditModal', function () {
   beforeEach(() => {
     TagStore.reset();
     TagStore.loadTagsSuccess([
-      {name: 'browser.name', key: 'browser.name', count: 1},
-      {name: 'custom-field', key: 'custom-field', count: 1},
-      {name: 'user', key: 'user', count: 1},
+      {name: 'browser.name', key: 'browser.name'},
+      {name: 'custom-field', key: 'custom-field'},
+      {name: 'user', key: 'user'},
     ]);
   });
   const initialData = initializeOrg({
@@ -79,7 +85,7 @@ describe('Discover -> ColumnEditModal', function () {
       features: ['performance-view', 'dashboards-mep'],
     },
   });
-  const columns = [
+  const columns: QueryFieldValue[] = [
     {
       kind: 'field',
       field: 'event.type',
@@ -90,15 +96,15 @@ describe('Discover -> ColumnEditModal', function () {
     },
     {
       kind: 'function',
-      function: ['count', 'id'],
+      function: ['count', 'id', '', ''],
     },
     {
       kind: 'function',
-      function: ['count_unique', 'title'],
+      function: ['count_unique', 'title', '', ''],
     },
     {
       kind: 'function',
-      function: ['p95', ''],
+      function: ['p95', '', '', ''],
     },
     {
       kind: 'field',
@@ -106,7 +112,7 @@ describe('Discover -> ColumnEditModal', function () {
     },
     {
       kind: 'function',
-      function: ['count_unique', 'issue.id'],
+      function: ['count_unique', 'issue.id', '', ''],
     },
   ];
 
@@ -115,7 +121,8 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns,
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -149,7 +156,8 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'function', function: ['count_unique', 'user-defined']},
             {kind: 'field', field: 'user-def'},
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -169,8 +177,8 @@ describe('Discover -> ColumnEditModal', function () {
     beforeEach(() => {
       TagStore.reset();
       TagStore.loadTagsSuccess([
-        {name: 'project', key: 'project', count: 1},
-        {name: 'count', key: 'count', count: 1},
+        {name: 'project', key: 'project'},
+        {name: 'count', key: 'count'},
       ]);
     });
 
@@ -181,7 +189,8 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'field', field: 'tags[project]'},
             {kind: 'field', field: 'tags[count]'},
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -199,7 +208,8 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'field', field: 'tags[project]'},
             {kind: 'field', field: 'tags[count]'},
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -220,7 +230,8 @@ describe('Discover -> ColumnEditModal', function () {
             {kind: 'function', function: ['count_unique', 'title']},
             {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -257,6 +268,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -277,6 +289,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -290,6 +303,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -309,6 +323,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -332,6 +347,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -348,6 +364,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -374,6 +391,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -400,6 +418,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -426,6 +445,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -452,6 +472,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -482,6 +503,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -518,6 +540,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -562,6 +585,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -593,6 +617,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -626,6 +651,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -661,6 +687,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -691,6 +718,7 @@ describe('Discover -> ColumnEditModal', function () {
             },
           ],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -718,7 +746,8 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [columns[0]],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -738,7 +767,8 @@ describe('Discover -> ColumnEditModal', function () {
       mountModal(
         {
           columns: [columns[0], columns[1]],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -766,7 +796,8 @@ describe('Discover -> ColumnEditModal', function () {
               field: '5 + 5',
             },
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -789,7 +820,8 @@ describe('Discover -> ColumnEditModal', function () {
             columns[0],
             columns[1],
           ],
-          onApply: () => void 0,
+          onApply: jest.fn(),
+          customMeasurements: {},
         },
         initialData
       );
@@ -811,6 +843,7 @@ describe('Discover -> ColumnEditModal', function () {
         {
           columns: [columns[0], columns[1]],
           onApply,
+          customMeasurements: {},
         },
         initialData
       );
@@ -834,27 +867,35 @@ describe('Discover -> ColumnEditModal', function () {
     it('allows selecting custom performance metrics in dropdown', async function () {
       render(
         <ColumnEditModal
-          Header={stubEl}
-          Footer={stubEl}
-          Body={stubEl}
+          CloseButton={makeCloseButton(() => {})}
+          Header={c => <div>{c.children}</div>}
+          Footer={stubEl()}
+          Body={stubEl()}
           organization={initialData.organization}
           columns={[columns[0]]}
           onApply={() => undefined}
           closeModal={() => undefined}
+          measurementKeys={[]}
           customMeasurements={{
             'measurements.custom.kibibyte': {
+              fieldType: 'number',
+              unit: 'KiB',
               key: 'measurements.custom.kibibyte',
               name: 'measurements.custom.kibibyte',
               functions: ['p99'],
             },
             'measurements.custom.minute': {
+              fieldType: 'number',
               key: 'measurements.custom.minute',
               name: 'measurements.custom.minute',
+              unit: 'minute',
               functions: ['p99'],
             },
             'measurements.custom.ratio': {
+              fieldType: 'number',
               key: 'measurements.custom.ratio',
               name: 'measurements.custom.ratio',
+              unit: 'ratio',
               functions: ['p99'],
             },
           }}
