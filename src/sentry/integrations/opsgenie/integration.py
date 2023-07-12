@@ -74,7 +74,7 @@ class InstallationForm(forms.Form):
 
 class InstallationConfigView(PipelineView):
     def dispatch(self, request: Request, pipeline) -> HttpResponse:  # type:ignore
-        if "goback" in request.GET:
+        if "?goback=1" in request.GET:
             pipeline.state.step_index = 0
             return pipeline.current_step()
         if request.method == "POST":
@@ -126,7 +126,7 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = OpsgenieIntegration
     features = frozenset([IntegrationFeatures.INCIDENT_MANAGEMENT, IntegrationFeatures.ALERT_RULE])
-    # requires_feature_flag = True  # limited release
+    requires_feature_flag = True  # limited release
 
     def get_account_info(self, base_url, api_key):
         client = OpsgenieProxySetupClient(base_url=base_url, api_key=api_key)
@@ -157,11 +157,8 @@ class OpsgenieIntegrationProvider(IntegrationProvider):
         return [InstallationGuideView(), InstallationConfigView()]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
-        try:
-            api_key = state["installation_data"]["api_key"]
-            base_url = state["installation_data"]["base_url"]
-        except KeyError:
-            raise IntegrationError("Something went wrong. Please try again.")
+        api_key = state["installation_data"]["api_key"]
+        base_url = state["installation_data"]["base_url"]
 
         account = self.get_account_info(base_url=base_url, api_key=api_key).get("data")
 

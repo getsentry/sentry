@@ -68,6 +68,7 @@ class OpsgenieIntegrationTest(IntegrationTestCase):
         resp = self.client.get(self.init_path + "?goback=1")
         assert resp.status_code == 200
         self.assertContains(resp, "Step 1")
+        assert False
 
     @responses.activate
     def test_invalid_key(self):
