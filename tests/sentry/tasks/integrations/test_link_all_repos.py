@@ -10,8 +10,10 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.snuba.sessions_v2 import isoformat_z
-from sentry.tasks.integrations.github.link_all_repos import link_all_repos
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.utils import metrics
 
 
 class LinkAllReposTestCase(IntegrationTestCase):
@@ -25,6 +27,11 @@ class LinkAllReposTestCase(IntegrationTestCase):
         self.app_id = "app_1"
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
         self.expires_at = isoformat_z(timezone.now() + timedelta(days=365))
+
+    def _is_rate_limited_error(self, e: Exception):
+        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            metrics.incr("github.link_all_repos.rate_limited_error")
+            return True
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
@@ -53,7 +60,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
             },
         )
 
-        link_all_repos(integration_id=self.integration.id, organization_id=self.organization.id)
+        link_all_repos(
+            integration_name="github",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
 
         repos = Repository.objects.all()
         assert len(repos) == 2
@@ -91,7 +103,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
             },
         )
 
-        link_all_repos(integration_id=self.integration.id, organization_id=self.organization.id)
+        link_all_repos(
+            integration_name="github",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
 
         repos = Repository.objects.all()
         assert len(repos) == 1
@@ -101,21 +118,31 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         assert repos[0].name == "getsentry/snuba"
 
-    @patch("sentry.tasks.integrations.github.link_all_repos.metrics")
+    @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_integration(self, mock_metrics):
-        link_all_repos(integration_id=0, organization_id=self.organization.id)
+        link_all_repos(
+            integration_name="github",
+            integration_id=0,
+            organization_id=self.organization.id,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
         mock_metrics.incr.assert_called_with(
             "github.link_all_repos.error", tags={"type": "missing_integration"}
         )
 
-    @patch("sentry.tasks.integrations.github.link_all_repos.metrics")
+    @patch("sentry.tasks.integrations.link_all_repos.metrics")
     def test_link_all_repos_missing_organization(self, mock_metrics):
-        link_all_repos(integration_id=self.integration.id, organization_id=0)
+        link_all_repos(
+            integration_name="github",
+            integration_id=self.integration.id,
+            organization_id=0,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
         mock_metrics.incr.assert_called_with(
             "github.link_all_repos.error", tags={"type": "missing_organization"}
         )
 
-    @patch("sentry.tasks.integrations.github.link_all_repos.metrics")
+    @patch("sentry.tasks.integrations.link_all_repos.metrics")
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
     @responses.activate
     def test_link_all_repos_api_error(self, get_jwt, mock_metrics):
@@ -131,11 +158,16 @@ class LinkAllReposTestCase(IntegrationTestCase):
         )
 
         with pytest.raises(ApiError):
-            link_all_repos(integration_id=self.integration.id, organization_id=self.organization.id)
+            link_all_repos(
+                integration_name="github",
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                is_rate_limited_error=self._is_rate_limited_error,
+            )
             mock_metrics.incr.assert_called_with("github.link_all_repos.api_error")
 
     @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @patch("sentry.tasks.integrations.github.link_all_repos.metrics")
+    @patch("tests.sentry.tasks.integrations.test_link_all_repos.metrics")
     @responses.activate
     def test_link_all_repos_api_error_rate_limited(self, mock_metrics, get_jwt):
         responses.add(
@@ -153,7 +185,12 @@ class LinkAllReposTestCase(IntegrationTestCase):
             },
         )
 
-        link_all_repos(integration_id=self.integration.id, organization_id=self.organization.id)
+        link_all_repos(
+            integration_name="github",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
         mock_metrics.incr.assert_called_with("github.link_all_repos.rate_limited_error")
 
     @patch("sentry_sdk.capture_exception")
@@ -187,6 +224,11 @@ class LinkAllReposTestCase(IntegrationTestCase):
             },
         )
 
-        link_all_repos(integration_id=self.integration.id, organization_id=self.organization.id)
+        link_all_repos(
+            integration_name="github",
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            is_rate_limited_error=self._is_rate_limited_error,
+        )
 
         assert mock_capture_exception.called

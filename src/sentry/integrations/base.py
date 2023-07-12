@@ -213,6 +213,9 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
     ) -> None:
         pass
 
+    def is_rate_limited_error(self, e: Exception) -> bool:
+        pass
+
     def create_audit_log_entry(
         self,
         integration: Integration,

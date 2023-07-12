@@ -30,7 +30,9 @@ from sentry.services.hybrid_cloud.repository import RpcRepository, repository_se
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
-from sentry.tasks.integrations.github.link_all_repos import link_all_repos
+from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
+from sentry.tasks.integrations.link_all_repos import link_all_repos
+from sentry.utils import metrics
 from sentry.web.helpers import render_to_response
 
 from .client import GitHubAppsClient, GitHubClientMixin
@@ -307,8 +309,20 @@ class GitHubIntegrationProvider(IntegrationProvider):
             )
 
         link_all_repos.apply_async(
-            kwargs={"integration_id": integration.id, "organization_id": organization.id}
+            kwargs={
+                "integration_name": self.key,
+                "integration_id": integration.id,
+                "organization_id": organization.id,
+                "is_rate_limited_error": self.is_rate_limited_error,
+            }
         )
+
+    def is_rate_limited_error(self, e: Exception) -> bool:
+        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
+            metrics.incr(f"{self.key}.link_all_repos.rate_limited_error")
+            return True
+
+        return False
 
     def get_pipeline_views(self) -> Sequence[PipelineView]:
         return [GitHubInstallationRedirect()]

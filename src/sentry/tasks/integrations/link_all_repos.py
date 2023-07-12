@@ -7,18 +7,22 @@ from sentry.plugins.base import bindings
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.integrations.github.pr_comment import RATE_LIMITED_MESSAGE
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.integrations.github.link_all_repos")
-def link_all_repos(integration_id: int, organization_id: int):
+@instrumented_task(name="sentry.integrations.github.link_all_repos", queue="integrations")
+def link_all_repos(
+    integration_name: str,
+    integration_id: int,
+    organization_id: int,
+    is_rate_limited_error: callable,
+):
     integration = integration_service.get_integration(integration_id=integration_id)
     if not integration:
         logger.error(
-            "github.link_all_repos.integration_missing",
+            f"{integration_name}.link_all_repos.integration_missing",
             extra={"organization_id": organization_id},
         )
         metrics.incr("github.link_all_repos.error", tags={"type": "missing_integration"})
@@ -28,23 +32,24 @@ def link_all_repos(integration_id: int, organization_id: int):
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
         logger.error(
-            "github.link_all_repos.orgnanization_missing",
+            f"{integration_name}.link_all_repos.organization_missing",
             extra={"organization_id": organization_id},
         )
-        metrics.incr("github.link_all_repos.error", tags={"type": "missing_organization"})
+        metrics.incr(
+            f"{integration_name}.link_all_repos.error", tags={"type": "missing_organization"}
+        )
         return
 
     installation = integration_service.get_installation(
         integration=integration, organization_id=organization_id
     )
 
-    gh_client = installation.get_client()
+    client = installation.get_client()
 
     try:
-        gh_repositories = gh_client.get_repositories(fetch_max_pages=True)
+        repositories = client.get_repositories(fetch_max_pages=True)
     except ApiError as e:
-        if e.json and RATE_LIMITED_MESSAGE in e.json.get("message", ""):
-            metrics.incr("github.link_all_repos.rate_limited_error")
+        if is_rate_limited_error(e):
             return
 
         metrics.incr("github.link_all_repos.api_error")
@@ -59,7 +64,7 @@ def link_all_repos(integration_id: int, organization_id: int):
     provider_cls = bindings.get(binding_key).get(provider_key)
     provider = provider_cls(id=provider_key)
 
-    for repo in gh_repositories:
+    for repo in repositories:
         try:
             config = {
                 "external_id": repo["id"],
