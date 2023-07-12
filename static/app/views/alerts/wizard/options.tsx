@@ -233,6 +233,8 @@ const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
   ...Object.values(ReplayClickFieldKey),
 ];
 
+// This list matches currently supported tags in metrics extraction defined in
+// https://github.com/getsentry/sentry/blob/2fd2459c274dc81c079fd4c31b2755114602ef7c/src/sentry/snuba/metrics/extraction.py#L42
 export const ON_DEMAND_METRICS_SUPPORTED_TAGS = [
   FieldKey.RELEASE,
   FieldKey.DIST,
@@ -256,7 +258,6 @@ export const ON_DEMAND_METRICS_SUPPORTED_TAGS = [
   FieldKey.OS_NAME,
   FieldKey.OS_KERNEL_VERSION,
   FieldKey.BROWSER_NAME,
-  FieldKey.BROWSER_VERSION,
   FieldKey.TRANSACTION_OP,
   FieldKey.TRANSACTION_STATUS,
   FieldKey.HTTP_STATUS_CODE,

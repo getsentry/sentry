@@ -20,7 +20,6 @@ export enum FieldKey {
   ASSIGNED_OR_SUGGESTED = 'assigned_or_suggested',
   BOOKMARKS = 'bookmarks',
   BROWSER_NAME = 'browser.name',
-  BROWSER_VERSION = 'browser.version',
   CULPRIT = 'culprit',
   DEVICE_ARCH = 'device.arch',
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
@@ -508,11 +507,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.BROWSER_NAME]: {
     desc: t('Name of the browser'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.BROWSER_VERSION]: {
-    desc: t('Version of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
