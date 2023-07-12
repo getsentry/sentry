@@ -1,10 +1,13 @@
 import selectEvent from 'react-select-event';
+import styled from '@emotion/styled';
 import fetchMock from 'jest-fetch-mock';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {makeCloseButton} from 'sentry/components/globalModal/components';
+import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import TicketRuleModal from 'sentry/views/alerts/rules/issue/ticketRuleModal';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -21,8 +24,6 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
   beforeEach(function () {
     fetchMock.enableMocks();
-    fetch.resetMocks();
-    addSuccessMessage.mockReset();
   });
 
   afterEach(function () {
@@ -85,8 +86,8 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
    * We need to use this alternate mocking scheme because `fetch` isn't available.
    * @param names String[]
    */
-  const addMockUsersAPICall = (names = []) => {
-    fetch.mockResponseOnce(
+  const addMockUsersAPICall = (names: string[] = []) => {
+    (fetch as any).mockResponseOnce(
       JSON.stringify(
         names.map(name => {
           return {
@@ -98,8 +99,8 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     );
   };
 
-  const renderComponent = (props = {}) => {
-    const {organization, routerContext} = initializeOrg(props);
+  const renderComponent = (props: Partial<IssueAlertRuleAction> = {}) => {
+    const {organization, routerContext} = initializeOrg();
     addMockConfigsAPICall({
       label: 'Reporter',
       required: true,
@@ -107,10 +108,15 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       type: 'select',
       name: 'reporter',
     });
+
+    const body = styled(c => c.children);
     return render(
       <TicketRuleModal
         {...modalElements}
+        CloseButton={makeCloseButton(() => {})}
         closeModal={closeModal}
+        Body={body()}
+        Footer={body()}
         formFields={{}}
         link=""
         ticketType=""

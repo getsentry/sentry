@@ -1,6 +1,13 @@
+import styled from '@emotion/styled';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {makeCloseButton} from 'sentry/components/globalModal/components';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
+import type {
+  FieldFromSchema,
+  SchemaFormConfig,
+} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 
 describe('SentryAppRuleModal', function () {
   const modalElements = {
@@ -31,8 +38,9 @@ describe('SentryAppRuleModal', function () {
     expect(errors).toHaveLength(errorCount);
   };
 
-  const defaultConfig = {
+  const defaultConfig: SchemaFormConfig = {
     uri: '/integration/test/',
+    description: '',
     required_fields: [
       {
         type: 'text',
@@ -66,7 +74,6 @@ describe('SentryAppRuleModal', function () {
         label: 'Assignee',
         name: 'assignee',
         uri: '/link/assignee/',
-        skip_load_on_open: 'true',
       },
       {
         type: 'select',
@@ -92,15 +99,19 @@ describe('SentryAppRuleModal', function () {
   };
 
   const createWrapper = (props = {}) => {
+    const styledWrapper = styled(c => c.children);
     return render(
       <SentryAppRuleModal
         {...modalElements}
         sentryAppInstallationUuid={sentryAppInstallation.uuid}
         appName={sentryApp.name}
         config={defaultConfig}
-        action="create"
         onSubmitSuccess={() => {}}
         resetValues={resetValues}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => {})}
+        Body={styledWrapper()}
+        Footer={styledWrapper()}
         {...props}
       />
     );
@@ -110,10 +121,12 @@ describe('SentryAppRuleModal', function () {
     it('should render the Alert Rule modal with the config fields', function () {
       createWrapper();
       const {required_fields, optional_fields} = defaultConfig;
-      const allFields = [...required_fields, ...optional_fields];
+      const allFields = [...required_fields!, ...optional_fields!];
 
-      allFields.forEach(field => {
-        expect(screen.getByText(field.label)).toBeInTheDocument();
+      allFields.forEach((field: FieldFromSchema) => {
+        if (typeof field.label === 'string') {
+          expect(screen.getByText(field.label)).toBeInTheDocument();
+        }
       });
     });
 
@@ -141,7 +154,7 @@ describe('SentryAppRuleModal', function () {
       );
       expect(savedExtraDetailsInput).toBeInTheDocument();
       // Ensure select fields are persisted with labels on edit
-      const savedAssigneeInput = screen.getByText(resetValues.settings[1].label);
+      const savedAssigneeInput = screen.getByText(resetValues.settings[1].label!);
       expect(savedAssigneeInput).toBeInTheDocument();
 
       // Ensure async select fields filter correctly

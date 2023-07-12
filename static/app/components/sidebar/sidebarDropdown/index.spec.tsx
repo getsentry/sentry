@@ -3,9 +3,9 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 
-function renderDropdown(props) {
-  const user = ConfigStore.get('user');
-  const config = ConfigStore.get('config');
+function renderDropdown(props: any = {}) {
+  const user = TestStubs.User();
+  const config = TestStubs.Config();
   const organization = TestStubs.Organization({orgRole: 'member'});
   const routerContext = TestStubs.routerContext([
     {
@@ -35,14 +35,16 @@ describe('SidebarDropdown', function () {
     expect(container).toSnapshot();
   });
   it('renders open sidebar', async function () {
-    const config = {...ConfigStore.get('config'), singleOrganization: false};
+    const config = TestStubs.Config({
+      singleOrganization: false,
+    });
     renderDropdown({collapsed: false, config});
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
   it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
-    const config = {...ConfigStore.get('config'), singleOrganization: false};
+    const config = TestStubs.Config({singleOrganization: false});
     renderDropdown({collapsed: false, config});
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.queryByText('Switch organization')).not.toBeInTheDocument();

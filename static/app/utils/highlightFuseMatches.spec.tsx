@@ -1,7 +1,8 @@
+import type {Fuse} from 'sentry/utils/fuzzySearch';
 import highlightFuseMatches, {getFuseMatches} from 'sentry/utils/highlightFuseMatches';
 
 describe('highlightFuseMatches', function () {
-  const matchObj = {
+  const matchObj: Fuse.FuseResultMatch = {
     value: 'Authentication tokens allow you to perform actions',
     indices: [
       [4, 6],

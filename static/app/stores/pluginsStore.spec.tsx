@@ -1,14 +1,9 @@
 import PluginsStore from 'sentry/stores/pluginsStore';
 
 describe('PluginsStore', function () {
-  beforeAll(function () {
-    jest.spyOn(PluginsStore, 'trigger');
-  });
   beforeEach(function () {
-    PluginsStore.trigger.mockReset();
+    jest.resetAllMocks();
   });
-
-  afterEach(function () {});
 
   it('has correct initial state', function () {
     PluginsStore.reset();
@@ -26,17 +21,18 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when all plugins fetched successfully', function () {
+      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: true,
         error: null,
         pageLinks: null,
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: undefined});
 
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: false,
         error: null,
         pageLinks: null,
@@ -45,9 +41,10 @@ describe('PluginsStore', function () {
     });
 
     it('has correct state when error in fetching all plugins', function () {
+      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
 
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: true,
         error: null,
         pageLinks: null,
@@ -56,7 +53,7 @@ describe('PluginsStore', function () {
 
       PluginsStore.onFetchAllError({responseJSON: {message: 'Error'}});
 
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: false,
         error: {responseJSON: {message: 'Error'}},
         pageLinks: null,
@@ -65,17 +62,18 @@ describe('PluginsStore', function () {
     });
 
     it('does not reset loading state on consecutive fetches', function () {
+      const triggerSpy = jest.spyOn(PluginsStore, 'trigger');
       PluginsStore.onFetchAll();
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: true,
         error: null,
         pageLinks: null,
         plugins: [],
       });
 
-      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: null});
+      PluginsStore.onFetchAllSuccess(TestStubs.Plugins(), {pageLinks: undefined});
 
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: false,
         error: null,
         pageLinks: null,
@@ -83,7 +81,7 @@ describe('PluginsStore', function () {
       });
 
       PluginsStore.onFetchAll();
-      expect(PluginsStore.trigger).toHaveBeenCalledWith({
+      expect(triggerSpy).toHaveBeenCalledWith({
         loading: false,
         error: null,
         pageLinks: null,
@@ -164,7 +162,7 @@ describe('PluginsStore', function () {
         name: 'Amazon Sqs',
       });
 
-      PluginsStore.onUpdateError('amazon-sqs');
+      PluginsStore.onUpdateError('amazon-sqs', new Error('error'));
 
       expect(PluginsStore.getState().plugins[0]).toMatchObject({
         id: 'amazon-sqs',

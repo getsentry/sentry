@@ -3,6 +3,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_RELATIVE_BREAKDOWN_FIELD} from 'sentry/utils/discover/fields';
 
@@ -73,7 +74,7 @@ describe('getFieldRenderer', function () {
 
   it('can render string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText(data.url)).toBeInTheDocument();
   });
@@ -81,39 +82,42 @@ describe('getFieldRenderer', function () {
   it('can render empty string fields', function () {
     const renderer = getFieldRenderer('url', {url: 'string'});
     data.url = '';
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
   it('can render boolean fields', function () {
     const renderer = getFieldRenderer('boolValue', {boolValue: 'boolean'});
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText('true')).toBeInTheDocument();
   });
 
   it('can render integer fields', function () {
     const renderer = getFieldRenderer('numeric', {numeric: 'integer'});
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
   });
 
   describe('date', function () {
     beforeEach(function () {
-      ConfigStore.loadInitialData({
-        user: {
-          options: {
-            timezone: 'America/Los_Angeles',
-          },
-        },
-      });
+      ConfigStore.loadInitialData(
+        TestStubs.Config({
+          user: TestStubs.User({
+            options: {
+              ...TestStubs.User().options,
+              timezone: 'America/Los_Angeles',
+            },
+          }),
+        })
+      );
     });
 
     it('can render date fields', function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
-      render(renderer(data, {location, organization}));
+      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
       expect(screen.getByText('Oct 3, 2019 9:13:14 AM PDT')).toBeInTheDocument();
     });
@@ -121,7 +125,10 @@ describe('getFieldRenderer', function () {
     it('can render date fields using utc when query string has utc set to true', function () {
       const renderer = getFieldRenderer('createdAt', {createdAt: 'date'});
       render(
-        renderer(data, {location: {...location, query: {utc: 'true'}}, organization})
+        renderer(data, {
+          location: {...location, query: {utc: 'true'}},
+          organization,
+        }) as React.ReactElement<any, any>
       );
 
       expect(screen.getByText('Oct 3, 2019 4:13:14 PM UTC')).toBeInTheDocument();
@@ -130,22 +137,26 @@ describe('getFieldRenderer', function () {
 
   it('can render null date fields', function () {
     const renderer = getFieldRenderer('nope', {nope: 'date'});
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
 
   it('can render timestamp.to_day', function () {
     // Set timezone
-    ConfigStore.loadInitialData({
-      user: {
-        options: {
-          timezone: 'America/Los_Angeles',
-        },
-      },
-    });
+    ConfigStore.loadInitialData(
+      TestStubs.Config({
+        user: TestStubs.User({
+          options: {
+            ...TestStubs.User().options,
+            timezone: 'America/Los_Angeles',
+          },
+        }),
+      })
+    );
+
     const renderer = getFieldRenderer('timestamp.to_day', {'timestamp.to_day': 'date'});
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText('Sep 5, 2021')).toBeInTheDocument();
   });
@@ -155,7 +166,10 @@ describe('getFieldRenderer', function () {
 
     function validate(value, expectText) {
       const {unmount} = render(
-        renderer({'error.handled': value}, {location, organization})
+        renderer(
+          {'error.handled': value},
+          {location, organization}
+        ) as React.ReactElement<any, any>
       );
       expect(screen.getByText(expectText)).toBeInTheDocument();
       unmount();
@@ -183,7 +197,7 @@ describe('getFieldRenderer', function () {
   it('can render user fields with aliased user', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByText('text@example.com')).toBeInTheDocument();
@@ -193,7 +207,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('user', {user: 'string'});
 
     delete data.user;
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
     expect(screen.getByText('(no value)')).toBeInTheDocument();
@@ -203,7 +217,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     delete data.release;
-    render(renderer(data, {location, organization}));
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText('(no value)')).toBeInTheDocument();
   });
@@ -211,7 +225,7 @@ describe('getFieldRenderer', function () {
   it('renders release version with hyperlink', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -225,7 +239,7 @@ describe('getFieldRenderer', function () {
   it('renders issue hyperlink', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -239,7 +253,7 @@ describe('getFieldRenderer', function () {
   it('can render project as an avatar', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -252,7 +266,7 @@ describe('getFieldRenderer', function () {
 
     data = {...data, project: parseInt(project.id, 10)};
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -265,7 +279,7 @@ describe('getFieldRenderer', function () {
       team_key_transaction: 'boolean',
     });
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -282,7 +296,7 @@ describe('getFieldRenderer', function () {
     });
     delete data.project;
 
-    render(renderer(data, {location, organization}), {
+    render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
       context: context.routerContext,
     });
 
@@ -294,8 +308,8 @@ describe('getFieldRenderer', function () {
 
   describe('ops breakdown', () => {
     const getWidths = () =>
-      [...screen.getByTestId('relative-ops-breakdown').children].map(
-        node => node.style.width
+      Array.from(screen.getByTestId('relative-ops-breakdown').children).map(
+        node => (node as HTMLElement).style.width
       );
 
     it('can render operation breakdowns', function () {
@@ -303,7 +317,7 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      render(renderer(data, {location, organization}), {
+      render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
         context: context.routerContext,
       });
 
@@ -319,8 +333,23 @@ describe('getFieldRenderer', function () {
         renderer(data, {
           location,
           organization,
-          eventView: {sorts: [{field: 'spans.db'}]},
-        }),
+          eventView: new EventView({
+            sorts: [{field: 'spans.db', kind: 'desc'}],
+            createdBy: TestStubs.User(),
+            display: undefined,
+            end: undefined,
+            start: undefined,
+            id: undefined,
+            name: undefined,
+            project: [],
+            query: '',
+            statsPeriod: undefined,
+            environment: [],
+            fields: [{field: 'spans.db'}],
+            team: [],
+            topEvents: undefined,
+          }),
+        }) as React.ReactElement<any, any>,
         {context: context.routerContext}
       );
 

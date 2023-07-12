@@ -14,8 +14,12 @@ const addMock = body =>
     body,
   });
 
-const getJoinButton = () =>
-  screen.queryByRole('button', {name: 'Join the org-slug organization'});
+const getJoinButton = () => {
+  const maybeButton = screen.queryByRole('button', {
+    name: 'Join the org-slug organization',
+  });
+  return maybeButton;
+};
 
 describe('AcceptOrganizationInvite', function () {
   const organization = TestStubs.Organization({slug: 'org-slug'});
@@ -37,6 +41,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -48,22 +53,23 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    await userEvent.click(joinButton);
+    await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
     expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
   it('can accept invitation on customer-domains', async function () {
-    window.__initialData = {
+    window.__initialData = TestStubs.Config({
       customerDomain: {
         subdomain: 'org-slug',
         organizationUrl: 'https://org-slug.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
       links: {
+        ...(window.__initialData?.links ?? {}),
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
 
     addMock({
       orgSlug: organization.slug,
@@ -74,7 +80,12 @@ describe('AcceptOrganizationInvite', function () {
       existingMember: false,
     });
 
-    render(<AcceptOrganizationInvite params={{memberId: '1', token: 'abc'}} />);
+    render(
+      <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
+        params={{memberId: '1', token: 'abc'}}
+      />
+    );
 
     const acceptMock = MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -83,7 +94,7 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    await userEvent.click(joinButton);
+    await userEvent.click(joinButton!);
     expect(acceptMock).toHaveBeenCalled();
     expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
@@ -100,6 +111,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -130,6 +142,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -161,6 +174,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -192,6 +206,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -223,6 +238,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -248,6 +264,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -269,6 +286,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );
@@ -292,6 +310,7 @@ describe('AcceptOrganizationInvite', function () {
 
     render(
       <AcceptOrganizationInvite
+        {...TestStubs.routeComponentProps()}
         params={{orgId: 'org-slug', memberId: '1', token: 'abc'}}
       />
     );

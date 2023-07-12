@@ -1,6 +1,7 @@
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
+  ColumnValueType,
   explodeField,
   fieldAlignment,
   generateAggregateFields,
@@ -325,13 +326,12 @@ describe('fieldAlignment()', function () {
   it('works with type parameter', function () {
     expect(fieldAlignment('transaction.duration', 'duration')).toEqual('right');
     expect(fieldAlignment('device.battery_level', 'number')).toEqual('right');
-    expect(fieldAlignment('min(timestamp)', 'datetime')).toEqual('left');
+    expect(fieldAlignment('min(timestamp)', 'date')).toEqual('left');
   });
 
   it('can use table metadata', function () {
-    const meta = {
+    const meta: Record<string, ColumnValueType> = {
       'transaction.duration': 'duration',
-      title: 'string',
     };
     expect(fieldAlignment('transaction.duration', 'never', meta)).toEqual('right');
     expect(fieldAlignment('transaction.duration', undefined, meta)).toEqual('right');

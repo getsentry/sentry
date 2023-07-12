@@ -1,10 +1,28 @@
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {createRuleFromEventView} from 'sentry/views/alerts/rules/metric/constants';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 describe('createRuleFromEventView()', () => {
+  const commonEventViewProps: EventViewOptions = {
+    createdBy: TestStubs.User(),
+    id: '',
+    name: '',
+    start: '',
+    end: '',
+    environment: [],
+    project: [],
+    fields: [],
+    query: '',
+    topEvents: undefined,
+    display: undefined,
+    sorts: [],
+    team: [],
+    statsPeriod: '14d',
+  };
+
   it('sets transaction dataset from event.type:transaction', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       query: 'title:"nothing" event.type:transaction',
     });
 
@@ -13,6 +31,7 @@ describe('createRuleFromEventView()', () => {
   });
   it('sets error dataset from event.type:error', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       query: 'title:"nothing" event.type:error',
     });
 
@@ -22,6 +41,7 @@ describe('createRuleFromEventView()', () => {
   });
   it('removes event.type from query', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       query: 'title:"nothing" event.type:error',
     });
 
@@ -30,6 +50,7 @@ describe('createRuleFromEventView()', () => {
   });
   it('gets environment from EventView', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       environment: ['beta'],
     });
 
@@ -38,6 +59,7 @@ describe('createRuleFromEventView()', () => {
   });
   it('gets aggregate from EventView.yAxis', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       yAxis: 'count_unique(user)',
     });
 
@@ -46,6 +68,7 @@ describe('createRuleFromEventView()', () => {
   });
   it('gets dataset and eventtypes from query', () => {
     const eventView = new EventView({
+      ...commonEventViewProps,
       query: 'event.type:error or event.type:default something',
     });
 
@@ -56,8 +79,12 @@ describe('createRuleFromEventView()', () => {
   it('allows pXX transaction querys', () => {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
+      name: '',
+      dateCreated: '',
+      dateUpdated: '',
+      version: 1,
       query: 'event.type:transaction',
-      yAxis: 'p95()',
+      yAxis: ['p95()'],
       fields: ['p95()'],
     });
 
