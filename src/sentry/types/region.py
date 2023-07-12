@@ -104,14 +104,20 @@ class GlobalRegionDirectory:
     """The set of all regions in this Sentry platform instance."""
 
     def __init__(self, regions: Collection[Region]) -> None:
-        if not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
+        if not regions:
             default_monolith_region = Region(
                 name=settings.SENTRY_MONOLITH_REGION,
                 snowflake_id=0,
                 address="/",
                 category=RegionCategory.MULTI_TENANT,
             )
-            regions = [default_monolith_region, *regions]
+            regions = [default_monolith_region]
+        elif not any(r.name == settings.SENTRY_MONOLITH_REGION for r in regions):
+            raise RegionConfigurationError(
+                "The SENTRY_MONOLITH_REGION setting must point to a region name "
+                f"({settings.SENTRY_MONOLITH_REGION=!r}; "
+                f"region names = {[r.name for r in regions]!r})"
+            )
 
         self.regions = frozenset(regions)
         self.by_name = {r.name: r for r in self.regions}
