@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
-import Link from 'sentry/components/links/link';
 import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconFire} from 'sentry/icons';
+import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import theme from 'sentry/utils/theme';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -56,8 +57,13 @@ type ExplorerBodyProps = {
 };
 
 type HeaderProps = {
+  organization: Organization;
+  projects: Project[];
   transaction: NormalizedTrendsTransaction;
   trendChangeType: TrendChangeType;
+  trendFunction: string;
+  trendParameter: TrendParameter;
+  trendView: TrendView;
 };
 
 export function PerformanceChangeExplorer({
@@ -116,7 +122,15 @@ function ExplorerBody(props: ExplorerBodyProps) {
   const end = moment(trendView.end).format('DD MMM YYYY HH:mm:ss z');
   return (
     <Fragment>
-      <Header transaction={transaction} trendChangeType={trendChangeType} />
+      <Header
+        transaction={transaction}
+        trendChangeType={trendChangeType}
+        trendView={trendView}
+        projects={projects}
+        organization={organization}
+        trendFunction={trendFunction}
+        trendParameter={trendParameter}
+      />
       <div style={{display: 'flex', gap: space(4)}}>
         <InfoItem
           label={
@@ -157,18 +171,6 @@ function ExplorerBody(props: ExplorerBodyProps) {
         trendView={trendView}
         organization={organization}
       />
-      <Link
-        to={getTransactionSummaryLink(
-          trendView,
-          transaction,
-          projects,
-          organization,
-          trendFunction,
-          trendParameter
-        )}
-      >
-        {t('View transaction summary')}
-      </Link>
     </Fragment>
   );
 }
@@ -183,9 +185,25 @@ function InfoItem({label, value}: {label: string; value: string}) {
 }
 
 function Header(props: HeaderProps) {
-  const {transaction, trendChangeType} = props;
+  const {
+    transaction,
+    trendChangeType,
+    trendView,
+    projects,
+    organization,
+    trendFunction,
+    trendParameter,
+  } = props;
 
   const regression = trendChangeType === TrendChangeType.REGRESSION;
+  const next = getTransactionSummaryLink(
+    trendView,
+    transaction,
+    projects,
+    organization,
+    trendFunction,
+    trendParameter
+  );
 
   return (
     <HeaderWrapper data-test-id="pce-header">
@@ -196,7 +214,15 @@ function Header(props: HeaderProps) {
         <ChangeType regression={regression}>
           {regression ? t('Ongoing Regression') : t('Ongoing Improvement')}
         </ChangeType>
-        <TransactionName>{transaction.transaction}</TransactionName>
+        <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
+          <TransactionName>{transaction.transaction}</TransactionName>
+          <IconOpen
+            onClick={e => {
+              e.stopPropagation();
+              browserHistory.push(normalizeUrl(next));
+            }}
+          />
+        </div>
       </HeaderTextWrapper>
     </HeaderWrapper>
   );
@@ -257,6 +283,7 @@ const FireIcon = styled('div')<ChangeTypeProps>`
 
 const TransactionName = styled('h4')`
   margin-right: ${space(1)};
+  margin-bottom: ${space(0)};
   ${p => p.theme.overflowEllipsis};
 `;
 const InfoLabel = styled('strong')`
