@@ -4,7 +4,7 @@ import logging
 from typing import Sequence
 
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
-from sentry.integrations.pagerduty.client import PagerDutyClient
+from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.models import PagerDutyService
 from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.client.proxy import infer_org_integration
@@ -56,7 +56,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                 org_integration_id = infer_org_integration(
                     integration_id=service.integration_id, ctx_logger=logger
                 )
-            client = PagerDutyClient(
+            client = PagerDutyProxyClient(
                 org_integration_id=org_integration_id,
                 integration_key=service.integration_key,
             )

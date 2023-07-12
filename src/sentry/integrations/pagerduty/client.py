@@ -16,7 +16,7 @@ LEVEL_SEVERITY_MAP = {
 }
 
 
-class PagerDutyClient(IntegrationProxyClient):
+class PagerDutyProxyClient(IntegrationProxyClient):
     allow_redirects = False
     integration_name = "pagerduty"
     base_url = "https://events.pagerduty.com/v2/enqueue"

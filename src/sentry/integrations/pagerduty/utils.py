@@ -9,7 +9,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -75,7 +75,7 @@ def send_incident_alert_notification(
     else:
         org_integration_id = org_integration.id
     integration_key = service.integration_key
-    client = PagerDutyClient(org_integration_id=org_integration_id, integration_key=integration_key)
+    client = PagerDutyProxyClient(org_integration_id=org_integration_id, integration_key=integration_key)
     attachment = build_incident_attachment(incident, integration_key, new_status, metric_value)
     try:
         client.send_trigger(attachment)

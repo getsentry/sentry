@@ -8,7 +8,7 @@ from django.test import override_settings
 from responses import matchers
 
 from sentry.api.serializers import ExternalEventSerializer, serialize
-from sentry.integrations.pagerduty.client import PagerDutyClient
+from sentry.integrations.pagerduty.client import PagerDutyProxyClient
 from sentry.models import Integration, PagerDutyService
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
@@ -28,7 +28,7 @@ SERVICES = [
 ]
 
 
-class PagerDutyClientTest(APITestCase):
+class PagerDutyProxyClientTest(APITestCase):
     provider = "pagerduty"
 
     @pytest.fixture(autouse=True)
@@ -181,7 +181,7 @@ class PagerDutyProxyApiClientTest(APITestCase):
             ],
         )
 
-        class PagerDutyProxyApiTestClient(PagerDutyClient):
+        class PagerDutyProxyApiTestClient(PagerDutyProxyClient):
             _use_proxy_url_for_tests = True
 
         event = self.store_event(

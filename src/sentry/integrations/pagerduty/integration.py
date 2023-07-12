@@ -23,7 +23,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
-from .client import PagerDutyClient
+from .client import PagerDutyProxyClient
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
@@ -66,7 +66,7 @@ metadata = IntegrationMetadata(
 
 class PagerDutyIntegration(IntegrationInstallation):
     def get_client(self, integration_key):
-        return PagerDutyClient(
+        return PagerDutyProxyClient(
             org_integration_id=self.org_integration.id,
             integration_key=integration_key,
         )
