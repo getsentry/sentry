@@ -11,7 +11,7 @@ import TableView from 'sentry/views/discover/table/tableView';
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
-  const location = {
+  const location = TestStubs.location({
     pathname: '/organizations/org-slug/discover/results/',
     query: {
       id: '42',
@@ -26,12 +26,12 @@ describe('TableView > CellActions', function () {
       ],
       sort: ['title'],
       query: '',
-      project: [123],
+      project: ['123'],
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'p95',
     },
-  };
+  });
   const eventView = EventView.fromLocation(location);
 
   function renderComponent(context, tableData, view) {
@@ -41,9 +41,13 @@ describe('TableView > CellActions', function () {
         location={location}
         eventView={view}
         isLoading={false}
-        projects={context.organization.projects}
         tableData={tableData}
         onChangeShowTags={onChangeShowTags}
+        isFirstPage={false}
+        error={null}
+        title=""
+        measurementKeys={null}
+        showTags={false}
       />,
       {context: context.routerContext}
     );
@@ -57,9 +61,6 @@ describe('TableView > CellActions', function () {
   }
 
   beforeEach(function () {
-    browserHistory.push.mockReset();
-    browserHistory.replace.mockReset();
-
     const organization = TestStubs.Organization({
       features: ['discover-basic'],
       projects: [TestStubs.Project()],
@@ -73,9 +74,9 @@ describe('TableView > CellActions', function () {
       ProjectsStore.loadInitialData(initialData.organization.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
-        {name: 'size', key: 'size', count: 1},
-        {name: 'shape', key: 'shape', count: 1},
-        {name: 'direction', key: 'direction', count: 1},
+        {name: 'size', key: 'size'},
+        {name: 'shape', key: 'shape'},
+        {name: 'direction', key: 'direction'},
       ]);
     });
 
@@ -361,6 +362,7 @@ describe('TableView > CellActions', function () {
         tableData={{
           data: [
             {
+              id: '1',
               title: '/random/transaction/name',
               'p99(measurements.custom.kibibyte)': 222.3,
               'p99(measurements.custom.kilobyte)': 444.3,
@@ -371,7 +373,6 @@ describe('TableView > CellActions', function () {
             'p99(measurements.custom.kibibyte)': 'size',
             'p99(measurements.custom.kilobyte)': 'size',
             units: {
-              title: null,
               'p99(measurements.custom.kibibyte)': 'kibibyte',
               'p99(measurements.custom.kilobyte)': 'kilobyte',
             },
@@ -404,15 +405,19 @@ describe('TableView > CellActions', function () {
         tableData={{
           data: [
             {
+              id: '1',
               title: '/random/transaction/name',
               'p99(measurements.custom.kilobyte)': 444.3,
             },
           ],
+          // the types defined here are a mix of Record<string, ColumnType> & Record<string, Record<string, type>>
+          // which means that we cannot use the secondary Record<string> type to define the units as the ColumnType narrows
+          // down to a string literal type. We need to use the Record<string, Record<string, type>> type to define the units
+          // @ts-expect-error
           meta: {
             title: 'string',
             'p99(measurements.custom.kilobyte)': 'size',
             units: {
-              title: null,
               'p99(measurements.custom.kilobyte)': 'kilobyte',
             },
           },
@@ -420,10 +425,10 @@ describe('TableView > CellActions', function () {
         onChangeShowTags={onChangeShowTags}
       />
     );
-    await userEvent.hover(screen.getByText('444.3 KB'));
+    await userEvent.hover(screen.getByText(/444\.3 KB/));
     const buttons = screen.getAllByRole('button');
     await userEvent.click(buttons[buttons.length - 1]);
-    await userEvent.click(screen.getByText('Show values less than'));
+    await userEvent.click(screen.getByText(/Show values less than/));
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({
