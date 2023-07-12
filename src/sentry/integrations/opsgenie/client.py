@@ -29,4 +29,4 @@ class OpsgenieProxySetupClient(IntegrationProxyClient):
 
     def get_account(self):
         headers = {"Authorization": "GenieKey " + self.api_key}
-        return self._request(path="/account", method="get", headers=headers)
+        return self.get(path="/account", headers=headers)
