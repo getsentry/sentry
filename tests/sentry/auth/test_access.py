@@ -544,7 +544,7 @@ class FromRequestTest(AccessFactoryTestCase):
 
     def test_member_role_in_organization_closed_membership(self):
         # disable default allow_joinleave
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.update(flags=0)
         member_user = self.create_user(is_superuser=False)
         self.create_member(
@@ -568,7 +568,7 @@ class FromRequestTest(AccessFactoryTestCase):
         assert not result.has_project_access(self.project2)
 
     def test_member_role_in_organization_open_membership(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode(SiloMode.REGION):
             self.org.flags.allow_joinleave = True
             self.org.save()
         member_user = self.create_user(is_superuser=False)
