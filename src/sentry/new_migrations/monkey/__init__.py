@@ -79,4 +79,4 @@ def monkey_migrations():
     executor.MigrationExecutor = SentryMigrationExecutor
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
-    models.Field.deconstruct = deconstruct
+    models.Field.deconstruct = deconstruct  # type: ignore[method-assign]

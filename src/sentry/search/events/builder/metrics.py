@@ -105,9 +105,9 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
         try:
             return OndemandMetricSpec(field, query)
-
         except Exception as e:
             sentry_sdk.capture_exception(e)
+            return None
 
     def _get_on_demand_metrics_query(self) -> Optional[MetricsQuery]:
         if not self.is_performance or not self.is_alerts_query:
