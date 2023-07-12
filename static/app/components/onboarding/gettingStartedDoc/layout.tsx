@@ -10,9 +10,11 @@ import {
   ProductSelection,
   ProductSolution,
 } from 'sentry/components/onboarding/productSelection';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ProductSelectionAvailabilityHook = HookOrDefault({
@@ -29,15 +31,21 @@ export type LayoutProps = {
   steps: StepProps[];
   newOrg?: boolean;
   nextSteps?: NextStep[];
+  platformKey?: PlatformKey;
 };
 
-export function Layout({steps, nextSteps = [], newOrg}: LayoutProps) {
+export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps) {
   const organization = useOrganization();
   const {isSelfHosted} = useLegacyStore(ConfigStore);
 
+  const isJavaScriptPlatform =
+    platformKey === 'javascript' || !!platformKey?.match('^javascript-([A-Za-z]+)$');
+
+  const displayProductSelection = !isSelfHosted && isJavaScriptPlatform;
+
   return (
     <Wrapper>
-      {!isSelfHosted && newOrg && (
+      {displayProductSelection && newOrg && (
         <ProductSelection
           defaultSelectedProducts={[
             ProductSolution.PERFORMANCE_MONITORING,
@@ -45,10 +53,10 @@ export function Layout({steps, nextSteps = [], newOrg}: LayoutProps) {
           ]}
         />
       )}
-      {!isSelfHosted && !newOrg && (
+      {displayProductSelection && !newOrg && (
         <ProductSelectionAvailabilityHook organization={organization} />
       )}
-      <Steps>
+      <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (
           <Step key={step.type} {...step} />
         ))}
@@ -79,10 +87,11 @@ const Divider = styled('hr')`
   border: none;
 `;
 
-const Steps = styled('div')`
+const Steps = styled('div')<{withTopSpacing?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  ${p => p.withTopSpacing && `margin-top: ${space(3)}`}
 `;
 
 const Wrapper = styled('div')`

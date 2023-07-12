@@ -1,4 +1,5 @@
 import {Layout, LayoutProps} from 'sentry/components/onboarding/gettingStartedDoc/layout';
+import {ModuleProps} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
@@ -33,13 +34,13 @@ export const steps = ({
   sentryInitContent?: string;
 } = {}): LayoutProps['steps'] => [
   {
-    language: 'bash',
     type: StepType.INSTALL,
     description: t(
       'Sentry captures data by using an SDK within your application’s runtime.'
     ),
     configurations: [
       {
+        language: 'bash',
         code: `
         # Using yarn
         yarn add @sentry/gatsby
@@ -51,7 +52,6 @@ export const steps = ({
     ],
   },
   {
-    language: 'javascript',
     type: StepType.CONFIGURE,
     configurations: [
       {
@@ -65,6 +65,7 @@ export const steps = ({
             )}
           </div>
         ),
+        language: 'javascript',
         code: `
         module.exports = {
           plugins: [
@@ -79,6 +80,7 @@ export const steps = ({
         description: (
           <div>{tct('Then, configure your [code:Sentry.init]:', {code: <code />})}</div>
         ),
+        language: 'javascript',
         code: `
         import * as Sentry from "@sentry/gatsby";
 
@@ -97,13 +99,13 @@ export const steps = ({
     'https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/'
   ),
   {
-    language: 'javascript',
     type: StepType.VERIFY,
     description: t(
       "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
     ),
     configurations: [
       {
+        language: 'javascript',
         code: 'myUndefinedFunction();',
       },
     ],
@@ -130,17 +132,11 @@ export const nextSteps = [
 ];
 // Configuration End
 
-type Props = {
-  activeProductSelection: ProductSolution[];
-  dsn: string;
-  newOrg?: boolean;
-};
-
-export default function GettingStartedWithReact({
+export function GettingStartedWithGatsby({
   dsn,
-  activeProductSelection,
-  newOrg,
-}: Props) {
+  activeProductSelection = [],
+  ...props
+}: ModuleProps) {
   const integrations: string[] = [];
   const otherConfigs: string[] = [];
   let nextStepDocs = [...nextSteps];
@@ -175,7 +171,9 @@ export default function GettingStartedWithReact({
     <Layout
       steps={steps({sentryInitContent: sentryInitContent.join('\n')})}
       nextSteps={nextStepDocs}
-      newOrg={newOrg}
+      {...props}
     />
   );
 }
+
+export default GettingStartedWithGatsby;
