@@ -87,10 +87,12 @@ describe('Discover > QueryList', function () {
   it('renders an empty list', function () {
     render(
       <QueryList
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={[]}
         savedQuerySearchQuery="no matches"
         pageLinks=""
+        renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
       />
@@ -102,6 +104,8 @@ describe('Discover > QueryList', function () {
   it('renders pre-built queries and saved ones', function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries}
         renderPrebuilt
@@ -117,16 +121,19 @@ describe('Discover > QueryList', function () {
   it('can duplicate and trigger change callback', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
+        renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
       />
     );
 
-    const card = screen.getAllByTestId(/card-*/).at(0);
-    const withinCard = within(card);
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card!);
     expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
@@ -146,6 +153,9 @@ describe('Discover > QueryList', function () {
   it('can delete and trigger change callback', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        renderPrebuilt={false}
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
@@ -155,7 +165,7 @@ describe('Discover > QueryList', function () {
     );
 
     const card = screen.getAllByTestId(/card-*/).at(1);
-    const withinCard = within(card);
+    const withinCard = within(card!);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
@@ -170,16 +180,19 @@ describe('Discover > QueryList', function () {
   it('redirects to Discover on card click', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries}
         pageLinks=""
+        renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
       />,
       {context: routerContext}
     );
 
-    await userEvent.click(screen.getAllByTestId(/card-*/).at(0));
+    await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
     expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/discover/results/',
       query: {id: '1', statsPeriod: '14d'},
@@ -189,8 +202,11 @@ describe('Discover > QueryList', function () {
   it('can redirect on last query deletion', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
+        renderPrebuilt={false}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
@@ -198,8 +214,8 @@ describe('Discover > QueryList', function () {
       {context: routerContext}
     );
 
-    const card = screen.getAllByTestId(/card-*/).at(0);
-    const withinCard = within(card);
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card!);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
     await userEvent.click(withinCard.getByText('Delete Query'));
@@ -222,16 +238,19 @@ describe('Discover > QueryList', function () {
 
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={featuredOrganization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
         onQueryChange={queryChangeMock}
+        renderPrebuilt={false}
         location={location}
       />
     );
 
-    const card = screen.getAllByTestId(/card-*/).at(0);
-    const withinCard = within(card);
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card!);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
@@ -250,16 +269,19 @@ describe('Discover > QueryList', function () {
   it('only renders Delete Query and Duplicate Query in context menu', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
         pageLinks=""
+        renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
       />
     );
 
-    const card = screen.getAllByTestId(/card-*/).at(0);
-    const withinCard = within(card);
+    const card = screen.getAllByTestId(/card-*/).at(0)!;
+    const withinCard = within(card!);
 
     await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
@@ -287,9 +309,12 @@ describe('Discover > QueryList', function () {
 
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={featuredOrganization}
         savedQueries={[savedQueryWithMultiYAxis]}
         pageLinks=""
+        renderPrebuilt={false}
         onQueryChange={queryChangeMock}
         location={location}
       />
@@ -310,8 +335,11 @@ describe('Discover > QueryList', function () {
   it('Set as Default updates the homepage query', async function () {
     render(
       <QueryList
+        savedQuerySearchQuery=""
+        router={TestStubs.router()}
         organization={organization}
         savedQueries={savedQueries.slice(1)}
+        renderPrebuilt={false}
         pageLinks=""
         onQueryChange={queryChangeMock}
         location={location}
@@ -335,7 +363,10 @@ describe('Discover > QueryList', function () {
       });
       render(
         <QueryList
+          savedQuerySearchQuery=""
+          router={TestStubs.router()}
           organization={featuredOrganization}
+          renderPrebuilt={false}
           savedQueries={[
             TestStubs.DiscoverSavedQuery({
               display: DisplayModes.TOP5,
@@ -398,6 +429,9 @@ describe('Discover > QueryList', function () {
       });
       render(
         <QueryList
+          savedQuerySearchQuery=""
+          router={TestStubs.router()}
+          renderPrebuilt={false}
           organization={featuredOrganization}
           savedQueries={[
             TestStubs.DiscoverSavedQuery({
