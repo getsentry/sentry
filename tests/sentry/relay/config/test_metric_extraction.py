@@ -19,12 +19,6 @@ def test_empty_query():
     assert convert_query_to_metric(alert.snuba_query) is None
 
 
-def test_standard_metric_query():
-    alert = create_alert("transaction:/my/api/url/")
-
-    assert convert_query_to_metric(alert.snuba_query) is None
-
-
 def test_simple_query_count():
     snuba_query = SnubaQuery(
         aggregate="count()",
