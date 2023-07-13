@@ -112,41 +112,39 @@ def provision_middleware():
 
 @override_settings(ROOT_URLCONF=__name__)
 class ApiGatewayTestCase(APITestCase):
-    _REGION_CONFIG = [
-        Region(
-            name="region1",
-            snowflake_id=1,
-            address="http://region1.testserver",
-            category=RegionCategory.MULTI_TENANT,
-        ),
-    ]
+    _REGION = Region(
+        name="region1",
+        snowflake_id=1,
+        address="http://region1.testserver",
+        category=RegionCategory.MULTI_TENANT,
+    )
 
     def setUp(self):
         super().setUp()
         clear_global_regions()
         responses.add(
             responses.GET,
-            "http://region1.testserver/get",
+            f"{self._REGION.address}/get",
             body=json.dumps({"proxy": True}),
             content_type="application/json",
             adding_headers={"test": "header"},
         )
         responses.add(
             responses.GET,
-            "http://region1.testserver/error",
+            f"{self._REGION.address}/error",
             body=json.dumps({"proxy": True}),
             status=400,
             content_type="application/json",
             adding_headers={"test": "header"},
         )
 
-        with override_regions(self._REGION_CONFIG), override_settings(
-            SILO_MODE=SiloMode.REGION, SENTRY_REGION=self._REGION_CONFIG[0].name
+        with override_regions([self._REGION]), override_settings(
+            SILO_MODE=SiloMode.REGION, SENTRY_REGION=self._REGION.name
         ):
             self.organization = self.create_organization()
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             OrganizationMapping.objects.get(organization_id=self.organization.id).update(
-                region_name="region1"
+                region_name=self._REGION.name
             )
 
         # Echos the request body and header back for verification
@@ -158,18 +156,13 @@ class ApiGatewayTestCase(APITestCase):
             params = parse_qs(request.url.split("?")[1])
             return (200, request.headers, json.dumps(params).encode())
 
-        responses.add_callback(
-            responses.GET, "http://region1.testserver/echo", return_request_params
-        )
-
-        responses.add_callback(
-            responses.POST, "http://region1.testserver/echo", return_request_body
-        )
+        responses.add_callback(responses.GET, f"{self._REGION.address}/echo", return_request_params)
+        responses.add_callback(responses.POST, f"{self._REGION.address}/echo", return_request_body)
 
         self.middleware = provision_middleware()
 
     def run(
         self, result: unittest.result.TestResult | None = ...
     ) -> unittest.result.TestResult | None:
-        with override_regions(self._REGION_CONFIG):
+        with override_regions([self._REGION]):
             return super().run(result)
