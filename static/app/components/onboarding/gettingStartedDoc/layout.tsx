@@ -58,7 +58,7 @@ export function Layout({steps, platformKey, nextSteps = [], newOrg}: LayoutProps
       )}
       <Steps withTopSpacing={!displayProductSelection && newOrg}>
         {steps.map(step => (
-          <Step key={step.type} {...step} />
+          <Step key={step.title ?? step.type} {...step} />
         ))}
       </Steps>
       {nextSteps.length > 0 && (
@@ -98,7 +98,12 @@ const Wrapper = styled('div')`
   h4 {
     margin-bottom: 0.5em;
   }
-  p {
-    margin-bottom: 1em;
+  && {
+    p {
+      margin-bottom: 0;
+    }
+    h5 {
+      margin-bottom: 0;
+    }
   }
 `;
