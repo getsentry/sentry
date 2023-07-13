@@ -1651,6 +1651,8 @@ SENTRY_FEATURES = {
     "projects:custom-inbound-filters": False,
     # Enable indexing of artifact bundles for sourcemaps.
     "organizations:sourcemaps-bundle-indexing": False,
+    # Enable the new flat file indexing system for sourcemaps.
+    "organizations:sourcemaps-bundle-flat-file-indexing": False,
     # Enable data forwarding functionality for projects.
     "projects:data-forwarding": True,
     # Enable functionality to discard groups.

@@ -455,6 +455,24 @@ class ArtifactBundlePostAssembler(PostAssembler):
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
+        # We want to run the new indexing together with the old one, just to measure its performance.
+        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
+            with metrics.timer("tasks.assemble.artifact_bundle_new"):
+                self._create_artifact_bundle_new()
+
+    def _create_artifact_bundle_new(self):
+        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
+        # contents.
+        self.release = self.release or self.archive.manifest.get("release")
+        self.dist = self.dist or self.archive.manifest.get("dist")
+
+        # We take a snapshot in time in order to have consistent values in the database.
+        date_snapshot = timezone.now()
+
+        bundle_id = self.archive.extract_bundle_id()
+
+        self._bind_or_create_artifact_bundle(bundle_id=bundle_id, date_added=date_snapshot)
+
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.

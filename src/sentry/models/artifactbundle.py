@@ -343,7 +343,7 @@ class ArtifactBundleArchive:
         #
         # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
         # ReleaseArtifactBundle table.
-        bundle_id = self._extract_bundle_id()
+        bundle_id = self.extract_bundle_id()
 
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
@@ -361,7 +361,7 @@ class ArtifactBundleArchive:
 
         return bundle_id, debug_ids_with_types
 
-    def _extract_bundle_id(self):
+    def extract_bundle_id(self):
         bundle_id = self.manifest.get("debug_id")
 
         if bundle_id is not None:
