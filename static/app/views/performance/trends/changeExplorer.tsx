@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment';
 
+import {Button} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/organizations/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
@@ -215,12 +215,15 @@ function Header(props: HeaderProps) {
           {regression ? t('Ongoing Regression') : t('Ongoing Improvement')}
         </ChangeType>
         <div style={{display: 'flex', alignItems: 'center', marginBottom: space(3)}}>
-          <TransactionName>{transaction.transaction}</TransactionName>
-          <IconOpen
-            onClick={e => {
-              e.stopPropagation();
-              browserHistory.push(normalizeUrl(next));
-            }}
+          <TransactionName style={{width: 'fit-content'}}>
+            {transaction.transaction}
+          </TransactionName>
+          <Button
+            style={{padding: space(0), height: 'min-content', minHeight: '0px'}}
+            borderless
+            to={normalizeUrl(next)}
+            icon={<IconOpen />}
+            aria-label={t('View transaction summary')}
           />
         </div>
       </HeaderTextWrapper>
