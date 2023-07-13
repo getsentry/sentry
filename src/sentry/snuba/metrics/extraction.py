@@ -208,27 +208,49 @@ class MetricSpec(TypedDict):
 
 def is_on_demand_snuba_query(snuba_query: SnubaQuery) -> bool:
     """Returns ``True`` if the snuba query can't be supported by standard metrics."""
+    return is_on_demand_query(snuba_query.dataset, snuba_query.aggregate, snuba_query.query)
 
-    return is_on_demand_query(snuba_query.dataset, snuba_query.query)
 
-
-def is_on_demand_query(dataset: Optional[Union[str, Dataset]], query: Optional[str]) -> bool:
+def is_on_demand_query(
+    dataset: Optional[Union[str, Dataset]], aggregate: str, query: Optional[str]
+) -> bool:
     """Returns ``True`` if the dataset is performance metrics and query contains non-standard search fields."""
 
-    if not dataset or not query:
+    if not dataset or Dataset(dataset) != Dataset.PerformanceMetrics:
         return False
 
-    if Dataset(dataset) != Dataset.PerformanceMetrics:
-        return False
+    for field in _get_aggregate_fields(aggregate):
+        if not _is_standard_metrics_field(field):
+            return True
 
     try:
-        return not _is_standard_metrics_compatible(event_search.parse_search_query(query))
+        return not _is_standard_metrics_query(event_search.parse_search_query(query or ""))
     except InvalidSearchQuery:
         logger.error(f"Failed to parse search query: {query}", exc_info=True)
         return False
 
 
-def _is_standard_metrics_compatible(tokens: Sequence[QueryToken]) -> bool:
+def _get_aggregate_fields(aggregate: str) -> Sequence[str]:
+    """
+    Returns any fields referenced by the arguments of supported aggregate
+    functions, otherwise ``None``.
+    """
+
+    # count_if is currently the only supported function, exit early
+    if not aggregate.startswith("count_if("):
+        return []
+
+    try:
+        function, arguments, _ = fields.parse_function(aggregate)
+        if function == "count_if" and arguments:
+            return [arguments[0]]
+    except InvalidSearchQuery:
+        logger.error(f"Failed to parse aggregate: {aggregate}", exc_info=True)
+
+    return []
+
+
+def _is_standard_metrics_query(tokens: Sequence[QueryToken]) -> bool:
     """
     Recursively checks if any of the supplied token contain search filters that can't be handled by standard metrics.
     """
@@ -242,12 +264,16 @@ def _is_standard_metrics_compatible(tokens: Sequence[QueryToken]) -> bool:
 
 def _is_standard_metrics_search_filter(token: QueryToken) -> bool:
     if isinstance(token, SearchFilter):
-        return token.key.name in _STANDARD_METRIC_FIELDS
+        return _is_standard_metrics_field(token.key.name)
 
     if isinstance(token, ParenExpression):
-        return _is_standard_metrics_compatible(token.children)
+        return _is_standard_metrics_query(token.children)
 
     return True
+
+
+def _is_standard_metrics_field(field: str) -> bool:
+    return field in _STANDARD_METRIC_FIELDS
 
 
 class OndemandMetricSpec:
