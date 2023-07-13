@@ -105,6 +105,7 @@ class WebhookProviderIdentifier(IntEnum):
     MSTEAMS = 4
     BITBUCKET = 5
     VSTS = 6
+    JIRA_SERVER = 7
 
 
 def _ensure_not_null(k: str, v: Any) -> Any:

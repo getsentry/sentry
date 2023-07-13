@@ -2,11 +2,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
 
-import {GettingStartedWithDjango, steps} from './django';
+import {GettingStartedWithSpringBoot, steps} from './spring-boot';
 
-describe('GettingStartedWithDjango', function () {
+describe('GettingStartedWithSpringBoot', function () {
   it('all products are selected', function () {
-    const {container} = render(<GettingStartedWithDjango dsn="test-dsn" />);
+    const {container} = render(<GettingStartedWithSpringBoot dsn="test-dsn" />);
 
     // Steps
     for (const step of steps()) {

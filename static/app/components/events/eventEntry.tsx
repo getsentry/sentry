@@ -99,6 +99,7 @@ function EventEntryContent({
           event={event}
           isShare={isShare}
           projectSlug={projectSlug}
+          group={group}
         />
       );
 

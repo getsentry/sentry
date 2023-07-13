@@ -19,6 +19,8 @@ export const migratedDocs = [
   'javascript-nextjs',
   'javascript',
   'python-django',
+  'react-native',
+  'java-spring-boot',
 ];
 
 type SdkDocumentationProps = {
