@@ -367,14 +367,14 @@ class OndemandMetricSpec:
         return condition
 
 
-def _convert_countif_filter(key: str, op: str, value: Any) -> RuleCondition:
+def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     """Maps ``count_if`` arguments to a ``RuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
     condition: RuleCondition = {
         "op": _COUNTIF_TO_RELAY_OPERATORS[op],
         "name": _map_field_name(key),
-        "value": value,  # TODO(ja): Value is not cast to the correct type
+        "value": fields.normalize_count_if_value({"column": key, "value": value}),
     }
 
     if op == "notEquals":
