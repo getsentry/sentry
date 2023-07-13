@@ -4,10 +4,10 @@ import re
 from typing import (
     Any,
     Dict,
+    List,
     Literal,
     Optional,
     Sequence,
-    Tuple,
     Type,
     TypedDict,
     TypeVar,
@@ -85,10 +85,21 @@ _SEARCH_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
     ">=": "gte",
 }
 
+# Maps from parsed count_if condition args to Relay rule condition operators.
+_COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
+    "equals": "eq",
+    "notEquals": "eq",
+    "less": "lt",
+    "greater": "gt",
+    "lessOrEquals": "lte",
+    "greaterOrEquals": "gte",
+}
+
 # Maps plain Discover functions to metric aggregation functions. Derived metrics
 # are not part of this mapping.
 _SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
     "count": "sum",
+    "count_if": "sum",
     "avg": "avg",
     "max": "max",
     "p50": "p50",
@@ -101,7 +112,7 @@ _SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
 # Mapping to infer metric type from Discover function.
 _AGGREGATE_TO_METRIC_TYPE = {
     "count": "c",
-    # TODO(ogi): support count_if
+    "count_if": "c",
     "avg": "d",
     "max": "d",
     "p50": "d",
@@ -146,7 +157,7 @@ class LogicalRuleCondition(TypedDict):
     """RuleCondition that applies a logical operator to a sequence of conditions."""
 
     op: Literal["and", "or"]
-    inner: Sequence[RuleCondition]
+    inner: List[RuleCondition]
 
 
 class NotRuleCondition(TypedDict):
@@ -258,12 +269,36 @@ class OndemandMetricSpec:
         # On-demand metrics are implicitly transaction metrics. Remove the
         # filter from the query since it can't be translated to a RuleCondition.
         self._query = re.sub(r"event\.type:transaction\s*", "", query)
+        self._init_aggregate(field)
 
-        relay_field, metric_type, op = _extract_field_info(field)
-        self.field = relay_field
-        self.metric_type = metric_type
-        self.mri = f"{metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
-        self.op = op
+    def _init_aggregate(self, aggregate: str) -> None:
+        """
+        Extracts the field name, metric type and metric operation from a Discover
+        function call.
+
+        This does not support derived metrics such as ``apdex``.
+        """
+
+        # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
+        function, arguments, _alias = fields.parse_function(aggregate)
+        self.metric_type = _AGGREGATE_TO_METRIC_TYPE.get(function)
+        self.op = _SEARCH_TO_METRIC_AGGREGATES.get(function)
+        assert self.metric_type and self.op, f"Unsupported aggregate function {function}"
+
+        self.field = None
+        self._field_condition = None
+
+        if self.metric_type != "c":
+            assert len(arguments) == 1, "Only one parameter is supported"
+            self.field = _map_field_name(arguments[0])
+
+        if function == "count_if":
+            key, op, value = arguments
+            self._field_condition = _convert_countif_filter(key, op, value)
+
+    @property
+    def mri(self) -> str:
+        return f"{self.metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     def query_hash(self) -> str:
         """Returns a hash of the query and field to be used as a unique identifier for the on-demand metric."""
@@ -277,31 +312,31 @@ class OndemandMetricSpec:
 
         tokens = event_search.parse_search_query(self._query)
         assert tokens, "This query should not use on demand metrics"
-        return SearchQueryConverter(tokens).convert()
+        condition = SearchQueryConverter(tokens).convert()
+
+        if self._field_condition is not None:
+            if condition["op"] == "and":
+                condition["inner"].append(self._field_condition)
+            else:
+                condition = {"op": "and", "inner": [condition, self._field_condition]}
+
+        return condition
 
 
-def _extract_field_info(aggregate: str) -> Tuple[Optional[str], str, MetricOperationType]:
-    """
-    Extracts the field name, metric type and metric operation from a Discover
-    function call.
+def _convert_countif_filter(key: str, op: str, value: Any) -> RuleCondition:
+    """Maps ``count_if`` arguments to a ``RuleCondition``."""
+    assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
-    This does not support derived metrics such as ``apdex`` and aggregates with
-    filters (``count_if``).
-    """
-    name, arguments, _alias = fields.parse_function(aggregate)
+    condition: RuleCondition = {
+        "op": _COUNTIF_TO_RELAY_OPERATORS[op],
+        "name": _map_field_name(key),
+        "value": value,  # TODO(ja): Value is not cast to the correct type
+    }
 
-    # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
+    if op == "notEquals":
+        condition = {"op": "not", "inner": condition}
 
-    metric_type = _AGGREGATE_TO_METRIC_TYPE.get(name)
-    metric_op = _SEARCH_TO_METRIC_AGGREGATES.get(name)
-    assert metric_type and metric_op, f"Unsupported aggregate function {name}"
-
-    if metric_type == "c":
-        assert not arguments, "`count()` does not support arguments"
-        return None, metric_type, metric_op
-    else:
-        assert len(arguments) == 1, "Only one parameter is supported"
-        return _map_field_name(arguments[0]), metric_type, metric_op
+    return condition
 
 
 def _map_field_name(search_key: str) -> str:
