@@ -60,7 +60,8 @@ class FlatFileIdentifier(NamedTuple):
 def _generate_flat_file_indexing_cache_key(identifier: FlatFileIdentifier):
     # TODO: implement a proper cache key since release and dist can have different characters that might create
     #  problems.
-    return f"ab::o:{identifier.project_id}:r:{identifier.release}:{identifier.dist}"
+    # TODO: use a proper {key} to guarantee the same cluster location of the keys.
+    return f"{{1234}}ab::o:{identifier.project_id}:r:{identifier.release}:{identifier.dist}"
 
 
 def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) -> bool:
@@ -72,13 +73,14 @@ def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) 
     # We want to monitor all the keys, so that in case there are changes, the system will abort the transaction.
     pipeline.watch(*cache_keys)
 
-    # Check if both keys are null
+    # Check if both keys are null.
     all_keys_none = all(pipeline.get(cache_key) is None for cache_key in cache_keys)
     if not all_keys_none:
         return False
 
     result = True
     try:
+        # The transaction is only started if the keys that were previously marked as none, haven't been touched.
         pipeline.multi()
 
         for cache_key in cache_keys:
@@ -164,6 +166,7 @@ class FlatFileIndex:
     def _build(self) -> None:
         loaded_index = self.store.load()
 
+        # TODO: change how we read.
         self._bundles = loaded_index.get("bundles", {})
         self._files_by_url = loaded_index.get("files_by_url", {})
         self._files_by_debug_id = loaded_index.get("files_by_debug_id", {})
@@ -213,6 +216,7 @@ class FlatFileIndex:
             metrics.incr("artifact_bundle_flat_file_indexing.error_when_saving")
 
     def _save(self):
+        # TODO: implement saving in the database.
         self.store.save({})
 
 
