@@ -4,11 +4,11 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuthIdentity
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.testutils.silo import unguarded_write
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.auth")
@@ -95,7 +95,7 @@ def check_auth_identity(auth_identity_id, **kwargs):
         is_valid = True
 
     if getattr(om.flags, "sso:linked") != is_linked:
-        with in_test_psql_role_override("postgres"):
+        with unguarded_write():
             # flags are not replicated, so it's ok not to create outboxes here.
             setattr(om.flags, "sso:linked", is_linked)
             setattr(om.flags, "sso:invalid", not is_valid)
