@@ -359,7 +359,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group2]
 
         results = self.make_query(sort_by="priority")
-        assert list(results) == [self.group1, self.group2]
+        assert list(results) == [self.group2, self.group1]
 
         results = self.make_query(sort_by="user")
         assert list(results) == [self.group1, self.group2]
@@ -660,7 +660,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             project_id=self.project.id,
         )
         results = self.make_query(search_filter_query="priority:%s" % priority, sort_by="priority")
-        assert list(results) == [self.group1, self.group2]
+        assert list(results) == [self.group2, self.group1]
 
     def test_search_tag_overlapping_with_internal_fields(self):
         # Using a tag of email overlaps with the promoted user.email column in events.
@@ -2282,7 +2282,11 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         assert list(results) == [self.group1, self.group_p2, self.group2]
 
         results = self.make_query([self.project, self.project2], sort_by="priority")
-        assert list(results) == [self.group1, self.group2, self.group_p2]
+        assert list(results) == [
+            self.group_p2,
+            self.group2,
+            self.group1,
+        ]
 
         results = self.make_query([self.project, self.project2], sort_by="user")
         assert list(results) == [self.group1, self.group2, self.group_p2]
