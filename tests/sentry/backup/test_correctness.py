@@ -4,8 +4,8 @@ import pytest
 from click.testing import CliRunner
 from freezegun import freeze_time
 
-from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.runner.commands.backup import import_, validate
+from sentry.silo import unguarded_write
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 from sentry.utils.pytest.fixtures import django_db_all
@@ -20,7 +20,7 @@ def import_export_then_validate(tmp_path: Path, fixture_file_name: str) -> None:
     with open(fixture_file_path) as backup_file:
         expect = json.load(backup_file)
 
-    with in_test_psql_role_override("postgres"):
+    with unguarded_write():
         rv = CliRunner().invoke(import_, [str(fixture_file_path)])
         assert rv.exit_code == 0, rv.output
 
