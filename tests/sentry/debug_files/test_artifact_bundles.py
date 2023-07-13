@@ -1,10 +1,12 @@
 import zipfile
+from datetime import timedelta
 from hashlib import sha1
 from io import BytesIO
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from freezegun import freeze_time
 
 from sentry.debug_files.artifact_bundles import (
     FlatFileIdentifier,
@@ -170,6 +172,7 @@ class ArtifactLookupTest(TestCase):
         assert indexed[2].artifact_bundle == bundles[2]
 
 
+@freeze_time("2023-07-13T10:00:00.000Z")
 class FlatFileIndexTest(TestCase):
     def mock_artifact_bundle(self, manifest):
         file = make_compressed_zip_file(manifest)
@@ -213,7 +216,8 @@ class FlatFileIndexTest(TestCase):
             }
         )
         with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
-            flat_file_index: FlatFileIndex = FlatFileIndex.build(store=flat_file_index_store)
+            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
+            assert flat_file_index is not None
             flat_file_index.merge(artifact_bundle, archive)
             flat_file_index.save()
 
@@ -224,5 +228,79 @@ class FlatFileIndexTest(TestCase):
             }
         )
 
-    def test_flat_file_index_with_index_stored(self):
-        pass
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
+    def test_flat_file_index_with_no_index_stored_and_debug_ids(self, flat_file_index_store):
+        flat_file_index_store.load.return_value = {}
+        flat_file_index_store.identifier = FlatFileIdentifier(project_id=self.project.id)
+
+        artifact_bundle = self.mock_artifact_bundle(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
+                    "type": "minified_source",
+                    "content": b"app_idx1",
+                    "headers": {"debug-id": "f206e0e7-3d0c-41cb-bccc-11b716728e27"},
+                },
+                "path/in/zip/bar": {
+                    "url": "~/path/to/other1.js",
+                    "content": b"other1_idx1",
+                    "type": "minified_source",
+                    "headers": {"debug-id": "016ac8b3-60cb-427f-829c-7f99c92a6a95"},
+                },
+            }
+        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
+            assert flat_file_index is not None
+            flat_file_index.merge(artifact_bundle, archive)
+            flat_file_index.save()
+
+        flat_file_index_store.save.assert_called_once_with(
+            {
+                "bundles": {artifact_bundle.id: artifact_bundle.date_last_modified},
+                "files_by_debug_id": {
+                    ("f206e0e7-3d0c-41cb-bccc-11b716728e27", 2): [1],
+                    ("016ac8b3-60cb-427f-829c-7f99c92a6a95", 2): [1],
+                },
+            }
+        )
+
+    @patch("sentry.debug_files.artifact_bundles.FlatFileIndexStore")
+    def test_flat_file_index_with_index_stored_and_release(self, flat_file_index_store):
+        existing_bundle_id = 0
+        existing_bundle_date = timezone.now() - timedelta(hours=1)
+
+        flat_file_index_store.load.return_value = {
+            "bundles": {existing_bundle_id: existing_bundle_date},
+            "files_by_url": {"~/path/to/app.js": [0]},
+        }
+
+        artifact_bundle = self.mock_artifact_bundle(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
+                    "type": "minified_source",
+                    "content": b"app_idx1",
+                },
+                "path/in/zip/bar": {
+                    "url": "~/path/to/other1.js",
+                    "content": b"other1_idx1",
+                    "type": "minified_source",
+                },
+            }
+        )
+        with ArtifactBundleArchive(artifact_bundle.file.getfile()) as archive:
+            flat_file_index = FlatFileIndex.build(store=flat_file_index_store)
+            assert flat_file_index is not None
+            flat_file_index.merge(artifact_bundle, archive)
+            flat_file_index.save()
+
+        flat_file_index_store.save.assert_called_once_with(
+            {
+                "bundles": {
+                    existing_bundle_id: existing_bundle_date,
+                    artifact_bundle.id: artifact_bundle.date_last_modified,
+                },
+                "files_by_url": {"~/path/to/app.js": [1, 0], "~/path/to/other1.js": [1]},
+            }
+        )

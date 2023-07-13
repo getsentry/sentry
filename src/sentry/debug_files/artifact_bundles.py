@@ -53,8 +53,8 @@ class FlatFileIndexingState(Enum):
 
 class FlatFileIdentifier(NamedTuple):
     project_id: int
-    release: str
-    dist: str
+    release: str = NULL_STRING
+    dist: str = NULL_STRING
 
     def is_indexing_by_release(self) -> bool:
         # An identifier is indexing by release if release is set.
