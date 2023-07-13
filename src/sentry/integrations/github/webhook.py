@@ -14,7 +14,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import features, options
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.constants import ObjectStatus
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -112,7 +112,8 @@ class Webhook:
                 }
 
                 for org in list(orgs.values()):
-                    provider.create_repository(config, org)
+                    if features.has("organizations:auto-repo-linking", org):
+                        provider.create_repository(config, org)
 
                 repos = Repository.objects.filter(external_id=config["external_id"]).exclude(
                     status=ObjectStatus.HIDDEN

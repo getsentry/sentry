@@ -15,6 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.models import Commit, CommitAuthor, GroupLink, Integration, PullRequest, Repository
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 
 
@@ -138,7 +139,83 @@ class PushEventWebhookTest(APITestCase):
         assert commit.date_added == datetime(2015, 5, 5, 23, 40, 15, tzinfo=timezone.utc)
 
     @patch("sentry.integrations.github.client.get_jwt")
+    def test_auto_linking_missing_feature_flag(self, mock_get_jwt):
+        mock_get_jwt.return_value = ""
+
+        project = self.project  # force creation
+
+        url = "/extensions/github/webhook/"
+
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(project.organization, self.user)
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        repos = Repository.objects.all()
+        assert len(repos) == 0
+
+    @with_feature("organizations:auto-repo-linking")
+    @patch("sentry.integrations.github.client.get_jwt")
     def test_creates_missing_repo(self, mock_get_jwt):
+        mock_get_jwt.return_value = ""
+
+        project = self.project  # force creation
+
+        url = "/extensions/github/webhook/"
+
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                external_id="12345",
+                provider="github",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(project.organization, self.user)
+
+        response = self.client.post(
+            path=url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        repos = Repository.objects.all()
+        assert len(repos) == 1
+        assert repos[0].organization_id == project.organization.id
+        assert repos[0].external_id == "35129377"
+        assert repos[0].provider == "integrations:github"
+        assert repos[0].name == "baxterthehacker/public-repo"
+
+    @with_feature("organizations:auto-repo-linking")
+    @patch("sentry.integrations.github.client.get_jwt")
+    def test_ignores_hidden_repo(self, mock_get_jwt):
         mock_get_jwt.return_value = ""
 
         project = self.project  # force creation
@@ -179,45 +256,6 @@ class PushEventWebhookTest(APITestCase):
         repos = Repository.objects.all()
         assert len(repos) == 1
         assert repos[0] == repo
-
-    @patch("sentry.integrations.github.client.get_jwt")
-    def test_ignores_hidden_repo(self, mock_get_jwt):
-        mock_get_jwt.return_value = ""
-
-        project = self.project  # force creation
-
-        url = "/extensions/github/webhook/"
-
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-
-        options.set("github-app.webhook-secret", secret)
-
-        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
-                external_id="12345",
-                provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
-            )
-            integration.add_organization(project.organization, self.user)
-
-        response = self.client.post(
-            path=url,
-            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE="sha1=56a3df597e02adbc17fb617502c70e19d96a6136",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert response.status_code == 204
-
-        repos = Repository.objects.all()
-        assert len(repos) == 1
-        assert repos[0].organization_id == project.organization.id
-        assert repos[0].external_id == "35129377"
-        assert repos[0].provider == "integrations:github"
-        assert repos[0].name == "baxterthehacker/public-repo"
 
     def test_anonymous_lookup(self):
         project = self.project  # force creation
@@ -360,6 +398,7 @@ class PushEventWebhookTest(APITestCase):
         )
         assert len(commit_list) == 0
 
+    @with_feature("organizations:auto-repo-linking")
     @patch("sentry.integrations.github.client.get_jwt")
     def test_multiple_orgs_creates_missing_repos(self, mock_get_jwt):
         mock_get_jwt.return_value = ""
@@ -461,6 +500,37 @@ class PullRequestEventWebhook(APITestCase):
 
         self.assert_group_link(group, pr)
 
+    def test_auto_linking_missing_feature_flag(self):
+        project = self.project  # force creation
+        url = "/extensions/github/webhook/"
+        secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", secret)
+
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.create(
+                provider="github",
+                external_id="12345",
+                name="octocat",
+                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+            )
+            integration.add_organization(project.organization, self.user)
+
+        response = self.client.post(
+            path=url,
+            data=PULL_REQUEST_OPENED_EVENT_EXAMPLE,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="pull_request",
+            HTTP_X_HUB_SIGNATURE="sha1=bc7ce12fc1058a35bf99355e6fc0e6da72c35de3",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+
+        repos = Repository.objects.all()
+        assert len(repos) == 0
+
+    @with_feature("organizations:auto-repo-linking")
     def test_creates_missing_repo(self):
         project = self.project  # force creation
         url = "/extensions/github/webhook/"
@@ -495,6 +565,7 @@ class PullRequestEventWebhook(APITestCase):
         assert repos[0].provider == "integrations:github"
         assert repos[0].name == "baxterthehacker/public-repo"
 
+    @with_feature("organizations:auto-repo-linking")
     def test_ignores_hidden_repo(self):
         project = self.project  # force creation
         url = "/extensions/github/webhook/"
@@ -534,6 +605,7 @@ class PullRequestEventWebhook(APITestCase):
         assert len(repos) == 1
         assert repos[0] == repo
 
+    @with_feature("organizations:auto-repo-linking")
     def test_multiple_orgs_creates_missing_repo(self):
         project = self.project  # force creation
         url = "/extensions/github/webhook/"
