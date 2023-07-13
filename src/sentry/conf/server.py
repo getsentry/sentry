@@ -1762,7 +1762,7 @@ SENTRY_POST_PROCESS_GROUP_APM_SAMPLING = 0
 SENTRY_REPROCESSING_APM_SAMPLING = 0
 
 # upsampling multiplier that we'll increase in steps till we're at 100% throughout
-SENTRY_MULTIPLIER_APM_SAMPLING = 1
+SENTRY_MULTIPLIER_APM_SAMPLING = 2
 
 # ----
 # end APM config
