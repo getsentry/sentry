@@ -30,6 +30,6 @@ SDK and system library frames. For grouping to work correctly, the event_strippe
 config will change it to in_app false for all Cocoa SDK frames. To not change the grouping logic, we add the following stacktrace rule
 ``stack.abs_path:Sentry.framework +app`` to the project with the ID ``SDK_CRASH_DETECTION_PROJECT_ID``.
 
-You can turn the feature on or off in https://sentry.io/_admin/options. The option name is issues.sdk-crash-detection. Furthermore, you can
-change the project to store the crash events with ``SDK_CRASH_DETECTION_PROJECT_ID``. Finally, the solution offers a sample rate configurable
+You can turn the feature on or off in https://sentry.io/_admin/options. The option name is ``issues.sdk-crash-detection`` and the feature name is ``organizations:sdk-crash-detection``.
+Furthermore, you can change the project to store the crash events with ``SDK_CRASH_DETECTION_PROJECT_ID``. Finally, the solution offers a sample rate configurable
 with ``SDK_CRASH_DETECTION_SAMPLE_RATE``.
