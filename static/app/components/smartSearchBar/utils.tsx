@@ -159,8 +159,13 @@ function isSearchGroup(searchItem: SearchItem | SearchGroup): searchItem is Sear
   );
 }
 
+function isSearchGroupArray(items: SearchItem[] | SearchGroup[]): items is SearchGroup[] {
+  // Typescript doesn't like that there's no shared properties between SearchItem and SearchGroup
+  return (items as any[]).every(isSearchGroup);
+}
+
 export function createSearchGroups(
-  searchGroupItems: Array<SearchItem | SearchGroup>,
+  searchGroupItems: SearchItem[] | SearchGroup[],
   recentSearchItems: SearchItem[] | undefined,
   tagName: string,
   type: ItemType,
@@ -177,7 +182,7 @@ export function createSearchGroups(
     children: [],
   };
 
-  if (searchGroupItems.every(isSearchGroup)) {
+  if (isSearchGroupArray(searchGroupItems)) {
     // Autocomplete item has provided its own search groups
     const searchGroups = searchGroupItems
       .map(group => {
@@ -198,12 +203,16 @@ export function createSearchGroups(
     };
   }
 
-  const searchItems = searchGroupItems as SearchItem[];
   const fieldDefinition = fieldDefinitionGetter(tagName);
 
   const activeSearchItem = 0;
   const {searchItems: filteredSearchItems, recentSearchItems: filteredRecentSearchItems} =
-    filterSearchItems(searchItems, recentSearchItems, maxSearchItems, queryCharsLeft);
+    filterSearchItems(
+      searchGroupItems,
+      recentSearchItems,
+      maxSearchItems,
+      queryCharsLeft
+    );
 
   const recentSearchGroup: SearchGroup | undefined =
     filteredRecentSearchItems && filteredRecentSearchItems.length > 0

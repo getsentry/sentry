@@ -136,7 +136,7 @@ export type Tag = {
   /**
    * Usually values are strings, but a predefined tag can define its SearchGroups
    */
-  values?: Array<string | SearchGroup>;
+  values?: string[] | SearchGroup[];
 };
 
 export type TagCollection = Record<string, Tag>;
