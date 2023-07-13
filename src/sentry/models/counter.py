@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.silo import SiloMode
 
 
@@ -93,8 +94,6 @@ def increment_project_counter(project, delta=1, using="default"):
 # this must be idempotent because it seems to execute twice
 # (at least during test runs)
 def create_counter_function(app_config, using, **kwargs):
-    from sentry.testutils.silo import unguarded_write
-
     if app_config and app_config.name != "sentry":
         return
 
@@ -104,7 +103,7 @@ def create_counter_function(app_config, using, **kwargs):
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         return
 
-    with unguarded_write(using), connections[using].cursor() as cursor:
+    with in_test_psql_role_override("postgres", using), connections[using].cursor() as cursor:
         cursor.execute(
             """
             create or replace function sentry_increment_project_counter(

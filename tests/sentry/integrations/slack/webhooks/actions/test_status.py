@@ -5,6 +5,7 @@ import responses
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
@@ -22,7 +23,7 @@ from sentry.models import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.silo import SiloMode
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -639,7 +640,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "Member invitation for hello@sentry.io no longer exists."
 
     def test_invitation_validation_error(self):
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="manager")
         other_user = self.create_user()
         member = OrganizationMember.objects.create(
@@ -685,7 +686,7 @@ class StatusActionTest(BaseEventTest, HybridCloudTestMixin):
         assert resp.data["text"] == "You do not have access to the organization for the invitation."
 
     def test_no_member_admin(self):
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="admin")
 
         other_user = self.create_user()

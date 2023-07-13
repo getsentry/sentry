@@ -1,3 +1,6 @@
+import pytest
+from django.db import ProgrammingError, transaction
+
 from sentry.models import Integration, PagerDutyService, ProjectIntegration
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
@@ -8,6 +11,14 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 @control_silo_test(stable=True)
 class IntegrationTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        org = self.create_organization()
+        integration = self.create_integration(org, "blahblah")
+        assert Integration.objects.count() == 1
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Integration.objects.filter(id=integration.id).delete()
+        assert Integration.objects.count() == 1
+
     def test_hybrid_cloud_deletion(self):
         org = self.create_organization()
         project = self.create_project(organization=org)
