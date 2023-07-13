@@ -379,10 +379,23 @@ export function ProjectSourceMaps({location, router, project}: Props) {
         )}
       </TextBlock>
       <NavTabs underlined>
-        <ListLink to={debugIdsUrl} index isActive={() => tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: debugIdsUrl,
+            query: location.query,
+          }}
+          index
+          isActive={() => tabDebugIdBundlesActive}
+        >
           {t('Artifact Bundles')}
         </ListLink>
-        <ListLink to={releaseBundlesUrl} isActive={() => !tabDebugIdBundlesActive}>
+        <ListLink
+          to={{
+            pathname: releaseBundlesUrl,
+            query: location.query,
+          }}
+          isActive={() => !tabDebugIdBundlesActive}
+        >
           {t('Release Bundles')}
         </ListLink>
       </NavTabs>

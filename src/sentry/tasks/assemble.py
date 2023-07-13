@@ -60,6 +60,7 @@ class AssembleResult(NamedTuple):
 
     def delete_bundle(self):
         self.bundle.delete()
+        self.bundle_temp_file.close()
 
 
 def assemble_file(
@@ -126,6 +127,7 @@ def assemble_file(
             ChunkFileState.ERROR,
             detail="Reported checksum mismatch",
         )
+        return None
     else:
         file.save()
 
