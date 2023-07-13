@@ -36,7 +36,7 @@ describe('EventErrors', () => {
         {
           type: 'invalid_data',
           data: {
-            name: 'contexts.trace.sampled',
+            name: 'breadcrumbs.values.2.data',
           },
           message: 'expected an object',
         },
@@ -69,7 +69,7 @@ describe('EventErrors', () => {
         {
           type: 'invalid_data',
           data: {
-            name: 'breadcrumbs.values.2.data',
+            name: 'contexts.trace.sampled',
           },
           message: 'expected an object',
         },
