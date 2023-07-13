@@ -9,7 +9,7 @@ from sentry.snuba.models import SnubaQuery
 def test_empty_query():
     snuba_query = SnubaQuery(
         aggregate="p75(measurements.fp)",
-        query="transaction.duration:>=1000",
+        query="",
         dataset=Dataset.PerformanceMetrics.value,
     )
     alert = AlertRule(snuba_query=snuba_query)
