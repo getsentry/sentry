@@ -57,6 +57,8 @@ def test_get_user_actions():
     assert user_actions[0]["testid"] == "2"
     assert user_actions[0]["aria_label"] == "test"
     assert user_actions[0]["title"] == "3"
+    assert user_actions[0]["is_dead"] == 0
+    assert user_actions[0]["is_rage"] == 0
     assert user_actions[0]["timestamp"] == 1674298825
     assert len(user_actions[0]["event_hash"]) == 36
 
@@ -141,6 +143,174 @@ def test_parse_replay_actions():
     assert action["alt"] == "1"
     assert action["testid"] == "2"
     assert action["title"] == "3"
+    assert action["is_dead"] == 0
+    assert action["is_rage"] == 0
+    assert action["timestamp"] == 1
+    assert len(action["event_hash"]) == 36
+
+
+def test_parse_replay_dead_click_actions():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "endReason": "timeout",
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.slowClickDetected",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "clickcount": 3,
+                        "endReason": "timeout",
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "a",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        },
+    ]
+    replay_actions = parse_replay_actions(1, "1", 30, events)
+
+    assert replay_actions["type"] == "replay_event"
+    assert isinstance(replay_actions["start_time"], float)
+    assert replay_actions["replay_id"] == "1"
+    assert replay_actions["project_id"] == 1
+    assert replay_actions["retention_days"] == 30
+    assert isinstance(replay_actions["payload"], list)
+
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["type"] == "replay_actions"
+    assert payload["replay_id"] == "1"
+    assert len(payload["clicks"]) == 2
+
+    action = payload["clicks"][0]
+    assert action["node_id"] == 59
+    assert action["tag"] == "a"
+    assert action["id"] == "id"
+    assert action["class"] == ["class1", "class2"]
+    assert action["text"] == "text"
+    assert action["aria_label"] == "test"
+    assert action["role"] == "button"
+    assert action["alt"] == "1"
+    assert action["testid"] == "2"
+    assert action["title"] == "3"
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 0
+    assert action["timestamp"] == 1
+    assert len(action["event_hash"]) == 36
+
+    # Second slow click had more than 2 clicks which makes it a rage+dead combo.
+    action = payload["clicks"][1]
+    assert action["is_dead"] == 1
+    assert action["is_rage"] == 1
+
+
+def test_parse_replay_rage_click_actions():
+    events = [
+        {
+            "type": 5,
+            "timestamp": 1674291701348,
+            "data": {
+                "tag": "breadcrumb",
+                "payload": {
+                    "timestamp": 1.1,
+                    "type": "default",
+                    "category": "ui.multiClick",
+                    "message": "div.container > div#root > div > ul > div",
+                    "data": {
+                        "nodeId": 59,
+                        "node": {
+                            "id": 59,
+                            "tagName": "div",
+                            "attributes": {
+                                "id": "id",
+                                "class": "class1 class2",
+                                "role": "button",
+                                "aria-label": "test",
+                                "alt": "1",
+                                "data-testid": "2",
+                                "title": "3",
+                            },
+                            "textContent": "text",
+                        },
+                    },
+                },
+            },
+        }
+    ]
+    replay_actions = parse_replay_actions(1, "1", 30, events)
+
+    assert replay_actions["type"] == "replay_event"
+    assert isinstance(replay_actions["start_time"], float)
+    assert replay_actions["replay_id"] == "1"
+    assert replay_actions["project_id"] == 1
+    assert replay_actions["retention_days"] == 30
+    assert isinstance(replay_actions["payload"], list)
+
+    payload = json.loads(bytes(replay_actions["payload"]))
+    assert payload["type"] == "replay_actions"
+    assert payload["replay_id"] == "1"
+    assert len(payload["clicks"]) == 1
+
+    action = payload["clicks"][0]
+    assert action["node_id"] == 59
+    assert action["tag"] == "div"
+    assert action["id"] == "id"
+    assert action["class"] == ["class1", "class2"]
+    assert action["text"] == "text"
+    assert action["aria_label"] == "test"
+    assert action["role"] == "button"
+    assert action["alt"] == "1"
+    assert action["testid"] == "2"
+    assert action["title"] == "3"
+    assert action["is_dead"] == 0
+    assert action["is_rage"] == 1
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 36
 
