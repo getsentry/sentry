@@ -1313,8 +1313,6 @@ SENTRY_FEATURES = {
     "organizations:change-alerts": True,
     # Enable alerting based on crash free sessions/users
     "organizations:crash-rate-alerts": True,
-    # Enable the mute metric alerts feature
-    "organizations:mute-metric-alerts": False,
     # Enable the Commit Context feature
     "organizations:commit-context": False,
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION
