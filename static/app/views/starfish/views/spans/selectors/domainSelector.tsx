@@ -7,9 +7,11 @@ import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
+
+const {SPAN_MODULE, SPAN_OP, SPAN_DESCRIPTION, SPAN_DOMAIN} = SpanMetricsFields;
 
 type Props = {
   moduleName?: ModuleName;
@@ -68,13 +70,13 @@ const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
 };
 
 function getEventView(location: Location, moduleName: string, spanCategory?: string) {
-  const queryConditions: string[] = [`!span.domain:""`];
+  const queryConditions: string[] = [`has:${SPAN_DOMAIN} has:${SPAN_DESCRIPTION}`];
   if (moduleName) {
-    queryConditions.push(`span.module:${moduleName}`);
+    queryConditions.push(`${SPAN_MODULE}:${moduleName}`);
   }
 
   if (moduleName === ModuleName.DB) {
-    queryConditions.push('!span.op:db.redis');
+    queryConditions.push(`!${SPAN_OP}:db.redis`);
   }
 
   if (spanCategory) {

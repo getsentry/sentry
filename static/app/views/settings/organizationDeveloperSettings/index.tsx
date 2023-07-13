@@ -7,7 +7,9 @@ import {removeSentryFunction} from 'sentry/actionCreators/sentryFunctions';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, SentryApp, SentryFunction} from 'sentry/types';
@@ -18,7 +20,7 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
 import CreateIntegrationButton from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
@@ -26,17 +28,17 @@ import ExampleIntegrationButton from 'sentry/views/settings/organizationIntegrat
 
 import SentryFunctionRow from './sentryFunctionRow';
 
-type Props = Omit<AsyncView['props'], 'params'> & {
+type Props = Omit<DeprecatedAsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
 type Tab = 'public' | 'internal' | 'sentryfx';
-type State = AsyncView['state'] & {
+type State = DeprecatedAsyncView['state'] & {
   applications: SentryApp[];
   tab: Tab;
 };
 
-class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+class OrganizationDeveloperSettings extends DeprecatedAsyncView<Props, State> {
   analyticsView = 'developer_settings' as const;
 
   getDefaultState(): State {
@@ -63,7 +65,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     return routeTitleGen(t('Custom Integrations'), organization.slug, false);
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {organization} = this.props;
     const returnValue: [string, string, any?, any?][] = [
       ['applications', `/organizations/${organization.slug}/sentry-apps/`],

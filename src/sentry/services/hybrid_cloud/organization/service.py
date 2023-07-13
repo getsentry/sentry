@@ -25,6 +25,7 @@ from sentry.services.hybrid_cloud.region import (
     ByOrganizationIdAttribute,
     ByOrganizationSlug,
     ByRegionName,
+    RequireSingleOrganization,
     UnimplementedRegionResolution,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
@@ -72,7 +73,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_slug(
         self,
@@ -124,7 +125,7 @@ class OrganizationService(RpcService):
     ) -> Optional[RpcUserInviteContext]:
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_invite_by_slug(
         self,
@@ -160,7 +161,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @regional_rpc_method(resolve=ByOrganizationSlug())
+    @regional_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
@@ -188,6 +189,11 @@ class OrganizationService(RpcService):
         ):
             return None
         return org_context
+
+    @regional_rpc_method(resolve=RequireSingleOrganization())
+    @abstractmethod
+    def get_default_organization(self) -> RpcOrganization:
+        pass
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
@@ -247,7 +253,7 @@ class OrganizationService(RpcService):
 
     @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember:
+    def remove_user(self, *, organization_id: int, user_id: int) -> Optional[RpcOrganizationMember]:
         pass
 
     @regional_rpc_method(resolve=ByRegionName())

@@ -1,7 +1,7 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Op, Or
+from snuba_sdk import AliasedExpression, And, Condition, CurriedFunction, Granularity, Op, Or
 
 from sentry.search.events import constants
 from sentry.search.events.builder import MetricsQueryBuilder, TimeseriesMetricQueryBuilder
@@ -44,7 +44,9 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
 
 
 class TimeseriesSpansMetricsQueryBuilder(SpansMetricsQueryBuilder, TimeseriesMetricQueryBuilder):
-    pass
+    def resolve_split_granularity(self) -> Tuple[List[Condition], Optional[Granularity]]:
+        """Don't do this for timeseries"""
+        return [], self.granularity
 
 
 class TopSpansMetricsQueryBuilder(TimeseriesSpansMetricsQueryBuilder):
