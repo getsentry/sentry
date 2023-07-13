@@ -132,3 +132,6 @@ class IntegrationProxyClient(ApiClient):
             },
         )
         return prepared_request
+
+    def should_delegate(self) -> bool:
+        return False
