@@ -5,6 +5,7 @@ import sys
 from typing import Any, Mapping
 
 from django.conf import settings
+from django.http import HttpResponse
 from requests import PreparedRequest
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -135,3 +136,6 @@ class IntegrationProxyClient(ApiClient):
 
     def should_delegate(self) -> bool:
         return False
+
+    def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+        raise NotImplementedError
