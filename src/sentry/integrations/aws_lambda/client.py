@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import boto3
+from django.http import HttpResponse
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.utils import json
 
 
@@ -72,3 +76,34 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
         aws_session_token=credentials["SessionToken"],
     )
     return boto3_session.client(service_name=service_name, region_name=region)
+
+
+class AwsLambdaProxyClient(IntegrationProxyClient):
+    integration_name = "aws_lambda"
+    base_url = ""
+
+    def __init__(
+        self,
+        org_integration_id: int | None,
+        account_number: str,
+        region: str,
+        aws_external_id: str,
+    ) -> None:
+        super().__init__(org_integration_id=org_integration_id)
+        self.account_number = account_number
+        self.region = region
+        self.aws_external_id = aws_external_id
+
+    def should_delegate(self) -> bool:
+        return True
+
+    def delegate(self, proxy_path: str, headers, data) -> HttpResponse:
+        return super().delegate(proxy_path, headers, data)
+
+    def get_function(self, *args, **kwargs):
+        payload = {
+            "args": list(args),
+            "kwargs": kwargs,
+            "function_name": "get_function",
+        }
+        self.get("/", data=payload)
