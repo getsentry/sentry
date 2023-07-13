@@ -18,6 +18,7 @@ const replay = TestStubs.ReplayRecord();
 
 const NOON = '2023-04-14T12:00:00';
 const FIVE_PAST_NOON = '2023-04-14T12:05:00';
+// TODO: FIRE_PAST_NOON as a Stringified number
 
 function mockQuery(query: Record<string, string>) {
   MockUseLocation.mockReturnValue({
