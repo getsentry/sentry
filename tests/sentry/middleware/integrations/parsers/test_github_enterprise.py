@@ -92,7 +92,7 @@ class GithubEnterpriseRequestParserTest(TestCase):
             self.path,
             data={"installation": {"id": self.external_identifier}},
             content_type="application/json",
-            **{"HTTP_X_GITHUB_ENTERPRISE_HOST": self.external_host},
+            HTTP_X_GITHUB_ENTERPRISE_HOST=self.external_host,
         )
         parser = GithubEnterpriseRequestParser(request=request, response_handler=self.get_response)
         integration = parser.get_integration_from_request()

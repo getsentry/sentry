@@ -42,8 +42,8 @@ from .repository import GitHubRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 
-def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str:
-    external_id = event.get("installation", {}).get("id")
+def get_github_external_id(event: Mapping[str, Any], host: str | None = None) -> str | None:
+    external_id: str | None = event.get("installation", {}).get("id")
     return f"{host}:{external_id}" if host else external_id
 
 

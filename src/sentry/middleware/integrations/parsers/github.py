@@ -18,7 +18,7 @@ class GithubRequestParser(BaseRequestParser):
     provider = EXTERNAL_PROVIDERS[ExternalProviders.GITHUB]
     webhook_identifier = WebhookProviderIdentifier.GITHUB
 
-    def _get_external_id(self, event: Mapping[str, Any]) -> str:
+    def _get_external_id(self, event: Mapping[str, Any]) -> str | None:
         """Overridden in GithubEnterpriseRequestParser"""
         return get_github_external_id(event)
 
