@@ -267,8 +267,12 @@ class ArtifactBundleArchive:
     def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
+        self._entries_by_debug_id = {}
+        self._entries_by_url = {}
+
         self.manifest = self._read_manifest()
         self.artifact_count = len(self.manifest.get("files", {}))
+
         if build_memory_map:
             self._build_memory_maps()
 
@@ -307,9 +311,6 @@ class ArtifactBundleArchive:
             return None
 
     def _build_memory_maps(self):
-        self._entries_by_debug_id = {}
-        self._entries_by_url = {}
-
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
@@ -331,6 +332,15 @@ class ArtifactBundleArchive:
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def get_all_urls(self):
+        return self._entries_by_url.keys()
+
+    def get_all_debug_ids(self):
+        return self._entries_by_debug_id.keys()
+
+    def has_debug_ids(self):
+        return len(self._entries_by_debug_id) > 0
 
     def extract_debug_ids_from_manifest(
         self,

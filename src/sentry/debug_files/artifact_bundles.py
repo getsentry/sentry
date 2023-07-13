@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 import sentry_sdk
 from django.conf import settings
@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry.models.artifactbundle import (
     INDEXING_THRESHOLD,
+    NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
@@ -22,6 +23,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+from tests.sentry.sentry_metrics.test_kafka import project_id
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -34,12 +36,174 @@ AVAILABLE_FOR_RENEWAL_DAYS = 30
 INDEXING_CACHE_TIMEOUT = 600
 
 
-# ===== Indexing of Artifact Bundles =====
-
-
 def get_redis_cluster_for_artifact_bundles():
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
     return redis.redis_clusters.get(cluster_key)
+
+
+# ===== Flat File Indexing of Artifact Bundles =====
+
+
+class FlatFileIdentifier(NamedTuple):
+    project_id: int
+    release: str
+    dist: str
+
+    def is_indexing_by_release(self) -> bool:
+        # An identifier is indexing by release if release is set.
+        return bool(self.release)
+
+    def to_indexing_by_debug_id(self) -> FlatFileIdentifier:
+        return FlatFileIdentifier(project_id=project_id, release=NULL_STRING, dist=NULL_STRING)
+
+
+def _generate_flat_file_indexing_cache_key(identifier: FlatFileIdentifier):
+    # TODO: implement a proper cache key since release and dist can have different characters that might create problems.
+    return f"ab::o:{identifier.project_id}:r:{identifier.release}:{identifier.dist}"
+
+
+def set_flat_files_being_indexed_if_null(identifiers: List[FlatFileIdentifier]) -> bool:
+    redis_client = get_redis_cluster_for_artifact_bundles()
+    cache_keys = [_generate_flat_file_indexing_cache_key(identifier) for identifier in identifiers]
+
+    pipeline = redis_client.pipeline()
+
+    # We want to monitor all the keys, so that in case there are changes, the system will abort the transaction.
+    pipeline.watch(*cache_keys)
+
+    # Check if both keys are null
+    all_keys_none = all(pipeline.get(cache_key) is None for cache_key in cache_keys)
+    if not all_keys_none:
+        return False
+
+    result = True
+    try:
+        pipeline.multi()
+
+        for cache_key in cache_keys:
+            pipeline.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT)
+
+        pipeline.execute()
+    except Exception:
+        result = False
+        metrics.incr("artifact_bundle_flat_file_indexing.indexing_conflict")
+
+    # Reset the watched keys
+    pipeline.unwatch()
+
+    return result
+
+
+def index_bundle_in_flat_file(artifact_bundle: ArtifactBundle, identifier: FlatFileIdentifier):
+    with ArtifactBundleArchive(artifact_bundle.file.get_file(), build_memory_map=True) as archive:
+        identifiers = [identifier]
+
+        # In case we have an identifier that is indexed by release and the bundle has debug ids, we want to perform
+        # indexing on also the debug ids bundle.
+        if identifier.is_indexing_by_release() and archive.has_debug_ids():
+            identifiers.append(identifier.to_indexing_by_debug_id())
+
+        # Before starting, we have to make sure that
+        if not set_flat_files_being_indexed_if_null(identifiers):
+            # TODO: implement retrial with delay.
+            pass
+
+        for identifier in identifiers:
+            # We then build the existing index.
+            index = FlatFileIndex.build(FlatFileIndexStore(identifier))
+            if index is None:
+                return
+
+            # Once the in-memory index is built, we can merge it with the incoming bundle.
+            if not index.merge(artifact_bundle, archive):
+                return
+
+            # At the end we want to save the newly created index.
+            if not index.save():
+                return
+
+
+class FlatFileIndexStore:
+    def __init__(self, identifier: FlatFileIdentifier):
+        self.identifier = identifier
+
+    def load(self) -> Dict[str, Any]:
+        # TODO: load from the database.
+        return {}
+
+    def save(self, flat_file_index: Dict[str, Any]):
+        # TODO: store in the database.
+        pass
+
+
+class FlatFileIndex:
+    def __init__(self, store: FlatFileIndexStore):
+        self.store = store
+
+        # By default, a flat file index is empty.
+        self.bundles: Dict[int, datetime] = {}
+        self.files_by_url: Dict[str, List[dict]] = {}
+        self.files_by_debug_id: Dict[str, List[dict]] = {}
+
+    @staticmethod
+    def build(store: FlatFileIndexStore) -> Optional[FlatFileIndex]:
+        index = FlatFileIndex(store)
+
+        try:
+            index._build()
+            return index
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_building")
+            return None
+
+    def _build(self) -> None:
+        loaded_index = self.store.load()
+
+        self.bundles = loaded_index.get("bundles", {})
+        self.files_by_url = loaded_index.get("files_by_url", {})
+        self.files_by_debug_id = loaded_index.get("files_by_debug_id", {})
+
+    def merge(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive) -> bool:
+        try:
+            # We want to index by url if the store has an identifier which is being indexed by release.
+            self._merge(artifact_bundle, archive, self.store.identifier.is_indexing_by_release())
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_merging")
+            return False
+
+    def _merge(
+        self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive, index_urls: bool
+    ):
+        if index_urls:
+            self._iterate_over_urls(artifact_bundle, archive)
+        else:
+            self._iterate_over_debug_ids(artifact_bundle, archive)
+
+    def _iterate_over_debug_ids(
+        self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive
+    ):
+        for debug_id, source_file_type in archive.get_all_debug_ids():
+            pass
+
+    def _iterate_over_urls(self, artifact_bundle: ArtifactBundle, archive: ArtifactBundleArchive):
+        for url in archive.get_all_urls():
+            pass
+
+    def save(self):
+        try:
+            self._save()
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("artifact_bundle_flat_file_indexing.error_when_saving")
+
+    def _save(self):
+        self.store.save({})
+
+
+# ===== Indexing of Artifact Bundles =====
 
 
 def _generate_artifact_bundle_indexing_state_cache_key(
