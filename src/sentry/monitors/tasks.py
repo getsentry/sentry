@@ -88,10 +88,7 @@ def check_monitors(current_datetime=None):
                 expected_time=expected_time,
                 monitor_config=monitor.get_validated_config(),
             )
-            monitor_environment.mark_failed(
-                reason=MonitorFailure.MISSED_CHECKIN,
-                occurrence_context={"expected_time": expected_time},
-            )
+            monitor_environment.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
         except Exception:
             logger.exception("Exception in check_monitors - mark missed")
 
@@ -127,9 +124,6 @@ def check_monitors(current_datetime=None):
                 status__in=[CheckInStatus.OK, CheckInStatus.ERROR],
             ).exists()
             if not has_newer_result:
-                monitor_environment.mark_failed(
-                    reason=MonitorFailure.DURATION,
-                    occurrence_context={"duration": (timeout.seconds // 60) % 60},
-                )
+                monitor_environment.mark_failed(reason=MonitorFailure.DURATION)
         except Exception:
             logger.exception("Exception in check_monitors - mark timeout")
