@@ -1048,7 +1048,6 @@ module = [
     "tests.sentry.api.bases.test_project",
     "tests.sentry.api.bases.test_sentryapps",
     "tests.sentry.api.bases.test_team",
-    "tests.sentry.api.endpoints.internal.test_integration_proxy",
     "tests.sentry.api.endpoints.notifications.test_notification_actions_details",
     "tests.sentry.api.endpoints.notifications.test_notification_actions_index",
     "tests.sentry.api.endpoints.test_accept_organization_invite",
