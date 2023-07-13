@@ -17,9 +17,9 @@ const {organization, project} = initializeOrg();
 const replay = TestStubs.ReplayRecord();
 
 const NOON = '2023-04-14T12:00:00';
-const FIVE_PAST_NOON = '2023-04-14T12:05:00';
-const FIVE_PAST_TIMESTAMP_S = String(new Date(FIVE_PAST_NOON).getTime() / 1000);
-const FIVE_PAST_TIMESTAMP_MS = String(new Date(FIVE_PAST_NOON).getTime());
+const FIVE_PAST_FORMATTED = '2023-04-14T12:05:00';
+const FIVE_PAST_MS = String(new Date(FIVE_PAST_FORMATTED).getTime());
+const FIVE_PAST_SEC = String(new Date(FIVE_PAST_FORMATTED).getTime() / 1000);
 
 function mockQuery(query: Record<string, string>) {
   MockUseLocation.mockReturnValue({
@@ -60,7 +60,7 @@ describe('useInitialTimeOffsetMs', () => {
       const offsetInSeconds = 23;
       mockQuery({
         t: String(offsetInSeconds),
-        event_t: FIVE_PAST_NOON,
+        event_t: FIVE_PAST_FORMATTED,
         query: 'click.tag:button',
       });
 
@@ -81,9 +81,9 @@ describe('useInitialTimeOffsetMs', () => {
 
   describe('fromEventTimestamp', () => {
     it.each([
-      {case: 'fromatted date', input: FIVE_PAST_NOON},
-      {case: 'unix timestamp (seconds)', input: FIVE_PAST_TIMESTAMP_S},
-      {case: 'unit timestamp (ms)', input: FIVE_PAST_TIMESTAMP_MS},
+      {case: 'formatted date', input: FIVE_PAST_FORMATTED},
+      {case: 'unit timestamp (ms)', input: FIVE_PAST_MS},
+      {case: 'unix timestamp (seconds)', input: FIVE_PAST_SEC},
     ])(
       'should calculate the difference between an event timestamp ($case) and the replay start timestamp',
       async ({input}) => {
@@ -108,7 +108,7 @@ describe('useInitialTimeOffsetMs', () => {
     );
 
     it('should return 0 offset if there is no replayStartTimetsamp, then recalculate when the startTimestamp appears', async () => {
-      mockQuery({event_t: FIVE_PAST_NOON});
+      mockQuery({event_t: FIVE_PAST_FORMATTED});
 
       const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(
         useInitialTimeOffsetMs,
@@ -139,7 +139,7 @@ describe('useInitialTimeOffsetMs', () => {
 
     it('should prefer reading `event_t` over the other search query params', async () => {
       mockQuery({
-        event_t: FIVE_PAST_NOON,
+        event_t: FIVE_PAST_FORMATTED,
         query: 'click.tag:button',
       });
       MockFetchReplayClicks.mockResolvedValue({
@@ -186,7 +186,7 @@ describe('useInitialTimeOffsetMs', () => {
       MockFetchReplayClicks.mockResolvedValue({
         fetchError: undefined,
         pageLinks: '',
-        clicks: [{node_id: 7, timestamp: FIVE_PAST_NOON}],
+        clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
       const {result, waitForNextUpdate} = reactHooks.renderHook(useInitialTimeOffsetMs, {
@@ -216,7 +216,7 @@ describe('useInitialTimeOffsetMs', () => {
       MockFetchReplayClicks.mockResolvedValue({
         fetchError: undefined,
         pageLinks: '',
-        clicks: [{node_id: 7, timestamp: FIVE_PAST_NOON}],
+        clicks: [{node_id: 7, timestamp: FIVE_PAST_FORMATTED}],
       });
 
       const {result, rerender, waitForNextUpdate} = reactHooks.renderHook(
