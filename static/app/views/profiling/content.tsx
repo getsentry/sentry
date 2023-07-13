@@ -274,7 +274,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   ) ? (
                     <Fragment>
                       <ProfilesChartWidget
-                        chartHeight={100}
+                        chartHeight={150}
                         referrer="api.profiling.landing-chart"
                         userQuery={query}
                         selection={selection}
