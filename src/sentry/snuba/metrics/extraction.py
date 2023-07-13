@@ -97,7 +97,7 @@ _COUNTIF_TO_RELAY_OPERATORS: Dict[str, "CompareOp"] = {
 
 # Maps plain Discover functions to metric aggregation functions. Derived metrics
 # are not part of this mapping.
-_SEARCH_TO_METRIC_AGGREGATES: Dict[str, Optional[MetricOperationType]] = {
+_SEARCH_TO_METRIC_AGGREGATES: Dict[str, MetricOperationType] = {
     "count": "sum",
     "count_if": "sum",
     "avg": "avg",
@@ -281,6 +281,18 @@ class OndemandMetricSpec:
     Contains the information required to query or extract an on-demand metric.
     """
 
+    # The data type of the metric to extract.
+    metric_type: str
+    # The payload field to extract the metric value from. Empty for counters.
+    field: Optional[str]
+    # The aggregation to execute on the metric.
+    op: MetricOperationType
+
+    # The original query used to construct the metric spec.
+    _query: str
+    # Rule condition parsed from the aggregate field expression.
+    _field_condition: Optional[RuleCondition]
+
     def __init__(self, field: str, query: str):
         """
         Parses a selected column and query into an on demand metric spec containing the MRI, field and op.
@@ -307,9 +319,11 @@ class OndemandMetricSpec:
 
         # TODO: Add support for derived metrics: failure_rate, apdex, eps, epm, tps, tpm
         function, arguments, _alias = fields.parse_function(aggregate)
-        self.metric_type = _AGGREGATE_TO_METRIC_TYPE.get(function)
-        self.op = _SEARCH_TO_METRIC_AGGREGATES.get(function)
-        assert self.metric_type and self.op, f"Unsupported aggregate function {function}"
+        assert (
+            function in _AGGREGATE_TO_METRIC_TYPE and function in _SEARCH_TO_METRIC_AGGREGATES
+        ), f"Unsupported aggregate function {function}"
+        self.metric_type = _AGGREGATE_TO_METRIC_TYPE[function]
+        self.op = _SEARCH_TO_METRIC_AGGREGATES[function]
 
         self.field = None
         self._field_condition = None
@@ -324,6 +338,7 @@ class OndemandMetricSpec:
 
     @property
     def mri(self) -> str:
+        """The unique identifier of the on-demand metric."""
         return f"{self.metric_type}:{CUSTOM_ALERT_METRIC_NAME}@none"
 
     def query_hash(self) -> str:
@@ -337,15 +352,18 @@ class OndemandMetricSpec:
         """Returns a condition that should be fulfilled for the on-demand metric to be extracted."""
 
         tokens = event_search.parse_search_query(self._query)
-        assert tokens, "This query should not use on demand metrics"
+        if not tokens:
+            assert self._field_condition is not None, "This query should not use on demand metrics"
+            return self._field_condition
+
         condition = SearchQueryConverter(tokens).convert()
+        if not self._field_condition:
+            return condition
 
-        if self._field_condition is not None:
-            if condition["op"] == "and":
-                condition["inner"].append(self._field_condition)
-            else:
-                condition = {"op": "and", "inner": [condition, self._field_condition]}
+        if condition["op"] != "and":
+            return {"op": "and", "inner": [condition, self._field_condition]}
 
+        condition["inner"].append(self._field_condition)
         return condition
 
 
