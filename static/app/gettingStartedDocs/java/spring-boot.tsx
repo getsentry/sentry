@@ -63,12 +63,12 @@ export const steps = ({
         description: <h5>{t('Graddle')}</h5>,
         configurations: [
           {
-            language: 'groovy',
+            language: 'properties',
             description: <strong>{t('Spring Boot 2')}</strong>,
             code: "implementation 'io.sentry:sentry-spring-boot-starter:{{@inject packages.version('sentry.java.spring-boot', '4.0.0') }}'",
           },
           {
-            language: 'groovy',
+            language: 'properties',
             description: <strong>{t('Spring Boot 3')}</strong>,
             code: "implementation 'io.sentry:sentry-spring-boot-starter-jakarta:{{@inject packages.version('sentry.java.spring-boot.jakarta', '6.7.0') }}'",
           },
@@ -187,7 +187,7 @@ export const steps = ({
         description: <h5>{t('Gradle')}</h5>,
         configurations: [
           {
-            language: 'groovy',
+            language: 'properties',
             code: "implementation 'io.sentry:sentry-logback:{{@inject packages.version('sentry.java.logback', '4.0.0') }}'",
           },
           {
