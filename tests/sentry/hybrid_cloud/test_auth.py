@@ -5,9 +5,10 @@ from sentry.services.hybrid_cloud.auth import (
     RpcOrganizationAuthConfig,
     auth_service,
 )
+from sentry.silo import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import use_real_service
-from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.pytest.fixtures import django_db_all
 
 
@@ -19,7 +20,7 @@ def test_get_org_auth_config():
     org_without_api_keys = Factories.create_organization()
     Factories.create_organization()  # unrelated, not in the results.
 
-    with exempt_from_silo_limits():
+    with assume_test_silo_mode(SiloMode.CONTROL):
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ap = AuthProvider.objects.create(

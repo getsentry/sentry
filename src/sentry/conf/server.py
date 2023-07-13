@@ -88,8 +88,6 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
-ADMIN_ENABLED = DEBUG
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -358,7 +356,6 @@ TEMPLATES = [
 ]
 
 INSTALLED_APPS = (
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.messages",
@@ -1082,16 +1079,10 @@ CELERYBEAT_SCHEDULE_REGION = {
         # TODO: Increase expiry time to x4 once we change this to run weekly
         "options": {"expires": 60 * 60 * 3},
     },
-    "schedule_auto_transition_new": {
-        "task": "sentry.tasks.schedule_auto_transition_new",
-        # Run job every 6 hours
+    "schedule_auto_transition_to_ongoing": {
+        "task": "sentry.tasks.schedule_auto_transition_to_ongoing",
+        # Run job every 10 minutes
         "schedule": crontab(minute="*/10"),
-        "options": {"expires": 3600},
-    },
-    "schedule_auto_transition_regressed": {
-        "task": "sentry.tasks.schedule_auto_transition_regressed",
-        # Run job every 6 hours
-        "schedule": crontab(minute=0, hour="*/6"),
         "options": {"expires": 3600},
     },
     "schedule_auto_archive_issues": {
@@ -1423,8 +1414,6 @@ SENTRY_FEATURES = {
     # NOTE: This flag does not concern transactions rewritten by clusterer rules.
     # Those are always marked as "sanitized".
     "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Normalize transactions from legacy SDKs (source:unknown).
-    "organizations:transaction-name-normalize-legacy": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1561,8 +1550,9 @@ SENTRY_FEATURES = {
     "organizations:session-replay-sdk-errors-only": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
-    "organizations:session-replay-weekly-email": False,
     "organizations:session-replay-issue-emails": False,
+    "organizations:session-replay-weekly-email": False,
+    "organizations:session-replay-trace-table": False,
     # Enable the new suggested assignees feature
     "organizations:streamline-targeting-context": False,
     # Enable the new experimental starfish view
@@ -1721,7 +1711,7 @@ SENTRY_PROJECT_KEY = None
 SENTRY_ORGANIZATION = None
 
 # Project ID for recording frontend (javascript) exceptions
-SENTRY_FRONTEND_PROJECT = None
+SENTRY_FRONTEND_PROJECT: int | None = None
 # DSN for the frontend to use explicitly, which takes priority
 # over SENTRY_FRONTEND_PROJECT or SENTRY_PROJECT
 SENTRY_FRONTEND_DSN: str | None = None
@@ -2674,7 +2664,7 @@ SENTRY_MAX_AVATAR_SIZE = 5000000
 SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
 
 # statuspage.io support
-STATUS_PAGE_ID = None
+STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
 
 SENTRY_SELF_HOSTED = True
@@ -3254,8 +3244,8 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 # This is enabled in production
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
-# How long is the migration phase for grouping updates?
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
+# How long the migration phase for grouping lasts
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3612,3 +3602,6 @@ DEVSERVER_START_KAFKA_CONSUMERS: MutableSequence[str] = []
 # If set to True, buffer.incr will be spawned as background celery task. If false it's a direct call
 # to the buffer service.
 SENTRY_BUFFER_INCR_AS_CELERY_TASK = False
+
+# Feature flag to turn off role-swapping to help bridge getsentry transition.
+USE_ROLE_SWAPPING_IN_TESTS = True

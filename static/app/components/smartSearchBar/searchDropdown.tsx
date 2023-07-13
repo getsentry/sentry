@@ -348,10 +348,7 @@ function DropdownItem({
   } else if (item.type === ItemType.RECOMMENDED) {
     children = (
       <RecommendedItem>
-        <div>{item.title}</div>
-        {item.desc && (
-          <RecommendedItemDescription>{item.desc}</RecommendedItemDescription>
-        )}
+        <RecommendedItemTitle>{item.title}</RecommendedItemTitle>
       </RecommendedItem>
     );
   } else {
@@ -661,8 +658,6 @@ const RecommendedItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const RecommendedItemDescription = styled('div')`
+const RecommendedItemTitle = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.subText};
 `;

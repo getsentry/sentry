@@ -6,8 +6,9 @@ from django.urls import reverse
 from sentry.models import AuthProvider, OrganizationMember
 from sentry.models.authidentity import AuthIdentity
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
+from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, SCIMAzureTestCase, SCIMTestCase
-from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, no_silo_test, region_silo_test
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -42,7 +43,7 @@ class SCIMMemberTestsPermissions(APITestCase):
         assert response.status_code == 403
 
     def test_cant_use_scim_even_with_authprovider(self):
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         url = reverse("sentry-api-0-organization-scim-member-index", args=[self.organization.slug])
         response = self.client.get(url)
@@ -355,7 +356,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -374,14 +375,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
+        with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_dict(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -400,14 +401,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
+        with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_with_bool_string(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -426,14 +427,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
+        with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_user_details_set_inactive_with_dict_bool_string(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -452,14 +453,14 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
-        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
+        with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_invalid_patch_op(self):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -479,7 +480,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         member = self.create_member(
             user=self.create_user(email="test.user@okta.local"), organization=self.organization
         )
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -517,7 +518,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
 
     def test_delete_route(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
-        with exempt_from_silo_limits():
+        with assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.create(
                 user_id=member.user_id, auth_provider=self.auth_provider, ident="test_ident"
             )
@@ -529,7 +530,7 @@ class SCIMMemberDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
-        with pytest.raises(AuthIdentity.DoesNotExist), exempt_from_silo_limits():
+        with pytest.raises(AuthIdentity.DoesNotExist), assume_test_silo_mode(SiloMode.CONTROL):
             AuthIdentity.objects.get(auth_provider=self.auth_provider, id=member.id)
 
     def test_patch_inactive_alternate_schema(self):

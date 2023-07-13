@@ -54,6 +54,15 @@
 /src/sentry/api/authentication.py                        @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/enterprise
 /src/sentry/api/endpoints/user_permission*               @getsentry/security @getsentry/enterprise
+/src/sentry/web/frontend/auth_close.py                   @getsentry/security
+/src/sentry/web/frontend/auth_login.py                   @getsentry/security
+/src/sentry/web/frontend/auth_logout.py                  @getsentry/security
+/src/sentry/web/frontend/auth_organization_id_login.py   @getsentry/security
+/src/sentry/web/frontend/auth_organization_login.py      @getsentry/security
+/src/sentry/web/frontend/auth_provider_login.py          @getsentry/security
+/src/sentry/web/frontend/oauth_token.py                  @getsentry/security
+/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security
+/src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 
 ## Dev
 /.github/                                                @getsentry/owners-sentry-dev

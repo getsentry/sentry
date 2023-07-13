@@ -14,6 +14,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
   GroupActivityAssigned,
+  GroupActivitySetEscalating,
   GroupActivitySetIgnored,
   GroupActivityType,
   Organization,
@@ -95,7 +96,10 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
       });
     }
 
-    return tct('[author] [action] this issue', {author, action: ignoredOrArchived});
+    return tct('[author] [action] this issue forever', {
+      author,
+      action: ignoredOrArchived,
+    });
   }
 
   function getAssignedMessage(data: GroupActivityAssigned['data']) {
@@ -146,6 +150,76 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
         )}
       </Fragment>
     );
+  }
+
+  function getEscalatingMessage(data: GroupActivitySetEscalating['data']) {
+    if (data.forecast) {
+      return tct(
+        '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
+        {
+          author,
+          forecast: data.forecast,
+          event: data.forecast === 1 ? 'event' : 'events',
+        }
+      );
+    }
+
+    if (data.expired_snooze) {
+      if (data.expired_snooze.count && data.expired_snooze.window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened in [duration]',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+            duration: <Duration seconds={data.expired_snooze.window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [event] happened',
+          {
+            author,
+            count: data.expired_snooze.count,
+            event: data.expired_snooze.count === 1 ? 'event' : 'events',
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count && data.expired_snooze.user_window) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected in [duration]',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+            duration: <Duration seconds={data.expired_snooze.user_window * 60} />,
+          }
+        );
+      }
+
+      if (data.expired_snooze.user_count) {
+        return tct(
+          '[author] flagged this issue as escalating because [count] [user] affected',
+          {
+            author,
+            count: data.expired_snooze.user_count,
+            user: data.expired_snooze.user_count === 1 ? 'user was' : 'users were',
+          }
+        );
+      }
+
+      if (data.expired_snooze.until) {
+        return tct('[author] flagged this issue as escalating because [date] passed', {
+          author,
+          date: <DateTime date={data.expired_snooze.until} />,
+        });
+      }
+    }
+
+    return tct('[author] flagged this issue as escalating', {author}); // should not reach this
   }
 
   function renderContent() {
@@ -393,14 +467,7 @@ function GroupActivityItem({activity, organization, projectId, author}: Props) {
             });
       }
       case GroupActivityType.SET_ESCALATING: {
-        return tct(
-          '[author] flagged this issue as escalating because over [forecast] [event] happened in an hour',
-          {
-            author,
-            forecast: activity.data.forecast,
-            event: activity.data.forecast === 1 ? 'event' : 'events',
-          }
-        );
+        return getEscalatingMessage(activity.data);
       }
 
       default:
