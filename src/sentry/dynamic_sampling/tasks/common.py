@@ -192,7 +192,6 @@ class GetActiveOrgs:
         """
         Return true if we have enough data to return a full batch in the cache (i.e. last_result)
         """
-
         if len(self.last_result) >= self.max_orgs:
             return True
 
