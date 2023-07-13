@@ -486,7 +486,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto ${space(1)};
+  grid-template-columns: 1fr auto ${space(2)} + ${space(1)}; /* sm icon size + left margin */
   align-items: center;
 `;
 
