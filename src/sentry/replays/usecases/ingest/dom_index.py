@@ -3,12 +3,10 @@ import random
 import time
 import uuid
 from hashlib import md5
-from typing import Any, Dict, List, Literal, Optional, TypedDict, cast
+from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
-from sentry.replays.usecases.ingest.dead_click import report_dead_click_issue
-from sentry.replays.usecases.ingest.events import SentryEvent
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -33,6 +31,8 @@ ReplayActionsEventPayloadClick = TypedDict(
         "text": str,
         "timestamp": int,
         "title": str,
+        "is_dead": int,
+        "is_rage": int,
     },
 )
 
@@ -140,16 +140,29 @@ def get_user_actions(
             payload = event["data"].get("payload", {})
             category = payload.get("category")
             if category == "ui.slowClickDetected":
+                is_timeout_reason = payload["data"].get("endReason") == "timeout"
+                is_target_tagname = payload["data"].get("node", {}).get("tagName") in (
+                    "a",
+                    "button",
+                )
+                if is_timeout_reason and is_target_tagname:
+                    is_rage = payload["data"].get("clickcount", 0) >= 3
+                    click = create_click_event(payload, replay_id, is_dead=True, is_rage=is_rage)
+                    if click is not None:
+                        result.append(click)
+
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()
                 log["project_id"] = project_id
                 log["replay_id"] = replay_id
                 log["dom_tree"] = log.pop("message")
                 logger.info("sentry.replays.slow_click", extra=log)
-
-                report_dead_click_issue(project_id, replay_id, cast(SentryEvent, event))
                 continue
             elif category == "ui.multiClick":
+                click = create_click_event(payload, replay_id, is_dead=False, is_rage=True)
+                if click is not None:
+                    result.append(click)
+
                 # Log the event for tracking.
                 log = event["data"].get("payload", {}).copy()
                 log["project_id"] = project_id
@@ -158,34 +171,22 @@ def get_user_actions(
                 logger.info("sentry.replays.slow_click", extra=log)
                 continue
             elif category == "ui.click":
-                node = payload.get("data", {}).get("node")
-                if node is None:
-                    continue
-
-                attributes = node.get("attributes", {})
-                result.append(
-                    {
-                        "node_id": node["id"],
-                        "tag": node["tagName"][:32],
-                        "id": attributes.get("id", "")[:64],
-                        "class": attributes.get("class", "").split(" ")[:10],
-                        "text": node["textContent"][:1024],
-                        "role": attributes.get("role", "")[:32],
-                        "alt": attributes.get("alt", "")[:64],
-                        "testid": _get_testid(attributes)[:64],
-                        "aria_label": attributes.get("aria-label", "")[:64],
-                        "title": attributes.get("title", "")[:64],
-                        "timestamp": int(payload["timestamp"]),
-                        "event_hash": encode_as_uuid(
-                            "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
-                        ),
-                    }
-                )
+                click = create_click_event(payload, replay_id, is_dead=False, is_rage=False)
+                if click is not None:
+                    result.append(click)
+                continue
 
         # look for request / response breadcrumbs and report metrics on them
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "performanceSpan":
             if event["data"].get("payload", {}).get("op") in ("resource.fetch", "resource.xhr"):
                 event_payload_data = event["data"]["payload"]["data"]
+
+                # The data key is sometimes submitted as an string. If any type other than a
+                # dictionary is provided default the value to an empty dict.
+                #
+                # TODO: Refactor this area in a later release.
+                if not isinstance(event_payload_data, dict):
+                    event_payload_data = {}
 
                 # these first two cover SDKs 7.44 and 7.45
                 if event_payload_data.get("requestBodySize"):
@@ -258,3 +259,35 @@ def _initialize_publisher() -> KafkaPublisher:
 
 def encode_as_uuid(message: str) -> str:
     return str(uuid.UUID(md5(message.encode()).hexdigest()))
+
+
+def create_click_event(
+    payload: Dict[str, Any],
+    replay_id: str,
+    is_dead: bool,
+    is_rage: bool,
+) -> Optional[ReplayActionsEventPayloadClick]:
+    node = payload.get("data", {}).get("node")
+    if node is None:
+        return None
+
+    attributes = node.get("attributes", {})
+
+    return {
+        "node_id": node["id"],
+        "tag": node["tagName"][:32],
+        "id": attributes.get("id", "")[:64],
+        "class": attributes.get("class", "").split(" ")[:10],
+        "text": node["textContent"][:1024],
+        "role": attributes.get("role", "")[:32],
+        "alt": attributes.get("alt", "")[:64],
+        "testid": _get_testid(attributes)[:64],
+        "aria_label": attributes.get("aria-label", "")[:64],
+        "title": attributes.get("title", "")[:64],
+        "is_dead": int(is_dead),
+        "is_rage": int(is_rage),
+        "timestamp": int(payload["timestamp"]),
+        "event_hash": encode_as_uuid(
+            "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
+        ),
+    }

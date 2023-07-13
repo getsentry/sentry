@@ -47,7 +47,12 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.notifications.utils import get_group_settings_link, get_interface_list, get_rules
+from sentry.notifications.utils import (
+    get_group_settings_link,
+    get_interface_list,
+    get_issue_replay_link,
+    get_rules,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import SAMPLE_TO_OCCURRENCE_MAP, TEST_ISSUE_OCCURRENCE
 from sentry.types.group import GroupSubStatus
@@ -157,7 +162,7 @@ def make_group_generator(random, project):
             status=random.choice((GroupStatus.UNRESOLVED, GroupStatus.RESOLVED)),
             data={"type": "default", "metadata": {"title": message}},
         )
-
+        group.has_replays = lambda: random.choice((True, False))  # type: ignore[method-assign]
         if random.random() < 0.8:
             group.data = make_group_metadata(random, group)
 
@@ -405,6 +410,7 @@ class ActivityMailDebugView(View):
 
 
 has_issue_states = True
+replay_id = "9188182919744ea987d8e4e58f4a6dec"
 
 
 @login_required
@@ -445,6 +451,8 @@ def alert(request):
             "subtitle": random.choice(["subtitles are cool", None]),
             "issue_type": group.issue_type.description,
             "has_issue_states": has_issue_states,
+            "replay_id": replay_id,
+            "issue_replays_url": get_issue_replay_link(group, "?referrer=alert_email"),
         },
     ).render(request)
 
@@ -459,7 +467,7 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state = {
+    state: dict[str, Any] = {
         "project": project,
         "groups": {},
         "rules": rules,
@@ -561,6 +569,7 @@ def digest(request):
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
 
+    context["show_replay_links"] = True
     context["snooze_alert"] = True
     context["snooze_alert_urls"] = {
         rule.id: f"{rule.status_url}?{urlencode({'mute': '1'})}" for rule in rule_details

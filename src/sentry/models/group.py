@@ -238,6 +238,22 @@ def get_oldest_or_latest_event_for_environments(
     return None
 
 
+def get_replay_count_for_group(group: Group) -> int:
+    events = eventstore.backend.get_events(
+        filter=eventstore.Filter(
+            conditions=[["replayId", "!=", None]],
+            project_ids=[group.project_id],
+            group_ids=[group.id],
+        ),
+        limit=1,
+        orderby=EventOrdering.MOST_HELPFUL,
+        referrer="Group.get_replay_count_for_group",
+        dataset=Dataset.Events,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    return events
+
+
 def get_helpful_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
@@ -602,6 +618,9 @@ class Group(Model):
 
     def is_resolved(self):
         return self.get_status() == GroupStatus.RESOLVED
+
+    def has_replays(self):
+        return get_replay_count_for_group(self) > 0
 
     def get_status(self):
         # XXX(dcramer): GroupSerializer reimplements this logic

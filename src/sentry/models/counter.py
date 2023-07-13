@@ -13,8 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.silo import SiloMode
+from sentry.silo import SiloMode, unguarded_write
 
 
 @region_silo_only_model
@@ -103,7 +102,7 @@ def create_counter_function(app_config, using, **kwargs):
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         return
 
-    with in_test_psql_role_override("postgres", using), connections[using].cursor() as cursor:
+    with unguarded_write(using), connections[using].cursor() as cursor:
         cursor.execute(
             """
             create or replace function sentry_increment_project_counter(

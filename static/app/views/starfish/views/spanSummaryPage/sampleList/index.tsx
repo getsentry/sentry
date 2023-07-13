@@ -22,15 +22,19 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
     undefined
   );
+  const detailKey =
+    groupId && transactionName && transactionMethod
+      ? `${groupId}:${transactionName}:${transactionMethod}`
+      : undefined;
 
   return (
     <PageErrorProvider>
       <DetailPanel
-        detailKey={groupId}
+        detailKey={detailKey}
         onClose={() => {
           router.push({
             pathname: router.location.pathname,
-            query: omit(router.location.query, 'transaction'),
+            query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
       >

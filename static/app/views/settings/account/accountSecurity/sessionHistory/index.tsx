@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
-import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Panel from 'sentry/components/panels/panel';
+import PanelBody from 'sentry/components/panels/panelBody';
+import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import {InternetProtocol} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import AsyncView from 'sentry/views/asyncView';
+import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 import SessionRow from './sessionRow';
@@ -18,14 +20,14 @@ type Props = RouteComponentProps<{}, {}>;
 
 type State = {
   ipList: Array<InternetProtocol> | null;
-} & AsyncView['state'];
+} & DeprecatedAsyncView['state'];
 
-class SessionHistory extends AsyncView<Props, State> {
+class SessionHistory extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return t('Session History');
   }
 
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     return [['ipList', '/users/me/ips/']];
   }
 
