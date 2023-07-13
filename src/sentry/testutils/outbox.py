@@ -48,7 +48,7 @@ def assert_webhook_outboxes(
     webhook_identifier: WebhookProviderIdentifier,
     region_names: List[str],
 ):
-    expected_payload = ControlOutbox.get_webhook_payload_from_request(request=factory_request)  # type: ignore
+    expected_payload = ControlOutbox.get_webhook_payload_from_request(request=factory_request)
     expected_payload_dict = dataclasses.asdict(expected_payload)
     assert ControlOutbox.objects.count() == len(region_names)
     region_names_set = set(region_names)

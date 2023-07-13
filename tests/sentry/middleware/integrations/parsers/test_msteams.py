@@ -1,24 +1,18 @@
 from copy import deepcopy
-from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
 from django.http import HttpResponse
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
-from rest_framework.test import APIRequestFactory
 
 from sentry.middleware.integrations.integration_control import IntegrationControlMiddleware
 from sentry.middleware.integrations.parsers.msteams import MsTeamsRequestParser
 from sentry.models import Integration
-from sentry.models.outbox import (
-    ControlOutbox,
-    OutboxCategory,
-    OutboxScope,
-    WebhookProviderIdentifier,
-)
+from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
 from sentry.silo.base import SiloMode
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import assert_webhook_outboxes
 from sentry.testutils.silo import control_silo_test
 from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.msteams.test_helpers import (
@@ -35,7 +29,7 @@ from tests.sentry.integrations.msteams.test_helpers import (
 @control_silo_test(stable=True)
 class MsTeamsRequestParserTest(TestCase):
     get_response = MagicMock(return_value=HttpResponse(content=b"no-error", status=200))
-    factory = APIRequestFactory()
+    factory = RequestFactory()
     path = f"{IntegrationControlMiddleware.integration_prefix}msteams/webhook/"
     region = Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT)
 
@@ -119,27 +113,11 @@ class MsTeamsRequestParserTest(TestCase):
             parser, "get_regions_from_organizations", return_value=[self.region]
         ):
             parser.get_response()
-
-            assert ControlOutbox.objects.count() == 1
-            outbox = ControlOutbox.objects.first()
-            expected_payload: Any = {
-                "method": "POST",
-                "path": self.path,
-                "uri": f"http://testserver{self.path}",
-                "headers": {
-                    "Authorization": f"Bearer {TOKEN}",
-                    "Content-Length": "123",
-                    "Content-Type": "application/json",
-                    "Cookie": "",
-                },
-                "body": request.body.decode(encoding="utf-8"),
-            }
-
-            assert outbox.shard_scope == OutboxScope.WEBHOOK_SCOPE
-            assert outbox.shard_identifier == WebhookProviderIdentifier.MSTEAMS
-            assert outbox.category == OutboxCategory.WEBHOOK_PROXY
-            assert outbox.region_name == self.region.name
-            assert outbox.payload == expected_payload
+            assert_webhook_outboxes(
+                factory_request=request,
+                webhook_identifier=WebhookProviderIdentifier.JIRA,
+                region_names=[self.region.name],
+            )
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_get_integration_from_request(self):
