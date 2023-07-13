@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  it('should comparse selected past crash rate with current week', async () => {
+  it('should compare selected past crash rate with current week', async () => {
     const sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
       body: TestStubs.SessionStatusCountByProjectInPeriod(),
