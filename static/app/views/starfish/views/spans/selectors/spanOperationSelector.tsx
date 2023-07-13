@@ -1,5 +1,6 @@
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
@@ -7,10 +8,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {ModuleName, SpanMetricsFields} from 'sentry/views/starfish/types';
+import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
-import {NULL_SPAN_CATEGORY} from 'sentry/views/starfish/views/webServiceView/spanGroupBreakdownContainer';
 
-const {SPAN_MODULE, SPAN_OP, SPAN_DESCRIPTION} = SpanMetricsFields;
+const {SPAN_OP} = SpanMetricsFields;
 
 type Props = {
   value: string;
@@ -60,29 +61,17 @@ export function SpanOperationSelector({
 }
 
 function getEventView(location: Location, moduleName: ModuleName, spanCategory?: string) {
-  const queryConditions: string[] = [];
-  queryConditions.push(`has:${SPAN_DESCRIPTION}`);
-  if (moduleName) {
-    queryConditions.push(`${SPAN_MODULE}:${moduleName}`);
-  }
-
-  if (moduleName === ModuleName.DB) {
-    queryConditions.push(`!${SPAN_OP}:db.redis`);
-  }
-
-  if (spanCategory) {
-    if (spanCategory === NULL_SPAN_CATEGORY) {
-      queryConditions.push(`!has:span.category`);
-    } else if (spanCategory !== 'Other') {
-      queryConditions.push(`span.category:${spanCategory}`);
-    }
-  }
+  const query = buildEventViewQuery({
+    moduleName,
+    location: {...location, query: omit(location.query, SPAN_OP)},
+    spanCategory,
+  }).join(' ');
   return EventView.fromNewQueryWithLocation(
     {
       name: '',
       fields: [SPAN_OP, 'count()'],
       orderby: '-count',
-      query: queryConditions.join(' '),
+      query,
       dataset: DiscoverDatasets.SPANS_METRICS,
       version: 2,
     },
