@@ -6,7 +6,7 @@ from datetime import timedelta
 import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column
@@ -34,15 +34,15 @@ REGRESSION = "regression"
 ANY = "any"
 TREND_TYPES = [IMPROVED, REGRESSION, ANY]
 
-TOP_EVENTS_LIMIT = 50
-EVENTS_PER_QUERY = 10
+TOP_EVENTS_LIMIT = 45
+EVENTS_PER_QUERY = 15
 DAY_GRANULARITY_IN_SECONDS = METRICS_GRANULARITIES[0]
 ONE_DAY_IN_SECONDS = 24 * 60 * 60  # 86,400 seconds
 
-DEFAULT_RATE_LIMIT = 10
+DEFAULT_RATE_LIMIT = 15
 DEFAULT_RATE_LIMIT_WINDOW = 1
-DEFAULT_CONCURRENT_RATE_LIMIT = 10
-ORGANIZATION_RATE_LIMIT = 25
+DEFAULT_CONCURRENT_RATE_LIMIT = 15
+ORGANIZATION_RATE_LIMIT = 30
 
 ads_connection_pool = connection_from_url(
     settings.ANOMALY_DETECTION_URL,
@@ -157,12 +157,23 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
 
             timeseries_columns = selected_columns.copy()
             timeseries_columns.append(trend_function)
+
+            # When all projects or my projects options selected,
+            # keep only projects that had top events to reduce query cardinality
+            used_project_ids = list({event["project"] for event in data})
+
             request.yAxis = selected_columns
+            request.GET.projectSlugs = used_project_ids
+
+            # Get new params with pruned projects
+            pruned_params = self.get_snuba_params(request, organization)
+            pruned_params["start"] = modified_params["start"]
+            pruned_params["end"] = modified_params["end"]
 
             result = metrics_performance.bulk_timeseries_query(
                 timeseries_columns,
                 queries,
-                modified_params,
+                pruned_params,
                 rollup=rollup,
                 zerofill_results=zerofill_results,
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
@@ -332,7 +343,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 "events": self.handle_results_with_meta(
                     request,
                     organization,
-                    modified_params["project_id"],
+                    params["project_id"],
                     {"data": results["data"], "meta": {"isMetricsData": True}},
                     True,
                 ),
@@ -347,7 +358,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 else {},
             }
 
-        try:
+        with self.handle_query_errors():
             stats_data = self.get_event_stats_data(
                 request,
                 organization,
@@ -367,7 +378,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                         "events": self.handle_results_with_meta(
                             request,
                             organization,
-                            modified_params["project_id"],
+                            params["project_id"],
                             {"data": [], "meta": {"isMetricsData": True}},
                             True,
                         ),
@@ -381,14 +392,10 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 trends_requests,
             ) = get_trends_data(stats_data, request)
 
-            with self.handle_query_errors():
-                return self.paginate(
-                    request=request,
-                    paginator=GenericOffsetPaginator(data_fn=paginate_trending_events),
-                    on_results=get_stats_data_for_trending_events,
-                    default_per_page=5,
-                    max_per_page=5,
-                )
-        # TODO check if this is applicable here
-        except ValidationError:
-            return Response({"detail": "Comparison period is outside retention window"}, status=400)
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=paginate_trending_events),
+                on_results=get_stats_data_for_trending_events,
+                default_per_page=5,
+                max_per_page=5,
+            )
