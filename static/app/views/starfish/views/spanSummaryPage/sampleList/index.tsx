@@ -34,7 +34,7 @@ export function SampleList({groupId, transactionName, transactionMethod}: Props)
         onClose={() => {
           router.push({
             pathname: router.location.pathname,
-            query: omit(router.location.query, 'transaction'),
+            query: omit(router.location.query, 'transaction', 'transactionMethod'),
           });
         }}
       >
