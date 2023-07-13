@@ -480,16 +480,7 @@ class MonitorEnvironment(Model):
     def get_audit_log_data(self):
         return {"name": self.environment.name, "status": self.status, "monitor": self.monitor.name}
 
-    def get_last_successful_checkin(self):
-        return (
-            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
-            .order_by("-date_added")
-            .first()
-        )
-
-    def mark_failed(
-        self, last_checkin=None, reason=MonitorFailure.UNKNOWN, occurrence_context=None
-    ):
+    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
         from sentry.signals import monitor_environment_failed
 
         if last_checkin is None:
@@ -538,16 +529,7 @@ class MonitorEnvironment(Model):
             from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
             from sentry.issues.producer import produce_occurrence_to_kafka
 
-            if not occurrence_context:
-                occurrence_context = {}
-
-            occurrence_data = get_occurrence_data(reason, **occurrence_context)
-
-            # Get last successful check-in to show in evidence display
-            last_successful_checkin_timestamp = "None"
-            last_successful_checkin = self.get_last_successful_checkin()
-            if last_successful_checkin:
-                last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
+            occurrence_data = get_occurrence_data(reason)
 
             occurrence = IssueOccurrence(
                 id=uuid.uuid4().hex,
@@ -559,16 +541,14 @@ class MonitorEnvironment(Model):
                 ],
                 type=occurrence_data["group_type"],
                 issue_title=f"Monitor failure: {self.monitor.name}",
-                subtitle=occurrence_data["subtitle"],
+                subtitle="",
                 evidence_display=[
                     IssueEvidence(
                         name="Failure reason", value=occurrence_data["reason"], important=True
                     ),
                     IssueEvidence(name="Environment", value=self.environment.name, important=False),
                     IssueEvidence(
-                        name="Last successful check-in",
-                        value=last_successful_checkin_timestamp,
-                        important=False,
+                        name="Last check-in", value=last_checkin.isoformat(), important=False
                     ),
                 ],
                 evidence_data={},
@@ -633,30 +613,13 @@ class MonitorEnvironment(Model):
         MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
 
 
-def get_occurrence_data(reason: str, **kwargs):
+def get_occurrence_data(reason: str):
     if reason == MonitorFailure.MISSED_CHECKIN:
-        expected_time = kwargs.get("expected_time", "the expected time")
-        return {
-            "group_type": MonitorCheckInMissed,
-            "level": "warning",
-            "reason": "missed_checkin",
-            "subtitle": f"No check-in reported at {expected_time}.",
-        }
+        return {"group_type": MonitorCheckInMissed, "level": "warning", "reason": "missed_checkin"}
     elif reason == MonitorFailure.DURATION:
-        timeout = kwargs.get("timeout", 30)
-        return {
-            "group_type": MonitorCheckInTimeout,
-            "level": "error",
-            "reason": "duration",
-            "subtitle": f"Check-in exceeded maximum duration of {timeout} minutes.",
-        }
+        return {"group_type": MonitorCheckInTimeout, "level": "error", "reason": "duration"}
 
-    return {
-        "group_type": MonitorCheckInFailure,
-        "level": "error",
-        "reason": "error",
-        "subtitle": "An error occurred during the last check-in.",
-    }
+    return {"group_type": MonitorCheckInFailure, "level": "error", "reason": "error"}
 
 
 @receiver(pre_save, sender=MonitorEnvironment)
