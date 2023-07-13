@@ -1,5 +1,6 @@
 from typing import List, Optional
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping import (
     OrganizationMappingService,
@@ -7,7 +8,6 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
 )
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
-from sentry.testutils.silo import unguarded_write
 
 
 class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
@@ -61,7 +61,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         # TODO: REMOVE FROM GETSENTRY!
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             try:
                 OrganizationMapping.objects.get(organization_id=organization_id).update(**update)
             except OrganizationMapping.DoesNotExist:
@@ -70,7 +70,7 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     def upsert(
         self, organization_id: int, update: RpcOrganizationMappingUpdate
     ) -> RpcOrganizationMapping:
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             org_mapping, _created = OrganizationMapping.objects.update_or_create(
                 organization_id=organization_id, defaults=update
             )

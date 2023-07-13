@@ -1,3 +1,6 @@
+import pytest
+from django.db import ProgrammingError, transaction
+
 from sentry.models import (
     Authenticator,
     OrganizationMember,
@@ -24,6 +27,13 @@ class UserTest(TestCase, HybridCloudTestMixin):
 
         organizations = user.get_orgs()
         assert {_.id for _ in organizations} == {org.id}
+
+    def test_cannot_delete_with_queryset(self):
+        user = self.create_user()
+        assert User.objects.count() == 1
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            User.objects.filter(id=user.id).delete()
+        assert User.objects.count() == 1
 
     def test_hybrid_cloud_deletion(self):
         user = self.create_user()

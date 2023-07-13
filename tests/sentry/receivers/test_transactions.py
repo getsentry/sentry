@@ -1,11 +1,11 @@
 from functools import cached_property
 from unittest.mock import patch
 
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import OrganizationMember, Project
 from sentry.signals import event_processed, transaction_processed
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import unguarded_write
 
 
 class RecordFirstTransactionTest(TestCase):
@@ -84,7 +84,7 @@ class RecordFirstTransactionTest(TestCase):
         )
 
     def test_analytics_event_no_owner(self):
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(organization=self.organization, role="owner").delete()
         assert not self.project.flags.has_transactions
         event = self.store_event(

@@ -6,13 +6,14 @@ from django.db.models import F
 from django.urls import reverse
 
 from sentry import audit_log
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import AuditLogEntry, Authenticator, Organization, OrganizationMember, UserEmail
 from sentry.services.hybrid_cloud.organization.serial import serialize_member
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.api.endpoints.test_user_authenticator_details import assert_security_email_sent
 
 
@@ -445,7 +446,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
             om.update(id=om.id + 1)
 
         self.setup_u2f(om)
@@ -465,7 +466,7 @@ class AcceptOrganizationInviteTest(APITestCase):
 
         # Mutate the OrganizationMember, putting it out of sync with the
         # pending member cookie.
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
             om.update(token="123")
 
         self.setup_u2f(om)

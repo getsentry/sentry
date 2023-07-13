@@ -1,3 +1,4 @@
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -8,12 +9,7 @@ from sentry.silo import SiloMode
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    control_silo_test,
-    region_silo_test,
-    unguarded_write,
-)
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
 
 
 @control_silo_test(stable=True)
@@ -171,7 +167,7 @@ class ReceiverTest(TransactionTestCase, HybridCloudTestMixin):
             self.assert_org_member_mapping(org_member=org_member)
 
         # Update step of receiver
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             org_member.update(role="owner")
         region_outbox = org_member.save_outbox_for_update()
         region_outbox.drain_shard()

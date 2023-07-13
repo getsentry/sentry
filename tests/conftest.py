@@ -152,6 +152,53 @@ def setup_simulate_on_commit(request):
 
 
 @pytest.fixture(autouse=True)
+def protect_hybrid_cloud_writes_and_deletes(request):
+    """
+    Ensure the deletions on any hybrid cloud foreign keys would be recorded to an outbox
+    by preventing any deletes that do not pass through a special 'connection'.
+
+    This logic creates an additional database role which cannot make deletions on special
+    restricted hybrid cloud objects, forcing code that would delete it in tests to explicitly
+    escalate their role -- the hope being that only codepaths that are smart about outbox
+    creation will do so.
+
+    If you are running into issues with permissions to delete objects, consider whether
+    you are deleting an object with a hybrid cloud foreign key pointing to it, and whether
+    there is an 'expected' way to delete it (usually through the ORM .delete() method, but
+    not the QuerySet.delete() or raw SQL delete).
+
+    If you are certain you need to delete the objects in a new codepath, check out User.delete
+    logic to see how to escalate the connection's role in tests.  Make absolutely sure that you
+    create Outbox objects in the same transaction that matches what you delete.
+
+    See sentry.testutils.silo for where the postgres_unprivileged role comes from and
+    how its permissions are assigned.
+    """
+    for conn in connections.all():
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")
+        except (RuntimeError, AssertionError) as e:
+            # Tests that do not have access to the database should pass through.
+            # Ideally we'd use request.fixture names to infer this, but there didn't seem to be a single stable
+            # fixture name that fully covered all cases of database access, so this approach is "try and then fail".
+            if "Database access not allowed" in str(e) or "Database queries to" in str(e):
+                yield
+                return
+            raise e
+
+        with conn.cursor() as cursor:
+            cursor.execute("SET ROLE 'postgres_unprivileged'")
+
+    try:
+        yield
+    finally:
+        for connection in connections.all():
+            with connection.cursor() as cursor:
+                cursor.execute("SET ROLE 'postgres'")
+
+
+@pytest.fixture(autouse=True)
 def audit_hybrid_cloud_writes_and_deletes(request):
     """
     Ensure that write operations on hybrid cloud foreign keys are recorded

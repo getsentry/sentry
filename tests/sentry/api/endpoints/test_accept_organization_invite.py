@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry import audit_log
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     AuthProvider,
@@ -22,7 +23,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.region import override_regions
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, unguarded_write
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.region import Region, RegionCategory
 
 
@@ -155,7 +156,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 ),
             ]
         ):
-            with unguarded_write():
+            with in_test_psql_role_override("postgres"):
                 self.create_organization_mapping(
                     organization_id=101010,
                     slug="abcslug",
@@ -172,7 +173,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 om = OrganizationMember.objects.create(
                     email="newuser@example.com", token="abc", organization_id=self.organization.id
                 )
-            with unguarded_write():
+            with in_test_psql_role_override("postgres"):
                 OrganizationMemberMapping.objects.create(
                     organization_id=101010, organizationmember_id=om.id
                 )
@@ -198,7 +199,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             om = OrganizationMember.objects.create(
                 email="newuser@example.com", token="abc", organization_id=self.organization.id
             )
-        with unguarded_write():
+        with in_test_psql_role_override("postgres"):
             OrganizationMemberMapping.objects.create(
                 organization_id=self.organization.id, organizationmember_id=om.id
             )
@@ -276,7 +277,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        with assume_test_silo_mode(SiloMode.REGION), unguarded_write():
+        with assume_test_silo_mode(SiloMode.REGION), in_test_psql_role_override("postgres"):
             OrganizationMember.objects.filter(id=om.id).update(
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )
