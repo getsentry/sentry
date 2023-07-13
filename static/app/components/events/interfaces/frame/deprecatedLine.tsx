@@ -305,7 +305,11 @@ export class DeprecatedLine extends Component<Props, State> {
               {t('Suspect Frame')}
             </SuspectFrameTag>
           ) : null}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          {!data.inApp ? (
+            <InAppTag>{t('System')}</InAppTag>
+          ) : (
+            <InAppTag type="info">{t('In App')}</InAppTag>
+          )}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -371,7 +375,11 @@ export class DeprecatedLine extends Component<Props, State> {
             />
           </NativeLineContent>
           {this.renderExpander()}
-          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
+          {!data.inApp ? (
+            <InAppTag>{t('System')}</InAppTag>
+          ) : (
+            <InAppTag type="info">{t('In App')}</InAppTag>
+          )}
         </DefaultLine>
       </StrictClick>
     );
@@ -486,7 +494,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto ${space(2)}; /* sm icon size */
   align-items: center;
 `;
 
@@ -496,7 +504,6 @@ const StyledIconRefresh = styled(IconRefresh)`
 
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }
@@ -526,5 +533,9 @@ const IconWrapper = styled('div')`
 `;
 
 const SuspectFrameTag = styled(Tag)`
+  margin-right: ${space(1)};
+`;
+
+const InAppTag = styled(Tag)`
   margin-right: ${space(1)};
 `;
