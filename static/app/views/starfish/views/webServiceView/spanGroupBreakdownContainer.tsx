@@ -136,7 +136,7 @@ export function SpanGroupBreakdownContainer({transaction, transactionMethod}: Pr
       });
     }
 
-    if (otherValue > 0) {
+    if (otherValue > 0 && OTHER_SPAN_GROUP_MODULE in topData) {
       transformedData.push({
         cumulativeTime: otherValue,
         group: {
